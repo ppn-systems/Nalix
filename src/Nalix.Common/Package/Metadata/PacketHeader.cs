@@ -16,40 +16,40 @@ public readonly struct PacketHeader(in IPacket packet)
     /// <summary>
     /// Gets the total length of the packet header, including length, id, type, flags, priority, command, timestamp, checksum and payload.
     /// </summary>
-    public readonly ushort Length = packet.Length;
+    public readonly System.UInt16 Length = packet.Length;
 
     /// <summary>
     /// Gets the command associated with the packet, which can specify an operation or request type.
     /// </summary>
-    public readonly ushort Id = packet.OpCode;
+    public readonly System.UInt16 Id = packet.OpCode;
 
     /// <summary>
     /// Gets the unique identifier for the packet instance.
     /// </summary>
-    public readonly byte Number = packet.Number;
+    public readonly System.Byte Number = packet.Number;
 
     /// <summary>
     /// Gets the checksum of the packet, computed based on the payload. Used for integrity validation.
     /// </summary>
-    public readonly uint Checksum = packet.Checksum;
+    public readonly System.UInt32 Checksum = packet.Checksum;
 
     /// <summary>
     /// Gets the timestamp when the packet was created. This is a unique timestamp based on the system's current time.
     /// </summary>
-    public readonly long Timestamp = packet.Timestamp;
+    public readonly System.Int64 Timestamp = packet.Timestamp;
 
     /// <summary>
     /// Gets the type of the packet, which specifies the kind of packet.
     /// </summary>
-    public readonly byte Type = (byte)packet.Type;
+    public readonly System.Byte Type = (System.Byte)packet.Type;
 
     /// <summary>
     /// Gets or sets the flags associated with the packet, used for additional control or state information.
     /// </summary>
-    public readonly byte Flags = (byte)packet.Flags;
+    public readonly System.Byte Flags = (System.Byte)packet.Flags;
 
     /// <summary>
     /// Gets the priority level of the packet, which can affect how the packet is processed or prioritized.
     /// </summary>
-    public readonly byte Priority = (byte)packet.Priority;
+    public readonly System.Byte Priority = (System.Byte)packet.Priority;
 }

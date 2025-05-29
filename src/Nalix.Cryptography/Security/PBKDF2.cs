@@ -69,7 +69,7 @@ public sealed class PBKDF2 : System.IDisposable
         if (string.IsNullOrEmpty(password))
             throw new System.ArgumentException("Password cannot be empty.", nameof(password));
 
-        System.ReadOnlySpan<byte> passwordBytes = SerializationOptions.Encoding.GetBytes(password);
+        System.ReadOnlySpan<byte> passwordBytes = EncodingOptions.Encoding.GetBytes(password);
 
         return _hashType switch
         {

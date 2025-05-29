@@ -85,11 +85,10 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         {
             System.Diagnostics.Stopwatch? stopwatch = _isMetricsEnabled ? System.Diagnostics.Stopwatch.StartNew() : null;
 
-            if (!this.CheckRateLimit(connection.RemoteEndPoint.ToString()!, attributes))
+            if (!CheckRateLimit(connection.RemoteEndPoint.ToString()!, attributes))
             {
                 _logger?.Warn("Rate limit exceeded on '{0}' from {1}", method.Name, connection.RemoteEndPoint);
                 connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.RateLimited));
-
                 return;
             }
 
@@ -97,97 +96,134 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             {
                 _logger?.Warn("You do not have permission to perform this action.");
                 connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.PermissionDenied));
-
                 return;
             }
 
-            // Handle Compression (e.g., apply compression to packet)
-            try { packet = TPacket.Decompress(packet); }
-            catch (System.Exception ex)
-            {
-                _logger?.Error("Failed to decompress packet: {0}", ex.Message);
-                connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
-
-                return;
-            }
-
-            if (attributes.Encryption?.IsEncrypted == true && !packet.IsEncrypted)
-            {
-                string message = $"Encrypted packet not allowed for command " +
-                                 $"'{attributes.Opcode.OpCode}' " +
-                                 $"from connection {connection.RemoteEndPoint}.";
-
-                _logger?.Warn(message);
-                connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.PacketEncryption));
-
-                return;
-            }
-            else
-            {
-                // Handle Encryption (e.g., apply encryption to packet)
-                packet = TPacket.Decrypt(packet, connection.EncryptionKey, connection.Encryption);
-            }
-
+            // Handle Compression (giải nén nếu cần)
+            TPacket? processedPacket = default;
+            bool needDisposeOriginal = false;
             try
             {
-                object? result;
-
-                // Cache method invocation with improved performance
-                if (attributes.Timeout != null)
+                try
                 {
-                    using System.Threading.CancellationTokenSource cts = new(attributes.Timeout.TimeoutMilliseconds);
+                    var decompressed = TPacket.Decompress(packet);
+                    if (!ReferenceEquals(decompressed, packet))
+                    {
+                        processedPacket = decompressed;
+                        needDisposeOriginal = true;
+                    }
+                    else
+                    {
+                        processedPacket = packet;
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    _logger?.Error("Failed to decompress packet: {0}", ex.Message);
+                    connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
+                    return;
+                }
+
+                TPacket workingPacket = processedPacket;
+
+                // Kiểm tra encryption flag
+                if (attributes.Encryption?.IsEncrypted == true && !workingPacket.IsEncrypted)
+                {
+                    string message = $"Encrypted packet not allowed for command " +
+                                     $"'{attributes.Opcode.OpCode}' " +
+                                     $"from connection {connection.RemoteEndPoint}.";
+                    _logger?.Warn(message);
+                    connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.PacketEncryption));
+                    return;
+                }
+
+                // Handle Decryption (giải mã nếu cần)
+                TPacket? decryptedPacket = default;
+                bool needDisposeDecrypted = false;
+                if (attributes.Encryption?.IsEncrypted == true)
+                {
                     try
                     {
-                        result = await System.Threading.Tasks.Task.Run(
-                            () => method.Invoke(controllerInstance, [packet, connection]), cts.Token);
+                        decryptedPacket = TPacket.Decrypt(workingPacket, connection.EncryptionKey, connection.Encryption);
+                        // Nếu giải mã trả về packet khác, cần Dispose packet cũ sau này
+                        needDisposeDecrypted = !ReferenceEquals(decryptedPacket, workingPacket);
+                        workingPacket = decryptedPacket;
                     }
-                    catch (System.OperationCanceledException)
+                    catch (System.Exception ex)
                     {
-                        _logger?.Error("Packet '{0}' timed out after {1}ms.",
-                            attributes.Opcode.OpCode,
-                            attributes.Timeout.TimeoutMilliseconds);
-                        connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.RequestTimeout));
-
+                        if (decryptedPacket is not null && needDisposeDecrypted) decryptedPacket.Dispose();
+                        _logger?.Error("Failed to Decrypt packet: {0}", ex.Message);
+                        connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
                         return;
                     }
                 }
-                else
-                {
-                    result = method.Invoke(controllerInstance, [packet, connection]);
-                }
 
-                // Await the return result, could be ValueTask if method is synchronous
-                await this.ResolveHandlerDelegate(method.ReturnType)(result, packet, connection).ConfigureAwait(false);
-            }
-            catch (PackageException ex)
-            {
-                _logger?.Error("Error occurred while processing packet id '{0}' in controller '{1}' (Method: '{2}'). " +
-                               "Exception: {3}. Net: {4}, Exception Details: {5}",
-                                attributes.Opcode.OpCode,             // OpCode ID
-                                controllerInstance.GetType().Name,// ConnectionOps name
-                                method.Name,                      // Method name
-                                ex.GetType().Name,                // Exception type
-                                connection.RemoteEndPoint,        // Connection details for traceability
-                                ex.Message                        // Exception message itself
-                );
-                _errorHandler?.Invoke(ex, attributes.Opcode.OpCode);
-                connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
-            }
-            catch (System.Exception ex)
-            {
-                _logger?.Error("Packet [OpCode={0}] ({1}.{2}) threw {3}: {4} [Net: {5}]",
-                    attributes.Opcode.OpCode,
-                    controllerInstance.GetType().Name,
-                    method.Name,
-                    ex.GetType().Name,
-                    ex.Message,
-                    connection.RemoteEndPoint
-                );
-                _errorHandler?.Invoke(ex, attributes.Opcode.OpCode);
-                connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
+                try
+                {
+                    object? result;
+
+                    // Cache method invocation with improved performance
+                    if (attributes.Timeout != null)
+                    {
+                        using System.Threading.CancellationTokenSource cts = new(attributes.Timeout.TimeoutMilliseconds);
+                        try
+                        {
+                            result = await System.Threading.Tasks.Task.Run(
+                                () => method.Invoke(controllerInstance, [workingPacket, connection]), cts.Token);
+                        }
+                        catch (System.OperationCanceledException)
+                        {
+                            _logger?.Error("Packet '{0}' timed out after {1}ms.",
+                                attributes.Opcode.OpCode,
+                                attributes.Timeout.TimeoutMilliseconds);
+                            connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.RequestTimeout));
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        result = method.Invoke(controllerInstance, [workingPacket, connection]);
+                    }
+
+                    // Await the return result, could be ValueTask if method is synchronous
+                    await ResolveHandlerDelegate(method.ReturnType)(result, workingPacket, connection).ConfigureAwait(false);
+                }
+                catch (PackageException ex)
+                {
+                    _logger?.Error("Error occurred while processing packet id '{0}' in controller '{1}' (Method: '{2}'). " +
+                                   "Exception: {3}. Net: {4}, Exception Details: {5}",
+                                    attributes.Opcode.OpCode,
+                                    controllerInstance.GetType().Name,
+                                    method.Name,
+                                    ex.GetType().Name,
+                                    connection.RemoteEndPoint,
+                                    ex.Message
+                    );
+                    _errorHandler?.Invoke(ex, attributes.Opcode.OpCode);
+                    connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
+                }
+                catch (System.Exception ex)
+                {
+                    _logger?.Error("Packet [OpCode={0}] ({1}.{2}) threw {3}: {4} [Net: {5}]",
+                        attributes.Opcode.OpCode,
+                        controllerInstance.GetType().Name,
+                        method.Name,
+                        ex.GetType().Name,
+                        ex.Message,
+                        connection.RemoteEndPoint
+                    );
+                    _errorHandler?.Invoke(ex, attributes.Opcode.OpCode);
+                    connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
+                }
+                finally
+                {
+                    if (decryptedPacket is not null && needDisposeDecrypted) decryptedPacket.Dispose();
+                }
             }
             finally
             {
+                // Dispose packet gốc nếu đã tạo packet mới
+                if (needDisposeOriginal) processedPacket?.Dispose();
                 if (stopwatch is not null)
                 {
                     stopwatch.Stop();
@@ -211,9 +247,9 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 return System.Threading.Tasks.Task.CompletedTask;
             }
             ,
-            System.Type t when t == typeof(byte[]) => async (result, _, connection) =>
+            System.Type t when t == typeof(System.Byte[]) => async (result, _, connection) =>
             {
-                if (result is byte[] data)
+                if (result is System.Byte[] data)
                     await connection.Tcp.SendAsync(data);
             }
             ,
@@ -225,9 +261,9 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 }
             }
             ,
-            System.Type t when t == typeof(System.Memory<byte>) => async (result, _, connection) =>
+            System.Type t when t == typeof(System.Memory<System.Byte>) => async (result, _, connection) =>
             {
-                if (result is System.Memory<byte> memory)
+                if (result is System.Memory<System.Byte> memory)
                     await connection.Tcp.SendAsync(memory);
             }
             ,
@@ -245,47 +281,47 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     {
                         await task;
                     }
-                    catch (System.Exception ex) { this.Failure(returnType, ex); }
+                    catch (System.Exception ex) { Failure(returnType, ex); }
                 }
             }
             ,
-            System.Type t when t == typeof(System.Threading.Tasks.ValueTask<byte[]>) => async (result, _, connection) =>
+            System.Type t when t == typeof(System.Threading.Tasks.ValueTask<System.Byte[]>) => async (result, _, connection) =>
             {
-                if (result is System.Threading.Tasks.ValueTask<byte[]> task)
+                if (result is System.Threading.Tasks.ValueTask<System.Byte[]> task)
                 {
                     try
                     {
-                        byte[] data = await task;
+                        System.Byte[] data = await task;
                         await connection.Tcp.SendAsync(data);
                     }
-                    catch (System.Exception ex) { this.Failure(returnType, ex); }
+                    catch (System.Exception ex) { Failure(returnType, ex); }
                 }
             }
             ,
-            System.Type t when t == typeof(System.Threading.Tasks.ValueTask<string>) => async (result, _, connection) =>
+            System.Type t when t == typeof(System.Threading.Tasks.ValueTask<System.String>) => async (result, _, connection) =>
             {
-                if (result is System.Threading.Tasks.ValueTask<string> task)
+                if (result is System.Threading.Tasks.ValueTask<System.String> task)
                 {
                     try
                     {
-                        string data = await task;
+                        System.String data = await task;
                         await connection.Tcp.SendAsync(TPacket.Create(0, data));
                     }
-                    catch (System.Exception ex) { this.Failure(returnType, ex); }
+                    catch (System.Exception ex) { Failure(returnType, ex); }
                 }
             }
             ,
-            System.Type t when t == typeof(System.Threading.Tasks.ValueTask<System.Memory<byte>>)
+            System.Type t when t == typeof(System.Threading.Tasks.ValueTask<System.Memory<System.Byte>>)
             => async (result, _, connection) =>
             {
-                if (result is System.Threading.Tasks.ValueTask<System.Memory<byte>> task)
+                if (result is System.Threading.Tasks.ValueTask<System.Memory<System.Byte>> task)
                 {
                     try
                     {
-                        System.Memory<byte> memory = await task;
+                        System.Memory<System.Byte> memory = await task;
                         await connection.Tcp.SendAsync(memory);
                     }
-                    catch (System.Exception ex) { this.Failure(returnType, ex); }
+                    catch (System.Exception ex) { Failure(returnType, ex); }
                 }
             }
             ,
@@ -299,7 +335,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                         TPacket packet = await task;
                         await PacketDispatchOptions<TPacket>.DispatchPacketAsync(packet, connection);
                     }
-                    catch (System.Exception ex) { this.Failure(returnType, ex); }
+                    catch (System.Exception ex) { Failure(returnType, ex); }
                 }
             }
             ,
@@ -312,7 +348,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     {
                         await task;
                     }
-                    catch (System.Exception ex) { this.Failure(returnType, ex); }
+                    catch (System.Exception ex) { Failure(returnType, ex); }
                 }
             }
             ,
@@ -326,7 +362,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                         byte[] data = await task;
                         await connection.Tcp.SendAsync(data);
                     }
-                    catch (System.Exception ex) { this.Failure(returnType, ex); }
+                    catch (System.Exception ex) { Failure(returnType, ex); }
                 }
             }
             ,
@@ -340,7 +376,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                         string data = await task;
                         await connection.Tcp.SendAsync(TPacket.Create(0, data));
                     }
-                    catch (System.Exception ex) { this.Failure(returnType, ex); }
+                    catch (System.Exception ex) { Failure(returnType, ex); }
                 }
             }
             ,
@@ -354,7 +390,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                         System.Memory<byte> memory = await task;
                         await connection.Tcp.SendAsync(memory);
                     }
-                    catch (System.Exception ex) { this.Failure(returnType, ex); }
+                    catch (System.Exception ex) { Failure(returnType, ex); }
                 }
             }
             ,
@@ -368,7 +404,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                         TPacket packet = await task;
                         await PacketDispatchOptions<TPacket>.DispatchPacketAsync(packet, connection);
                     }
-                    catch (System.Exception ex) { this.Failure(returnType, ex); }
+                    catch (System.Exception ex) { Failure(returnType, ex); }
                 }
             }
             ,

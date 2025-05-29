@@ -12,27 +12,27 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// <summary>
     /// Gets the total length of the packet.
     /// </summary>
-    ushort Length { get; }
+    System.UInt16 Length { get; }
 
     /// <summary>
     /// Gets the command associated with the packet.
     /// </summary>
-    ushort OpCode { get; }
+    System.UInt16 OpCode { get; }
 
     /// <summary>
     /// Gets the sequence number of the packet.
     /// </summary>
-    byte Number { get; }
+    System.Byte Number { get; }
 
     /// <summary>
     /// Gets the checksum of the packet.
     /// </summary>
-    uint Checksum { get; }
+    System.UInt32 Checksum { get; }
 
     /// <summary>
     /// Gets the timestamp when the packet was created.
     /// </summary>
-    long Timestamp { get; }
+    System.Int64 Timestamp { get; }
 
     /// <summary>
     /// Gets the packet type.
@@ -52,7 +52,7 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// <summary>
     /// Gets the payload of the packet.
     /// </summary>
-    System.Memory<byte> Payload { get; }
+    System.Memory<System.Byte> Payload { get; }
 
     #endregion Metadata
 
@@ -61,12 +61,12 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// <summary>
     /// Gets a value indicating whether the packet is encrypted.
     /// </summary>
-    bool IsEncrypted => (Flags & Enums.PacketFlags.Encrypted) != 0;
+    System.Boolean IsEncrypted => (Flags & Enums.PacketFlags.Encrypted) != 0;
 
     /// <summary>
     /// Gets a value indicating whether the packet is compressed.
     /// </summary>
-    bool IsCompression => (Flags & Enums.PacketFlags.Compressed) != 0;
+    System.Boolean IsCompression => (Flags & Enums.PacketFlags.Compressed) != 0;
 
     /// <summary>
     /// Computes a unique hash value for the packet using its key metadata.
@@ -83,7 +83,7 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// </list>
     /// This hash can be used as a fast lookup key for caching or deduplication.
     /// </returns>
-    public ulong Hash { get; }
+    public System.Int32 Hash { get; }
 
     #endregion Properties
 
@@ -92,19 +92,19 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// <summary>
     /// Verifies if the packet's checksum is valid.
     /// </summary>
-    bool IsValid();
+    System.Boolean IsValid();
 
     /// <summary>
     /// Checks if the packet has expired.
     /// </summary>
     /// <param name="timeout">The expiration timeout.</param>
-    bool IsExpired(long timeout);
+    System.Boolean IsExpired(System.Int64 timeout);
 
     /// <summary>
     /// Checks if the packet has expired.
     /// </summary>
     /// <param name="timeout">The expiration timeout.</param>
-    bool IsExpired(System.TimeSpan timeout);
+    System.Boolean IsExpired(System.TimeSpan timeout);
 
     /// <summary>
     /// Serializes the packet into a byte array for transmission or storage.
@@ -112,7 +112,7 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// <returns>
     /// A byte array representing the serialized packet.
     /// </returns>
-    System.Memory<byte> Serialize();
+    System.Memory<System.Byte> Serialize();
 
     /// <summary>
     /// Serializes the packet into the provided buffer.
@@ -124,7 +124,7 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// <exception cref="Exceptions.PackageException">
     /// Thrown if the buffer is too small to contain the serialized packet.
     /// </exception>
-    void Serialize(System.Span<byte> buffer);
+    void Serialize(System.Span<System.Byte> buffer);
 
     /// <summary>
     /// Returns a string representation of the packet, useful for debugging or logging.
@@ -132,7 +132,7 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// <returns>
     /// A string that describes the packet's key attributes.
     /// </returns>
-    string ToString();
+    System.String ToString();
 
     #endregion Packet Methods
 }

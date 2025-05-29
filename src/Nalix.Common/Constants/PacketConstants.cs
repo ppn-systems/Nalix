@@ -21,9 +21,4 @@ public static class PacketConstants
     /// The maximum allowed packet size (in bytes), which is 64KB (65535 bytes).
     /// </summary>
     public const ushort PacketSizeLimit = 0xFFFF;
-
-    /// <summary>
-    /// Shared byte array pool for efficient memory usage.
-    /// </summary>
-    public static readonly System.Buffers.ArrayPool<byte> Pool = System.Buffers.ArrayPool<byte>.Shared;
 }

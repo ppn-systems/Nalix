@@ -48,10 +48,10 @@ public sealed class PacketDispatchChannel<TPacket>
 
     // Reverse mapping: IConnection -> set of all associated packet keys
     private readonly System.Collections.Generic.Dictionary<
-        IConnection, System.Collections.Generic.HashSet<ulong>> _reverseMap = [];
+        IConnection, System.Collections.Generic.HashSet<System.Int32>> _reverseMap = [];
 
     // Forward mapping: packet key -> connection
-    private readonly System.Collections.Generic.Dictionary<ulong, IConnection> _packetMap = [];
+    private readonly System.Collections.Generic.Dictionary<System.Int32, IConnection> _packetMap = [];
 
     // Locks for thread safety
     private readonly System.Threading.Lock _lock;
@@ -173,7 +173,7 @@ public sealed class PacketDispatchChannel<TPacket>
             return;
         }
 
-        this.HandlePacket(System.MemoryExtensions.AsSpan(packet), connection);
+        HandlePacket(System.MemoryExtensions.AsSpan(packet), connection);
     }
 
     /// <inheritdoc />
@@ -188,7 +188,7 @@ public sealed class PacketDispatchChannel<TPacket>
             return;
         }
 
-        this.HandlePacket(packet.Value.Span, connection);
+        HandlePacket(packet.Value.Span, connection);
     }
 
     /// <inheritdoc />
@@ -204,7 +204,7 @@ public sealed class PacketDispatchChannel<TPacket>
         }
 
         // Deserialize and enqueue the packet for processing
-        this.HandlePacketAsync(TPacket.Deserialize(packet), connection);
+        HandlePacketAsync(TPacket.Deserialize(packet), connection);
     }
 
     /// <inheritdoc />
@@ -219,7 +219,7 @@ public sealed class PacketDispatchChannel<TPacket>
             _packetMap[packet.Hash] = connection;
 
             if (!_reverseMap.TryGetValue(connection,
-                out System.Collections.Generic.HashSet<ulong>? set))
+                out System.Collections.Generic.HashSet<System.Int32>? set))
             {
                 set = [];
 
@@ -296,9 +296,10 @@ public sealed class PacketDispatchChannel<TPacket>
 
         lock (_lock)
         {
-            if (_reverseMap.TryGetValue(connection, out System.Collections.Generic.HashSet<ulong>? keys))
+            if (_reverseMap.TryGetValue(connection,
+                out System.Collections.Generic.HashSet<System.Int32>? keys))
             {
-                foreach (ulong key in keys)
+                foreach (System.Int32 key in keys)
                 {
                     _packetMap.Remove(key);
                 }
@@ -321,7 +322,7 @@ public sealed class PacketDispatchChannel<TPacket>
     /// </summary>
     public void Dispose()
     {
-        this.Stop();
+        Stop();
         _ctokens.Dispose();
         _semaphore.Dispose();
     }

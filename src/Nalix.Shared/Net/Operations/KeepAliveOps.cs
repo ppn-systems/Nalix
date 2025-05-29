@@ -30,7 +30,7 @@ internal sealed class KeepAliveOps<TPacket> where TPacket : IPacket, IPacketFact
     internal static System.Memory<byte> Ping(TPacket _, IConnection __)
         => TPacket.Create(
             (ushort)ProtocolCommand.Pong, PacketType.String, PacketFlags.None,
-            PacketPriority.Low, SerializationOptions.Encoding.GetBytes("Pong")).Serialize();
+            PacketPriority.Low, EncodingOptions.Encoding.GetBytes("Pong")).Serialize();
 
     /// <summary>
     /// Handles a ping request from the client.
@@ -44,7 +44,7 @@ internal sealed class KeepAliveOps<TPacket> where TPacket : IPacket, IPacketFact
     internal static System.Memory<byte> Pong(TPacket _, IConnection __)
         => TPacket.Create(
             (ushort)ProtocolCommand.Ping, PacketType.String, PacketFlags.None,
-            PacketPriority.Low, SerializationOptions.Encoding.GetBytes("Ping")).Serialize();
+            PacketPriority.Low, EncodingOptions.Encoding.GetBytes("Ping")).Serialize();
 
     /// <summary>
     /// Returns the round-trip time (RTT) of the connection in milliseconds.
@@ -58,7 +58,7 @@ internal sealed class KeepAliveOps<TPacket> where TPacket : IPacket, IPacketFact
     internal static System.Memory<byte> GetPingTime(TPacket _, IConnection connection)
         => TPacket.Create(
             (ushort)ProtocolCommand.PingTime, PacketType.String, PacketFlags.None,
-            PacketPriority.Low, SerializationOptions.Encoding.GetBytes($"Ping: {connection.LastPingTime} ms")).Serialize();
+            PacketPriority.Low, EncodingOptions.Encoding.GetBytes($"Ping: {connection.LastPingTime} ms")).Serialize();
 
     /// <summary>
     /// Returns the ping information of the connection, including up time and last ping time.

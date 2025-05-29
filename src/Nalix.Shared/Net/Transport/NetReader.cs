@@ -40,7 +40,7 @@ public sealed class NetReader<TPacket>(System.Net.Sockets.NetworkStream stream) 
         _stream.ReadExactly(header);
 
         // Convert to ushort (big-endian)
-        ushort length = (ushort)(header[0] << 8 | header[1]);
+        ushort length = (ushort)((header[0] << 8) | header[1]);
 
         if (length < 2)
         {
@@ -58,7 +58,7 @@ public sealed class NetReader<TPacket>(System.Net.Sockets.NetworkStream stream) 
         }
 
         // Rent buffer for packet data only
-        byte[] buffer = PacketConstants.Pool.Rent(length);
+        byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length);
         try
         {
             buffer[0] = header[0];
@@ -72,7 +72,7 @@ public sealed class NetReader<TPacket>(System.Net.Sockets.NetworkStream stream) 
         }
         finally
         {
-            PacketConstants.Pool.Return(buffer);
+            System.Buffers.ArrayPool<System.Byte>.Shared.Return(buffer);
         }
     }
 
@@ -100,7 +100,7 @@ public sealed class NetReader<TPacket>(System.Net.Sockets.NetworkStream stream) 
         await _stream.ReadExactlyAsync(header, cancellationToken).ConfigureAwait(false);
 
         // Convert to ushort (big-endian)
-        ushort length = (ushort)(header[0] << 8 | header[1]);
+        ushort length = (ushort)((header[0] << 8) | header[1]);
 
         if (length < 2)
         {
@@ -120,7 +120,7 @@ public sealed class NetReader<TPacket>(System.Net.Sockets.NetworkStream stream) 
         }
 
         // Rent buffer for packet data only
-        byte[] buffer = PacketConstants.Pool.Rent(length);
+        byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length);
         try
         {
             // Read packet data directly into buffer
@@ -133,7 +133,7 @@ public sealed class NetReader<TPacket>(System.Net.Sockets.NetworkStream stream) 
         }
         finally
         {
-            PacketConstants.Pool.Return(buffer);
+            System.Buffers.ArrayPool<System.Byte>.Shared.Return(buffer);
         }
     }
 }

@@ -25,8 +25,7 @@ public readonly partial struct Packet
         PacketPriority.Low,
         System.Memory<System.Byte>.Empty);
 
-    private readonly System.UInt64 _hash;
-    private readonly System.Byte[]? _rentedBuffer;
+    private readonly System.Int32 _hash;
 
     #endregion Fields
 
@@ -65,7 +64,7 @@ public readonly partial struct Packet
     /// <summary>
     /// Gets the packet Hash.
     /// </summary>
-    public System.UInt64 Hash => _hash;
+    public System.Int32 Hash => _hash;
 
     /// <summary>
     /// Gets the packet type, which specifies the kind of packet.

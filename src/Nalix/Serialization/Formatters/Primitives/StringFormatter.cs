@@ -29,7 +29,7 @@ public sealed class StringFormatter : IFormatter<System.String>
         }
 
         // Tính trước số byte sẽ cần khi encode UTF8
-        int byteCount = Environment.SerializationOptions.Encoding.GetByteCount(value);
+        int byteCount = Environment.EncodingOptions.Encoding.GetByteCount(value);
         if (byteCount > SerializationLimits.MaxString)
             throw new SerializationException("The string exceeds the allowed limit.");
 
@@ -44,7 +44,7 @@ public sealed class StringFormatter : IFormatter<System.String>
             fixed (System.Byte* pDest = dest)
             {
                 // Encode trực tiếp vào dest
-                int bytesWritten = Environment.SerializationOptions.Encoding
+                int bytesWritten = Environment.EncodingOptions.Encoding
                     .GetBytes(src, value.Length, pDest, byteCount);
 
                 if (bytesWritten != byteCount)
@@ -76,7 +76,7 @@ public sealed class StringFormatter : IFormatter<System.String>
         System.String result;
         fixed (System.Byte* src = dest)
         {
-            result = Environment.SerializationOptions.Encoding.GetString(src, length);
+            result = Environment.EncodingOptions.Encoding.GetString(src, length);
         }
 
         reader.Advance(length);

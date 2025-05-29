@@ -27,19 +27,6 @@ public interface IPacketFactory<TPacket> where TPacket : IPacket
     /// <returns>A new instance of <typeparamref name="TPacket"/>.</returns>
     static abstract TPacket Create(
         System.UInt16 id, PacketType type, PacketFlags flags,
-        PacketPriority priority, System.Byte[] payload);
-
-    /// <summary>
-    /// Creates a packet using strongly-typed enums.
-    /// </summary>
-    /// <param name="id">The unique identifier of the packet.</param>
-    /// <param name="type">The type of the packet as an enum.</param>
-    /// <param name="flags">The flags associated with the packet as an enum.</param>
-    /// <param name="priority">The priority of the packet as an enum.</param>
-    /// <param name="payload">The payload data of the packet.</param>
-    /// <returns>A new instance of <typeparamref name="TPacket"/>.</returns>
-    static abstract TPacket Create(
-        System.UInt16 id, PacketType type, PacketFlags flags,
         PacketPriority priority, System.Memory<System.Byte> payload);
 
     /// <summary>

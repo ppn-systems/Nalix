@@ -17,5 +17,5 @@ public interface IPacketDeserializer<TPacket> where TPacket : IPacket
     /// <returns>
     /// An instance of <typeparamref name="TPacket"/> that was deserialized from the buffer.
     /// </returns>
-    static abstract TPacket Deserialize(System.ReadOnlySpan<byte> buffer);
+    static abstract TPacket Deserialize(System.ReadOnlySpan<System.Byte> buffer);
 }

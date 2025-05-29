@@ -219,7 +219,7 @@ public static partial class SpanExtensions
         fixed (byte* pData = &span[offset])
         fixed (char* pChar = charBuf)
         {
-            charsDecoded = SerializationOptions.Encoding.GetChars(pData, 4, pChar, 1);
+            charsDecoded = EncodingOptions.Encoding.GetChars(pData, 4, pChar, 1);
         }
 
         if (charsDecoded == 0)
@@ -243,7 +243,7 @@ public static partial class SpanExtensions
         if (length < 0 || offset + length > span.Length)
             throw new System.ArgumentException("Invalid string length or span too small.");
 
-        string result = SerializationOptions.Encoding.GetString(span.Slice(offset, length));
+        string result = EncodingOptions.Encoding.GetString(span.Slice(offset, length));
         offset += length;
         return result;
     }

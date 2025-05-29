@@ -20,14 +20,14 @@ public static class PacketOps
     public static unsafe IPacket Clone(in IPacket packet)
     {
         int length = packet.Payload.Length;
-        byte[] copy = new byte[length];
+        System.Byte[] copy = new System.Byte[length];
 
         if (length == 0)
             return new Packet(packet.OpCode, packet.Number, packet.Checksum, packet.Timestamp,
                               packet.Type, packet.Flags, packet.Priority, copy);
 
-        fixed (byte* srcPtr = packet.Payload.Span)
-        fixed (byte* dstPtr = copy)
+        fixed (System.Byte* srcPtr = packet.Payload.Span)
+        fixed (System.Byte* dstPtr = copy)
         {
             System.Buffer.MemoryCopy(srcPtr, dstPtr, length, length);
         }
@@ -54,7 +54,7 @@ public static class PacketOps
     /// <returns>Returns true if the packet's checksum matches the computed checksum; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsValidChecksum(byte[] packet)
+    public static bool IsValidChecksum(System.Byte[] packet)
         => System.BitConverter.ToUInt32(packet, PacketOffset.Checksum)
         == Integrity.Crc32.Compute(packet[PacketOffset.Payload..]);
 }

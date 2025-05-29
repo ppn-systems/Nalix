@@ -79,13 +79,6 @@ public readonly partial struct Packet
         // Compute checksum only if needed
         Checksum = checksum == 0 ? Integrity.Crc32.Compute(Payload.Span) : checksum;
 
-        unchecked
-        {
-            _hash = ((ulong)Number << 56)
-                  | ((ulong)OpCode << 40)
-                  | ((ulong)Type << 32)
-                  | ((ulong)Flags << 24)
-                  | ((ulong)Timestamp & 0x000000FFFFFFUL);
-        }
+        _hash = GetHashCode();
     }
 }

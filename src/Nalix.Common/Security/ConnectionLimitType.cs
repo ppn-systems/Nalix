@@ -3,7 +3,7 @@ namespace Nalix.Common.Security;
 /// <summary>
 /// Represents different levels of connection limits that can be applied for managing simultaneous connections.
 /// </summary>
-public enum ConnectionLimitType
+public enum ConnectionLimitType : System.Byte
 {
     /// <summary>
     /// Represents a low Number of simultaneous connections, typically for minimal traffic environments.

@@ -25,7 +25,7 @@ public interface IPacketEncryptor<TPacket> where TPacket : IPacket
     /// <returns>
     /// A new instance of <typeparamref name="TPacket"/> that contains the encrypted packet data.
     /// </returns>
-    static abstract TPacket Encrypt(TPacket packet, byte[] key, EncryptionType algorithm);
+    static abstract TPacket Encrypt(TPacket packet, System.Byte[] key, EncryptionType algorithm);
 
     /// <summary>
     /// Decrypts a packet of type <typeparamref name="TPacket"/> using a specific encryption algorithm.
@@ -42,5 +42,5 @@ public interface IPacketEncryptor<TPacket> where TPacket : IPacket
     /// <returns>
     /// A new instance of <typeparamref name="TPacket"/> that contains the decrypted packet data.
     /// </returns>
-    static abstract TPacket Decrypt(TPacket packet, byte[] key, EncryptionType algorithm);
+    static abstract TPacket Decrypt(TPacket packet, System.Byte[] key, EncryptionType algorithm);
 }

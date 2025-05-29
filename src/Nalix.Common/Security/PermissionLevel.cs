@@ -4,7 +4,7 @@ namespace Nalix.Common.Security;
 /// Represents different authority levels of users in the system.
 /// Each value corresponds to a specific access control level.
 /// </summary>
-public enum PermissionLevel : byte
+public enum PermissionLevel : System.Byte
 {
     /// <summary>
     /// No specific authority level assigned.

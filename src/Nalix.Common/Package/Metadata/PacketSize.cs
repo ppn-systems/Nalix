@@ -8,45 +8,45 @@ public static class PacketSize
     /// <summary>
     /// The size of the Length field in the packet header, in bytes.
     /// </summary>
-    public const int Length = sizeof(ushort);
+    public const System.Int32 Length = sizeof(System.UInt16);
 
     /// <summary>
     /// The size of the Number field in the packet header, in bytes.
     /// </summary>
-    public const int Id = sizeof(ushort);
+    public const System.Int32 Id = sizeof(System.UInt16);
 
     /// <summary>
     /// The size of the Number field in the packet header, in bytes.
     /// </summary>
-    public const int Number = sizeof(byte);
+    public const System.Int32 Number = sizeof(System.Byte);
 
     /// <summary>
     /// The size of the Checksum field in the packet header, in bytes.
     /// </summary>
-    public const int Checksum = sizeof(uint);
+    public const System.Int32 Checksum = sizeof(System.UInt32);
 
     /// <summary>
     /// The size of the Timestamp field in the packet header, in bytes.
     /// </summary>
-    public const int Timestamp = sizeof(long);
+    public const System.Int32 Timestamp = sizeof(System.Int64);
 
     /// <summary>
     /// The size of the Type field in the packet header, in bytes.
     /// </summary>
-    public const int Type = sizeof(byte);
+    public const System.Int32 Type = sizeof(System.Byte);
 
     /// <summary>
     /// The size of the Flags field in the packet header, in bytes.
     /// </summary>
-    public const int Flags = sizeof(byte);
+    public const System.Int32 Flags = sizeof(System.Byte);
 
     /// <summary>
     /// The size of the Priority field in the packet header, in bytes.
     /// </summary>
-    public const int Priority = sizeof(byte);
+    public const System.Int32 Priority = sizeof(System.Byte);
 
     /// <summary>
     /// The total size of the packet header, which is the sum of the sizes of all header fields.
     /// </summary>
-    public const int Header = Id + Length + Number + Type + Flags + Priority + Timestamp + Checksum;
+    public const System.Int32 Header = Id + Length + Number + Type + Flags + Priority + Timestamp + Checksum;
 }

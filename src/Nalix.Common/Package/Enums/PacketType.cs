@@ -3,7 +3,7 @@ namespace Nalix.Common.Package.Enums;
 /// <summary>
 /// Represents different types of payloads used in network packets.
 /// </summary>
-public enum PacketType : byte
+public enum PacketType : System.Byte
 {
     #region General Types
 

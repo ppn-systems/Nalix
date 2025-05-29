@@ -4,7 +4,7 @@ namespace Nalix.Common.Security;
 /// Represents different levels of request limits that can be applied to a firewall configuration.
 /// These levels define thresholds for the Number of requests allowed.
 /// </summary>
-public enum RequestLimitType
+public enum RequestLimitType : System.Byte
 {
     /// <summary>
     /// Represents a low request limit, typically allowing only a small Number of requests.

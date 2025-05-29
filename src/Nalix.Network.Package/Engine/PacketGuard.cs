@@ -57,6 +57,11 @@ public static class PacketGuard
         {
             throw new PackageException("Failed to encrypt the packet payload.", ex);
         }
+        finally
+        {
+            // Dispose the original packet payload to free resources
+            packet.Dispose();
+        }
     }
 
     /// <summary>
@@ -104,6 +109,11 @@ public static class PacketGuard
         catch (System.Exception ex)
         {
             throw new PackageException("Failed to decrypt the packet payload.", ex);
+        }
+        finally
+        {
+            // Dispose the original packet payload to free resources
+            packet.Dispose();
         }
     }
 }

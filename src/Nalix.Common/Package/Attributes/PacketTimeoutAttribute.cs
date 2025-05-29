@@ -14,10 +14,10 @@ namespace Nalix.Common.Package.Attributes;
 /// </remarks>
 /// <param name="timeoutMilliseconds">The timeout duration in milliseconds.</param>
 [System.AttributeUsage(System.AttributeTargets.Method)]
-public class PacketTimeoutAttribute(int timeoutMilliseconds) : System.Attribute
+public class PacketTimeoutAttribute(System.Int32 timeoutMilliseconds) : System.Attribute
 {
     /// <summary>
     /// Gets the timeout duration (in milliseconds) specified for the method.
     /// </summary>
-    public int TimeoutMilliseconds { get; } = timeoutMilliseconds;
+    public System.Int32 TimeoutMilliseconds { get; } = timeoutMilliseconds;
 }

@@ -1,3 +1,4 @@
+using Nalix.Common.Constants;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
 using Nalix.Environment;
@@ -13,50 +14,6 @@ namespace Nalix.Network.Package;
 public readonly partial struct Packet : IPacket, System.IDisposable
 {
     #region Constructors
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Packet"/> struct with a specific Number and payload.
-    /// </summary>
-    /// <param name="opCode">The packet Number.</param>
-    /// <param name="type">The packet type.</param>
-    /// <param name="flags">The packet flags.</param>
-    /// <param name="priority">The packet priority.</param>
-    /// <param name="payload">The packet payload (data).</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Packet(
-        System.UInt16 opCode,
-        PacketType type,
-        PacketFlags flags,
-        PacketPriority priority,
-        System.Byte[] payload)
-    {
-        System.Int32 length = payload.Length;
-        _rentedBuffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length);
-
-        // Unsafe copy from managed array to rented buffer
-
-        unsafe
-        {
-            fixed (System.Byte* src = payload)
-            fixed (System.Byte* dst = _rentedBuffer)
-            {
-                System.Runtime.CompilerServices.Unsafe
-                    .CopyBlockUnaligned(dst, src, (System.UInt32)length);
-            }
-        }
-
-        this = new Packet(
-            opCode: opCode,
-            number: 0,
-            checksum: 0,
-            timestamp: 0,
-            type: type,
-            flags: flags,
-            priority: priority,
-            payload: new System.Memory<System.Byte>(_rentedBuffer, 0, length)
-        );
-    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Packet"/> struct with a specific Number and payload.
@@ -90,7 +47,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Packet(System.UInt16 opCode, System.String s)
-        : this(opCode, PacketType.String, PacketFlags.None, PacketPriority.Low, SerializationOptions.Encoding.GetBytes(s))
+        : this(opCode, PacketType.String, PacketFlags.None, PacketPriority.Low, EncodingOptions.Encoding.GetBytes(s))
     {
     }
 
@@ -146,16 +103,13 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     public void Dispose()
     {
         // Only return large arrays to the pool
-        if (Payload.Length > MaxHeapAllocSize &&
+        if (Payload.Length > PacketConstants.HeapAllocLimit &&
             System.Runtime.InteropServices.MemoryMarshal.TryGetArray<System.Byte>
             (Payload, out System.ArraySegment<System.Byte> segment) &&
             segment.Array is { } array)
         {
             System.Buffers.ArrayPool<System.Byte>.Shared.Return(array, clearArray: true);
         }
-
-        if (_rentedBuffer != null)
-            System.Buffers.ArrayPool<System.Byte>.Shared.Return(_rentedBuffer, clearArray: true);
     }
 
     #endregion IDisposable

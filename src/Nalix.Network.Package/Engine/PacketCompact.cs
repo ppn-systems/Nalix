@@ -26,7 +26,7 @@ public static class PacketCompact
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Packet? Compress(in Packet packet)
+    public static Packet Compress(in Packet packet)
     {
         if (packet.Payload.IsEmpty)
             throw new PackageException("Cannot compress an empty payload.");
@@ -35,14 +35,14 @@ public static class PacketCompact
             throw new PackageException("Payload is encrypted and cannot be compressed.");
 
         if (packet.Payload.Length < 512)
-            return null;
+            throw new PackageException("");
 
         try
         {
             System.Memory<System.Byte> bytes = CompressLZ4(packet.Payload.Span);
 
             if (bytes.Length >= packet.Payload.Length)
-                return null;
+                throw new PackageException("");
 
             return new Packet(
                 packet.OpCode, packet.Number,
@@ -52,6 +52,11 @@ public static class PacketCompact
         catch (System.Exception ex)
         {
             throw new PackageException("Error occurred during payload compression.", ex);
+        }
+        finally
+        {
+            // Dispose the original packet payload to free resources
+            packet.Dispose();
         }
     }
 
@@ -66,13 +71,13 @@ public static class PacketCompact
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Packet? Decompress(in Packet packet)
+    public static Packet Decompress(in Packet packet)
     {
         if (packet.Payload.IsEmpty)
             throw new PackageException("Cannot decompress an empty payload.");
 
         if (!((packet.Flags & PacketFlags.Compressed) != 0))
-            return null;
+            throw new PackageException("");
 
         try
         {
@@ -84,6 +89,11 @@ public static class PacketCompact
         catch (System.Exception ex)
         {
             throw new PackageException("Error occurred during payload decompression.", ex);
+        }
+        finally
+        {
+            // Dispose the original packet payload to free resources
+            packet.Dispose();
         }
     }
 

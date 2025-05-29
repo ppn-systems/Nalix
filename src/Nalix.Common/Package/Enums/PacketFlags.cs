@@ -4,7 +4,7 @@ namespace Nalix.Common.Package.Enums;
 /// IPacket flags indicating different states of a packet.
 /// </summary>
 [System.Flags]
-public enum PacketFlags : byte
+public enum PacketFlags : System.Byte
 {
     /// <summary>
     /// No flags set for the packet.

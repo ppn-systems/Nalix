@@ -3,7 +3,7 @@ namespace Nalix.Common.Package.Enums;
 /// <summary>
 /// Defines the priority levels of a packet.
 /// </summary>
-public enum PacketPriority : byte
+public enum PacketPriority : System.Byte
 {
     /// <summary>
     /// Low priority.

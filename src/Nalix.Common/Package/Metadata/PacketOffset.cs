@@ -8,45 +8,45 @@ public static class PacketOffset
     /// <summary>
     /// Offset for the packet length.
     /// </summary>
-    public const int Length = 0;
+    public const System.Int32 Length = 0;
 
     /// <summary>
     /// Offset for the packet command.
     /// </summary>
-    public const int Id = Length + PacketSize.Length;
+    public const System.Int32 Id = Length + PacketSize.Length;
 
     /// <summary>
     /// Offset for the packet Number.
     /// </summary>
-    public const int Number = Id + PacketSize.Id;
+    public const System.Int32 Number = Id + PacketSize.Id;
 
     /// <summary>
     /// Offset for the packet checksum.
     /// </summary>
-    public const int Checksum = Number + PacketSize.Number;
+    public const System.Int32 Checksum = Number + PacketSize.Number;
 
     /// <summary>
     /// Offset for the packet timestamp.
     /// </summary>
-    public const int Timestamp = Checksum + PacketSize.Checksum;
+    public const System.Int32 Timestamp = Checksum + PacketSize.Checksum;
 
     /// <summary>
     /// Offset for the packet type.
     /// </summary>
-    public const int Type = Number + PacketSize.Number;
+    public const System.Int32 Type = Number + PacketSize.Number;
 
     /// <summary>
     /// Offset for the packet flags.
     /// </summary>
-    public const int Flags = Type + PacketSize.Type;
+    public const System.Int32 Flags = Type + PacketSize.Type;
 
     /// <summary>
     /// Offset for the packet priority.
     /// </summary>
-    public const int Priority = Flags + PacketSize.Flags;
+    public const System.Int32 Priority = Flags + PacketSize.Flags;
 
     /// <summary>
     /// Offset for the packet payload.
     /// </summary>
-    public const int Payload = Priority + PacketSize.Priority;
+    public const System.Int32 Payload = Priority + PacketSize.Priority;
 }

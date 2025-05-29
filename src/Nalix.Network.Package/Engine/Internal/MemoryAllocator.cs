@@ -15,33 +15,34 @@ internal static class MemoryAllocator
     /// <returns>A tuple containing the allocated memory and a flag indicating whether the memory is pooled.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static System.Memory<byte> Allocate(System.Memory<byte> payload)
+    internal static System.Memory<System.Byte> Allocate(System.Memory<System.Byte> payload)
         => Allocate(payload.Span);
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static unsafe System.Memory<byte> Allocate(System.ReadOnlySpan<byte> payload)
+    internal static unsafe System.Memory<System.Byte> Allocate(
+        System.ReadOnlySpan<System.Byte> payload)
     {
         switch (payload.Length)
         {
             case 0:
                 {
                     // For empty payloads, return an empty memory block
-                    return System.Memory<byte>.Empty;
+                    return System.Memory<System.Byte>.Empty;
                 }
             case <= PacketConstants.StackAllocLimit:
                 {
                     // Stack allocation remains the same - already optimal
-                    System.Span<byte> stack = stackalloc byte[payload.Length];
+                    System.Span<System.Byte> stack = stackalloc System.Byte[payload.Length];
                     payload.CopyTo(stack);
                     return stack.ToArray();
                 }
             case <= PacketConstants.HeapAllocLimit:
                 {
                     // Use unsafe for medium-sized payloads
-                    byte[] buffer = System.GC.AllocateUninitializedArray<byte>(payload.Length, pinned: true);
-                    fixed (byte* destination = buffer)
-                    fixed (byte* source = payload)
+                    System.Byte[] buffer = System.GC.AllocateUninitializedArray<System.Byte>(payload.Length, pinned: true);
+                    fixed (System.Byte* destination = buffer)
+                    fixed (System.Byte* source = payload)
                     {
                         System.Buffer.MemoryCopy(source, destination, payload.Length, payload.Length);
                     }
@@ -50,9 +51,9 @@ internal static class MemoryAllocator
             default:
                 {
                     // Pool allocation with unsafe copy for large payloads
-                    byte[] rent = PacketConstants.Pool.Rent(payload.Length);
-                    fixed (byte* destination = rent)
-                    fixed (byte* source = payload)
+                    System.Byte[] rent = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(payload.Length);
+                    fixed (System.Byte* destination = rent)
+                    fixed (System.Byte* source = payload)
                     {
                         System.Buffer.MemoryCopy(source, destination, payload.Length, payload.Length);
                     }

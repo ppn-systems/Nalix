@@ -12,7 +12,7 @@ public static class PacketCompression
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Packet CompressPayload(this in Packet packet)
+    public static Packet? CompressPayload(this in Packet packet)
         => PacketCompact.Compress(packet);
 
     /// <summary>
@@ -20,6 +20,6 @@ public static class PacketCompression
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Packet DecompressPayload(this in Packet packet)
+    public static Packet? DecompressPayload(this in Packet packet)
         => PacketCompact.Decompress(packet);
 }

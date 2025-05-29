@@ -11,7 +11,7 @@ public class TestPacket : IPacket
 {
     public PacketPriority Priority { get; set; }
     public ushort Length { get; set; }
-    public ushort Id { get; set; }
+    public ushort OpCode { get; set; }
     public byte Number { get; set; }
     public uint Checksum { get; set; }
     public long Timestamp { get; set; }
@@ -19,14 +19,14 @@ public class TestPacket : IPacket
     public PacketFlags Flags { get; set; }
     public Memory<byte> Payload { get; set; }
 
-    public ulong Hash => ComputeHash();
+    public int Hash => ComputeHash();
 
     // Default constructor with reasonable defaults for testing
     public TestPacket()
     {
         Priority = PacketPriority.Low;
         Length = 128;
-        Id = 1;
+        OpCode = 1;
         Number = 1;
         Checksum = 123456; // Example checksum
         Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); // Current timestamp
@@ -45,7 +45,7 @@ public class TestPacket : IPacket
     {
         if (other == null) return false;
 
-        return Id == other.Id &&
+        return OpCode == other.OpCode &&
                Number == other.Number &&
                Priority == other.Priority &&
                Checksum == other.Checksum;
@@ -82,7 +82,7 @@ public class TestPacket : IPacket
             throw new ArgumentException("Buffer is too small to serialize the packet.");
 
         buffer[0] = Number;
-        BitConverter.TryWriteBytes(buffer[1..3], Id);
+        BitConverter.TryWriteBytes(buffer[1..3], OpCode);
         BitConverter.TryWriteBytes(buffer[3..7], Checksum);
         buffer[7] = (byte)Priority;
         Payload.Span.CopyTo(buffer[8..]); // Assume payload starts at offset 8
@@ -90,17 +90,17 @@ public class TestPacket : IPacket
 
     public override string ToString()
     {
-        return $"Packet[Priority={Priority}, Id={Id}, Number={Number}, Checksum={Checksum}, Timestamp={Timestamp}]";
+        return $"Packet[Priority={Priority}, OpCode={OpCode}, Number={Number}, Checksum={Checksum}, Timestamp={Timestamp}]";
     }
 
-    private ulong ComputeHash()
+    private int ComputeHash()
     {
-        ulong hash = 0;
-        hash |= (ulong)Number << 56;
-        hash |= (ulong)Id << 40;
-        hash |= (ulong)Type << 32;
-        hash |= (ulong)Flags << 16;
-        hash |= (ulong)Timestamp & 0xFFFFFFFFFF; // Use only the lowest 40 bits of the timestamp
+        int hash = 0;
+        hash |= (int)Number << 56;
+        hash |= (int)OpCode << 40;
+        hash |= (int)Type << 32;
+        hash |= (int)Flags << 16;
+        hash |= (int)Timestamp & int.MaxValue; // Use only the lowest 40 bits of the timestamp
         return hash;
     }
 

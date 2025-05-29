@@ -1,4 +1,3 @@
-using Nalix.Common.Constants;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Package.Metadata;
 
@@ -45,8 +44,8 @@ public static partial class PacketSerializer
                 // Create payload efficiently
                 MaterializePayload(
                     data[PacketSize.Header..],
-                    (length - PacketSize.Header),
-                    out System.Memory<byte> payload);
+                    length - PacketSize.Header,
+                    out System.Byte[] payload);
 
                 return new Packet(id, number, checksum, timestamp, type, flags, priority, payload);
             }
@@ -99,7 +98,7 @@ public static partial class PacketSerializer
             // For payloads, optimize based on size
             if (length <= 8192) // Use shared buffer pool for reasonably sized packets
             {
-                byte[] fullBuffer = PacketConstants.Pool.Rent(length);
+                byte[] fullBuffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length);
                 try
                 {
                     // Copy header to the full buffer
@@ -119,7 +118,7 @@ public static partial class PacketSerializer
                 }
                 finally
                 {
-                    PacketConstants.Pool.Return(fullBuffer, clearArray: true);
+                    System.Buffers.ArrayPool<System.Byte>.Shared.Return(fullBuffer, clearArray: true);
                 }
             }
             else // For extremely large packets, avoid exhausting the pool
