@@ -4,11 +4,11 @@ using Nalix.Common.Package;
 namespace Nalix.Network.Dispatch;
 
 /// <summary>
-/// Represents an ultra-high performance packet dispatcher designed for asynchronous, queue-based processing
-/// with dependency injection (DI) support and flexible packet handling via reflection-based routing.
+/// Represents an ultra-high performance raw dispatcher designed for asynchronous, queue-based processing
+/// with dependency injection (DI) support and flexible raw handling via reflection-based routing.
 /// </summary>
 /// <typeparam name="TPacket">
-/// The packet type implementing <see cref="IPacket"/>,
+/// The raw type implementing <see cref="IPacket"/>,
 /// <see cref="IPacketEncryptor{TPacket}"/>,
 /// <see cref="IPacketCompressor{TPacket}"/>,
 /// <see cref="IPacketDeserializer{TPacket}"/>.
@@ -16,7 +16,7 @@ namespace Nalix.Network.Dispatch;
 /// <remarks>
 /// <para>
 /// This dispatcher works by queuing incoming packets and processing them in a background loop. Packet handling
-/// is done asynchronously using handlers resolved via packet command IDs.
+/// is done asynchronously using handlers resolved via raw command IDs.
 /// </para>
 /// <para>
 /// It is suitable for high-throughput systems such as custom Reliable servers, IoT message brokers, or game servers
@@ -43,14 +43,14 @@ public sealed class PacketDispatchChannel<TPacket>
 {
     #region Fields
 
-    // Queue for storing packet handling tasks
+    // Queue for storing raw handling tasks
     private readonly Channel.ChannelDispatch<TPacket> _dispatchQueue;
 
-    // Reverse mapping: IConnection -> set of all associated packet keys
+    // Reverse mapping: IConnection -> set of all associated raw keys
     private readonly System.Collections.Generic.Dictionary<
         IConnection, System.Collections.Generic.HashSet<System.Int32>> _reverseMap = [];
 
-    // Forward mapping: packet key -> connection
+    // Forward mapping: raw key -> connection
     private readonly System.Collections.Generic.Dictionary<System.Int32, IConnection> _packetMap = [];
 
     // Locks for thread safety
@@ -114,7 +114,7 @@ public sealed class PacketDispatchChannel<TPacket>
     #region Public Methods
 
     /// <summary>
-    /// Starts the packet processing loop
+    /// Starts the raw processing loop
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -133,7 +133,7 @@ public sealed class PacketDispatchChannel<TPacket>
     }
 
     /// <summary>
-    /// Stops the packet processing loop
+    /// Stops the raw processing loop
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -165,46 +165,46 @@ public sealed class PacketDispatchChannel<TPacket>
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void HandlePacket(byte[]? packet, IConnection connection)
+    public void HandlePacket(byte[]? raw, IConnection connection)
     {
-        if (packet == null)
+        if (raw == null)
         {
             base.Logger?.Error($"[Dispatch] Null byte[] received from {connection.RemoteEndPoint}. Packet dropped.");
             return;
         }
 
-        HandlePacket(System.MemoryExtensions.AsSpan(packet), connection);
+        HandlePacket(System.MemoryExtensions.AsSpan(raw), connection);
     }
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void HandlePacket(System.ReadOnlyMemory<byte>? packet, IConnection connection)
+    public void HandlePacket(System.ReadOnlyMemory<byte>? raw, IConnection connection)
     {
-        if (packet == null)
+        if (raw == null)
         {
             base.Logger?.Error(
                 $"[Dispatch] Null ReadOnlyMemory<byte> received from {connection.RemoteEndPoint}. Packet dropped.");
             return;
         }
 
-        HandlePacket(packet.Value.Span, connection);
+        HandlePacket(raw.Value.Span, connection);
     }
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void HandlePacket(in System.ReadOnlySpan<byte> packet, IConnection connection)
+    public void HandlePacket(in System.ReadOnlySpan<byte> raw, IConnection connection)
     {
-        if (packet.IsEmpty)
+        if (raw.IsEmpty)
         {
             base.Logger?.Error(
                 $"[Dispatch] Empty ReadOnlySpan<byte> received from {connection.RemoteEndPoint}. Packet dropped.");
             return;
         }
 
-        // Deserialize and enqueue the packet for processing
-        HandlePacketAsync(TPacket.Deserialize(packet), connection);
+        // Deserialize and enqueue the raw for processing
+        HandlePacketAsync(TPacket.Deserialize(raw), connection);
     }
 
     /// <inheritdoc />
@@ -253,7 +253,7 @@ public sealed class PacketDispatchChannel<TPacket>
                 // Wait for packets to be available
                 await _semaphore.WaitAsync(_ctokens.Token);
 
-                // Dequeue and process packet
+                // Dequeue and process raw
                 TPacket packet;
                 IConnection? connection;
 
@@ -266,7 +266,7 @@ public sealed class PacketDispatchChannel<TPacket>
 
                     if (!_packetMap.TryGetValue(packet.Hash, out connection))
                     {
-                        base.Logger?.Warn("[Dispatch] No connection found for packet.");
+                        base.Logger?.Warn("[Dispatch] No connection found for raw.");
                         continue;
                     }
                 }
@@ -280,7 +280,7 @@ public sealed class PacketDispatchChannel<TPacket>
         }
         catch (System.Exception ex)
         {
-            base.Logger?.Error($"[Dispatch] Error in packet processing loop: {ex.Message}", ex);
+            base.Logger?.Error($"[Dispatch] Error in raw processing loop: {ex.Message}", ex);
         }
         finally
         {

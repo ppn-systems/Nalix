@@ -99,7 +99,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 return;
             }
 
-            // Handle Compression (giải nén nếu cần)
+            // Handle Compression
             TPacket? processedPacket = default;
             bool needDisposeOriginal = false;
             try
@@ -126,7 +126,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
                 TPacket workingPacket = processedPacket;
 
-                // Kiểm tra encryption flag
+                // Check encryption flag
                 if (attributes.Encryption?.IsEncrypted == true && !workingPacket.IsEncrypted)
                 {
                     string message = $"Encrypted packet not allowed for command " +
@@ -137,7 +137,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     return;
                 }
 
-                // Handle Decryption (giải mã nếu cần)
+                // Handle Decryption
                 TPacket? decryptedPacket = default;
                 bool needDisposeDecrypted = false;
                 if (attributes.Encryption?.IsEncrypted == true)
@@ -145,13 +145,14 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     try
                     {
                         decryptedPacket = TPacket.Decrypt(workingPacket, connection.EncryptionKey, connection.Encryption);
-                        // Nếu giải mã trả về packet khác, cần Dispose packet cũ sau này
                         needDisposeDecrypted = !ReferenceEquals(decryptedPacket, workingPacket);
                         workingPacket = decryptedPacket;
                     }
                     catch (System.Exception ex)
                     {
-                        if (decryptedPacket is not null && needDisposeDecrypted) decryptedPacket.Dispose();
+                        if (decryptedPacket is not null && needDisposeDecrypted)
+                            decryptedPacket.Dispose();
+
                         _logger?.Error("Failed to Decrypt packet: {0}", ex.Message);
                         connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
                         return;
@@ -176,6 +177,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                             _logger?.Error("Packet '{0}' timed out after {1}ms.",
                                 attributes.Opcode.OpCode,
                                 attributes.Timeout.TimeoutMilliseconds);
+
                             connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.RequestTimeout));
                             return;
                         }
@@ -229,6 +231,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     stopwatch.Stop();
                     _metricsCallback?.Invoke($"{controllerInstance.GetType().Name}.{method.Name}", stopwatch.ElapsedMilliseconds);
                 }
+
+                packet.Dispose();
             }
         };
     }
@@ -253,9 +257,9 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     await connection.Tcp.SendAsync(data);
             }
             ,
-            System.Type t when t == typeof(string) => async (result, _, connection) =>
+            System.Type t when t == typeof(System.String) => async (result, _, connection) =>
             {
-                if (result is string data)
+                if (result is System.String data)
                 {
                     await connection.Tcp.SendAsync(TPacket.Create(0, data));
                 }
@@ -352,42 +356,42 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 }
             }
             ,
-            System.Type t when t == typeof(System.Threading.Tasks.Task<byte[]>)
+            System.Type t when t == typeof(System.Threading.Tasks.Task<System.Byte[]>)
             => async (result, _, connection) =>
             {
-                if (result is System.Threading.Tasks.Task<byte[]> task)
+                if (result is System.Threading.Tasks.Task<System.Byte[]> task)
                 {
                     try
                     {
-                        byte[] data = await task;
+                        System.Byte[] data = await task;
                         await connection.Tcp.SendAsync(data);
                     }
                     catch (System.Exception ex) { Failure(returnType, ex); }
                 }
             }
             ,
-            System.Type t when t == typeof(System.Threading.Tasks.Task<string>)
+            System.Type t when t == typeof(System.Threading.Tasks.Task<System.String>)
             => async (result, _, connection) =>
             {
-                if (result is System.Threading.Tasks.Task<string> task)
+                if (result is System.Threading.Tasks.Task<System.String> task)
                 {
                     try
                     {
-                        string data = await task;
+                        System.String data = await task;
                         await connection.Tcp.SendAsync(TPacket.Create(0, data));
                     }
                     catch (System.Exception ex) { Failure(returnType, ex); }
                 }
             }
             ,
-            System.Type t when t == typeof(System.Threading.Tasks.Task<System.Memory<byte>>)
+            System.Type t when t == typeof(System.Threading.Tasks.Task<System.Memory<System.Byte>>)
             => async (result, _, connection) =>
             {
-                if (result is System.Threading.Tasks.Task<System.Memory<byte>> task)
+                if (result is System.Threading.Tasks.Task<System.Memory<System.Byte>> task)
                 {
                     try
                     {
-                        System.Memory<byte> memory = await task;
+                        System.Memory<System.Byte> memory = await task;
                         await connection.Tcp.SendAsync(memory);
                     }
                     catch (System.Exception ex) { Failure(returnType, ex); }

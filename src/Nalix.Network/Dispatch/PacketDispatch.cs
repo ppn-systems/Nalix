@@ -6,8 +6,8 @@ using Nalix.Network.Dispatch.Options;
 namespace Nalix.Network.Dispatch;
 
 /// <summary>
-/// Ultra-high performance packet dispatcher with advanced dependency injection (DI) integration and async support.
-/// This implementation uses reflection to map packet command IDs to controller methods.
+/// Ultra-high performance raw dispatcher with advanced dependency injection (DI) integration and async support.
+/// This implementation uses reflection to map raw command IDs to controller methods.
 /// </summary>
 /// <remarks>
 /// The <see cref="PacketDispatch{TPacket}"/> processes incoming packets and invokes corresponding handlers
@@ -26,31 +26,34 @@ public sealed class PacketDispatch<TPacket>(System.Action<PacketDispatchOptions<
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void HandlePacket(byte[]? packet, IConnection connection)
+    public void HandlePacket(System.Byte[]? raw, IConnection connection)
     {
-        if (packet == null)
+        if (raw == null)
         {
-            base.Logger?.Error($"[Dispatch] Null byte[] received from {connection.RemoteEndPoint}. Packet dropped.");
+            base.Logger?.Error($"[Dispatch] Null System.Byte[] received from {connection.RemoteEndPoint}. Packet dropped.");
             return;
         }
 
-        this.HandlePacket(System.MemoryExtensions.AsSpan(packet), connection);
+        HandlePacket(System.MemoryExtensions.AsSpan(raw), connection);
     }
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void HandlePacket(System.ReadOnlyMemory<byte>? packet, IConnection connection)
+    public void HandlePacket(
+        System.ReadOnlyMemory<System.Byte>? raw,
+        IConnection connection)
     {
-        if (packet == null)
+        if (raw == null)
         {
             base.Logger?.Error(
                 "[{0}] Null ReadOnlyMemory<byte> received from {1}. Packet dropped.",
                 nameof(PacketDispatch<TPacket>), connection.RemoteEndPoint);
+
             return;
         }
 
-        this.HandlePacket(packet.Value.Span, connection);
+        HandlePacket(raw.Value.Span, connection);
     }
 
     /// <inheritdoc />
@@ -60,9 +63,9 @@ public sealed class PacketDispatch<TPacket>(System.Action<PacketDispatchOptions<
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void HandlePacket(in System.ReadOnlySpan<byte> packet, IConnection connection)
+    public void HandlePacket(in System.ReadOnlySpan<System.Byte> raw, IConnection connection)
     {
-        if (packet.IsEmpty)
+        if (raw.IsEmpty)
         {
             base.Logger?.Error(
                 "[{0}] Empty ReadOnlySpan<byte> received from {1}. Packet dropped.",
@@ -70,7 +73,7 @@ public sealed class PacketDispatch<TPacket>(System.Action<PacketDispatchOptions<
             return;
         }
 
-        this.HandlePacketAsync(TPacket.Deserialize(packet), connection);
+        HandlePacketAsync(TPacket.Deserialize(raw), connection);
     }
 
     /// <inheritdoc />
