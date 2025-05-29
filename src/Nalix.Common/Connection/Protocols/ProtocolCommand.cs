@@ -4,7 +4,7 @@ namespace Nalix.Common.Connection.Protocols;
 /// Defines the protocol commands used for managing secure connection processes.
 /// These commands are part of the protocol for establishing and finalizing encrypted connections.
 /// </summary>
-public enum ProtocolCommand : ushort
+public enum ProtocolCommand : System.UInt16
 {
     /// <summary>
     /// Number to initiate the handshake by requesting the server's public key.
