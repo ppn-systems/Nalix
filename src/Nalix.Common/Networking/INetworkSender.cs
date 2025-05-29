@@ -10,7 +10,7 @@ public interface INetworkSender<TPacket> where TPacket : IPacket
     /// <summary>
     /// Gets a value indicating whether the network stream is writable.
     /// </summary>
-    bool IsStreamHealthy { get; }
+    System.Boolean IsStreamHealthy { get; }
 
     /// <summary>
     /// Sends a packet synchronously.
@@ -22,7 +22,7 @@ public interface INetworkSender<TPacket> where TPacket : IPacket
     /// Sends raw bytes synchronously.
     /// </summary>
     /// <param name="bytes">The data to send.</param>
-    void Send(System.ReadOnlySpan<byte> bytes);
+    void Send(System.ReadOnlySpan<System.Byte> bytes);
 
     /// <summary>
     /// Sends a packet asynchronously.
@@ -39,6 +39,6 @@ public interface INetworkSender<TPacket> where TPacket : IPacket
     /// <param name="bytes">The data to send.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     System.Threading.Tasks.Task SendAsync(
-        System.ReadOnlyMemory<byte> bytes,
+        System.ReadOnlyMemory<System.Byte> bytes,
         System.Threading.CancellationToken cancellationToken = default);
 }

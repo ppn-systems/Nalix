@@ -1,13 +1,9 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Nalix.Common.Repositories.Async;
 
 /// <summary>
 /// Defines the Unit of Work pattern to manage database transactions and ensure data consistency.
 /// </summary>
-public interface IUnitOfWorkAsync : IRepositoryProviderAsync, ITransactionAsync, IDisposable
+public interface IUnitOfWorkAsync : IRepositoryProviderAsync, ITransactionAsync, System.IDisposable
 {
     /// <summary>
     /// Saves all changes made in the current transaction asynchronously.
@@ -16,5 +12,6 @@ public interface IUnitOfWorkAsync : IRepositoryProviderAsync, ITransactionAsync,
     /// <returns>
     /// A task representing the asynchronous operation, returning the Number of affected database records.
     /// </returns>
-    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+    System.Threading.Tasks.Task<System.Int32> SaveChangesAsync(
+        System.Threading.CancellationToken cancellationToken = default);
 }

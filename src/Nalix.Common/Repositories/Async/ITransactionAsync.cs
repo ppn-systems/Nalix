@@ -1,6 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Nalix.Common.Repositories.Async;
 
 /// <summary>
@@ -13,19 +10,22 @@ public interface ITransactionAsync
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    Task BeginTransactionAsync(CancellationToken cancellationToken = default);
+    System.Threading.Tasks.Task BeginTransactionAsync(
+        System.Threading.CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Commits the current database transaction asynchronously.
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    Task CommitTransactionAsync(CancellationToken cancellationToken = default);
+    System.Threading.Tasks.Task CommitTransactionAsync(
+        System.Threading.CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Rolls back the current database transaction asynchronously.
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    Task RollbackTransactionAsync(CancellationToken cancellationToken = default);
+    System.Threading.Tasks.Task RollbackTransactionAsync(
+        System.Threading.CancellationToken cancellationToken = default);
 }
