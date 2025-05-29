@@ -8,20 +8,20 @@ public enum ConnectionLimitType : System.Byte
     /// <summary>
     /// Represents a low Number of simultaneous connections, typically for minimal traffic environments.
     /// </summary>
-    Low,
+    Low = 1,
 
     /// <summary>
     /// Represents a medium Number of simultaneous connections, suitable for moderate traffic environments.
     /// </summary>
-    Medium,
+    Medium = 2,
 
     /// <summary>
     /// Represents a high Number of simultaneous connections, suitable for high-traffic environments.
     /// </summary>
-    High,
+    High = 3,
 
     /// <summary>
     /// Represents unlimited simultaneous connections, with no restrictions on the Number of connections.
     /// </summary>
-    Unlimited
+    Unlimited = 4
 }

@@ -1,4 +1,4 @@
-namespace Nalix.Common.Serialization;
+namespace Nalix.Common.Serialization.Attributes;
 
 /// <summary>
 /// Indicates that a field/property has dynamic size during serialization.
@@ -7,13 +7,13 @@ namespace Nalix.Common.Serialization;
 /// </summary>
 /// <param name="size">Expected average size for optimization.</param>
 [System.AttributeUsage(System.AttributeTargets.Property | System.AttributeTargets.Field, AllowMultiple = false)]
-public sealed class SerializeDynamicSizeAttribute(int size) : System.Attribute
+public sealed class SerializeDynamicSizeAttribute(System.Int32 size) : System.Attribute
 {
     /// <summary>
     /// Expected average size in bytes for buffer pre-allocation.
     /// Helps optimize performance by reducing memory allocations.
     /// </summary>
-    public int Size { get; init; } = size;
+    public System.Int32 Size { get; init; } = size;
 
     /// <summary>
     /// Initializes a new instance with default settings.

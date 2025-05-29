@@ -1,4 +1,4 @@
-namespace Nalix.Common.Serialization;
+namespace Nalix.Common.Serialization.Attributes;
 
 /// <summary>
 /// Specifies that a field or property should be included in serialization, with a defined order.
@@ -9,7 +9,7 @@ public class SerializeOrderAttribute : System.Attribute
     /// <summary>
     /// Gets the serialization order of the field or property.
     /// </summary>
-    public int Order { get; set; }
+    public System.Int32 Order { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SerializeOrderAttribute"/> class with the specified serialization order.
@@ -17,5 +17,5 @@ public class SerializeOrderAttribute : System.Attribute
     /// <param name="order">The order in which the field or property should be serialized.</param>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    public SerializeOrderAttribute(int order) => Order = order;
+    public SerializeOrderAttribute(System.Int32 order) => Order = order;
 }

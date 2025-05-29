@@ -10,5 +10,5 @@ public interface IFixedSizeSerializable
     /// Gets the fixed size in bytes required to serialize an instance of the implementing type.
     /// This property must be implemented as a static abstract member.
     /// </summary>
-    static abstract int Size { get; }
+    static abstract System.Int32 Size { get; }
 }
