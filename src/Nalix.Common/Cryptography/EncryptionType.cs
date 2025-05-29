@@ -3,7 +3,7 @@ namespace Nalix.Common.Cryptography;
 /// <summary>
 /// Specifies the encryption modes available for symmetric encryption.
 /// </summary>
-public enum EncryptionType : byte
+public enum EncryptionType : System.Byte
 {
     /// <summary>
     /// No encryption is applied.

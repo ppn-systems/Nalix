@@ -26,7 +26,7 @@ public interface ISHA
     /// <remarks>
     /// This is a convenience method that initializes, updates, and finalizes the hash in one call.
     /// </remarks>
-    byte[] ComputeHash(System.ReadOnlySpan<byte> data);
+    System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data);
 
     /// <summary>
     /// Processes more data into the hash computation.
@@ -35,7 +35,7 @@ public interface ISHA
     /// <remarks>
     /// This method can be called multiple times with different chunks of data.
     /// </remarks>
-    void Update(System.ReadOnlySpan<byte> data);
+    void Update(System.ReadOnlySpan<System.Byte> data);
 
     /// <summary>
     /// Finalizes the hash computation and returns the result.
@@ -44,5 +44,5 @@ public interface ISHA
     /// <remarks>
     /// Once this method is called, no further updates are allowed until `Initialize()` is called again.
     /// </remarks>
-    byte[] FinalizeHash();
+    System.Byte[] FinalizeHash();
 }
