@@ -10,11 +10,14 @@ namespace Nalix.Common.Exceptions;
 /// <param name="directoryPath">The directory path that caused the exception.</param>
 /// <param name="innerException">The inner exception, if any.</param>
 [System.Serializable]
-public class DirectoryException(string message, string directoryPath, System.Exception innerException = null)
+public class DirectoryException(
+    System.String message,
+    System.String directoryPath,
+    System.Exception innerException = null)
     : BaseException(message, innerException)
 {
     /// <summary>
     /// Gets the path that caused the exception.
     /// </summary>
-    public string DirectoryPath { get; } = directoryPath;
+    public System.String DirectoryPath { get; } = directoryPath;
 }

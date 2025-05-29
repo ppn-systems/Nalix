@@ -18,7 +18,7 @@ public class StringConversionException : BaseException
     /// Initializes a new instance of the <see cref="StringConversionException"/> class.
     /// </summary>
     /// <param name="message">The error message that explains the reason for the exception.</param>
-    public StringConversionException(string message)
+    public StringConversionException(System.String message)
         : base(message)
     {
     }
@@ -29,7 +29,7 @@ public class StringConversionException : BaseException
     /// <param name="message">The error message that explains the reason for the exception.</param>
     /// <param name="innerException">The exception that is the cause of the current exception,
     /// or <see langword="null" /> if no inner exception is specified.</param>
-    public StringConversionException(string message, System.Exception innerException)
+    public StringConversionException(System.String message, System.Exception innerException)
         : base(message, innerException)
     {
     }
@@ -39,7 +39,7 @@ public class StringConversionException : BaseException
     /// </summary>
     /// <param name="type">The desired resulting type of the attempted conversion.</param>
     public StringConversionException(System.Type type)
-        : base(BuildStandardMessageForType(type))
+        : base($"Cannot convert a string to an instance of {type.FullName}")
     {
     }
 
@@ -50,10 +50,7 @@ public class StringConversionException : BaseException
     /// <param name="innerException">The exception that is the cause of the current exception,
     /// or <see langword="null" /> if no inner exception is specified.</param>
     public StringConversionException(System.Type type, System.Exception innerException)
-        : base(BuildStandardMessageForType(type), innerException)
+        : base($"Cannot convert a string to an instance of {type.FullName}", innerException)
     {
     }
-
-    private static string BuildStandardMessageForType(System.Type type)
-        => $"Cannot convert a string to an instance of {type.FullName}";
 }

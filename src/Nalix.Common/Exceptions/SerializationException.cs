@@ -15,7 +15,7 @@ public class SerializationException : BaseException
     /// Initializes a new instance of the <see cref="SerializationException"/> class with a specified error message.
     /// </summary>
     /// <param name="message">The message that describes the error.</param>
-    public SerializationException(string message)
+    public SerializationException(System.String message)
         : base(message)
     {
     }
@@ -25,7 +25,7 @@ public class SerializationException : BaseException
     /// </summary>
     /// <param name="message">The error message that explains the reason for the exception.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
-    public SerializationException(string message, System.Exception innerException)
+    public SerializationException(System.String message, System.Exception innerException)
         : base(message, innerException)
     {
     }

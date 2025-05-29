@@ -10,7 +10,7 @@ public class CryptoException : BaseException
     /// Initializes a new instance of the <see cref="CryptoException"/> class with a specified error message.
     /// </summary>
     /// <param name="message">The message that describes the error.</param>
-    public CryptoException(string message)
+    public CryptoException(System.String message)
         : base(message)
     {
     }
@@ -20,7 +20,7 @@ public class CryptoException : BaseException
     /// </summary>
     /// <param name="message">The error message that explains the reason for the exception.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
-    public CryptoException(string message, System.Exception innerException)
+    public CryptoException(System.String message, System.Exception innerException)
         : base(message, innerException)
     {
     }

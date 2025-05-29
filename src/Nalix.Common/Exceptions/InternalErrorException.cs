@@ -22,7 +22,7 @@ public class InternalErrorException : BaseException
     /// This property typically contains additional context about the log event, such as
     /// stack traces, exception messages, or other relevant debugging information.
     /// </remarks>
-    public string Details { get; }
+    public System.String Details { get; }
 
     /// <summary>
     /// <para>Initializes a new instance of the <see cref="InternalErrorException"/> class.</para>
@@ -36,7 +36,7 @@ public class InternalErrorException : BaseException
     /// <para>Initializes a new instance of the <see cref="InternalErrorException"/> class.</para>
     /// </summary>
     /// <param name="message">The message that describes the error.</param>
-    public InternalErrorException(string message)
+    public InternalErrorException(System.String message)
         : base(message)
     {
     }
@@ -48,7 +48,7 @@ public class InternalErrorException : BaseException
     /// <param name="message">The error message that explains the reason for the exception.</param>
     /// <param name="innerException">The exception that is the cause of the current exception,
     /// or <see langword="null"/> if no inner exception is specified.</param>
-    public InternalErrorException(string message, System.Exception innerException)
+    public InternalErrorException(System.String message, System.Exception innerException)
         : base(message, innerException)
     {
     }
@@ -60,6 +60,6 @@ public class InternalErrorException : BaseException
     /// <param name="message">The error message that explains the reason for the exception.</param>
     /// <param name="details">The exception that is the cause of the current exception,
     /// or <see langword="null"/> if no inner exception is specified.</param>
-    public InternalErrorException(string message, string details)
+    public InternalErrorException(System.String message, System.String details)
         : base(message) => Details = details;
 }

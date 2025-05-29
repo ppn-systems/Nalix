@@ -15,7 +15,7 @@ public abstract class BaseException : System.Exception
     /// Initializes a new instance of the <see cref="BaseException"/> class.
     /// </summary>
     /// <param name="message">The error message that explains the reason for the exception.</param>
-    protected BaseException(string message)
+    protected BaseException(System.String message)
         : base(message) { }
 
     /// <summary>
@@ -24,6 +24,6 @@ public abstract class BaseException : System.Exception
     /// </summary>
     /// <param name="message">The error message that explains the reason for the exception.</param>
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
-    protected BaseException(string message, System.Exception innerException)
+    protected BaseException(System.String message, System.Exception innerException)
         : base(message, innerException) { }
 }
