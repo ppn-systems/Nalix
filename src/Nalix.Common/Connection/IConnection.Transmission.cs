@@ -24,13 +24,13 @@ public partial interface IConnection
         /// </summary>
         /// <param name="packet">The packet to send.</param>
         /// <returns></returns>
-        bool Send(in IPacket packet);
+        System.Boolean Send(in IPacket packet);
 
         /// <summary>
         /// Sends a message synchronously over the connection.
         /// </summary>
         /// <param name="message">The message to send.</param>
-        bool Send(System.ReadOnlySpan<System.Byte> message);
+        System.Boolean Send(System.ReadOnlySpan<System.Byte> message);
 
         /// <summary>
         /// Sends a message asynchronously over the connection.
