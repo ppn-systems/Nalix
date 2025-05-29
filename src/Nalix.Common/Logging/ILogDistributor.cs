@@ -21,7 +21,7 @@ public interface ILogDistributor : System.IDisposable
     /// </summary>
     /// <param name="loggerHandler">The log target to be removed.</param>
     /// <returns><c>true</c> if the target was successfully removed; otherwise, <c>false</c>.</returns>
-    bool RemoveTarget(ILoggerTarget loggerHandler);
+    System.Boolean RemoveTarget(ILoggerTarget loggerHandler);
 
     /// <summary>
     /// Publishes the provided log entry to all configured log targets.

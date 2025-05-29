@@ -9,61 +9,61 @@ public interface ILogger
     /// Logs metadata information useful for system configuration and setup.
     /// </summary>
     /// <param name="message">The message to log.</param>
-    void Meta(string message);
+    void Meta(System.String message);
 
     /// <summary>
     /// Logs metadata information with format and arguments.
     /// </summary>
     /// <param name="format">The format string.</param>
     /// <param name="args">The arguments to format.</param>
-    void Meta(string format, params object[] args);
+    void Meta(System.String format, params System.Object[] args);
 
     /// <summary>
     /// Logs metadata information with optional event identifier.
     /// </summary>
     /// <param name="message">The message to log.</param>
     /// <param name="eventId">Optional event identifier for correlation.</param>
-    void Meta(string message, EventId? eventId = null);
+    void Meta(System.String message, EventId? eventId = null);
 
     /// <summary>
     /// Logs trace-level information for detailed diagnostics.
     /// </summary>
     /// <param name="message">The message to log.</param>
-    void Trace(string message);
+    void Trace(System.String message);
 
     /// <summary>
     /// Logs trace information with format and arguments.
     /// </summary>
     /// <param name="format">The format string.</param>
     /// <param name="args">The arguments to format.</param>
-    void Trace(string format, params object[] args);
+    void Trace(System.String format, params System.Object[] args);
 
     /// <summary>
     /// Logs trace-level information with optional event identifier.
     /// </summary>
     /// <param name="message">The message to log.</param>
     /// <param name="eventId">Optional event identifier for correlation.</param>
-    void Trace(string message, EventId? eventId = null);
+    void Trace(System.String message, EventId? eventId = null);
 
     /// <summary>
     /// Logs debug information for development and troubleshooting.
     /// </summary>
     /// <param name="message">The message to log.</param>
-    void Debug(string message);
+    void Debug(System.String message);
 
     /// <summary>
     /// Logs debug information with format and arguments.
     /// </summary>
     /// <param name="format">The format string.</param>
     /// <param name="args">The arguments to format.</param>
-    void Debug(string format, params object[] args);
+    void Debug(System.String format, params System.Object[] args);
 
     /// <summary>
     /// Logs debug information with optional event identifier.
     /// </summary>
     /// <param name="message">The message to log.</param>
     /// <param name="eventId">Optional event identifier for correlation.</param>
-    void Debug(string message, EventId? eventId = null);
+    void Debug(System.String message, EventId? eventId = null);
 
     /// <summary>
     /// Logs debug information for a specific class type.
@@ -72,61 +72,61 @@ public interface ILogger
     /// <param name="message">The message to log.</param>
     /// <param name="eventId">Optional event identifier for correlation.</param>
     /// <param name="memberName">Optional member name where logging occurs.</param>
-    void Debug<TClass>(string message, EventId? eventId = null, string memberName = "")
+    void Debug<TClass>(System.String message, EventId? eventId = null, System.String memberName = "")
         where TClass : class;
 
     /// <summary>
     /// Logs information about normal application flow.
     /// </summary>
     /// <param name="message">The message to log.</param>
-    void Info(string message);
+    void Info(System.String message);
 
     /// <summary>
     /// Logs information with format and arguments.
     /// </summary>
     /// <param name="format">The format string.</param>
     /// <param name="args">The arguments to format.</param>
-    void Info(string format, params object[] args);
+    void Info(System.String format, params System.Object[] args);
 
     /// <summary>
     /// Logs information with optional event identifier.
     /// </summary>
     /// <param name="message">The message to log.</param>
     /// <param name="eventId">Optional event identifier for correlation.</param>
-    void Info(string message, EventId? eventId = null);
+    void Info(System.String message, EventId? eventId = null);
 
     /// <summary>
     /// Logs a warning about potential issues.
     /// </summary>
     /// <param name="message">The warning message to log.</param>
-    void Warn(string message);
+    void Warn(System.String message);
 
     /// <summary>
     /// Logs warning information with format and arguments.
     /// </summary>
     /// <param name="format">The format string.</param>
     /// <param name="args">The arguments to format.</param>
-    void Warn(string format, params object[] args);
+    void Warn(System.String format, params System.Object[] args);
 
     /// <summary>
     /// Logs a warning with optional event identifier.
     /// </summary>
     /// <param name="message">The warning message to log.</param>
     /// <param name="eventId">Optional event identifier for correlation.</param>
-    void Warn(string message, EventId? eventId = null);
+    void Warn(System.String message, EventId? eventId = null);
 
     /// <summary>
     /// Logs an error message about handled exceptions.
     /// </summary>
     /// <param name="message">The error message to log.</param>
-    void Error(string message);
+    void Error(System.String message);
 
     /// <summary>
     /// Logs an error message with optional event identifier.
     /// </summary>
     /// <param name="message">The error message to log.</param>
     /// <param name="eventId">Optional event identifier for correlation.</param>
-    void Error(string message, EventId? eventId = null);
+    void Error(System.String message, EventId? eventId = null);
 
     /// <summary>
     /// Logs an exception as an error.
@@ -139,7 +139,7 @@ public interface ILogger
     /// </summary>
     /// <param name="format">The format string.</param>
     /// <param name="args">The arguments to format.</param>
-    void Error(string format, params object[] args);
+    void Error(System.String format, params System.Object[] args);
 
     /// <summary>
     /// Logs an exception as an error with optional event identifier.
@@ -153,7 +153,7 @@ public interface ILogger
     /// </summary>
     /// <param name="message">The error message to log.</param>
     /// <param name="exception">The associated exception.</param>
-    void Error(string message, System.Exception exception);
+    void Error(System.String message, System.Exception exception);
 
     /// <summary>
     /// Logs an error with message, exception, and optional event identifier.
@@ -161,34 +161,34 @@ public interface ILogger
     /// <param name="message">The error message to log.</param>
     /// <param name="exception">The associated exception.</param>
     /// <param name="eventId">Optional event identifier for correlation.</param>
-    void Error(string message, System.Exception exception, EventId? eventId = null);
+    void Error(System.String message, System.Exception exception, EventId? eventId = null);
 
     /// <summary>
     /// Logs a critical error that may cause application failure.
     /// </summary>
     /// <param name="message">The critical error message to log.</param>
-    void Fatal(string message);
+    void Fatal(System.String message);
 
     /// <summary>
     /// Logs a critical error with format and arguments.
     /// </summary>
     /// <param name="format">The format string.</param>
     /// <param name="args">The arguments to format.</param>
-    void Fatal(string format, params object[] args);
+    void Fatal(System.String format, params System.Object[] args);
 
     /// <summary>
     /// Logs a critical error with custom message and exception details.
     /// </summary>
     /// <param name="message">The critical error message to log.</param>
     /// <param name="exception">The associated exception.</param>
-    void Fatal(string message, System.Exception exception);
+    void Fatal(System.String message, System.Exception exception);
 
     /// <summary>
     /// Logs a critical error with optional event identifier.
     /// </summary>
     /// <param name="message">The critical error message to log.</param>
     /// <param name="eventId">Optional event identifier for correlation.</param>
-    void Fatal(string message, EventId? eventId = null);
+    void Fatal(System.String message, EventId? eventId = null);
 
     /// <summary>
     /// Logs a critical error with message, exception, and optional event identifier.
@@ -196,5 +196,5 @@ public interface ILogger
     /// <param name="message">The critical error message to log.</param>
     /// <param name="exception">The associated exception.</param>
     /// <param name="eventId">Optional event identifier for correlation.</param>
-    void Fatal(string message, System.Exception exception, EventId? eventId = null);
+    void Fatal(System.String message, System.Exception exception, EventId? eventId = null);
 }

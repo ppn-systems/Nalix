@@ -8,7 +8,7 @@ namespace Nalix.Common.Logging;
 /// </remarks>
 /// <param name="id">The numeric identifier for this event.</param>
 /// <param name="name">The name of this event.</param>
-public readonly struct EventId(int id, string name = null) : System.IEquatable<EventId>
+public readonly struct EventId(System.Int32 id, System.String name = null) : System.IEquatable<EventId>
 {
     /// <summary>
     /// Represents an empty or uninitialized <see cref="EventId"/> with an Number of 0.
@@ -28,7 +28,7 @@ public readonly struct EventId(int id, string name = null) : System.IEquatable<E
     /// <param name="left">The first <see cref="EventId"/>.</param>
     /// <param name="right">The second <see cref="EventId"/>.</param>
     /// <returns><see langword="true" /> if the objects are equal.</returns>
-    public static bool operator ==(EventId left, EventId right) => left.Equals(right);
+    public static System.Boolean operator ==(EventId left, EventId right) => left.Equals(right);
 
     /// <summary>
     /// Checks if two specified <see cref="EventId"/> instances have different values.
@@ -36,31 +36,31 @@ public readonly struct EventId(int id, string name = null) : System.IEquatable<E
     /// <param name="left">The first <see cref="EventId"/>.</param>
     /// <param name="right">The second <see cref="EventId"/>.</param>
     /// <returns><see langword="true" /> if the objects are not equal.</returns>
-    public static bool operator !=(EventId left, EventId right) => !left.Equals(right);
+    public static System.Boolean operator !=(EventId left, EventId right) => !left.Equals(right);
 
     /// <summary>
     /// Gets the numeric identifier for this event.
     /// </summary>
-    public int Id { get; } = id;
+    public System.Int32 Id { get; } = id;
 
     /// <summary>
     /// Gets the name of this event.
     /// </summary>
-    public string Name { get; } = name;
+    public System.String Name { get; } = name;
 
     /// <inheritdoc />
-    public override string ToString() => Name ?? Id.ToString();
+    public override System.String ToString() => Name ?? Id.ToString();
 
     /// <summary>
     /// Compares the current instance to another object of the same type. Two events are equal if they have the same Number.
     /// </summary>
     /// <param name="other">An object to compare with this object.</param>
     /// <returns><see langword="true" /> if the current object is equal to <paramref name="other" />; otherwise, <see langword="false" />.</returns>
-    public bool Equals(EventId other) => Id == other.Id;
+    public System.Boolean Equals(EventId other) => Id == other.Id;
 
     /// <inheritdoc />
-    public override bool Equals(
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] object obj)
+    public override System.Boolean Equals(
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] System.Object obj)
     {
         if (obj is null)
         {
@@ -71,5 +71,5 @@ public readonly struct EventId(int id, string name = null) : System.IEquatable<E
     }
 
     /// <inheritdoc />
-    public override int GetHashCode() => Id;
+    public override System.Int32 GetHashCode() => Id;
 }

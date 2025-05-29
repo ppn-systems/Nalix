@@ -3,45 +3,45 @@ namespace Nalix.Common.Logging;
 /// <summary>
 /// Represents the severity levels of a log message.
 /// </summary>
-public enum LogLevel
+public enum LogLevel : System.Byte
 {
     /// <summary>
     /// Level used to represent messages related to metrics (statistics, measurement data).
     /// </summary>
-    Meta,
+    Meta = 1,
 
     /// <summary>
     /// Used to represent trace-level messages.
     /// </summary>
-    Trace,
+    Trace = 2,
 
     /// <summary>
     /// Used to represent debug-level messages.
     /// </summary>
-    Debug,
+    Debug = 3,
 
     /// <summary>
     /// Used to represent informational messages.
     /// </summary>
-    Information,
+    Information = 4,
 
     /// <summary>
     /// Used to represent warning-level messages.
     /// </summary>
-    Warning,
+    Warning = 5,
 
     /// <summary>
     /// Used to represent error-level messages.
     /// </summary>
-    Error,
+    Error = 6,
 
     /// <summary>
     /// Used to represent critical-level messages.
     /// </summary>
-    Critical,
+    Critical = 7,
 
     /// <summary>
     /// Represents an unspecified or undefined level.
     /// </summary>
-    None
+    None = 255
 }
