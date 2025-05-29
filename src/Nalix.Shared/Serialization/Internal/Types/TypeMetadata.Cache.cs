@@ -5,6 +5,8 @@ using Nalix.Common.Serialization;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Serialization.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests.Serialization")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks.Serialization")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Serialization.Benchmarks")]
 #endif
 
@@ -33,7 +35,6 @@ internal static partial class TypeMetadata
         public static System.Boolean IsCompositeSerializable = false;
 
         public static System.Int32 SerializableFixedSize = 0;
-        public static System.Int32 CompositeSerializableSize = 0;
         public static System.Int32 UnmanagedSZArrayElementSize = 0;
 
         static Cache()
