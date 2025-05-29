@@ -39,13 +39,7 @@ public readonly partial struct Snowflake : ISnowflake
 
     #region Decomposition
 
-    /// <summary>
-    /// Gets the 32-bit value component.
-    /// </summary>
-    /// <remarks>
-    /// Extracts the lower 32 bits of the identifier, representing the main value.
-    /// This operation is optimized for performance using direct bit manipulation.
-    /// </remarks>
+    /// <inheritdoc/>
     public System.UInt32 Value
     {
         [System.Runtime.CompilerServices.MethodImpl(
@@ -57,13 +51,7 @@ public readonly partial struct Snowflake : ISnowflake
         }
     }
 
-    /// <summary>
-    /// Gets the 16-bit machine identifier component.
-    /// </summary>
-    /// <remarks>
-    /// Extracts bits 32-47 of the identifier, representing the machine ID.
-    /// This operation is optimized for performance using direct bit manipulation.
-    /// </remarks>
+    /// <inheritdoc/>
     public System.UInt16 MachineId
     {
         [System.Runtime.CompilerServices.MethodImpl(
@@ -75,13 +63,7 @@ public readonly partial struct Snowflake : ISnowflake
         }
     }
 
-    /// <summary>
-    /// Gets the 8-bit type component.
-    /// </summary>
-    /// <remarks>
-    /// Extracts bits 48-55 of the identifier, representing the snowflake type.
-    /// This operation is optimized for performance using direct bit manipulation.
-    /// </remarks>
+    /// <inheritdoc/>
     public SnowflakeType Type
     {
         [System.Runtime.CompilerServices.MethodImpl(
