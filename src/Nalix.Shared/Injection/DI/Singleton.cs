@@ -184,7 +184,7 @@ public static class Singleton
                 {
                     var lazyInstance = new Lazy<object>(() =>
                     {
-                        object? instance = Activator.CreateInstance(implementationType)
+                        object instance = Activator.CreateInstance(implementationType)
                         ?? throw new InvalidOperationException($"Failed to create instance of type {implementationType.Name}");
 
                         return instance;
