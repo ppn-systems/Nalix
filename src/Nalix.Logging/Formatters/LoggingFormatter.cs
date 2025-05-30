@@ -1,6 +1,4 @@
 using Nalix.Common.Logging;
-using System;
-using System.Text;
 
 namespace Nalix.Logging.Formatters;
 
@@ -42,10 +40,10 @@ public class LoggingFormatter(bool colors = false) : ILoggerFormatter
     /// string log = LoggingFormatter.FormatLogEntry(TimeStamp.UtcNow, LogLevel.Information, new EventId(1), "Sample message", null);
     /// </example>
     public string FormatLogEntry(
-        DateTime timeStamp, LogLevel logLevel, EventId eventId,
-        string message, Exception? exception)
+        System.DateTime timeStamp, LogLevel logLevel,
+        EventId eventId, string message, System.Exception? exception)
     {
-        StringBuilder logBuilder = new();
+        System.Text.StringBuilder logBuilder = new();
 
         LoggingBuilder.BuildLog(logBuilder, timeStamp, logLevel, eventId, message, exception, _colors);
 
