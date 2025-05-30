@@ -180,8 +180,8 @@ public readonly struct Base64Id(uint value) : IEncodedId, IEquatable<Base64Id>, 
 
         return new Base64Id(
             ((uint)type << 24) |              // Type in high 8 bits
-            ((random & 0x00FFFF00) |          // Random value in middle bits
-            ((uint)machineId & 0xFFFF))       // Machine Number in low 16 bits
+            (random & 0x00FFFF00) |          // Random value in middle bits
+            ((uint)machineId & 0xFFFF)       // Machine Number in low 16 bits
         );
     }
 
@@ -312,6 +312,13 @@ public readonly struct Base64Id(uint value) : IEncodedId, IEquatable<Base64Id>, 
     /// <param name="other">The <see cref="Base64Id"/> to compare with the current instance.</param>
     /// <returns>true if both instances have the same value; otherwise, false.</returns>
     public bool Equals(Base64Id other) => _value == other._value;
+
+    /// <summary>
+    /// Determines whether the current instance is equal to another <see cref="IEncodedId"/>.
+    /// </summary>
+    /// <param name="other">The <see cref="IEncodedId"/> to compare with the current instance.</param>
+    /// <returns>true if both instances have the same value; otherwise, false.</returns>
+    public bool Equals(IEncodedId other) => _value == other.Value;
 
     /// <summary>
     /// Returns the hash code for the current instance.

@@ -180,8 +180,8 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
 
         return new Base36Id(
             ((uint)type << 24) |              // Type in high 8 bits
-            ((random & 0x00FFFF00) |          // Random value in middle bits
-            ((uint)machineId & 0xFFFF))       // Machine Number in low 16 bits
+            (random & 0x00FFFF00) |          // Random value in middle bits
+            ((uint)machineId & 0xFFFF)       // Machine Number in low 16 bits
         );
     }
 
@@ -308,7 +308,7 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
     /// </summary>
     /// <param name="obj">The object to compare with the current instance.</param>
     /// <returns>true if the specified object is a <see cref="Base36Id"/> and equals the current instance; otherwise, false.</returns>
-    public override bool Equals(object obj) => obj is Base36Id other && this.Equals(other);
+    public override bool Equals(object obj) => obj is Base36Id other && Equals(other);
 
     /// <summary>
     /// Determines whether the current instance is equal to another <see cref="Base36Id"/>.
@@ -316,6 +316,13 @@ public readonly struct Base36Id(uint value) : IEncodedId, IEquatable<Base36Id>, 
     /// <param name="other">The <see cref="Base36Id"/> to compare with the current instance.</param>
     /// <returns>true if both instances have the same value; otherwise, false.</returns>
     public bool Equals(Base36Id other) => _value == other._value;
+
+    /// <summary>
+    /// Determines whether the current instance is equal to another <see cref="IEncodedId"/>.
+    /// </summary>
+    /// <param name="other">The <see cref="IEncodedId"/> to compare with the current instance.</param>
+    /// <returns>true if both instances have the same value; otherwise, false.</returns>
+    public bool Equals(IEncodedId other) => _value == other.Value;
 
     /// <summary>
     /// Returns the hash code for the current instance.
