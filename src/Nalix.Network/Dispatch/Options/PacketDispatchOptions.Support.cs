@@ -54,10 +54,43 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         TPacket packet,
         IConnection connection)
     {
-        packet = TPacket.Compress(packet);
-        packet = TPacket.Encrypt(packet, connection.EncryptionKey, connection.Encryption);
+        TPacket workingPacket = packet;
+        TPacket? compressed = default;
+        TPacket? encrypted = default;
 
-        await connection.Tcp.SendAsync(packet);
+        try
+        {
+            if (packet.IsCompression)
+            {
+                compressed = TPacket.Compress(packet);
+                workingPacket = compressed;
+
+                if (packet.IsEncrypted)
+                {
+                    encrypted = TPacket.Encrypt(workingPacket, connection.EncryptionKey, connection.Encryption);
+                    workingPacket = encrypted;
+                }
+            }
+            else if (packet.IsEncrypted)
+            {
+                encrypted = TPacket.Encrypt(packet, connection.EncryptionKey, connection.Encryption);
+                workingPacket = encrypted;
+            }
+
+            await connection.Tcp.SendAsync(workingPacket);
+        }
+        finally
+        {
+            // Dispose all intermediate packets except the original
+            if (!ReferenceEquals(workingPacket, packet))
+                workingPacket?.Dispose();
+
+            if (!ReferenceEquals(compressed, workingPacket))
+                compressed?.Dispose();
+
+            if (!ReferenceEquals(encrypted, workingPacket))
+                encrypted?.Dispose();
+        }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -309,7 +342,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     try
                     {
                         System.String data = await task;
-                        await connection.Tcp.SendAsync(TPacket.Create(0, data));
+                        using TPacket packet = TPacket.Create(0, data);
+                        await connection.Tcp.SendAsync(packet.Serialize());
                     }
                     catch (System.Exception ex) { Failure(returnType, ex); }
                 }
@@ -378,7 +412,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     try
                     {
                         System.String data = await task;
-                        await connection.Tcp.SendAsync(TPacket.Create(0, data));
+                        using TPacket packet = TPacket.Create(0, data);
+                        await connection.Tcp.SendAsync(packet.Serialize());
                     }
                     catch (System.Exception ex) { Failure(returnType, ex); }
                 }
