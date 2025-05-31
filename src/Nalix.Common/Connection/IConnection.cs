@@ -52,12 +52,6 @@ public partial interface IConnection : System.IDisposable
     EncryptionType Encryption { get; set; }
 
     /// <summary>
-    /// A dictionary for storing connection-specific metadata.
-    /// This allows dynamically attaching and retrieving additional information related to the connection.
-    /// </summary>
-    System.Collections.Generic.Dictionary<System.String, System.Object> Metadata { get; }
-
-    /// <summary>
     /// Occurs when the connection is closed.
     /// </summary>
     event System.EventHandler<IConnectEventArgs> OnCloseEvent;

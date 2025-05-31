@@ -16,6 +16,16 @@ public interface IConnectionHub
     System.Boolean RegisterConnection(IConnection connection);
 
     /// <summary>
+    /// Associates a username with an existing client connection.
+    /// </summary>
+    /// <param name="connection">The client connection.</param>
+    /// <param name="username">The username to associate.</param>
+    /// <remarks>
+    /// This method should be called after the connection is successfully registered.
+    /// </remarks>
+    void AssociateUsername(IConnection connection, string username);
+
+    /// <summary>
     /// Unregisters a client connection from the session manager using its unique identifier.
     /// </summary>
     /// <param name="id">The unique identifier of the connection to unregister.</param>
