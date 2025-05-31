@@ -257,20 +257,18 @@ internal sealed class PBKDF2_I : System.IDisposable
 
         // inner = H(ipad || data)
         System.Span<System.Byte> inner = stackalloc System.Byte[32];
-        using (var hInner = new Keccak256())
         {
-            hInner.Update(ipad);
-            hInner.Update(data);
-            hInner.Finish(inner);
+            Keccak256.Sponge hInner = new();
+            hInner.Absorb(ipad);
+            hInner.Absorb(data);
+            hInner.PadAndSqueeze(inner);
         }
 
         // outer = H(opad || inner)
-        using (var hOuter = new Keccak256())
-        {
-            hOuter.Update(opad);
-            hOuter.Update(inner);
-            hOuter.Finish(output);
-        }
+        Keccak256.Sponge hOuter = new();
+        hOuter.Absorb(opad);
+        hOuter.Absorb(inner);
+        hOuter.PadAndSqueeze(output);
 
         k0.Clear();
         ipad.Clear();
