@@ -10,9 +10,10 @@
 using Nalix.Common.Enums;
 using Nalix.Framework.Randomization;
 using Nalix.Shared.Memory.Internal;
+using Nalix.Shared.Security.Aead;
 using Nalix.Shared.Security.Symmetric;
 
-namespace Nalix.Shared.Security.Aead;
+namespace Nalix.Shared.Security.Engine;
 
 /// <summary>
 /// Provides high-level APIs to encrypt and decrypt AEAD envelopes in the
