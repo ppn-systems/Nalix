@@ -55,42 +55,31 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         IConnection connection)
     {
         TPacket workingPacket = packet;
-        TPacket? compressed = default;
-        TPacket? encrypted = default;
 
         try
         {
             if (packet.IsCompression)
             {
-                compressed = TPacket.Compress(packet);
+                TPacket? compressed = TPacket.Compress(packet);
                 workingPacket = compressed;
 
                 if (packet.IsEncrypted)
                 {
-                    encrypted = TPacket.Encrypt(workingPacket, connection.EncryptionKey, connection.Encryption);
+                    TPacket encrypted = TPacket.Encrypt(workingPacket, connection.EncryptionKey, connection.Encryption);
                     workingPacket = encrypted;
                 }
             }
-            else if (packet.IsEncrypted)
+        }
+        catch
+        {
+            if (packet.IsEncrypted)
             {
-                encrypted = TPacket.Encrypt(packet, connection.EncryptionKey, connection.Encryption);
+                TPacket encrypted = TPacket.Encrypt(packet, connection.EncryptionKey, connection.Encryption);
                 workingPacket = encrypted;
             }
-
-            await connection.Tcp.SendAsync(workingPacket);
         }
-        finally
-        {
-            // Dispose all intermediate packets except the original
-            if (!ReferenceEquals(workingPacket, packet))
-                workingPacket?.Dispose();
 
-            if (!ReferenceEquals(compressed, workingPacket))
-                compressed?.Dispose();
-
-            if (!ReferenceEquals(encrypted, workingPacket))
-                encrypted?.Dispose();
-        }
+        await connection.Tcp.SendAsync(workingPacket);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(

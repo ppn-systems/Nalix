@@ -1,5 +1,6 @@
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Package.Metadata;
+using Nalix.Network.Package.Engine;
 using Nalix.Network.Package.Engine.Internal;
 using Nalix.Shared.Time;
 
@@ -80,5 +81,7 @@ public readonly partial struct Packet
         Checksum = checksum == 0 ? Integrity.Crc32.Compute(Payload.Span) : checksum;
 
         _hash = GetHashCode();
+
+        PacketGC.Register(this);
     }
 }
