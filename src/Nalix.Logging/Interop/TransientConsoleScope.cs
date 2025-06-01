@@ -14,11 +14,9 @@ public sealed class TransientConsoleScope : System.IDisposable
     private static System.IntPtr _hPrivOut = System.IntPtr.Zero;
 
     private static readonly System.Threading.ReaderWriterLockSlim _rw = new(System.Threading.LockRecursionPolicy.SupportsRecursion);
+    private static readonly System.Threading.Mutex _globalConsoleMux = new(initiallyOwned: false, name: @"Global\Nalix.TransientConsole");
 
-    /// <summary>
-    /// Asserts whether a transient console is currently active.
-    /// </summary>
-    public static System.Boolean IsActive => _refCount > 0;
+    private static System.Boolean _ownsGlobalMux = false;
 
     /// <summary>
     /// Creates a new console report scope with the specified title, dimensions, and ANSI support.
@@ -29,7 +27,30 @@ public sealed class TransientConsoleScope : System.IDisposable
     {
         EnterExclusive();
 
+        // Acquire global (cross-process) mutex only for the *first* scope in this process.
+        // This ensures only one process at a time is allowed to ALLOC_CONSOLE for a "transient" window.
         if (_refCount == 0)
+        {
+            // Try to acquire immediately; you can change timeout if muốn "đợi".
+            _ownsGlobalMux = _globalConsoleMux.WaitOne(0);
+            if (!_ownsGlobalMux)
+            {
+                // Another process is already holding the console-creation right.
+                // Choose behavior: throw OR best-effort attach to parent (no transient).
+                // Option A (strict): throw
+                // throw new System.InvalidOperationException("Another process already owns the transient console.");
+
+                // Option B (benign fallback): attach to parent console and keep going without ALLOC_CONSOLE.
+                // This still respects the rule: we don't create an extra console.
+                if (!Kernel32.ATTACH_CONSOLE(Kernel32.ATTACH_PARENT_PROCESS))
+                {
+                    // As a last resort, you can still bail out:
+                    throw new System.InvalidOperationException("Transient console is already in use by another process.");
+                }
+            }
+        }
+
+        if (_refCount == 0 && _ownsGlobalMux)
         {
             if (Kernel32.GET_CONSOLE_WINDOW() != System.IntPtr.Zero)
             {
@@ -38,6 +59,13 @@ public sealed class TransientConsoleScope : System.IDisposable
 
             if (!Kernel32.ALLOC_CONSOLE())
             {
+                _ownsGlobalMux = false;
+                try
+                {
+                    _globalConsoleMux.ReleaseMutex();
+                }
+                catch { /* ignored */ }
+
                 throw new System.InvalidOperationException(
                     $"AllocConsole failed: {System.Runtime.InteropServices.Marshal.GetLastPInvokeError()}");
             }
@@ -49,6 +77,13 @@ public sealed class TransientConsoleScope : System.IDisposable
 
             if (_hPrivOut == System.IntPtr.Zero || _hPrivOut == (System.IntPtr)(-1))
             {
+                _ownsGlobalMux = false;
+                try
+                {
+                    _globalConsoleMux.ReleaseMutex();
+                }
+                catch { /* ignored */ }
+
                 throw new System.InvalidOperationException(
                     $"CreateFile(CONOUT$) failed: {System.Runtime.InteropServices.Marshal.GetLastPInvokeError()}");
             }
@@ -60,6 +95,13 @@ public sealed class TransientConsoleScope : System.IDisposable
 
             if (_hPrivIn == System.IntPtr.Zero || _hPrivIn == (System.IntPtr)(-1))
             {
+                _ownsGlobalMux = false;
+                try
+                {
+                    _globalConsoleMux.ReleaseMutex();
+                }
+                catch { /* ignored */ }
+
                 throw new System.InvalidOperationException(
                     $"CreateFile(CONIN$) failed: {System.Runtime.InteropServices.Marshal.GetLastPInvokeError()}");
             }
@@ -207,6 +249,16 @@ public sealed class TransientConsoleScope : System.IDisposable
         {
             if (!Kernel32.ALLOC_CONSOLE())
             {
+                if (_ownsGlobalMux)
+                {
+                    _ownsGlobalMux = false;
+                    try
+                    {
+                        _globalConsoleMux.ReleaseMutex();
+                    }
+                    catch { /* ignored */ }
+                }
+
                 ExitExclusive();
                 return;
             }
@@ -229,6 +281,16 @@ public sealed class TransientConsoleScope : System.IDisposable
             Kernel32.SET_STD_HANDLE(Kernel32.STD_ERROR_HANDLE, hOut);
             Kernel32.SET_STD_HANDLE(Kernel32.STD_INPUT_HANDLE, hIn);
             REBIND_SYSTEM_CONSOLE_STREAMS();
+        }
+
+        if (_ownsGlobalMux)
+        {
+            _ownsGlobalMux = false;
+            try
+            {
+                _globalConsoleMux.ReleaseMutex();
+            }
+            catch { /* ignored */ }
         }
 
         ExitExclusive();
