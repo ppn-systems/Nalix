@@ -1,3 +1,4 @@
+using Nalix.Common.Constants;
 using Nalix.Common.Package.Enums;
 using Nalix.Common.Package.Metadata;
 using Nalix.Network.Package.Engine;
@@ -82,6 +83,10 @@ public readonly partial struct Packet
 
         _hash = GetHashCode();
 
-        PacketGC.Register(this);
+        if (Payload.Length > PacketConstants.HeapAllocLimit)
+        {
+            // Register large packets for garbage collection
+            PacketGC.Register(this);
+        }
     }
 }
