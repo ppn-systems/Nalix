@@ -14,13 +14,13 @@ namespace Nalix.Framework.Randomization;
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-public static class SecureRandom
+public static class Csprng
 {
-    private static System.String DebuggerDisplay => "SecureRandom(primary=OS)";
+    private static System.String DebuggerDisplay => "Csprng(primary=OS)";
 
     private static readonly System.Action<System.Span<System.Byte>> _f;
 
-    static SecureRandom()
+    static Csprng()
     {
         System.Action<System.Span<System.Byte>> f = OsCsprng.Fill;
         System.Span<System.Byte> probe = stackalloc System.Byte[16];
@@ -37,7 +37,7 @@ public static class SecureRandom
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SecureRandom] init using {(_f == OsCsprng.Fill ? "OS_CSPRNG" : "FA_RANDOM")}");
+                                .Info($"[Csprng] init using {(_f == OsCsprng.Fill ? "OS_CSPRNG" : "FA_RANDOM")}");
     }
 
     #region APIs

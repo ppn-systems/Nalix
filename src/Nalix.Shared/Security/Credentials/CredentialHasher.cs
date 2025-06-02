@@ -45,7 +45,7 @@ public static class CredentialHasher
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String credential,
         out System.Byte[] salt, out System.Byte[] hash)
     {
-        salt = SecureRandom.GetBytes(SaltSize);
+        salt = Csprng.GetBytes(SaltSize);
         using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize);
         hash = pbkdf2.GenerateKey(credential);
     }

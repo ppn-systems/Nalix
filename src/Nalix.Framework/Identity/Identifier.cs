@@ -136,7 +136,7 @@ public readonly partial struct Identifier : IIdentifier
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static Identifier NewId(IdentifierType type, System.UInt16 machineId = 1) => new(SecureRandom.NextUInt32(), machineId, type);
+    public static Identifier NewId(IdentifierType type, System.UInt16 machineId = 1) => new(Csprng.NextUInt32(), machineId, type);
 
     #endregion Constructors and Factory Methods
 }
