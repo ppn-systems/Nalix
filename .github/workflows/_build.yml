@@ -1,0 +1,98 @@
+name: _Template Build
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        description: 'Target OS to run build (ubuntu-latest, windows-latest, macos-latest)'
+        required: true
+        type: string
+      project:
+        description: 'The path(s) to the .csproj file(s), one per line'
+        required: true
+        type: string
+      deploy:
+        description: 'Set to true to publish the build output'
+        required: true
+        type: boolean
+        default: false
+      test:
+        description: 'The path(s) to test .csproj or .sln file(s), one per line'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ${{ inputs.os }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK 10.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget
+
+      - name: Restore dependencies
+        run: |
+          echo "${{ inputs.project }}" | while read proj; do
+            if [ -n "$proj" ]; then
+              echo "🔧 Restoring $proj"
+              dotnet restore "$proj"
+            fi
+          done
+        shell: bash
+
+      - name: Restore test dependencies
+        run: |
+          echo "${{ inputs.test }}" | while read testproj; do
+            if [ -n "$testproj" ]; then
+              echo "🧪 Restoring $testproj"
+              dotnet restore "$testproj"
+            fi
+          done
+        shell: bash
+
+      - name: Build all projects
+        run: |
+          echo "${{ inputs.project }}" | while read proj; do
+            if [ -n "$proj" ]; then
+              echo "📦 Building $proj"
+              dotnet build "$proj" --configuration Debug --no-restore
+            fi
+          done
+        shell: bash
+
+      # - name: Run Xunit tests
+      #   uses: nick-fields/retry@v2
+      #   with:
+      #     command: dotnet test "${{ inputs.test }}" --configuration Release --no-restore --verbosity normal -m:1
+       
+
+      - name: Publish build output
+        if: ${{ inputs.deploy }}
+        run: |
+          echo "${{ inputs.project }}" | while read proj; do
+            if [ -n "$proj" ]; then
+              name=$(basename "$proj" .csproj)
+              echo "🚀 Publishing $proj to ./publish/$name"
+              dotnet publish "$proj" --configuration Debug --no-restore --no-build --output "./publish/$name"
+            fi
+          done
+        shell: bash
+
+      - name: Upload publish artifact
+        if: ${{ inputs.deploy }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: publish
+          path: ./publish
