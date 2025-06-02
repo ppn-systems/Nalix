@@ -101,11 +101,9 @@ public static class EnvelopeCipher
     {
         return algorithm switch
         {
-            CipherSuiteType.XTEA or
             CipherSuiteType.SPECK or
             CipherSuiteType.SALSA20 or
             CipherSuiteType.CHACHA20 => SymmetricEngine.Encrypt(key, plaintext, algorithm, default, seq),
-            CipherSuiteType.XTEA_POLY1305 or
             CipherSuiteType.SPECK_POLY1305 or
             CipherSuiteType.SALSA20_POLY1305 or
             CipherSuiteType.CHACHA20_POLY1305 => AeadEngine.Encrypt(key, plaintext, algorithm, aad, seq),
@@ -158,11 +156,9 @@ public static class EnvelopeCipher
         // Quick parse to determine which engine to route to
         return EnvelopeFormat.TryParseEnvelope(envelope, out EnvelopeFormat.ParsedEnvelope env) && env.AeadType switch
         {
-            CipherSuiteType.XTEA or
             CipherSuiteType.SPECK or
             CipherSuiteType.SALSA20 or
             CipherSuiteType.CHACHA20 => SymmetricEngine.Decrypt(key, envelope, out plaintext),
-            CipherSuiteType.XTEA_POLY1305 or
             CipherSuiteType.SPECK_POLY1305 or
             CipherSuiteType.SALSA20_POLY1305 or
             CipherSuiteType.CHACHA20_POLY1305 => AeadEngine.Decrypt(key, envelope, out plaintext, aad),

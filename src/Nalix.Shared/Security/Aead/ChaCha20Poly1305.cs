@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Hashing;
@@ -87,42 +87,43 @@ public static class ChaCha20Poly1305
     {
         if (key.Length != FEEDC0DE)
         {
-            B8C6D4E2.C7D5E3F1();
+            ThrowHelper.ThrowInvalidKeyLengthException();
         }
 
         if (nonce.Length != BAADF00D)
         {
-            B8C6D4E2.D6E4F2A0();
+            ThrowHelper.ThrowInvalidNonceLengthException();
         }
 
         if (dstCiphertext.Length != plaintext.Length)
         {
-            B8C6D4E2.F4A2B0C8();
+            ThrowHelper.ThrowOutputLengthMismatchException();
         }
 
         if (tag.Length != TagSize)
         {
-            B8C6D4E2.E5F3A1B9();
+            ThrowHelper.ThrowInvalidTagLengthException();
         }
 
         System.Span<System.Byte> polyKey = stackalloc System.Byte[FEEDC0DE];
         try
         {
             // 1) Poly1305 one-time key = CHACHA20(key, nonce, counter=0) on zero block
-            using (ChaCha20 chacha0 = new(key, nonce, 0))
-            {
-                chacha0.GenerateKeyBlock(polyKey); // fills 32 bytes
-            }
+            ChaCha20 chacha0 = new(key, nonce, 0);
+            chacha0.GenerateKeyBlock(polyKey); // fills 32 bytes
+
 
             // 2) Encrypt with counter=1+
-            using (ChaCha20 chacha1 = new(key, nonce, 1))
-            {
-                chacha1.Encrypt(plaintext, dstCiphertext);
-            }
+            ChaCha20 chacha1 = new(key, nonce, 1);
+            chacha1.Encrypt(plaintext, dstCiphertext);
 
             // 3) MAC streaming: AAD || pad16 || CT || pad16 || lenAAD(8, LE) || lenCT(8, LE)
-            using Poly1305 poly = new(polyKey);
+            Poly1305 poly = new(polyKey);
             A1C3E5F7(poly, aad, dstCiphertext, E5A7C9D1: tag);
+
+            poly.Clear();
+            chacha0.Clear();
+            chacha1.Clear();
         }
         finally
         {
@@ -163,22 +164,22 @@ public static class ChaCha20Poly1305
     {
         if (key.Length != FEEDC0DE)
         {
-            B8C6D4E2.C7D5E3F1();
+            ThrowHelper.ThrowInvalidKeyLengthException();
         }
 
         if (nonce.Length != BAADF00D)
         {
-            B8C6D4E2.D6E4F2A0();
+            ThrowHelper.ThrowInvalidNonceLengthException();
         }
 
         if (tag.Length != TagSize)
         {
-            B8C6D4E2.E5F3A1B9();
+            ThrowHelper.ThrowInvalidTagLengthException();
         }
 
         if (dstPlaintext.Length != ciphertext.Length)
         {
-            B8C6D4E2.F4A2B0C8();
+            ThrowHelper.ThrowOutputLengthMismatchException();
         }
 
         System.Span<System.Byte> polyKey = stackalloc System.Byte[FEEDC0DE];
@@ -187,16 +188,12 @@ public static class ChaCha20Poly1305
         try
         {
             // 1) Poly1305 key
-            using (ChaCha20 chacha0 = new(key, nonce, 0))
-            {
-                chacha0.GenerateKeyBlock(polyKey);
-            }
+            ChaCha20 chacha0 = new(key, nonce, 0);
+            chacha0.GenerateKeyBlock(polyKey);
 
             // 2) Compute expected tag over AAD + CT
-            using (Poly1305 poly = new(polyKey))
-            {
-                A1C3E5F7(poly, aad, ciphertext, E5A7C9D1: computed);
-            }
+            Poly1305 poly = new(polyKey);
+            A1C3E5F7(poly, aad, ciphertext, E5A7C9D1: computed);
 
             // 3) Constant-time compare
             if (!BitwiseOperations.FixedTimeEquals(computed, tag))
@@ -205,8 +202,12 @@ public static class ChaCha20Poly1305
             }
 
             // 4) Decrypt with counter=1+
-            using ChaCha20 chacha1 = new(key, nonce, 1);
+            ChaCha20 chacha1 = new(key, nonce, 1);
             chacha1.Decrypt(ciphertext, dstPlaintext);
+
+            poly.Clear();
+            chacha0.Clear();
+            chacha1.Clear();
 
             return true;
         }
@@ -240,23 +241,20 @@ public static class ChaCha20Poly1305
     {
         if (key is null || key.Length != FEEDC0DE)
         {
-            B8C6D4E2.C7D5E3F1();
+            ThrowHelper.ThrowInvalidKeyLengthException();
         }
 
         if (nonce is null || nonce.Length != BAADF00D)
         {
-            B8C6D4E2.D6E4F2A0();
+            ThrowHelper.ThrowInvalidNonceLengthException();
         }
 
-        System.Byte[] ct = new System.Byte[plaintext.Length];
-        System.Byte[] tag = new System.Byte[TagSize];
+        System.Byte[] result = new System.Byte[plaintext.Length + TagSize];
+        System.Span<System.Byte> ctSpan = System.MemoryExtensions.AsSpan(result, 0, plaintext.Length);
+        System.Span<System.Byte> tagSpan = System.MemoryExtensions.AsSpan(result, plaintext.Length, TagSize);
 
-        Encrypt(key, nonce, plaintext, aad ?? System.ReadOnlySpan<System.Byte>.Empty, ct, tag);
+        Encrypt(key, nonce, plaintext, aad ?? System.ReadOnlySpan<System.Byte>.Empty, ctSpan, tagSpan);
 
-        System.Byte[] result = new System.Byte[ct.Length + TagSize];
-
-        System.MemoryExtensions.AsSpan(ct).CopyTo(result);
-        System.MemoryExtensions.AsSpan(tag).CopyTo(System.MemoryExtensions.AsSpan(result, ct.Length));
         return result;
     }
 
@@ -274,25 +272,26 @@ public static class ChaCha20Poly1305
     {
         if (key is null || key.Length != FEEDC0DE)
         {
-            B8C6D4E2.C7D5E3F1();
+            ThrowHelper.ThrowInvalidKeyLengthException();
         }
 
         if (nonce is null || nonce.Length != BAADF00D)
         {
-            B8C6D4E2.D6E4F2A0();
+            ThrowHelper.ThrowInvalidNonceLengthException();
         }
 
         if (cipherWithTag is null || cipherWithTag.Length < TagSize)
         {
-            B8C6D4E2.AB89CD67();
+            ThrowHelper.ThrowInvalidTagLengthException();
         }
 
         System.Int32 ctLen = cipherWithTag.Length - TagSize;
-        System.Span<System.Byte> ct = System.MemoryExtensions.AsSpan(cipherWithTag, 0, ctLen);
-        System.Span<System.Byte> tag = System.MemoryExtensions.AsSpan(cipherWithTag, ctLen, TagSize);
+        System.ReadOnlySpan<System.Byte> ct = System.MemoryExtensions.AsSpan(cipherWithTag, 0, ctLen);
+        System.ReadOnlySpan<System.Byte> tag = System.MemoryExtensions.AsSpan(cipherWithTag, ctLen, TagSize);
 
         System.Byte[] pt = new System.Byte[ctLen];
         System.Boolean ok = Decrypt(key, nonce, ct, aad ?? System.ReadOnlySpan<System.Byte>.Empty, tag, pt);
+
         return !ok ? throw new System.InvalidOperationException("Authentication failed") : pt;
     }
 
@@ -339,6 +338,8 @@ public static class ChaCha20Poly1305
         B2D4F6A8.Update(len);
 
         B2D4F6A8.FinalizeTag(E5A7C9D1);
+
+        B2D4F6A8.Clear();
         MemorySecurity.ZeroMemory(len);
     }
 
@@ -358,36 +359,8 @@ public static class ChaCha20Poly1305
         }
 
         System.Span<System.Byte> pad = stackalloc System.Byte[16];
-        MemorySecurity.ZeroMemory(pad[..(16 - rem)]);
+        pad.Clear();
         AB12EF34.Update(pad[..(16 - rem)]);
-    }
-
-    /// <summary>
-    /// Centralized throw helpers for fast-path argument validation.
-    /// </summary>
-    [System.ComponentModel.EditorBrowsable(
-        System.ComponentModel.EditorBrowsableState.Never)]
-    private static class B8C6D4E2
-    {
-        /// <summary>Throws when <c>key.Length != 32</c>.</summary>
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void C7D5E3F1() => throw new System.ArgumentException("Key must be 32 bytes", "key");
-
-        /// <summary>Throws when <c>nonce.Length != 12</c>.</summary>
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void D6E4F2A0() => throw new System.ArgumentException("Nonce must be 12 bytes", "nonce");
-
-        /// <summary>Throws when <c>tag.Length != 16</c>.</summary>
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void E5F3A1B9() => throw new System.ArgumentException("Tag must be 16 bytes", "tag");
-
-        /// <summary>Throws when output buffer length does not match input length.</summary>
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void F4A2B0C8() => throw new System.ArgumentException("Output length must match input length.");
-
-        /// <summary>Throws when the combined ciphertext+tag buffer is too short.</summary>
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void AB89CD67() => throw new System.ArgumentException("Ciphertext+Tag is too short.", "cipherWithTag");
     }
 
     #endregion Private Methods

@@ -45,13 +45,19 @@ public static class EnvelopeEncryptor
     // Cache sensitive member metadata per type (properties + fields + their sensitivity levels)
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, SensitiveMemberCache> _sensitiveMetadataCache = new();
 
-    // FIX #2: Cache nested Encrypt<T>/Decrypt<T> delegates to avoid GetMethod+MakeGenericMethod per call
+    // Cache nested Encrypt<T>/Decrypt<T> delegates to avoid GetMethod+MakeGenericMethod per call
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, NestedEncryptorDelegates> _nestedDelegateCache = new();
 
     // External storage for encrypted value types (keyed by object instance + member name)
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
         System.Object,
         System.Collections.Generic.Dictionary<System.String, EncryptedValueStorage>> _encryptedValueStorage = [];
+
+    // OPT-1: Shared empty byte array — eliminates Array.Empty<byte>() call overhead at every nested boundary
+    private static readonly System.Byte[] _emptyAad = [];
+
+    // OPT-2: Cache default(T) boxed values per value type — eliminates Activator.CreateInstance on hot path
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Object> _defaultValueCache = new();
 
     #endregion Fields
 
@@ -62,11 +68,16 @@ public static class EnvelopeEncryptor
     /// </summary>
     private readonly struct SensitiveMemberCache(
         SensitiveMemberInfo[] properties,
-        SensitiveMemberInfo[] fields)
+        SensitiveMemberInfo[] fields,
+        System.Int32 encryptableCount)
     {
         public readonly SensitiveMemberInfo[] Properties = properties;
         public readonly SensitiveMemberInfo[] Fields = fields;
         public readonly System.Boolean HasAnyMembers = properties.Length > 0 || fields.Length > 0;
+
+        // OPT-3: Pre-computed count of members that actually need encrypting (Level >= threshold)
+        // Avoids recomputing this in Decrypt's error message every time
+        public readonly System.Int32 EncryptableCount = encryptableCount;
     }
 
     /// <summary>
@@ -94,13 +105,12 @@ public static class EnvelopeEncryptor
     }
 
     /// <summary>
-    /// FIX #2: Cached delegates for nested Encrypt[T] / Decrypt[T] calls,
+    /// Cached delegates for nested Encrypt[T] / Decrypt[T] calls,
     /// replacing GetMethod + MakeGenericMethod on every nested object encounter.
     /// </summary>
     private sealed class NestedEncryptorDelegates
     {
         public required System.Action<System.Object, System.Byte[], CipherSuiteType, System.Byte[]> EncryptAction { get; init; }
-        // DecryptAction: passes aad=null internally — nested objects use default AAD
         public required System.Action<System.Object, System.Byte[]> DecryptAction { get; init; }
     }
 
@@ -135,10 +145,12 @@ public static class EnvelopeEncryptor
         System.ArgumentNullException.ThrowIfNull(obj);
         System.ArgumentNullException.ThrowIfNull(key);
 
-        // FIX #5: Validate key length early with a clear message before reaching the engine
         ValidateKeyLength(key, algorithm);
 
-        System.ReadOnlySpan<System.Byte> aadSpan = aad ?? System.ReadOnlySpan<System.Byte>.Empty;
+        // OPT-4: Reuse caller's aad array directly — avoids ToArray() materialisation on the top-level call.
+        // Internal helpers receive byte[] instead of ReadOnlySpan to prevent repeated ToArray() at every
+        // nested boundary. The penalty is one null-check instead of repeated heap allocs.
+        System.Byte[] aadArray = aad ?? _emptyAad;
 
         var cache = GET_SENSITIVE_MEMBERS(typeof(T));
         if (!cache.HasAnyMembers)
@@ -153,7 +165,6 @@ public static class EnvelopeEncryptor
         {
             var member = properties[i];
 
-            // Skip members whose sensitivity level is below the encryption threshold
             if (member.Level < EncryptionThreshold)
             {
                 continue;
@@ -165,7 +176,7 @@ public static class EnvelopeEncryptor
                 continue;
             }
 
-            var encrypted = ENCRYPT_VALUE(value, member.MemberType, member.Name, storage, key, algorithm, aadSpan);
+            var encrypted = ENCRYPT_VALUE(value, member.MemberType, member.Name, storage, key, algorithm, aadArray);
             if (encrypted is not null)
             {
                 member.Setter(obj, encrypted);
@@ -188,7 +199,7 @@ public static class EnvelopeEncryptor
                 continue;
             }
 
-            var encrypted = ENCRYPT_VALUE(value, member.MemberType, member.Name, storage, key, algorithm, aadSpan);
+            var encrypted = ENCRYPT_VALUE(value, member.MemberType, member.Name, storage, key, algorithm, aadArray);
             if (encrypted is not null)
             {
                 member.Setter(obj, encrypted);
@@ -222,7 +233,8 @@ public static class EnvelopeEncryptor
         System.ArgumentNullException.ThrowIfNull(obj);
         System.ArgumentNullException.ThrowIfNull(key);
 
-        System.ReadOnlySpan<System.Byte> aadSpan = aad ?? System.ReadOnlySpan<System.Byte>.Empty;
+        // OPT-4: Same as Encrypt — reuse array directly, no ToArray() copies
+        System.Byte[] aadArray = aad ?? _emptyAad;
 
         var cache = GET_SENSITIVE_MEMBERS(typeof(T));
         if (!cache.HasAnyMembers)
@@ -235,9 +247,9 @@ public static class EnvelopeEncryptor
             storage = [];
         }
 
-        // FIX #6: Snapshot count to detect partial-decrypt and log a warning
         System.Int32 successCount = 0;
-        System.Int32 totalCount = cache.Properties.Length + cache.Fields.Length;
+        // OPT-3: Use pre-computed EncryptableCount instead of recomputing via LINQ each call
+        System.Int32 totalCount = cache.EncryptableCount;
 
         System.ReadOnlySpan<SensitiveMemberInfo> properties = cache.Properties;
         for (System.Int32 i = 0; i < properties.Length; i++)
@@ -250,8 +262,7 @@ public static class EnvelopeEncryptor
 
             try
             {
-                // FIX #4: Use pre-compiled Setter from SensitiveMemberInfo — no GetProperty needed
-                var decrypted = DECRYPT_VALUE(member.Name, member.MemberType, member.Getter(obj), storage, key, aadSpan);
+                var decrypted = DECRYPT_VALUE(member.Name, member.MemberType, member.Getter(obj), storage, key, aadArray);
                 if (decrypted is not null)
                 {
                     member.Setter(obj, decrypted);
@@ -260,7 +271,6 @@ public static class EnvelopeEncryptor
             }
             catch (System.Exception ex)
             {
-                // FIX #6: Throw with context about partial state so callers can react
                 throw new System.Security.SecurityException(
                     $"Decryption failed on property '{member.Name}' of '{typeof(T).Name}'. " +
                     $"Object is partially decrypted ({successCount}/{totalCount} members done). " +
@@ -279,7 +289,7 @@ public static class EnvelopeEncryptor
 
             try
             {
-                var decrypted = DECRYPT_VALUE(member.Name, member.MemberType, member.Getter(obj), storage, key, aadSpan);
+                var decrypted = DECRYPT_VALUE(member.Name, member.MemberType, member.Getter(obj), storage, key, aadArray);
                 if (decrypted is not null)
                 {
                     member.Setter(obj, decrypted);
@@ -354,7 +364,7 @@ public static class EnvelopeEncryptor
     #region Key Validation
 
     /// <summary>
-    /// FIX #5: Validates key length against the chosen algorithm before entering the encrypt path.
+    /// Validates key length against the chosen algorithm before entering the encrypt path.
     /// Throws <see cref="System.ArgumentException"/> with a clear, actionable message.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -363,18 +373,12 @@ public static class EnvelopeEncryptor
     {
         System.Boolean valid = algorithm switch
         {
-            // AEAD suites
             CipherSuiteType.CHACHA20_POLY1305 => key.Length == 32,
             CipherSuiteType.SALSA20_POLY1305 => key.Length is 16 or 32,
-            CipherSuiteType.SPECK_POLY1305 => key.Length == 32, // Speck.KeySizeBytes
-            CipherSuiteType.XTEA_POLY1305 => key.Length is 16 or 32,
-
-            // Stream/CTR suites
+            CipherSuiteType.SPECK_POLY1305 => key.Length == 32,
             CipherSuiteType.CHACHA20 => key.Length == 32,
             CipherSuiteType.SALSA20 => key.Length is 16 or 32,
             CipherSuiteType.SPECK => key.Length == 32,
-            CipherSuiteType.XTEA => key.Length is 16 or 32,
-
             _ => throw new System.ArgumentException($"Unsupported algorithm: {algorithm}", nameof(algorithm))
         };
 
@@ -394,7 +398,6 @@ public static class EnvelopeEncryptor
         CipherSuiteType.CHACHA20_POLY1305 or CipherSuiteType.CHACHA20 or
         CipherSuiteType.SPECK_POLY1305 or CipherSuiteType.SPECK => "32 bytes",
         CipherSuiteType.SALSA20_POLY1305 or CipherSuiteType.SALSA20 => "16 or 32 bytes",
-        CipherSuiteType.XTEA_POLY1305 or CipherSuiteType.XTEA => "16 or 32 bytes",
         _ => "unknown"
     };
 
@@ -412,7 +415,6 @@ public static class EnvelopeEncryptor
     {
         return _sensitiveMetadataCache.GetOrAdd(type, static t =>
         {
-            // ---- Properties ----
             System.Reflection.PropertyInfo[] allProperties = t.GetProperties(
                 System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
 
@@ -432,7 +434,6 @@ public static class EnvelopeEncryptor
                     continue;
                 }
 
-                // FIX #4: Pre-compile getter/setter as delegates — O(1) access instead of reflection
                 var getter = BUILD_PROPERTY_GETTER(prop);
                 var setter = BUILD_PROPERTY_SETTER(prop);
 
@@ -446,7 +447,6 @@ public static class EnvelopeEncryptor
                 });
             }
 
-            // ---- Fields ----
             System.Reflection.FieldInfo[] allFields = t.GetFields(
                 System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
 
@@ -474,13 +474,31 @@ public static class EnvelopeEncryptor
                 });
             }
 
-            return new SensitiveMemberCache(
-                [.. tempProps],
-                [.. tempFields]);
+            SensitiveMemberInfo[] propsArray = [.. tempProps];
+            SensitiveMemberInfo[] fieldsArray = [.. tempFields];
+
+            // OPT-3: Pre-compute EncryptableCount once at cache-build time
+            System.Int32 encryptableCount = 0;
+            foreach (var m in propsArray)
+            {
+                if (m.Level >= EncryptionThreshold)
+                {
+                    encryptableCount++;
+                }
+            }
+            foreach (var m in fieldsArray)
+            {
+                if (m.Level >= EncryptionThreshold)
+                {
+                    encryptableCount++;
+                }
+            }
+
+            return new SensitiveMemberCache(propsArray, fieldsArray, encryptableCount);
         });
     }
 
-    // FIX #4: Compile a property getter as a delegate once, then call it O(1) forever
+    // Pre-compile a property getter as a delegate once, then call it O(1) forever
     private static System.Func<System.Object, System.Object?> BUILD_PROPERTY_GETTER(
         System.Reflection.PropertyInfo prop)
     {
@@ -536,7 +554,7 @@ public static class EnvelopeEncryptor
         System.Collections.Generic.Dictionary<System.String, EncryptedValueStorage> storage,
         System.Byte[] key,
         CipherSuiteType algorithm,
-        System.ReadOnlySpan<System.Byte> aad)
+        System.Byte[] aad)          // OPT-4: byte[] instead of ReadOnlySpan — no repeated ToArray() at each nested level
     {
         // ── String (most common path) ──────────────────────────────────────
         if (value is System.String str)
@@ -554,7 +572,6 @@ public static class EnvelopeEncryptor
                 System.Int32 byteCount = System.Text.Encoding.UTF8.GetBytes(
                     str, 0, str.Length, rentedBuffer, 0);
 
-                // FIX #3: Pass span directly — no intermediate plainBytes allocation
                 System.Byte[] cipherBytes = EnvelopeCipher.Encrypt(
                     key, System.MemoryExtensions.AsSpan(rentedBuffer, 0, byteCount), algorithm, aad);
 
@@ -562,7 +579,6 @@ public static class EnvelopeEncryptor
             }
             finally
             {
-                // Zero the rented buffer before returning to pool (sensitive data hygiene)
                 System.MemoryExtensions.AsSpan(rentedBuffer, 0, maxByteCount).Clear();
                 System.Buffers.ArrayPool<System.Byte>.Shared.Return(rentedBuffer);
             }
@@ -623,12 +639,12 @@ public static class EnvelopeEncryptor
             OriginalType = memberType
         };
 
-        return System.Activator.CreateInstance(memberType); // default(T) as placeholder
+        // OPT-2: Return cached boxed default(T) instead of calling Activator.CreateInstance each time
+        return GET_DEFAULT_VALUE(memberType);
     }
 
     /// <summary>
     /// Decrypts a value based on its runtime type.
-    /// FIX #4: Accepts the current value directly — caller already used pre-compiled getter.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -638,7 +654,7 @@ public static class EnvelopeEncryptor
         System.Object? currentValue,
         System.Collections.Generic.Dictionary<System.String, EncryptedValueStorage> storage,
         System.Byte[] key,
-        System.ReadOnlySpan<System.Byte> aad)
+        System.Byte[] aad)          // OPT-4: byte[] — no repeated ToArray() copies
     {
         // Value type stored in external storage
         if (storage.TryGetValue(memberName, out var encryptedStorage))
@@ -648,7 +664,7 @@ public static class EnvelopeEncryptor
 
         if (memberType.IsValueType)
         {
-            return null; // Value type not in storage → nothing to decrypt
+            return null;
         }
 
         var value = currentValue;
@@ -665,13 +681,32 @@ public static class EnvelopeEncryptor
                 return str;
             }
 
-            System.Byte[] cipherBytes = System.Convert.FromBase64String(str);
+            // OPT-5: Use ArrayPool to decode Base64 into a rented buffer, avoiding a fresh heap allocation
+            // for the cipher bytes before passing them to Decrypt.
+            System.Int32 maxDecodeLen = (str.Length + 3) / 4 * 3;  // upper bound for Base64 decode
+            System.Byte[] rentedCipher = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(maxDecodeLen);
+            try
+            {
+                if (!System.Convert.TryFromBase64String(str, rentedCipher, out System.Int32 cipherLen))
+                {
+                    throw new System.Security.SecurityException(
+                        $"Invalid Base64 data while decrypting string member '{memberName}'.");
+                }
 
-            return !EnvelopeCipher.Decrypt(key, cipherBytes, out System.Byte[]? plainBytes, aad)
-                ? throw new System.Security.SecurityException(
-                    $"Authentication tag mismatch while decrypting string member '{memberName}'. " +
-                    "Key or AAD may be incorrect, or data was tampered.")
-                : System.Text.Encoding.UTF8.GetString(plainBytes);
+                System.ReadOnlySpan<System.Byte> cipherSpan = System.MemoryExtensions.AsSpan(rentedCipher, 0, cipherLen);
+
+                return !EnvelopeCipher.Decrypt(key, cipherSpan, out System.Byte[]? plainBytes, aad)
+                    ? throw new System.Security.SecurityException(
+                        $"Authentication tag mismatch while decrypting string member '{memberName}'. " +
+                        "Key or AAD may be incorrect, or data was tampered.")
+                    : System.Text.Encoding.UTF8.GetString(plainBytes);
+            }
+            finally
+            {
+                // Zero rented buffer before returning — sensitive cipher data hygiene
+                System.MemoryExtensions.AsSpan(rentedCipher, 0, maxDecodeLen).Clear();
+                System.Buffers.ArrayPool<System.Byte>.Shared.Return(rentedCipher);
+            }
         }
 
         // ── List<T> ───────────────────────────────────────────────────────
@@ -724,117 +759,84 @@ public static class EnvelopeEncryptor
         return null;
     }
 
+    // OPT-6: Extracted shared helper — eliminates the duplicate GetOrAdd block
+    // that previously existed separately in ENCRYPT_NESTED_OBJECT and DECRYPT_NESTED_OBJECT.
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
+    private static NestedEncryptorDelegates GET_NESTED_DELEGATES(System.Type objectType)
+    {
+        return _nestedDelegateCache.GetOrAdd(objectType, static t =>
+        {
+            System.Reflection.MethodInfo encryptMethod = typeof(EnvelopeEncryptor)
+                .GetMethod(nameof(Encrypt),
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!
+                .MakeGenericMethod(t);
+
+            System.Reflection.MethodInfo decryptMethod = typeof(EnvelopeEncryptor)
+                .GetMethod(nameof(Decrypt),
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!
+                .MakeGenericMethod(t);
+
+            void encryptAction(System.Object o, System.Byte[] k, CipherSuiteType alg, System.Byte[] a)
+                => encryptMethod.Invoke(null, [o, k, alg, a]);
+
+            void decryptAction(System.Object o, System.Byte[] k)
+                => decryptMethod.Invoke(null, [o, k, null]);
+
+            return new NestedEncryptorDelegates
+            {
+                EncryptAction = encryptAction,
+                DecryptAction = decryptAction
+            };
+        });
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void ENCRYPT_NESTED_OBJECT(
         System.Object obj,
         System.Byte[] key,
         CipherSuiteType algorithm,
-        System.ReadOnlySpan<System.Byte> aad)
+        System.Byte[] aad)  // OPT-4: Receive byte[] — no ToArray() needed here anymore
     {
-        // Span cannot cross delegate boundaries — materialise to array first
-        System.Byte[] aadArray = aad.IsEmpty ? System.Array.Empty<System.Byte>() : aad.ToArray();
-
-        System.Type objectType = obj.GetType();
-        var delegates = _nestedDelegateCache.GetOrAdd(objectType, static t =>
-        {
-            // Encrypt<T> returns T (not void) so Delegate.CreateDelegate to Action<object,...>
-            // would throw: "Cannot bind to target method because its signature is not compatible."
-            // Solution: capture MethodInfo and wrap in a lambda — delegate created once per type.
-            System.Reflection.MethodInfo encryptMethod = typeof(EnvelopeEncryptor)
-                .GetMethod(nameof(Encrypt),
-                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!
-                .MakeGenericMethod(t);
-
-            System.Reflection.MethodInfo decryptMethod = typeof(EnvelopeEncryptor)
-                .GetMethod(nameof(Decrypt),
-                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!
-                .MakeGenericMethod(t);
-
-            // Lambda discards return value → compatible with Action<object,...>
-            void encryptAction(System.Object o, System.Byte[] k, CipherSuiteType alg, System.Byte[] a) => encryptMethod.Invoke(null, [o, k, alg, a]);
-
-            void decryptAction(System.Object o, System.Byte[] k) => decryptMethod.Invoke(null, [o, k, null]);
-
-            return new NestedEncryptorDelegates
-            {
-                EncryptAction = encryptAction,
-                DecryptAction = decryptAction
-            };
-        });
-
-        delegates.EncryptAction(obj, key, algorithm, aadArray);
+        var delegates = GET_NESTED_DELEGATES(obj.GetType());
+        delegates.EncryptAction(obj, key, algorithm, aad);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     private static void DECRYPT_NESTED_OBJECT(
         System.Object obj,
         System.Byte[] key,
-        System.ReadOnlySpan<System.Byte> aad)
+        System.Byte[] aad)  // OPT-4: Receive byte[] — no ToArray() needed here anymore
     {
-        System.Byte[] aadArray = aad.IsEmpty ? System.Array.Empty<System.Byte>() : aad.ToArray();
-
-        System.Type objectType = obj.GetType();
-        var delegates = _nestedDelegateCache.GetOrAdd(objectType, static t =>
-        {
-            System.Reflection.MethodInfo encryptMethod = typeof(EnvelopeEncryptor)
-                .GetMethod(nameof(Encrypt),
-                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!
-                .MakeGenericMethod(t);
-
-            System.Reflection.MethodInfo decryptMethod = typeof(EnvelopeEncryptor)
-                .GetMethod(nameof(Decrypt),
-                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!
-                .MakeGenericMethod(t);
-
-            void encryptAction(System.Object o, System.Byte[] k, CipherSuiteType alg, System.Byte[] a) => encryptMethod.Invoke(null, [o, k, alg, a]);
-
-            void decryptAction(System.Object o, System.Byte[] k) => decryptMethod.Invoke(null, [o, k, null]);
-
-            return new NestedEncryptorDelegates
-            {
-                EncryptAction = encryptAction,
-                DecryptAction = decryptAction
-            };
-        });
-
+        var delegates = GET_NESTED_DELEGATES(obj.GetType());
         delegates.DecryptAction(obj, key);
     }
 
-
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     private static System.String SERIALIZE_WITH_DELEGATES(
         System.Object value,
         System.Type memberType,
         System.Byte[] key,
         CipherSuiteType algorithm,
-        System.ReadOnlySpan<System.Byte> aad)
+        System.Byte[] aad)  // OPT-4: byte[] passed through directly — no Span snapshot needed
     {
-        // aad cannot be stored on Span across the delegate boundary, so snapshot to array
-        System.Byte[] aadArray = aad.IsEmpty ? System.Array.Empty<System.Byte>() : aad.ToArray();
-
         var delegates = GET_OR_CREATE_SERIALIZATION_DELEGATES(memberType);
-        return delegates.SerializeFunc(value, key, algorithm, aadArray);
+        return delegates.SerializeFunc(value, key, algorithm, aad);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     private static System.Object DESERIALIZE_WITH_DELEGATES(
         System.String encryptedBase64,
         System.Type memberType,
         System.Byte[] key,
-        System.ReadOnlySpan<System.Byte> aad)
+        System.Byte[] aad)  // OPT-4: byte[] passed through directly
     {
-        System.Byte[] aadArray = aad.IsEmpty ? System.Array.Empty<System.Byte>() : aad.ToArray();
-
         var delegates = GET_OR_CREATE_SERIALIZATION_DELEGATES(memberType);
-        return delegates.DeserializeFunc(encryptedBase64, key, aadArray);
+        return delegates.DeserializeFunc(encryptedBase64, key, aad);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -882,15 +884,15 @@ public static class EnvelopeEncryptor
 
         IFormatter<T> formatter = FormatterProvider.Get<T>();
 
-        DataWriter writer = new(64); // initial capacity; will expand if needed
+        DataWriter writer = new(64);
         try
         {
             formatter.Serialize(ref writer, typedValue);
 
-            // writer.ToArray() returns only the committed bytes (WrittenCount), correctly sized
-            System.Byte[] plainBytes = writer.ToArray();
-
-            System.Byte[] cipherBytes = EnvelopeCipher.Encrypt(key, plainBytes, algorithm, aad);
+            // OPT-7: Pass the writer's internal span directly to Encrypt instead of calling
+            // writer.ToArray() which allocates a new byte[] copy just to pass as plaintext.
+            // EnvelopeCipher.Encrypt accepts ReadOnlySpan<byte> so no copy is needed.
+            System.Byte[] cipherBytes = EnvelopeCipher.Encrypt(key, writer.FreeBuffer, algorithm, aad);
             return System.Convert.ToBase64String(cipherBytes);
         }
         finally
@@ -907,27 +909,69 @@ public static class EnvelopeEncryptor
         System.ArgumentNullException.ThrowIfNull(encryptedBase64);
         System.ArgumentNullException.ThrowIfNull(key);
 
-        System.Byte[] encryptedData = System.Convert.FromBase64String(encryptedBase64);
-
-        if (!EnvelopeCipher.Decrypt(key, encryptedData, out System.Byte[]? plainBytes, aad))
-        {
-            throw new CryptoException(
-                $"Authentication tag mismatch while decrypting value type '{typeof(T).Name}'. " +
-                "Key or AAD is incorrect, or the ciphertext was tampered with.");
-        }
-
-        IFormatter<T> formatter = FormatterProvider.Get<T>();
-
-        DataReader reader = new(plainBytes);
+        // OPT-8: Decode Base64 directly into a rented buffer instead of allocating a fresh byte[].
+        // For a 256-bit key + Poly1305 tag, the cipher payload is typically 32–64 bytes, well under
+        // the ArrayPool small-object threshold, so this rental is essentially free.
+        System.Int32 maxDecodeLen = (encryptedBase64.Length + 3) / 4 * 3;
+        System.Byte[] rentedCipher = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(maxDecodeLen);
         try
         {
-            T result = formatter.Deserialize(ref reader);
-            return result!;
+            if (!System.Convert.TryFromBase64String(encryptedBase64, rentedCipher, out System.Int32 cipherLen))
+            {
+                throw new CryptoException(
+                    $"Invalid Base64 data while decrypting value type '{typeof(T).Name}'.");
+            }
+
+            System.ReadOnlySpan<System.Byte> cipherSpan = System.MemoryExtensions.AsSpan(rentedCipher, 0, cipherLen);
+
+            if (!EnvelopeCipher.Decrypt(key, cipherSpan, out System.Byte[]? plainBytes, aad))
+            {
+                throw new CryptoException(
+                    $"Authentication tag mismatch while decrypting value type '{typeof(T).Name}'. " +
+                    "Key or AAD is incorrect, or the ciphertext was tampered with.");
+            }
+
+            IFormatter<T> formatter = FormatterProvider.Get<T>();
+
+            DataReader reader = new(plainBytes);
+            try
+            {
+                T result = formatter.Deserialize(ref reader);
+                return result!;
+            }
+            finally
+            {
+                reader.Dispose();
+            }
         }
         finally
         {
-            reader.Dispose();
+            // Zero before returning to pool — decrypted plain data hygiene
+            System.MemoryExtensions.AsSpan(rentedCipher, 0, maxDecodeLen).Clear();
+            System.Buffers.ArrayPool<System.Byte>.Shared.Return(rentedCipher);
         }
+    }
+
+    /// <summary>
+    /// OPT-2: Returns a cached boxed default value for the given value type.
+    /// Replaces <c>Activator.CreateInstance(memberType)</c> on the hot encrypt path,
+    /// eliminating one heap allocation per value-type member per Encrypt call.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Object GET_DEFAULT_VALUE(System.Type type)
+    {
+        return _defaultValueCache.GetOrAdd(type, static t =>
+        {
+            // Build and compile a lambda that returns default(T) boxed as object — done once per type
+            var body = System.Linq.Expressions.Expression.Convert(
+                System.Linq.Expressions.Expression.Default(t),
+                typeof(System.Object));
+            var lambda = System.Linq.Expressions.Expression
+                .Lambda<System.Func<System.Object>>(body)
+                .Compile();
+            return lambda();    // Invoke once to get the cached boxed default
+        });
     }
 
     #endregion Private Helpers

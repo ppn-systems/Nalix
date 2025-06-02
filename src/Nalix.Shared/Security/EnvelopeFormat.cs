@@ -207,8 +207,7 @@ internal static class EnvelopeFormat
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Boolean IsAeadSuite(CipherSuiteType t) =>
-        t is CipherSuiteType.XTEA_POLY1305
-          or CipherSuiteType.SPECK_POLY1305
+        t is CipherSuiteType.SPECK_POLY1305
           or CipherSuiteType.SALSA20_POLY1305
           or CipherSuiteType.CHACHA20_POLY1305;
 

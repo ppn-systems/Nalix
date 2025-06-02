@@ -40,29 +40,6 @@ public enum CipherSuiteType : System.Byte
     // ────────────────────────────────
 
     /// <summary>
-    /// XTEA (Extended Tiny Encryption Algorithm) block cipher.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <strong>⚠️ Legacy cipher warning:</strong>
-    /// </para>
-    /// <para>
-    /// XTEA is a lightweight 64-bit block cipher with a 128-bit key,
-    /// designed for simplicity and minimal code size.
-    /// </para>
-    /// <para>
-    /// Due to its small block size and age, XTEA is vulnerable to
-    /// block collision risks when encrypting large volumes of data
-    /// and is <strong>not recommended for modern cryptographic systems</strong>.
-    /// </para>
-    /// <para>
-    /// Suitable only for low-volume data, legacy compatibility,
-    /// or constrained environments with clearly defined threat models.
-    /// </para>
-    /// </remarks>
-    XTEA = 1,
-
-    /// <summary>
     /// SPECK lightweight block cipher.
     /// </summary>
     /// <remarks>
@@ -127,25 +104,6 @@ public enum CipherSuiteType : System.Byte
     // ────────────────────────────────
     // AEAD cipher suites (cipher + Poly1305)
     // ────────────────────────────────
-
-    /// <summary>
-    /// XTEA cipher combined with Poly1305 MAC (<c>XTEA-Poly1305</c>).
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <strong>⚠️ Limited-security AEAD construction:</strong>
-    /// </para>
-    /// <para>
-    /// While Poly1305 provides strong message authentication,
-    /// the overall security of this AEAD suite remains constrained
-    /// by the underlying XTEA block cipher.
-    /// </para>
-    /// <para>
-    /// This construction should not be used for encrypting
-    /// large data streams or in high-assurance security contexts.
-    /// </para>
-    /// </remarks>
-    XTEA_POLY1305 = 5,
 
     /// <summary>
     /// SPECK cipher combined with Poly1305 MAC (<c>SPECK-Poly1305</c>).
