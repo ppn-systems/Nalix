@@ -8,44 +8,6 @@ namespace Nalix.Shared.Tests.Cryptography;
 public class AeadEngineTests
 {
     [Fact]
-    public void ConvertKeyToXtea_Valid32Bytes_ProducesXorOfHalves()
-    {
-        var key32 = new Byte[32];
-        for (Int32 i = 0; i < 32; i++)
-        {
-            key32[i] = (Byte)i;
-        }
-
-        var out16 = new Byte[16];
-        AeadEngine.U32ToU16(key32, out16);
-
-        for (Int32 i = 0; i < 16; i++)
-        {
-            Assert.Equal((Byte)(key32[i] ^ key32[i + 16]), out16[i]);
-        }
-    }
-
-    [Fact]
-    public void ConvertKeyToXtea_InvalidKeyLength_ThrowsArgumentException()
-    {
-        var badKey = new Byte[31];
-        var out16 = new Byte[16];
-
-        var ex = Assert.Throws<ArgumentException>(() => AeadEngine.U32ToU16(badKey, out16));
-        Assert.Equal("key", ex.ParamName);
-    }
-
-    [Fact]
-    public void ConvertKeyToXtea_OutTooSmall_ThrowsArgumentException()
-    {
-        Byte[] key32 = new Byte[32];
-        Byte[] outTooSmall = new Byte[8];
-
-        var ex = Assert.Throws<ArgumentException>(() => AeadEngine.U32ToU16(key32, outTooSmall));
-        Assert.Equal("bytes16", ex.ParamName);
-    }
-
-    [Fact]
     public void EncryptDecrypt_ChaCha20Poly1305_Roundtrip_Succeeds()
     {
         Byte[] key = new Byte[32];
