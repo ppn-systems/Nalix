@@ -13,7 +13,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public TPacket Dequeue()
     {
-        if (this.TryDequeue(out TPacket? packet)) return packet;
+        if (TryDequeue(out TPacket? packet)) return packet;
         throw new System.InvalidOperationException("Cannot dequeue from an empty queue.");
     }
 
@@ -106,16 +106,17 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
     /// <returns>A list of packets dequeued before the stop condition was met.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Collections.Generic.List<TPacket> Dequeue(System.Func<TPacket, bool> predicate, int limit = 100)
+    public System.Collections.Generic.List<TPacket> Dequeue(
+        System.Func<TPacket, bool> predicate, int limit = 100)
     {
         System.Collections.Generic.List<TPacket> result = [];
         int count = 0;
 
-        while (count < limit && this.TryDequeue(out TPacket? packet))
+        while (count < limit && TryDequeue(out TPacket? packet))
         {
             if (!predicate(packet))
             {
-                this.Enqueue(packet);
+                Enqueue(packet);
                 continue; // Re-enqueue the packet if it doesn't match the predicate
             }
 
@@ -139,7 +140,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
 
         for (int i = 0; i < limit; i++)
         {
-            if (!this.TryDequeue(out TPacket? packet))
+            if (!TryDequeue(out TPacket? packet))
                 break;
 
             result.Add(packet);
@@ -170,7 +171,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
                 if (_options.EnableMetrics)
                 {
                     System.Threading.Interlocked.Increment(ref _dequeuedCounts[i]);
-                    this.UpdatePerformanceStats(ticks);
+                    UpdatePerformanceStats(ticks);
                 }
 
                 packet = temp;
@@ -235,7 +236,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
                 if (_options.EnableMetrics)
                 {
                     System.Threading.Interlocked.Increment(ref _dequeuedCounts[i]);
-                    this.UpdatePerformanceStats(startTicks);
+                    UpdatePerformanceStats(startTicks);
                 }
 
                 packet = temp;

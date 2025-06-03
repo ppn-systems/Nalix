@@ -32,11 +32,11 @@ internal static class PacketGC
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void Register(Packet packet)
+    internal static void Register(Packet packet)
         => _queue.Enqueue(new Entry(Clock.UnixMillisecondsNow(), packet));
 
     // Không public, chỉ dùng cho timer
-    private static void ProcessQueue(object? _)
+    private static void ProcessQueue(System.Object? _)
     {
         if (_queue.IsEmpty) return;
 
