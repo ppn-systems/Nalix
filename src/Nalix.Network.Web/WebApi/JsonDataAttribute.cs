@@ -34,7 +34,7 @@ public class JsonDataAttribute : Attribute, IRequestDataAttribute<WebApiControll
 
         try
         {
-            return JsonSerializer.Deserialize(body, type, EncodingOptions.HttpFormatted);
+            return JsonSerializer.Deserialize(body, type, SerializerOptions.HttpFormatted);
         }
         catch (FormatException)
         {

@@ -4,7 +4,7 @@ namespace Nalix.Environment;
 /// Predefined serialization settings.
 /// </summary>
 
-public static class EncodingOptions
+public static class SerializerOptions
 {
     /// <summary>
     /// Default encoding for serialization and deserialization.

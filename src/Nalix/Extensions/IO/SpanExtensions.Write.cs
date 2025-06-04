@@ -474,7 +474,7 @@ public static partial class SpanExtensions
         fixed (char* pChar = &value)
         fixed (byte* pTemp = temp)
         {
-            bytesWritten = EncodingOptions.Encoding.GetBytes(pChar, 1, pTemp, 4);
+            bytesWritten = SerializerOptions.Encoding.GetBytes(pChar, 1, pTemp, 4);
         }
 
         if (bytesWritten > 4)
@@ -502,7 +502,7 @@ public static partial class SpanExtensions
         fixed (char* pChar = &value)
         fixed (byte* pTemp = temp)
         {
-            bytesWritten = EncodingOptions.Encoding.GetBytes(pChar, 1, pTemp, 4);
+            bytesWritten = SerializerOptions.Encoding.GetBytes(pChar, 1, pTemp, 4);
         }
 
         if (bytesWritten > 4)
@@ -527,7 +527,7 @@ public static partial class SpanExtensions
             return;
         }
 
-        int byteCount = EncodingOptions.Encoding.GetByteCount(value);
+        int byteCount = SerializerOptions.Encoding.GetByteCount(value);
 
         if (span.Length < offset + sizeof(int) + byteCount)
             throw new System.ArgumentException("Span too small to write string.", nameof(span));
@@ -538,7 +538,7 @@ public static partial class SpanExtensions
         fixed (char* pChars = value)
         fixed (byte* pBytes = &span[offset])
         {
-            int written = EncodingOptions.Encoding.GetBytes(pChars, value.Length, pBytes, byteCount);
+            int written = SerializerOptions.Encoding.GetBytes(pChars, value.Length, pBytes, byteCount);
             offset += written;
         }
     }
@@ -556,7 +556,7 @@ public static partial class SpanExtensions
             return;
         }
 
-        int byteCount = EncodingOptions.Encoding.GetByteCount(value);
+        int byteCount = SerializerOptions.Encoding.GetByteCount(value);
 
         if (buffer.Length < offset + sizeof(int) + byteCount)
             throw new System.ArgumentException("Buffer too small to write string.", nameof(buffer));
@@ -567,7 +567,7 @@ public static partial class SpanExtensions
         fixed (char* pChars = value)
         fixed (byte* pBytes = &buffer[offset])
         {
-            int written = EncodingOptions.Encoding.GetBytes(pChars, value.Length, pBytes, byteCount);
+            int written = SerializerOptions.Encoding.GetBytes(pChars, value.Length, pBytes, byteCount);
             offset += written;
         }
     }

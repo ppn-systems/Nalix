@@ -32,7 +32,7 @@ namespace Nalix.Network.Web.Http.Response
         {
             context.Response.ContentType = MimeType.Json;
             context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
-            await ChunkedEncodingBaseSerializer(context, JsonSerializer.Serialize(data, EncodingOptions.HttpFormatted))
+            await ChunkedEncodingBaseSerializer(context, JsonSerializer.Serialize(data, SerializerOptions.HttpFormatted))
                 .ConfigureAwait(false);
         }
 
@@ -48,7 +48,7 @@ namespace Nalix.Network.Web.Http.Response
                     context.Response.ContentType = MimeType.Json;
                     context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
                     await ChunkedEncodingBaseSerializer(
-                        context, JsonSerializer.Serialize(data, EncodingOptions.HttpFormatted))
+                        context, JsonSerializer.Serialize(data, SerializerOptions.HttpFormatted))
                         .ConfigureAwait(false);
                 };
         }
@@ -67,7 +67,7 @@ namespace Nalix.Network.Web.Http.Response
                 context.Response.ContentType = MimeType.Json;
                 context.Response.ContentEncoding = WebServer.Utf8NoBomEncoding;
                 ResponseSerializerCallback baseSerializer = None(bufferResponse);
-                await baseSerializer(context, JsonSerializer.Serialize(data, EncodingOptions.HttpFormatted))
+                await baseSerializer(context, JsonSerializer.Serialize(data, SerializerOptions.HttpFormatted))
                     .ConfigureAwait(false);
             };
 

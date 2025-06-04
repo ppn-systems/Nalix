@@ -47,7 +47,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
 
     private readonly BigInteger _saltValue = new(salt, true);
     private readonly BigInteger _verifier = new(verifier, true);
-    private readonly byte[] _usernameBytes = EncodingOptions.Encoding.GetBytes(username);
+    private readonly byte[] _usernameBytes = SerializerOptions.Encoding.GetBytes(username);
 
     private BigInteger _sessionKey;
     private BigInteger _clientProof;
@@ -69,7 +69,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
     /// <returns>Verifier as a byte array.</returns>
     public static byte[] GenerateVerifier(byte[] salt, string username, string password)
     {
-        byte[] data = SHA256.HashData(EncodingOptions.Encoding.GetBytes($"{username}:{password}"));
+        byte[] data = SHA256.HashData(SerializerOptions.Encoding.GetBytes($"{username}:{password}"));
         BigInteger x = Hash(true, new BigInteger(salt, true), new BigInteger(data, true));
 
         return BigInteger.ModPow(G, x, N).ToByteArray();
