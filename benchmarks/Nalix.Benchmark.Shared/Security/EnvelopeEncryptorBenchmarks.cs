@@ -39,8 +39,8 @@ public class EnvelopeEncryptorBenchmarks
     private Byte[] _key = Array.Empty<Byte>();
     private readonly Byte[] _aad = Array.Empty<Byte>();
 
-    [Params(CipherSuiteType.SPECK, CipherSuiteType.SALSA20, CipherSuiteType.CHACHA20,
-            CipherSuiteType.SPECK_POLY1305, CipherSuiteType.SALSA20_POLY1305, CipherSuiteType.CHACHA20_POLY1305)]
+    [Params(CipherSuiteType.SALSA20, CipherSuiteType.CHACHA20,
+            CipherSuiteType.SALSA20_POLY1305, CipherSuiteType.CHACHA20_POLY1305)]
     public CipherSuiteType Algorithm;
 
     // Instances used for each benchmark iteration.
