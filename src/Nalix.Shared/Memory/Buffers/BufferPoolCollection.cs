@@ -12,7 +12,8 @@ internal sealed class BufferPoolCollection : System.IDisposable
 {
     #region Fields
 
-    private const System.Int32 CooldownMs = 3_000; // avoid thrash
+    private const System.Int32 MinCooldownMs = 500;
+    private const System.Int32 MaxCooldownMs = 10_000;
     private const System.Double UsageEpsilon = 0.05; // hysteresis
 
     private readonly System.Threading.ReaderWriterLockSlim _keysLock;
@@ -197,14 +198,29 @@ internal sealed class BufferPoolCollection : System.IDisposable
         BufferPoolShared pool, System.Double expandThreshold,
         System.Double shrinkThreshold, System.Int32 minIncrease, System.Int32 maxOneShot)
     {
-        ref readonly BufferPoolState st = ref pool.GetPoolInfoRef(); // cheap snapshot
-        System.Double usage = st.GetUsageRatio(); // 0..1 (1 = hot)
+        ref readonly BufferPoolState st = ref pool.GetPoolInfoRef();
+        System.Double usage = st.GetUsageRatio();
         System.Double missRate = st.GetMissRate();
 
-        // Do not resize too frequently (per pool)
         System.Int64 now = System.Environment.TickCount64;
         System.Int64 last = _cooldowns.GetOrAdd(st.BufferSize, 0);
-        if (now - last < CooldownMs)
+
+        // Adaptive cooldown
+        System.Int32 cooldown;
+        if (usage >= 0.90 || missRate >= 0.10)
+        {
+            cooldown = MinCooldownMs; // hệ thống đang nóng → phản ứng nhanh
+        }
+        else if (usage <= 0.20 && missRate < 0.01)
+        {
+            cooldown = MaxCooldownMs; // rất nhàn → giảm tần suất resize
+        }
+        else
+        {
+            cooldown = 3_000; // default
+        }
+
+        if (now - last < cooldown)
         {
             return;
         }

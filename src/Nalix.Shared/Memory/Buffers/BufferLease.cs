@@ -21,6 +21,14 @@ public sealed class BufferLease : IBufferLease
     /// </summary>
     internal static readonly BufferPoolManager Pool = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
 
+#if DEBUG
+    private const System.Boolean EnablePoisonOnDispose = true;
+#else
+    private const bool EnablePoisonOnDispose = false;
+#endif
+
+    private const System.Byte PoisonByte = 0xCD;
+
     // ====== Fields ======
     private System.Byte[]? _buffer;
     private System.Int32 _start;                    // slice start (>= 0, <= RawCapacity)
@@ -118,7 +126,14 @@ public sealed class BufferLease : IBufferLease
     {
         System.ObjectDisposedException.ThrowIf(_buffer is null, nameof(BufferLease));
 
-        _ = System.Threading.Interlocked.Increment(ref _refCount);
+        System.Int32 newValue = System.Threading.Interlocked.Increment(ref _refCount);
+
+        if (newValue <= 1)
+        {
+            // newValue == 1: ok (single owner) — overflow -> negative or 0
+            throw new System.InvalidOperationException(
+                $"[{nameof(BufferLease)}] Invalid ref-count increment: {newValue}.");
+        }
     }
 
     /// <summary>
@@ -146,12 +161,19 @@ public sealed class BufferLease : IBufferLease
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
-        if (System.Threading.Interlocked.Decrement(ref _refCount) != 0)
+        System.Int32 newValue = System.Threading.Interlocked.Decrement(ref _refCount);
+
+        if (newValue < 0)
+        {
+            throw new System.InvalidOperationException(
+                $"[{nameof(BufferLease)}] Ref-count underflow. Dispose called too many times.");
+        }
+
+        if (newValue != 0)
         {
             return;
         }
 
-        // If detached, drop reference only
         if (System.Threading.Volatile.Read(ref _detached) == 1)
         {
             _buffer = null;
@@ -160,19 +182,30 @@ public sealed class BufferLease : IBufferLease
             return;
         }
 
-        var buf = System.Threading.Interlocked.Exchange(ref _buffer, null);
-        var start = _start;
-        var len = Length;
+        System.Byte[]? buf = System.Threading.Interlocked.Exchange(ref _buffer, null);
+        System.Int32 start = _start;
+        System.Int32 len = Length;
         _start = 0;
         Length = 0;
 
         if (buf is not null)
         {
-            if (ZeroOnDispose && len > 0)
+            if (len > 0)
             {
-                // Clear only the used region of the slice for speed.
-                new System.Span<System.Byte>(buf, start, len).Clear();
+                var slice = new System.Span<System.Byte>(buf, start, len);
+
+                if (ZeroOnDispose)
+                {
+                    // Security first
+                    slice.Clear();
+                }
+                else if (EnablePoisonOnDispose)
+                {
+                    // Debugging aid – detect use-after-free
+                    slice.Fill(PoisonByte);
+                }
             }
+
             Pool.Return(buf);
         }
     }
