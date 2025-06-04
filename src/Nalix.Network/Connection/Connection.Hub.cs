@@ -3,13 +3,6 @@ using Nalix.Common.Identity;
 using Nalix.Common.Logging;
 using Nalix.Identifiers;
 using Nalix.Shared.Injection.DI;
-using System;
-using System.Buffers;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Nalix.Network.Connection;
 
@@ -17,20 +10,20 @@ namespace Nalix.Network.Connection;
 /// High-performance connection manager optimized for MMORPG servers.
 /// Thread-safe with minimal allocations and efficient lookup operations.
 /// </summary>
-public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub, IDisposable
+public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub, System.IDisposable
 {
     private ILogger? _logger;
 
     // Separate dictionaries for better cache locality and reduced contention
-    private readonly ConcurrentDictionary<IEncodedId, string> _usernames =
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<IEncodedId, string> _usernames =
         new(System.Environment.ProcessorCount * 2, 1024);
 
-    private readonly ConcurrentDictionary<IEncodedId, IConnection> _connections =
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<IEncodedId, IConnection> _connections =
         new(System.Environment.ProcessorCount * 2, 1024);
 
     // Username-to-ID reverse lookup for fast user-based operations
-    private readonly ConcurrentDictionary<string, IEncodedId> _usernameToId =
-        new(System.Environment.ProcessorCount * 2, 1024, StringComparer.OrdinalIgnoreCase);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, IEncodedId> _usernameToId =
+        new(System.Environment.ProcessorCount * 2, 1024, System.StringComparer.OrdinalIgnoreCase);
 
     // Connection statistics for monitoring
     private volatile int _connectionCount;
@@ -38,22 +31,28 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
     private volatile bool _disposed;
 
     // Pre-allocated collections for bulk operations
-    private static readonly ArrayPool<IConnection> s_connectionPool = ArrayPool<IConnection>.Shared;
+    private static readonly System.Buffers.ArrayPool<IConnection> s_connectionPool;
 
     /// <summary>
     /// Current number of active connections
     /// </summary>
     public int ConnectionCount => _connectionCount;
 
+    static ConnectionHub()
+    {
+        s_connectionPool = System.Buffers.ArrayPool<IConnection>.Shared;
+    }
+
     /// <inheritdoc/>
     public void SetLogging(ILogger logger)
     {
-        ArgumentNullException.ThrowIfNull(logger);
+        System.ArgumentNullException.ThrowIfNull(logger);
         _logger = logger;
     }
 
     /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public bool RegisterConnection(IConnection connection)
     {
         if (connection is null || _disposed)
@@ -61,8 +60,8 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
 
         if (_connections.TryAdd(connection.Id, connection))
         {
-            connection.OnCloseEvent += OnClientDisconnected;
-            Interlocked.Increment(ref _connectionCount);
+            connection.OnCloseEvent += this.OnClientDisconnected;
+            System.Threading.Interlocked.Increment(ref _connectionCount);
 
             _logger?.Info("[{0}] Connection registered: {1} (Total: {2})",
                 nameof(ConnectionHub), connection.Id, _connectionCount);
@@ -74,7 +73,8 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
     }
 
     /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void AssociateUsername(IConnection connection, string username)
     {
         if (connection is null || string.IsNullOrWhiteSpace(username) || _disposed)
@@ -96,7 +96,8 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
     }
 
     /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public bool UnregisterConnection(IEncodedId id)
     {
         if (id is null || _disposed)
@@ -110,8 +111,8 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
                 _usernameToId.TryRemove(username, out _);
             }
 
-            connection.OnCloseEvent -= OnClientDisconnected;
-            Interlocked.Decrement(ref _connectionCount);
+            connection.OnCloseEvent -= this.OnClientDisconnected;
+            System.Threading.Interlocked.Decrement(ref _connectionCount);
 
             _logger?.Info("[{0}] Connection unregistered: {1} (Total: {2})",
                 nameof(ConnectionHub), id, _connectionCount);
@@ -123,36 +124,40 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
     }
 
     /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public IConnection? GetConnection(IEncodedId id)
         => _connections.TryGetValue(id, out var connection) ? connection : null;
 
     /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public IConnection? GetConnection(ReadOnlySpan<byte> id)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public IConnection? GetConnection(System.ReadOnlySpan<byte> id)
         => _connections.TryGetValue(Base36Id.FromByteArray(id), out var connection) ? connection : null;
 
     /// <summary>
     /// Get connection by username (fast lookup)
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public IConnection? GetConnectionByUsername(string username)
     {
         if (string.IsNullOrWhiteSpace(username))
             return null;
 
-        return _usernameToId.TryGetValue(username, out var id) ? GetConnection(id) : null;
+        return _usernameToId.TryGetValue(username, out var id) ? this.GetConnection(id) : null;
     }
 
     /// <summary>
     /// Get username for connection ID
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public string? GetUsername(IEncodedId id)
         => _usernames.TryGetValue(id, out var username) ? username : null;
 
     /// <inheritdoc/>
-    public IReadOnlyCollection<IConnection> ListConnections()
+    public System.Collections.Generic.IReadOnlyCollection<IConnection> ListConnections()
     {
         var count = _connectionCount;
         if (count == 0)
@@ -169,7 +174,7 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
             }
 
             var result = new IConnection[index];
-            Array.Copy(connections, result, index);
+            System.Array.Copy(connections, result, index);
             return result;
         }
         finally
@@ -181,17 +186,20 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
     /// <summary>
     /// Broadcast message to all connections efficiently
     /// </summary>
-    public async Task BroadcastAsync<T>(T message, Func<IConnection, T, Task> sendFunc, CancellationToken cancellationToken = default)
+    public async System.Threading.Tasks.Task BroadcastAsync<T>(
+        T message,
+        System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
+        System.Threading.CancellationToken cancellationToken = default)
         where T : class
     {
         if (message is null || sendFunc is null || _disposed)
             return;
 
-        var connections = ListConnections();
+        var connections = this.ListConnections();
         if (connections.Count == 0)
             return;
 
-        var tasks = new Task[connections.Count];
+        var tasks = new System.Threading.Tasks.Task[connections.Count];
         var index = 0;
 
         foreach (var connection in connections)
@@ -199,13 +207,13 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
             if (cancellationToken.IsCancellationRequested)
                 break;
 
-            tasks[index++] = Task.Run(async () =>
+            tasks[index++] = System.Threading.Tasks.Task.Run(async () =>
             {
                 try
                 {
                     await sendFunc(connection, message).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (System.Exception ex)
                 {
                     _logger?.Error("[{0}] Broadcast error for {1}: {2}", nameof(ConnectionHub), connection.Id, ex.Message);
                 }
@@ -214,9 +222,13 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
 
         try
         {
-            await Task.WhenAll(tasks.AsSpan(0, index).ToArray()).ConfigureAwait(false);
+            await System.Threading.Tasks.Task
+                      .WhenAll(System.MemoryExtensions
+                      .AsSpan(tasks, 0, index)
+                      .ToArray())
+                      .ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (System.OperationCanceledException)
         {
             _logger?.Info("[{0}] Broadcast cancelled", nameof(ConnectionHub));
         }
@@ -225,15 +237,18 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
     /// <summary>
     /// Broadcast to connections matching a predicate
     /// </summary>
-    public async Task BroadcastWhereAsync<T>(T message, Func<IConnection, T, Task> sendFunc,
-        Func<IConnection, bool> predicate, CancellationToken cancellationToken = default)
+    public async System.Threading.Tasks.Task BroadcastWhereAsync<T>(
+        T message,
+        System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
+        System.Func<IConnection, bool> predicate,
+        System.Threading.CancellationToken cancellationToken = default)
         where T : class
     {
         if (message is null || sendFunc is null || predicate is null || _disposed)
             return;
 
-        var filteredConnections = new List<IConnection>();
-        foreach (var connection in _connections.Values)
+        System.Collections.Generic.List<IConnection> filteredConnections = [];
+        foreach (IConnection connection in _connections.Values)
         {
             if (predicate(connection))
                 filteredConnections.Add(connection);
@@ -242,17 +257,17 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
         if (filteredConnections.Count == 0)
             return;
 
-        var tasks = new Task[filteredConnections.Count];
+        var tasks = new System.Threading.Tasks.Task[filteredConnections.Count];
         for (int i = 0; i < filteredConnections.Count; i++)
         {
             var connection = filteredConnections[i];
-            tasks[i] = Task.Run(async () =>
+            tasks[i] = System.Threading.Tasks.Task.Run(async () =>
             {
                 try
                 {
                     await sendFunc(connection, message).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (System.Exception ex)
                 {
                     _logger?.Error("[{0}] Filtered broadcast error for {1}: {2}", nameof(ConnectionHub), connection.Id, ex.Message);
                 }
@@ -261,9 +276,9 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
 
         try
         {
-            await Task.WhenAll(tasks).ConfigureAwait(false);
+            await System.Threading.Tasks.Task.WhenAll(tasks).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (System.OperationCanceledException)
         {
             _logger?.Info("[{0}] Filtered broadcast cancelled", nameof(ConnectionHub));
         }
@@ -274,15 +289,15 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
     {
         if (_disposed) return;
 
-        var connections = ListConnections();
+        var connections = this.ListConnections();
 
-        Parallel.ForEach(connections, connection =>
+        System.Threading.Tasks.Parallel.ForEach(connections, connection =>
         {
             try
             {
                 connection.Disconnect(reason);
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 _logger?.Error("[{0}] Error disconnecting {1}: {2}", nameof(ConnectionHub), connection.Id, ex.Message);
             }
@@ -292,7 +307,7 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
         _connections.Clear();
         _usernames.Clear();
         _usernameToId.Clear();
-        Interlocked.Exchange(ref _connectionCount, 0);
+        System.Threading.Interlocked.Exchange(ref _connectionCount, 0);
 
         _logger?.Info("[{0}] All {1} connections disconnected", nameof(ConnectionHub), connections.Count);
     }
@@ -300,6 +315,8 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
     /// <summary>
     /// Get connection statistics
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public ConnectionStats GetStats()
     {
         return new ConnectionStats
@@ -310,21 +327,25 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
         };
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnClientDisconnected(object? sender, IConnectEventArgs args)
     {
         if (args.Connection is not null && !_disposed)
-            UnregisterConnection(args.Connection.Id);
+            this.UnregisterConnection(args.Connection.Id);
     }
 
     /// <summary>
     /// Releases unmanaged resources and performs other cleanup operations.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public new void Dispose()
     {
         if (_disposed) return;
 
         _disposed = true;
-        CloseAllConnections("Server shutting down");
+        this.CloseAllConnections("Server shutting down");
 
         // Unsubscribe from all events
         foreach (var connection in _connections.Values)
