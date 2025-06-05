@@ -21,6 +21,11 @@ public sealed class BufferLease : IBufferLease
     /// </summary>
     internal static readonly BufferPoolManager Pool = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
 
+    /// <summary>
+    /// Maximum buffer size for stack allocation in <see cref="CopyFrom"/>. Larger buffers will be heap-allocated.
+    /// </summary>
+    public static readonly System.Int32 StackAllocThreshold = 512; // 1KB threshold for stackalloc in CopyFrom
+
 #if DEBUG
     private const System.Boolean EnablePoisonOnDispose = true;
 #else

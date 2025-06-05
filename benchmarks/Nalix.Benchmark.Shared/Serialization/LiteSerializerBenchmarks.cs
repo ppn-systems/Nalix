@@ -46,16 +46,8 @@ using System.Buffers;
 namespace Nalix.Benchmark.Shared.Serialization;
 
 [MemoryDiagnoser]
+[ThreadingDiagnoser]
 [DisassemblyDiagnoser]
-[SimpleJob(
-    launchCount: 3,
-    warmupCount: 5,
-    iterationCount: 20)]
-// Reduce total runtime for development feedback:
-// - launchCount:1 avoids multiple process launches
-// - warmupCount:0 skips warmup (less stable but faster)
-// - iterationCount:1 single measurement iteration
-// - invocationCount:1 single invocation block per iteration
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
 public class LiteSerializerBenchmarks
 {

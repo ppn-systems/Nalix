@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 namespace Nalix.Shared.Security.Symmetric;
 
@@ -9,6 +9,11 @@ namespace Nalix.Shared.Security.Symmetric;
 /// </summary>
 public static class Salsa20
 {
+    /// <summary>
+    /// Required nonce length in bytes.
+    /// </summary>
+    public const System.Byte NonceSize = 8;
+
     #region Encryption/Decryption Methods
 
     // ----------------------------
@@ -29,7 +34,7 @@ public static class Salsa20
     public static System.Byte[] Encrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt64 counter,
+        System.UInt64 counter,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext)
     {
         if (key.Length is not 16 and not 32)
@@ -63,7 +68,7 @@ public static class Salsa20
     public static System.Int32 Encrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt64 counter,
+        System.UInt64 counter,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> ciphertext)
     {
@@ -99,7 +104,7 @@ public static class Salsa20
     public static System.Byte[] Decrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt64 counter,
+        System.UInt64 counter,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext)
         => Encrypt(key, nonce, counter, ciphertext);
 
@@ -119,7 +124,7 @@ public static class Salsa20
     public static System.Int32 Decrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt64 counter,
+        System.UInt64 counter,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> plaintext)
         => Encrypt(key, nonce, counter, ciphertext, plaintext);

@@ -220,10 +220,10 @@ public ref struct ChaCha20
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void EncryptBytes(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] output,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 numBytes,
-        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
+        System.Byte[] output,
+        System.Byte[] input,
+        System.Int32 numBytes,
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         ThrowIfCleared();
 
@@ -261,9 +261,9 @@ public ref struct ChaCha20
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void EncryptBytes(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] output,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
-        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
+        System.Byte[] output,
+        System.Byte[] input,
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         ThrowIfCleared();
 
@@ -290,9 +290,9 @@ public ref struct ChaCha20
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Byte[] EncryptBytes(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 numBytes,
-        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
+        System.Byte[] input,
+        System.Int32 numBytes,
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         ThrowIfCleared();
 
@@ -323,8 +323,8 @@ public ref struct ChaCha20
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Byte[] EncryptBytes(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
-        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
+        System.Byte[] input,
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         ThrowIfCleared();
 
@@ -341,17 +341,18 @@ public ref struct ChaCha20
     }
 
     /// <summary>
-    /// Encrypts <paramref name="src"/> into <paramref name="dst"/> using the current state
-    /// (XOR with the keystream).
+    /// Tries to encrypt <paramref name="src"/> into <paramref name="dst"/>.
+    /// Returns <see langword="false"/> if <paramref name="dst"/> is too small.
     /// </summary>
     /// <param name="src">Source data to encrypt.</param>
-    /// <param name="dst">Destination span; must be the same length as <paramref name="src"/>.</param>
-    /// <exception cref="System.ArgumentException">
-    /// <paramref name="dst"/> length does not equal <paramref name="src"/> length.
-    /// </exception>
+    /// <param name="dst">Destination span.</param>
+    /// <returns>
+    /// <see langword="true"/> if encryption succeeded; otherwise <see langword="false"/>.
+    /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Encrypt(
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public System.Int32 Encrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst)
     {
@@ -363,40 +364,7 @@ public ref struct ChaCha20
         }
 
         EncryptSpanInternal(src, dst, src.Length);
-    }
-
-    /// <summary>
-    /// Tries to encrypt <paramref name="src"/> into <paramref name="dst"/>.
-    /// Returns <see langword="false"/> if <paramref name="dst"/> is too small.
-    /// </summary>
-    /// <param name="src">Source data to encrypt.</param>
-    /// <param name="dst">Destination span.</param>
-    /// <param name="written">
-    /// When this method returns <see langword="true"/>, contains the number of bytes written.
-    /// </param>
-    /// <returns>
-    /// <see langword="true"/> if encryption succeeded; otherwise <see langword="false"/>.
-    /// </returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Boolean Encrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 written)
-    {
-        ThrowIfCleared();
-
-        written = 0;
-
-        if (dst.Length < src.Length)
-        {
-            return false;
-        }
-
-        Encrypt(src, dst);
-        written = src.Length;
-        return true;
+        return dst.Length;
     }
 
     #endregion Encryption Methods
@@ -413,10 +381,10 @@ public ref struct ChaCha20
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void DecryptBytes(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] output,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 numBytes,
-        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
+        System.Byte[] output,
+        System.Byte[] input,
+        System.Int32 numBytes,
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         ThrowIfCleared();
 
@@ -452,9 +420,9 @@ public ref struct ChaCha20
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void DecryptBytes(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] output,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
-        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
+        System.Byte[] output,
+        System.Byte[] input,
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         ThrowIfCleared();
 
@@ -477,9 +445,9 @@ public ref struct ChaCha20
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Byte[] DecryptBytes(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 numBytes,
-        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
+        System.Byte[] input,
+        System.Int32 numBytes,
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         ThrowIfCleared();
 
@@ -509,8 +477,8 @@ public ref struct ChaCha20
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Byte[] DecryptBytes(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
-        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
+        System.Byte[] input,
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         ThrowIfCleared();
         System.ArgumentNullException.ThrowIfNull(input);
@@ -531,12 +499,12 @@ public ref struct ChaCha20
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Decrypt(
+    public System.Int32 Decrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst)
     {
         ThrowIfCleared();
-        Encrypt(src, dst);
+        return Encrypt(src, dst);
     }
 
     #endregion Decryption Methods
@@ -608,11 +576,11 @@ public ref struct ChaCha20
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Encrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 counter,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
-        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
+        System.Byte[] key,
+        System.Byte[] nonce,
+        System.UInt32 counter,
+        System.Byte[] input,
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         ChaCha20 chacha = new(key, nonce, counter);
 
@@ -634,11 +602,11 @@ public ref struct ChaCha20
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Decrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 counter,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
-        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
+        System.Byte[] key,
+        System.Byte[] nonce,
+        System.UInt32 counter,
+        System.Byte[] input,
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         ChaCha20 chacha = new(key, nonce, counter);
 
