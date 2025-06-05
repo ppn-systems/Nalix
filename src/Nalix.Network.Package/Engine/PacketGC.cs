@@ -3,7 +3,7 @@ using Nalix.Shared.Time;
 namespace Nalix.Network.Package.Engine;
 
 /// <summary>
-/// PacketGC siêu nhẹ: tự động Dispose các Packet sau một khoảng thời gian.
+/// Super lightweight PacketGC: automatically disposes of packets after a period of time.
 /// </summary>
 internal static class PacketGC
 {
