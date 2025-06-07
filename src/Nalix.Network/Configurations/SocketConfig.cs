@@ -11,7 +11,7 @@ public sealed class SocketConfig : ConfigurationLoader
 {
     #region Fields
 
-    private ushort _port = 52006;
+    private ushort _port = 57206;
 
     #endregion Fields
 
@@ -34,7 +34,7 @@ public sealed class SocketConfig : ConfigurationLoader
     /// <summary>
     /// Gets or sets the port number for the network connection.
     /// Must be within the range of 1 to 65535.
-    /// Standard is 52006.
+    /// Standard is 57206.
     /// </summary>
     public ushort Port
     {

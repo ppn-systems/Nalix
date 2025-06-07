@@ -23,8 +23,11 @@ public sealed class FileLogOptions
 
     private static readonly TimeSpan DefaultFlushInterval = TimeSpan.FromSeconds(1);
 
-    private static readonly string DefaultBaseDirectory = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
-    private static readonly string DefaultLogDirectory = Path.Combine(DefaultBaseDirectory, "Logs");
+    private static readonly string DefaultBaseDirectory =
+        AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
+
+    private static readonly string DefaultLogDirectory =
+        Path.Combine(DefaultBaseDirectory, "assets", "data", "logs");
 
     private int _maxFileSize = DefaultMaxFileSize;
     private int _maxQueueSize = DefaultMaxQueueSize;

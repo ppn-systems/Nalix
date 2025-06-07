@@ -1,7 +1,6 @@
 using Nalix.Environment;
 using Nalix.Network.Web.Http.Extensions;
 using Nalix.Network.Web.MimeTypes;
-using Nalix.Serialization;
 using System.Text.Json;
 using System.Threading.Tasks;
 

@@ -1,4 +1,5 @@
 using Nalix.Common.Package;
+using Nalix.Shared.Configuration;
 using Nalix.Shared.Injection.DI;
 using Nalix.Shared.Net.Transport;
 
@@ -22,7 +23,7 @@ public class NetClient<TPacket> : SingletonBase<NetClient<TPacket>>, System.IDis
     /// <summary>
     /// Gets the context associated with the network connection.
     /// </summary>
-    public NetContext Context { get; } = new();
+    public NetContext Context { get; } = ConfigurationStore.Instance.Get<NetContext>();
 
     /// <summary>
     /// Gets the network sender used to send packets.
@@ -58,7 +59,7 @@ public class NetClient<TPacket> : SingletonBase<NetClient<TPacket>>, System.IDis
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Connect(
-        int timeout = 30000,
+        int timeout = 20000,
         System.Threading.CancellationToken cancellationToken = default)
     {
         _client?.Close();

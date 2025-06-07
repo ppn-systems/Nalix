@@ -15,15 +15,15 @@ public sealed class NetContext : ConfigurationLoader
 
     /// <summary>
     /// Gets or sets the port number for the connection.
-    /// Default value is 7777.
+    /// Default value is 52006.
     /// </summary>
-    public int Port { get; set; } = 7777;
+    public int Port { get; set; } = 57206;
 
     /// <summary>
     /// Gets or sets the server address or hostname.
-    /// Default value is "127.0.0.1".
+    /// Default value is "0.0.0.0".
     /// </summary>
-    public string Address { get; set; } = "127.0.0.1";
+    public string Address { get; set; } = "0.0.0.0";
 
     /// <summary>
     /// Gets or sets the encryption key used for secure communication.

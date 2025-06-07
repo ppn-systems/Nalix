@@ -62,7 +62,7 @@ internal class UdpIngressWorker
 
         _listener.Bind(
             new System.Net.IPEndPoint(System.Net.IPAddress.Any, Listener.Config.Port));
-        _logger.Debug("[UDP] Socket bound to port {0}", Listener.Config.Port);
+        _logger.Debug($"[UDP] Socket bound to port {Listener.Config.Port}");
 
         _isEnabled = false;
         _isRunning = false;

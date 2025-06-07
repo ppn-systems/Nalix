@@ -23,7 +23,7 @@ public static class Directories
     // Flag to indicate if we're running in a container
     private static readonly Lazy<bool> IsContainerLazy = new(() =>
         File.Exists("/.dockerenv") ||
-        File.Exists("/proc/1/cgroup") && File.ReadAllText("/proc/1/cgroup").Contains("docker"));
+        (File.Exists("/proc/1/cgroup") && File.ReadAllText("/proc/1/cgroup").Contains("docker")));
 
     // For testing purposes, to override base path
     private static string _basePathOverride;
@@ -53,7 +53,7 @@ public static class Directories
         }
         else
         {
-            path = Path.Combine(BasePathLazy.Value, "Data");
+            path = Path.Combine(BasePathLazy.Value, "data");
         }
 
         EnsureDirectoryExists(path);
