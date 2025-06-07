@@ -321,7 +321,7 @@ public sealed class ObjectPoolManager : IReportable
         _ = sb.AppendLine($"Uptime: {Uptime.TotalHours:F2} hours");
         _ = sb.AppendLine();
 
-        _ = sb.AppendLine("Pool Details:");
+        _ = sb.AppendLine("BufferPool Details:");
         _ = sb.AppendLine("--------------------------------------------------------------");
         _ = sb.AppendLine("TYPE                     | Available | Max Capacity | Created");
         _ = sb.AppendLine("--------------------------------------------------------------");

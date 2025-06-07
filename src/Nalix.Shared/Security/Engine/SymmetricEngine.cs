@@ -1,15 +1,8 @@
 ﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
-// CHANGES vs original:
-//   1. Removed [NotNull]/[NotNullWhen] on value-type params (CipherSuiteType, ulong, int).
-//   2. Fixed envelope Encrypt() critical bug: always returned false because it built a
-//      local outBuf that was never written to caller's span. Now writes directly into
-//      caller's ciphertext span and returns true with correct `written` length.
-//   3. nonce=default (empty span) is now auto-generated instead of throwing.
 //
 // Unified, span-first symmetric cipher engine for Nalix.
-// Supports: CHACHA20 (nonce 12, counter u32), SALSA20 (nonce 8, counter u64),
-//
-// Now includes envelope helpers using SymmetricFormat (header || nonce || ciphertext).
+// Supports: CHACHA20 (nonce 12 bytes, counter uint32), SALSA20 (nonce 8 bytes, counter uint64).
+// Also includes envelope helpers using EnvelopeFormat (header || nonce || ciphertext).
 
 using Nalix.Common.Enums;
 using Nalix.Framework.Random;
@@ -20,19 +13,35 @@ namespace Nalix.Shared.Security.Engine;
 /// <summary>
 /// Provides a unified, Span-first engine to generate and apply symmetric
 /// cipher keystreams (stream and CTR modes) for multiple algorithms.
-/// Also exposes envelope helpers matching the AeadEngine-style API:
-/// Encrypt(key, plaintext, algorithm = ..., nonce = default, seq = null)
-/// returns header || nonce || ciphertext, and Decrypt(key, envelope, out plaintext).
 /// </summary>
+/// <remarks>
+/// Envelope helpers follow the pattern:
+/// <c>Encrypt(key, plaintext, ciphertext, nonce, seq, algorithm, out written)</c>
+/// producing <c>header(12) || nonce || ciphertext</c>,
+/// and <c>Decrypt(key, envelope, plaintext, out written)</c>.
+/// If nonce is empty/default, a cryptographically random
+/// nonce of the appropriate length for the algorithm is generated automatically.
+/// </remarks>
 [System.Diagnostics.DebuggerNonUserCode]
 public static class SymmetricEngine
 {
+    #region Raw Keystream API
+
     /// <summary>
-    /// Generates keystream for the selected algorithm and XORs it with <paramref name="src"/> into <paramref name="dst"/>.
+    /// Generates keystream for the selected algorithm and XORs it with <paramref name="src"/>
+    /// into <paramref name="dst"/>.
+    /// Both spans must be the same length.
     /// </summary>
+    /// <param name="type">The symmetric cipher algorithm to use.</param>
+    /// <param name="key">Key bytes (16 or 32 for Salsa20; 32 for ChaCha20).</param>
+    /// <param name="nonce">Nonce bytes (8 for Salsa20; 12 for ChaCha20).</param>
+    /// <param name="counter">Initial block counter value.</param>
+    /// <param name="src">Source plaintext or ciphertext.</param>
+    /// <param name="dst">Destination buffer; must be the same length as <paramref name="src"/>.</param>
+    /// <param name="written">Number of bytes written on success; 0 on failure.</param>
+    /// <returns><see langword="true"/> on success; <see langword="false"/> on unsupported algorithm.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Boolean Encrypt(
         CipherSuiteType type,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
@@ -40,12 +49,8 @@ public static class SymmetricEngine
         System.UInt64 counter,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 written)
+        out System.Int32 written)
     {
-        if (dst.Length != src.Length)
-        {
-            ThrowHelper.ThrowOutputLengthMismatchException();
-        }
         written = 0;
 
         switch (type)
@@ -65,84 +70,49 @@ public static class SymmetricEngine
                 }
 
             default:
-                ThrowHelper.ThrowArgumentNullException("Unsupported symmetric algorithm");
+                ThrowHelper.ThrowNotSupportedException("Unsupported symmetric algorithm");
                 return false;
         }
     }
 
-    /// <summary>
-    /// Convenience one-shot API: returns a newly allocated buffer containing
-    /// the XOR result (ciphertext or plaintext).
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Byte[] Encrypt(
-        CipherSuiteType type,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src)
-    {
-        System.Byte[] outBuf = new System.Byte[src.Length];
-        Encrypt(type, key, nonce, counter, src, outBuf, out System.Int32 written);
-        return outBuf[..written];
-    }
+    #endregion Raw Keystream API
+
+    #region Envelope API
 
     /// <summary>
-    /// Decrypts by XOR-ing keystream with <paramref name="src"/> into <paramref name="dst"/>.
-    /// Identical to Encrypt(...)
+    /// Encrypts plaintext and writes a symmetric envelope into <paramref name="ciphertext"/>:
+    /// <c>header(12) || nonce || encrypted_data</c>.
     /// </summary>
+    /// <param name="key">Cipher key.</param>
+    /// <param name="plaintext">Data to encrypt.</param>
+    /// <param name="ciphertext">
+    /// Output buffer; must be at least
+    /// <c>EnvelopeFormat.HeaderSize + nonceLength + plaintext.Length</c> bytes.
+    /// </param>
+    /// <param name="nonce">
+    /// Nonce to embed in the envelope.
+    /// If empty (<c>default</c>), a random nonce of the appropriate length is generated.
+    /// </param>
+    /// <param name="seq">
+    /// Sequence number written into the envelope header and used as the initial block counter.
+    /// If <see langword="null"/>, a random 32-bit value is used.
+    /// </param>
+    /// <param name="algorithm">Symmetric cipher to use (default: <see cref="CipherSuiteType.CHACHA20"/>).</param>
+    /// <param name="written">Total bytes written to <paramref name="ciphertext"/> on success.</param>
+    /// <returns><see langword="true"/> on success; <see langword="false"/> if the output buffer is too small.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Int32 Decrypt(
-        CipherSuiteType type,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst)
-    {
-        Encrypt(type, key, nonce, counter, src, dst, out System.Int32 written);
-        return written;
-    }
-
-    /// <summary>
-    /// Convenience one-shot decrypt returning a newly allocated buffer.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Byte[] Decrypt(
-        CipherSuiteType type,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src) => Encrypt(type, key, nonce, counter, src);
-
-    #region Aead-like Envelope API
-
-    /// <summary>
-    /// Encrypts plaintext and returns an envelope: header(12) || nonce || ciphertext.
-    /// API aligned with AeadEngine: (key, plaintext, algorithm = CHACHA20, nonce = default, seq = null).
-    /// If <paramref name="nonce"/> is empty, a random nonce of the appropriate length is generated.
-    /// If <paramref name="seq"/> is null a random 4-byte seq is generated and used as counter.
-    /// The seq value is written into the header and also used as the initial counter for keystream.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Boolean Encrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> ciphertext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt32? seq, CipherSuiteType algorithm,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 written)
+        System.ReadOnlySpan<System.Byte> nonce,
+        System.UInt32? seq, CipherSuiteType algorithm, out System.Int32 written)
     {
         written = 0;
-        System.UInt32 seqVal;
 
+        // Resolve seq / counter
+        System.UInt32 seqVal;
         if (seq is null)
         {
             System.Span<System.Byte> tmp = stackalloc System.Byte[4];
@@ -151,10 +121,8 @@ public static class SymmetricEngine
         }
         else
         {
-
             seqVal = seq.Value;
         }
-
 
         System.Int32 total = EnvelopeFormat.HeaderSize + nonce.Length + plaintext.Length;
 
@@ -164,35 +132,34 @@ public static class SymmetricEngine
         }
 
         System.UInt64 counter = seqVal;
-
         System.Span<System.Byte> ctSlice = ciphertext.Slice(EnvelopeFormat.HeaderSize + nonce.Length, plaintext.Length);
 
         try
         {
             Encrypt(algorithm, key, nonce, counter, plaintext, ctSlice, out _);
             EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonce, ctSlice);
-
             written = total;
             return true;
         }
         catch
         {
+            System.Console.WriteLine("Encryption failed");
             return false;
         }
     }
 
     /// <summary>
-    /// Attempts to decrypt an envelope produced by Encrypt(...).
-    /// On success plaintext is allocated and returned via out parameter.
+    /// Attempts to decrypt an envelope produced by
+    /// <see cref="Encrypt(System.ReadOnlySpan{System.Byte}, System.ReadOnlySpan{System.Byte}, System.Span{System.Byte}, System.ReadOnlySpan{System.Byte}, System.UInt32?, CipherSuiteType, out System.Int32)"/>.
+    /// On success, <paramref name="plaintext"/> is populated and <paramref name="written"/> holds the byte count.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Boolean Decrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> envelope,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> plaintext,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 written)
+        out System.Int32 written)
     {
         written = 0;
 
@@ -212,5 +179,5 @@ public static class SymmetricEngine
         }
     }
 
-    #endregion Aead-like Envelope API
+    #endregion Envelope API
 }
