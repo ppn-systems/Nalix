@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ "master" ]
   schedule:
-    - cron: '44 13 * * 2'  # Every Tuesday at 13:44 UTC
+    - cron: '44 13 * * 2' # Every Tuesday at 13:44 UTC
 
 jobs:
   analyze:
@@ -20,46 +20,47 @@ jobs:
       contents: read
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '10.0.x'
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x' 
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: csharp
-        build-mode: manual
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: csharp
+          build-mode: manual
 
-    - name: Create signing key file
-      run: |
-        echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./Nalix.snk
+      - name: Create signing key file
+        run: |
+          echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./Nalix.snk
 
-    # Build src/
-    - name: Restore src/
-      run: dotnet restore src/Nalix.sln
+      # Build src/
+      - name: Restore src/
+        run: dotnet restore src/Nalix.sln
 
-    - name: Build src/ with CodeQL extraction
-      run: |
-        dotnet build src/Nalix.sln \
-        --configuration Debug \
-        --no-restore \
-        /p:UseSharedCompilation=false
+      - name: Build src/ with CodeQL extraction
+        run: |
+          dotnet build src/Nalix.sln \
+            --configuration Debug \
+            --no-restore \
+            /p:UseSharedCompilation=false
 
-    - name: Restore tests/
-      run: dotnet restore tests/Nalix.Tests.sln
+      # Build tests/
+      - name: Restore tests/
+        run: dotnet restore tests/Nalix.Tests.sln
 
-    - name: Build tests/ with CodeQL extraction
-      run: |
-        dotnet build tests/Nalix.Tests.sln \
-        --configuration Debug \
-        --no-restore \
-        /p:UseSharedCompilation=false
+      - name: Build tests/ with CodeQL extraction
+        run: |
+          dotnet build tests/Nalix.Tests.sln \
+            --configuration Debug \
+            --no-restore \
+            /p:UseSharedCompilation=false
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
-      with:
-        category: "/language:csharp"
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:csharp"
