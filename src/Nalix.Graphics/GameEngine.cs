@@ -56,6 +56,15 @@ public static class GameEngine
     public static void SetDebugMode(System.Boolean on) => Debugging = on;
 
     /// <summary>
+    /// Sets the icon for the game window.
+    /// </summary>
+    /// <param name="image">The image to use as the window icon.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void SetIcon(Image image)
+        => _window.SetIcon(image.Size.X, image.Size.Y, image.Pixels);
+
+    /// <summary>
     /// Opens the game window and starts the main game loop.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
