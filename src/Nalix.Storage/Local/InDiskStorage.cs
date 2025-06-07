@@ -1,4 +1,4 @@
-using Nalix.Environment;
+using Nalix.Shared.Environment;
 using Nalix.Storage.Configurations;
 using Nalix.Storage.FileFormats;
 using Nalix.Storage.Generator;

@@ -1,4 +1,4 @@
-using Nalix.Environment;
+using Nalix.Diagnostics;
 
 namespace Nalix.Extensions.IO;
 

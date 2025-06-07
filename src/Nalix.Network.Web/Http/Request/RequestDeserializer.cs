@@ -1,4 +1,4 @@
-using Nalix.Environment;
+using Nalix.Diagnostics;
 using Nalix.Network.Web.Http.Exceptions;
 using Nalix.Network.Web.Http.Extensions;
 using System;

@@ -1,5 +1,5 @@
-using Nalix.Environment;
 using Nalix.Shared.Configuration.Binding;
+using Nalix.Shared.Environment;
 
 namespace Nalix.Graphics;
 

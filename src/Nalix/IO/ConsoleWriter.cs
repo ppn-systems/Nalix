@@ -3,7 +3,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Nalix.Environment.IO;
+namespace Nalix.IO;
 
 /// <summary>
 /// Represents a custom console writer that integrates with a <see cref="ConsoleContext"/>

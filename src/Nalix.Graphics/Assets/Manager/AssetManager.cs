@@ -1,4 +1,4 @@
-using Nalix.Environment;
+using Nalix.Shared.Environment;
 using Nalix.Shared.Injection.DI;
 using SFML.Audio;
 using SFML.Graphics;

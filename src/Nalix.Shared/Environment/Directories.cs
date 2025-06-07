@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 
-namespace Nalix.Environment;
+namespace Nalix.Shared.Environment;
 
 /// <summary>
 /// Class that defines default directories for the application with enhanced functionality
@@ -17,16 +17,16 @@ public static class Directories
     // Thread-safe directory creation lock
     private static readonly ReaderWriterLockSlim DirectoryLock = new(LockRecursionPolicy.SupportsRecursion);
 
-    // Directory creation event
-    private static event Action<string> DirectoryCreated;
+    // Directory creation event (nullable to resolve CS8618)
+    private static event Action<string>? DirectoryCreated;
 
     // Flag to indicate if we're running in a container
     private static readonly Lazy<bool> IsContainerLazy = new(() =>
         File.Exists("/.dockerenv") ||
         (File.Exists("/proc/1/cgroup") && File.ReadAllText("/proc/1/cgroup").Contains("docker")));
 
-    // For testing purposes, to override base path
-    private static string _basePathOverride;
+    // For testing purposes, to override base path (nullable to resolve CS8618)
+    private static string? _basePathOverride;
 
     // Lazy-initialized paths
     private static readonly Lazy<string> BasePathLazy = new(() =>

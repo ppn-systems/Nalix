@@ -1,5 +1,5 @@
-using Nalix.Environment;
 using Nalix.Shared.Configuration.Binding;
+using Nalix.Shared.Environment;
 using Nalix.Shared.Injection.DI;
 using Nalix.Shared.Internal;
 using System;

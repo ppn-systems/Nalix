@@ -1,4 +1,3 @@
-using Nalix.Environment;
 using Nalix.Network.Web.Enums;
 using Nalix.Network.Web.Net.Internal;
 using System;

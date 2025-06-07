@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Nalix.Environment.IO;
+namespace Nalix.IO;
 
 /// <summary>
 /// Provides a context for managing console input and output,
@@ -338,7 +338,7 @@ public sealed partial class ConsoleContext
                         0,
                         Math.Min(
                             InputBuffer.Count,
-                            Console.BufferWidth * (Console.CursorTop - WaitCursorTop) +
+                            (Console.BufferWidth * (Console.CursorTop - WaitCursorTop)) +
                             (Console.CursorLeft - WaitCursorLeft) -
                             (WaitPrefix?.Length ?? 0)
                         )

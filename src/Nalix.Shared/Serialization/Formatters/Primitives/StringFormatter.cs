@@ -1,4 +1,5 @@
 using Nalix.Common.Exceptions;
+using Nalix.Diagnostics;
 using Nalix.Shared.Serialization.Buffers;
 
 namespace Nalix.Shared.Serialization.Formatters.Primitives;
@@ -29,7 +30,7 @@ public sealed class StringFormatter : IFormatter<string>
         }
 
         // Tính trước số byte sẽ cần khi encode UTF8
-        int byteCount = Environment.SerializerOptions.Encoding.GetByteCount(value);
+        int byteCount = SerializerOptions.Encoding.GetByteCount(value);
         if (byteCount > SerializationLimits.MaxString)
             throw new SerializationException("The string exceeds the allowed limit.");
 
@@ -44,7 +45,7 @@ public sealed class StringFormatter : IFormatter<string>
             fixed (byte* pDest = dest)
             {
                 // Encode trực tiếp vào dest
-                int bytesWritten = Environment.SerializerOptions.Encoding
+                int bytesWritten = SerializerOptions.Encoding
                     .GetBytes(src, value.Length, pDest, byteCount);
 
                 if (bytesWritten != byteCount)
@@ -78,7 +79,7 @@ public sealed class StringFormatter : IFormatter<string>
         string result;
         fixed (byte* src = dest)
         {
-            result = Environment.SerializerOptions.Encoding.GetString(src, length);
+            result = SerializerOptions.Encoding.GetString(src, length);
         }
 
         reader.Advance(length);

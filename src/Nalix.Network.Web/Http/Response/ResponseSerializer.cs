@@ -1,4 +1,4 @@
-using Nalix.Environment;
+using Nalix.Diagnostics;
 using Nalix.Network.Web.Http.Extensions;
 using Nalix.Network.Web.MimeTypes;
 using System.Text.Json;

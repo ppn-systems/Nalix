@@ -5,8 +5,8 @@
     <IsTrimmable>true</IsTrimmable>
     <OutputType>Library</OutputType>
 
-    <Version>0.9.79</Version>
-    <PackageVersion>0.9.79</PackageVersion>
+    <Version>0.9.82</Version>
+    <PackageVersion>0.9.82</PackageVersion>
 
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
 
@@ -26,7 +26,6 @@
   <Import Project="..\Package.Build.props" />
 
   <ItemGroup>
-    <ProjectReference Include="..\Nalix\Nalix.csproj" />
     <ProjectReference Include="..\Nalix.Shared\Nalix.Shared.csproj" />
     <ProjectReference Include="..\Nalix.Logging\Nalix.Logging.csproj" />
   </ItemGroup>
