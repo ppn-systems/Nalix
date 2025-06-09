@@ -1,5 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Framework.Tasks;
 
 
@@ -8,7 +11,7 @@ using Nalix.Framework.Tasks;
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
 
-namespace Nalix.Network.Internal.Net;
+namespace Nalix.Network.Internal;
 
 /// <summary>
 /// Provides standardized naming conventions for network-related task groups and workers.

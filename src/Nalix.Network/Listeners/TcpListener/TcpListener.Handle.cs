@@ -7,7 +7,7 @@ using Nalix.Common.Logging;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
-using Nalix.Network.Internal.Net;
+using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Throttling;
 using Nalix.Network.Timing;
@@ -64,7 +64,7 @@ public abstract partial class TcpListenerBase
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(TcpListenerBase)}:{nameof(HandleConnectionClose)}] " +
-                                       $"close={args.Connection.RemoteEndPoint}");
+                                       $"close={args.Connection.EndPoint}");
 
         // De-subscribe to prevent memory leaks
         args.Connection.OnCloseEvent -= this.HandleConnectionClose;
@@ -85,7 +85,7 @@ public abstract partial class TcpListenerBase
         try
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection.RemoteEndPoint}");
+                                    .Debug($"[{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection.EndPoint}");
 
             _protocol.OnAccept(connection, _cancellationToken);
         }
@@ -93,7 +93,7 @@ public abstract partial class TcpListenerBase
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error($"[{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] " +
-                                           $"process-error={connection.RemoteEndPoint} ex={ex.Message}");
+                                           $"process-error={connection.EndPoint} ex={ex.Message}");
             connection.Close();
         }
     }

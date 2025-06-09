@@ -47,7 +47,7 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
             if (raw == null)
             {
                 Logger?.Warn(
-                    $"[{nameof(PacketDispatch)}:{nameof(HandlePacket)}] empty-payload ep={connection.RemoteEndPoint}");
+                    $"[{nameof(PacketDispatch)}:{nameof(HandlePacket)}] empty-payload ep={connection.EndPoint}");
                 return;
             }
 
@@ -61,14 +61,14 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
                 // Log only a small head preview to avoid leaking large/secret data
                 System.String head = System.Convert.ToHexString(raw.Span[..System.Math.Min(16, len)]);
                 Logger?.Warn($"[{nameof(PacketDispatch)}:{nameof(HandlePacket)}] " +
-                             $"deserialize-none ep={connection.RemoteEndPoint} len={len} magic=0x{magic:X8} head={head}");
+                             $"deserialize-none ep={connection.EndPoint} len={len} magic=0x{magic:X8} head={head}");
                 return;
             }
 
             // 4) Success trace (can be disabled in production)
             Logger?.Trace(
                 $"[{nameof(PacketDispatch)}:{nameof(HandlePacket)}] " +
-                $"deserialized ep={connection.RemoteEndPoint} type={packet.GetType().Name} len={len} magic=0x{magic:X8}");
+                $"deserialized ep={connection.EndPoint} type={packet.GetType().Name} len={len} magic=0x{magic:X8}");
 
             // 5) Dispatch to typed handler
             this.HandlePacket(packet, connection);

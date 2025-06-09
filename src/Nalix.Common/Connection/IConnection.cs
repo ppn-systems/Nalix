@@ -34,6 +34,11 @@ public partial interface IConnection : System.IDisposable
     IBufferLease IncomingPacket { get; }
 
     /// <summary>
+    /// Key identifying the endpoint associated with the connection.
+    /// </summary>
+    IEndpointKey EndPoint { get; }
+
+    /// <summary>
     /// Gets the remote endpoint address associated with the connection.
     /// </summary>
     System.Net.EndPoint RemoteEndPoint { get; }
