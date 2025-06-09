@@ -31,6 +31,7 @@ Nalix.Network.Package is a lightweight .NET library for structured packet-based 
 
 	<ItemGroup>
     <ProjectReference Include="..\Nalix\Nalix.csproj" />
+    <ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
     <ProjectReference Include="..\Nalix.Shared\Nalix.Shared.csproj" />
     <ProjectReference Include="..\Nalix.Cryptography\Nalix.Cryptography.csproj" />
 	</ItemGroup>
