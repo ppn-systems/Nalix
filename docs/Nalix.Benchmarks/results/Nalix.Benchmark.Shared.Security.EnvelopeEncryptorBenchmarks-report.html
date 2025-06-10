@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>Nalix.Benchmark.Shared.Security.EnvelopeEncryptorBenchmarks-20260305-231445</title>
+<title>Nalix.Benchmark.Shared.Security.EnvelopeEncryptorBenchmarks-20260305-234430</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -24,16 +24,16 @@ InvocationCount=1  UnrollFactor=1
 </code></pre>
 
 <table>
-<thead><tr><th>Method             </th><th>Algorithm  </th><th>Mean</th><th>Error</th><th>StdDev</th><th>Code Size</th><th>Allocated</th>
+<thead><tr><th>Method             </th><th>Algorithm  </th><th>Mean</th><th>Error</th><th>StdDev</th><th>Min</th><th>Max</th><th>Rank</th><th>Code Size</th><th>Completed Work Items</th><th>Lock Contentions</th><th>Exceptions</th><th>Allocated</th>
 </tr>
-</thead><tbody><tr><td>EnvelopeEncryptor.Encrypt</td><td>SALSA20</td><td>33.08 &mu;s</td><td>0.809 &mu;s</td><td>2.348 &mu;s</td><td>515 B</td><td>4.49 KB</td>
-</tr><tr><td>EnvelopeEncryptor.Decrypt</td><td>SALSA20</td><td>22.29 &mu;s</td><td>0.435 &mu;s</td><td>0.580 &mu;s</td><td>718 B</td><td>2.27 KB</td>
-</tr><tr><td>EnvelopeEncryptor.Encrypt</td><td>CHACHA20</td><td>39.70 &mu;s</td><td>0.787 &mu;s</td><td>1.823 &mu;s</td><td>515 B</td><td>4.63 KB</td>
-</tr><tr><td>EnvelopeEncryptor.Decrypt</td><td>CHACHA20</td><td>29.12 &mu;s</td><td>0.561 &mu;s</td><td>1.333 &mu;s</td><td>718 B</td><td>2.7 KB</td>
-</tr><tr><td>EnvelopeEncryptor.Encrypt</td><td>SALSA20_POLY1305</td><td>36.39 &mu;s</td><td>0.687 &mu;s</td><td>1.028 &mu;s</td><td>515 B</td><td>5.01 KB</td>
-</tr><tr><td>EnvelopeEncryptor.Decrypt</td><td>SALSA20_POLY1305</td><td>29.86 &mu;s</td><td>0.560 &mu;s</td><td>0.575 &mu;s</td><td>718 B</td><td>2.27 KB</td>
-</tr><tr><td>EnvelopeEncryptor.Encrypt</td><td>CHACHA20_POLY1305</td><td>48.06 &mu;s</td><td>0.945 &mu;s</td><td>1.552 &mu;s</td><td>515 B</td><td>5.13 KB</td>
-</tr><tr><td>EnvelopeEncryptor.Decrypt</td><td>CHACHA20_POLY1305</td><td>42.19 &mu;s</td><td>0.980 &mu;s</td><td>2.811 &mu;s</td><td>718 B</td><td>2.27 KB</td>
+</thead><tbody><tr><td>EnvelopeEncryptor.Decrypt</td><td>SALSA20</td><td>20.06 &mu;s</td><td>0.309 &mu;s</td><td>0.303 &mu;s</td><td>19.40 &mu;s</td><td>20.70 &mu;s</td><td>1</td><td>8,006 B</td><td>-</td><td>-</td><td>-</td><td>2.27 KB</td>
+</tr><tr><td>EnvelopeEncryptor.Decrypt</td><td>CHACHA20</td><td>26.28 &mu;s</td><td>0.458 &mu;s</td><td>0.428 &mu;s</td><td>25.50 &mu;s</td><td>27.00 &mu;s</td><td>2</td><td>8,006 B</td><td>-</td><td>-</td><td>-</td><td>2.7 KB</td>
+</tr><tr><td>EnvelopeEncryptor.Decrypt</td><td>SALSA20_POLY1305</td><td>29.24 &mu;s</td><td>0.570 &mu;s</td><td>0.679 &mu;s</td><td>28.40 &mu;s</td><td>31.40 &mu;s</td><td>3</td><td>8,006 B</td><td>-</td><td>-</td><td>-</td><td>2.27 KB</td>
+</tr><tr><td>EnvelopeEncryptor.Encrypt</td><td>SALSA20</td><td>31.65 &mu;s</td><td>0.712 &mu;s</td><td>2.054 &mu;s</td><td>27.60 &mu;s</td><td>36.90 &mu;s</td><td>3</td><td>6,237 B</td><td>-</td><td>-</td><td>-</td><td>4.49 KB</td>
+</tr><tr><td>EnvelopeEncryptor.Encrypt</td><td>SALSA20_POLY1305</td><td>37.42 &mu;s</td><td>0.823 &mu;s</td><td>2.402 &mu;s</td><td>34.05 &mu;s</td><td>44.45 &mu;s</td><td>4</td><td>6,237 B</td><td>-</td><td>-</td><td>-</td><td>5.01 KB</td>
+</tr><tr><td>EnvelopeEncryptor.Encrypt</td><td>CHACHA20</td><td>39.54 &mu;s</td><td>0.792 &mu;s</td><td>1.867 &mu;s</td><td>36.80 &mu;s</td><td>44.20 &mu;s</td><td>5</td><td>6,237 B</td><td>-</td><td>-</td><td>-</td><td>4.63 KB</td>
+</tr><tr><td>EnvelopeEncryptor.Decrypt</td><td>CHACHA20_POLY1305</td><td>40.91 &mu;s</td><td>0.953 &mu;s</td><td>2.734 &mu;s</td><td>32.80 &mu;s</td><td>47.80 &mu;s</td><td>5</td><td>8,006 B</td><td>-</td><td>-</td><td>-</td><td>2.27 KB</td>
+</tr><tr><td>EnvelopeEncryptor.Encrypt</td><td>CHACHA20_POLY1305</td><td>47.87 &mu;s</td><td>0.958 &mu;s</td><td>2.042 &mu;s</td><td>43.80 &mu;s</td><td>52.80 &mu;s</td><td>6</td><td>6,237 B</td><td>-</td><td>-</td><td>-</td><td>5.13 KB</td>
 </tr></tbody></table>
 </body>
 </html>
