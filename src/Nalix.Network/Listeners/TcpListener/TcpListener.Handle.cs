@@ -24,7 +24,7 @@ public abstract partial class TcpListenerBase
 
         try
         {
-            IConnection connection = new Connection.Connection(socket);
+            IConnection connection = new Connections.Connection(socket);
 
             connection.OnCloseEvent += this.HandleConnectionClose;
 

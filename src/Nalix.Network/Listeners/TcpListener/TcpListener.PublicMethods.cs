@@ -7,7 +7,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Framework.Time;
-using Nalix.Network.Connection;
+using Nalix.Network.Connections;
 using Nalix.Network.Internal;
 using Nalix.Network.Timing;
 
