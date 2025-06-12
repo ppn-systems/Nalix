@@ -30,14 +30,33 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
+        System.Threading.CancellationToken tokenToUse;
         using System.Threading.CancellationTokenSource timeoutCts = new(timeout);
-        using System.Threading.CancellationTokenSource linkedCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, timeoutCts.Token);
 
+        if (timeout > 10_000 && context.CancellationToken.CanBeCanceled)
+        {
+            using var linkedCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, timeoutCts.Token);
+            tokenToUse = linkedCts.Token;
+            await ExecuteHandlerAsync(timeout, context, next, tokenToUse);
+        }
+        else
+        {
+            tokenToUse = timeoutCts.Token;
+            await ExecuteHandlerAsync(timeout, context, next, tokenToUse);
+        }
+    }
+
+    private static async System.Threading.Tasks.Task ExecuteHandlerAsync(
+        System.Int32 timeout,
+        PacketContext<IPacket> context,
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next,
+        System.Threading.CancellationToken token)
+    {
         try
         {
-            await next(linkedCts.Token).ConfigureAwait(false);
+            await next(token).ConfigureAwait(false);
         }
-        catch (System.OperationCanceledException) when (timeoutCts.IsCancellationRequested && !context.CancellationToken.IsCancellationRequested)
+        catch (System.OperationCanceledException) when (token.IsCancellationRequested && !context.CancellationToken.IsCancellationRequested)
         {
             System.UInt32 sequenceId = context.Packet is IPacketSequenced sequenced ? sequenced.SequenceId : 0;
 
@@ -50,13 +69,13 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
                     sequenceId: sequenceId,
                     flags: ControlFlags.IS_TRANSIENT,
                     arg0: (System.UInt32)(timeout / 100),
-                    arg1: 0, arg2: 0).ConfigureAwait(false);
+                    arg1: 0, arg2: 0
+                ).ConfigureAwait(false);
             }
             catch
             {
                 // Ignore send failures
             }
-
             throw;
         }
     }

@@ -18,6 +18,8 @@
 //| 'X25519.Agreement (shared secret)'                    | 16           | 66.34 us | 1.309 us | 1.747 us |      56 B |
 
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Diagnosers;
+using BenchmarkDotNet.Order;
 using Nalix.Shared.Security.Asymmetric; // X25519
 using System;
 using System.Security.Cryptography;
@@ -25,8 +27,16 @@ using System.Security.Cryptography;
 namespace Nalix.Benchmark.Shared.Security.Asymmetric;
 
 // Measure allocations and time for keygen and agreement operations.
+[RankColumn]
 [MemoryDiagnoser]
 [DisassemblyDiagnoser]
+[HardwareCounters(
+    HardwareCounter.BranchInstructions,
+    HardwareCounter.BranchMispredictions,
+    HardwareCounter.CacheMisses,
+    HardwareCounter.InstructionRetired)]
+[MinColumn, MaxColumn]
+[Orderer(SummaryOrderPolicy.FastestToSlowest)]
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
 public class X25519Benchmarks
 {
