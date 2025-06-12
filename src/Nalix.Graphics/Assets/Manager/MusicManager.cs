@@ -1,4 +1,5 @@
 using SFML.Audio;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -33,25 +34,34 @@ public static class MusicManager
     #region Methods
 
     /// <summary>
-    /// Plays music from a file, with optional looping.
+    /// Loads a music file into cache if not already loaded.
     /// </summary>
     /// <param name="filename">The path to the music file.</param>
-    /// <param name="loop">Determines whether the music should loop.</param>
-    /// <exception cref="FileNotFoundException">Thrown if the file does not exist.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void Play(string filename, bool loop = true)
+    /// <exception cref="FileNotFoundException"></exception>
+    public static void Load(string filename)
     {
-        Stop(); // Stop current before playing new
-
-        if (!_musicCache.TryGetValue(filename, out var music))
+        if (!_musicCache.ContainsKey(filename))
         {
             if (!File.Exists(filename))
                 throw new FileNotFoundException($"Music file not found: {filename}");
 
-            music = new Music(filename);
+            var music = new Music(filename);
             _musicCache[filename] = music;
         }
+    }
+
+    /// <summary>
+    /// Plays a loaded music file. Must be loaded before.
+    /// </summary>
+    /// <param name="filename">The path to the music file.</param>
+    /// <param name="loop">Determines whether the music should loop.</param>
+    /// <exception cref="InvalidOperationException">If music not loaded yet.</exception>
+    public static void Play(string filename, bool loop = true)
+    {
+        Stop(); // Stop current before playing new
+
+        if (!_musicCache.TryGetValue(filename, out Music music))
+            throw new InvalidOperationException($"Music file not loaded: {filename}");
 
         _current = music;
         _current.Loop = loop;
@@ -84,6 +94,35 @@ public static class MusicManager
     {
         _current?.Stop();
         _current = null;
+    }
+
+    /// <summary>
+    /// Sets the volume of the currently playing music.
+    /// </summary>
+    /// <param name="volume">The volume level to set, ranging from 0.0 (silent) to 100.0 (full volume).</param>
+    public static void SetVolume(float volume)
+    {
+        if (_current != null)
+            _current.Volume = volume;
+    }
+
+    /// <summary>
+    /// Clears the music cache by disposing of all cached music instances and removing them from the cache.
+    /// </summary>
+    public static void ClearCache()
+    {
+        foreach (Music music in _musicCache.Values)
+            music.Dispose();
+        _musicCache.Clear();
+    }
+
+    /// <summary>
+    /// Disposes of the music manager by clearing the music cache and stopping any currently playing music.
+    /// </summary>
+    public static void Dispose()
+    {
+        Stop();
+        ClearCache();
     }
 
     #endregion Methods
