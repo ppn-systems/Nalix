@@ -18,11 +18,6 @@ namespace Nalix.Benchmark.Shared.Security;
 [RankColumn]
 [MemoryDiagnoser]
 [DisassemblyDiagnoser]
-[HardwareCounters(
-    HardwareCounter.BranchInstructions,
-    HardwareCounter.BranchMispredictions,
-    HardwareCounter.CacheMisses,
-    HardwareCounter.InstructionRetired)]
 [MinColumn, MaxColumn]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 public class EnvelopeCipherBenchmarks
