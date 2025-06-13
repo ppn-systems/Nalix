@@ -1,4 +1,5 @@
-﻿using Nalix.Common.Attributes;
+using Nalix.Common.Attributes;
+// Licensed under the Apache License, Version 2.0.
 using Nalix.Common.Enums;
 using Nalix.Common.Infrastructure.Client;
 using Nalix.Framework.Configuration.Binding;
