@@ -93,8 +93,11 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     private readonly System.Int64 _capacityMicro;
     private readonly System.Int64 _refillPerSecMicro;
     private readonly System.Double _swFreq; // Stopwatch ticks per second
+    private readonly System.Double _microPerTick; // NEW: micro-tokens per tick
 
     private readonly Shard[] _shards;
+
+    private readonly ILogger? _logger; // NEW: cache logger
 
     private System.Boolean _disposed;
 
@@ -113,6 +116,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         _capacityMicro = (System.Int64)_opt.CapacityTokens * _opt.TokenScale;
         _refillPerSecMicro = (System.Int64)System.Math.Round(_opt.RefillTokensPerSecond * _opt.TokenScale);
         _swFreq = System.Diagnostics.Stopwatch.Frequency;
+        _microPerTick = _refillPerSecMicro / _swFreq;
 
         _shards = new Shard[_opt.ShardCount];
         for (var i = 0; i < _shards.Length; i++)
@@ -121,6 +125,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         }
 
         _cleanupIntervalSec = _opt.CleanupIntervalSeconds;
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
             name: TaskNames.Recurring.WithKey(nameof(TokenBucketLimiter), this.GetHashCode()),
@@ -161,31 +166,43 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// Checks and consumes 1 token for the given endpoint. Returns decision with RetryAfter and Credit.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal LimitDecision Check(IEndpointKey key)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(TokenBucketLimiter));
 
-        System.Boolean isNew = false;
-        var now = System.Diagnostics.Stopwatch.GetTimestamp();
-        var shard = GetShard(key);
+        System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
+        Shard shard = GetShard(key);
+        var map = shard.Map;
 
-        var state = shard.Map.GetOrAdd(key, _ =>
+        System.Boolean isNew = false;
+
+        // Fast-path: endpoint already tracked
+        if (!map.TryGetValue(key, out EndpointState? state))
         {
-            isNew = true;
-            return new EndpointState
+            // Slow-path: create new state
+            state = new EndpointState
             {
                 LastRefillSwTicks = now,
                 MicroBalance = 0,
                 HardBlockedUntilSw = 0,
                 LastSeenSw = now
             };
-        });
+
+            if (!map.TryAdd(key, state))
+            {
+                // Lost the race, use existing one
+                state = map[key];
+            }
+            else
+            {
+                isNew = true;
+            }
+        }
 
         if (isNew)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(TokenBucketLimiter)}] new-endpoint ep={key.Address}");
+            _logger?.Debug($"[{nameof(TokenBucketLimiter)}] new-endpoint ep={key.Address}");
         }
 
         lock (state.Gate)
@@ -195,9 +212,8 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             // Hard lockout?
             if (state.HardBlockedUntilSw > now)
             {
-                var retryMsHard = ComputeMs(now, state.HardBlockedUntilSw);
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(TokenBucketLimiter)}] hard-blocked ep={key.Address} retry_ms={retryMsHard}");
+                System.Int32 retryMsHard = ComputeMs(now, state.HardBlockedUntilSw);
+                _logger?.Trace($"[{nameof(TokenBucketLimiter)}] hard-blocked ep={key.Address} retry_ms={retryMsHard}");
 
                 return new LimitDecision
                 {
@@ -215,18 +231,25 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             if (state.MicroBalance >= _opt.TokenScale)
             {
                 state.MicroBalance -= _opt.TokenScale;
-                var credit = GetCredit(state.MicroBalance, _opt.TokenScale);
+                System.UInt16 credit = GetCredit(state.MicroBalance, _opt.TokenScale);
+
                 if (credit <= 1)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[{nameof(TokenBucketLimiter)}] allow ep={key.Address} credit={credit}");
+                    _logger?.Trace($"[{nameof(TokenBucketLimiter)}] allow ep={key.Address} credit={credit}");
                 }
-                return new LimitDecision { Allowed = true, RetryAfterMs = 0, Credit = credit, Reason = RateLimitReason.None };
+
+                return new LimitDecision
+                {
+                    Allowed = true,
+                    RetryAfterMs = 0,
+                    Credit = credit,
+                    Reason = RateLimitReason.None
+                };
             }
 
             // Not enough: compute soft retry-after
-            var needed = _opt.TokenScale - state.MicroBalance;
-            var retryMs = ComputeRetryMsForMicro(needed);
+            System.Int64 needed = _opt.TokenScale - state.MicroBalance;
+            System.Int32 retryMs = ComputeRetryMsForMicro(needed);
 
             // Optional: set hard block window
             if (_opt.HardLockoutSeconds > 0)
@@ -243,6 +266,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             };
         }
     }
+
 
     #endregion Public API
 

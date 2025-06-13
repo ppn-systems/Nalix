@@ -1,11 +1,13 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Abstractions;
 using Nalix.Common.Logging;
+using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Attributes;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
-using Nalix.Shared.Security.Hashing;
+using Nalix.Network.Dispatch;
 
 namespace Nalix.Network.Throttling;
 
@@ -54,41 +56,31 @@ public static class PolicyRateLimiter
     /// Try consuming a token for a given opcode and endpoint, under the supplied attribute policy.
     /// </summary>
     /// <param name="opCode">Handler opcode.</param>
-    /// <param name="attr">Rate-limit attribute from handler metadata.</param>
-    /// <param name="ip">
-    /// Optional endpoint dimension (e.g., connection ID, remote IP, tenant ID).
-    /// If null, the rate limit is applied globally per opcode.
-    /// </param>
+    /// <param name="context"></param>
     /// <returns>Decision containing Allowed, RetryAfterMs, Credit, and Reason.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static TokenBucketLimiter.LimitDecision Check(
-        System.UInt16 opCode,
-        PacketRateLimitAttribute attr, System.String ip)
+    public static TokenBucketLimiter.LimitDecision Check(System.UInt16 opCode, PacketContext<IPacket> context)
     {
-        System.ArgumentNullException.ThrowIfNull(attr);
-
-        if (attr.RequestsPerSecond <= 0)
+        PacketRateLimitAttribute rl = context.Attributes.RateLimit!;
+        if (rl.RequestsPerSecond <= 0)
         {
             return Allowed();
         }
 
-        if (attr.Burst <= 0)
+        if (rl.Burst <= 0)
         {
             return DeniedHard();
         }
 
         // 1) Quantize policy
-        System.Int32 rps = Quantize(attr.RequestsPerSecond, RpsTiers);
-        System.Int32 burst = Quantize(attr.Burst, BurstTiers);
-        var policy = new Policy(rps, burst);
+        System.Int32 rps = Quantize(rl.RequestsPerSecond, RpsTiers);
+        System.Int32 burst = Quantize(rl.Burst, BurstTiers);
+        Policy policy = new(rps, burst);
 
         // 2) Get or add limiter with hard cap
-        var limiter = GetOrAddLimiter(policy);
-
-        // 3) Compose key per opcode + endpoint
-        System.String key = $"op:{opCode}|ep:{ip}";
-        var decision = limiter.Check(IxCP9(key));
+        TokenBucketLimiter limiter = GetOrAddLimiter(policy);
+        TokenBucketLimiter.LimitDecision decision = limiter.Check(new CompositeEndpointKey(opCode, context.Connection.EndPoint));
 
         // 4) Opportunistic sweeping
         if ((System.Threading.Interlocked.Increment(ref s_checkCounter) & (SweepEveryNChecks - 1)) == 0)
@@ -100,7 +92,7 @@ public static class PolicyRateLimiter
 
         static System.Int32 Quantize(System.Int32 value, System.Int32[] tiers)
         {
-            foreach (var t in tiers)
+            foreach (System.Int32 t in tiers)
             {
                 if (value <= t)
                 {
@@ -130,29 +122,21 @@ public static class PolicyRateLimiter
 
     #region Private Methods
 
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static Connections.Connection.EndpointKey IxCP9(System.String s)
+    private readonly struct CompositeEndpointKey(System.UInt16 op, IEndpointKey inner) : IEndpointKey, System.IEquatable<CompositeEndpointKey>
     {
-        // Hash key string as UTF-8 with Keccak256, then take first 16 bytes
-        // to form a stable IPv6 address (endianness-agnostic).
-        // Avoid allocations with stackalloc when possible.
+        private readonly System.UInt16 _op = op;
+        private readonly IEndpointKey _inner = inner;
 
-        // Get UTF-8 bytes
-        System.Int32 byteCount = System.Text.Encoding.UTF8.GetByteCount(s);
-        System.Span<System.Byte> utf8 = byteCount <= 256
-            ? stackalloc System.Byte[byteCount]
-            : new System.Byte[byteCount];
-        _ = System.Text.Encoding.UTF8.GetBytes(s, utf8);
+        public System.String Address => $"op:{_op}|ep:{_inner.Address}";
 
-        // Compute Keccak256
-        System.Span<System.Byte> digest = stackalloc System.Byte[32];
-        Keccak256.HashData(utf8, digest);
+        public override System.Int32 GetHashCode()
+            => System.HashCode.Combine(_op, _inner);
 
-        // Take first 16 bytes for IPv6
-        System.Net.IPAddress ip = new(digest[..16]);
-        return Connections.Connection.EndpointKey.FromIpAddress(ip);
+        public override System.Boolean Equals(System.Object? obj)
+            => obj is CompositeEndpointKey other && Equals(other);
+
+        public System.Boolean Equals(CompositeEndpointKey obj)
+            => _op == obj._op && Equals(_inner, obj._inner);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -199,7 +183,7 @@ public static class PolicyRateLimiter
     {
         Policy nearest = default;
         System.Int32 best = System.Int32.MaxValue;
-        foreach (var kvp in s_limiters.Keys)
+        foreach (Policy kvp in s_limiters.Keys)
         {
             System.Int32 dist = System.Math.Abs(kvp.Rps - wanted.Rps) + System.Math.Abs(kvp.Burst - wanted.Burst);
             if (dist < best)
@@ -216,7 +200,7 @@ public static class PolicyRateLimiter
     private static TokenBucketOptions BuildOptions(Policy p)
     {
         // Reuse your s_defaults but apply p.Rps/p.Burst
-        var d = s_defaults;
+        TokenBucketOptions d = s_defaults;
         return new TokenBucketOptions
         {
             CapacityTokens = p.Burst,
@@ -237,7 +221,7 @@ public static class PolicyRateLimiter
         System.Int64 now = System.DateTime.UtcNow.Ticks;
         foreach (var (policy, entry) in s_limiters)
         {
-            var ageSec = System.TimeSpan.FromTicks(now - entry.LastUsedUtc).TotalSeconds;
+            System.Double ageSec = System.TimeSpan.FromTicks(now - entry.LastUsedUtc).TotalSeconds;
             if (ageSec > PolicyTtlSeconds)
             {
                 _ = s_limiters.TryRemove(policy, out _);
