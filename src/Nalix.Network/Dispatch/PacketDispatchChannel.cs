@@ -97,8 +97,8 @@ public sealed class PacketDispatchChannel
         }
 
         System.Threading.CancellationToken linkedToken = cancellationToken.CanBeCanceled
-                ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token).Token
-                : _cts.Token;
+            ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token).Token
+            : _cts.Token;
 
         // Decide how many parallel dispatch loops to start.
         // Rule of thumb: cores/2, clamped to [2..12]
@@ -138,9 +138,9 @@ public sealed class PacketDispatchChannel
 
         try
         {
-            if (!this._cts.IsCancellationRequested)
+            if (!_cts.IsCancellationRequested)
             {
-                this._cts.Cancel();
+                _cts.Cancel();
                 Logger?.Trace($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop");
             }
 

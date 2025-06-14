@@ -41,7 +41,11 @@ public static class PolicyRateLimiter
     {
         public System.Int64 LastUsedUtc;
         public TokenBucketLimiter Limiter { get; }
-        public Entry(TokenBucketLimiter l) { Limiter = l; Touch(); }
+        public Entry(TokenBucketLimiter l)
+        {
+            Touch();
+            Limiter = l;
+        }
         public void Touch() => LastUsedUtc = System.DateTime.UtcNow.Ticks;
     }
 
