@@ -10,10 +10,10 @@
 		<DisableImplicitMicrosoftCSharpReference>true</DisableImplicitMicrosoftCSharpReference>
 
 		<!-- Versions -->
-		<Version>10.7.0</Version>
-		<FileVersion>10.7.0.0</FileVersion>
-		<PackageVersion>10.7.0</PackageVersion>
-		<InformationalVersion>10.7.0+$(SourceRevisionId)</InformationalVersion>
+		<Version>10.7.6</Version>
+		<FileVersion>10.7.6.0</FileVersion>
+		<PackageVersion>10.7.6</PackageVersion>
+		<InformationalVersion>10.7.6+$(SourceRevisionId)</InformationalVersion>
 
 		<Description>
 Nalix.Network is the high-performance, modular networking runtime for the Nalix ecosystem.

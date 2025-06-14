@@ -98,7 +98,7 @@ public abstract partial class Protocol
             this.OnConnectionError(connection, ex);
             connection.Disconnect();
 
-            s_logger.Debug($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-error id={connection.ID}", ex);
+            s_logger.Debug($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-error id={connection.ID} ex={ex.Message}");
         }
     }
 
