@@ -1,4 +1,5 @@
 ﻿using Nalix.Common.Packets.Abstractions;
+using Nalix.Common.Packets.Attributes;
 using Nalix.Common.Protocols;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Connections;
@@ -23,7 +24,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
         PacketContext<IPacket> context,
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
     {
-        var rl = context.Attributes.RateLimit;
+        PacketRateLimitAttribute? rl = context.Attributes.RateLimit;
         if (rl is null)
         {
             await next(context.CancellationToken).ConfigureAwait(false);

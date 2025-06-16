@@ -27,6 +27,17 @@ public abstract partial class Protocol
 
     #endregion Properties
 
+    #region Virtual Methods
+
+    /// <summary>
+    /// Allows subclasses to execute custom logic after a message has been processed.
+    /// This method is called automatically by <see cref="PostProcessMessage"/>.
+    /// </summary>
+    /// <param name="args">Event arguments containing connection and processing details.</param>
+    protected virtual void OnPostProcess(IConnectEventArgs args)
+    {
+    }
+
     /// <summary>
     /// Called when a connection is accepted. Starts receiving data by default.
     /// Override to implement custom acceptance logic, such as IP validation.
@@ -94,22 +105,6 @@ public abstract partial class Protocol
     }
 
     /// <summary>
-    /// Updates the protocol's state to either accept or reject new incoming connections.
-    /// Typically used for entering or exiting maintenance mode.
-    /// </summary>
-    /// <param name="isEnabled">
-    /// True to allow new connections; false to reject them.
-    /// </param>
-    public void SetConnectionAcceptance(System.Boolean isEnabled)
-    {
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(Protocol)}:{nameof(SetConnectionAcceptance)}] accepting={(isEnabled ? "enabled" : "disabled")}");
-
-        _accepting = isEnabled ? 1 : 0;
-    }
-
-
-    /// <summary>
     /// Called when an error occurs during connection handling.
     /// Override to implement custom error handling.
     /// </summary>
@@ -125,4 +120,6 @@ public abstract partial class Protocol
     /// <param name="connection">The connection to validate.</param>
     /// <returns>True if the connection is valid, false otherwise.</returns>
     protected virtual System.Boolean ValidateConnection(IConnection connection) => true;
+
+    #endregion Virtual Methods
 }
