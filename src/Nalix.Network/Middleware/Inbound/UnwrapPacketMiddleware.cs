@@ -4,8 +4,8 @@
 using Nalix.Common.Attributes;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Enums;
+using Nalix.Common.Messaging.Abstractions;
 using Nalix.Common.Messaging.Packets;
-using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Common.Messaging.Protocols;
 using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;

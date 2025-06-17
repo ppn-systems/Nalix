@@ -355,9 +355,8 @@ public static class FormatterProvider
             }
 
             System.Object? @struct = System.Activator.CreateInstance(typeof(StructFormatter<>)
-                                              .MakeGenericType(type)) ??
-                                              throw new System.InvalidOperationException(
-                                                $"Failed to create instance of StructFormatter<{type.Name}>.");
+                                                     .MakeGenericType(type)) ??
+                throw new System.InvalidOperationException($"Failed to create instance of StructFormatter<{type.Name}>.");
 
             RegisterComplex((IFormatter<T>)@struct);
             return ComplexTypeCache<T>.Struct;
@@ -371,9 +370,8 @@ public static class FormatterProvider
             }
 
             System.Object? @object = System.Activator.CreateInstance(typeof(ObjectFormatter<>)
-                                              .MakeGenericType(type)) ??
-                                              throw new System.InvalidOperationException(
-                                                  $"Failed to create instance of ObjectFormatter<{type.Name}>.");
+                                                     .MakeGenericType(type)) ??
+                throw new System.InvalidOperationException($"Failed to create instance of ObjectFormatter<{type.Name}>.");
 
             RegisterComplex((IFormatter<T>)@object);
             return ComplexTypeCache<T>.Class;

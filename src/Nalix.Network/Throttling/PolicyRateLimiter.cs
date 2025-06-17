@@ -3,8 +3,8 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
-using Nalix.Common.Messaging.Packets.Abstractions;
-using Nalix.Common.Messaging.Packets.Attributes;
+using Nalix.Common.Messaging.Abstractions;
+using Nalix.Common.Messaging.Attributes;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
@@ -49,8 +49,8 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
 
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Policy, Entry> _limiters = new();
 
-    private static readonly System.Int32[] s_burstTiers = [1, 2, 4, 8, 16, 32, 64];
     private static readonly System.Int32[] s_rpsTiers = [1, 2, 4, 8, 16, 32, 64, 128];
+    private static readonly System.Double[] s_burstTiers = [0.1, 0.2, 0.5, 1, 2, 4, 8, 16, 32, 64];
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
     private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
@@ -175,7 +175,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
         }
     }
 
-    private readonly record struct Policy(System.Int32 Rps, System.Int32 Burst);
+    private readonly record struct Policy(System.Int32 Rps, System.Double Burst);
 
     private readonly struct RateLimitSubject : INetworkEndpoint, System.IEquatable<RateLimitSubject>
     {
@@ -368,7 +368,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
         System.Int32 maxAttempts = 10;
         System.Int32 attempt = 0;
 
-        while (_limiters.Count > 0 && attempt++ < maxAttempts)
+        while (!_limiters.IsEmpty && attempt++ < maxAttempts)
         {
             foreach (var (policy, _) in _limiters)
             {
@@ -452,19 +452,34 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private Policy EXTRACT_AND_QUANTIZE_POLICY(PacketRateLimitAttribute rl)
+    private static Policy EXTRACT_AND_QUANTIZE_POLICY(PacketRateLimitAttribute rl)
     {
         System.Int32 rps = QUANTIZE_VALUE(rl.RequestsPerSecond, s_rpsTiers);
-        System.Int32 burst = QUANTIZE_VALUE(rl.Burst, s_burstTiers);
+        System.Double burst = QUANTIZE_VALUE(rl.Burst, s_burstTiers);
 
         return new Policy(rps, burst);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Int32 QUANTIZE_VALUE(System.Int32 value, System.Int32[] tiers)
     {
         foreach (System.Int32 tier in tiers)
+        {
+            if (value <= tier)
+            {
+                return tier;
+            }
+        }
+
+        return tiers[^1];
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Double QUANTIZE_VALUE(System.Double value, System.Double[] tiers)
+    {
+        foreach (System.Double tier in tiers)
         {
             if (value <= tier)
             {
@@ -479,7 +494,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
     {
         return new TokenBucketOptions
         {
-            CapacityTokens = policy.Burst,
+            CapacityTokens = (System.Int32)policy.Burst,
             RefillTokensPerSecond = policy.Rps,
             TokenScale = s_defaults.TokenScale,
             ShardCount = s_defaults.ShardCount,
@@ -584,10 +599,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
         {
             reused.Touch();
 
-            s_logger?.Debug(
-                $"[NW.{nameof(PolicyRateLimiter)}] reusing-policy " +
-                $"wanted=({wanted.Rps},{wanted.Burst}) " +
-                $"closest=({closest.Rps},{closest.Burst})");
+            s_logger?.Debug($"[NW.{nameof(PolicyRateLimiter)}] reusing-policy wanted=({wanted.Rps},{wanted.Burst}) closest=({closest.Rps},{closest.Burst})");
 
             return reused;
         }
@@ -625,8 +637,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Int32 CALCULATE_POLICY_DISTANCE(Policy a, Policy b)
-        => System.Math.Abs(a.Rps - b.Rps) + System.Math.Abs(a.Burst - b.Burst);
+    private static System.Int32 CALCULATE_POLICY_DISTANCE(Policy a, Policy b) => (System.Int32)(System.Math.Abs(a.Rps - b.Rps) + System.Math.Abs(a.Burst - b.Burst));
 
     private Entry CREATE_NEW_LIMITER_ENTRY(Policy policy)
     {
@@ -637,9 +648,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
 
         if (ReferenceEquals(actualEntry, newEntry))
         {
-            s_logger?.Info(
-                $"[NW.{nameof(PolicyRateLimiter)}] created-policy-limiter " +
-                $"rps={policy.Rps} burst={policy.Burst} total={_limiters.Count}");
+            s_logger?.Info($"[NW.{nameof(PolicyRateLimiter)}] created-policy-limiter rps={policy.Rps} burst={policy.Burst} total={_limiters.Count}");
         }
         else
         {
