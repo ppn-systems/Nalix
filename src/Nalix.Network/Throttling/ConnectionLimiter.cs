@@ -1,11 +1,11 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
-using Nalix.Common.Enums;
+using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Exceptions;
-using Nalix.Common.Infrastructure.Connection;
+using Nalix.Common.Identity.Enums;
+using Nalix.Common.Networking.Abstractions;
+using Nalix.Common.Shared.Abstractions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;

@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Enums;
+using Nalix.Common.Security.Enums;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Network.Connections;
 
@@ -44,9 +44,9 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// Gets or sets the policy for handling connection rejection when limits are reached.
     /// </summary>
     /// <value>
-    /// The rejection strategy to apply. Default is <see cref="RejectPolicy.REJECT_NEW"/>.
+    /// The rejection strategy to apply. Default is <see cref="DropPolicy.DROP_NEWEST"/>.
     /// </value>
-    public RejectPolicy RejectPolicy { get; init; } = RejectPolicy.REJECT_NEW;
+    public DropPolicy RejectPolicy { get; init; } = DropPolicy.DROP_NEWEST;
 
     // Username policy
 
