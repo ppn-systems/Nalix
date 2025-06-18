@@ -4,9 +4,9 @@ using Nalix.Common.Logging;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Protocols;                     // ProtocolType
 using Nalix.Framework.Injection;
+using Nalix.Shared.Messaging.Controls;            // Handshake
 using Nalix.Shared.Security.Asymmetric;
 using Nalix.Shared.Security.Hashing;
-using Nalix.Shared.Messaging.Controls;            // Handshake
 
 namespace Nalix.SDK.Remote.Extensions;
 
@@ -65,8 +65,8 @@ public static class HandshakeExtensions
         }
 
         // Prepare TCS and timeout
-        var tcs = new System.Threading.Tasks.TaskCompletionSource<Handshake>(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
-        using var linked = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+        System.Threading.Tasks.TaskCompletionSource<Handshake> tcs = new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+        using System.Threading.CancellationTokenSource linked = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
         linked.CancelAfter(timeoutMs);
 
         // Generate ephemeral keypair
@@ -77,9 +77,11 @@ public static class HandshakeExtensions
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         void OnPacket(IPacket p)
         {
-            if (p is Handshake hs && hs.OpCode == opCode /* && hs.Protocol == ProtocolType.TCP */)
+            if (p is Handshake hs &&
+                hs.OpCode == opCode &&
+                hs.Protocol == ProtocolType.TCP)
             {
-                tcs.TrySetResult(hs);
+                _ = tcs.TrySetResult(hs);
             }
         }
 
@@ -88,7 +90,7 @@ public static class HandshakeExtensions
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         void OnDisconnected(System.Exception ex)
         {
-            tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected during handshake."));
+            _ = tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected during handshake."));
         }
 
         client.PacketReceived += OnPacket;
@@ -101,12 +103,12 @@ public static class HandshakeExtensions
                         .ConfigureAwait(false);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug("Handshake request sent (client public key).");
+                                    .Debug("Handshake request sent.");
 
             // Await server response (with timeout/ct)
             using (linked.Token.Register(() => tcs.TrySetCanceled(linked.Token)))
             {
-                var hs = await tcs.Task.ConfigureAwait(false);
+                Handshake hs = await tcs.Task.ConfigureAwait(false);
 
                 // Basic checks
                 if (hs.Data is not { Length: PublicKeyLength })
@@ -127,7 +129,7 @@ public static class HandshakeExtensions
                     client.Options.EncryptionKey = Keccak256.HashData(secret);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Info("Handshake completed. EncryptionKey installed.");
+                                            .Info("[HandshakeAsync] Completed. EncryptionKey installed.");
 
                     return true;
                 }
@@ -145,12 +147,16 @@ public static class HandshakeExtensions
                 }
             }
         }
-        catch (System.OperationCanceledException)
+        catch (System.OperationCanceledException oce)
         {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug($"[HandshakeAsync] Canceled: {oce.Message}");
             return false;
         }
-        catch
+        catch (System.Exception ex)
         {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"[HandshakeAsync] Failed: {ex}");
             return false;
         }
         finally

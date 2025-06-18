@@ -53,7 +53,7 @@ public static class ControlExtensions
         /// <returns>The current builder.</returns>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public ControlBuilder WithTransport(ProtocolType tr) { c.Transport = tr; return this; }
+        public ControlBuilder WithTransport(ProtocolType tr) { c.Protocol = tr; return this; }
 
         /// <summary>
         /// Stamps the control with the current Unix timestamp (milliseconds) and the sender's monotonic ticks.
@@ -107,21 +107,25 @@ public static class ControlExtensions
         System.ArgumentNullException.ThrowIfNull(client);
         System.ArgumentNullException.ThrowIfNull(predicate);
 
-        var tcs = new System.Threading.Tasks.TaskCompletionSource<TPkt>(
-            System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+
+        if (!client.IsConnected)
+        {
+            throw new System.InvalidOperationException("Client not connected.");
+        }
+
+        System.Threading.Tasks.TaskCompletionSource<TPkt> tcs = new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
 
         void OnPkt(IPacket p)
         {
             if (p is TPkt pp && predicate(pp))
             {
-                tcs.TrySetResult(pp);
+                _ = tcs.TrySetResult(pp);
             }
         }
 
         void OnDisc(System.Exception ex)
         {
-            tcs.TrySetException(ex ?? new System.InvalidOperationException(
-                "Disconnected before a matching packet arrived."));
+            _ = tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected before a matching packet arrived."));
         }
 
         client.PacketReceived += OnPkt;
@@ -205,6 +209,7 @@ public static class ControlExtensions
         System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(client);
+
         if (!client.IsConnected)
         {
             throw new System.InvalidOperationException("Client not connected.");
@@ -268,7 +273,8 @@ public static class ControlExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<Control> AwaitControlAsync(
-        this ReliableClient client, System.Func<Control, System.Boolean> predicate,
+        this ReliableClient client,
+        System.Func<Control, System.Boolean> predicate,
         System.Int32 timeoutMs, System.Threading.CancellationToken ct = default)
         => await AwaitPacketAsync<Control>(client, predicate, timeoutMs, ct);
 
@@ -294,12 +300,17 @@ public static class ControlExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Threading.Tasks.Task SendControlAsync(
         this ReliableClient client,
-        System.UInt16 opCode,
-        ControlType type,
+        System.UInt16 opCode, ControlType type,
         System.Action<ControlBuilder> configure = null,
         System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(client);
+
+        if (!client.IsConnected)
+        {
+            throw new System.InvalidOperationException("Client not connected.");
+        }
+
         var b = client.NewControl(opCode, type);
         configure?.Invoke(b);
         return client.SendAsync(b.Build(), ct);
@@ -322,10 +333,8 @@ public static class ControlExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Threading.Tasks.Task SendDisconnectAsync(
-        this ReliableClient client,
-        System.UInt16 opCode,
-        System.UInt32 seq = 0,
-        ProtocolType tr = ProtocolType.TCP,
+        this ReliableClient client, System.UInt16 opCode,
+        System.UInt32 seq = 0, ProtocolType tr = ProtocolType.TCP,
         System.Threading.CancellationToken ct = default)
         => client.SendControlAsync(opCode, ControlType.DISCONNECT, b => b.WithSeq(seq).WithTransport(tr).StampNow(), ct);
 }
