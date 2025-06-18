@@ -51,7 +51,7 @@ public abstract class FrameBase : IPacket
     /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.Transport)]
-    public ProtocolType Transport { get; set; }
+    public ProtocolType Protocol { get; set; }
 
     /// <inheritdoc/>
     public abstract System.Byte[] Serialize();

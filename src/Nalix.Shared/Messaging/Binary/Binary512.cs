@@ -49,7 +49,7 @@ public class Binary512 : FrameBase, IPoolable, IPacketDeserializer<Binary512>, I
         Data = [];
         Flags = PacketFlags.None;
         Priority = PacketPriority.None;
-        Transport = ProtocolType.NONE;
+        Protocol = ProtocolType.NONE;
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)FrameMagicCode.BINARY512;
     }
@@ -69,7 +69,7 @@ public class Binary512 : FrameBase, IPoolable, IPacketDeserializer<Binary512>, I
         }
 
         this.Data = data ?? [];
-        this.Transport = transport;
+        this.Protocol = transport;
     }
 
     /// <summary>
@@ -162,11 +162,11 @@ public class Binary512 : FrameBase, IPoolable, IPacketDeserializer<Binary512>, I
         this.Data = [];
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.None;
-        this.Transport = ProtocolType.NONE;
+        this.Protocol = ProtocolType.NONE;
     }
 
     /// <inheritdoc/>
     public override System.String ToString() =>
         $"BINARY512(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
-        $"Priority={Priority}, Transport={Transport}, Data={Data?.Length ?? 0} bytes)";
+        $"Priority={Priority}, Protocol={Protocol}, Data={Data?.Length ?? 0} bytes)";
 }
