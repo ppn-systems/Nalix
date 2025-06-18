@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Networking.Packets.Abstractions;
-using Nalix.Common.Networking.Packets.Core;
+using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Security.Enums;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Security.Internal;

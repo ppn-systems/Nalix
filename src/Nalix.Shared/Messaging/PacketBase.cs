@@ -2,10 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Networking.Caching;
+using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Packets.Abstractions;
-using Nalix.Common.Networking.Packets.Core;
+using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Serialization;
+using Nalix.Common.Serialization.Attributes;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Serialization;

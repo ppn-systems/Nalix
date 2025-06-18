@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-namespace Nalix.Common.Serialization;
+namespace Nalix.Common.Serialization.Abstractions;
 
 /// <summary>
 /// Defines a contract for types that can be serialized with a fixed size.
