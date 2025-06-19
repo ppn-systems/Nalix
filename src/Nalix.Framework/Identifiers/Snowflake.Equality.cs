@@ -3,7 +3,7 @@
 
 using Nalix.Common.Identity.Abstractions;
 
-namespace Nalix.Framework.Identity;
+namespace Nalix.Framework.Identifiers;
 
 public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.IComparable<Snowflake>
 {
