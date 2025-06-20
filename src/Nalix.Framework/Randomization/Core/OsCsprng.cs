@@ -1,0 +1,250 @@
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+namespace Nalix.Framework.Randomization.Core;
+
+
+/// <summary>
+/// Provides cryptographically secure random number generation using the operating system's CSPRNG facilities.
+/// </summary>
+[System.Diagnostics.StackTraceHidden]
+[System.Diagnostics.DebuggerStepThrough]
+public static partial class OsCsprng
+{
+    #region Fields
+
+    // Cached platform dispatcher (obfuscated)
+    private static System.Action<System.Span<System.Byte>> _f;
+
+    // Lazy /dev/urandom handle for Unix fallback
+    private static System.IO.FileStream? s_devUrandom;
+    private static readonly System.Threading.Lock s_devUrandomLock = new();
+
+    // Linux error codes we care about
+    private const System.Int32 EINTR = 4;
+    private const System.Int32 ENOSYS = 38;
+
+    // Windows CNG flag
+    private const System.UInt32 C = 0x00000002;
+
+    #endregion Fields
+
+    #region Constructor
+
+    static OsCsprng()
+    {
+        try
+        {
+            if (System.OperatingSystem.IsWindows())
+            {
+                _f = W;
+            }
+            else if (System.OperatingSystem.IsLinux())
+            {
+                _f = L;
+            }
+            else if (System.OperatingSystem.IsMacOS() ||
+                     System.OperatingSystem.IsIOS() ||
+                     System.OperatingSystem.IsTvOS() ||
+                     System.OperatingSystem.IsWatchOS())
+            {
+                _f = A;
+            }
+            else
+            {
+                _f = D;
+            }
+        }
+        catch
+        {
+            _f = OsRandom.Fill;
+        }
+    }
+
+    #endregion Constructor
+
+    #region APIs
+
+    /// <summary>
+    /// Fills the specified buffer with cryptographically secure random bytes using the operating system's CSPRNG facilities.
+    /// </summary>
+    /// <param name="buffer">The buffer to fill with random bytes.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void Fill(System.Span<System.Byte> buffer)
+    {
+        if (buffer.Length == 0)
+        {
+            return;
+        }
+
+        _f(buffer);
+    }
+
+    #endregion APIs
+
+    #region Private
+
+    // -------------------- Windows (CNG) --------------------
+
+    [System.Runtime.InteropServices.LibraryImport("Bcrypt.dll")]
+    private static partial System.Int32 BCryptGenRandom(
+        System.IntPtr hAlgorithm,
+        System.Span<System.Byte> pbBuffer,
+        System.Int32 cbBuffer, System.UInt32 dwFlags);
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    private static void W(System.Span<System.Byte> b)
+    {
+        System.Int32 s = BCryptGenRandom(System.IntPtr.Zero, b, b.Length, C);
+        if (s != 0)
+        {
+            throw new System.InvalidOperationException("OS CSPRNG unavailable.");
+        }
+    }
+
+    // -------------------- Linux: getrandom --------------------
+
+    [System.Runtime.InteropServices.LibraryImport("libc", SetLastError = true)]
+    private static partial System.IntPtr getrandom(System.IntPtr buf, System.IntPtr buflen, System.UInt32 flags);
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private static unsafe void L(System.Span<System.Byte> b)
+    {
+        fixed (System.Byte* p = b)
+        {
+            System.UIntPtr t = System.UIntPtr.Zero;
+            System.UIntPtr n = (System.UIntPtr)b.Length;
+
+            while (t < n)
+            {
+                System.IntPtr r0 = getrandom((System.IntPtr)(p + (System.IntPtr)t), (System.IntPtr)(n - t), 0);
+                System.Int64 r = r0.ToInt64();
+                if (r < 0)
+                {
+                    System.Int32 errno = System.Runtime.InteropServices.Marshal.GetLastPInvokeError();
+
+                    // EINTR: retry
+                    if (errno == EINTR)
+                    {
+                        continue;
+                    }
+
+                    // ENOSYS: kernel does not support getrandom -> permanently switch to /dev/urandom fallback
+                    if (errno == ENOSYS)
+                    {
+                        // switch dispatcher once so future calls skip getrandom
+                        _f = D;
+
+                        // fill the remaining part via fallback
+                        System.Int32 offset = (System.Int32)t;
+                        if (offset < b.Length)
+                        {
+                            D(b[offset..]);
+                        }
+                        return;
+                    }
+
+                    throw new System.InvalidOperationException($"OS CSPRNG unavailable (getrandom errno={errno}).");
+                }
+
+                if (r == 0)
+                {
+                    // Defensive: zero progress from getrandom should not loop forever
+                    throw new System.InvalidOperationException("OS CSPRNG unavailable (getrandom returned 0).");
+                }
+
+                t += (System.UIntPtr)r;
+            }
+        }
+    }
+
+    // -------------------- Apple: SecRandomCopyBytes --------------------
+
+    [System.Runtime.InteropServices.LibraryImport(
+        "/System/Library/Frameworks/Security.framework/Security", EntryPoint = "SecRandomCopyBytes")]
+    private static partial System.Int32 SecRandomCopyBytes(System.IntPtr rnd, System.IntPtr count, System.IntPtr bytes);
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [System.Runtime.Versioning.SupportedOSPlatform("ios")]
+    [System.Runtime.Versioning.SupportedOSPlatform("tvos")]
+    [System.Runtime.Versioning.SupportedOSPlatform("macos")]
+    [System.Runtime.Versioning.SupportedOSPlatform("watchos")]
+    private static unsafe void A(System.Span<System.Byte> b)
+    {
+        fixed (System.Byte* p = b)
+        {
+            System.Int32 s = SecRandomCopyBytes(System.IntPtr.Zero, b.Length, (System.IntPtr)p);
+            if (s != 0)
+            {
+                _f = D;
+                D(b);
+            }
+        }
+    }
+
+    // -------------------- Fallback: /dev/urandom --------------------
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void D(System.Span<System.Byte> b)
+    {
+        System.IO.FileStream fs = GetDevUrandom();
+
+        System.Int32 total = 0;
+        // FileStream is not thread-safe -> synchronize reads
+        lock (s_devUrandomLock)
+        {
+            while (total < b.Length)
+            {
+                System.Int32 r = fs.Read(b[total..]);
+                if (r <= 0)
+                {
+                    throw new System.InvalidOperationException("OS CSPRNG unavailable (/dev/urandom short read).");
+                }
+
+                total += r;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets a cached FileStream for /dev/urandom (created lazily).
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.IO.FileStream GetDevUrandom()
+    {
+        System.IO.FileStream? fs = System.Threading.Volatile.Read(ref s_devUrandom);
+        if (fs is not null)
+        {
+            return fs;
+        }
+
+        lock (s_devUrandomLock)
+        {
+            fs = s_devUrandom;
+            if (fs is not null)
+            {
+                return fs;
+            }
+
+            fs = new System.IO.FileStream(
+                "/dev/urandom",
+                System.IO.FileMode.Open,
+                System.IO.FileAccess.Read,
+                System.IO.FileShare.Read,
+                bufferSize: 0,
+                options: System.IO.FileOptions.SequentialScan);
+
+            System.Threading.Volatile.Write(ref s_devUrandom, fs);
+            return fs;
+        }
+    }
+
+    #endregion Private
+}
