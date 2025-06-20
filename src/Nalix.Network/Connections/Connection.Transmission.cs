@@ -5,7 +5,7 @@ using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Networking.Caching;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Framework.Injection;
-using Nalix.Network.Dispatch.Results.Primitives;
+using Nalix.Network.Routing.Results.Primitives;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Connections;

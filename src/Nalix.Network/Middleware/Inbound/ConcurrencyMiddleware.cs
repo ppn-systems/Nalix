@@ -9,7 +9,7 @@ using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Connections;
-using Nalix.Network.Dispatch;
+using Nalix.Network.Routing;
 using Nalix.Network.Throttling;
 
 namespace Nalix.Network.Middleware.Inbound;
