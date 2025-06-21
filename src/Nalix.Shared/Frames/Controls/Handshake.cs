@@ -14,7 +14,7 @@ using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Serialization;
 
-namespace Nalix.Shared.Messaging.Controls;
+namespace Nalix.Shared.Frames.Controls;
 
 /// <summary>
 /// Represents a binary data packet used for transmitting raw bytes over the network.

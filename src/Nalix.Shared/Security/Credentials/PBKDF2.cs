@@ -107,20 +107,7 @@ public static class Pbkdf2
         [return: System.Diagnostics.CodeAnalysis.NotNull]
         public static System.Boolean Verify(
             [System.Diagnostics.CodeAnalysis.NotNull] System.String credential,
-            [System.Diagnostics.CodeAnalysis.NotNull] System.String encoded)
-        {
-            if (!TryParse(encoded, out System.Byte[] salt, out System.Byte[] hash, out System.Byte version))
-            {
-                return false;
-            }
-
-            if (version != Version) // reject unknown/old formats
-            {
-                return false;
-            }
-
-            return Pbkdf2.Verify(credential, salt, hash);
-        }
+            [System.Diagnostics.CodeAnalysis.NotNull] System.String encoded) => TryParse(encoded, out System.Byte[] salt, out System.Byte[] hash, out System.Byte version) && version == Version && Pbkdf2.Verify(credential, salt, hash);
 
         /// <summary>
         /// Parses an encoded Base64([ver|salt|hash]) into parts without throwing.
