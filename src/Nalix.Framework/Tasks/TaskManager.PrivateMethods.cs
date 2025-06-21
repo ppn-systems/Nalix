@@ -30,8 +30,8 @@ public partial class TaskManager
             System.DateTimeOffset now = System.DateTimeOffset.UtcNow;
             foreach (var kv in _workers)
             {
-                var st = kv.Value;
-                var keep = st.Options.RetainFor;
+                WorkerState st = kv.Value;
+                System.TimeSpan? keep = st.Options.RetainFor;
 
                 if (keep is null || keep <= System.TimeSpan.Zero)
                 {
@@ -49,12 +49,14 @@ public partial class TaskManager
                     continue;
                 }
 
-                if (now - completed.Value >= keep.Value)
+                if (now - completed.Value < keep.Value)
                 {
-                    if (_workers.TryRemove(st.Id, out _))
-                    {
-                        try { st.Cts.Dispose(); } catch { }
-                    }
+                    continue;
+                }
+
+                if (_workers.TryRemove(st.Id, out _))
+                {
+                    try { st.Cts.Dispose(); } catch { }
                 }
             }
         }
@@ -72,7 +74,7 @@ public partial class TaskManager
     private async System.Threading.Tasks.Task RecurringLoopAsync(
         RecurringState s, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work)
     {
-        System.Threading.CancellationToken ct = s.Cts.Token;
+        System.Threading.CancellationToken ct = s.CancellationTokenSource.Token;
 
         // Initial jitter (unchanged semantics)
         if (s.Options.Jitter is { } j && j > System.TimeSpan.Zero)
@@ -91,20 +93,20 @@ public partial class TaskManager
 
         // Interval in Stopwatch ticks
         System.Int64 freq = System.Diagnostics.Stopwatch.Frequency;
-        System.Int64 step = (System.Int64)(s.Interval.TotalSeconds * freq);
-        if (step <= 0)
-        {
-            step = 1;
-        }
-
+        System.Int64 step = s.IntervalTicks;
         System.Int64 next = System.Diagnostics.Stopwatch.GetTimestamp() + step;
 
         // Local helpers for fast delay
-        static void BusyWait(System.Int64 untilTicks)
+        static void BusyWait(System.Int64 untilTicks, System.Threading.CancellationToken ct)
         {
             System.Threading.SpinWait sw = new();
             while (System.Diagnostics.Stopwatch.GetTimestamp() < untilTicks)
             {
+                if (ct.IsCancellationRequested)
+                {
+                    break;
+                }
+
                 sw.SpinOnce(sleep1Threshold: -1);
             }
         }
@@ -120,20 +122,17 @@ public partial class TaskManager
                 if (delayTicks > 0)
                 {
                     // convert to seconds once
-                    System.Double delaySec = (System.Double)delayTicks / freq;
-                    if (delaySec <= BusyWaitMaxSeconds)
+                    if (((System.Double)delayTicks / freq) <= BusyWaitMaxSeconds)
                     {
                         // sub-200µs: spin to avoid scheduling jitter/context switch
-                        BusyWait(next);
+                        BusyWait(next, ct);
                     }
                     else
                     {
                         // precise delay: prefer Delay(TimeSpan) but avoid negative/zero
-                        System.TimeSpan ts = System.TimeSpan.FromSeconds(delaySec);
-                        if (ts > System.TimeSpan.Zero)
-                        {
-                            await System.Threading.Tasks.Task.Delay(ts, ct).ConfigureAwait(false);
-                        }
+                        System.Int64 delayTicksClamped = delayTicks <= 0 ? 1 : delayTicks;
+                        System.TimeSpan ts = System.TimeSpan.FromSeconds(delayTicksClamped * System.TimeSpan.TicksPerSecond / freq);
+                        await System.Threading.Tasks.Task.Delay(ts, ct).ConfigureAwait(false);
                     }
                 }
                 else
@@ -230,9 +229,11 @@ public partial class TaskManager
             ms = cap;
         }
 
+        System.Int32 jitter = Csprng.GetInt32(0, (ms / 4) + 1);
+
         try
         {
-            await System.Threading.Tasks.Task.Delay(ms, ct).ConfigureAwait(false);
+            await System.Threading.Tasks.Task.Delay(ms + jitter, ct).ConfigureAwait(false);
         }
         catch (System.OperationCanceledException) { }
     }
@@ -269,9 +270,8 @@ public partial class TaskManager
             catch { }
 
             System.Boolean hasSameGroup = false;
-            foreach (var kv in _workers)
+            foreach (var other in _workers.Values)
             {
-                WorkerState other = kv.Value;
                 if (System.String.Equals(other.Group, st.Group, System.StringComparison.Ordinal))
                 {
                     hasSameGroup = true;
@@ -279,16 +279,9 @@ public partial class TaskManager
                 }
             }
 
-            if (!hasSameGroup)
+            if (!hasSameGroup && _groupGates.TryRemove(st.Group, out Gate? g))
             {
-                if (_groupGates.TryRemove(st.Group, out Gate? g))
-                {
-                    try
-                    {
-                        g.SemaphoreSlim.Dispose();
-                    }
-                    catch { }
-                }
+                try { g.SemaphoreSlim.Dispose(); } catch { }
             }
 
             return;
