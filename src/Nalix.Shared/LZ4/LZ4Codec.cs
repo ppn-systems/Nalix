@@ -23,7 +23,10 @@ public static class LZ4Codec
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int32 Encode(System.ReadOnlySpan<System.Byte> input, System.Span<System.Byte> output) => LZ4Encoder.Encode(input, output);
+    public static System.Int32 Encode(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> input,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Span<System.Byte> output)
+        => LZ4Encoder.Encode(input, output);
 
     /// <summary>
     /// Compresses the input byte array into the specified output byte array.
@@ -37,8 +40,8 @@ public static class LZ4Codec
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 Encode(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] output)
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Byte[] input,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Byte[] output)
         => LZ4Encoder.Encode(System.MemoryExtensions.AsSpan(input), System.MemoryExtensions.AsSpan(output));
 
     /// <summary>
@@ -52,7 +55,7 @@ public static class LZ4Codec
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Encode(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> input)
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> input)
     {
         System.Int32 maxOutputSize = LZ4BlockEncoder.GetMaxLength(input.Length);
         System.Byte[] buffer = new System.Byte[maxOutputSize];
@@ -73,8 +76,8 @@ public static class LZ4Codec
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 Decode(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> input,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> output) => LZ4Decoder.Decode(input, output);
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> input,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Span<System.Byte> output) => LZ4Decoder.Decode(input, output);
 
     /// <summary>
     /// Decompresses the compressed input byte array into the specified output byte array.
@@ -88,8 +91,8 @@ public static class LZ4Codec
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 Decode(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] output)
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Byte[] input,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Byte[] output)
         => LZ4Decoder.Decode(System.MemoryExtensions.AsSpan(input), System.MemoryExtensions.AsSpan(output));
 
     /// <summary>
@@ -105,7 +108,8 @@ public static class LZ4Codec
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Boolean Decode(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> input,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> input,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte[]? output,
-        [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 bytesWritten) => LZ4Decoder.Decode(input, out output, out bytesWritten);
+        [System.Diagnostics.CodeAnalysis.DisallowNull] out System.Int32 bytesWritten)
+        => LZ4Decoder.Decode(input, out output, out bytesWritten);
 }
