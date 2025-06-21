@@ -2,7 +2,7 @@
 
 using Nalix.Common.Logging;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Randomization;
+using Nalix.Framework.Random;
 
 namespace Nalix.Framework.Tasks;
 
