@@ -1,4 +1,4 @@
-﻿using Nalix.Framework.Randomization.Algorithms;
+﻿using Nalix.Framework.Random.Algorithms;
 using System;
 using System.Linq;
 using Xunit;
