@@ -8,7 +8,6 @@ using Nalix.Common.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Messaging.Binary;
 using Nalix.Shared.Serialization;
 
 namespace Nalix.Shared.Messaging.Controls;
@@ -41,7 +40,7 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     public System.Byte[] Data { get; set; }
 
     /// <summary>
-    /// Initializes a new <see cref="Binary128"/> with empty content.
+    /// Initializes a new <see cref="Handshake"/> with empty content.
     /// </summary>
     public Handshake()
     {
