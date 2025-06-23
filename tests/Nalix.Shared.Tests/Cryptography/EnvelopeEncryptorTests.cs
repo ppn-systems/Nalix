@@ -1,4 +1,4 @@
-﻿using Nalix.Common.Enums;
+﻿using Nalix.Common.Security.Enums;
 using Nalix.Shared.Security;
 using System;
 using Xunit;

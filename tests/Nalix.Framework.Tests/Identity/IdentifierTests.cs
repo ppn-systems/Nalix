@@ -1,5 +1,5 @@
-﻿using Nalix.Common.Enums;
-using Nalix.Framework.Identity;
+﻿using Nalix.Common.Identity.Enums;
+using Nalix.Framework.Identifiers;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;

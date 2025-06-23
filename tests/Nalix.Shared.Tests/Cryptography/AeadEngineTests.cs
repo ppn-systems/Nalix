@@ -1,6 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Enums;
+using Nalix.Common.Security.Enums;
 using Nalix.Shared.Security.Aead;
 using Nalix.Shared.Security.Engine;
 using System;
