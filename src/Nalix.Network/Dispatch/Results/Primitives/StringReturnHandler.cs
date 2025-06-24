@@ -19,21 +19,80 @@ namespace Nalix.Network.Dispatch.Results.Primitives;
 /// </remarks>
 internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> where TPacket : IPacket
 {
-    /// <summary>
-    /// Internal registry describing how to rent/return/operate on a concrete text packet type.
-    /// </summary>
-    internal sealed class Candidate
+    /// <inheritdoc/>
+    public async System.Threading.Tasks.ValueTask HandleAsync(
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object result,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] PacketContext<TPacket> context)
     {
-        public required System.String Name;
-        public required System.Int32 MaxBytes;
-        public required System.Func<System.Object> Rent;
-        public required System.Action<System.Object> Return;
-        public required System.Func<System.Object, System.Byte[]> Serialize;
-        public required System.Action<System.Object, System.String> Initialize;
-    }
+        if (result is System.String data)
+        {
+            System.Int32 byteCount = System.Text.Encoding.UTF8.GetByteCount(data);
 
-    // TODO: Add or remove candidates here to match what you ship in Shared.
-    // Order matters: smallest first.
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[{nameof(StringReturnHandler<>)}] " +
+                                           $"handle-string bytes={byteCount} candidates={UTF8_STRING.Candidates.Length}");
+
+            // 1) Try to fit in a single packet (choose the smallest that fits).
+            foreach (Candidate c in UTF8_STRING.Candidates)
+            {
+                if (byteCount <= c.MaxBytes)
+                {
+                    var pkt = c.Rent();
+                    try
+                    {
+                        c.Initialize(pkt, data);
+                        System.Byte[] buffer = c.Serialize(pkt);
+                        _ = await context.Connection.TCP.SendAsync(buffer)
+                                                        .ConfigureAwait(false);
+                        return;
+                    }
+                    finally
+                    {
+                        c.Return(pkt);
+                    }
+                }
+            }
+
+            // 2) Fallback: chunk by UTF-8 byte limit using the largest candidate.
+            Candidate max = UTF8_STRING.Candidates[^1];
+            foreach (System.String part in UTF8_STRING.Split(data, max.MaxBytes))
+            {
+                var pkt = max.Rent();
+                try
+                {
+                    max.Initialize(pkt, part);
+                    System.Byte[] buffer = max.Serialize(pkt);
+                    _ = await context.Connection.TCP.SendAsync(buffer)
+                                                    .ConfigureAwait(false);
+                }
+                finally
+                {
+                    max.Return(pkt);
+                }
+            }
+        }
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[{nameof(StringReturnHandler<>)}] " +
+                                       $"unsupported-result type={result?.GetType().Name ?? "null"}");
+    }
+}
+
+/// <summary>
+/// Internal registry describing how to rent/return/operate on a concrete text packet type.
+/// </summary>
+internal sealed class Candidate
+{
+    public required System.String Name;
+    public required System.Int32 MaxBytes;
+    public required System.Func<System.Object> Rent;
+    public required System.Action<System.Object> Return;
+    public required System.Func<System.Object, System.Byte[]> Serialize;
+    public required System.Action<System.Object, System.String> Initialize;
+}
+
+internal static class UTF8_STRING
+{
     internal static readonly Candidate[] Candidates =
     [
         new Candidate
@@ -65,64 +124,6 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
         },
     ];
 
-    /// <inheritdoc/>
-    public async System.Threading.Tasks.ValueTask HandleAsync(
-        System.Object? result,
-        PacketContext<TPacket> context)
-    {
-        if (result is System.String data)
-        {
-            System.Int32 byteCount = System.Text.Encoding.UTF8.GetByteCount(data);
-
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(StringReturnHandler<TPacket>)}] " +
-                                           $"handle-string bytes={byteCount} candidates={Candidates.Length}");
-
-            // 1) Try to fit in a single packet (choose the smallest that fits).
-            foreach (Candidate c in Candidates)
-            {
-                if (byteCount <= c.MaxBytes)
-                {
-                    var pkt = c.Rent();
-                    try
-                    {
-                        c.Initialize(pkt, data);
-                        System.Byte[] buffer = c.Serialize(pkt);
-                        _ = await context.Connection.TCP.SendAsync(buffer)
-                                                        .ConfigureAwait(false);
-                        return;
-                    }
-                    finally
-                    {
-                        c.Return(pkt);
-                    }
-                }
-            }
-
-            // 2) Fallback: chunk by UTF-8 byte limit using the largest candidate.
-            Candidate max = Candidates[^1];
-            foreach (System.String part in SplitUtf8ByBytes(data, max.MaxBytes))
-            {
-                var pkt = max.Rent();
-                try
-                {
-                    max.Initialize(pkt, part);
-                    System.Byte[] buffer = max.Serialize(pkt);
-                    _ = await context.Connection.TCP.SendAsync(buffer)
-                                                    .ConfigureAwait(false);
-                }
-                finally
-                {
-                    max.Return(pkt);
-                }
-            }
-        }
-
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(StringReturnHandler<TPacket>)}] " +
-                                       $"unsupported-result type={result?.GetType().Name ?? "null"}");
-    }
-
     /// <summary>
     /// Splits a string into segments that do not exceed a given UTF-8 byte limit,
     /// preserving Unicode rune boundaries.
@@ -130,8 +131,9 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
     /// <param name="s">The input string.</param>
     /// <param name="byteLimit">Maximum bytes per segment (UTF-8).</param>
     /// <returns>An enumerable of segments.</returns>
-    internal static System.Collections.Generic.IEnumerable<System.String> SplitUtf8ByBytes(
-        System.String s, System.Int32 byteLimit)
+    internal static System.Collections.Generic.IEnumerable<System.String> Split(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String s,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Int32 byteLimit)
     {
         System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(byteLimit);
 
@@ -141,59 +143,54 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
             yield break;
         }
 
-        var encoder = System.Text.Encoding.UTF8.GetEncoder();
-        var byteBuffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(byteLimit);
-        try
+        System.Text.Encoder encoder = System.Text.Encoding.UTF8.GetEncoder();
+        System.Int32 i = 0;
+        while (i < s.Length)
         {
-            System.Int32 i = 0;
+            System.Int32 start = i;
+            System.Int32 bytesUsed = 0;
+
+            // Accumulate runes until the next one would exceed the byte limit.
             while (i < s.Length)
             {
-                System.Int32 start = i;
-                System.Int32 bytesUsed = 0;
-
-                // Accumulate runes until the next one would exceed the byte limit.
-                while (i < s.Length)
+                // Get the next rune (safe on surrogate pairs).
+                if (!System.Char.IsSurrogatePair(s, i))
                 {
-                    // Get the next rune (safe on surrogate pairs).
-                    if (!System.Char.IsSurrogatePair(s, i))
+                    // Single char rune
+                    System.Span<System.Char> ch = [s[i]];
+                    if (!Measure(ch, ref bytesUsed, byteLimit, encoder))
                     {
-                        // Single char rune
-                        System.Span<System.Char> ch = [s[i]];
-                        if (!TryMeasure(ch, ref bytesUsed, byteLimit, encoder))
-                        {
-                            break;
-                        }
-
-                        i += 1;
+                        break;
                     }
-                    else
-                    {
-                        // Surrogate pair rune
-                        System.Span<System.Char> ch2 = [s[i], s[i + 1]];
-                        if (!TryMeasure(ch2, ref bytesUsed, byteLimit, encoder))
-                        {
-                            break;
-                        }
 
-                        i += 2;
-                    }
+                    i++;
                 }
+                else
+                {
+                    // Surrogate pair rune
+                    System.Span<System.Char> ch2 = [s[i], s[i + 1]];
+                    if (!Measure(ch2, ref bytesUsed, byteLimit, encoder))
+                    {
+                        break;
+                    }
 
-                yield return s[start..i];
-                encoder.Reset();
+                    i += 2;
+                }
             }
+
+            yield return s[start..i];
+            encoder.Reset();
         }
-        finally
-        {
-            System.Buffers.ArrayPool<System.Byte>.Shared.Return(byteBuffer, clearArray: true);
-        }
+
 
         // Local: simulate encoding to check size incrementally without allocating strings.
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        static System.Boolean TryMeasure(
-            System.ReadOnlySpan<System.Char> chars,
-            ref System.Int32 used, System.Int32 limit, System.Text.Encoder enc)
+        static System.Boolean Measure(
+            [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Char> chars,
+            [System.Diagnostics.CodeAnalysis.DisallowNull] ref System.Int32 used,
+            [System.Diagnostics.CodeAnalysis.DisallowNull] System.Int32 limit,
+            [System.Diagnostics.CodeAnalysis.DisallowNull] System.Text.Encoder enc)
         {
             enc.Convert(chars, [], flush: false,
                         out System.Int32 charsUsed, out System.Int32 bytesUsed, out System.Boolean completed);

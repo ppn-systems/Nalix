@@ -23,7 +23,9 @@ public interface IProtocol : System.IDisposable
     /// <param name="sender">The source of the event triggering the message processing.</param>
     /// <param name="args">The event arguments containing connection and message data.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when args is null.</exception>
-    void ProcessMessage(System.Object? sender, IConnectEventArgs args);
+    void ProcessMessage(
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs args);
 
     /// <summary>
     /// Executes after a message from the connection has been processed.
@@ -32,7 +34,9 @@ public interface IProtocol : System.IDisposable
     /// <param name="sender">The source of the event triggering the post-processing.</param>
     /// <param name="args">The event arguments containing connection and message data.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when args is null.</exception>
-    void PostProcessMessage(System.Object? sender, IConnectEventArgs args);
+    void PostProcessMessage(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs args);
 
     /// <summary>
     /// Handles a new connection when it is accepted.
@@ -41,5 +45,7 @@ public interface IProtocol : System.IDisposable
     /// <param name="connection">The connection to handle.</param>
     /// <param name="cancellationToken">Identifier for cancellation</param>
     /// <exception cref="System.ArgumentNullException">Thrown when connection is null.</exception>
-    void OnAccept(IConnection connection, System.Threading.CancellationToken cancellationToken = default);
+    void OnAccept(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Threading.CancellationToken cancellationToken = default);
 }

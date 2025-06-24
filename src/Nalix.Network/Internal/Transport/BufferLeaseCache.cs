@@ -21,9 +21,14 @@ internal sealed class BufferLeaseCache : System.IDisposable
 {
     #region Fields
 
-    private IConnection? _sender;
-    private IConnectEventArgs? _cachedArgs;
-    private System.EventHandler<IConnectEventArgs>? _callback;
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    private IConnection _sender;
+
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    private IConnectEventArgs _cachedArgs;
+
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    private System.EventHandler<IConnectEventArgs> _callback;
 
     private static CacheSizeOptions Config => ConfigurationManager.Instance.Get<CacheSizeOptions>();
 

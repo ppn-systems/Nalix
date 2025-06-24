@@ -34,7 +34,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
         try
         {
-            IPacketCatalog? catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>();
+            IPacketCatalog catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>();
             if (catalog is null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?

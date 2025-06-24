@@ -18,7 +18,8 @@ internal sealed class PooledSocketAsyncEventArgs : System.Net.Sockets.SocketAsyn
     /// <summary>
     /// The pooled accept context associated with this event args.
     /// </summary>
-    public PooledAcceptContext? Context { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public PooledAcceptContext Context { get; set; }
 
     /// <summary>
     /// Resets the internal state before returning to the pool.

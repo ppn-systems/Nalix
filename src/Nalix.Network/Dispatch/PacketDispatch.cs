@@ -39,7 +39,9 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void HandlePacket(IBufferLease? raw, IConnection connection)
+    public void HandlePacket(
+        [System.Diagnostics.CodeAnalysis.AllowNull] IBufferLease raw,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection)
     {
         try
         {
@@ -56,7 +58,7 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
             System.UInt32 magic = len >= 4 ? raw.Memory.Span.ReadMagicNumberLE() : 0u;
 
             // 3) Try deserialize
-            if (!_catalog.TryDeserialize(raw.Span, out IPacket? packet) || packet is null)
+            if (!_catalog.TryDeserialize(raw.Span, out IPacket packet) || packet is null)
             {
                 // Log only a small head preview to avoid leaking large/secret data
                 System.String head = System.Convert.ToHexString(raw.Span[..System.Math.Min(16, len)]);
@@ -83,5 +85,7 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void HandlePacket(IPacket packet, IConnection connection) => ExecutePacketHandlerAsync(packet, connection).Await();
+    public void HandlePacket(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IPacket packet,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection) => ExecutePacketHandlerAsync(packet, connection).Await();
 }

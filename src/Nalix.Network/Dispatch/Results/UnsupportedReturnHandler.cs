@@ -17,8 +17,8 @@ internal sealed class UnsupportedReturnHandler<TPacket>(System.Type returnType) 
 
     /// <inheritdoc/>
     public System.Threading.Tasks.ValueTask HandleAsync(
-        System.Object? result,
-        PacketContext<TPacket> context)
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object result,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] PacketContext<TPacket> context)
     {
         if (_loggedTypes.TryAdd(returnType, true))
         {

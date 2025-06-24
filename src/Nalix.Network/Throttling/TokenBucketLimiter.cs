@@ -97,7 +97,8 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
     private readonly Shard[] _shards;
 
-    private readonly ILogger? _logger; // NEW: cache logger
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    private readonly ILogger _logger; // NEW: cache logger
 
     private System.Boolean _disposed;
 
@@ -108,7 +109,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Creates a new TokenBucketLimiter with provided options.
     /// </summary>
-    public TokenBucketLimiter(TokenBucketOptions? options = null)
+    public TokenBucketLimiter([System.Diagnostics.CodeAnalysis.AllowNull] TokenBucketOptions options = null)
     {
         _opt = options ?? ConfigurationManager.Instance.Get<TokenBucketOptions>();
         ValidateOptions(_opt);
@@ -178,7 +179,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         System.Boolean isNew = false;
 
         // Fast-path: endpoint already tracked
-        if (!map.TryGetValue(key, out EndpointState? state))
+        if (!map.TryGetValue(key, out EndpointState state))
         {
             // Slow-path: create new state
             state = new EndpointState

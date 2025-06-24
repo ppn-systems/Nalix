@@ -7,8 +7,8 @@ internal sealed class ReadOnlyMemoryReturnHandler<TPacket> : IReturnHandler<TPac
 {
     /// <inheritdoc/>
     public async System.Threading.Tasks.ValueTask HandleAsync(
-        System.Object? result,
-        PacketContext<TPacket> context)
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object result,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] PacketContext<TPacket> context)
     {
         if (result is not System.ReadOnlyMemory<System.Byte> memory)
         {

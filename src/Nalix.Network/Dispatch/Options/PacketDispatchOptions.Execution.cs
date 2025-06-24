@@ -49,10 +49,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 }
 
                 // Execute the handler and await the ValueTask once
-                System.Object? result = await descriptor.ExecuteAsync(context)
-                                                        .AsTask()
-                                                        .WaitAsync(ct)
-                                                        .ConfigureAwait(false);
+                System.Object result = await descriptor.ExecuteAsync(context)
+                                                       .AsTask()
+                                                       .WaitAsync(ct)
+                                                       .ConfigureAwait(false);
 
                 // Handle the result
                 if (!context.SkipOutbound)
