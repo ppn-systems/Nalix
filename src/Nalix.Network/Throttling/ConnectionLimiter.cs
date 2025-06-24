@@ -96,7 +96,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean IsConnectionAllowed([System.Diagnostics.CodeAnalysis.DisallowNull] System.Net.IPEndPoint endPoint)
+    public System.Boolean IsConnectionAllowed([System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPEndPoint endPoint)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
         if (endPoint is null)
@@ -188,7 +188,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void OnConnectionClosed(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs args)
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
         if (sender is null)

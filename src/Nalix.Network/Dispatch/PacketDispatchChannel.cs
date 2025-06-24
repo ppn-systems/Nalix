@@ -170,7 +170,7 @@ public sealed class PacketDispatchChannel
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(
         [System.Diagnostics.CodeAnalysis.AllowNull] IBufferLease lease,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection)
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
         if (lease is null || lease.Length <= 0)
         {
@@ -192,8 +192,8 @@ public sealed class PacketDispatchChannel
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IPacket packet,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection)
+        [System.Diagnostics.CodeAnalysis.NotNull] IPacket packet,
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
         // If you want typed fast-path, you can implement a separate typed channel.
         // For now, process immediately to avoid mixing typed/lease queues.
