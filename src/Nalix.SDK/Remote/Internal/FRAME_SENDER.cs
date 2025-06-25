@@ -14,14 +14,14 @@ namespace Nalix.SDK.Remote.Internal;
 /// Handles sending packets and raw bytes over a network stream.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="StreamSender{TPacket}"/> class with the specified network stream.
+/// Initializes a new instance of the <see cref="FRAME_SENDER{TPacket}"/> class with the specified network stream.
 /// </remarks>
 /// <param name="stream">The <see cref="System.Net.Sockets.NetworkStream"/> used for sending data.</param>
 /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
 [System.ComponentModel.EditorBrowsable(
     System.ComponentModel.EditorBrowsableState.Never)]
 [System.Diagnostics.DebuggerDisplay("Writable={_stream?.CanWrite}, Stream={_stream}")]
-internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream stream) where TPacket : IPacket
+internal sealed class FRAME_SENDER<TPacket>(System.Net.Sockets.NetworkStream stream) where TPacket : IPacket
 {
     private readonly System.Net.Sockets.NetworkStream _stream = stream
         ?? throw new System.ArgumentNullException(nameof(stream));
@@ -30,12 +30,6 @@ internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream str
 
     // reuse small header buffer because writes are serialized by _gate (no concurrent writes)
     private readonly System.Byte[] _header = new System.Byte[2];
-
-    /// <summary>
-    /// Checks if the network stream is healthy and writable.
-    /// </summary>
-    /// <returns><c>true</c> if the stream is writable; otherwise, <c>false</c>.</returns>
-    public System.Boolean IsStreamHealthy => _stream?.CanWrite == true;
 
     /// <summary>
     /// Asynchronously sends a packet over the network stream.
@@ -48,12 +42,12 @@ internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream str
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public async System.Threading.Tasks.Task SendAsync(
+    public async System.Threading.Tasks.Task SEND_ASYNC(
         TPacket packet,
         System.Threading.CancellationToken cancellationToken = default)
     {
         System.ArgumentNullException.ThrowIfNull(packet);
-        await SendAsync(packet.Serialize(), cancellationToken).ConfigureAwait(false);
+        await SEND_ASYNC(packet.Serialize(), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -66,7 +60,7 @@ internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream str
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public async System.Threading.Tasks.Task SendAsync(
+    public async System.Threading.Tasks.Task SEND_ASYNC(
         System.ReadOnlyMemory<System.Byte> bytes,
         System.Threading.CancellationToken cancellationToken = default)
     {
@@ -107,10 +101,10 @@ internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream str
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Send(TPacket packet)
+    public void SEND(TPacket packet)
     {
         System.ArgumentNullException.ThrowIfNull(packet);
-        Send(packet.Serialize());
+        SEND(packet.Serialize());
     }
 
     /// <summary>
@@ -121,7 +115,7 @@ internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream str
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Send(System.ReadOnlySpan<System.Byte> bytes)
+    public void SEND(System.ReadOnlySpan<System.Byte> bytes)
     {
         if (!_stream.CanWrite)
         {

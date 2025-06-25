@@ -105,7 +105,7 @@ public abstract partial class TcpListenerBase
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
-    private static void InitializeSocketOptions(System.Net.Sockets.Socket socket)
+    private static void InitializeOptions(System.Net.Sockets.Socket socket)
     {
         // Performance tuning
         socket.NoDelay = Config.NoDelay;
