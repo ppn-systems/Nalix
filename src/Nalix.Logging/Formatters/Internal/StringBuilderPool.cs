@@ -1,7 +1,3 @@
-using System.Buffers;
-using System.Runtime.CompilerServices;
-using System.Text;
-
 namespace Nalix.Logging.Formatters.Internal;
 
 /// <summary>
@@ -10,24 +6,32 @@ namespace Nalix.Logging.Formatters.Internal;
 internal static class StringBuilderPool
 {
     // Use array pool for efficient reuse
-    private static readonly ArrayPool<StringBuilder> _spool = ArrayPool<StringBuilder>.Create(20, 50);
+    private static readonly System.Buffers.ArrayPool<System.Text.StringBuilder> _spool;
+
+    static StringBuilderPool()
+    {
+        _spool = System.Buffers.ArrayPool<System.Text.StringBuilder>.Create(20, 50);
+    }
 
     /// <summary>
     /// Rents a StringBuilder from the pool with the specified capacity.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static StringBuilder Rent(int capacity = 256)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Text.StringBuilder Rent(System.Int32 capacity = 256)
     {
-        StringBuilder builder = _spool.Rent(1)[0];
+        System.Text.StringBuilder builder = _spool.Rent(1)[0];
         if (builder == null)
         {
-            builder = new StringBuilder(capacity);
+            builder = new System.Text.StringBuilder(capacity);
         }
         else
         {
             builder.Clear();
             if (builder.Capacity < capacity)
+            {
                 builder.EnsureCapacity(capacity);
+            }
         }
 
         return builder;
@@ -36,8 +40,9 @@ internal static class StringBuilderPool
     /// <summary>
     /// Returns a StringBuilder to the pool.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Return(StringBuilder builder)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void Return(System.Text.StringBuilder builder)
     {
         if (builder == null) return;
 

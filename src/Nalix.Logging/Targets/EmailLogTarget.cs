@@ -1,9 +1,6 @@
 using Nalix.Common.Exceptions;
 using Nalix.Common.Logging;
 using Nalix.Logging.Options;
-using System.Net;
-using System.Net.Mail;
-using System.Threading.Tasks;
 
 namespace Nalix.Logging.Targets;
 
@@ -18,7 +15,7 @@ public sealed class EmailLogTarget : ILoggerTarget, System.IDisposable
 {
     #region Fields
 
-    private readonly SmtpClient _smtpClient;
+    private readonly System.Net.Mail.SmtpClient _smtpClient;
     private readonly EmailLogOptions _options;
     private bool _disposed;
 
@@ -36,9 +33,9 @@ public sealed class EmailLogTarget : ILoggerTarget, System.IDisposable
         _options = configure
             ?? throw new System.ArgumentNullException(nameof(configure));
 
-        _smtpClient = new SmtpClient(_options.SmtpServer, _options.Port)
+        _smtpClient = new System.Net.Mail.SmtpClient(_options.SmtpServer, _options.Port)
         {
-            Credentials = new NetworkCredential(_options.From, _options.Password),
+            Credentials = new System.Net.NetworkCredential(_options.From, _options.Password),
             EnableSsl = _options.EnableSsl,
             Timeout = _options.Timeout
         };
@@ -87,7 +84,7 @@ public sealed class EmailLogTarget : ILoggerTarget, System.IDisposable
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance is disposed.</exception>
     /// <exception cref="InternalErrorException">Thrown if email sending fails.</exception>
-    public async Task PublishAsync(LogEntry entry)
+    public async System.Threading.Tasks.Task PublishAsync(LogEntry entry)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(EmailLogTarget));
 
@@ -100,7 +97,7 @@ public sealed class EmailLogTarget : ILoggerTarget, System.IDisposable
         {
             await _smtpClient.SendMailAsync(mailMessage).ConfigureAwait(false);
         }
-        catch (SmtpException ex)
+        catch (System.Net.Mail.SmtpException ex)
         {
             throw new InternalErrorException("Failed to send email log", ex);
         }
@@ -139,8 +136,8 @@ public sealed class EmailLogTarget : ILoggerTarget, System.IDisposable
     /// Creates an HTML-formatted email message from the log entry.
     /// </summary>
     /// <param name="entry">The log entry.</param>
-    /// <returns>A formatted <see cref="MailMessage"/> instance.</returns>
-    private MailMessage CreateMailMessage(LogEntry entry)
+    /// <returns>A formatted <see cref="System.Net.Mail.MailMessage"/> instance.</returns>
+    private System.Net.Mail.MailMessage CreateMailMessage(LogEntry entry)
     {
         string exceptionHtml = entry.Exception is not null
                 ? $"<p><b>Exception:</b> <pre style='background:#f8f9fa; padding:10px;'>{entry.Exception}</pre></p>"
@@ -154,12 +151,14 @@ public sealed class EmailLogTarget : ILoggerTarget, System.IDisposable
             exceptionHtml
         );
 
-        return new MailMessage(_options.From, _options.To)
+        return new System.Net.Mail.MailMessage(_options.From, _options.To)
         {
             Subject = $"[{entry.LogLevel}] - {System.DateTime.Now:yyyy-MM-dd HH:mm:ss}",
             Body = htmlBody,
             IsBodyHtml = true,
-            Priority = entry.LogLevel == LogLevel.Critical ? MailPriority.High : MailPriority.Normal
+            Priority = entry.LogLevel == LogLevel.Critical
+                ? System.Net.Mail.MailPriority.High
+                : System.Net.Mail.MailPriority.Normal
         };
     }
 
