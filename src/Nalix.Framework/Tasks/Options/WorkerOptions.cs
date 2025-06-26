@@ -26,6 +26,12 @@ public sealed class WorkerOptions : IWorkerOptions
     public IdentifierType IdType { get; init; } = IdentifierType.System;
 
     /// <summary>
+    /// Gets the optional execution timeout for the worker instance.
+    /// If set, the worker will be cancelled if execution exceeds this duration.
+    /// </summary>
+    public System.TimeSpan? ExecutionTimeout { get; }
+
+    /// <summary>
     /// Gets the duration for which finished workers are retained for diagnostics.
     /// Set to <c>null</c> or <see cref="System.TimeSpan.Zero"/> to auto-remove.
     /// </summary>
