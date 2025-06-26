@@ -86,7 +86,7 @@ public readonly partial struct Packet
         if (Payload.Length > PacketConstants.HeapAllocLimit)
         {
             // Register large packets for garbage collection
-            PacketGC.Register(this);
+            PacketAutoDisposer.Register(this);
         }
     }
 }

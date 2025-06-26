@@ -43,7 +43,11 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
         s_connectionPool = System.Buffers.ArrayPool<IConnection>.Shared;
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Sets the logger instance to be used by the ConnectionHub.
+    /// </summary>
+    /// <param name="logger">The logger instance to set. Cannot be null.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown if the provided logger is null.</exception>
     public void SetLogging(ILogger logger)
     {
         System.ArgumentNullException.ThrowIfNull(logger);
