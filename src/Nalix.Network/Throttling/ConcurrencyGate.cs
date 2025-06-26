@@ -18,7 +18,7 @@ namespace Nalix.Network.Throttling;
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
-public class ConcurrencyGate : IReportable
+public sealed class ConcurrencyGate : IReportable
 {
     #region Constants
 

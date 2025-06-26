@@ -55,7 +55,6 @@ internal abstract class FieldAccessor<
 
         // Normalize and validate target field type
         System.Type fieldType = schema.FieldType ?? throw new System.ArgumentException("schema.FieldType is null", nameof(schema));
-        fieldType = System.Nullable.GetUnderlyingType(fieldType) ?? fieldType;
 
         if (fieldType.IsByRef || fieldType.IsPointer)
         {
