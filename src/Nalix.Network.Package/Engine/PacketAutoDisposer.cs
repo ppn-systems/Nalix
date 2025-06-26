@@ -1,5 +1,4 @@
 using Nalix.Shared.Time;
-using System;
 
 namespace Nalix.Network.Package.Engine;
 
@@ -10,20 +9,14 @@ namespace Nalix.Network.Package.Engine;
 internal static class PacketAutoDisposer
 {
     /// <summary>
-    /// Represents a packet and the timestamp it was registered at.
+    /// Lifetime of each packet in milliseconds before disposal.
     /// </summary>
-    private readonly struct Entry(long ts, Packet pkt)
-    {
-        /// <summary>
-        /// Gets the timestamp in Unix milliseconds when the packet was added to the queue.
-        /// </summary>
-        public readonly long Timestamp = ts;
+    private const int LifetimeMs = 60000;
 
-        /// <summary>
-        /// Gets the packet instance to be disposed.
-        /// </summary>
-        public readonly Packet Packet = pkt;
-    }
+    /// <summary>
+    /// Interval in milliseconds to scan the queue for expired packets.
+    /// </summary>
+    private const int ScanIntervalMs = 5000;
 
     /// <summary>
     /// Queue storing packets scheduled for disposal.
@@ -34,16 +27,6 @@ internal static class PacketAutoDisposer
     /// Timer to periodically scan and clean expired packets.
     /// </summary>
     private static readonly System.Threading.Timer _timer;
-
-    /// <summary>
-    /// Lifetime of each packet in milliseconds before disposal.
-    /// </summary>
-    private const int LifetimeMs = 60000;
-
-    /// <summary>
-    /// Interval in milliseconds to scan the queue for expired packets.
-    /// </summary>
-    private const int ScanIntervalMs = 5000;
 
     /// <summary>
     /// Callback method used by the timer to process the packet queue.
@@ -84,12 +67,28 @@ internal static class PacketAutoDisposer
                 {
                     expired.Packet.Dispose();
                 }
-                catch (Exception ex)
+                catch (System.Exception ex)
                 {
                     // Ghi log lỗi thay vì bỏ qua
                     System.Diagnostics.Debug.WriteLine("Error disposing packet: " + ex.Message);
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Represents a packet and the timestamp it was registered at.
+    /// </summary>
+    private readonly struct Entry(long ts, Packet pkt)
+    {
+        /// <summary>
+        /// Gets the timestamp in Unix milliseconds when the packet was added to the queue.
+        /// </summary>
+        public readonly long Timestamp = ts;
+
+        /// <summary>
+        /// Gets the packet instance to be disposed.
+        /// </summary>
+        public readonly Packet Packet = pkt;
     }
 }

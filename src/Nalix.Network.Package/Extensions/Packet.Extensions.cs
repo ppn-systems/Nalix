@@ -71,7 +71,7 @@ public static class PacketExtensions
     public static System.Boolean TrySerialize(
         this in Packet packet,
         System.Span<System.Byte> destination,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int bytesWritten)
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 bytesWritten)
         => PacketSerializer.TrySerialize(in packet, destination, out bytesWritten);
 
     /// <summary>

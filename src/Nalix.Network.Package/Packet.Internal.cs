@@ -4,6 +4,7 @@ using Nalix.Common.Package.Metadata;
 using Nalix.Network.Package.Engine;
 using Nalix.Network.Package.Engine.Internal;
 using Nalix.Shared.Time;
+using System;
 
 namespace Nalix.Network.Package;
 
@@ -48,6 +49,14 @@ public readonly partial struct Packet
     /// <summary>
     /// Creates a new packet with full control over all fields.
     /// </summary>
+    /// <param name="opCode">The operation code that identifies the packet type.</param>
+    /// <param name="number">The packet number, used for sequencing.</param>
+    /// <param name="checksum">The CRC32 checksum of the payload. If 0, it will be computed automatically.</param>
+    /// <param name="timestamp">The Unix timestamp in milliseconds. If 0, the current time is used.</param>
+    /// <param name="type">The type of the packet.</param>
+    /// <param name="flags">The flags associated with the packet.</param>
+    /// <param name="priority">The priority of the packet.</param>
+    /// <param name="payload">The payload data of the packet.</param>
     /// <exception cref="Common.Exceptions.PackageException">Thrown when the packet size exceeds the maximum allowed size.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -85,8 +94,15 @@ public readonly partial struct Packet
 
         if (Payload.Length > PacketConstants.HeapAllocLimit)
         {
-            // Register large packets for garbage collection
-            PacketAutoDisposer.Register(this);
+            try
+            {
+                // Register large packets for garbage collection
+                PacketAutoDisposer.Register(this);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to register packet for disposal: {ex.Message}");
+            }
         }
     }
 }
