@@ -1,13 +1,11 @@
 using Nalix.Common.Logging;
-using System;
-using System.Threading;
 
 namespace Nalix.Logging.Options;
 
 /// <summary>
 /// Provides configuration options for the logging system with a fluent interface.
 /// </summary>
-public sealed class NLogOptions : IDisposable
+public sealed class NLogOptions : System.IDisposable
 {
     #region Fields
 
@@ -67,17 +65,16 @@ public sealed class NLogOptions : IDisposable
     /// </summary>
     /// <param name="publisher">The <see cref="ILogDistributor"/> instance for publishing log messages.</param>
     internal NLogOptions(ILogDistributor publisher)
-        => _publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
+        => _publisher = publisher ?? throw new System.ArgumentNullException(nameof(publisher));
 
     /// <summary>
     /// Applies default configuration settings to the logging configuration.
     /// </summary>
     /// <param name="configure">The default configuration action.</param>
     /// <returns>The current <see cref="NLogOptions"/> instance for method chaining.</returns>
-    public NLogOptions ConfigureDefaults(Func<NLogOptions, NLogOptions> configure)
+    public NLogOptions ConfigureDefaults(System.Func<NLogOptions, NLogOptions> configure)
     {
-        ArgumentNullException.ThrowIfNull(configure);
-
+        System.ArgumentNullException.ThrowIfNull(configure);
         return configure(this);
     }
 
@@ -86,13 +83,12 @@ public sealed class NLogOptions : IDisposable
     /// </summary>
     /// <param name="target">The <see cref="ILoggerTarget"/> to add.</param>
     /// <returns>The current <see cref="NLogOptions"/> instance for method chaining.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if target is null.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
+    /// <exception cref="System.ArgumentNullException">Thrown if target is null.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
     public NLogOptions AddTarget(ILoggerTarget target)
     {
-        ArgumentNullException.ThrowIfNull(target);
-
-        ThrowIfDisposed();
+        System.ArgumentNullException.ThrowIfNull(target);
+        this.ThrowIfDisposed();
 
         _publisher.AddTarget(target);
         return this;
@@ -103,10 +99,10 @@ public sealed class NLogOptions : IDisposable
     /// </summary>
     /// <param name="level">The minimum <see cref="LogLevel"/>.</param>
     /// <returns>The current <see cref="NLogOptions"/> instance for method chaining.</returns>
-    /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
     public NLogOptions SetMinLevel(LogLevel level)
     {
-        ThrowIfDisposed();
+        this.ThrowIfDisposed();
 
         MinLevel = level;
         return this;
@@ -117,13 +113,12 @@ public sealed class NLogOptions : IDisposable
     /// </summary>
     /// <param name="configure">Action that configures the <see cref="FileLogOptions"/>.</param>
     /// <returns>The current <see cref="NLogOptions"/> instance for method chaining.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if configure is null.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    public NLogOptions SetFileOptions(Action<FileLogOptions> configure)
+    /// <exception cref="System.ArgumentNullException">Thrown if configure is null.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
+    public NLogOptions SetFileOptions(System.Action<FileLogOptions> configure)
     {
-        ArgumentNullException.ThrowIfNull(configure);
-
-        ThrowIfDisposed();
+        System.ArgumentNullException.ThrowIfNull(configure);
+        this.ThrowIfDisposed();
 
         // Apply the configuration to the FileLogOptions instance
         configure(FileOptions);
@@ -133,11 +128,10 @@ public sealed class NLogOptions : IDisposable
     /// <summary>
     /// Checks whether this instance is disposed and throws an exception if it is.
     /// </summary>
-    /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
     private void ThrowIfDisposed()
-    {
-        ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogOptions));
-    }
+        => System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
+                                         .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogOptions));
 
     /// <summary>
     /// Releases resources used by this instance.
@@ -145,19 +139,19 @@ public sealed class NLogOptions : IDisposable
     public void Dispose()
     {
         // Thread-safe disposal check
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        if (System.Threading.Interlocked.Exchange(ref _disposed, 1) != 0)
             return;
 
         try
         {
             _publisher.Dispose();
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             // Log any disposal errors to debug output
             System.Diagnostics.Debug.WriteLine($"Error disposing NLogOptions: {ex.Message}");
         }
 
-        GC.SuppressFinalize(this);
+        System.GC.SuppressFinalize(this);
     }
 }

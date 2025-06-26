@@ -1,6 +1,4 @@
 using Nalix.Logging.Exceptions;
-using System;
-using System.IO;
 
 namespace Nalix.Logging.Options;
 
@@ -21,17 +19,17 @@ public sealed class FileLogOptions
 
     #region Fields
 
-    private static readonly TimeSpan DefaultFlushInterval = TimeSpan.FromSeconds(1);
+    private static readonly System.TimeSpan DefaultFlushInterval = System.TimeSpan.FromSeconds(1);
 
     private static readonly string DefaultBaseDirectory =
-        AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
+        System.AppDomain.CurrentDomain.BaseDirectory.TrimEnd(System.IO.Path.DirectorySeparatorChar);
 
     private static readonly string DefaultLogDirectory =
-        Path.Combine(DefaultBaseDirectory, "assets", "data", "logs");
+        System.IO.Path.Combine(DefaultBaseDirectory, "assets", "data", "logs");
 
     private int _maxFileSize = DefaultMaxFileSize;
     private int _maxQueueSize = DefaultMaxQueueSize;
-    private string _logFileName = $"log_{Environment.MachineName}_.log";
+    private string _logFileName = $"log_{System.Environment.MachineName}_.log";
 
     #endregion Fields
 
@@ -46,7 +44,7 @@ public sealed class FileLogOptions
     /// The maximum allowed file size for a log file in bytes.
     /// When this size is reached, a new log file will be created.
     /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when value is less than 1KB or greater than 2GB.</exception>
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown when value is less than 1KB or greater than 2GB.</exception>
     public int MaxFileSizeBytes
     {
         get => _maxFileSize;
@@ -56,7 +54,8 @@ public sealed class FileLogOptions
             const int max = int.MaxValue; // 2 GB maximum
 
             if (value < min || value > max)
-                throw new ArgumentOutOfRangeException(nameof(value), $"Value must be between {min} and {max} bytes");
+                throw new System.ArgumentOutOfRangeException(
+                    nameof(value), $"Value must be between {min} and {max} bytes");
 
             _maxFileSize = value;
         }
@@ -65,14 +64,15 @@ public sealed class FileLogOptions
     /// <summary>
     /// The maximum Number of entries that can be queued before blocking or discarding.
     /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when value is less than 1.</exception>
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown when value is less than 1.</exception>
     public int MaxQueueSize
     {
         get => _maxQueueSize;
         set
         {
             if (value < 1)
-                throw new ArgumentOutOfRangeException(nameof(value), "Queue size must be at least 1");
+                throw new System.ArgumentOutOfRangeException(
+                    nameof(value), "Queue size must be at least 1");
 
             _maxQueueSize = value;
         }
@@ -88,7 +88,7 @@ public sealed class FileLogOptions
     {
         get => _logFileName;
         set => _logFileName = string.IsNullOrWhiteSpace(value)
-            ? $"log_{Environment.MachineName}_.log"
+            ? $"log_{System.Environment.MachineName}_.log"
             : value;
     }
 
@@ -106,7 +106,7 @@ public sealed class FileLogOptions
     /// <remarks>
     /// A shorter interval reduces the risk of data loss but may impact performance.
     /// </remarks>
-    public TimeSpan FlushInterval { get; set; } = DefaultFlushInterval;
+    public System.TimeSpan FlushInterval { get; set; } = DefaultFlushInterval;
 
     /// <summary>
     /// Gets or sets whether to include the date in log file names.
@@ -120,7 +120,7 @@ public sealed class FileLogOptions
     /// By providing a custom formatter, you can define your own criteria for generating log file names.
     /// This formatter is applied once when creating a new log file, not for every log entry.
     /// </remarks>
-    public Func<string, string>? FormatLogFileName { get; set; }
+    public System.Func<string, string>? FormatLogFileName { get; set; }
 
     /// <summary>
     /// A custom handler for file errors.
@@ -129,7 +129,7 @@ public sealed class FileLogOptions
     /// If this handler is provided, exceptions occurring during file operations will be passed to it.
     /// You can handle file errors according to your application's logic and propose an alternative log file name.
     /// </remarks>
-    public Action<FileError>? HandleFileError { get; set; }
+    public System.Action<FileError>? HandleFileError { get; set; }
 
     /// <summary>
     /// Gets or sets whether to use background thread for file operations.
@@ -152,7 +152,7 @@ public sealed class FileLogOptions
     /// <summary>
     /// Gets full path to the current log file.
     /// </summary>
-    public string GetFullLogFilePath() => Path.Combine(LogDirectory, LogFileName);
+    public string GetFullLogFilePath() => System.IO.Path.Combine(LogDirectory, LogFileName);
 
     #endregion Methods
 }
