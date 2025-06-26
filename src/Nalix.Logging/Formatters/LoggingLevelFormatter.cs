@@ -1,6 +1,4 @@
 using Nalix.Common.Logging;
-using System;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Logging.Formatters;
 
@@ -21,7 +19,7 @@ internal static class LoggingLevelFormatter
 
     // Character buffer is organized as fixed-length segments with null terminators
     // This enables fast slicing without calculating offsets each time
-    private static ReadOnlySpan<char> LogLevelChars =>
+    private static System.ReadOnlySpan<char> LogLevelChars =>
     [
         'M', 'E', 'T', 'A', '\0', // LogLevel.Meta        (0)
         'T', 'R', 'C', 'E', '\0', // LogLevel.Trace       (1)
@@ -55,7 +53,7 @@ internal static class LoggingLevelFormatter
     static LoggingLevelFormatter()
     {
         // Initialize cached strings - do this once to avoid repeated allocations
-        Span<char> buffer = stackalloc char[LogLevelLength];
+        System.Span<char> buffer = stackalloc char[LogLevelLength];
         for (var i = 0; i < MaxLogLevels; i++)
         {
             // Extract the characters for this log level
@@ -71,14 +69,15 @@ internal static class LoggingLevelFormatter
     /// </summary>
     /// <param name="logLevel">The logging level.</param>
     /// <returns>A character span representing the log level.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ReadOnlySpan<char> GetShortLogLevel(LogLevel logLevel)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal static System.ReadOnlySpan<char> GetShortLogLevel(LogLevel logLevel)
     {
         // Bounds checking with bitwise operation for performance
         if (!IsValidLogLevel(logLevel))
         {
             // Fall back to the string representation for unknown levels
-            return logLevel.ToString().ToUpperInvariant().AsSpan();
+            return System.MemoryExtensions.AsSpan(logLevel.ToString().ToUpperInvariant());
         }
 
         // Get the pre-computed span for this log level
@@ -93,7 +92,8 @@ internal static class LoggingLevelFormatter
     /// </summary>
     /// <param name="logLevel">The logging level.</param>
     /// <returns>A string representing the log level.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static string GetShortLogLevelString(LogLevel logLevel)
     {
         // Bounds checking with bitwise operation for performance
@@ -112,7 +112,8 @@ internal static class LoggingLevelFormatter
     /// </summary>
     /// <param name="logLevel">The logging level to validate.</param>
     /// <returns>True if the log level is valid, otherwise false.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static bool IsValidLogLevel(LogLevel logLevel)
         => (uint)logLevel < MaxLogLevels;
 
@@ -122,8 +123,9 @@ internal static class LoggingLevelFormatter
     /// <param name="logLevel">The logging level.</param>
     /// <param name="destination">The destination character span.</param>
     /// <returns>The Number of characters written.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int CopyTo(LogLevel logLevel, Span<char> destination)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal static int CopyTo(LogLevel logLevel, System.Span<System.Char> destination)
     {
         if (!IsValidLogLevel(logLevel))
         {
@@ -131,11 +133,11 @@ internal static class LoggingLevelFormatter
             if (fallback.Length > destination.Length)
                 return 0;
 
-            fallback.AsSpan().CopyTo(destination);
+            System.MemoryExtensions.AsSpan(fallback).CopyTo(destination);
             return fallback.Length;
         }
 
-        ReadOnlySpan<char> source = LogLevelChars.Slice(
+        System.ReadOnlySpan<System.Char> source = LogLevelChars.Slice(
             (int)logLevel * LogLevelPaddedLength,
             LogLevelLength
         );
@@ -149,13 +151,14 @@ internal static class LoggingLevelFormatter
     /// </summary>
     /// <param name="logLevel">The logging level.</param>
     /// <returns>A log level name that is exactly 4 characters long.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static string GetFixedWidthLogLevel(LogLevel logLevel)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal static System.String GetFixedWidthLogLevel(LogLevel logLevel)
     {
         if (!IsValidLogLevel(logLevel))
         {
             // Truncate or pad to exactly 4 characters for consistency
-            string fallback = logLevel.ToString().ToUpperInvariant();
+            System.String fallback = logLevel.ToString().ToUpperInvariant();
             if (fallback.Length > 4)
                 return fallback[..4];
             if (fallback.Length < 4)
@@ -163,7 +166,7 @@ internal static class LoggingLevelFormatter
             return fallback;
         }
 
-        return CachedLogLevels[(int)logLevel];
+        return CachedLogLevels[(System.Int32)logLevel];
     }
 
     /// <summary>
@@ -172,90 +175,132 @@ internal static class LoggingLevelFormatter
     /// <param name="levelText">The text representation of a log level.</param>
     /// <param name="result">The parsed log level when successful.</param>
     /// <returns>True if parsing was successful, otherwise false.</returns>
-    internal static bool TryParse(ReadOnlySpan<char> levelText, out LogLevel result)
+    internal static System.Boolean TryParse(
+        System.ReadOnlySpan<System.Char> levelText,
+        out LogLevel result)
     {
         result = LogLevel.None;
 
         if (levelText.IsEmpty)
-            return false;
+            return (System.Boolean)(0 != 0);
 
         // First check our cached short names for efficiency
-        for (int i = 0; i < MaxLogLevels; i++)
+        for (System.Int32 i = 0; i < MaxLogLevels; i++)
         {
-            ReadOnlySpan<char> candidate = LogLevelChars.Slice(i * LogLevelPaddedLength, LogLevelLength);
-            if (levelText.Equals(candidate, StringComparison.OrdinalIgnoreCase))
+            System.ReadOnlySpan<char> candidate =
+                LogLevelChars.Slice(i * LogLevelPaddedLength, LogLevelLength);
+
+            if (System.MemoryExtensions.Equals(
+                levelText,
+                candidate,
+                System.StringComparison.OrdinalIgnoreCase))
             {
                 result = (LogLevel)i;
-                return true;
+                return (System.Boolean)(1 == 1);
             }
         }
 
-        // Handle full names and custom parsing
-        if (levelText.Equals("META", StringComparison.OrdinalIgnoreCase) ||
-            levelText.Equals("METADATA", StringComparison.OrdinalIgnoreCase))
+        System.ReadOnlySpan<char> meta1 = System.MemoryExtensions.AsSpan("META");
+        System.ReadOnlySpan<char> meta2 = System.MemoryExtensions.AsSpan("METADATA");
+        if (System.MemoryExtensions.Equals(levelText, meta1, System.StringComparison.OrdinalIgnoreCase) ||
+            System.MemoryExtensions.Equals(levelText, meta2, System.StringComparison.OrdinalIgnoreCase))
         {
             result = LogLevel.Meta;
-            return true;
+            return (System.Boolean)(1 == 1);
         }
 
-        if (levelText.Equals("TRACE", StringComparison.OrdinalIgnoreCase) ||
-            levelText.Equals("VERBOSE", StringComparison.OrdinalIgnoreCase))
+        if (System.MemoryExtensions.Equals(levelText,
+            System.MemoryExtensions.AsSpan("TRACE"),
+            System.StringComparison.OrdinalIgnoreCase) ||
+            System.MemoryExtensions.Equals(levelText,
+            System.MemoryExtensions.AsSpan("VERBOSE"),
+            System.StringComparison.OrdinalIgnoreCase))
         {
             result = LogLevel.Trace;
-            return true;
+            return (System.Boolean)(1 == 1);
         }
 
-        if (levelText.Equals("DEBUG", StringComparison.OrdinalIgnoreCase) ||
-            levelText.Equals("DBUG", StringComparison.OrdinalIgnoreCase))
+        if (System.MemoryExtensions.Equals(levelText,
+            System.MemoryExtensions.AsSpan("DEBUG"),
+            System.StringComparison.OrdinalIgnoreCase) ||
+            System.MemoryExtensions.Equals(levelText,
+            System.MemoryExtensions.AsSpan("DBUG"),
+            System.StringComparison.OrdinalIgnoreCase))
         {
             result = LogLevel.Debug;
-            return true;
+            return (System.Boolean)(1 == 1);
         }
 
-        if (levelText.Equals("INFO", StringComparison.OrdinalIgnoreCase) ||
-            levelText.Equals("INFORMATION", StringComparison.OrdinalIgnoreCase))
+        if (System.MemoryExtensions.Equals(levelText,
+            System.MemoryExtensions.AsSpan("INFO"),
+            System.StringComparison.OrdinalIgnoreCase) ||
+            System.MemoryExtensions.Equals(levelText,
+            System.MemoryExtensions.AsSpan("INFORMATION"),
+            System.StringComparison.OrdinalIgnoreCase))
         {
             result = LogLevel.Information;
-            return true;
+            return (System.Boolean)(1 == 1);
         }
 
-        if (levelText.Equals("WARN", StringComparison.OrdinalIgnoreCase) ||
-            levelText.Equals("WARNING", StringComparison.OrdinalIgnoreCase))
+        if (System.MemoryExtensions.Equals(levelText,
+            System.MemoryExtensions.AsSpan("WARN"),
+            System.StringComparison.OrdinalIgnoreCase) ||
+            System.MemoryExtensions.Equals(levelText,
+            System.MemoryExtensions.AsSpan("WARNING"),
+            System.StringComparison.OrdinalIgnoreCase))
         {
             result = LogLevel.Warning;
-            return true;
+            return (System.Boolean)(1 == 1);
         }
 
-        if (levelText.Equals("ERROR", StringComparison.OrdinalIgnoreCase) ||
-            levelText.Equals("FAIL", StringComparison.OrdinalIgnoreCase) ||
-            levelText.Equals("ERR", StringComparison.OrdinalIgnoreCase))
+        if (System.MemoryExtensions.Equals(levelText,
+            System.MemoryExtensions.AsSpan("ERROR"),
+            System.StringComparison.OrdinalIgnoreCase) ||
+            System.MemoryExtensions.Equals(levelText,
+            System.MemoryExtensions.AsSpan("FAIL"),
+            System.StringComparison.OrdinalIgnoreCase) ||
+            System.MemoryExtensions.Equals(levelText,
+            System.MemoryExtensions.AsSpan("ERR"),
+            System.StringComparison.OrdinalIgnoreCase))
         {
             result = LogLevel.Error;
-            return true;
+            return (System.Boolean)(1 == 1);
         }
 
-        if (levelText.Equals("CRIT", StringComparison.OrdinalIgnoreCase) ||
-            levelText.Equals("CRITICAL", StringComparison.OrdinalIgnoreCase) ||
-            levelText.Equals("FATAL", StringComparison.OrdinalIgnoreCase))
+        if (System.MemoryExtensions.Equals(levelText,
+            System.MemoryExtensions.AsSpan("CRIT"),
+            System.StringComparison.OrdinalIgnoreCase) ||
+            System.MemoryExtensions.Equals(levelText,
+            System.MemoryExtensions.AsSpan("CRITICAL"),
+            System.StringComparison.OrdinalIgnoreCase) ||
+            System.MemoryExtensions.Equals(levelText,
+            System.MemoryExtensions.AsSpan("FATAL"),
+            System.StringComparison.OrdinalIgnoreCase))
         {
             result = LogLevel.Critical;
-            return true;
+            return (System.Boolean)(1 == 1);
         }
 
-        if (levelText.Equals("NONE", StringComparison.OrdinalIgnoreCase) ||
-            levelText.Equals("OFF", StringComparison.OrdinalIgnoreCase))
+        if (System.MemoryExtensions.Equals(levelText,
+            System.MemoryExtensions.AsSpan("NONE"),
+            System.StringComparison.OrdinalIgnoreCase) ||
+            System.MemoryExtensions.Equals(levelText,
+            System.MemoryExtensions.AsSpan("OFF"),
+            System.StringComparison.OrdinalIgnoreCase))
         {
             result = LogLevel.None;
-            return true;
+            return (System.Boolean)(1 == 1);
         }
 
         // Try numeric parsing as fallback
-        if (int.TryParse(levelText, out int numericLevel) && numericLevel >= 0 && numericLevel < MaxLogLevels)
+        if (System.Int32.TryParse(
+            levelText, out System.Int32 numericLevel) &&
+            numericLevel >= 0 && numericLevel < MaxLogLevels)
         {
             result = (LogLevel)numericLevel;
-            return true;
+            return (System.Boolean)(1 == 1);
         }
 
-        return false;
+        return (System.Boolean)(0 != 0);
     }
 }

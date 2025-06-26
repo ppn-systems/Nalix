@@ -1,16 +1,13 @@
 using Nalix.Common.Logging;
 using Nalix.Logging.Options;
 using Nalix.Logging.Targets;
-using System;
-using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Nalix.Logging.Engine;
 
 /// <summary>
 /// Abstract class that provides a high-performance logging engine to process log entries.
 /// </summary>
-public abstract class LogEngine : IDisposable
+public abstract class LogEngine : System.IDisposable
 {
     #region Fields
 
@@ -31,7 +28,7 @@ public abstract class LogEngine : IDisposable
     /// An action that allows configuring the logging options.
     /// This action is used to set up logging options such as the minimum logging level and file options.
     /// </param>
-    protected LogEngine(Action<NLogOptions>? configureOptions = null)
+    protected LogEngine(System.Action<NLogOptions>? configureOptions = null)
     {
         _distributor = new LogDistributor();
         _logOptions = new NLogOptions(_distributor);
@@ -67,7 +64,7 @@ public abstract class LogEngine : IDisposable
     /// An action that allows configuring the logging options.
     /// This action is used to set up logging options such as the minimum logging level and file options.
     /// </param>
-    protected void Configure(Action<NLogOptions> configureOptions)
+    protected void Configure(System.Action<NLogOptions> configureOptions)
         => configureOptions?.Invoke(_logOptions);
 
     /// <summary>
@@ -75,7 +72,8 @@ public abstract class LogEngine : IDisposable
     /// </summary>
     /// <param name="level">The log level to check.</param>
     /// <returns><c>true</c> if the log level is enabled for logging.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected bool IsEnabled(LogLevel level) => level >= _minLevel;
 
     /// <summary>
@@ -85,8 +83,11 @@ public abstract class LogEngine : IDisposable
     /// <param name="eventId">The event identifier associated with the log entry.</param>
     /// <param name="message">The log message.</param>
     /// <param name="error">Optional exception information.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void CreateLogEntry(LogLevel level, EventId eventId, string message, Exception? error = null)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    protected void CreateLogEntry(
+        LogLevel level, EventId eventId,
+        string message, System.Exception? error = null)
     {
         if (_isDisposed != 0 || level < _minLevel)
             return;
@@ -102,7 +103,8 @@ public abstract class LogEngine : IDisposable
     /// <param name="eventId">The event identifier associated with the log entry.</param>
     /// <param name="format">The message format string with placeholders.</param>
     /// <param name="args">The argument values for the format string.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected void CreateFormattedLogEntry(LogLevel level, EventId eventId, string format, params object[] args)
     {
         // Skip expensive string formatting if the log level is disabled
@@ -117,8 +119,9 @@ public abstract class LogEngine : IDisposable
     /// Gets the current timestamp for logging operations.
     /// </summary>
     /// <returns>A UTC timestamp for logging.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static DateTime GetTimestamp() => DateTime.UtcNow;
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    protected static System.DateTime GetTimestamp() => System.DateTime.UtcNow;
 
     /// <summary>
     /// Releases managed and unmanaged resources used by the logging engine.
@@ -127,7 +130,7 @@ public abstract class LogEngine : IDisposable
     protected virtual void Dispose(bool disposing)
     {
         // Thread-safe disposal check using Interlocked
-        if (Interlocked.Exchange(ref _isDisposed, 1) != 0)
+        if (System.Threading.Interlocked.Exchange(ref _isDisposed, 1) != 0)
             return;
 
         if (disposing)
@@ -146,7 +149,7 @@ public abstract class LogEngine : IDisposable
     public void Dispose()
     {
         Dispose(true);
-        GC.SuppressFinalize(this);
+        System.GC.SuppressFinalize(this);
     }
 
     #endregion Disposable

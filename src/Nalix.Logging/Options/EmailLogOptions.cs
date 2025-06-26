@@ -1,5 +1,4 @@
 using Nalix.Common.Logging;
-using System;
 
 namespace Nalix.Logging.Options;
 
@@ -21,60 +20,60 @@ public sealed class EmailLogOptions
     /// <summary>
     /// Gets or sets the SMTP server address.
     /// </summary>
-    /// <exception cref="ArgumentNullException">Thrown if the value is null or empty.</exception>
+    /// <exception cref="System.ArgumentNullException">Thrown if the value is null or empty.</exception>
     public string SmtpServer
     {
         get => _smtpServer;
         set => _smtpServer = string.IsNullOrWhiteSpace(value)
-            ? throw new ArgumentNullException(nameof(SmtpServer), "SMTP server cannot be null or empty.")
+            ? throw new System.ArgumentNullException(nameof(SmtpServer), "SMTP server cannot be null or empty.")
             : value;
     }
 
     /// <summary>
     /// Gets or sets the SMTP server port.
     /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown if the value is not between 1 and 65535.</exception>
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if the value is not between 1 and 65535.</exception>
     public int Port
     {
         get => _port;
         set => _port = value is < 1 or > 65535
-            ? throw new ArgumentOutOfRangeException(nameof(Port), "Port must be between 1 and 65535.")
+            ? throw new System.ArgumentOutOfRangeException(nameof(Port), "Port must be between 1 and 65535.")
             : value;
     }
 
     /// <summary>
     /// Gets or sets the sender's email address.
     /// </summary>
-    /// <exception cref="ArgumentNullException">Thrown if the value is null or empty.</exception>
+    /// <exception cref="System.ArgumentNullException">Thrown if the value is null or empty.</exception>
     public string From
     {
         get => _from;
         set => _from = string.IsNullOrWhiteSpace(value)
-            ? throw new ArgumentNullException(nameof(From), "Sender email cannot be null or empty.")
+            ? throw new System.ArgumentNullException(nameof(From), "Sender email cannot be null or empty.")
             : value;
     }
 
     /// <summary>
     /// Gets or sets the recipient's email address.
     /// </summary>
-    /// <exception cref="ArgumentNullException">Thrown if the value is null or empty.</exception>
+    /// <exception cref="System.ArgumentNullException">Thrown if the value is null or empty.</exception>
     public string To
     {
         get => _to;
         set => _to = string.IsNullOrWhiteSpace(value)
-            ? throw new ArgumentNullException(nameof(To), "Recipient email cannot be null or empty.")
+            ? throw new System.ArgumentNullException(nameof(To), "Recipient email cannot be null or empty.")
             : value;
     }
 
     /// <summary>
     /// Gets or sets the password for authentication with the SMTP server.
     /// </summary>
-    /// <exception cref="ArgumentNullException">Thrown if the value is null or empty.</exception>
+    /// <exception cref="System.ArgumentNullException">Thrown if the value is null or empty.</exception>
     public string Password
     {
         get => _password;
         set => _password = string.IsNullOrWhiteSpace(value)
-            ? throw new ArgumentNullException(nameof(Password), "Password cannot be null or empty.")
+            ? throw new System.ArgumentNullException(nameof(Password), "Password cannot be null or empty.")
             : value;
     }
 

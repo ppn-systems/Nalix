@@ -1,5 +1,3 @@
-using System;
-
 namespace Nalix.Logging.Exceptions;
 
 /// <summary>
@@ -11,7 +9,7 @@ namespace Nalix.Logging.Exceptions;
 /// </remarks>
 /// <param name="ex">The exception that caused the error.</param>
 /// <param name="filePath">The file path where the error occurred.</param>
-public sealed class FileError(Exception ex, string filePath)
+public sealed class FileError(System.Exception ex, string filePath)
 {
     /// <summary>
     /// Gets or sets the new log file name to use when recovering from errors.
@@ -26,5 +24,5 @@ public sealed class FileError(Exception ex, string filePath)
     /// <summary>
     /// Gets the exception that caused the file error.
     /// </summary>
-    public Exception Exception { get; } = ex ?? throw new ArgumentNullException(nameof(ex));
+    public System.Exception Exception { get; } = ex ?? throw new System.ArgumentNullException(nameof(ex));
 }
