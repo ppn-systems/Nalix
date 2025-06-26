@@ -23,13 +23,6 @@
 		<PackageVersion>7.7.2</PackageVersion>
 		<InformationalVersion>7.7.2+$(SourceRevisionId)</InformationalVersion>
 
-		<DebugType>embedded</DebugType>
-		<IncludeSource>false</IncludeSource>
-		<IncludeSymbols>false</IncludeSymbols>
-		<PublishRepositoryUrl>false</PublishRepositoryUrl>
-		<EmbedUntrackedSources>false</EmbedUntrackedSources>
-		<AllowedOutputExtensionsInPackageBuildOutputFolder>.dll</AllowedOutputExtensionsInPackageBuildOutputFolder>
-
 		<Description>
 Nalix.SDK provides the client-side development kit for the Nalix ecosystem,
 offering high-level APIs, controller abstractions, time synchronization helpers,
