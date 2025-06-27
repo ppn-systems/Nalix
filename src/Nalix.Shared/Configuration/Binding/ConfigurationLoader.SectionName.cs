@@ -1,7 +1,3 @@
-using System;
-using System.Linq;
-using System.Runtime.CompilerServices;
-
 namespace Nalix.Shared.Configuration.Binding;
 
 public partial class ConfigurationLoader
@@ -9,15 +5,17 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Gets the section name for a configuration type, with caching for performance.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string GetSectionName(Type type)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.String GetSectionName(System.Type type)
         => _sectionNameCache.GetOrAdd(type, t =>
         {
-            string section = t.Name;
+            System.String section = t.Name;
 
-            foreach (string suffix in _suffixesToTrim.OrderByDescending(s => s.Length))
+            foreach (System.String suffix in System.Linq.Enumerable.OrderByDescending(
+                         _suffixesToTrim, s => s.Length))
             {
-                if (section.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                if (section.EndsWith(suffix, System.StringComparison.OrdinalIgnoreCase))
                 {
                     section = section[..^suffix.Length];
                     break;
@@ -30,7 +28,9 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Capitalizes the first letter of a string.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string Capitalize(string input)
-        => string.IsNullOrEmpty(input) ? input : char.ToUpperInvariant(input[0]) + input[1..];
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.String Capitalize(System.String input)
+        => System.String.IsNullOrEmpty(input) ? input :
+           System.Char.ToUpperInvariant(input[0]) + input[1..];
 }

@@ -1,5 +1,4 @@
 using Nalix.Shared.Internal;
-using System;
 
 namespace Nalix.Shared.Configuration.Metadata;
 
@@ -11,7 +10,7 @@ internal class ConfigurationMetadata
     /// <summary>
     /// Gets or sets the configuration type.
     /// </summary>
-    public Type ConfigurationType { get; init; } = null!;
+    public System.Type ConfigurationType { get; init; } = null!;
 
     /// <summary>
     /// Gets or sets the bindable properties of the configuration type.

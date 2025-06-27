@@ -1,9 +1,6 @@
 using Nalix.Common.Logging;
 using Nalix.Shared.Configuration.Metadata;
 using Nalix.Shared.Internal;
-using System;
-using System.Collections.Concurrent;
-using System.Threading;
 
 namespace Nalix.Shared.Configuration.Binding;
 
@@ -19,32 +16,49 @@ public abstract partial class ConfigurationLoader
 {
     #region Fields
 
-    private static readonly ConcurrentDictionary<Type, ConfigurationMetadata> _metadataCache = new();
-    private static readonly ConcurrentDictionary<Type, string> _sectionNameCache = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
+        System.Type, System.String> _sectionNameCache;
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
+        System.Type, ConfigurationMetadata> _metadataCache;
 
     private static readonly string[] _suffixesToTrim =
     [
-        "Configuration", "Settings", "Options", "Configs", "Config"
+        "Configuration",
+        "Settings",
+        "Options",
+        "Configs",
+        "Config"
     ];
 
     private readonly ILogger? _logger;
 
     private int _isInitialized; // Flag to track initialization status
-    private DateTime _lastInitializationTime; // Track the last initialization time
+    private System.DateTime _lastInitializationTime; // Track the last initialization time
 
     #endregion Fields
+
+    #region Contructor
+
+    static ConfigurationLoader()
+    {
+        _metadataCache = new();
+        _sectionNameCache = new();
+    }
+
+    #endregion Contructor
 
     #region Properties
 
     /// <summary>
     /// Gets a value indicating whether this instance has been initialized.
     /// </summary>
-    public bool IsInitialized => Volatile.Read(ref _isInitialized) == 1;
+    public System.Boolean IsInitialized => System.Threading.Volatile.Read(ref _isInitialized) == 1;
 
     /// <summary>
     /// Gets the time when this configuration was last initialized.
     /// </summary>
-    public DateTime LastInitializationTime => _lastInitializationTime;
+    public System.DateTime LastInitializationTime => _lastInitializationTime;
 
     #endregion Properties
 
@@ -76,7 +90,7 @@ public abstract partial class ConfigurationLoader
     public T Clone<T>() where T : ConfigurationLoader, new()
     {
         T clone = new();
-        Type type = GetType();
+        System.Type type = GetType();
 
         // Get the configuration metadata
         ConfigurationMetadata metadata = GetOrCreateMetadata(type);
@@ -84,12 +98,12 @@ public abstract partial class ConfigurationLoader
         // Copy each property value to the clone
         foreach (PropertyMetadata propertyInfo in metadata.BindableProperties)
         {
-            object? value = propertyInfo.PropertyInfo.GetValue(this);
+            System.Object? value = propertyInfo.PropertyInfo.GetValue(this);
             propertyInfo.PropertyInfo.SetValue(clone, value);
         }
 
         // Mark as initialized
-        Interlocked.Exchange(ref clone._isInitialized, _isInitialized);
+        System.Threading.Interlocked.Exchange(ref clone._isInitialized, _isInitialized);
         clone._lastInitializationTime = _lastInitializationTime;
 
         return clone;
@@ -106,18 +120,18 @@ public abstract partial class ConfigurationLoader
     /// <param name="configFile">The INI configuration file to load values from.</param>
     internal void Initialize(ConfiguredIniFile configFile)
     {
-        ArgumentNullException.ThrowIfNull(configFile);
+        System.ArgumentNullException.ThrowIfNull(configFile);
 
-        Type type = GetType();
+        System.Type type = GetType();
 
         // Get or create configuration metadata for this type
         ConfigurationMetadata metadata = GetOrCreateMetadata(type);
 
         // Get the section name from cache
-        string section = GetSectionName(type);
+        System.String section = GetSectionName(type);
 
         // Process each bindable property
-        foreach (var propertyInfo in metadata.BindableProperties)
+        foreach (PropertyMetadata propertyInfo in metadata.BindableProperties)
         {
             try
             {
@@ -125,24 +139,25 @@ public abstract partial class ConfigurationLoader
                 object? value = GetConfigValue(configFile, section, propertyInfo);
 
                 // Handle missing or empty configuration values
-                if (value == null || value is string strValue && string.IsNullOrEmpty(strValue))
+                if (value == null ||
+                   (value is System.String strValue && System.String.IsNullOrEmpty(strValue)))
                 {
-                    HandleEmptyValue(configFile, section, propertyInfo);
+                    this.HandleEmptyValue(configFile, section, propertyInfo);
                     continue;
                 }
 
                 // Assign the value to the property using the cached setter
                 propertyInfo.SetValue(this, value);
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 _logger?.Warn($"Error setting value for {propertyInfo.Name}: {ex.Message}");
             }
         }
 
         // Mark as initialized and record timestamp
-        Interlocked.Exchange(ref _isInitialized, 1);
-        _lastInitializationTime = DateTime.UtcNow;
+        System.Threading.Interlocked.Exchange(ref _isInitialized, 1);
+        _lastInitializationTime = System.DateTime.UtcNow;
     }
 
     #endregion Private Methods

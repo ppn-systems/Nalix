@@ -1,10 +1,6 @@
 using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Metadata;
 using Nalix.Shared.Internal;
-using System;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Shared.Configuration.Binding;
 
@@ -13,15 +9,17 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Creates configuration metadata for a type.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ConfigurationMetadata CreateConfigurationMetadata(Type type)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static ConfigurationMetadata CreateConfigurationMetadata(System.Type type)
     {
-        List<PropertyMetadata> bindableProperties = [];
+        System.Collections.Generic.List<PropertyMetadata> bindableProperties = [];
 
-        foreach (PropertyInfo property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        foreach (System.Reflection.PropertyInfo property in type.GetProperties(
+                 System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
         {
             // Skip properties with the ConfiguredIgnore attribute
-            if (property.IsDefined(typeof(ConfiguredIgnoreAttribute)))
+            if (property.IsDefined(typeof(ConfiguredIgnoreAttribute), inherit: true))
                 continue;
 
             // Skip properties that can't be written to
@@ -34,7 +32,7 @@ public partial class ConfigurationLoader
                 PropertyInfo = property,
                 Name = property.Name,
                 PropertyType = property.PropertyType,
-                TypeCode = Type.GetTypeCode(property.PropertyType)
+                TypeCode = System.Type.GetTypeCode(property.PropertyType)
             };
 
             bindableProperties.Add(propertyMetadata);
@@ -50,7 +48,8 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Gets the configuration metadata for a type, creating it if it doesn't exist.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ConfigurationMetadata GetOrCreateMetadata(Type type)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static ConfigurationMetadata GetOrCreateMetadata(System.Type type)
         => _metadataCache.GetOrAdd(type, CreateConfigurationMetadata);
 }
