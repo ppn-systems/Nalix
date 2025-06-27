@@ -2,11 +2,6 @@ using Nalix.Shared.Configuration.Binding;
 using Nalix.Shared.Environment;
 using Nalix.Shared.Injection.DI;
 using Nalix.Shared.Internal;
-using System;
-using System.Collections.Concurrent;
-using System.IO;
-using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Nalix.Shared.Configuration;
 
@@ -21,9 +16,9 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
 {
     #region Fields
 
-    private readonly ConcurrentDictionary<Type, ConfigurationLoader> _configContainerDict = new();
-    private readonly ReaderWriterLockSlim _configLock = new(LockRecursionPolicy.NoRecursion);
-    private readonly Lazy<ConfiguredIniFile> _iniFile;
+    private readonly System.Lazy<ConfiguredIniFile> _iniFile;
+    private readonly System.Threading.ReaderWriterLockSlim _configLock;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, ConfigurationLoader> _configContainerDict;
 
     private int _isReloading;
     private bool _directoryChecked;
@@ -45,7 +40,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     /// <summary>
     /// Gets the last reload timestamp.
     /// </summary>
-    public DateTime LastReloadTime { get; private set; } = DateTime.UtcNow;
+    public System.DateTime LastReloadTime { get; private set; } = System.DateTime.UtcNow;
 
     #endregion Properties
 
@@ -57,15 +52,18 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     private ConfigurationStore()
     {
         // Determine the configuration file path
-        this.ConfigFilePath = Path.Combine(Directories.ConfigPath, "configured.ini");
+        this.ConfigFilePath = System.IO.Path.Combine(Directories.ConfigPath, "configured.ini");
 
         // Lazy-load the INI file to defer file access until needed
-        _iniFile = new Lazy<ConfiguredIniFile>(() =>
+        _iniFile = new System.Lazy<ConfiguredIniFile>(() =>
         {
             // Ensure the directory exists before trying to access the file
             this.EnsureConfigDirectoryExists();
             return new ConfiguredIniFile(ConfigFilePath);
-        }, LazyThreadSafetyMode.ExecutionAndPublication);
+        }, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
+
+        _configContainerDict = new();
+        _configLock = new(System.Threading.LockRecursionPolicy.NoRecursion);
     }
 
     #endregion Constructor
@@ -77,7 +75,8 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     /// </summary>
     /// <typeparam name="TClass">The type of the configuration container.</typeparam>
     /// <returns>An instance of type <typeparamref name="TClass"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public TClass Get<TClass>() where TClass : ConfigurationLoader, new()
     {
         return (TClass)_configContainerDict.GetOrAdd(typeof(TClass), type =>
@@ -106,7 +105,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     public bool ReloadAll()
     {
         // Ensure only one reload happens at a time
-        if (Interlocked.Exchange(ref _isReloading, 1) == 1)
+        if (System.Threading.Interlocked.Exchange(ref _isReloading, 1) == 1)
             return false;
 
         try
@@ -126,7 +125,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
                     container.Initialize(_iniFile.Value);
                 }
 
-                LastReloadTime = DateTime.UtcNow;
+                LastReloadTime = System.DateTime.UtcNow;
                 return true;
             }
             finally
@@ -134,14 +133,14 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
                 _configLock.ExitWriteLock();
             }
         }
-        catch (Exception)
+        catch (System.Exception)
         {
             // In production, log the exception
             return false;
         }
         finally
         {
-            Interlocked.Exchange(ref _isReloading, 0);
+            System.Threading.Interlocked.Exchange(ref _isReloading, 0);
         }
     }
 
@@ -250,16 +249,16 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     {
         if (!_directoryChecked)
         {
-            string? directory = Path.GetDirectoryName(ConfigFilePath);
-            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            string? directory = System.IO.Path.GetDirectoryName(ConfigFilePath);
+            if (!string.IsNullOrEmpty(directory) && !System.IO.Directory.Exists(directory))
             {
                 try
                 {
-                    Directory.CreateDirectory(directory);
+                    System.IO.Directory.CreateDirectory(directory);
                 }
-                catch (Exception ex)
+                catch (System.Exception ex)
                 {
-                    throw new InvalidOperationException(
+                    throw new System.InvalidOperationException(
                         $"Failed to create configuration directory: {directory}", ex);
                 }
             }
