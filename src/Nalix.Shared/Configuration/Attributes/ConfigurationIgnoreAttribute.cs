@@ -12,10 +12,10 @@ namespace Nalix.Shared.Configuration.Attributes;
 /// </remarks>
 /// <param name="reason">The optional reason for ignoring the property.</param>
 [System.AttributeUsage(System.AttributeTargets.Property)]
-public class ConfiguredIgnoreAttribute(string? reason = null) : System.Attribute
+public class ConfiguredIgnoreAttribute(System.String? reason = null) : System.Attribute
 {
     /// <summary>
     /// Optional reason for ignoring the property during configuration.
     /// </summary>
-    public string Reason { get; } = reason ?? string.Empty;
+    public System.String Reason { get; } = reason ?? System.String.Empty;
 }
