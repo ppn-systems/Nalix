@@ -1,8 +1,4 @@
 using Nalix.Common.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
 
 namespace Nalix.Shared.Environment;
 
@@ -15,162 +11,171 @@ public static class Directories
     #region Fields
 
     // Thread-safe directory creation lock
-    private static readonly ReaderWriterLockSlim DirectoryLock = new(LockRecursionPolicy.SupportsRecursion);
+    private static readonly System.Threading.ReaderWriterLockSlim DirectoryLock =
+        new(System.Threading.LockRecursionPolicy.SupportsRecursion);
 
     // Directory creation event (nullable to resolve CS8618)
-    private static event Action<string>? DirectoryCreated;
+    private static event System.Action<System.String>? DirectoryCreated;
 
     // Flag to indicate if we're running in a container
-    private static readonly Lazy<bool> IsContainerLazy = new(() =>
-        File.Exists("/.dockerenv") ||
-        (File.Exists("/proc/1/cgroup") && File.ReadAllText("/proc/1/cgroup").Contains("docker")));
+    private static readonly System.Lazy<System.Boolean> IsContainerLazy = new(() =>
+        System.IO.File.Exists("/.dockerenv") ||
+        (System.IO.File.Exists("/proc/1/cgroup") &&
+        System.IO.File.ReadAllText("/proc/1/cgroup").Contains("docker")));
 
     // For testing purposes, to override base path (nullable to resolve CS8618)
     private static string? _basePathOverride;
 
     // Lazy-initialized paths
-    private static readonly Lazy<string> BasePathLazy = new(() =>
+    private static readonly System.Lazy<System.String> BasePathLazy = new(() =>
     {
         if (_basePathOverride != null)
             return _basePathOverride;
 
         // Handle Docker and Kubernetes environments by using /app as base path
-        if (IsContainerLazy.Value && Directory.Exists("/assets"))
+        if (IsContainerLazy.Value && System.IO.Directory.Exists("/assets"))
             return "/assets";
 
         // Standard to the application's base directory
-        return Path.Combine(AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar), "assets");
+        return System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory
+                             .TrimEnd(System.IO.Path.DirectorySeparatorChar), "assets");
     });
 
-    private static readonly Lazy<string> DataPathLazy = new(() =>
+    private static readonly System.Lazy<System.String> DataPathLazy = new(() =>
     {
         string path;
 
         // In container environments, prefer using a mounted volume if available
-        if (IsContainerLazy.Value && Directory.Exists("/data"))
+        if (IsContainerLazy.Value &&
+            System.IO.Directory.Exists("/data"))
         {
             path = "/data";
         }
         else
         {
-            path = Path.Combine(BasePathLazy.Value, "data");
+            path = System.IO.Path.Combine(BasePathLazy.Value, "data");
         }
 
         EnsureDirectoryExists(path);
         return path;
     });
 
-    private static readonly Lazy<string> LogsPathLazy = new(() =>
+    private static readonly System.Lazy<System.String> LogsPathLazy = new(() =>
     {
         string path;
 
         // In container environments, prefer using a mounted volume if available
-        if (IsContainerLazy.Value && Directory.Exists("/logs"))
+        if (IsContainerLazy.Value &&
+            System.IO.Directory.Exists("/logs"))
         {
             path = "/logs";
         }
         else
         {
-            path = Path.Combine(DataPathLazy.Value, "logs");
+            path = System.IO.Path.Combine(DataPathLazy.Value, "logs");
         }
 
         EnsureDirectoryExists(path);
         return path;
     });
 
-    private static readonly Lazy<string> TempPathLazy = new(() =>
+    private static readonly System.Lazy<System.String> TempPathLazy = new(() =>
     {
         string path;
 
         // In container environments, prefer using a mounted volume if available
-        if (IsContainerLazy.Value && Directory.Exists("/tmp"))
+        if (IsContainerLazy.Value &&
+            System.IO.Directory.Exists("/tmp"))
         {
             path = "/tmp";
         }
         else
         {
-            path = Path.Combine(DataPathLazy.Value, "tmp");
+            path = System.IO.Path.Combine(DataPathLazy.Value, "tmp");
         }
 
         EnsureDirectoryExists(path);
 
         // Automatically clean up old files in the temp directory
-        CleanupDirectory(path, TimeSpan.FromDays(7));
+        CleanupDirectory(path, System.TimeSpan.FromDays(7));
 
         return path;
     });
 
-    private static readonly Lazy<string> ConfigPathLazy = new(() =>
+    private static readonly System.Lazy<System.String> ConfigPathLazy = new(() =>
     {
         string path;
 
         // In container environments, prefer using a mounted volume if available
-        if (IsContainerLazy.Value && Directory.Exists("/config"))
+        if (IsContainerLazy.Value &&
+            System.IO.Directory.Exists("/config"))
         {
             path = "/config";
         }
         else
         {
-            path = Path.Combine(DataPathLazy.Value, "config");
+            path = System.IO.Path.Combine(DataPathLazy.Value, "config");
         }
 
         EnsureDirectoryExists(path);
         return path;
     });
 
-    private static readonly Lazy<string> StoragePathLazy = new(() =>
+    private static readonly System.Lazy<System.String> StoragePathLazy = new(() =>
     {
         string path;
 
         // In container environments, prefer using a mounted volume if available
-        if (IsContainerLazy.Value && Directory.Exists("/storage"))
+        if (IsContainerLazy.Value &&
+            System.IO.Directory.Exists("/storage"))
         {
             path = "/storage";
         }
         else
         {
-            path = Path.Combine(DataPathLazy.Value, "storage");
+            path = System.IO.Path.Combine(DataPathLazy.Value, "storage");
         }
 
         EnsureDirectoryExists(path);
         return path;
     });
 
-    private static readonly Lazy<string> DatabasePathLazy = new(() =>
+    private static readonly System.Lazy<System.String> DatabasePathLazy = new(() =>
     {
         string path;
 
         // In container environments, prefer using a mounted volume if available
-        if (IsContainerLazy.Value && Directory.Exists("/db"))
+        if (IsContainerLazy.Value &&
+            System.IO.Directory.Exists("/db"))
         {
             path = "/db";
         }
         else
         {
-            path = Path.Combine(DataPathLazy.Value, "db");
+            path = System.IO.Path.Combine(DataPathLazy.Value, "db");
         }
 
         EnsureDirectoryExists(path);
         return path;
     });
 
-    private static readonly Lazy<string> CachesPathLazy = new(() =>
+    private static readonly System.Lazy<System.String> CachesPathLazy = new(() =>
     {
-        string path = Path.Combine(DataPathLazy.Value, "caches");
+        string path = System.IO.Path.Combine(DataPathLazy.Value, "caches");
         EnsureDirectoryExists(path);
         return path;
     });
 
-    private static readonly Lazy<string> UploadsPathLazy = new(() =>
+    private static readonly System.Lazy<System.String> UploadsPathLazy = new(() =>
     {
-        string path = Path.Combine(DataPathLazy.Value, "uploads");
+        string path = System.IO.Path.Combine(DataPathLazy.Value, "uploads");
         EnsureDirectoryExists(path);
         return path;
     });
 
-    private static readonly Lazy<string> BackupsPathLazy = new(() =>
+    private static readonly System.Lazy<System.String> BackupsPathLazy = new(() =>
     {
-        string path = Path.Combine(DataPathLazy.Value, "backups");
+        string path = System.IO.Path.Combine(DataPathLazy.Value, "backups");
         EnsureDirectoryExists(path);
         return path;
     });
@@ -265,14 +270,14 @@ public static class Directories
     /// Register a handler for directory creation events.
     /// </summary>
     /// <param name="handler">The handler to call when a directory is created.</param>
-    public static void RegisterDirectoryCreationHandler(Action<string> handler)
+    public static void RegisterDirectoryCreationHandler(System.Action<System.String> handler)
         => DirectoryCreated += handler;
 
     /// <summary>
     /// Unregister a handler for directory creation events.
     /// </summary>
     /// <param name="handler">The handler to remove.</param>
-    public static void UnregisterDirectoryCreationHandler(Action<string> handler)
+    public static void UnregisterDirectoryCreationHandler(System.Action<System.String> handler)
         => DirectoryCreated -= handler;
 
     /// <summary>
@@ -284,12 +289,12 @@ public static class Directories
     public static string CreateSubdirectory(string parentPath, string directoryName)
     {
         if (string.IsNullOrWhiteSpace(parentPath))
-            throw new ArgumentNullException(nameof(parentPath));
+            throw new System.ArgumentNullException(nameof(parentPath));
 
         if (string.IsNullOrWhiteSpace(directoryName))
-            throw new ArgumentNullException(nameof(directoryName));
+            throw new System.ArgumentNullException(nameof(directoryName));
 
-        string fullPath = Path.Combine(parentPath, directoryName);
+        string fullPath = System.IO.Path.Combine(parentPath, directoryName);
         EnsureDirectoryExists(fullPath);
 
         return fullPath;
@@ -304,10 +309,10 @@ public static class Directories
     public static string CreateTimestampedDirectory(string parentPath, string prefix = "")
     {
         if (string.IsNullOrWhiteSpace(parentPath))
-            throw new ArgumentNullException(nameof(parentPath));
+            throw new System.ArgumentNullException(nameof(parentPath));
 
         // Create a directory name with the current timestamp
-        string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss");
+        string timestamp = System.DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss");
         string directoryName = string.IsNullOrEmpty(prefix) ? timestamp : $"{prefix}_{timestamp}";
 
         return CreateSubdirectory(parentPath, directoryName);
@@ -322,13 +327,13 @@ public static class Directories
     public static string GetFilePath(string directoryPath, string fileName)
     {
         if (string.IsNullOrWhiteSpace(directoryPath))
-            throw new ArgumentNullException(nameof(directoryPath));
+            throw new System.ArgumentNullException(nameof(directoryPath));
 
         if (string.IsNullOrWhiteSpace(fileName))
-            throw new ArgumentNullException(nameof(fileName));
+            throw new System.ArgumentNullException(nameof(fileName));
 
         EnsureDirectoryExists(directoryPath);
-        return Path.Combine(directoryPath, fileName);
+        return System.IO.Path.Combine(directoryPath, fileName);
     }
 
     /// <summary>
@@ -348,12 +353,12 @@ public static class Directories
     public static string GetTimestampedFilePath(string directoryPath, string fileNameBase, string extension)
     {
         if (string.IsNullOrWhiteSpace(directoryPath))
-            throw new ArgumentNullException(nameof(directoryPath));
+            throw new System.ArgumentNullException(nameof(directoryPath));
 
         if (string.IsNullOrWhiteSpace(fileNameBase))
-            throw new ArgumentNullException(nameof(fileNameBase));
+            throw new System.ArgumentNullException(nameof(fileNameBase));
 
-        string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss");
+        string timestamp = System.DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss");
         string fileName = $"{fileNameBase}_{timestamp}.{extension.TrimStart('.')}";
 
         return GetFilePath(directoryPath, fileName);
@@ -394,23 +399,23 @@ public static class Directories
     /// <param name="maxAge">The maximum age of files to keep.</param>
     /// <param name="searchPattern">The search pattern for files to consider.</param>
     /// <returns>The Number of files deleted.</returns>
-    public static int CleanupDirectory(string directoryPath, TimeSpan maxAge, string searchPattern = "*")
+    public static int CleanupDirectory(string directoryPath, System.TimeSpan maxAge, string searchPattern = "*")
     {
         if (string.IsNullOrWhiteSpace(directoryPath))
-            throw new ArgumentNullException(nameof(directoryPath));
+            throw new System.ArgumentNullException(nameof(directoryPath));
 
-        if (!Directory.Exists(directoryPath))
+        if (!System.IO.Directory.Exists(directoryPath))
             return 0;
 
         int deletedCount = 0;
-        DateTime cutoff = DateTime.UtcNow - maxAge;
+        System.DateTime cutoff = System.DateTime.UtcNow - maxAge;
 
         try
         {
-            DirectoryInfo di = new(directoryPath);
+            System.IO.DirectoryInfo di = new(directoryPath);
 
             // Process files
-            foreach (FileInfo file in di.GetFiles(searchPattern))
+            foreach (System.IO.FileInfo file in di.GetFiles(searchPattern))
             {
                 if (file.LastWriteTimeUtc < cutoff)
                 {
@@ -459,14 +464,14 @@ public static class Directories
             foreach (string path in testPaths)
             {
                 // Test write access by creating and immediately deleting a temporary file
-                string testFile = Path.Combine(path, $"test_{Guid.NewGuid():N}.tmp");
-                using (File.Create(testFile)) { }
-                File.Delete(testFile);
+                string testFile = System.IO.Path.Combine(path, $"test_{System.Guid.NewGuid():N}.tmp");
+                using (System.IO.File.Create(testFile)) { }
+                System.IO.File.Delete(testFile);
             }
 
             return true;
         }
-        catch (Exception)
+        catch (System.Exception)
         {
             return false;
         }
@@ -480,7 +485,7 @@ public static class Directories
     public static void OverrideBasePathForTesting(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
-            throw new ArgumentNullException(nameof(path));
+            throw new System.ArgumentNullException(nameof(path));
 
         _basePathOverride = path;
     }
@@ -492,16 +497,17 @@ public static class Directories
     /// <param name="searchPattern">The search pattern to use.</param>
     /// <param name="recursive">Whether to search subdirectories recursively.</param>
     /// <returns>A collection of file paths.</returns>
-    public static IEnumerable<string> GetFiles(string directory, string searchPattern = "*", bool recursive = false)
+    public static System.Collections.Generic.IEnumerable<string> GetFiles(
+        string directory, string searchPattern = "*", bool recursive = false)
     {
         if (string.IsNullOrWhiteSpace(directory))
-            throw new ArgumentNullException(nameof(directory));
+            throw new System.ArgumentNullException(nameof(directory));
 
-        if (!Directory.Exists(directory))
+        if (!System.IO.Directory.Exists(directory))
             return [];
 
-        return Directory.GetFiles(directory, searchPattern,
-            recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+        return System.IO.Directory.GetFiles(directory, searchPattern,
+            recursive ? System.IO.SearchOption.AllDirectories : System.IO.SearchOption.TopDirectoryOnly);
     }
 
     /// <summary>
@@ -513,19 +519,19 @@ public static class Directories
     public static long GetDirectorySize(string directoryPath, bool includeSubdirectories = true)
     {
         if (string.IsNullOrWhiteSpace(directoryPath))
-            throw new ArgumentNullException(nameof(directoryPath));
+            throw new System.ArgumentNullException(nameof(directoryPath));
 
-        if (!Directory.Exists(directoryPath))
+        if (!System.IO.Directory.Exists(directoryPath))
             return 0;
 
         long size = 0;
 
         // Add size of files in the current directory
-        foreach (string file in Directory.GetFiles(directoryPath))
+        foreach (string file in System.IO.Directory.GetFiles(directoryPath))
         {
             try
             {
-                size += new FileInfo(file).Length;
+                size += new System.IO.FileInfo(file).Length;
             }
             catch
             {
@@ -536,7 +542,7 @@ public static class Directories
         // Add size of subdirectories if requested
         if (includeSubdirectories)
         {
-            foreach (string subdirectory in Directory.GetDirectories(directoryPath))
+            foreach (string subdirectory in System.IO.Directory.GetDirectories(directoryPath))
             {
                 try
                 {
@@ -561,9 +567,9 @@ public static class Directories
     public static string CreateDateDirectory(string parentPath)
     {
         if (string.IsNullOrWhiteSpace(parentPath))
-            throw new ArgumentNullException(nameof(parentPath));
+            throw new System.ArgumentNullException(nameof(parentPath));
 
-        string datePath = Path.Combine(parentPath, DateTime.UtcNow.ToString("yyyy-MM-dd"));
+        string datePath = System.IO.Path.Combine(parentPath, System.DateTime.UtcNow.ToString("yyyy-MM-dd"));
         EnsureDirectoryExists(datePath);
         return datePath;
     }
@@ -579,12 +585,12 @@ public static class Directories
     public static string CreateHierarchicalDateDirectory(string parentPath)
     {
         if (string.IsNullOrWhiteSpace(parentPath))
-            throw new ArgumentNullException(nameof(parentPath));
+            throw new System.ArgumentNullException(nameof(parentPath));
 
-        DateTime now = DateTime.UtcNow;
-        string yearPath = Path.Combine(parentPath, now.ToString("yyyy"));
-        string monthPath = Path.Combine(yearPath, now.ToString("MM"));
-        string dayPath = Path.Combine(monthPath, now.ToString("dd"));
+        System.DateTime now = System.DateTime.UtcNow;
+        string yearPath = System.IO.Path.Combine(parentPath, now.ToString("yyyy"));
+        string monthPath = System.IO.Path.Combine(yearPath, now.ToString("MM"));
+        string dayPath = System.IO.Path.Combine(monthPath, now.ToString("dd"));
 
         EnsureDirectoryExists(dayPath);
         return dayPath;
@@ -608,7 +614,7 @@ public static class Directories
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
     {
         if (string.IsNullOrWhiteSpace(path))
-            throw new ArgumentNullException(nameof(path));
+            throw new System.ArgumentNullException(nameof(path));
 
         bool created = false;
 
@@ -616,7 +622,7 @@ public static class Directories
         DirectoryLock.EnterReadLock();
         try
         {
-            if (Directory.Exists(path))
+            if (System.IO.Directory.Exists(path))
             {
                 return; // Directory already exists
             }
@@ -631,16 +637,17 @@ public static class Directories
         try
         {
             // Check again in case another thread created it while we were waiting
-            if (!Directory.Exists(path))
+            if (!System.IO.Directory.Exists(path))
             {
-                Directory.CreateDirectory(path);
+                System.IO.Directory.CreateDirectory(path);
                 created = true;
             }
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             string errorMessage = $"Failed to create directory: {path}. Error: {ex.Message}";
-            errorMessage += $" (Called from {callerMemberName} at {Path.GetFileName(callerFilePath)}:{callerLineNumber})";
+            errorMessage += $" (Called from {callerMemberName} at";
+            errorMessage += $" {System.IO.Path.GetFileName(callerFilePath)}:{callerLineNumber})";
             throw new DirectoryException(errorMessage, path, ex);
         }
         finally
