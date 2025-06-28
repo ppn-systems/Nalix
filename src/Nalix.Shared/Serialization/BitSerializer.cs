@@ -31,14 +31,14 @@ public static class BitSerializer
     /// <exception cref="SerializationException">
     /// Thrown if serialization encounters an error.
     /// </exception>
-    public static byte[] Serialize<[
+    public static System.Byte[] Serialize<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(in T value)
     {
         System.ArgumentNullException.ThrowIfNull(value, nameof(value));
 
         if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
-            byte[] array = System.GC.AllocateUninitializedArray<byte>(TypeMetadata.SizeOf<T>());
+            System.Byte[] array = System.GC.AllocateUninitializedArray<System.Byte>(TypeMetadata.SizeOf<T>());
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(array), value);
 
@@ -46,7 +46,7 @@ public static class BitSerializer
         }
 
         IFormatter<T> formatter = FormatterProvider.GetComplex<T>();
-        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
+        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out System.Int32 size);
 
         if (kind == TypeKind.None)
         {
@@ -70,18 +70,18 @@ public static class BitSerializer
                 return NullArrayMarker;
             }
 
-            System.Array srcArray = (System.Array)(object)value;
-            int length = srcArray.Length;
+            System.Array srcArray = (System.Array)(System.Object)value;
+            System.Int32 length = srcArray.Length;
             if (length == 0) return EmptyArrayMarker;
 
-            int dataSize = size * length;
-            byte[] destArray = System.GC.AllocateUninitializedArray<byte>(dataSize + 4);
-            ref byte head = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(destArray);
+            System.Int32 dataSize = size * length;
+            System.Byte[] destArray = System.GC.AllocateUninitializedArray<System.Byte>(dataSize + 4);
+            ref System.Byte head = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(destArray);
 
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref head, length);
             System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
                 ref System.Runtime.CompilerServices.Unsafe.Add(ref head, 4),
-                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(srcArray), (uint)dataSize);
+                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(srcArray), (System.UInt32)dataSize);
 
             return destArray;
         }
@@ -116,7 +116,7 @@ public static class BitSerializer
     /// <exception cref="SerializationException">
     /// Thrown if deserialization encounters an error or if there is insufficient data in the buffer.
     /// </exception>
-    public static int Deserialize<[
+    public static System.Int32 Deserialize<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
         System.ReadOnlySpan<byte> buffer, ref T value)
     {
@@ -135,7 +135,7 @@ public static class BitSerializer
             return System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
         }
 
-        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
+        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out System.Int32 size);
 
         if (kind == TypeKind.UnmanagedSZArray)
         {
@@ -151,7 +151,7 @@ public static class BitSerializer
                 buffer[0] == EmptyArrayMarker[0] && buffer[1] == EmptyArrayMarker[1] &&
                 buffer[2] == EmptyArrayMarker[2] && buffer[3] == EmptyArrayMarker[3])
             {
-                value = (T)(object)System.Array.CreateInstance(typeof(T).GetElementType()!, 0);
+                value = (T)(System.Object)System.Array.CreateInstance(typeof(T).GetElementType()!, 0);
                 return 4;
             }
 
@@ -171,9 +171,9 @@ public static class BitSerializer
             System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
                 ref dest,
                 ref System.Runtime.CompilerServices.Unsafe.Add(
-                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer), 4), (uint)dataSize);
+                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer), 4), (System.UInt32)dataSize);
 
-            value = (T)(object)arr;
+            value = (T)(System.Object)arr;
             return dataSize + 4;
         }
 
