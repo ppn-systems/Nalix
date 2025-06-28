@@ -16,7 +16,7 @@ public static unsafe class LZ4Encoder
     /// <returns>The estimated maximum length after compression, including overhead.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int GetMaxLength(int input) => input + (input / 250) + Header.Size;
+    public static System.Int32 GetMaxLength(System.Int32 input) => input + (input / 250) + Header.Size;
 
     /// <summary>
     /// Compresses a block of input data into the output buffer using the LZ4 greedy algorithm.
@@ -31,16 +31,16 @@ public static unsafe class LZ4Encoder
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int EncodeBlock(
-        System.ReadOnlySpan<byte> input,
-        System.Span<byte> output,
-        int* hashTable)
+    public static System.Int32 EncodeBlock(
+        System.ReadOnlySpan<System.Byte> input,
+        System.Span<System.Byte> output,
+        System.Int32* hashTable)
     {
         if (input.IsEmpty || output.IsEmpty) return -1; // Handle empty input/output
 
         // Pin the input and output spans to fixed memory addresses
-        fixed (byte* inputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(input))
-        fixed (byte* outputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(output))
+        fixed (System.Byte* inputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(input))
+        fixed (System.Byte* outputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(output))
         {
             return EncodeInternal(inputBase, input.Length, outputBase, output.Length, hashTable);
         }
@@ -59,23 +59,23 @@ public static unsafe class LZ4Encoder
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static int EncodeInternal(
-        byte* inputBase,
-        int inputLength,
-        byte* outputBase,
-        int outputLength,
-        int* hashTable)
+    private static System.Int32 EncodeInternal(
+        System.Byte* inputBase,
+        System.Int32 inputLength,
+        System.Byte* outputBase,
+        System.Int32 outputLength,
+        System.Int32* hashTable)
     {
-        byte* inputPtr = inputBase;
-        byte* inputEnd = inputBase + inputLength;
+        System.Byte* inputPtr = inputBase;
+        System.Byte* inputEnd = inputBase + inputLength;
 
-        byte* outputPtr = outputBase;
-        byte* outputEnd = outputBase + outputLength;
+        System.Byte* outputPtr = outputBase;
+        System.Byte* outputEnd = outputBase + outputLength;
 
-        byte* literalStartPtr = inputBase; // Start of the current literal run
+        System.Byte* literalStartPtr = inputBase; // Start of the current literal run
 
         // Leave room for the last literal run and match check
-        byte* matchFindInputLimit = inputEnd - LZ4Constants.LastLiteralSize - LZ4Constants.MinMatchLength;
+        System.Byte* matchFindInputLimit = inputEnd - LZ4Constants.LastLiteralSize - LZ4Constants.MinMatchLength;
 
         // Validate output buffer size
         if (outputLength < Header.Size + 1) return -1;
@@ -83,8 +83,8 @@ public static unsafe class LZ4Encoder
         // Main compression loop
         while (inputPtr < matchFindInputLimit)
         {
-            int currentInputOffset = (int)(inputPtr - inputBase);
-            byte* windowStartPtr = inputBase + System.Math.Max(0, currentInputOffset - LZ4Constants.MaxOffset);
+            System.Int32 currentInputOffset = (System.Int32)(inputPtr - inputBase);
+            System.Byte* windowStartPtr = inputBase + System.Math.Max(0, currentInputOffset - LZ4Constants.MaxOffset);
 
             // Find the longest match for the current input block
             MatchFinder.Match match = MatchFinder.FindLongestMatch(
@@ -102,9 +102,9 @@ public static unsafe class LZ4Encoder
             }
 
             // Emit literal run and match token
-            int literalLength = (int)(inputPtr - literalStartPtr);
-            int matchLength = match.Length;
-            int offset = match.Offset;
+            System.Int32 literalLength = (System.Int32)(inputPtr - literalStartPtr);
+            System.Int32 matchLength = match.Length;
+            System.Int32 offset = match.Offset;
 
             // WriteInt16 literals and match sequence
             if (!WriteSequence(ref outputPtr, outputEnd, literalStartPtr, literalLength, matchLength, offset))
@@ -118,12 +118,14 @@ public static unsafe class LZ4Encoder
         }
 
         // Emit final literals
-        if (!WriteFinalLiterals(ref outputPtr, outputEnd, literalStartPtr, (int)(inputEnd - literalStartPtr)))
+        if (!WriteFinalLiterals(
+            ref outputPtr, outputEnd,
+            literalStartPtr, (System.Int32)(inputEnd - literalStartPtr)))
         {
             return -1; // Output buffer too small
         }
 
-        return (int)(outputPtr - outputBase);
+        return (System.Int32)(outputPtr - outputBase);
     }
 
     /// <summary>
@@ -131,30 +133,39 @@ public static unsafe class LZ4Encoder
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static bool WriteSequence(
-        ref byte* outputPtr,
-        byte* outputEnd,
-        byte* literalStartPtr,
-        int literalLength,
-        int matchLength,
-        int offset)
+    private static System.Boolean WriteSequence(
+        ref System.Byte* outputPtr,
+        System.Byte* outputEnd,
+        System.Byte* literalStartPtr,
+        System.Int32 literalLength,
+        System.Int32 matchLength,
+        System.Int32 offset)
     {
         // Calculate required space for this sequence
-        int tokenLength = 1;
-        int literalHeaderLength = (literalLength >= LZ4Constants.TokenLiteralMask)
-            ? 1 + (literalLength - LZ4Constants.TokenLiteralMask) / 255 : 0;
+        System.Int32 tokenLength = 1;
+        System.Int32 literalHeaderLength =
+            (literalLength >= LZ4Constants.TokenLiteralMask)
+            ? 1 + ((literalLength - LZ4Constants.TokenLiteralMask) / 255) : 0;
 
-        int matchHeaderLength = (matchLength >= LZ4Constants.TokenMatchMask)
-            ? 1 + (matchLength - LZ4Constants.TokenMatchMask) / 255 : 0;
+        System.Int32 matchHeaderLength =
+            (matchLength >= LZ4Constants.TokenMatchMask)
+            ? 1 + ((matchLength - LZ4Constants.TokenMatchMask) / 255) : 0;
 
-        int requiredSpace = tokenLength + literalHeaderLength + literalLength + sizeof(ushort) + matchHeaderLength;
+        System.Int32 requiredSpace =
+            tokenLength +
+            literalHeaderLength +
+            literalLength +
+            sizeof(System.UInt16) +
+            matchHeaderLength;
 
         if (outputPtr + requiredSpace > outputEnd) return false;
 
         // WriteInt16 the token
-        byte literalToken = (byte)System.Math.Min(literalLength, LZ4Constants.TokenLiteralMask);
-        byte matchToken = (byte)System.Math.Min(matchLength - LZ4Constants.MinMatchLength, LZ4Constants.TokenMatchMask);
-        byte token = (byte)((literalToken << 4) | matchToken);
+        System.Byte matchToken = (System.Byte)
+            System.Math.Min(matchLength - LZ4Constants.MinMatchLength, LZ4Constants.TokenMatchMask);
+        System.Byte literalToken = (System.Byte)System.Math.Min(literalLength, LZ4Constants.TokenLiteralMask);
+
+        System.Byte token = (System.Byte)((literalToken << 4) | matchToken);
         *outputPtr++ = token;
 
         // WriteInt16 literal length
@@ -167,13 +178,15 @@ public static unsafe class LZ4Encoder
         LiteralWriter.Write(ref outputPtr, literalStartPtr, literalLength);
 
         // WriteInt16 offset
-        MemOps.WriteUnaligned<ushort>(outputPtr, (ushort)offset);
-        outputPtr += sizeof(ushort);
+        MemOps.WriteUnaligned<System.UInt16>(outputPtr, (System.UInt16)offset);
+        outputPtr += sizeof(System.UInt16);
 
         // WriteInt16 match length
         if (matchLength >= LZ4Constants.MinMatchLength + LZ4Constants.TokenMatchMask)
         {
-            outputPtr += SpanOps.WriteVarInt(outputPtr, matchLength - LZ4Constants.MinMatchLength - LZ4Constants.TokenMatchMask);
+            outputPtr += SpanOps.WriteVarInt(
+                outputPtr,
+                matchLength - LZ4Constants.MinMatchLength - LZ4Constants.TokenMatchMask);
         }
 
         return true;
@@ -184,25 +197,25 @@ public static unsafe class LZ4Encoder
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static bool WriteFinalLiterals(
-        ref byte* outputPtr,
-        byte* outputEnd,
-        byte* literalStartPtr,
-        int literalLength)
+    private static System.Boolean WriteFinalLiterals(
+        ref System.Byte* outputPtr,
+        System.Byte* outputEnd,
+        System.Byte* literalStartPtr,
+        System.Int32 literalLength)
     {
         if (literalLength == 0) return true;
 
-        int tokenLength = 1;
-        int literalHeaderLength = (literalLength >= LZ4Constants.TokenLiteralMask)
-            ? 1 + (literalLength - LZ4Constants.TokenLiteralMask) / 255
-            : 0;
+        System.Int32 tokenLength = 1;
+        System.Int32 literalHeaderLength =
+            (literalLength >= LZ4Constants.TokenLiteralMask)
+            ? 1 + ((literalLength - LZ4Constants.TokenLiteralMask) / 255) : 0;
 
-        int requiredSpace = tokenLength + literalHeaderLength + literalLength;
+        System.Int32 requiredSpace = tokenLength + literalHeaderLength + literalLength;
 
         if (outputPtr + requiredSpace > outputEnd) return false;
 
-        byte literalToken = (byte)System.Math.Min(literalLength, LZ4Constants.TokenLiteralMask);
-        byte token = (byte)(literalToken << 4); // Match part is 0
+        System.Byte literalToken = (System.Byte)System.Math.Min(literalLength, LZ4Constants.TokenLiteralMask);
+        System.Byte token = (System.Byte)(literalToken << 4); // Match part is 0
         *outputPtr++ = token;
 
         if (literalLength >= LZ4Constants.TokenLiteralMask)
