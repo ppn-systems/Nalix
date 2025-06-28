@@ -6,25 +6,27 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 /// <summary>
 /// Cung cấp serialize/deserialize cho kiểu string với hiệu năng cao (dùng unsafe, length dạng ushort).
 /// </summary>
-public sealed class StringFormatter : IFormatter<string>
+public sealed class StringFormatter : IFormatter<System.String>
 {
     /// <summary>
     /// Serializes a string value into the provided writer.
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The string value to serialize.</param>
-    public unsafe void Serialize(ref DataWriter writer, string value)
+    public unsafe void Serialize(ref DataWriter writer, System.String value)
     {
         if (value == null)
         {
             // 65535 biểu diễn null
-            FormatterProvider.Get<ushort>().Serialize(ref writer, SerializationLimits.Null);
+            FormatterProvider.Get<System.UInt16>()
+                             .Serialize(ref writer, SerializationLimits.Null);
             return;
         }
 
         if (value.Length == 0)
         {
-            FormatterProvider.Get<ushort>().Serialize(ref writer, 0);
+            FormatterProvider.Get<System.UInt16>()
+                             .Serialize(ref writer, 0);
             return;
         }
 
@@ -33,15 +35,16 @@ public sealed class StringFormatter : IFormatter<string>
         if (byteCount > SerializationLimits.MaxString)
             throw new SerializationException("The string exceeds the allowed limit.");
 
-        FormatterProvider.Get<ushort>().Serialize(ref writer, (ushort)byteCount);
+        FormatterProvider.Get<System.UInt16>()
+                         .Serialize(ref writer, (System.UInt16)byteCount);
 
         if (byteCount > 0)
         {
             writer.Expand(byteCount);
-            System.Span<byte> dest = writer.GetSpan(byteCount);
+            System.Span<System.Byte> dest = writer.GetSpan(byteCount);
 
-            fixed (char* src = value)
-            fixed (byte* pDest = dest)
+            fixed (System.Char* src = value)
+            fixed (System.Byte* pDest = dest)
             {
                 // Encode trực tiếp vào dest
                 int bytesWritten = System.Text.Encoding.UTF8
@@ -63,7 +66,7 @@ public sealed class StringFormatter : IFormatter<string>
     /// <exception cref="SerializationException">
     /// Thrown if the string length exceeds the maximum allowed limit.
     /// </exception>
-    public unsafe string Deserialize(ref DataReader reader)
+    public unsafe System.String Deserialize(ref DataReader reader)
     {
         ushort length = FormatterProvider.Get<ushort>().Deserialize(ref reader);
         if (length == 0) return string.Empty;
@@ -73,10 +76,10 @@ public sealed class StringFormatter : IFormatter<string>
         if (length > SerializationLimits.MaxString)
             throw new SerializationException("String length out of range");
 
-        System.ReadOnlySpan<byte> dest = reader.GetSpan(length);
+        System.ReadOnlySpan<System.Byte> dest = reader.GetSpan(length);
 
-        string result;
-        fixed (byte* src = dest)
+        System.String result;
+        fixed (System.Byte* src = dest)
         {
             result = System.Text.Encoding.UTF8.GetString(src, length);
         }

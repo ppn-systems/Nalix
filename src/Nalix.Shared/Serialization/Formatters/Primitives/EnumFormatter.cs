@@ -1,5 +1,4 @@
 using Nalix.Shared.Serialization.Buffers;
-using Nalix.Shared.Serialization.Formatters;
 
 namespace Nalix.Shared.Serialization.Formatters.Primitives;
 
@@ -33,65 +32,65 @@ public sealed class EnumFormatter<T> : IFormatter<T>
         {
             case System.TypeCode.Byte:
                 FormatterProvider
-                    .Get<byte>()
+                    .Get<System.Byte>()
                     .Serialize(ref writer, System.Runtime.CompilerServices.Unsafe
-                    .As<T, byte>(ref value));
+                    .As<T, System.Byte>(ref value));
 
                 break;
 
             case System.TypeCode.SByte:
                 FormatterProvider
-                    .Get<sbyte>()
+                    .Get<System.SByte>()
                     .Serialize(ref writer, System.Runtime.CompilerServices.Unsafe
-                    .As<T, sbyte>(ref value));
+                    .As<T, System.SByte>(ref value));
 
                 break;
 
             case System.TypeCode.Int16:
                 FormatterProvider
-                    .Get<short>()
+                    .Get<System.Int16>()
                     .Serialize(ref writer, System.Runtime.CompilerServices.Unsafe
-                    .As<T, short>(ref value));
+                    .As<T, System.Int16>(ref value));
 
                 break;
 
             case System.TypeCode.UInt16:
                 FormatterProvider
-                    .Get<ushort>()
+                    .Get<System.UInt16>()
                     .Serialize(ref writer, System.Runtime.CompilerServices.Unsafe
-                    .As<T, ushort>(ref value));
+                    .As<T, System.UInt16>(ref value));
 
                 break;
 
             case System.TypeCode.Int32:
                 FormatterProvider
-                    .Get<int>()
+                    .Get<System.Int32>()
                     .Serialize(ref writer, System.Runtime.CompilerServices.Unsafe
-                    .As<T, int>(ref value));
+                    .As<T, System.Int32>(ref value));
 
                 break;
 
             case System.TypeCode.UInt32:
                 FormatterProvider
-                    .Get<uint>()
+                    .Get<System.UInt32>()
                     .Serialize(ref writer, System.Runtime.CompilerServices.Unsafe
-                    .As<T, uint>(ref value));
+                    .As<T, System.UInt32>(ref value));
 
                 break;
 
             case System.TypeCode.Int64:
                 FormatterProvider
-                    .Get<long>()
+                    .Get<System.Int64>()
                     .Serialize(ref writer, System.Runtime.CompilerServices.Unsafe
-                    .As<T, long>(ref value));
+                    .As<T, System.Int64>(ref value));
 
                 break;
 
             case System.TypeCode.UInt64:
                 FormatterProvider
-                    .Get<ulong>()
+                    .Get<System.UInt64>()
                     .Serialize(ref writer, System.Runtime.CompilerServices.Unsafe
-                    .As<T, ulong>(ref value));
+                    .As<T, System.UInt64>(ref value));
 
                 break;
 
@@ -113,60 +112,60 @@ public sealed class EnumFormatter<T> : IFormatter<T>
         switch (UnderlyingTypeCode)
         {
             case System.TypeCode.Byte:
-                byte byteValue = FormatterProvider
-                    .Get<byte>()
+                System.Byte byteValue = FormatterProvider
+                    .Get<System.Byte>()
                     .Deserialize(ref reader);
 
-                return System.Runtime.CompilerServices.Unsafe.As<byte, T>(ref byteValue);
+                return System.Runtime.CompilerServices.Unsafe.As<System.Byte, T>(ref byteValue);
 
             case System.TypeCode.SByte:
-                sbyte sbyteValue = FormatterProvider
-                    .Get<sbyte>()
+                System.SByte sbyteValue = FormatterProvider
+                    .Get<System.SByte>()
                     .Deserialize(ref reader);
 
-                return System.Runtime.CompilerServices.Unsafe.As<sbyte, T>(ref sbyteValue);
+                return System.Runtime.CompilerServices.Unsafe.As<System.SByte, T>(ref sbyteValue);
 
             case System.TypeCode.Int16:
-                short shortValue = FormatterProvider
-                    .Get<short>()
+                System.Int16 shortValue = FormatterProvider
+                    .Get<System.Int16>()
                     .Deserialize(ref reader);
 
-                return System.Runtime.CompilerServices.Unsafe.As<short, T>(ref shortValue);
+                return System.Runtime.CompilerServices.Unsafe.As<System.Int16, T>(ref shortValue);
 
             case System.TypeCode.UInt16:
-                ushort ushortValue = FormatterProvider
-                    .Get<ushort>()
+                System.UInt16 ushortValue = FormatterProvider
+                    .Get<System.UInt16>()
                     .Deserialize(ref reader);
 
-                return System.Runtime.CompilerServices.Unsafe.As<ushort, T>(ref ushortValue);
+                return System.Runtime.CompilerServices.Unsafe.As<System.UInt16, T>(ref ushortValue);
 
             case System.TypeCode.Int32:
-                int intValue = FormatterProvider
-                    .Get<int>()
+                System.Int32 intValue = FormatterProvider
+                    .Get<System.Int32>()
                     .Deserialize(ref reader);
 
-                return System.Runtime.CompilerServices.Unsafe.As<int, T>(ref intValue);
+                return System.Runtime.CompilerServices.Unsafe.As<System.Int32, T>(ref intValue);
 
             case System.TypeCode.UInt32:
-                uint uintValue = FormatterProvider
-                    .Get<uint>()
+                System.UInt32 uintValue = FormatterProvider
+                    .Get<System.UInt32>()
                     .Deserialize(ref reader);
 
-                return System.Runtime.CompilerServices.Unsafe.As<uint, T>(ref uintValue);
+                return System.Runtime.CompilerServices.Unsafe.As<System.UInt32, T>(ref uintValue);
 
             case System.TypeCode.Int64:
-                long longValue = FormatterProvider
-                    .Get<long>()
+                System.Int64 longValue = FormatterProvider
+                    .Get<System.Int64>()
                     .Deserialize(ref reader);
 
-                return System.Runtime.CompilerServices.Unsafe.As<long, T>(ref longValue);
+                return System.Runtime.CompilerServices.Unsafe.As<System.Int64, T>(ref longValue);
 
             case System.TypeCode.UInt64:
-                ulong ulongValue = FormatterProvider
-                    .Get<ulong>()
+                System.UInt64 ulongValue = FormatterProvider
+                    .Get<System.UInt64>()
                     .Deserialize(ref reader);
 
-                return System.Runtime.CompilerServices.Unsafe.As<ulong, T>(ref ulongValue);
+                return System.Runtime.CompilerServices.Unsafe.As<System.UInt64, T>(ref ulongValue);
 
             default:
                 throw new System.NotSupportedException("The underlying enum type is not supported.");

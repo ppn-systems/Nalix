@@ -33,7 +33,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, System.IDisposable where
     /// <summary>
     /// Indicates whether the formatter has been disposed.
     /// </summary>
-    private bool _disposed;
+    private System.Boolean _disposed;
 
     #endregion Core Fields
 

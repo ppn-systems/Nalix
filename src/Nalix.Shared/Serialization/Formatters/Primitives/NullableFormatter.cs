@@ -14,12 +14,12 @@ public sealed class NullableFormatter<T> : IFormatter<T?> where T : struct
     /// <summary>
     /// Flag indicating that the value is null.
     /// </summary>
-    private const byte NoValueFlag = 0;
+    private const System.Byte NoValueFlag = 0;
 
     /// <summary>
     /// Flag indicating that the value is present.
     /// </summary>
-    private const byte HasValueFlag = 1;
+    private const System.Byte HasValueFlag = 1;
 
     /// <summary>
     /// Serializes a nullable value into the provided writer.
@@ -30,7 +30,7 @@ public sealed class NullableFormatter<T> : IFormatter<T?> where T : struct
     {
         // 0 = null, 1 = has value
         FormatterProvider
-            .Get<byte>()
+            .Get<System.Byte>()
             .Serialize(ref writer, value.HasValue ? HasValueFlag : NoValueFlag);
 
         if (value.HasValue)
@@ -49,8 +49,8 @@ public sealed class NullableFormatter<T> : IFormatter<T?> where T : struct
     /// </exception>
     public T? Deserialize(ref DataReader reader)
     {
-        byte hasValue = FormatterProvider
-            .Get<byte>()
+        System.Byte hasValue = FormatterProvider
+            .Get<System.Byte>()
             .Deserialize(ref reader);
 
         if (hasValue == NoValueFlag) return null;
