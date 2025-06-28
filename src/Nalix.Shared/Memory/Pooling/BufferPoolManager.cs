@@ -19,8 +19,6 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 {
     #region Fields & Constants
 
-
-
     private readonly System.Int64 _maxMemoryBytes;
     private readonly System.Int32 _totalBuffers;
     private readonly System.Boolean _enableTrimming;
