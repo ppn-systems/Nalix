@@ -18,9 +18,9 @@ internal readonly struct LZ4Encoder
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe int Encode(
-        System.ReadOnlySpan<byte> input,
-        System.Span<byte> output)
+    public static unsafe System.Int32 Encode(
+        System.ReadOnlySpan<System.Byte> input,
+        System.Span<System.Byte> output)
     {
         // Handle empty input
         if (input.IsEmpty)
@@ -31,19 +31,19 @@ internal readonly struct LZ4Encoder
             return -1;
 
         // Allocate hash table for compression
-        int* hashTable = stackalloc int[MatchFinder.HashTableSize];
+        System.Int32* hashTable = stackalloc System.Int32[MatchFinder.HashTableSize];
         InitializeHashTable(hashTable);
 
         // Compress the data
-        System.Span<byte> compressedDataOutput = output[Header.Size..];
-        int compressedDataLength = Encoders.LZ4Encoder.EncodeBlock(input, compressedDataOutput, hashTable);
+        System.Span<System.Byte> compressedDataOutput = output[Header.Size..];
+        System.Int32 compressedDataLength = Encoders.LZ4Encoder.EncodeBlock(input, compressedDataOutput, hashTable);
 
         // Handle compression failure
         if (compressedDataLength < 0)
             return -1;
 
         // WriteInt16 the header and return total compressed length
-        int totalCompressedLength = Header.Size + compressedDataLength;
+        System.Int32 totalCompressedLength = Header.Size + compressedDataLength;
         WriteHeader(output, input.Length, totalCompressedLength);
 
         return totalCompressedLength;
@@ -58,9 +58,9 @@ internal readonly struct LZ4Encoder
     /// <returns><c>true</c> if compression succeeds; otherwise, <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe bool Encode(
-        System.ReadOnlySpan<byte> input,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] System.Span<byte> output,
+    public static unsafe System.Boolean Encode(
+        System.ReadOnlySpan<System.Byte> input,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] System.Span<System.Byte> output,
         out int bytesWritten)
     {
         bytesWritten = 0;
@@ -80,19 +80,19 @@ internal readonly struct LZ4Encoder
             return false;
 
         // Allocate hash table for compression
-        int* hashTable = stackalloc int[MatchFinder.HashTableSize];
+        System.Int32* hashTable = stackalloc System.Int32[MatchFinder.HashTableSize];
         InitializeHashTable(hashTable);
 
         // Compress the data
-        System.Span<byte> compressedDataOutput = output[Header.Size..];
-        int compressedDataLength = Encoders.LZ4Encoder.EncodeBlock(input, compressedDataOutput, hashTable);
+        System.Span<System.Byte> compressedDataOutput = output[Header.Size..];
+        System.Int32 compressedDataLength = Encoders.LZ4Encoder.EncodeBlock(input, compressedDataOutput, hashTable);
 
         // Handle compression failure
         if (compressedDataLength < 0)
             return false;
 
         // WriteInt16 the header and calculate total compressed length
-        int totalCompressedLength = Header.Size + compressedDataLength;
+        System.Int32 totalCompressedLength = Header.Size + compressedDataLength;
         WriteHeader(output, input.Length, totalCompressedLength);
 
         bytesWritten = totalCompressedLength;
@@ -105,8 +105,8 @@ internal readonly struct LZ4Encoder
     /// <param name="hashTable">A pointer to the hash table.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe void InitializeHashTable(int* hashTable)
-        => new System.Span<byte>(hashTable, MatchFinder.MaxStackallocHashTableSize).Clear();
+    private static unsafe void InitializeHashTable(System.Int32* hashTable)
+        => new System.Span<System.Byte>(hashTable, MatchFinder.MaxStackallocHashTableSize).Clear();
 
     /// <summary>
     /// Writes a header for an empty input to the output buffer.
@@ -115,7 +115,7 @@ internal readonly struct LZ4Encoder
     /// <returns>The size of the header, or -1 if the buffer is too small.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static int WriteEmptyHeader(System.Span<byte> output)
+    private static System.Int32 WriteEmptyHeader(System.Span<System.Byte> output)
     {
         if (output.Length < Header.Size)
             return -1;
@@ -133,7 +133,10 @@ internal readonly struct LZ4Encoder
     /// <param name="compressedLength">The total compressed length, including the header.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void WriteHeader(System.Span<byte> output, int originalLength, int compressedLength)
+    private static void WriteHeader(
+        System.Span<System.Byte> output,
+        System.Int32 originalLength,
+        System.Int32 compressedLength)
     {
         Header header = new(originalLength, compressedLength);
         MemOps.WriteUnaligned(output, header);

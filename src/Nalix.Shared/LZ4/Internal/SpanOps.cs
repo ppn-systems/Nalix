@@ -10,10 +10,14 @@ internal static unsafe class SpanOps
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void CheckSliceBounds(int length, int start, int count)
+    public static void CheckSliceBounds(
+        System.Int32 length,
+        System.Int32 start,
+        System.Int32 count)
     {
         // Use unsigned arithmetic for efficient check: (uint)start + (uint)count > (uint)length
-        if ((uint)start > (uint)length || (uint)count > (uint)(length - start)) ThrowOutOfRange();
+        if ((System.UInt32)start > (System.UInt32)length ||
+            (System.UInt32)count > (System.UInt32)(length - start)) ThrowOutOfRange();
     }
 
     /// <summary>
@@ -22,10 +26,10 @@ internal static unsafe class SpanOps
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int WriteVarInt(byte* dest, int value)
+    public static System.Int32 WriteVarInt(System.Byte* dest, System.Int32 value)
     {
-        int bytesWritten = 0;
-        uint uValue = (uint)value;
+        System.Int32 bytesWritten = 0;
+        System.UInt32 uValue = (System.UInt32)value;
 
         while (uValue >= 255)
         {
@@ -34,7 +38,7 @@ internal static unsafe class SpanOps
             bytesWritten++;
         }
 
-        *dest = (byte)uValue;
+        *dest = (System.Byte)uValue;
         return bytesWritten + 1;
     }
 
@@ -43,10 +47,13 @@ internal static unsafe class SpanOps
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int ReadVarInt(ref byte* src, byte* srcEnd, out int value)
+    public static System.Int32 ReadVarInt(
+        ref System.Byte* src,
+        System.Byte* srcEnd,
+        out System.Int32 value)
     {
         value = 0;
-        int bytesRead = 0;
+        System.Int32 bytesRead = 0;
         byte currentByte;
 
         while (src < srcEnd)

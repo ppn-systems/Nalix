@@ -13,20 +13,20 @@ namespace Nalix.Shared.LZ4.Internal;
 /// <param name="compressedLength">The total length of the compressed data, including the header.</param>
 [System.Runtime.InteropServices.StructLayout(
     System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]
-public readonly struct Header(int originalLength, int compressedLength)
+public readonly struct Header(System.Int32 originalLength, System.Int32 compressedLength)
 {
     /// <summary>
     /// The size of the header structure in bytes. This is the sum of the sizes of the two integer fields.
     /// </summary>
-    public const int Size = sizeof(int) * 2; // 8 bytes
+    public const System.Int32 Size = sizeof(System.Int32) * 2; // 8 bytes
 
     /// <summary>
     /// Gets the original length of the data before compression.
     /// </summary>
-    public readonly int OriginalLength = originalLength;
+    public readonly System.Int32 OriginalLength = originalLength;
 
     /// <summary>
     /// Gets the total length of the compressed data, including the size of the header.
     /// </summary>
-    public readonly int CompressedLength = compressedLength;
+    public readonly System.Int32 CompressedLength = compressedLength;
 }

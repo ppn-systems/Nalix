@@ -8,18 +8,18 @@ namespace Nalix.Shared.LZ4.Internal;
 /// </summary>
 internal static unsafe class MatchFinder
 {
-    private const int HashTableBits = 16; // 64k entries
-    private const int HashShift = 32 - HashTableBits;
+    private const System.Int32 HashTableBits = 16; // 64k entries
+    private const System.Int32 HashShift = 32 - HashTableBits;
 
     /// <summary>
     /// Size of the hash table used for storing offsets of previously seen sequences.
     /// </summary>
-    public const int HashTableSize = 1 << HashTableBits;
+    public const System.Int32 HashTableSize = 1 << HashTableBits;
 
     /// <summary>
     /// Consider using a pool or limiting stackalloc in extreme cases
     /// </summary>
-    public const int MaxStackallocHashTableSize = HashTableSize * sizeof(int);
+    public const System.Int32 MaxStackallocHashTableSize = HashTableSize * sizeof(System.Int32);
 
     /// <summary>
     /// Represents a found match with an offset and length.
@@ -27,10 +27,10 @@ internal static unsafe class MatchFinder
     /// <remarks>
     /// Initializes a new instance of the <see cref="Match"/> struct.
     /// </remarks>
-    internal readonly struct Match(int offset, int length)
+    internal readonly struct Match(System.Int32 offset, System.Int32 length)
     {
-        public readonly int Offset = offset; // Match offset relative to current position
-        public readonly int Length = length; // Length of the match
+        public readonly System.Int32 Offset = offset; // Match offset relative to current position
+        public readonly System.Int32 Length = length; // Length of the match
 
         /// <summary>
         /// Determines if the match is valid.
@@ -52,46 +52,46 @@ internal static unsafe class MatchFinder
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Match FindLongestMatch(
-        int* hashTable,
-        byte* inputBase,
-        byte* currentInputPtr,
-        byte* inputLimit,
-        byte* searchStartPtr,
-        int currentInputOffset)
+        System.Int32* hashTable,
+        System.Byte* inputBase,
+        System.Byte* currentInputPtr,
+        System.Byte* inputLimit,
+        System.Byte* searchStartPtr,
+        System.Int32 currentInputOffset)
     {
         // Ensure there are enough bytes to find a match
         if (currentInputPtr + LZ4Constants.MinMatchLength > inputLimit)
             return default; // No match possible
 
         // Read the current 4-byte sequence and compute its hash
-        uint currentSequence = MemOps.ReadUnaligned<uint>(currentInputPtr);
-        uint hash = CalculateHash(currentSequence);
+        System.UInt32 currentSequence = MemOps.ReadUnaligned<System.UInt32>(currentInputPtr);
+        System.UInt32 hash = CalculateHash(currentSequence);
 
         // Retrieve the candidate match offset and update the hash table
-        int matchCandidateOffset = hashTable[hash];
+        System.Int32 matchCandidateOffset = hashTable[hash];
         hashTable[hash] = currentInputOffset;
 
         // Calculate the candidate match pointer
-        byte* matchCandidatePtr = inputBase + matchCandidateOffset;
+        System.Byte* matchCandidatePtr = inputBase + matchCandidateOffset;
 
         // Validate the candidate match
         if (matchCandidateOffset <= 0 || // Invalid offset
             matchCandidatePtr < searchStartPtr || // Outside of search window
             matchCandidatePtr >= currentInputPtr || // Cannot match itself
-            MemOps.ReadUnaligned<uint>(matchCandidatePtr) != currentSequence) // Quick check fails
+            MemOps.ReadUnaligned<System.UInt32>(matchCandidatePtr) != currentSequence) // Quick check fails
         {
             return default; // No valid match found
         }
 
         // Calculate the length of the match
-        int matchLength = LZ4Constants.MinMatchLength + MemOps.CountEqualBytes(
+        System.Int32 matchLength = LZ4Constants.MinMatchLength + MemOps.CountEqualBytes(
             matchCandidatePtr + LZ4Constants.MinMatchLength,
             currentInputPtr + LZ4Constants.MinMatchLength,
-            (int)(inputLimit - (currentInputPtr + LZ4Constants.MinMatchLength)) // Ensure bounds
+            (System.Int32)(inputLimit - (currentInputPtr + LZ4Constants.MinMatchLength)) // Ensure bounds
         );
 
         // Calculate the offset of the match
-        int offset = (int)(currentInputPtr - matchCandidatePtr);
+        System.Int32 offset = (System.Int32)(currentInputPtr - matchCandidatePtr);
 
         // Ensure the offset is within the valid range
         System.Diagnostics.Debug.Assert(offset > 0 && offset <= LZ4Constants.MaxOffset);
@@ -106,5 +106,5 @@ internal static unsafe class MatchFinder
     /// <returns>The hash value.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static uint CalculateHash(uint sequence) => sequence * 2654435761u >> HashShift;
+    private static System.UInt32 CalculateHash(System.UInt32 sequence) => (sequence * 2654435761u) >> HashShift;
 }
