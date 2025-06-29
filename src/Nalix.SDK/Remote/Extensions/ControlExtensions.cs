@@ -1,8 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Client;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Protocols;           // ControlType, ProtocolType
-using Nalix.Common.SDK;
 using Nalix.Framework.Time;             // Clock
 using Nalix.Shared.Messaging.Controls;  // Control
 

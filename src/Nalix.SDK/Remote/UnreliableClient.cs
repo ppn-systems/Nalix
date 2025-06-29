@@ -76,13 +76,7 @@ public sealed class UnreliableClient
             try
             {
                 System.Net.Sockets.UdpReceiveResult result = await _udpClient.ReceiveAsync(token);
-
-                if (_catalog.TryDeserialize(
-                    System.MemoryExtensions.AsSpan(result.Buffer), out IPacket packet))
-                {
-                    InstanceManager.Instance.GetExistingInstance<ReliableClient>()?
-                                   .Incoming.Push(packet);
-                }
+                _ = _catalog.TryDeserialize(System.MemoryExtensions.AsSpan(result.Buffer), out IPacket packet);
             }
             catch (System.OperationCanceledException)
             {
