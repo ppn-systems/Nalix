@@ -1,16 +1,13 @@
-using System;
-using System.Diagnostics;
-
 namespace Nalix.Shared.Time;
 
 /// <summary>
 /// Represents a precise timestamp for interval measurement.
 /// </summary>
-public readonly struct TimeStamp : IEquatable<TimeStamp>, IComparable<TimeStamp>
+public readonly struct TimeStamp : System.IEquatable<TimeStamp>, System.IComparable<TimeStamp>
 {
     #region Fields
 
-    private readonly long _timestamp;
+    private readonly System.Int64 _timestamp;
 
     #endregion Fields
 
@@ -20,7 +17,7 @@ public readonly struct TimeStamp : IEquatable<TimeStamp>, IComparable<TimeStamp>
     /// Initializes a new instance of the <see cref="TimeStamp"/> struct.
     /// </summary>
     /// <param name="timestamp">The raw timestamp value.</param>
-    internal TimeStamp(long timestamp) => _timestamp = timestamp;
+    internal TimeStamp(System.Int64 timestamp) => _timestamp = timestamp;
 
     #endregion Constructors
 
@@ -30,27 +27,27 @@ public readonly struct TimeStamp : IEquatable<TimeStamp>, IComparable<TimeStamp>
     /// Gets the elapsed time since this timestamp was created.
     /// </summary>
     /// <returns>A TimeSpan representing the elapsed interval.</returns>
-    public TimeSpan GetElapsed()
-        => TimeSpan.FromSeconds((Stopwatch.GetTimestamp() - _timestamp) * Clock.TickFrequency);
+    public System.TimeSpan GetElapsed()
+        => System.TimeSpan.FromSeconds((System.Diagnostics.Stopwatch.GetTimestamp() - _timestamp) * Clock.TickFrequency);
 
     /// <summary>
     /// Gets the elapsed milliseconds since this timestamp was created.
     /// </summary>
     /// <returns>The elapsed milliseconds.</returns>
-    public double GetElapsedMilliseconds()
-        => (Stopwatch.GetTimestamp() - _timestamp) * Clock.TickFrequency * 1000.0;
+    public System.Double GetElapsedMilliseconds()
+        => (System.Diagnostics.Stopwatch.GetTimestamp() - _timestamp) * Clock.TickFrequency * 1000.0;
 
     /// <summary>
     /// Gets the elapsed microseconds since this timestamp was created.
     /// </summary>
     /// <returns>The elapsed microseconds.</returns>
-    public double GetElapsedMicroseconds()
-        => (Stopwatch.GetTimestamp() - _timestamp) * Clock.TickFrequency * 1000000.0;
+    public System.Double GetElapsedMicroseconds()
+        => (System.Diagnostics.Stopwatch.GetTimestamp() - _timestamp) * Clock.TickFrequency * 1000000.0;
 
     /// <summary>
     /// Gets the raw timestamp value.
     /// </summary>
-    public long RawValue => _timestamp;
+    public System.Int64 RawValue => _timestamp;
 
     /// <summary>
     /// Calculates the interval between two timestamps.
@@ -58,8 +55,8 @@ public readonly struct TimeStamp : IEquatable<TimeStamp>, IComparable<TimeStamp>
     /// <param name="start">The start timestamp.</param>
     /// <param name="end">The end timestamp.</param>
     /// <returns>A TimeSpan representing the interval.</returns>
-    public static TimeSpan GetInterval(TimeStamp start, TimeStamp end)
-        => TimeSpan.FromSeconds((end._timestamp - start._timestamp) * Clock.TickFrequency);
+    public static System.TimeSpan GetInterval(TimeStamp start, TimeStamp end)
+        => System.TimeSpan.FromSeconds((end._timestamp - start._timestamp) * Clock.TickFrequency);
 
     /// <summary>
     /// Calculates the interval between two timestamps in milliseconds.
@@ -67,7 +64,7 @@ public readonly struct TimeStamp : IEquatable<TimeStamp>, IComparable<TimeStamp>
     /// <param name="start">The start timestamp.</param>
     /// <param name="end">The end timestamp.</param>
     /// <returns>The interval in milliseconds.</returns>
-    public static double GetIntervalMilliseconds(TimeStamp start, TimeStamp end)
+    public static System.Double GetIntervalMilliseconds(TimeStamp start, TimeStamp end)
         => (end._timestamp - start._timestamp) * Clock.TickFrequency * 1000.0;
 
     /// <summary>
@@ -76,13 +73,13 @@ public readonly struct TimeStamp : IEquatable<TimeStamp>, IComparable<TimeStamp>
     /// <param name="start">The start timestamp.</param>
     /// <param name="end">The end timestamp.</param>
     /// <returns>The interval in microseconds.</returns>
-    public static double GetIntervalMicroseconds(TimeStamp start, TimeStamp end)
+    public static System.Double GetIntervalMicroseconds(TimeStamp start, TimeStamp end)
         => (end._timestamp - start._timestamp) * Clock.TickFrequency * 1000000.0;
 
     /// <summary>
     /// Gets the current timestamp.
     /// </summary>
-    public static TimeStamp Now => new(Stopwatch.GetTimestamp());
+    public static TimeStamp Now => new(System.Diagnostics.Stopwatch.GetTimestamp());
 
     #endregion Public Methods
 

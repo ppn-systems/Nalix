@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Threading;
-
 namespace Nalix.Shared.Time;
 
 /// <summary>
@@ -17,33 +11,33 @@ public static class Clock
     /// <summary>
     /// The Unix timestamp representing the start of 2020 (Wed Jan 01 2020 00:00:00 UTC).
     /// </summary>
-    public const long TimeEpochTimestamp = 1577836800L; // (Wed Jan 01 2020 00:00:00)
+    public const System.Int64 TimeEpochTimestamp = 1577836800L; // (Wed Jan 01 2020 00:00:00)
 
     /// <summary>
-    /// The <see cref="DateTime"/> representation of the start of 2020 (Wed Jan 01 2020 00:00:00 UTC).
+    /// The <see cref="System.DateTime"/> representation of the start of 2020 (Wed Jan 01 2020 00:00:00 UTC).
     /// </summary>
-    public static readonly DateTime TimeEpochDatetime = new(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+    public static readonly System.DateTime TimeEpochDatetime;
 
     // BaseValue36 values for high-precision time calculation
-    private static readonly DateTime UtcBase = DateTime.UtcNow;
 
-    private static readonly Stopwatch UtcStopwatch = Stopwatch.StartNew();
-    private static readonly DateTime TimeEpoch = DateTime.UnixEpoch.AddSeconds(TimeEpochTimestamp);
+    private static readonly System.DateTime UtcBase;
+    private static readonly System.DateTime TimeEpoch;
+    private static readonly System.Diagnostics.Stopwatch UtcStopwatch;
 
     // Time synchronization variables
-    private static long _timeOffset = 0; // In ticks, adjusted from external time sources
 
-    private static double _driftCorrection = 1.0; // Multiplier to correct for system clock drift
-    private static bool _isSynchronized = false;
-    private static DateTime _lastSyncTime = DateTime.MinValue;
+    private static System.Int64 _timeOffset;
+    private static System.DateTime _lastSyncTime;
+    private static System.Double _driftCorrection;
+    private static System.Boolean _isSynchronized;
 
     // Performance measurement fields
-    private static readonly ThreadLocal<Stopwatch> _threadStopwatch = new(() => Stopwatch.StartNew());
+    private static readonly System.Threading.ThreadLocal<System.Diagnostics.Stopwatch> _threadStopwatch;
 
     // Frequency information for high-resolution timing
-    private static readonly double _tickFrequency = 1.0 / Stopwatch.Frequency;
 
-    private static readonly bool _isHighResolution = Stopwatch.IsHighResolution;
+    private static readonly System.Double _tickFrequency;
+    private static readonly System.Boolean _isHighResolution;
 
     #endregion Constants and Fields
 
@@ -52,48 +46,73 @@ public static class Clock
     /// <summary>
     /// Gets a value indicating whether the system clock is using high-resolution timing.
     /// </summary>
-    public static bool IsHighResolution => _isHighResolution;
+    public static System.Boolean IsHighResolution => _isHighResolution;
 
     /// <summary>
     /// Gets the tick frequency in seconds (the duration of a single tick).
     /// </summary>
-    public static double TickFrequency => _tickFrequency;
+    public static System.Double TickFrequency => _tickFrequency;
 
     /// <summary>
     /// Gets the frequency of the high-resolution timer in ticks per second.
     /// </summary>
-    public static long TicksPerSecond => Stopwatch.Frequency;
+    public static System.Int64 TicksPerSecond => System.Diagnostics.Stopwatch.Frequency;
 
     /// <summary>
     /// Gets a value indicating whether the clock has been synchronized with an external time source.
     /// </summary>
-    public static bool IsSynchronized => _isSynchronized;
+    public static System.Boolean IsSynchronized => _isSynchronized;
 
     /// <summary>
     /// Gets the time when the last synchronization occurred.
     /// </summary>
-    public static DateTime LastSyncTime => _lastSyncTime;
+    public static System.DateTime LastSyncTime => _lastSyncTime;
 
     /// <summary>
     /// Gets the current offset in milliseconds between the system time and the synchronized time.
     /// </summary>
-    public static double CurrentOffsetMs => TimeSpan.FromTicks(_timeOffset).TotalMilliseconds;
+    public static System.Double CurrentOffsetMs
+        => System.TimeSpan.FromTicks(_timeOffset).TotalMilliseconds;
 
     #endregion Properties
+
+    #region Constructors
+
+    static Clock()
+    {
+        // Static class, no instantiation allowed
+
+        UtcBase = System.DateTime.UtcNow;
+        UtcStopwatch = System.Diagnostics.Stopwatch.StartNew();
+        TimeEpoch = System.DateTime.UnixEpoch.AddSeconds(TimeEpochTimestamp);
+        TimeEpochDatetime = new(2020, 1, 1, 0, 0, 0, System.DateTimeKind.Utc);
+
+        _timeOffset = 0; // In ticks, adjusted from external time sources
+        _driftCorrection = 1.0; // Multiplier to correct for system clock drift
+        _isSynchronized = false;
+        _lastSyncTime = System.DateTime.MinValue;
+
+        _tickFrequency = 1.0 / System.Diagnostics.Stopwatch.Frequency;
+        _isHighResolution = System.Diagnostics.Stopwatch.IsHighResolution;
+        _threadStopwatch = new(() => System.Diagnostics.Stopwatch.StartNew());
+    }
+
+    #endregion Constructors
 
     #region Basic Time Functions
 
     /// <summary>
     /// Returns the current UTC time with high accuracy.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DateTime GetUtcNowPrecise()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.DateTime GetUtcNowPrecise()
     {
-        TimeSpan elapsed = UtcStopwatch.Elapsed;
+        System.TimeSpan elapsed = UtcStopwatch.Elapsed;
         if (_isSynchronized)
         {
             // Apply drift correction and offset
-            long correctedTicks = (long)(elapsed.Ticks * _driftCorrection) + _timeOffset;
+            System.Int64 correctedTicks = (System.Int64)(elapsed.Ticks * _driftCorrection) + _timeOffset;
             return UtcBase.AddTicks(correctedTicks);
         }
         return UtcBase.Add(elapsed);
@@ -104,54 +123,61 @@ public static class Clock
     /// </summary>
     /// <param name="format">The format string to use for formatting the date and time.</param>
     /// <returns>A string representation of the current UTC time.</returns>
-    public static string GetUtcNowString(string format = "yyyy-MM-dd HH:mm:ss.fff")
+    public static System.String GetUtcNowString(System.String format = "yyyy-MM-dd HH:mm:ss.fff")
         => GetUtcNowPrecise().ToString(format);
 
     /// <summary>
     /// Current Unix timestamp (seconds) as long.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static long UnixSecondsNow()
-        => (long)(GetUtcNowPrecise() - DateTime.UnixEpoch).TotalSeconds;
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Int64 UnixSecondsNow()
+        => (System.Int64)(GetUtcNowPrecise() - System.DateTime.UnixEpoch).TotalSeconds;
 
     /// <summary>
     /// Current Unix timestamp (milliseconds) as long.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static long UnixMillisecondsNow()
-        => (long)(GetUtcNowPrecise() - DateTime.UnixEpoch).TotalMilliseconds;
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Int64 UnixMillisecondsNow()
+        => (System.Int64)(GetUtcNowPrecise() - System.DateTime.UnixEpoch).TotalMilliseconds;
 
     /// <summary>
     /// Current Unix timestamp (microseconds) as long.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static long UnixMicrosecondsNow()
-        => (long)(GetUtcNowPrecise() - DateTime.UnixEpoch).Ticks / 10;
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Int64 UnixMicrosecondsNow()
+        => (System.Int64)(GetUtcNowPrecise() - System.DateTime.UnixEpoch).Ticks / 10;
 
     /// <summary>
     /// Current Unix timestamp (ticks) as long.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static long UnixTicksNow()
-        => (GetUtcNowPrecise() - DateTime.UnixEpoch).Ticks;
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Int64 UnixTicksNow()
+        => (GetUtcNowPrecise() - System.DateTime.UnixEpoch).Ticks;
 
     /// <summary>
     /// Returns the current Unix time as TimeSpan.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TimeSpan UnixTime() => GetUtcNowPrecise() - DateTime.UnixEpoch;
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.TimeSpan UnixTime() => GetUtcNowPrecise() - System.DateTime.UnixEpoch;
 
     /// <summary>
     /// Returns the current application-specific time as TimeSpan (relative to TimeEpoch).
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TimeSpan ApplicationTime() => GetUtcNowPrecise() - TimeEpoch;
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.TimeSpan ApplicationTime() => GetUtcNowPrecise() - TimeEpoch;
 
     /// <summary>
     /// Returns the raw, unadjusted system time without synchronization or drift correction.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DateTime GetRawUtcNow() => DateTime.UtcNow;
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.DateTime GetRawUtcNow() => System.DateTime.UtcNow;
 
     #endregion Basic Time Functions
 
@@ -160,46 +186,50 @@ public static class Clock
     /// <summary>
     /// Converts Unix timestamp (seconds) to DateTime with overflow check.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DateTime UnixTimeSecondsToDateTime(long timestamp)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.DateTime UnixTimeSecondsToDateTime(long timestamp)
     {
-        if (timestamp > (long)DateTime.MaxValue.Subtract(DateTime.UnixEpoch).TotalSeconds)
-            throw new OverflowException("Timestamp exceeds DateTime limits");
-        return DateTime.UnixEpoch.AddSeconds(timestamp);
+        if (timestamp > (long)System.DateTime.MaxValue.Subtract(System.DateTime.UnixEpoch).TotalSeconds)
+            throw new System.OverflowException("Timestamp exceeds DateTime limits");
+        return System.DateTime.UnixEpoch.AddSeconds(timestamp);
     }
 
     /// <summary>
     /// Converts Unix timestamp (milliseconds) to DateTime with overflow check.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DateTime UnixTimeMillisecondsToDateTime(long timestamp)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.DateTime UnixTimeMillisecondsToDateTime(long timestamp)
     {
-        if (timestamp > (long)DateTime.MaxValue.Subtract(DateTime.UnixEpoch).TotalMilliseconds)
-            throw new OverflowException("Timestamp exceeds DateTime limits");
+        if (timestamp > (long)System.DateTime.MaxValue.Subtract(System.DateTime.UnixEpoch).TotalMilliseconds)
+            throw new System.OverflowException("Timestamp exceeds DateTime limits");
 
-        return DateTime.UnixEpoch.AddMilliseconds(timestamp);
+        return System.DateTime.UnixEpoch.AddMilliseconds(timestamp);
     }
 
     /// <summary>
     /// Converts Unix timestamp (microseconds) to DateTime with overflow check.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DateTime UnixTimeMicrosecondsToDateTime(long timestamp)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.DateTime UnixTimeMicrosecondsToDateTime(long timestamp)
     {
-        if (timestamp > (DateTime.MaxValue.Subtract(DateTime.UnixEpoch).Ticks / 10))
-            throw new OverflowException("Timestamp exceeds DateTime limits");
+        if (timestamp > (System.DateTime.MaxValue.Subtract(System.DateTime.UnixEpoch).Ticks / 10))
+            throw new System.OverflowException("Timestamp exceeds DateTime limits");
 
-        return DateTime.UnixEpoch.AddTicks(timestamp * 10);
+        return System.DateTime.UnixEpoch.AddTicks(timestamp * 10);
     }
 
     /// <summary>
     /// Converts timestamp (milliseconds) to DateTime with overflow check.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DateTime TimeMillisecondsToDateTime(long timestamp)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.DateTime TimeMillisecondsToDateTime(long timestamp)
     {
-        if (timestamp > (long)DateTime.MaxValue.Subtract(TimeEpoch).TotalMilliseconds)
-            throw new OverflowException("Timestamp exceeds DateTime limits");
+        if (timestamp > (long)System.DateTime.MaxValue.Subtract(TimeEpoch).TotalMilliseconds)
+            throw new System.OverflowException("Timestamp exceeds DateTime limits");
 
         return TimeEpoch.AddMilliseconds(timestamp);
     }
@@ -207,35 +237,40 @@ public static class Clock
     /// <summary>
     /// Converts TimeSpan to DateTime with validation.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DateTime UnixTimeToDateTime(TimeSpan timeSpan)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.DateTime UnixTimeToDateTime(System.TimeSpan timeSpan)
     {
         if (timeSpan.Ticks < 0)
-            throw new ArgumentException("TimeSpan cannot be negative", nameof(timeSpan));
+            throw new System.ArgumentException(
+                "TimeSpan cannot be negative", nameof(timeSpan));
 
-        return DateTime.UnixEpoch.Add(timeSpan);
+        return System.DateTime.UnixEpoch.Add(timeSpan);
     }
 
     /// <summary>
     /// Converts DateTime to Unix TimeSpan with validation.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TimeSpan DateTimeToUnixTime(DateTime dateTime)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.TimeSpan DateTimeToUnixTime(System.DateTime dateTime)
     {
-        if (dateTime.Kind != DateTimeKind.Utc)
-            throw new ArgumentException("DateTime must be UTC", nameof(dateTime));
+        if (dateTime.Kind != System.DateTimeKind.Utc)
+            throw new System.ArgumentException(
+                "DateTime must be UTC", nameof(dateTime));
 
-        return dateTime - DateTime.UnixEpoch;
+        return dateTime - System.DateTime.UnixEpoch;
     }
 
     /// <summary>
     /// Converts DateTime to application-specific TimeSpan with validation.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TimeSpan DateTimeToTime(DateTime dateTime)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.TimeSpan DateTimeToTime(System.DateTime dateTime)
     {
-        if (dateTime.Kind != DateTimeKind.Utc)
-            throw new ArgumentException("DateTime must be UTC", nameof(dateTime));
+        if (dateTime.Kind != System.DateTimeKind.Utc)
+            throw new System.ArgumentException("DateTime must be UTC", nameof(dateTime));
 
         return dateTime - TimeEpoch;
     }
@@ -243,25 +278,29 @@ public static class Clock
     /// <summary>
     /// Converts UTC DateTime to Unix timestamp in seconds.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong DateTimeToUnixTimeSeconds(DateTime utcDateTime)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static ulong DateTimeToUnixTimeSeconds(System.DateTime utcDateTime)
     {
-        if (utcDateTime.Kind != DateTimeKind.Utc)
-            throw new ArgumentException("DateTime must be UTC", nameof(utcDateTime));
+        if (utcDateTime.Kind != System.DateTimeKind.Utc)
+            throw new System.ArgumentException(
+                "DateTime must be UTC", nameof(utcDateTime));
 
-        return (ulong)(utcDateTime - DateTime.UnixEpoch).TotalSeconds;
+        return (ulong)(utcDateTime - System.DateTime.UnixEpoch).TotalSeconds;
     }
 
     /// <summary>
     /// Converts UTC DateTime to Unix timestamp in milliseconds.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong DateTimeToUnixTimeMilliseconds(DateTime utcDateTime)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static ulong DateTimeToUnixTimeMilliseconds(System.DateTime utcDateTime)
     {
-        if (utcDateTime.Kind != DateTimeKind.Utc)
-            throw new ArgumentException("DateTime must be UTC", nameof(utcDateTime));
+        if (utcDateTime.Kind != System.DateTimeKind.Utc)
+            throw new System.ArgumentException(
+                "DateTime must be UTC", nameof(utcDateTime));
 
-        return (ulong)(utcDateTime - DateTime.UnixEpoch).TotalMilliseconds;
+        return (ulong)(utcDateTime - System.DateTime.UnixEpoch).TotalMilliseconds;
     }
 
     #endregion Conversion Methods
@@ -271,32 +310,45 @@ public static class Clock
     /// <summary>
     /// Compares two TimeSpan values and returns the greater one.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TimeSpan Max(TimeSpan time1, TimeSpan time2)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.TimeSpan Max(
+        System.TimeSpan time1,
+        System.TimeSpan time2)
         => time1 > time2 ? time1 : time2;
 
     /// <summary>
     /// Compares two TimeSpan values and returns the lesser one.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TimeSpan Min(TimeSpan time1, TimeSpan time2)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.TimeSpan Min(
+        System.TimeSpan time1,
+        System.TimeSpan time2)
         => time1 < time2 ? time1 : time2;
 
     /// <summary>
     /// Checks if a DateTime is within the allowed range.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsInRange(DateTime dateTime, TimeSpan range)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static bool IsInRange(
+        System.DateTime dateTime,
+        System.TimeSpan range)
     {
-        TimeSpan diff = GetUtcNowPrecise() - dateTime;
+        System.TimeSpan diff = GetUtcNowPrecise() - dateTime;
         return diff.Ticks >= -range.Ticks && diff.Ticks <= range.Ticks;
     }
 
     /// <summary>
     /// Clamps a DateTime between a minimum and maximum value.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DateTime Clamp(DateTime value, DateTime min, DateTime max)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.DateTime Clamp(
+        System.DateTime value,
+        System.DateTime min,
+        System.DateTime max)
     {
         if (value < min) return min;
         if (value > max) return max;
@@ -306,8 +358,12 @@ public static class Clock
     /// <summary>
     /// Clamps a TimeSpan between a minimum and maximum value.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TimeSpan Clamp(TimeSpan value, TimeSpan min, TimeSpan max)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.TimeSpan Clamp(
+        System.TimeSpan value,
+        System.TimeSpan min,
+        System.TimeSpan max)
     {
         if (value < min) return min;
         if (value > max) return max;
@@ -324,19 +380,21 @@ public static class Clock
     /// <param name="externalTime">The accurate external UTC time.</param>
     /// <param name="maxAllowedDriftMs">Maximum allowed drift in milliseconds before adjustment is applied.</param>
     /// <returns>The adjustment made in milliseconds.</returns>
-    public static double SynchronizeTime(DateTime externalTime, double maxAllowedDriftMs = 1000.0)
+    public static double SynchronizeTime(
+        System.DateTime externalTime,
+        double maxAllowedDriftMs = 1000.0)
     {
-        if (externalTime.Kind != DateTimeKind.Utc)
-            throw new ArgumentException("External time must be UTC", nameof(externalTime));
+        if (externalTime.Kind != System.DateTimeKind.Utc)
+            throw new System.ArgumentException("External time must be UTC", nameof(externalTime));
 
         // Calculate current time according to our clock
-        DateTime currentTime = GetUtcNowPrecise();
+        System.DateTime currentTime = GetUtcNowPrecise();
 
         // Calculate time difference
         var timeDifference = externalTime - currentTime;
 
         // Only adjust if drift is above threshold
-        if (Math.Abs(timeDifference.TotalMilliseconds) <= maxAllowedDriftMs)
+        if (System.Math.Abs(timeDifference.TotalMilliseconds) <= maxAllowedDriftMs)
             return 0;
 
         // Calculate and apply offset
@@ -345,7 +403,7 @@ public static class Clock
         _lastSyncTime = externalTime;
 
         // Calculate drift rate if we have previous sync data
-        if (_lastSyncTime != DateTime.MinValue)
+        if (_lastSyncTime != System.DateTime.MinValue)
         {
             var elapsedSinceLastSync = (externalTime - _lastSyncTime).TotalSeconds;
             if (elapsedSinceLastSync > 60) // Only calculate drift after at least 1 minute
@@ -367,7 +425,7 @@ public static class Clock
         _timeOffset = 0;
         _driftCorrection = 1.0;
         _isSynchronized = false;
-        _lastSyncTime = DateTime.MinValue;
+        _lastSyncTime = System.DateTime.MinValue;
     }
 
     /// <summary>
@@ -386,7 +444,7 @@ public static class Clock
             return 0;
 
         var driftedTime = GetUtcNowPrecise();
-        var systemTime = DateTime.UtcNow;
+        var systemTime = System.DateTime.UtcNow;
         return (driftedTime - systemTime).TotalMilliseconds;
     }
 
@@ -397,21 +455,24 @@ public static class Clock
     /// <summary>
     /// Starts a new performance measurement using the current thread's stopwatch.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void StartMeasurement() => _threadStopwatch.Value!.Restart();
 
     /// <summary>
     /// Gets the elapsed time since the last call to StartMeasurement() for the current thread.
     /// </summary>
     /// <returns>The elapsed time as a TimeSpan.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TimeSpan GetElapsed() => _threadStopwatch.Value!.Elapsed;
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.TimeSpan GetElapsed() => _threadStopwatch.Value!.Elapsed;
 
     /// <summary>
     /// Gets the elapsed time in milliseconds since the last call to StartMeasurement() for the current thread.
     /// </summary>
     /// <returns>The elapsed time in milliseconds.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static double GetElapsedMilliseconds()
         => _threadStopwatch.Value!.Elapsed.TotalMilliseconds;
 
@@ -419,7 +480,8 @@ public static class Clock
     /// Gets the elapsed time in microseconds since the last call to StartMeasurement() for the current thread.
     /// </summary>
     /// <returns>The elapsed time in microseconds.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static double GetElapsedMicroseconds()
         => _threadStopwatch.Value!.Elapsed.Ticks / 10.0;
 
@@ -427,15 +489,16 @@ public static class Clock
     /// Creates a new TimeStamp for precise interval measurement.
     /// </summary>
     /// <returns>A TimeStamp object representing the current time.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TimeStamp CreateTimeStamp() => new(Stopwatch.GetTimestamp());
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static TimeStamp CreateTimeStamp() => new(System.Diagnostics.Stopwatch.GetTimestamp());
 
     /// <summary>
     /// Measures the execution time of an action.
     /// </summary>
     /// <param name="action">The action to measure.</param>
     /// <returns>The elapsed time in milliseconds.</returns>
-    public static double MeasureExecutionTime(Action action)
+    public static double MeasureExecutionTime(System.Action action)
     {
         StartMeasurement();
         action();
@@ -448,7 +511,7 @@ public static class Clock
     /// <typeparam name="T">The type of the result.</typeparam>
     /// <param name="func">The function to execute and measure.</param>
     /// <returns>A tuple containing the result and the elapsed time in milliseconds.</returns>
-    public static (T Result, double ElapsedMs) MeasureFunction<T>(Func<T> func)
+    public static (T Result, double ElapsedMs) MeasureFunction<T>(System.Func<T> func)
     {
         StartMeasurement();
         T result = func();
@@ -465,10 +528,12 @@ public static class Clock
     /// <param name="targetTime">The UTC time to wait for.</param>
     /// <param name="cancellationToken">Optional cancellation token to abort the wait.</param>
     /// <returns>True if the target time was reached; false if the wait was cancelled.</returns>
-    public static bool WaitUntil(DateTime targetTime, CancellationToken cancellationToken = default)
+    public static bool WaitUntil(
+        System.DateTime targetTime,
+        System.Threading.CancellationToken cancellationToken = default)
     {
-        if (targetTime.Kind != DateTimeKind.Utc)
-            throw new ArgumentException("Target time must be UTC", nameof(targetTime));
+        if (targetTime.Kind != System.DateTimeKind.Utc)
+            throw new System.ArgumentException("Target time must be UTC", nameof(targetTime));
 
         while (GetUtcNowPrecise() < targetTime)
         {
@@ -477,16 +542,16 @@ public static class Clock
 
             // Calculate how long to sleep
             var remainingTime = targetTime - GetUtcNowPrecise();
-            if (remainingTime <= TimeSpan.Zero)
+            if (remainingTime <= System.TimeSpan.Zero)
                 break;
 
             // For longer waits, sleep in chunks to allow cancellation checks
             if (remainingTime.TotalMilliseconds > 50)
-                Thread.Sleep(Math.Min((int)remainingTime.TotalMilliseconds / 2, 50));
+                System.Threading.Thread.Sleep(System.Math.Min((int)remainingTime.TotalMilliseconds / 2, 50));
             else if (remainingTime.TotalMilliseconds > 1)
-                Thread.Sleep(1);
+                System.Threading.Thread.Sleep(1);
             else
-                Thread.SpinWait(100); // For sub-millisecond precision
+                System.Threading.Thread.SpinWait(100); // For sub-millisecond precision
         }
 
         return !cancellationToken.IsCancellationRequested;
@@ -498,8 +563,11 @@ public static class Clock
     /// <param name="startTime">The start time (inclusive).</param>
     /// <param name="endTime">The end time (exclusive).</param>
     /// <returns>True if the current time is within the specified range.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsTimeBetween(DateTime startTime, DateTime endTime)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static bool IsTimeBetween(
+        System.DateTime startTime,
+        System.DateTime endTime)
     {
         var now = GetUtcNowPrecise();
         return now >= startTime && now < endTime;
@@ -510,11 +578,12 @@ public static class Clock
     /// </summary>
     /// <param name="targetTime">The target UTC time.</param>
     /// <returns>The TimeSpan until the target time, or TimeSpan.Zero if the target time has passed.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TimeSpan GetTimeRemaining(DateTime targetTime)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.TimeSpan GetTimeRemaining(System.DateTime targetTime)
     {
         var timeRemaining = targetTime - GetUtcNowPrecise();
-        return timeRemaining > TimeSpan.Zero ? timeRemaining : TimeSpan.Zero;
+        return timeRemaining > System.TimeSpan.Zero ? timeRemaining : System.TimeSpan.Zero;
     }
 
     /// <summary>
@@ -523,8 +592,11 @@ public static class Clock
     /// <param name="startTime">The start time (UTC).</param>
     /// <param name="duration">The duration to check.</param>
     /// <returns>True if the duration has elapsed since the start time.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool HasElapsed(DateTime startTime, TimeSpan duration)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static bool HasElapsed(
+        System.DateTime startTime,
+        System.TimeSpan duration)
         => GetUtcNowPrecise() - startTime >= duration;
 
     /// <summary>
@@ -533,7 +605,9 @@ public static class Clock
     /// <param name="startTime">The start time.</param>
     /// <param name="endTime">The end time.</param>
     /// <returns>A value between 0.0 and 1.0 representing the percentage completion.</returns>
-    public static double GetPercentageComplete(DateTime startTime, DateTime endTime)
+    public static double GetPercentageComplete(
+        System.DateTime startTime,
+        System.DateTime endTime)
     {
         if (startTime >= endTime)
             return 1.0;
@@ -541,7 +615,7 @@ public static class Clock
         var totalDuration = endTime - startTime;
         var elapsed = GetUtcNowPrecise() - startTime;
 
-        if (elapsed <= TimeSpan.Zero)
+        if (elapsed <= System.TimeSpan.Zero)
             return 0.0;
 
         if (elapsed >= totalDuration)
@@ -560,12 +634,12 @@ public static class Clock
     /// <param name="timeSpan">The TimeSpan to format.</param>
     /// <param name="includeMilliseconds">Whether to include milliseconds in the output.</param>
     /// <returns>A formatted string representation of the TimeSpan.</returns>
-    public static string FormatTimeSpan(TimeSpan timeSpan, bool includeMilliseconds = false)
+    public static string FormatTimeSpan(System.TimeSpan timeSpan, bool includeMilliseconds = false)
     {
-        if (timeSpan == TimeSpan.Zero)
+        if (timeSpan == System.TimeSpan.Zero)
             return "0s";
 
-        var parts = new List<string>();
+        System.Collections.Generic.List<string> parts = [];
 
         if (timeSpan.Days > 0)
             parts.Add($"{timeSpan.Days}d");
@@ -591,10 +665,10 @@ public static class Clock
     /// <param name="startTime">The start time.</param>
     /// <param name="includeMilliseconds">Whether to include milliseconds in the output.</param>
     /// <returns>A formatted string representing the elapsed time.</returns>
-    public static string FormatElapsedTime(DateTime startTime, bool includeMilliseconds = false)
+    public static string FormatElapsedTime(System.DateTime startTime, bool includeMilliseconds = false)
     {
-        if (startTime.Kind != DateTimeKind.Utc)
-            throw new ArgumentException("Start time must be UTC", nameof(startTime));
+        if (startTime.Kind != System.DateTimeKind.Utc)
+            throw new System.ArgumentException("Start time must be UTC", nameof(startTime));
 
         return FormatTimeSpan(GetUtcNowPrecise() - startTime, includeMilliseconds);
     }
@@ -604,10 +678,10 @@ public static class Clock
     /// </summary>
     /// <param name="dateTime">The UTC DateTime to format.</param>
     /// <returns>A human-readable relative time string.</returns>
-    public static string GetRelativeTimeString(DateTime dateTime)
+    public static string GetRelativeTimeString(System.DateTime dateTime)
     {
-        if (dateTime.Kind != DateTimeKind.Utc)
-            throw new ArgumentException("DateTime must be UTC", nameof(dateTime));
+        if (dateTime.Kind != System.DateTimeKind.Utc)
+            throw new System.ArgumentException("DateTime must be UTC", nameof(dateTime));
 
         var now = GetUtcNowPrecise();
         var diff = now - dateTime;
@@ -622,24 +696,24 @@ public static class Clock
             if (diff.TotalMinutes < 2)
                 return "in a minute";
             if (diff.TotalHours < 1)
-                return $"in {Math.Floor(diff.TotalMinutes)} minutes";
+                return $"in {System.Math.Floor(diff.TotalMinutes)} minutes";
             if (diff.TotalHours < 2)
                 return "in an hour";
             if (diff.TotalDays < 1)
-                return $"in {Math.Floor(diff.TotalHours)} hours";
+                return $"in {System.Math.Floor(diff.TotalHours)} hours";
             if (diff.TotalDays < 2)
                 return "tomorrow";
             if (diff.TotalDays < 7)
-                return $"in {Math.Floor(diff.TotalDays)} days";
+                return $"in {System.Math.Floor(diff.TotalDays)} days";
             if (diff.TotalDays < 14)
                 return "in a week";
             if (diff.TotalDays < 30)
-                return $"in {Math.Floor(diff.TotalDays / 7)} weeks";
+                return $"in {System.Math.Floor(diff.TotalDays / 7)} weeks";
             if (diff.TotalDays < 60)
                 return "in a month";
             if (diff.TotalDays < 365)
-                return $"in {Math.Floor(diff.TotalDays / 30)} months";
-            return $"in {Math.Floor(diff.TotalDays / 365)} years";
+                return $"in {System.Math.Floor(diff.TotalDays / 30)} months";
+            return $"in {System.Math.Floor(diff.TotalDays / 365)} years";
         }
 
         // Past time
@@ -648,24 +722,24 @@ public static class Clock
         if (diff.TotalMinutes < 2)
             return "a minute ago";
         if (diff.TotalHours < 1)
-            return $"{Math.Floor(diff.TotalMinutes)} minutes ago";
+            return $"{System.Math.Floor(diff.TotalMinutes)} minutes ago";
         if (diff.TotalHours < 2)
             return "an hour ago";
         if (diff.TotalDays < 1)
-            return $"{Math.Floor(diff.TotalHours)} hours ago";
+            return $"{System.Math.Floor(diff.TotalHours)} hours ago";
         if (diff.TotalDays < 2)
             return "yesterday";
         if (diff.TotalDays < 7)
-            return $"{Math.Floor(diff.TotalDays)} days ago";
+            return $"{System.Math.Floor(diff.TotalDays)} days ago";
         if (diff.TotalDays < 14)
             return "a week ago";
         if (diff.TotalDays < 30)
-            return $"{Math.Floor(diff.TotalDays / 7)} weeks ago";
+            return $"{System.Math.Floor(diff.TotalDays / 7)} weeks ago";
         if (diff.TotalDays < 60)
             return "a month ago";
         if (diff.TotalDays < 365)
-            return $"{Math.Floor(diff.TotalDays / 30)} months ago";
-        return $"{Math.Floor(diff.TotalDays / 365)} years ago";
+            return $"{System.Math.Floor(diff.TotalDays / 30)} months ago";
+        return $"{System.Math.Floor(diff.TotalDays / 365)} years ago";
     }
 
     #endregion Time Formatting
