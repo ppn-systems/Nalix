@@ -10,17 +10,17 @@ public sealed class LogDistributor : ILogDistributor
     #region Fields
 
     // Use a dummy value (0) for dictionary entries as we only care about the keys
-    private const byte DummyValue = 0;
+    private const System.Byte DummyValue = 0;
 
     // Using a concurrent dictionary for thread-safe operations on targets
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<ILoggerTarget, byte> _targets = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<ILoggerTarget, System.Byte> _targets = new();
 
     // Track disposed state in a thread-safe way
-    private int _isDisposed;
+    private System.Int32 _isDisposed;
 
-    private long _entriesDistributor;
-    private long _targetsProcessed;
-    private long _publishErrorCount;
+    private System.Int64 _entriesDistributor;
+    private System.Int64 _targetsProcessed;
+    private System.Int64 _publishErrorCount;
 
     #endregion Fields
 
@@ -29,19 +29,19 @@ public sealed class LogDistributor : ILogDistributor
     /// <summary>
     /// Gets the total Number of log entries that have been published.
     /// </summary>
-    public long EntriesDistributor
+    public System.Int64 EntriesDistributor
         => System.Threading.Interlocked.Read(ref _entriesDistributor);
 
     /// <summary>
     /// Gets the total Number of target publish operations performed.
     /// </summary>
-    public long TargetsProcessed
+    public System.Int64 TargetsProcessed
         => System.Threading.Interlocked.Read(ref _targetsProcessed);
 
     /// <summary>
     /// Gets the Number of errors that occurred during publish operations.
     /// </summary>
-    public long PublishErrorCount
+    public System.Int64 PublishErrorCount
         => System.Threading.Interlocked.Read(ref _publishErrorCount);
 
     #endregion Properties

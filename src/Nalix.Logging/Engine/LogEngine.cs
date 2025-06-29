@@ -74,7 +74,7 @@ public abstract class LogEngine : System.IDisposable
     /// <returns><c>true</c> if the log level is enabled for logging.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected bool IsEnabled(LogLevel level) => level >= _minLevel;
+    protected System.Boolean IsEnabled(LogLevel level) => level >= _minLevel;
 
     /// <summary>
     /// Creates and publishes a log entry if the log level is enabled.
@@ -87,7 +87,7 @@ public abstract class LogEngine : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected void CreateLogEntry(
         LogLevel level, EventId eventId,
-        string message, System.Exception? error = null)
+        System.String message, System.Exception? error = null)
     {
         if (_isDisposed != 0 || level < _minLevel)
             return;
@@ -105,7 +105,9 @@ public abstract class LogEngine : System.IDisposable
     /// <param name="args">The argument values for the format string.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected void CreateFormattedLogEntry(LogLevel level, EventId eventId, string format, params object[] args)
+    protected void CreateFormattedLogEntry(
+        LogLevel level, EventId eventId,
+        System.String format, params System.Object[] args)
     {
         // Skip expensive string formatting if the log level is disabled
         if (_isDisposed != 0 || level < _minLevel)
@@ -127,7 +129,7 @@ public abstract class LogEngine : System.IDisposable
     /// Releases managed and unmanaged resources used by the logging engine.
     /// </summary>
     /// <param name="disposing">True if called from Dispose(), false if called from finalizer.</param>
-    protected virtual void Dispose(bool disposing)
+    protected virtual void Dispose(System.Boolean disposing)
     {
         // Thread-safe disposal check using Interlocked
         if (System.Threading.Interlocked.Exchange(ref _isDisposed, 1) != 0)
@@ -156,8 +158,8 @@ public abstract class LogEngine : System.IDisposable
 
     #region Private Methods
 
-    private static string FormatMessage(string format, object[]? args)
-        => args == null || args.Length == 0 ? format : string.Format(format, args);
+    private static System.String FormatMessage(System.String format, System.Object[]? args)
+        => args == null || args.Length == 0 ? format : System.String.Format(format, args);
 
     #endregion Private Methods
 }
