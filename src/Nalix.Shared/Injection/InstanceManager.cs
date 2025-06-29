@@ -1,40 +1,40 @@
-using System;
-using System.Collections.Concurrent;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Threading;
-
 namespace Nalix.Shared.Injection;
 
 /// <summary>
 /// High-performance manager that maintains single instances of different types,
 /// optimized for real-time server applications with thread safety and caching.
 /// </summary>
-public sealed class InstanceManager : IDisposable
+public sealed class InstanceManager : System.IDisposable
 {
     #region Fields
 
     // Lazy-load the entry assembly.
-    private static readonly Lazy<Assembly> EntryAssemblyLazy = new(() =>
-        Assembly.GetEntryAssembly() ?? throw new InvalidOperationException("Entry assembly is null."));
+    private static readonly System.Lazy<System.Reflection.Assembly> EntryAssemblyLazy = new(() =>
+        System.Reflection.Assembly.GetEntryAssembly() ??
+        throw new System.InvalidOperationException("Entry assembly is null."));
 
-    private static readonly Lock SyncLock = new();
+    private static readonly System.Threading.Lock SyncLock = new();
 
     /// <summary>
     /// Gets the assembly that started the application.
     /// </summary>
-    public static Assembly EntryAssembly => EntryAssemblyLazy.Value;
+    public static System.Reflection.Assembly EntryAssembly => EntryAssemblyLazy.Value;
 
-    private static readonly string ApplicationMutexName = "Low\\{{" + EntryAssembly.FullName + "}}";
+    private static readonly System.String ApplicationMutexName = "Low\\{{" + EntryAssembly.FullName + "}}";
 
-    private readonly ConcurrentDictionary<Type, object> _instanceCache = new();
-    private readonly ConcurrentDictionary<Type, ConstructorInfo> _constructorCache = new();
-    private readonly ConcurrentDictionary<Type, Func<object[], object>> _activatorCache = new();
-    private readonly ConcurrentBag<IDisposable> _disposableInstances = [];
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<
+        System.Type, System.Object> _instanceCache = new();
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<
+        System.Type, System.Reflection.ConstructorInfo> _constructorCache = new();
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<
+        System.Type, System.Func<System.Object[], System.Object>> _activatorCache = new();
+
+    private readonly System.Collections.Concurrent.ConcurrentBag<System.IDisposable> _disposableInstances = [];
 
     // Thread safety for disposal
-    private int _isDisposed;
+    private System.Int32 _isDisposed;
 
     #endregion Fields
 
@@ -43,7 +43,7 @@ public sealed class InstanceManager : IDisposable
     /// <summary>
     /// Checks if this application (including version Number) is the only instance currently running.
     /// </summary>
-    public static bool IsTheOnlyInstance
+    public static System.Boolean IsTheOnlyInstance
     {
         get
         {
@@ -52,14 +52,14 @@ public sealed class InstanceManager : IDisposable
                 try
                 {
                     // Try to open an existing global mutex.
-                    using Mutex existingMutex = Mutex.OpenExisting(ApplicationMutexName);
+                    using System.Threading.Mutex existingMutex = System.Threading.Mutex.OpenExisting(ApplicationMutexName);
                 }
                 catch
                 {
                     try
                     {
                         // If no mutex exists, create one. This instance is the only instance.
-                        using Mutex appMutex = new(true, ApplicationMutexName);
+                        using System.Threading.Mutex appMutex = new(true, ApplicationMutexName);
                         return true;
                     }
                     catch
@@ -75,7 +75,7 @@ public sealed class InstanceManager : IDisposable
     /// <summary>
     /// Gets the Number of cached instances.
     /// </summary>
-    public int CachedInstanceCount => _instanceCache.Count;
+    public System.Int32 CachedInstanceCount => _instanceCache.Count;
 
     #endregion Properties
 
@@ -87,13 +87,15 @@ public sealed class InstanceManager : IDisposable
     /// <typeparam name="T">The type of instance to get or create.</typeparam>
     /// <param name="args">The arguments to pass to the constructor if a new instance is created.</param>
     /// <returns>The existing or newly created instance.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public T GetOrCreateInstance<T>(params object[] args) where T : class
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public T GetOrCreateInstance<T>(params System.Object[] args) where T : class
     {
-        ObjectDisposedException.ThrowIf(
-            Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0,
+        System.ObjectDisposedException.ThrowIf(
+            System.Threading.Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0,
             nameof(InstanceManager));
-        var type = typeof(T);
+
+        System.Type type = typeof(T);
         return (T)GetOrCreateInstance(type, args);
     }
 
@@ -103,23 +105,24 @@ public sealed class InstanceManager : IDisposable
     /// <param name="type">The type of the instance to get or create.</param>
     /// <param name="args">The arguments to pass to the constructor if a new instance is created.</param>
     /// <returns>The existing or newly created instance.</returns>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="System.InvalidOperationException">
     /// Thrown if the specified type does not have a suitable constructor or
     /// if the instance manager has been disposed.
     /// </exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public object GetOrCreateInstance(Type type, params object[] args)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Object GetOrCreateInstance(System.Type type, params System.Object[] args)
     {
-        ObjectDisposedException.ThrowIf(
-            Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0,
+        System.ObjectDisposedException.ThrowIf(
+            System.Threading.Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0,
             nameof(InstanceManager));
 
         return _instanceCache.GetOrAdd(type, t =>
         {
-            object instance = CreateInstance(t, args);
+            System.Object instance = CreateInstance(t, args);
 
             // Track disposable instances for cleanup
-            if (instance is IDisposable disposable)
+            if (instance is System.IDisposable disposable)
             {
                 _disposableInstances.Add(disposable);
             }
@@ -134,27 +137,30 @@ public sealed class InstanceManager : IDisposable
     /// <param name="type">The type of instance to create.</param>
     /// <param name="args">Constructor arguments.</param>
     /// <returns>A new instance of the specified type.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public object CreateInstance(Type type, params object[] args)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Object CreateInstance(System.Type type, params System.Object[] args)
     {
-        ObjectDisposedException.ThrowIf(
-            Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0,
+        System.ObjectDisposedException.ThrowIf(
+            System.Threading.Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0,
             nameof(InstanceManager));
 
         // Use cached factory method when available
-        if (_activatorCache.TryGetValue(type, out var activator))
+        if (_activatorCache.TryGetValue(
+            type, out System.Func<System.Object[], System.Object>? activator))
         {
             return activator(args);
         }
 
         // Use cached constructor when available
-        if (!_constructorCache.TryGetValue(type, out var constructor))
+        if (!_constructorCache.TryGetValue(
+            type, out System.Reflection.ConstructorInfo? constructor))
         {
             // Find most appropriate constructor based on args
             constructor = FindBestMatchingConstructor(type, args);
             if (constructor == null)
             {
-                throw new InvalidOperationException(
+                throw new System.InvalidOperationException(
                     $"Type {type.Name} does not have a suitable constructor for the provided arguments.");
             }
 
@@ -163,7 +169,7 @@ public sealed class InstanceManager : IDisposable
         }
 
         // Create fast delegate for future invocations
-        Func<object[], object> factory = CreateActivator(type, constructor);
+        System.Func<System.Object[], System.Object> factory = CreateActivator(type, constructor);
         _activatorCache.TryAdd(type, factory);
 
         // Create instance
@@ -175,23 +181,24 @@ public sealed class InstanceManager : IDisposable
     /// </summary>
     /// <param name="type">The type of the instance to remove.</param>
     /// <returns><c>true</c> if the instance was successfully removed; otherwise, <c>false</c>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool RemoveInstance(Type type)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean RemoveInstance(System.Type type)
     {
-        ObjectDisposedException.ThrowIf(
-            Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0,
+        System.ObjectDisposedException.ThrowIf(
+            System.Threading.Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0,
             nameof(InstanceManager));
 
         // Remove and potentially dispose the instance
-        bool removed = _instanceCache.TryRemove(type, out var instance);
+        System.Boolean removed = _instanceCache.TryRemove(type, out System.Object? instance);
 
-        if (removed && instance is IDisposable disposable)
+        if (removed && instance is System.IDisposable disposable)
         {
             try
             {
                 disposable.Dispose();
             }
-            catch (Exception)
+            catch (System.Exception)
             {
                 // Log exception but continue (in production, add logging)
             }
@@ -205,55 +212,59 @@ public sealed class InstanceManager : IDisposable
     /// </summary>
     /// <typeparam name="T">The type of the instance to remove.</typeparam>
     /// <returns><c>true</c> if the instance was successfully removed; otherwise, <c>false</c>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool RemoveInstance<T>() => RemoveInstance(typeof(T));
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean RemoveInstance<T>() => RemoveInstance(typeof(T));
 
     /// <summary>
     /// Determines whether an instance of the specified type is cached.
     /// </summary>
     /// <typeparam name="T">The type to check.</typeparam>
     /// <returns><c>true</c> if an instance of the specified type is cached; otherwise, <c>false</c>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool HasInstance<T>() => _instanceCache.ContainsKey(typeof(T));
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean HasInstance<T>() => _instanceCache.ContainsKey(typeof(T));
 
     /// <summary>
     /// Gets an existing instance of the specified type without creating a new one if it doesn't exist.
     /// </summary>
     /// <typeparam name="T">The type of the instance to get.</typeparam>
     /// <returns>The existing instance, or <c>null</c> if no instance exists.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T? GetExistingInstance<T>() where T : class
     {
-        ObjectDisposedException.ThrowIf(
-            Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0,
+        System.ObjectDisposedException.ThrowIf(
+            System.Threading.Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0,
             nameof(InstanceManager));
 
-        _instanceCache.TryGetValue(typeof(T), out var instance);
+        _instanceCache.TryGetValue(typeof(T), out System.Object? instance);
         return instance as T;
     }
 
     /// <summary>
     /// Clears all cached instances, optionally disposing them.
     /// </summary>
-    /// <param name="disposeInstances">If <c>true</c>, disposes any instances that implement <see cref="IDisposable"/>.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Clear(bool disposeInstances = true)
+    /// <param name="disposeInstances">If <c>true</c>, disposes any instances that implement <see cref="System.IDisposable"/>.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Clear(System.Boolean disposeInstances = true)
     {
-        ObjectDisposedException.ThrowIf(
-            Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0,
+        System.ObjectDisposedException.ThrowIf(
+            System.Threading.Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0,
             nameof(InstanceManager));
 
         if (disposeInstances)
         {
-            foreach (var instance in _instanceCache.Values)
+            foreach (System.Object instance in _instanceCache.Values)
             {
-                if (instance is IDisposable disposable)
+                if (instance is System.IDisposable disposable)
                 {
                     try
                     {
                         disposable.Dispose();
                     }
-                    catch (Exception)
+                    catch (System.Exception)
                     {
                         // Log exception but continue (in production, add logging)
                     }
@@ -271,11 +282,11 @@ public sealed class InstanceManager : IDisposable
     #region IDisposable
 
     /// <summary>
-    /// Disposes of all instances in the cache that implement <see cref="IDisposable"/>.
+    /// Disposes of all instances in the cache that implement <see cref="System.IDisposable"/>.
     /// </summary>
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _isDisposed, 1) != 0)
+        if (System.Threading.Interlocked.Exchange(ref _isDisposed, 1) != 0)
             return;
 
         foreach (var disposable in _disposableInstances)
@@ -284,14 +295,14 @@ public sealed class InstanceManager : IDisposable
             {
                 disposable.Dispose();
             }
-            catch (Exception)
+            catch (System.Exception)
             {
                 // Log exception but continue (in production, add logging)
             }
         }
 
         Clear(disposeInstances: true);
-        GC.SuppressFinalize(this);
+        System.GC.SuppressFinalize(this);
     }
 
     #endregion IDisposable
@@ -301,38 +312,43 @@ public sealed class InstanceManager : IDisposable
     /// <summary>
     /// Finds the best matching constructor for the given arguments.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ConstructorInfo? FindBestMatchingConstructor(Type type, object[] args)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Reflection.ConstructorInfo? FindBestMatchingConstructor(
+        System.Type type, System.Object[] args)
     {
         // Fast path for parameterless constructor
         if (args.Length == 0)
         {
-            return type.GetConstructor(Type.EmptyTypes) ??
-                   type.GetConstructors().FirstOrDefault(c => c.GetParameters().Length == 0);
+            return type.GetConstructor(System.Type.EmptyTypes) ??
+                   System.Linq.Enumerable.FirstOrDefault(type.GetConstructors(),
+                       c => c.GetParameters().Length == 0);
         }
 
         // Try to find an exact match
-        var argTypes = args.Select(a => a?.GetType() ?? typeof(object)).ToArray();
-        var constructor = type.GetConstructor(argTypes);
+        System.Type[] argTypes = System.Linq.Enumerable.ToArray(
+            System.Linq.Enumerable.Select(args, a => a?.GetType() ?? typeof(object)));
+
+        System.Reflection.ConstructorInfo? constructor = type.GetConstructor(argTypes);
 
         // If no exact match, look for compatible constructor
         if (constructor == null)
         {
-            var constructors = type.GetConstructors()
-                .Where(c => c.GetParameters().Length == args.Length)
-                .ToList();
+            var constructorsWithMatchingCount = System.Linq.Enumerable.ToList(
+                System.Linq.Enumerable.Where(
+                    type.GetConstructors(),
+                    c => c.GetParameters().Length == args.Length));
 
-            if (constructors.Count == 1)
+            if (constructorsWithMatchingCount.Count == 1)
             {
-                // Only one constructor with matching parameter count
-                constructor = constructors[0];
+                constructor = constructorsWithMatchingCount[0];
             }
-            else if (constructors.Count > 1)
+            else if (constructorsWithMatchingCount.Count > 1)
             {
-                // Find best match based on parameter compatibility
-                constructor = constructors
-                    .OrderByDescending(c => CalculateConstructorMatchScore(c, args))
-                    .FirstOrDefault();
+                constructor = System.Linq.Enumerable.FirstOrDefault(
+                    System.Linq.Enumerable.OrderByDescending(
+                        constructorsWithMatchingCount,
+                        c => CalculateConstructorMatchScore(c, args)));
             }
         }
 
@@ -343,16 +359,18 @@ public sealed class InstanceManager : IDisposable
     /// Calculates a score for how well a constructor matches the provided arguments.
     /// Higher score means better match.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int CalculateConstructorMatchScore(ConstructorInfo constructor, object[] args)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Int32 CalculateConstructorMatchScore(
+        System.Reflection.ConstructorInfo constructor, System.Object[] args)
     {
-        var parameters = constructor.GetParameters();
-        int score = 0;
+        System.Reflection.ParameterInfo[] parameters = constructor.GetParameters();
+        System.Int32 score = 0;
 
-        for (int i = 0; i < args.Length; i++)
+        for (System.Int32 i = 0; i < args.Length; i++)
         {
-            var argType = args[i]?.GetType() ?? typeof(object);
-            var paramType = parameters[i].ParameterType;
+            System.Type argType = args[i]?.GetType() ?? typeof(System.Object);
+            System.Type paramType = parameters[i].ParameterType;
 
             if (paramType == argType)
             {
@@ -374,8 +392,10 @@ public sealed class InstanceManager : IDisposable
     /// <summary>
     /// Creates a cached activator for faster instance creation.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Func<object[], object> CreateActivator(Type type, ConstructorInfo constructor)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Func<System.Object[], System.Object> CreateActivator(
+        System.Type type, System.Reflection.ConstructorInfo constructor)
     {
         return args =>
         {
@@ -383,9 +403,9 @@ public sealed class InstanceManager : IDisposable
             {
                 return constructor.Invoke(args);
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
-                throw new InvalidOperationException(
+                throw new System.InvalidOperationException(
                     $"Failed to create instance of type {type.Name}. Ensure constructor arguments are compatible.",
                     ex.InnerException ?? ex);
             }

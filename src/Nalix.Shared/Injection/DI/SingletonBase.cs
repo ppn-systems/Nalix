@@ -1,27 +1,22 @@
-using System;
-using System.Runtime.CompilerServices;
-using System.Threading;
-
 namespace Nalix.Shared.Injection.DI;
 
 /// <summary>
-/// A high-performance generic thread-safe Singleton implementation using <see cref="Lazy{T}"/>.
+/// A high-performance generic thread-safe Singleton implementation using <see cref="System.Lazy{T}"/>.
 /// </summary>
 /// <typeparam name="T">The type of the Singleton class.</typeparam>
-public abstract class SingletonBase<T> : IDisposable
-    where T : class
+public abstract class SingletonBase<T> : System.IDisposable where T : class
 {
     #region Fields
 
     // Using ExecutionAndPublication mode for maximum thread safety
-    private static readonly Lazy<T> Instances = new(
+    private static readonly System.Lazy<T> Instances = new(
         valueFactory: CreateInstanceInternal,
-        LazyThreadSafetyMode.ExecutionAndPublication);
+        System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
     // Use volatile for thread-safety without locks
-    private volatile bool _isDisposed;
+    private volatile System.Boolean _isDisposed;
 
-    private int _disposeSignaled;
+    private System.Int32 _disposeSignaled;
 
     #endregion Fields
 
@@ -41,7 +36,7 @@ public abstract class SingletonBase<T> : IDisposable
     /// <remarks>
     /// Use this property to check if the instance exists without forcing instantiation.
     /// </remarks>
-    public static bool IsCreated => Instances.IsValueCreated;
+    public static System.Boolean IsCreated => Instances.IsValueCreated;
 
     #endregion Properties
 
@@ -61,11 +56,11 @@ public abstract class SingletonBase<T> : IDisposable
     public void Dispose()
     {
         // Ensure Dispose can only be called once
-        if (Interlocked.Exchange(ref _disposeSignaled, 1) != 0)
+        if (System.Threading.Interlocked.Exchange(ref _disposeSignaled, 1) != 0)
             return;
 
         Dispose(true);
-        GC.SuppressFinalize(this);
+        System.GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -75,7 +70,7 @@ public abstract class SingletonBase<T> : IDisposable
     /// <param name="disposeManaged">
     /// <c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.
     /// </param>
-    protected virtual void Dispose(bool disposeManaged)
+    protected virtual void Dispose(System.Boolean disposeManaged)
     {
         if (_isDisposed)
             return;
@@ -104,16 +99,17 @@ public abstract class SingletonBase<T> : IDisposable
     /// <summary>
     /// Creates an instance of the Singleton class with error handling.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static T CreateInstanceInternal()
     {
         try
         {
             return CreateInstance();
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
-            throw new InvalidOperationException(
+            throw new System.InvalidOperationException(
                 $"Failed to create singleton instance of type {typeof(T).Name}. " +
                 "Ensure it has a non-public constructor that can be called.", ex);
         }
@@ -123,11 +119,12 @@ public abstract class SingletonBase<T> : IDisposable
     /// Creates an instance of the Singleton class.
     /// </summary>
     /// <returns>The single instance of <typeparamref name="T"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static T CreateInstance()
     {
-        return Activator.CreateInstance(typeof(T), nonPublic: true) as T
-               ?? throw new MissingMethodException(
+        return System.Activator.CreateInstance(typeof(T), nonPublic: true) as T
+               ?? throw new System.MissingMethodException(
                    $"Unable to create instance of {typeof(T)}. " +
                    "Ensure the class has a parameterless constructor marked as protected or private.");
     }
@@ -139,10 +136,12 @@ public abstract class SingletonBase<T> : IDisposable
     /// <remarks>
     /// This method is intended for testing purposes only and should not be used in production code.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static void ResetForTesting()
     {
-        if (Instances.IsValueCreated && Instances.Value is IDisposable disposable)
+        if (Instances.IsValueCreated &&
+            Instances.Value is System.IDisposable disposable)
         {
             disposable.Dispose();
         }
