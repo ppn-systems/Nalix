@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Packets.Abstractions;
+using Nalix.Common.SDK;
 
 namespace Nalix.SDK.Remote.Extensions;
 
@@ -16,7 +17,7 @@ public static class ReliableClientSubscriptions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.IDisposable On<TPacket>(
-        this ReliableClient client,
+        this IReliableClient client,
         System.Action<TPacket> handler)
         where TPacket : class, IPacket
     {
@@ -39,7 +40,7 @@ public static class ReliableClientSubscriptions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.IDisposable On(
-        this ReliableClient client,
+        this IReliableClient client,
         System.Func<IPacket, System.Boolean> predicate,
         System.Action<IPacket> handler)
     {
@@ -63,7 +64,7 @@ public static class ReliableClientSubscriptions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.IDisposable OnOnce<TPacket>(
-        this ReliableClient client,
+        this IReliableClient client,
         System.Func<TPacket, System.Boolean> predicate,
         System.Action<TPacket> handler)
         where TPacket : class, IPacket
