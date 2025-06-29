@@ -1,3 +1,5 @@
+using Nalix.Shared.Configuration.Internal;
+
 namespace Nalix.Shared.Configuration.Metadata;
 
 /// <summary>
