@@ -17,8 +17,13 @@ using Nalix.SDK.Transport.Internal;
 namespace Nalix.SDK.Transport;
 
 /// <summary>
-/// TCP client entry point. Delegates send/receive responsibilities to internal helpers.
+/// A reliable TCP client that delegates framing, send, and receive responsibilities to internal helpers.
+/// Supports automatic reconnection, keep-alive heartbeats, and bandwidth rate sampling.
 /// </summary>
+/// <remarks>
+/// This class is <b>thread-safe</b> for concurrent calls to <see cref="SendAsync(IPacket, System.Threading.CancellationToken)"/>,
+/// <see cref="ConnectAsync"/>, <see cref="DisconnectAsync"/>, and <see cref="Dispose"/>.
+/// </remarks>
 public sealed class ReliableClient : IClientConnection
 {
     #region Constants
@@ -34,37 +39,45 @@ public sealed class ReliableClient : IClientConnection
 
     private readonly System.Threading.Lock _sync = new();
 
-    // helpers
+    // Internal frame helpers
     private FRAME_SENDER _sender;
     private FRAME_READER _receiver;
 
-    // Socket + control
+    // Socket + loop control
     private System.Net.Sockets.Socket _socket;
     private System.Threading.CancellationTokenSource _loopCts;
 
-    // TaskManager integration
+    // TaskManager-managed worker/recurring handles
     private IWorkerHandle _receiveHandle;
     private System.String _heartbeatName;
     private System.String _rateSamplerName;
 
-    // Endpoint info stored for reconnect
+    // Last known endpoint — stored for automatic reconnection.
     private System.String _host;
     private System.UInt16 _port;
 
-    // State
-    private volatile System.Boolean _disposed;
-    private System.Int64 _bytesSent;
+    // Dispose guard: 0 = live, 1 = disposed.
+    // Using int instead of volatile bool enables Interlocked.CompareExchange for atomic flip.
+    private System.Int32 _disposed;
 
-    // Rate tracking
+    // Cumulative byte counters (Interlocked)
+    private System.Int64 _bytesSent;
     private System.Int64 _bytesReceived;
+
+    // Per-interval counters reset by RATE_SAMPLER_TICK
     private System.Int64 _sendCounterForInterval;
     private System.Int64 _receiveCounterForInterval;
+
+    // Last computed bandwidth samples (bytes/s)
     private System.Int64 _lastSendBps;
     private System.Int64 _lastReceiveBps;
 
+    // Cached logger — resolved once to avoid repeated DI lookups on hot paths.
+    private readonly ILogger _log;
+
     #endregion Fields
 
-    #region Event Args
+    #region Events
 
     /// <inheritdoc/>
     public event System.EventHandler OnConnected;
@@ -76,9 +89,6 @@ public sealed class ReliableClient : IClientConnection
     public event System.EventHandler<IBufferLease> OnMessageReceived;
 
     /// <inheritdoc/>
-    public System.Func<ReliableClient, IBufferLease, System.Threading.Tasks.Task> OnMessageReceivedAsync;
-
-    /// <inheritdoc/>
     public event System.EventHandler<System.Int64> OnBytesSent;
 
     /// <inheritdoc/>
@@ -87,43 +97,59 @@ public sealed class ReliableClient : IClientConnection
     /// <inheritdoc/>
     public event System.EventHandler<System.Exception> OnError;
 
-    #endregion Event Args
+    /// <summary>
+    /// Optional asynchronous message handler.
+    /// When set, invoked alongside <see cref="OnMessageReceived"/> for async processing scenarios.
+    /// </summary>
+    /// <remarks>
+    /// Unlike the event, this is a single-delegate slot to avoid multicast complications with async.
+    /// The caller is responsible for disposing the <see cref="IBufferLease"/> if they consume it here.
+    /// </remarks>
+    public System.Func<ReliableClient, IBufferLease, System.Threading.Tasks.Task> OnMessageReceivedAsync;
+
+    #endregion Events
 
     #region Properties
 
-    /// <inheritdoc/>
+    /// <summary>Gets the transport options used by this client.</summary>
     public readonly TransportOptions Options;
 
     /// <inheritdoc/>
     ITransportOptions IClientConnection.Options => this.Options;
 
     /// <inheritdoc/>
-    public System.Boolean IsConnected => _socket?.Connected == true && !_disposed;
+    public System.Boolean IsConnected
+        => _socket?.Connected == true && System.Threading.Volatile.Read(ref _disposed) == 0;
 
-    /// <inheritdoc/>
+    /// <summary>Gets the total number of bytes sent since connection.</summary>
     public System.Int64 BytesSent => System.Threading.Interlocked.Read(ref _bytesSent);
 
-    /// <inheritdoc/>
+    /// <summary>Gets the total number of bytes received since connection.</summary>
     public System.Int64 BytesReceived => System.Threading.Interlocked.Read(ref _bytesReceived);
 
-    /// <inheritdoc/>
+    /// <summary>Gets the average send bandwidth in bytes per second over the last sample interval.</summary>
     public System.Int64 SendBytesPerSecond => System.Threading.Interlocked.Read(ref _lastSendBps);
 
-    /// <inheritdoc/>
+    /// <summary>Gets the average receive bandwidth in bytes per second over the last sample interval.</summary>
     public System.Int64 ReceiveBytesPerSecond => System.Threading.Interlocked.Read(ref _lastReceiveBps);
 
     #endregion Properties
 
     #region Constructor
 
-    /// <summary>Constructs a new client and loads ClientOptions via ConfigurationManager.</summary>
-    /// <remarks>
-    /// If configuration lookup fails, default <see cref="TransportOptions"/> values are used.
-    /// The instance also attempts to obtain or create an <see cref="ITaskManager"/> and
-    /// other shared instances via <see cref="InstanceManager"/>.
-    /// </remarks>
+    /// <summary>
+    /// Constructs a new <see cref="ReliableClient"/> and loads <see cref="TransportOptions"/> via
+    /// <see cref="ConfigurationManager"/>. Falls back to safe defaults if configuration is unavailable.
+    /// </summary>
+    /// <exception cref="System.InvalidOperationException">
+    /// Thrown (via <see cref="System.Environment.FailFast(System.String)"/>) when <see cref="IPacketCatalog"/>
+    /// is not registered — this is an unrecoverable misconfiguration.
+    /// </exception>
     public ReliableClient()
     {
+        // Cache logger immediately; null-safe via ?. on all call sites.
+        _log = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
         try
         {
             Options = ConfigurationManager.Instance.Get<TransportOptions>();
@@ -144,55 +170,62 @@ public sealed class ReliableClient : IClientConnection
             };
         }
 
-        if (InstanceManager.Instance.GetExistingInstance<IPacketCatalog>() == null)
+        // IPacketCatalog is required for deserialization; fail fast with a clear message.
+        if (InstanceManager.Instance.GetExistingInstance<IPacketCatalog>() is null)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[SDK.{nameof(ReliableClient)}] no IPacketCatalog instance found; this is a fatal configuration error. The process will terminate.");
+            _log?.Error(
+                $"[SDK.{nameof(ReliableClient)}] No IPacketCatalog instance found; " +
+                "this is a fatal configuration error. The process will terminate.");
 
-            // Fail fast with a clear message so operator/collector can see cause.
-            System.Environment.FailFast($"[SDK.{nameof(ReliableClient)}] missing required service: IPacketCatalog. Terminating process.");
+            System.Environment.FailFast(
+                $"[SDK.{nameof(ReliableClient)}] Missing required service: IPacketCatalog.");
         }
-
     }
 
     #endregion Constructor
 
     #region Public API
 
-
     /// <inheritdoc/>
     /// <remarks>
-    /// This method will attempt to resolve DNS for the provided host and try each returned address.
-    /// If <see cref="TransportOptions.ConnectTimeoutMillis"/> is set, the connect attempt will be cancelled
-    /// after that timeout.
+    /// Resolves DNS for the provided host and attempts each returned address in order.
+    /// The entire operation is bounded by <see cref="TransportOptions.ConnectTimeoutMillis"/>
+    /// when that value is greater than zero.
+    /// If <paramref name="host"/> is <see langword="null"/> or whitespace,
+    /// <see cref="TransportOptions.Address"/> is used as the fallback.
     /// </remarks>
+    /// <exception cref="System.ObjectDisposedException">Thrown when this instance has been disposed.</exception>
+    /// <exception cref="System.Net.Sockets.SocketException">Thrown when all resolved addresses fail to connect.</exception>
     public async System.Threading.Tasks.Task ConnectAsync(System.String host = null, System.UInt16? port = null, System.Threading.CancellationToken ct = default)
     {
-        if (System.String.IsNullOrWhiteSpace(host))
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(ReliableClient));
+
+        // Resolve effective endpoint, falling back to Options.
+        System.String effectiveHost = System.String.IsNullOrWhiteSpace(host) ? Options.Address : host;
+        System.UInt16 effectivePort = port ?? Options.Port;
+
+        if (System.String.IsNullOrWhiteSpace(effectiveHost))
         {
-            throw new System.ArgumentNullException(nameof(host));
+            throw new System.ArgumentException(
+                "A host must be provided either as a parameter or via TransportOptions.Address.",
+                nameof(host));
         }
 
-        System.ObjectDisposedException.ThrowIf(this._disposed, nameof(ReliableClient));
-
-        _host = host ?? Options.Address;
-        _port = port ?? Options.Port;
-
+        // Guard: already connected to the same endpoint — no-op.
         if (IsConnected)
         {
             return;
         }
 
-        // cancel any existing loops
+        // Atomically cancel any previous receive/heartbeat loops.
         lock (_sync)
         {
-            if (_loopCts?.IsCancellationRequested == false)
-            {
-                try { _loopCts.Cancel(); } catch { }
-            }
+            CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
         }
 
-        System.Threading.CancellationTokenSource connectCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+        using System.Threading.CancellationTokenSource connectCts =
+            System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+
         if (Options.ConnectTimeoutMillis > 0)
         {
             connectCts.CancelAfter(Options.ConnectTimeoutMillis);
@@ -200,425 +233,502 @@ public sealed class ReliableClient : IClientConnection
 
         System.Exception lastEx = null;
 
-        try
+        System.Net.IPAddress[] addrs =
+            await System.Net.Dns.GetHostAddressesAsync(effectiveHost, ct).ConfigureAwait(false);
+
+        foreach (System.Net.IPAddress addr in addrs)
         {
-            System.Net.IPAddress[] addrs = await System.Net.Dns.GetHostAddressesAsync(host, ct)
-                                                               .ConfigureAwait(false);
-
-            foreach (System.Net.IPAddress addr in addrs)
+            if (connectCts.IsCancellationRequested)
             {
-                if (connectCts.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                System.Net.Sockets.Socket s = new(addr.AddressFamily, System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
-                try
-                {
-                    s.NoDelay = Options.NoDelay;
-                    s.SendBufferSize = Options.BufferSize;
-                    s.ReceiveBufferSize = Options.BufferSize;
-
-                    await s.ConnectAsync(new System.Net.IPEndPoint(addr, (System.Int32)port), connectCts.Token)
-                           .ConfigureAwait(false);
-
-                    // assign socket and start loops
-                    lock (_sync)
-                    {
-                        _socket = s;
-                        _loopCts = new System.Threading.CancellationTokenSource();
-                    }
-
-                    // create helpers bound to the socket getter
-                    System.Func<System.Net.Sockets.Socket> socketGetter = GET_CONNECTED_SOCKET_OR_THROW;
-
-                    _sender = new FRAME_SENDER(socketGetter, Options, REPORT_BYTE_SSENT, HANDLE_SEND_ERROR);
-                    _receiver = new FRAME_READER(socketGetter, Options, HANDLE_RECEIVE_MESSAGE, HANDLE_RECEIVE_ERROR, REPORT_BYTES_RECEIVED);
-
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Info($"[SDK.{nameof(ReliableClient)}] connected remote={addr}:{port}");
-
-                    OnConnected?.Invoke(this, System.EventArgs.Empty);
-                    System.Threading.CancellationToken loopToken = _loopCts.Token;
-
-                    if (true)
-                    {
-                        try
-                        {
-                            _rateSamplerName = $"ClientRateSampler-{addr}:{port}";
-
-                            InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-                                name: _rateSamplerName,
-                                interval: System.TimeSpan.FromMilliseconds(1000),
-                                work: async (ct) =>
-                                {
-                                    System.Threading.CancellationToken effective = ct.CanBeCanceled ? ct : loopToken;
-                                    await RATE_SAMPLER_TICK(effective).ConfigureAwait(false);
-                                },
-                                options: new RecurringOptions { NonReentrant = true, Tag = "ClientRateSampler" }
-                            );
-                        }
-                        catch (System.Exception ex)
-                        {
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[SDK.{nameof(ReliableClient)}] schedule-rate-sampler-failed ex={ex.Message}");
-                            // NOTE: per request, do NOT fallback to Task.Run; sampler will be skipped.
-                        }
-                    }
-
-                    // Receive loop as a worker
-                    try
-                    {
-                        // Schedule worker: it will use the same cancellation token so Cancel() on _loopCts stops it.
-                        _receiveHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                            name: $"ClientReceiver-{addr}:{port}",
-                            group: "ClientConnection",
-                            work: async (_, ct) =>
-                            {
-                                // If TaskManager cancels via its own CTS, prefer that token; otherwise use loopToken forwarded.
-                                System.Threading.CancellationToken effective = ct.CanBeCanceled ? ct : loopToken;
-                                await _receiver.ReceiveLoopAsync(effective).ConfigureAwait(false);
-                            },
-                            options: new WorkerOptions { CancellationToken = loopToken, Tag = "ClientReceiver" }
-                        );
-                    }
-                    catch (System.Exception ex)
-                    {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Warn($"[SDK.{nameof(ReliableClient)}] schedule-receive-failed ex={ex.Message}");
-                        // fallback to Task.Run
-                        _ = System.Threading.Tasks.Task.Run(() => _receiver.ReceiveLoopAsync(loopToken), System.Threading.CancellationToken.None);
-                    }
-
-                    // Heartbeat: schedule recurring if configured
-                    if (Options.KeepAliveIntervalMillis > 0)
-                    {
-                        System.TimeSpan interval = System.TimeSpan.FromMilliseconds(System.Math.Max(1, Options.KeepAliveIntervalMillis));
-                        try
-                        {
-                            _heartbeatName = $"ClientHeartbeat-{addr}:{port}";
-
-                            InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-                                name: _heartbeatName,
-                                interval: interval,
-                                work: async (ct) =>
-                                {
-                                    System.Threading.CancellationToken effective = ct.CanBeCanceled ? ct : loopToken;
-                                    try
-                                    {
-                                        await SendAsync(System.ReadOnlyMemory<System.Byte>.Empty, effective).ConfigureAwait(false);
-                                    }
-                                    catch (System.OperationCanceledException) when (effective.IsCancellationRequested)
-                                    {
-                                        // swallow - cancellation expected
-                                    }
-                                },
-                                options: new RecurringOptions { NonReentrant = true, Tag = "ClientHeartbeat" }
-                            );
-                        }
-                        catch (System.Exception ex)
-                        {
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[SDK.{nameof(ReliableClient)}] schedule-heartbeat-failed ex={ex.Message}");
-
-                            _ = System.Threading.Tasks.Task.Run(() => HEARTBEAT_LOOP_ASYNC(loopToken), System.Threading.CancellationToken.None);
-                        }
-                    }
-
-                    return;
-                }
-                catch (System.Exception ex) when (!(ex is System.OperationCanceledException && connectCts.IsCancellationRequested))
-                {
-                    lastEx = ex;
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[SDK.{nameof(ReliableClient)}] connect-failed addr={addr} ex={ex.Message}");
-
-                    try { s.Dispose(); } catch { }
-                    continue;
-                }
+                break;
             }
 
-            throw lastEx ?? new System.Net.Sockets.SocketException((System.Int32)System.Net.Sockets.SocketError.HostNotFound);
+            System.Net.Sockets.Socket s = new(
+                addr.AddressFamily,
+                System.Net.Sockets.SocketType.Stream,
+                System.Net.Sockets.ProtocolType.Tcp);
+
+            try
+            {
+                s.NoDelay = Options.NoDelay;
+                s.SendBufferSize = Options.BufferSize;
+                s.ReceiveBufferSize = Options.BufferSize;
+
+                await s.ConnectAsync(
+                    new System.Net.IPEndPoint(addr, effectivePort),
+                    connectCts.Token).ConfigureAwait(false);
+
+                // Commit the new socket and a fresh cancellation source under the lock.
+                System.Threading.CancellationToken loopToken;
+                lock (_sync)
+                {
+                    _socket = s;
+                    _loopCts = new System.Threading.CancellationTokenSource();
+                    loopToken = _loopCts.Token;
+
+                    // Store resolved endpoint for auto-reconnect.
+                    _host = effectiveHost;
+                    _port = effectivePort;
+                }
+
+                // Build frame helpers bound to the socket getter.
+                _sender = new FRAME_SENDER(GET_CONNECTED_SOCKET_OR_THROW, Options, ReportBytesSent, HandleSendError);
+                _receiver = new FRAME_READER(GET_CONNECTED_SOCKET_OR_THROW, Options, HandleReceiveMessage, HandleReceiveError, ReportBytesReceived);
+
+                _log?.Info($"[SDK.{nameof(ReliableClient)}] Connected remote={addr}:{effectivePort}");
+                OnConnected?.Invoke(this, System.EventArgs.Empty);
+
+                START_RATE_SAMPLER(addr, effectivePort, loopToken);
+                START_RECEIVE_WORKER(addr, effectivePort, loopToken);
+                START_HEARTBEAT(addr, effectivePort, loopToken);
+
+                return; // Connected successfully.
+            }
+            catch (System.Exception ex) when (
+                ex is not System.OperationCanceledException oce ||
+                !connectCts.IsCancellationRequested)
+            {
+                lastEx = ex;
+                _log?.Warn(
+                    $"[SDK.{nameof(ReliableClient)}] connect-failed addr={addr}:{effectivePort} ex={ex.Message}");
+
+                try { s.Dispose(); } catch { /* best-effort */ }
+            }
         }
-        finally
-        {
-            connectCts.Dispose();
-        }
+
+        // All addresses failed.
+        throw lastEx
+            ?? new System.Net.Sockets.SocketException(
+                (System.Int32)System.Net.Sockets.SocketError.HostNotFound);
     }
 
     /// <inheritdoc/>
     public System.Threading.Tasks.Task DisconnectAsync()
     {
-        if (_disposed)
+        if (System.Threading.Volatile.Read(ref _disposed) == 1)
         {
             return System.Threading.Tasks.Task.CompletedTask;
         }
 
-        lock (_sync)
-        {
-            try { _loopCts?.Cancel(); } catch { }
-            try { _socket?.Shutdown(System.Net.Sockets.SocketShutdown.Both); } catch { }
-            try { _socket?.Close(); _socket?.Dispose(); } catch { }
-            _socket = null;
-        }
+        CLEANUP_CONNECTION();
 
-        // Inform TaskManager to cancel recurring if we created it by name (best-effort).
-        try
-        {
-            if (_heartbeatName is not null)
-            {
-                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                            .CancelRecurring(_heartbeatName);
-            }
-            if (_rateSamplerName is not null)
-            {
-                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                            .CancelRecurring(_rateSamplerName);
-            }
-            if (_receiveHandle is not null)
-            {
-                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                            .CancelWorker(_receiveHandle.Id);
-            }
-        }
-        catch { /* best-effort cleanup, ignore errors */ }
-
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SDK.{nameof(ReliableClient)}] disconnected (requested)");
-
+        _log?.Info($"[SDK.{nameof(ReliableClient)}] Disconnected (requested).");
         OnDisconnected?.Invoke(this, null);
+
         return System.Threading.Tasks.Task.CompletedTask;
     }
 
     /// <inheritdoc/>
+    /// <exception cref="System.ObjectDisposedException">Thrown when this instance has been disposed.</exception>
+    /// <exception cref="System.InvalidOperationException">Thrown when the client is not connected.</exception>
     public System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken ct = default)
     {
-        System.ObjectDisposedException.ThrowIf(this._disposed, nameof(ReliableClient));
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(ReliableClient));
+
         return _sender is null ? throw new System.InvalidOperationException("Client not connected.") : _sender.SendAsync(payload, ct);
     }
 
     /// <inheritdoc/>
+    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="packet"/> is <c>null</c>.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown when this instance has been disposed.</exception>
+    /// <exception cref="System.InvalidOperationException">Thrown when the client is not connected.</exception>
     public System.Threading.Tasks.Task<System.Boolean> SendAsync(IPacket packet, System.Threading.CancellationToken ct = default)
     {
-        System.ObjectDisposedException.ThrowIf(this._disposed, nameof(ReliableClient));
-        return packet is null ? throw new System.ArgumentNullException(nameof(packet))
-            : _sender is null ? throw new System.InvalidOperationException("Client not connected.") : _sender.SendAsync(packet, ct);
+        System.ArgumentNullException.ThrowIfNull(packet);
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(ReliableClient));
+
+        return _sender is null ? throw new System.InvalidOperationException("Client not connected.") : _sender.SendAsync(packet, ct);
     }
 
     /// <inheritdoc/>
     /// <remarks>
-    /// After calling <see cref="Dispose"/>, the instance is no longer usable.
-    /// This method is idempotent and safe to call multiple times.
+    /// Idempotent and safe to call multiple times. After disposal, the instance is no longer usable.
     /// </remarks>
     public void Dispose()
     {
-        if (_disposed)
+        // Atomic flip: only the first caller proceeds.
+        if (System.Threading.Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
         {
             return;
         }
 
-        _disposed = true;
+        CLEANUP_CONNECTION();
 
-        lock (_sync)
-        {
-            try { _loopCts?.Cancel(); } catch { }
-            try { _socket?.Shutdown(System.Net.Sockets.SocketShutdown.Both); } catch { }
-            try { _socket?.Close(); _socket?.Dispose(); } catch { }
-            _socket = null;
-
-            try { _loopCts?.Dispose(); } catch { }
-            _loopCts = null;
-        }
-
-        // Try to clean up scheduled tasks (best-effort)
-        try
-        {
-            if (_heartbeatName is not null)
-            {
-                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                            .CancelRecurring(_heartbeatName);
-            }
-            if (_rateSamplerName is not null)
-            {
-                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                            .CancelRecurring(_rateSamplerName);
-            }
-            if (_receiveHandle is not null)
-            {
-                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                            .CancelWorker(_receiveHandle.Id);
-            }
-        }
-        catch { }
-
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SDK.{nameof(ReliableClient)}] disposed");
-
+        _log?.Info($"[SDK.{nameof(ReliableClient)}] Disposed.");
         System.GC.SuppressFinalize(this);
     }
 
     #endregion Public API
 
-    #region Private Methods
+    #region Private — Connection Lifecycle
 
-    private void REPORT_BYTE_SSENT(System.Int32 count)
+    /// <summary>
+    /// Starts the bandwidth rate sampler as a recurring task.
+    /// If the <see cref="TaskManager"/> is unavailable, the sampler is silently skipped
+    /// (non-critical telemetry).
+    /// </summary>
+    private void START_RATE_SAMPLER(
+        System.Net.IPAddress addr,
+        System.UInt16 port,
+        System.Threading.CancellationToken loopToken)
+    {
+        try
+        {
+            _rateSamplerName = $"ClientRateSampler-{addr}:{port}";
+
+            InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
+                name: _rateSamplerName,
+                interval: System.TimeSpan.FromMilliseconds(1000),
+                work: async (workerCt) =>
+                {
+                    System.Threading.CancellationToken effective =
+                        workerCt.CanBeCanceled ? workerCt : loopToken;
+                    await RATE_SAMPLER_TICK_ASYNC(effective).ConfigureAwait(false);
+                },
+                options: new RecurringOptions { NonReentrant = true, Tag = "ClientRateSampler" }
+            );
+        }
+        catch (System.Exception ex)
+        {
+            _log?.Warn(
+                $"[SDK.{nameof(ReliableClient)}] schedule-rate-sampler-failed ex={ex.Message}");
+            // Rate sampling is non-critical; skip without fallback.
+        }
+    }
+
+    /// <summary>
+    /// Schedules the receive loop as a <see cref="TaskManager"/> worker.
+    /// If scheduling with the <see cref="TaskManager"/> fails, falls back to using
+    /// <see cref="System.Threading.Tasks.Task.Run(System.Func{System.Threading.Tasks.Task}, System.Threading.CancellationToken)"/>.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="System.Threading.Tasks.Task"/> that represents the scheduled receive loop.
+    /// </returns>
+    private void START_RECEIVE_WORKER(
+        System.Net.IPAddress addr,
+        System.UInt16 port,
+        System.Threading.CancellationToken loopToken)
+    {
+        try
+        {
+            _receiveHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+                name: $"ClientReceiver-{addr}:{port}",
+                group: "ClientConnection",
+                work: async (_, workerCt) =>
+                {
+                    System.Threading.CancellationToken effective =
+                        workerCt.CanBeCanceled ? workerCt : loopToken;
+                    await _receiver.ReceiveLoopAsync(effective).ConfigureAwait(false);
+                },
+                options: new WorkerOptions { CancellationToken = loopToken, Tag = "ClientReceiver" }
+            );
+        }
+        catch (System.Exception ex)
+        {
+            _log?.Warn(
+                $"[SDK.{nameof(ReliableClient)}] schedule-receive-failed; falling back to Task.Run. ex={ex.Message}");
+
+            // Receive is critical — must run even if TaskManager is unavailable.
+            _ = System.Threading.Tasks.Task.Run(
+                () => _receiver.ReceiveLoopAsync(loopToken),
+                System.Threading.CancellationToken.None);
+        }
+    }
+
+    /// <summary>
+    /// Schedules the heartbeat (keep-alive) loop as a recurring task.
+    /// Falls back to an internal <see cref="HEARTBEAT_LOOP_ASYNC"/> loop if scheduling fails.
+    /// No-op when <see cref="TransportOptions.KeepAliveIntervalMillis"/> is zero.
+    /// </summary>
+    private void START_HEARTBEAT(
+        System.Net.IPAddress addr,
+        System.UInt16 port,
+        System.Threading.CancellationToken loopToken)
+    {
+        if (Options.KeepAliveIntervalMillis <= 0)
+        {
+            return;
+        }
+
+        System.TimeSpan interval =
+            System.TimeSpan.FromMilliseconds(System.Math.Max(1, Options.KeepAliveIntervalMillis));
+
+        try
+        {
+            _heartbeatName = $"ClientHeartbeat-{addr}:{port}";
+
+            InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
+                name: _heartbeatName,
+                interval: interval,
+                work: async (workerCt) =>
+                {
+                    System.Threading.CancellationToken effective =
+                        workerCt.CanBeCanceled ? workerCt : loopToken;
+                    try
+                    {
+                        await SendAsync(System.ReadOnlyMemory<System.Byte>.Empty, effective)
+                            .ConfigureAwait(false);
+                    }
+                    catch (System.OperationCanceledException) when (effective.IsCancellationRequested)
+                    {
+                        // Cancellation is expected during disconnect; swallow.
+                    }
+                },
+                options: new RecurringOptions { NonReentrant = true, Tag = "ClientHeartbeat" }
+            );
+        }
+        catch (System.Exception ex)
+        {
+            _log?.Warn(
+                $"[SDK.{nameof(ReliableClient)}] schedule-heartbeat-failed; falling back to loop. ex={ex.Message}");
+
+            _ = System.Threading.Tasks.Task.Run(
+                () => HEARTBEAT_LOOP_ASYNC(loopToken),
+                System.Threading.CancellationToken.None);
+        }
+    }
+
+    /// <summary>
+    /// Cancels and disposes all active TaskManager handles and the socket.
+    /// Safe to call from <see cref="Dispose"/> and <see cref="DisconnectAsync"/>.
+    /// </summary>
+    private void CLEANUP_CONNECTION()
+    {
+        lock (_sync)
+        {
+            CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
+
+            try { _socket?.Shutdown(System.Net.Sockets.SocketShutdown.Both); } catch { }
+            try { _socket?.Close(); _socket?.Dispose(); } catch { }
+            _socket = null;
+        }
+
+        // Cancel TaskManager handles (best-effort; individual failures must not abort cleanup).
+        try
+        {
+            TaskManager taskMgr = InstanceManager.Instance.GetOrCreateInstance<TaskManager>();
+
+            if (_heartbeatName is not null)
+            {
+                _ = taskMgr.CancelRecurring(_heartbeatName);
+                _heartbeatName = null;
+            }
+
+            if (_rateSamplerName is not null)
+            {
+                _ = taskMgr.CancelRecurring(_rateSamplerName);
+                _rateSamplerName = null;
+            }
+
+            if (_receiveHandle is not null)
+            {
+                _ = taskMgr.CancelWorker(_receiveHandle.Id);
+                _receiveHandle = null;
+            }
+        }
+        catch { /* best-effort; swallow */ }
+    }
+
+    /// <summary>
+    /// Cancels and disposes a <see cref="System.Threading.CancellationTokenSource"/>, then sets it to <see langword="null"/>.
+    /// Must be called from within <c>lock (_sync)</c>.
+    /// </summary>
+    private static void CANCEL_AND_DISPOSE_LOCKED(ref System.Threading.CancellationTokenSource cts)
+    {
+        if (cts is null)
+        {
+            return;
+        }
+
+        try { cts.Cancel(); } catch { }
+        try { cts.Dispose(); } catch { }
+        cts = null;
+    }
+
+    #endregion Private — Connection Lifecycle
+
+    #region Private — Callbacks
+
+    private void ReportBytesSent(System.Int32 count)
     {
         System.Threading.Interlocked.Add(ref _bytesSent, count);
         System.Threading.Interlocked.Add(ref _sendCounterForInterval, count);
-        try { OnBytesSent?.Invoke(this, count); } catch { }
+        try { OnBytesSent?.Invoke(this, count); } catch { /* swallow subscriber exceptions */ }
     }
 
-    private void REPORT_BYTES_RECEIVED(System.Int32 count)
+    private void ReportBytesReceived(System.Int32 count)
     {
         System.Threading.Interlocked.Add(ref _bytesReceived, count);
         System.Threading.Interlocked.Add(ref _receiveCounterForInterval, count);
-        try { OnBytesReceived?.Invoke(this, count); } catch { }
+        try { OnBytesReceived?.Invoke(this, count); } catch { /* swallow subscriber exceptions */ }
     }
 
-    private void HANDLE_SEND_ERROR(System.Exception ex)
+    private void HandleSendError(System.Exception ex)
     {
         try { OnError?.Invoke(this, ex); } catch { }
         _ = HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
     }
 
-    private void HANDLE_RECEIVE_ERROR(System.Exception ex)
+    private void HandleReceiveError(System.Exception ex)
     {
         try { OnError?.Invoke(this, ex); } catch { }
         _ = HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
     }
 
-    private void HANDLE_RECEIVE_MESSAGE(IBufferLease lease) => OnMessageReceived?.Invoke(this, lease);
+    private void HandleReceiveMessage(IBufferLease lease) => OnMessageReceived?.Invoke(this, lease);
 
-    private async System.Threading.Tasks.Task HEARTBEAT_LOOP_ASYNC(System.Threading.CancellationToken token)
+    #endregion Private — Callbacks
+
+    #region Private — Background Loops
+
+    /// <summary>
+    /// Fallback heartbeat loop used when <see cref="TaskManager"/> scheduling fails.
+    /// Sends an empty payload at the configured interval until canceled.
+    /// </summary>
+    private async System.Threading.Tasks.Task HEARTBEAT_LOOP_ASYNC(
+        System.Threading.CancellationToken token)
     {
-        System.Int32 interval = System.Math.Max(1, Options.KeepAliveIntervalMillis);
+        System.Int32 intervalMs = System.Math.Max(1, Options.KeepAliveIntervalMillis);
+
         while (!token.IsCancellationRequested)
         {
             try
             {
-                await System.Threading.Tasks.Task.Delay(interval, token).ConfigureAwait(false);
+                await System.Threading.Tasks.Task.Delay(intervalMs, token).ConfigureAwait(false);
                 await SendAsync(System.ReadOnlyMemory<System.Byte>.Empty, token).ConfigureAwait(false);
             }
             catch (System.OperationCanceledException)
             {
-                break;
+                break; // Expected on disconnect/dispose.
             }
             catch (System.Exception ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[SDK.{nameof(ReliableClient)}:{nameof(HEARTBEAT_LOOP_ASYNC)}] heartbeat-error {ex.Message}");
+                _log?.Warn(
+                    $"[SDK.{nameof(ReliableClient)}.{nameof(HEARTBEAT_LOOP_ASYNC)}] heartbeat-error: {ex.Message}");
 
-                try
-                {
-                    OnError?.Invoke(this, ex);
-                }
-                catch { }
-
+                try { OnError?.Invoke(this, ex); } catch { }
                 _ = HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
                 break;
             }
         }
     }
 
-    private async System.Threading.Tasks.Task RATE_SAMPLER_TICK(System.Threading.CancellationToken token)
+    /// <summary>
+    /// Samples per-interval byte counters and updates the last BPS readings.
+    /// Intentionally synchronous (no awaitable work); returned <see cref="System.Threading.Tasks.Task"/>
+    /// is completed immediately.
+    /// </summary>
+    private System.Threading.Tasks.Task RATE_SAMPLER_TICK_ASYNC(System.Threading.CancellationToken token)
     {
+        if (token.IsCancellationRequested)
+        {
+            return System.Threading.Tasks.Task.CompletedTask;
+        }
+
         try
         {
-            // one tick: exchange counters and store last-bps
             System.Int64 sent = System.Threading.Interlocked.Exchange(ref _sendCounterForInterval, 0);
             System.Int64 recv = System.Threading.Interlocked.Exchange(ref _receiveCounterForInterval, 0);
             System.Threading.Interlocked.Exchange(ref _lastSendBps, sent);
             System.Threading.Interlocked.Exchange(ref _lastReceiveBps, recv);
-            await System.Threading.Tasks.Task.CompletedTask.ConfigureAwait(false);
-        }
-        catch (System.OperationCanceledException) when (token.IsCancellationRequested)
-        {
-            // expected cancellation
         }
         catch (System.Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[SDK.{nameof(ReliableClient)}:{nameof(RATE_SAMPLER_TICK)}] sampler-error {ex.Message}");
+            _log?.Warn(
+                $"[SDK.{nameof(ReliableClient)}.{nameof(RATE_SAMPLER_TICK_ASYNC)}] sampler-error: {ex.Message}");
 
-            try
-            {
-                OnError?.Invoke(this, ex);
-            }
-            catch { }
+            try { OnError?.Invoke(this, ex); } catch { }
         }
+
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Handles unexpected disconnections and drives the exponential-backoff reconnect loop.
+    /// Fires <see cref="OnDisconnected"/> once, then retries <see cref="ConnectAsync"/>
+    /// until successful, exhausted, or disposed.
+    /// </summary>
     private async System.Threading.Tasks.Task HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(System.Exception cause)
     {
-        try
-        {
-            OnDisconnected?.Invoke(this, cause);
-        }
-        catch { }
+        try { OnDisconnected?.Invoke(this, cause); } catch { }
 
+        // Tear down the current socket.
         lock (_sync)
         {
-            try { _loopCts?.Cancel(); } catch { }
+            CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
             try { _socket?.Shutdown(System.Net.Sockets.SocketShutdown.Both); } catch { }
             try { _socket?.Close(); _socket?.Dispose(); } catch { }
             _socket = null;
         }
 
-        if (!Options.ReconnectEnabled || _disposed)
+        if (!Options.ReconnectEnabled || System.Threading.Volatile.Read(ref _disposed) == 1)
         {
             return;
         }
 
         if (System.String.IsNullOrEmpty(_host) || _port == 0)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[SDK.{nameof(ReliableClient)}] no saved endpoint; skipping auto-reconnect");
+            _log?.Info(
+                $"[SDK.{nameof(ReliableClient)}] No saved endpoint; skipping auto-reconnect.");
             return;
         }
 
         System.Int32 attempt = 0;
-        System.Int64 delay = System.Math.Max(1, Options.ReconnectBaseDelayMillis);
-        while (!_disposed && (Options.ReconnectMaxAttempts == 0 || attempt < Options.ReconnectMaxAttempts))
+        // Use long for delay arithmetic; clamp before casting to int for Task.Delay.
+        System.Int64 delayMs = System.Math.Max(1L, Options.ReconnectBaseDelayMillis);
+        System.Int64 maxDelayMs = System.Math.Max(1L, Options.ReconnectMaxDelayMillis);
+
+        while (System.Threading.Volatile.Read(ref _disposed) == 0 &&
+               (Options.ReconnectMaxAttempts == 0 || attempt < Options.ReconnectMaxAttempts))
         {
             attempt++;
+
+            _log?.Info(
+                $"[SDK.{nameof(ReliableClient)}] Reconnect attempt={attempt} delay={delayMs} ms.");
+
+            // Safe cast: delayMs is clamped to maxDelayMs which is derived from an int option.
+            await System.Threading.Tasks.Task.Delay(
+                (System.Int32)System.Math.Min(delayMs, System.Int32.MaxValue))
+                .ConfigureAwait(false);
+
             try
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[SDK.{nameof(ReliableClient)}] reconnect attempt={attempt} delay={delay}ms");
-
-                await System.Threading.Tasks.Task.Delay((System.Int32)delay).ConfigureAwait(false);
-
                 await ConnectAsync(_host, _port).ConfigureAwait(false);
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[SDK.{nameof(ReliableClient)}] reconnect-success attempt={attempt}");
-
+                _log?.Info(
+                    $"[SDK.{nameof(ReliableClient)}] Reconnect-success attempt={attempt}.");
                 return;
             }
             catch (System.Exception ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[SDK.{nameof(ReliableClient)}] reconnect-failed attempt={attempt} ex={ex.Message}");
+                _log?.Warn(
+                    $"[SDK.{nameof(ReliableClient)}] Reconnect-failed attempt={attempt} ex={ex.Message}");
 
-                try
-                {
-                    OnError?.Invoke(this, ex);
-                }
-                catch { }
+                try { OnError?.Invoke(this, ex); } catch { }
 
-                delay = System.Math.Min(Options.ReconnectMaxDelayMillis, delay * 2);
-                continue;
+                // Exponential backoff — doubles each attempt, capped at maxDelayMs.
+                delayMs = System.Math.Min(maxDelayMs, delayMs * 2);
             }
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SDK.{nameof(ReliableClient)}] reconnect attempts exhausted");
+        _log?.Info($"[SDK.{nameof(ReliableClient)}] Reconnect attempts exhausted.");
     }
 
+    #endregion Private — Background Loops
+
+    #region Private — Helpers
+
+    /// <summary>
+    /// Returns the current socket if it is connected; otherwise throws <see cref="System.InvalidOperationException"/>.
+    /// Used as the socket accessor delegate passed to <see cref="FRAME_SENDER"/> and <see cref="FRAME_READER"/>.
+    /// </summary>
     private System.Net.Sockets.Socket GET_CONNECTED_SOCKET_OR_THROW()
     {
         System.Net.Sockets.Socket s = _socket;
-        return s?.Connected != true ? throw new System.InvalidOperationException("Client not connected.") : s;
+
+        return s?.Connected == true
+            ? s
+            : throw new System.InvalidOperationException("Client not connected.");
     }
 
-    #endregion Private Methods
+    #endregion Private — Helpers
 }
