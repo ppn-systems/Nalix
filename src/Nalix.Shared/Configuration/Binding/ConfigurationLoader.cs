@@ -1,6 +1,6 @@
 using Nalix.Common.Logging;
+using Nalix.Shared.Configuration.Internal;
 using Nalix.Shared.Configuration.Metadata;
-using Nalix.Shared.Internal;
 
 namespace Nalix.Shared.Configuration.Binding;
 
@@ -114,11 +114,11 @@ public abstract partial class ConfigurationLoader
     #region Private Methods
 
     /// <summary>
-    /// Initializes an instance of <see cref="ConfigurationLoader"/> from the provided <see cref="ConfiguredIniFile"/>
+    /// Initializes an instance of <see cref="ConfigurationLoader"/> from the provided <see cref="IniConfig"/>
     /// using optimized reflection with caching to set property values based on the configuration file.
     /// </summary>
     /// <param name="configFile">The INI configuration file to load values from.</param>
-    internal void Initialize(ConfiguredIniFile configFile)
+    internal void Initialize(IniConfig configFile)
     {
         System.ArgumentNullException.ThrowIfNull(configFile);
 

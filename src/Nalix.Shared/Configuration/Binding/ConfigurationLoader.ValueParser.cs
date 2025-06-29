@@ -1,4 +1,4 @@
-using Nalix.Shared.Internal;
+using Nalix.Shared.Configuration.Internal;
 
 namespace Nalix.Shared.Configuration.Binding;
 
@@ -10,7 +10,7 @@ public partial class ConfigurationLoader
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Object? GetConfigValue(
-        ConfiguredIniFile configFile,
+        IniConfig configFile,
         System.String section, PropertyMetadata property)
         => property.TypeCode switch
         {
@@ -39,7 +39,7 @@ public partial class ConfigurationLoader
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void HandleEmptyValue(
-        ConfiguredIniFile configFile,
+        IniConfig configFile,
         System.String section, PropertyMetadata property)
     {
         System.Object? currentValue = property.PropertyInfo.GetValue(this);

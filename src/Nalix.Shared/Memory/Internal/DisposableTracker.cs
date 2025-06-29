@@ -3,7 +3,7 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Nalix.Shared.Internal;
+namespace Nalix.Shared.Memory.Internal;
 
 /// <summary>
 /// Helper class to track disposal state and handle the actual disposal of the array.

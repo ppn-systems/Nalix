@@ -6,12 +6,12 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 
-namespace Nalix.Shared.Internal;
+namespace Nalix.Shared.Configuration.Internal;
 
 /// <summary>
 /// A high-performance wrapper class for reading and writing INI files.
 /// </summary>
-internal sealed class ConfiguredIniFile
+internal sealed class IniConfig
 {
     #region Constants
 
@@ -57,10 +57,10 @@ internal sealed class ConfiguredIniFile
     #region Constructor
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConfiguredIniFile"/> class for the specified path.
+    /// Initializes a new instance of the <see cref="IniConfig"/> class for the specified path.
     /// </summary>
     /// <param name="path">The path to the INI file.</param>
-    public ConfiguredIniFile(string path)
+    public IniConfig(string path)
     {
         _path = path ?? throw new ArgumentNullException(nameof(path));
 
@@ -70,7 +70,7 @@ internal sealed class ConfiguredIniFile
         // Load the file if it exists
         if (ExistsFile)
         {
-            this.LoadWithRetry();
+            LoadWithRetry();
         }
     }
 

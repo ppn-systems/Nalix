@@ -2,7 +2,7 @@ using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Shared.Internal;
+namespace Nalix.Shared.Configuration.Internal;
 
 /// <summary>
 /// Stores metadata about a configuration property.

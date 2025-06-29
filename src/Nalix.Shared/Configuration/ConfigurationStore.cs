@@ -1,7 +1,7 @@
 using Nalix.Shared.Configuration.Binding;
+using Nalix.Shared.Configuration.Internal;
 using Nalix.Shared.Environment;
 using Nalix.Shared.Injection.DI;
-using Nalix.Shared.Internal;
 
 namespace Nalix.Shared.Configuration;
 
@@ -16,7 +16,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
 {
     #region Fields
 
-    private readonly System.Lazy<ConfiguredIniFile> _iniFile;
+    private readonly System.Lazy<IniConfig> _iniFile;
     private readonly System.Threading.ReaderWriterLockSlim _configLock;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, ConfigurationLoader> _configContainerDict;
 
@@ -55,11 +55,11 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
         this.ConfigFilePath = System.IO.Path.Combine(Directories.ConfigPath, "configured.ini");
 
         // Lazy-load the INI file to defer file access until needed
-        _iniFile = new System.Lazy<ConfiguredIniFile>(() =>
+        _iniFile = new System.Lazy<IniConfig>(() =>
         {
             // Ensure the directory exists before trying to access the file
             this.EnsureConfigDirectoryExists();
-            return new ConfiguredIniFile(ConfigFilePath);
+            return new IniConfig(ConfigFilePath);
         }, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
         _configContainerDict = new();
