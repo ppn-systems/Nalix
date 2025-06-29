@@ -8,7 +8,7 @@ namespace Nalix.Shared.Serialization;
 /// <summary>
 /// Provides serialization and deserialization methods for objects.
 /// </summary>
-public static class BitSerializer
+public static class LiteSerializer
 {
     #region Constants
 

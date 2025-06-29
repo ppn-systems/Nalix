@@ -17,34 +17,34 @@ public static class FormatterProvider
     {
         // ============================================================ //
         // Integer types
-        Register(new UnmanagedFormatter<char>());
-        Register(new UnmanagedFormatter<byte>());
-        Register(new UnmanagedFormatter<sbyte>());
-        Register(new UnmanagedFormatter<short>());
-        Register(new UnmanagedFormatter<ushort>());
-        Register(new UnmanagedFormatter<int>());
-        Register(new UnmanagedFormatter<uint>());
-        Register(new UnmanagedFormatter<long>());
-        Register(new UnmanagedFormatter<ulong>());
-        Register(new UnmanagedFormatter<float>());
-        Register(new UnmanagedFormatter<double>());
-        Register(new UnmanagedFormatter<bool>());
-        Register(new UnmanagedFormatter<decimal>());
+        Register<System.Char>(new UnmanagedFormatter<System.Char>());
+        Register<System.Byte>(new UnmanagedFormatter<System.Byte>());
+        Register<System.SByte>(new UnmanagedFormatter<System.SByte>());
+        Register<System.Int16>(new UnmanagedFormatter<System.Int16>());
+        Register<System.UInt16>(new UnmanagedFormatter<System.UInt16>());
+        Register<System.Int32>(new UnmanagedFormatter<System.Int32>());
+        Register<System.UInt32>(new UnmanagedFormatter<System.UInt32>());
+        Register<System.Int64>(new UnmanagedFormatter<System.Int64>());
+        Register<System.UInt64>(new UnmanagedFormatter<System.UInt64>());
+        Register<System.Single>(new UnmanagedFormatter<System.Single>());
+        Register<System.Double>(new UnmanagedFormatter<System.Double>());
+        Register<System.Boolean>(new UnmanagedFormatter<System.Boolean>());
+        Register<System.Decimal>(new UnmanagedFormatter<System.Decimal>());
 
         // ============================================================ //
         // Integer arrays
-        Register<char[]>(new ArrayFormatter<char>());
-        Register<byte[]>(new ArrayFormatter<byte>());
-        Register<sbyte[]>(new ArrayFormatter<sbyte>());
-        Register<short[]>(new ArrayFormatter<short>());
-        Register<ushort[]>(new ArrayFormatter<ushort>());
-        Register<int[]>(new ArrayFormatter<int>());
-        Register<uint[]>(new ArrayFormatter<uint>());
-        Register<long[]>(new ArrayFormatter<long>());
-        Register<ulong[]>(new ArrayFormatter<ulong>());
-        Register<float[]>(new ArrayFormatter<float>());
-        Register<double[]>(new ArrayFormatter<double>());
-        Register<bool[]>(new ArrayFormatter<bool>());
+        Register<System.Char[]>(new ArrayFormatter<System.Char>());
+        Register<System.Byte[]>(new ArrayFormatter<System.Byte>());
+        Register<System.SByte[]>(new ArrayFormatter<System.SByte>());
+        Register<System.Int16[]>(new ArrayFormatter<System.Int16>());
+        Register<System.UInt16[]>(new ArrayFormatter<System.UInt16>());
+        Register<System.Int32[]>(new ArrayFormatter<System.Int32>());
+        Register<System.UInt32[]>(new ArrayFormatter<System.UInt32>());
+        Register<System.Int64[]>(new ArrayFormatter<System.Int64>());
+        Register<System.UInt64[]>(new ArrayFormatter<System.UInt64>());
+        Register<System.Single[]>(new ArrayFormatter<System.Single>());
+        Register<System.Double[]>(new ArrayFormatter<System.Double>());
+        Register<System.Boolean[]>(new ArrayFormatter<System.Boolean>());
 
         // ============================================================ //
         // String
@@ -52,19 +52,19 @@ public static class FormatterProvider
 
         // ============================================================ //
         // Nullable types
-        Register(new NullableFormatter<char>());
-        Register(new NullableFormatter<byte>());
-        Register(new NullableFormatter<sbyte>());
-        Register(new NullableFormatter<short>());
-        Register(new NullableFormatter<ushort>());
-        Register(new NullableFormatter<int>());
-        Register(new NullableFormatter<uint>());
-        Register(new NullableFormatter<long>());
-        Register(new NullableFormatter<ulong>());
-        Register(new NullableFormatter<float>());
-        Register(new NullableFormatter<double>());
-        Register(new NullableFormatter<decimal>());
-        Register(new NullableFormatter<bool>());
+        Register<System.Nullable<System.Char>>(new NullableFormatter<System.Char>());
+        Register<System.Nullable<System.Byte>>(new NullableFormatter<System.Byte>());
+        Register<System.Nullable<System.SByte>>(new NullableFormatter<System.SByte>());
+        Register<System.Nullable<System.Int16>>(new NullableFormatter<System.Int16>());
+        Register<System.Nullable<System.UInt16>>(new NullableFormatter<System.UInt16>());
+        Register<System.Nullable<System.Int32>>(new NullableFormatter<System.Int32>());
+        Register<System.Nullable<System.UInt32>>(new NullableFormatter<System.UInt32>());
+        Register<System.Nullable<System.Int64>>(new NullableFormatter<System.Int64>());
+        Register<System.Nullable<System.UInt64>>(new NullableFormatter<System.UInt64>());
+        Register<System.Nullable<System.Single>>(new NullableFormatter<System.Single>());
+        Register<System.Nullable<System.Double>>(new NullableFormatter<System.Double>());
+        Register<System.Nullable<System.Decimal>>(new NullableFormatter<System.Decimal>());
+        Register<System.Nullable<System.Boolean>>(new NullableFormatter<System.Boolean>());
     }
 
     /// <summary>
