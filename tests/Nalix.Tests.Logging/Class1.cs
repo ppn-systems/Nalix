@@ -1,7 +1,7 @@
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Network.Package;
-using Nalix.Serialization;
+using Nalix.Shared.Serialization;
 using System;
 
 namespace Nalix.Tests.Logging;
@@ -23,7 +23,7 @@ public class Class1
         public const int MaxStringLenght = 100;
         public int Id { get; set; }
 
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty; // Fix: Initialize with a default value
 
         public EnumT EnumT { get; set; }
 
@@ -103,11 +103,11 @@ public class Class1
         Console.WriteLine("========================================");
         // Test serialization
         var obj = new TestClass(123, "Hello", EnumT.Value3);
-        byte[] data = BitSerializer.Serialize(obj);
+        byte[] data = LiteSerializer.Serialize(obj);
         Console.WriteLine($"Serialized: Id={obj.Id}, Name={obj.Name}, Enum={obj.EnumT}");
 
         var objn = new TestClass();
-        BitSerializer.Deserialize(data, ref objn);
+        LiteSerializer.Deserialize(data, ref objn);
         Console.WriteLine($"Deserialized: Id={objn.Id}, Name={objn.Name}, Enum ={objn.EnumT}");
 
         Console.WriteLine("");
@@ -121,11 +121,11 @@ public class Class1
 
         // Test serialization
         var obj = new TestClass2(123, "Hello", 3.14);
-        byte[] data = BitSerializer.Serialize(obj);
+        byte[] data = LiteSerializer.Serialize(obj);
         Console.WriteLine($"Serialized: Id={obj.Id}, Name={obj.Name}, F={obj.FloatValue}");
 
         var objn = new TestClass2();
-        BitSerializer.Deserialize(data, ref objn);
+        LiteSerializer.Deserialize(data, ref objn);
         Console.WriteLine($"Deserialized: Id={objn.Id}, Name={objn.Name}, F={obj.FloatValue}");
 
         Console.WriteLine("");
@@ -142,11 +142,11 @@ public class Class1
             Id = 123,
             IDD = 456
         };
-        byte[] data = BitSerializer.Serialize(obj);
+        byte[] data = LiteSerializer.Serialize(obj);
         Console.WriteLine($"Serialized: Id={obj.Id}, IDD={obj.IDD}");
 
         var objn = new TestClass3();
-        BitSerializer.Deserialize(data, ref objn);
+        LiteSerializer.Deserialize(data, ref objn);
         Console.WriteLine($"Deserialized: Id={objn.Id}, IDD={objn.IDD}");
 
         Console.WriteLine("");
