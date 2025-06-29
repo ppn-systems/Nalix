@@ -5,9 +5,9 @@ namespace Nalix.Logging.Formatters;
 /// <summary>
 /// The Logging Formatter class provides methods for formatting log output.
 /// </summary>
-public class LoggingFormatter(bool colors = false) : ILoggerFormatter
+public class LoggingFormatter(System.Boolean colors = false) : ILoggerFormatter
 {
-    private readonly bool _colors = colors;
+    private readonly System.Boolean _colors = colors;
 
     /// <summary>
     /// Singleton instances of <see cref="LoggingFormatter"/> can be reused.
@@ -23,8 +23,9 @@ public class LoggingFormatter(bool colors = false) : ILoggerFormatter
     /// var formatter = new LoggingFormatter();
     /// string log = formatter.FormatLog(logEntry);
     /// </example>
-    public string FormatLog(LogEntry logMsg)
-        => FormatLogEntry(logMsg.TimeStamp, logMsg.LogLevel,
+    public System.String FormatLog(LogEntry logMsg)
+        => FormatLogEntry(
+            logMsg.TimeStamp, logMsg.LogLevel,
             logMsg.EventId, logMsg.Message, logMsg.Exception);
 
     /// <summary>
@@ -41,7 +42,7 @@ public class LoggingFormatter(bool colors = false) : ILoggerFormatter
     /// </example>
     public string FormatLogEntry(
         System.DateTime timeStamp, LogLevel logLevel,
-        EventId eventId, string message, System.Exception? exception)
+        EventId eventId, System.String message, System.Exception? exception)
     {
         System.Text.StringBuilder logBuilder = new();
 

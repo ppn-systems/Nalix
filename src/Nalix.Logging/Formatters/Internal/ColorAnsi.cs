@@ -8,31 +8,31 @@ namespace Nalix.Logging.Formatters.Internal;
 internal static class ColorAnsi
 {
     // Basic colors
-    public const string Reset = "\u001b[0m";       // Reset all styling
+    public const System.String Reset = "\u001b[0m";       // Reset all styling
 
-    public const string Black = "\u001b[30m";      // Black text
-    public const string Red = "\u001b[31m";        // Red text
-    public const string Green = "\u001b[32m";      // Green text
-    public const string Yellow = "\u001b[33m";     // Yellow text
-    public const string Blue = "\u001b[34m";       // Blue text
-    public const string Magenta = "\u001b[35m";    // Magenta text
-    public const string Cyan = "\u001b[36m";       // Cyan text
-    public const string White = "\u001b[37m";      // White text
+    public const System.String Black = "\u001b[30m";      // Black text
+    public const System.String Red = "\u001b[31m";        // Red text
+    public const System.String Green = "\u001b[32m";      // Green text
+    public const System.String Yellow = "\u001b[33m";     // Yellow text
+    public const System.String Blue = "\u001b[34m";       // Blue text
+    public const System.String Magenta = "\u001b[35m";    // Magenta text
+    public const System.String Cyan = "\u001b[36m";       // Cyan text
+    public const System.String White = "\u001b[37m";      // White text
 
     // Extended colors
-    public const string LightGray = "\u001b[38;5;246m";   // Light gray text
+    public const System.String LightGray = "\u001b[38;5;246m";   // Light gray text
 
-    public const string DarkGray = "\u001b[38;5;240m";    // Dark gray text
-    public const string Orange = "\u001b[38;5;208m";      // Orange text
-    public const string Pink = "\u001b[38;5;205m";        // Pink text
-    public const string LightBlue = "\u001b[38;5;45m";    // Light blue text
-    public const string LightGreen = "\u001b[38;5;120m";  // Light green text
-    public const string LightYellow = "\u001b[38;5;228m"; // Light yellow text
-    public const string LightCyan = "\u001b[38;5;51m";    // Light cyan text
-    public const string LightMagenta = "\u001b[38;5;213m"; // Light magenta text
+    public const System.String DarkGray = "\u001b[38;5;240m";    // Dark gray text
+    public const System.String Orange = "\u001b[38;5;208m";      // Orange text
+    public const System.String Pink = "\u001b[38;5;205m";        // Pink text
+    public const System.String LightBlue = "\u001b[38;5;45m";    // Light blue text
+    public const System.String LightGreen = "\u001b[38;5;120m";  // Light green text
+    public const System.String LightYellow = "\u001b[38;5;228m"; // Light yellow text
+    public const System.String LightCyan = "\u001b[38;5;51m";    // Light cyan text
+    public const System.String LightMagenta = "\u001b[38;5;213m"; // Light magenta text
 
     // Cache of color codes by log level to avoid repeated switch statements
-    private static readonly string[] _levelColorCache = new string[(int)LogLevel.None + 1];
+    private static readonly System.String[] _levelColorCache = new System.String[(System.Int32)LogLevel.None + 1];
 
     /// <summary>
     /// Static constructor to initialize the color cache
@@ -40,14 +40,14 @@ internal static class ColorAnsi
     static ColorAnsi()
     {
         // Initialize color cache
-        _levelColorCache[(int)LogLevel.None] = Cyan;
-        _levelColorCache[(int)LogLevel.Meta] = Pink;
-        _levelColorCache[(int)LogLevel.Trace] = Orange;
-        _levelColorCache[(int)LogLevel.Debug] = LightCyan;
-        _levelColorCache[(int)LogLevel.Information] = LightGreen;
-        _levelColorCache[(int)LogLevel.Warning] = LightYellow;
-        _levelColorCache[(int)LogLevel.Error] = LightMagenta;
-        _levelColorCache[(int)LogLevel.Critical] = Red;
+        _levelColorCache[(System.Int32)LogLevel.None] = Cyan;
+        _levelColorCache[(System.Int32)LogLevel.Meta] = Pink;
+        _levelColorCache[(System.Int32)LogLevel.Trace] = Orange;
+        _levelColorCache[(System.Int32)LogLevel.Debug] = LightCyan;
+        _levelColorCache[(System.Int32)LogLevel.Information] = LightGreen;
+        _levelColorCache[(System.Int32)LogLevel.Warning] = LightYellow;
+        _levelColorCache[(System.Int32)LogLevel.Error] = LightMagenta;
+        _levelColorCache[(System.Int32)LogLevel.Critical] = Red;
     }
 
     /// <summary>
@@ -55,7 +55,7 @@ internal static class ColorAnsi
     /// </summary>
     /// <param name="level">The logging level to get a color for.</param>
     /// <returns>An ANSI color code string.</returns>
-    internal static string GetColorCode(LogLevel level)
+    internal static System.String GetColorCode(LogLevel level)
     {
         // Use the cached color if level is within range
         if ((int)level >= 0 && (int)level < _levelColorCache.Length)

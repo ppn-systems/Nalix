@@ -15,18 +15,18 @@ namespace Nalix.Logging.Formatters.Internal;
 internal sealed class FileLoggerProvider : IDisposable
 {
     private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private readonly BlockingCollection<string> _entryQueue;
+    private readonly BlockingCollection<System.String> _entryQueue;
     private readonly DateTime _startTime = DateTime.UtcNow;
     private readonly Task? _processQueueTask;
     private readonly FileWriter _fileWriter;
-    private readonly int _maxQueueSize;
-    private readonly bool _blockWhenQueueFull;
-    private bool _isDisposed;
+    private readonly System.Int32 _maxQueueSize;
+    private readonly System.Boolean _blockWhenQueueFull;
+    private System.Boolean _isDisposed;
 
     // Stats for monitoring
-    private long _totalEntriesWritten;
+    private System.Int64 _totalEntriesWritten;
 
-    private long _entriesDroppedCount;
+    private System.Int64 _entriesDroppedCount;
 
     /// <summary>
     /// Gets the configuration options used by this logger provider.
@@ -162,9 +162,9 @@ internal sealed class FileLoggerProvider : IDisposable
                     }
                 }
                 catch (Exception ex) when (ex is TaskCanceledException ||
-                                          ex is AggregateException aex &&
+                                          (ex is AggregateException aex &&
                                            aex.InnerExceptions.Count == 1 &&
-                                           aex.InnerExceptions[0] is TaskCanceledException)
+                                           aex.InnerExceptions[0] is TaskCanceledException))
                 {
                     // Expected exception when task is canceled
                 }

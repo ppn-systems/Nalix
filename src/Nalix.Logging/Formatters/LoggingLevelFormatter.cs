@@ -19,7 +19,7 @@ internal static class LoggingLevelFormatter
 
     // Character buffer is organized as fixed-length segments with null terminators
     // This enables fast slicing without calculating offsets each time
-    private static System.ReadOnlySpan<char> LogLevelChars =>
+    private static System.ReadOnlySpan<System.Char> LogLevelChars =>
     [
         'M', 'E', 'T', 'A', '\0', // LogLevel.Meta        (0)
         'T', 'R', 'C', 'E', '\0', // LogLevel.Trace       (1)
@@ -32,10 +32,10 @@ internal static class LoggingLevelFormatter
     ];
 
     // Pre-computed strings for each log level to avoid repeated allocations
-    private static readonly string[] CachedLogLevels = new string[MaxLogLevels];
+    private static readonly System.String[] CachedLogLevels = new System.String[MaxLogLevels];
 
     // Format masks for various output types
-    private static readonly byte[] LevelSeverity =
+    private static readonly System.Byte[] LevelSeverity =
     [
         0, // Meta (0)
         1, // Trace (1)
@@ -53,14 +53,14 @@ internal static class LoggingLevelFormatter
     static LoggingLevelFormatter()
     {
         // Initialize cached strings - do this once to avoid repeated allocations
-        System.Span<char> buffer = stackalloc char[LogLevelLength];
+        System.Span<System.Char> buffer = stackalloc System.Char[LogLevelLength];
         for (var i = 0; i < MaxLogLevels; i++)
         {
             // Extract the characters for this log level
             LogLevelChars.Slice(i * LogLevelPaddedLength, LogLevelLength).CopyTo(buffer);
 
             // Create and cache the string
-            CachedLogLevels[i] = new string(buffer);
+            CachedLogLevels[i] = new System.String(buffer);
         }
     }
 
@@ -71,7 +71,7 @@ internal static class LoggingLevelFormatter
     /// <returns>A character span representing the log level.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static System.ReadOnlySpan<char> GetShortLogLevel(LogLevel logLevel)
+    internal static System.ReadOnlySpan<System.Char> GetShortLogLevel(LogLevel logLevel)
     {
         // Bounds checking with bitwise operation for performance
         if (!IsValidLogLevel(logLevel))
@@ -94,7 +94,7 @@ internal static class LoggingLevelFormatter
     /// <returns>A string representing the log level.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static string GetShortLogLevelString(LogLevel logLevel)
+    internal static System.String GetShortLogLevelString(LogLevel logLevel)
     {
         // Bounds checking with bitwise operation for performance
         if (!IsValidLogLevel(logLevel))
@@ -104,7 +104,7 @@ internal static class LoggingLevelFormatter
         }
 
         // Return the cached string for this log level
-        return CachedLogLevels[(int)logLevel];
+        return CachedLogLevels[(System.Int32)logLevel];
     }
 
     /// <summary>
@@ -114,7 +114,7 @@ internal static class LoggingLevelFormatter
     /// <returns>True if the log level is valid, otherwise false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static bool IsValidLogLevel(LogLevel logLevel)
+    private static System.Boolean IsValidLogLevel(LogLevel logLevel)
         => (uint)logLevel < MaxLogLevels;
 
     /// <summary>
@@ -125,11 +125,11 @@ internal static class LoggingLevelFormatter
     /// <returns>The Number of characters written.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static int CopyTo(LogLevel logLevel, System.Span<System.Char> destination)
+    internal static System.Int32 CopyTo(LogLevel logLevel, System.Span<System.Char> destination)
     {
         if (!IsValidLogLevel(logLevel))
         {
-            string fallback = logLevel.ToString().ToUpperInvariant();
+            System.String fallback = logLevel.ToString().ToUpperInvariant();
             if (fallback.Length > destination.Length)
                 return 0;
 
@@ -138,7 +138,7 @@ internal static class LoggingLevelFormatter
         }
 
         System.ReadOnlySpan<System.Char> source = LogLevelChars.Slice(
-            (int)logLevel * LogLevelPaddedLength,
+            (System.Int32)logLevel * LogLevelPaddedLength,
             LogLevelLength
         );
 

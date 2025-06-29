@@ -6,27 +6,27 @@ namespace Nalix.Logging.Formatters;
 public static class LoggingConstants
 {
     /// <summary>
-    /// The default buffer size for logging operations.
-    /// </summary>
-    public const int DefaultLogBufferSize = 60;
-
-    /// <summary>
     /// The opening bracket character used in log formatting.
     /// </summary>
-    public const char LogBracketOpen = '[';
+    public const System.Char LogBracketOpen = '[';
 
     /// <summary>
     /// The closing bracket character used in log formatting.
     /// </summary>
-    public const char LogBracketClose = ']';
+    public const System.Char LogBracketClose = ']';
 
     /// <summary>
     /// The default space separator used in log messages.
     /// </summary>
-    public const char LogSpaceSeparator = ' ';
+    public const System.Char LogSpaceSeparator = ' ';
 
     /// <summary>
     /// The default dash separator used in log messages.
     /// </summary>
-    public const char LogDashSeparator = '-';
+    public const System.Char LogDashSeparator = '-';
+
+    /// <summary>
+    /// The default buffer size for logging operations.
+    /// </summary>
+    public const System.Int32 DefaultLogBufferSize = 60;
 }
