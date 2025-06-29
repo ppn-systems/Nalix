@@ -215,7 +215,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 catch (PackageException ex)
                 {
                     _logger?.Error("Error occurred while processing packet id '{0}' in controller '{1}' (Method: '{2}'). " +
-                                   "Exception: {3}. Net: {4}, Exception Details: {5}",
+                                   "Exception: {3}. Clients: {4}, Exception Details: {5}",
                                     attributes.Opcode.OpCode,
                                     controllerInstance.GetType().Name,
                                     method.Name,
@@ -228,7 +228,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 }
                 catch (System.Exception ex)
                 {
-                    _logger?.Error("Packet [OpCode={0}] ({1}.{2}) threw {3}: {4} [Net: {5}]",
+                    _logger?.Error("Packet [OpCode={0}] ({1}.{2}) threw {3}: {4} [Clients: {5}]",
                         attributes.Opcode.OpCode,
                         controllerInstance.GetType().Name,
                         method.Name,

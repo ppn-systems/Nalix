@@ -7,7 +7,7 @@ using System.Net;
 namespace Nalix.Network.Web.Net.Internal;
 
 /// <summary>
-/// Represents a wrapper for <c>System.Net.CookieCollection</c>.
+/// Represents a wrapper for <c>System.Clients.CookieCollection</c>.
 /// </summary>
 /// <seealso cref="ICookieCollection" />
 internal sealed class SystemCookieCollection : ICookieCollection

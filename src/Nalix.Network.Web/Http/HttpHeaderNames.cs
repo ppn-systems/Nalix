@@ -12,7 +12,7 @@ namespace Nalix.Network.Web.Http;
 public static class HttpHeaderNames
 {
     // The .NET Core sources were taken as reference for this list of constants.
-    // See https://github.com/dotnet/corefx/blob/master/src/Common/src/System/Net/HttpKnownHeaderNames.cs
+    // See https://github.com/dotnet/corefx/blob/master/src/Common/src/System/Clients/HttpKnownHeaderNames.cs
     // However, not all constants come from there, so be careful not to copy-paste indiscriminately.
 
     /// <summary>

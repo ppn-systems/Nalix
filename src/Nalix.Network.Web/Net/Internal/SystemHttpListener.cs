@@ -50,7 +50,7 @@ internal class SystemHttpListener(System.Net.HttpListener httpListener) : IHttpL
     /// <inheritdoc />
     public async Task<IHttpContextImpl> GetContextAsync(CancellationToken cancellationToken)
     {
-        // System.Net.HttpListener.GetContextAsync may throw ObjectDisposedException
+        // System.Clients.HttpListener.GetContextAsync may throw ObjectDisposedException
         // when stopping a WebServer. This has been observed on Mono 5.20.1.19
         // on Raspberry Pi, but the fact remains that the method does not take
         // a CancellationToken as parameter, and WebServerBase<>.RunAsync counts on it.
@@ -62,7 +62,7 @@ internal class SystemHttpListener(System.Net.HttpListener httpListener) : IHttpL
         catch (Exception e) when (cancellationToken.IsCancellationRequested)
         {
             throw new OperationCanceledException(
-                "Probable cancellation detected by catching an exception in System.Net.HttpListener.GetContextAsync",
+                "Probable cancellation detected by catching an exception in System.Clients.HttpListener.GetContextAsync",
                 e,
                 cancellationToken);
         }

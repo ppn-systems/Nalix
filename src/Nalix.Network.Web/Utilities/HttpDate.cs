@@ -8,7 +8,7 @@ namespace Nalix.Network.Web.Utilities;
 /// </summary>
 public static class HttpDate
 {
-    // https://github.com/dotnet/corefx/blob/master/src/Common/src/System/Net/HttpDateParser.cs
+    // https://github.com/dotnet/corefx/blob/master/src/Common/src/System/Clients/HttpDateParser.cs
     private static readonly string[] DateFormats =
     [
         // "r", // RFC 1123, required output format but too strict for input

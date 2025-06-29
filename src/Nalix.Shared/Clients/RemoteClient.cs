@@ -1,40 +1,46 @@
 using Nalix.Common.Package;
+using Nalix.Shared.Clients.Transport;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Injection.DI;
-using Nalix.Shared.Net.Transport;
 
-namespace Nalix.Shared.Net;
+namespace Nalix.Shared.Clients;
 
 /// <summary>
 /// Represents a network client that connects to a remote server using Reliable.
 /// </summary>
 /// <remarks>
-/// The <see cref="NetClient{TPacket}"/> class is a singleton that manages the connection,
+/// The <see cref="RemoteClient{TPacket}"/> class is a singleton that manages the connection,
 /// network stream, and client disposal. It supports both synchronous and asynchronous connection.
 /// </remarks>
-public class NetClient<TPacket> : SingletonBase<NetClient<TPacket>>, System.IDisposable
+public class RemoteClient<TPacket> : SingletonBase<RemoteClient<TPacket>>, System.IDisposable
     where TPacket : IPacket, IPacketFactory<TPacket>, IPacketDeserializer<TPacket>
 {
-    private NetSender<TPacket>? _sender;
-    private NetReader<TPacket>? _reader;
+    #region Fields
+
     private System.Net.Sockets.TcpClient _client;
+    private RemotePacketSender<TPacket>? _sender;
+    private RemotePacketReceiver<TPacket>? _reader;
     private System.Net.Sockets.NetworkStream? _stream;
+
+    #endregion Fields
+
+    #region Properties
 
     /// <summary>
     /// Gets the context associated with the network connection.
     /// </summary>
-    public NetContext Context { get; } = ConfigurationStore.Instance.Get<NetContext>();
+    public RemoteEndpointConfig Context { get; }
 
     /// <summary>
     /// Gets the network sender used to send packets.
     /// </summary>
-    public NetSender<TPacket> Sender => _sender
+    public RemotePacketSender<TPacket> Sender => _sender
         ?? throw new System.InvalidOperationException("Sender is not initialized.");
 
     /// <summary>
     /// Gets the network receiver used to receive packets.
     /// </summary>
-    public NetReader<TPacket> Receiver => _reader
+    public RemotePacketReceiver<TPacket> Receiver => _reader
         ?? throw new System.InvalidOperationException("Receiver is not initialized.");
 
     /// <summary>
@@ -48,10 +54,23 @@ public class NetClient<TPacket> : SingletonBase<NetClient<TPacket>>, System.IDis
     /// </summary>
     public bool IsConnected => _client?.Connected == true && _stream != null;
 
+    #endregion Properties
+
+    #region Constructor
+
     /// <summary>
-    /// Initializes a new instance of the <see cref="NetClient{TPacket}"/> class.
+    /// Initializes a new instance of the <see cref="RemoteClient{TPacket}"/> class.
     /// </summary>
-    private NetClient() => _client = new System.Net.Sockets.TcpClient { NoDelay = true };
+    private RemoteClient()
+    {
+        this.Context = ConfigurationStore.Instance.Get<RemoteEndpointConfig>();
+
+        _client = new System.Net.Sockets.TcpClient { NoDelay = true };
+    }
+
+    #endregion Constructor
+
+    #region APIs
 
     /// <summary>
     /// Connects to a remote server synchronously within a specified timeout period.
@@ -59,7 +78,7 @@ public class NetClient<TPacket> : SingletonBase<NetClient<TPacket>>, System.IDis
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Connect(
-        int timeout = 20000,
+        System.Int32 timeout = 20000,
         System.Threading.CancellationToken cancellationToken = default)
     {
         _client?.Close();
@@ -73,8 +92,8 @@ public class NetClient<TPacket> : SingletonBase<NetClient<TPacket>>, System.IDis
             _client.Connect(Context.Address, Context.Port); // Synchronous Connect
 
             _stream = _client.GetStream();
-            _sender = new NetSender<TPacket>(_stream);
-            _reader = new NetReader<TPacket>(_stream);
+            _sender = new RemotePacketSender<TPacket>(_stream);
+            _reader = new RemotePacketReceiver<TPacket>(_stream);
         }
         catch (System.Exception ex)
         {
@@ -89,7 +108,7 @@ public class NetClient<TPacket> : SingletonBase<NetClient<TPacket>>, System.IDis
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.Task ConnectAsync(
-        int timeout = 30000,
+        System.Int32 timeout = 30000,
         System.Threading.CancellationToken cancellationToken = default)
     {
         _client?.Close();
@@ -103,8 +122,8 @@ public class NetClient<TPacket> : SingletonBase<NetClient<TPacket>>, System.IDis
             await _client.ConnectAsync(Context.Address, Context.Port, cts.Token);
 
             _stream = _client.GetStream();
-            _sender = new NetSender<TPacket>(_stream);
-            _reader = new NetReader<TPacket>(_stream);
+            _sender = new RemotePacketSender<TPacket>(_stream);
+            _reader = new RemotePacketReceiver<TPacket>(_stream);
         }
         catch (System.Exception ex)
         {
@@ -119,7 +138,7 @@ public class NetClient<TPacket> : SingletonBase<NetClient<TPacket>>, System.IDis
     public void Close() => this.Dispose();
 
     /// <summary>
-    /// Releases the resources used by the <see cref="NetClient{TPacket}"/> instance.
+    /// Releases the resources used by the <see cref="RemoteClient{TPacket}"/> instance.
     /// </summary>
     public new void Dispose()
     {
@@ -131,4 +150,6 @@ public class NetClient<TPacket> : SingletonBase<NetClient<TPacket>>, System.IDis
 
         System.GC.SuppressFinalize(this);
     }
+
+    #endregion APIs
 }

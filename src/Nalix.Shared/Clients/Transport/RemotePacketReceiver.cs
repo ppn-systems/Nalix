@@ -2,18 +2,18 @@ using Nalix.Common.Constants;
 using Nalix.Common.Networking;
 using Nalix.Common.Package;
 
-namespace Nalix.Shared.Net.Transport;
+namespace Nalix.Shared.Clients.Transport;
 
 /// <summary>
 /// Handles receiving packets from a network stream.
 /// </summary>
 /// <typeparam name="TPacket">The packet type implementing <see cref="IPacket"/>.</typeparam>
 /// <remarks>
-/// Initializes a new instance of the <see cref="NetReader{TPacket}"/> class with the specified network stream.
+/// Initializes a new instance of the <see cref="RemotePacketReceiver{TPacket}"/> class with the specified network stream.
 /// </remarks>
 /// <param name="stream">The <see cref="System.Net.Sockets.NetworkStream"/> used for receiving data.</param>
 /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
-public sealed class NetReader<TPacket>(System.Net.Sockets.NetworkStream stream) : INetworkReceiver<TPacket>
+public sealed class RemotePacketReceiver<TPacket>(System.Net.Sockets.NetworkStream stream) : INetworkReceiver<TPacket>
     where TPacket : IPacket, IPacketDeserializer<TPacket>
 {
     private readonly System.Net.Sockets.NetworkStream _stream = stream

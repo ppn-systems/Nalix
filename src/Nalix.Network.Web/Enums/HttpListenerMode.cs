@@ -7,7 +7,7 @@ public enum HttpListenerMode
 {
     /// <summary>
     /// Use Notio's internal HTTP listener implementation,
-    /// based on Mono's <c>System.Net.HttpListener</c>.
+    /// based on Mono's <c>System.Clients.HttpListener</c>.
     /// </summary>
     Notio,
 
