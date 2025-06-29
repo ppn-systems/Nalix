@@ -9,19 +9,19 @@ public sealed partial class NLogix
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Meta(string message)
+    public void Meta(System.String message)
         => WriteLog(LogLevel.Meta, EventId.Empty, message);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Meta(string format, params object[] args)
+    public void Meta(System.String format, params System.Object[] args)
         => base.CreateFormattedLogEntry(LogLevel.Meta, EventId.Empty, format, args);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Meta(string message, EventId? eventId = null)
+    public void Meta(System.String message, EventId? eventId = null)
         => WriteLog(LogLevel.Meta, eventId ?? EventId.Empty, message);
 
     #endregion Meta Methods
@@ -31,19 +31,19 @@ public sealed partial class NLogix
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Trace(string message)
+    public void Trace(System.String message)
         => WriteLog(LogLevel.Trace, EventId.Empty, SanitizeLogMessage(message));
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Trace(string format, params object[] args)
+    public void Trace(System.String format, params System.Object[] args)
         => base.CreateFormattedLogEntry(LogLevel.Trace, EventId.Empty, format, args);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Trace(string message, EventId? eventId = null)
+    public void Trace(System.String message, EventId? eventId = null)
         => WriteLog(LogLevel.Trace, eventId ?? EventId.Empty, SanitizeLogMessage(message));
 
     #endregion Trace Methods
@@ -53,26 +53,27 @@ public sealed partial class NLogix
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Debug(string message)
+    public void Debug(System.String message)
         => WriteLog(LogLevel.Debug, EventId.Empty, SanitizeLogMessage(message));
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Debug(string format, params object[] args)
+    public void Debug(System.String format, params System.Object[] args)
         => base.CreateFormattedLogEntry(LogLevel.Debug, EventId.Empty, format, args);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Debug(string message, EventId? eventId = null)
+    public void Debug(System.String message, EventId? eventId = null)
         => WriteLog(LogLevel.Debug, eventId ?? EventId.Empty, SanitizeLogMessage(message));
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Debug<TClass>(string message, EventId? eventId = null,
-        [System.Runtime.CompilerServices.CallerMemberName] string memberName = "")
+    public void Debug<TClass>(
+        System.String message, EventId? eventId = null,
+        [System.Runtime.CompilerServices.CallerMemberName] System.String memberName = "")
         where TClass : class
         => WriteLog(LogLevel.Debug, eventId ?? EventId.Empty, $"[{typeof(TClass).Name}:{memberName}] {message}");
 
@@ -83,19 +84,19 @@ public sealed partial class NLogix
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Info(string message)
+    public void Info(System.String message)
         => WriteLog(LogLevel.Information, EventId.Empty, message);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Info(string format, params object[] args)
+    public void Info(System.String format, params System.Object[] args)
         => base.CreateFormattedLogEntry(LogLevel.Information, EventId.Empty, format, args);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Info(string message, EventId? eventId = null)
+    public void Info(System.String message, EventId? eventId = null)
         => WriteLog(LogLevel.Information, eventId ?? EventId.Empty, message);
 
     #endregion Info Methods
@@ -105,19 +106,19 @@ public sealed partial class NLogix
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Warn(string message)
+    public void Warn(System.String message)
         => WriteLog(LogLevel.Warning, EventId.Empty, message);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Warn(string format, params object[] args)
+    public void Warn(System.String format, params System.Object[] args)
         => base.CreateFormattedLogEntry(LogLevel.Warning, EventId.Empty, format, args);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Warn(string message, EventId? eventId = null)
+    public void Warn(System.String message, EventId? eventId = null)
         => WriteLog(LogLevel.Warning, eventId ?? EventId.Empty, message);
 
     #endregion Warn Methods
@@ -127,13 +128,13 @@ public sealed partial class NLogix
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Error(string message)
+    public void Error(System.String message)
         => WriteLog(LogLevel.Error, EventId.Empty, message);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Error(string format, params object[] args)
+    public void Error(System.String format, params System.Object[] args)
         => base.CreateFormattedLogEntry(LogLevel.Error, EventId.Empty, format, args);
 
     /// <inheritdoc />
@@ -145,7 +146,7 @@ public sealed partial class NLogix
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Error(string message, EventId? eventId = null)
+    public void Error(System.String message, EventId? eventId = null)
         => WriteLog(LogLevel.Error, eventId ?? EventId.Empty, message);
 
     /// <inheritdoc />
@@ -157,13 +158,13 @@ public sealed partial class NLogix
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Error(string message, System.Exception exception)
+    public void Error(System.String message, System.Exception exception)
         => WriteLog(LogLevel.Error, EventId.Empty, message, exception);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Error(string message, System.Exception exception, EventId? eventId = null)
+    public void Error(System.String message, System.Exception exception, EventId? eventId = null)
         => WriteLog(LogLevel.Error, eventId ?? EventId.Empty, message, exception);
 
     #endregion Error Methods
@@ -173,31 +174,31 @@ public sealed partial class NLogix
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Fatal(string message)
+    public void Fatal(System.String message)
         => WriteLog(LogLevel.Critical, EventId.Empty, message);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Fatal(string format, params object[] args)
+    public void Fatal(System.String format, params System.Object[] args)
         => base.CreateFormattedLogEntry(LogLevel.Critical, EventId.Empty, format, args);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Fatal(string message, EventId? eventId = null)
+    public void Fatal(System.String message, EventId? eventId = null)
         => WriteLog(LogLevel.Critical, eventId ?? EventId.Empty, message);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Fatal(string message, System.Exception exception)
+    public void Fatal(System.String message, System.Exception exception)
         => WriteLog(LogLevel.Critical, EventId.Empty, message, exception);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Fatal(string message, System.Exception exception, EventId? eventId = null)
+    public void Fatal(System.String message, System.Exception exception, EventId? eventId = null)
         => WriteLog(LogLevel.Critical, eventId ?? EventId.Empty, message, exception);
 
     #endregion Fatal Methods

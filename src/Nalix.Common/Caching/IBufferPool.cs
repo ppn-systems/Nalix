@@ -15,7 +15,7 @@ public interface IBufferPool
     /// </summary>
     /// <param name="size">The size of the buffer to rent. Default value is 256.</param>
     /// <returns>A byte array representing the rented buffer.</returns>
-    System.Byte[] Rent(int size = 256);
+    System.Byte[] Rent(System.Int32 size = 256);
 
     /// <summary>
     /// Returns a buffer for reuse.

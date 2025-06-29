@@ -23,7 +23,8 @@ public sealed partial class NLogix : LogEngine, ILogger
     /// Initializes the logging system with optional configuration.
     /// </summary>
     /// <param name="configure">An optional action to configure the logging system.</param>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public NLogix(System.Action<NLogOptions>? configure = null)
         : base(configure)
     {
@@ -37,13 +38,15 @@ public sealed partial class NLogix : LogEngine, ILogger
     // Removes potentially dangerous characters (e.g., newlines or control characters)
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static string SanitizeLogMessage(string? message)
-        => message?.Replace("\n", "").Replace("\r", "") ?? string.Empty;
+    private static System.String SanitizeLogMessage(System.String? message)
+        => message?.Replace("\n", "").Replace("\r", "") ?? System.String.Empty;
 
     // Writes a log entry with the specified level, event Number, message, and optional exception.
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void WriteLog(LogLevel level, EventId eventId, string message, System.Exception? exception = null)
+    private void WriteLog(
+        LogLevel level, EventId eventId,
+        System.String message, System.Exception? exception = null)
        => base.CreateLogEntry(level, eventId, message, exception);
 
     #endregion Private Methods
