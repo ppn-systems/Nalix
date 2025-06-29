@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Threading;
-
 namespace Nalix.Shared.Injection.DI;
 
 /// <summary>
@@ -16,17 +10,37 @@ public static class Singleton
     #region Fields
 
     // Using ConcurrentDictionaries for thread-safe operations
-    private static readonly ConcurrentDictionary<Type, Type> TypeMapping = new();
+    private static readonly System.Threading.ReaderWriterLockSlim CacheLock;
 
-    private static readonly ConcurrentDictionary<Type, Lazy<object>> Services = new();
-    private static readonly ConcurrentDictionary<Type, Func<object>> Factories = new();
-    private static readonly ConditionalWeakTable<Type, object> ResolutionCache = [];
-    private static readonly ReaderWriterLockSlim CacheLock = new(LockRecursionPolicy.NoRecursion);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
+        System.Type, System.Type> TypeMapping = new();
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
+        System.Type, System.Lazy<System.Object>> Services = new();
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
+        System.Type, System.Func<System.Object>> Factories = new();
+
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
+        System.Type, System.Object> ResolutionCache = [];
 
     // Track whether we're in the dispose process
     private static int _isDisposing;
 
     #endregion Fields
+
+    #region Constructor
+
+    static Singleton()
+    {
+        // Initialize the resolution cache
+        // This is a no-op since ConditionalWeakTable doesn't require explicit initialization
+        // but it's here for clarity and future extensibility.
+
+        CacheLock = new(System.Threading.LockRecursionPolicy.NoRecursion);
+    }
+
+    #endregion Constructor
 
     #region Public Methods
 
@@ -36,17 +50,19 @@ public static class Singleton
     /// <typeparam name="TClass">The type of the class to register.</typeparam>
     /// <param name="instance">The instance of the class to register.</param>
     /// <param name="allowOverwrite">If true, allows overwriting an existing registration of the same type. Environment to false.</param>
-    /// <exception cref="ArgumentNullException">Thrown when the instance is null.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the type is already registered and overwrite is not allowed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <exception cref="System.ArgumentNullException">Thrown when the instance is null.</exception>
+    /// <exception cref="System.InvalidOperationException">Thrown when the type is already registered and overwrite is not allowed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Register<TClass>(TClass instance, bool allowOverwrite = false)
         where TClass : class
     {
-        ArgumentNullException.ThrowIfNull(instance);
-        Type type = typeof(TClass);
+        System.ArgumentNullException.ThrowIfNull(instance);
+        System.Type type = typeof(TClass);
 
         // Thread-safe lazy initialization
-        Lazy<object> lazy = new(() => instance, LazyThreadSafetyMode.ExecutionAndPublication);
+        System.Lazy<System.Object> lazy = new(
+            () => instance, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
         // Clear cache entry if it exists
         CacheLock.EnterWriteLock();
@@ -65,7 +81,7 @@ public static class Singleton
         }
         else if (!Services.TryAdd(type, lazy))
         {
-            throw new InvalidOperationException($"Type {type.Name} has been registered.");
+            throw new System.InvalidOperationException($"Type {type.Name} has been registered.");
         }
     }
 
@@ -75,13 +91,15 @@ public static class Singleton
     /// <typeparam name="TInterface">The interface type.</typeparam>
     /// <typeparam name="TImplementation">The implementation type of the interface.</typeparam>
     /// <param name="factory">An optional factory function to create instances of the implementation.</param>
-    /// <exception cref="InvalidOperationException">Thrown if the interface has already been registered.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Register<TInterface, TImplementation>(Func<TImplementation>? factory = null)
+    /// <exception cref="System.InvalidOperationException">Thrown if the interface has already been registered.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void Register<TInterface, TImplementation>(
+        System.Func<TImplementation>? factory = null)
         where TImplementation : class, TInterface
     {
-        Type interfaceType = typeof(TInterface);
-        Type implementationType = typeof(TImplementation);
+        System.Type interfaceType = typeof(TInterface);
+        System.Type implementationType = typeof(TImplementation);
 
         // Clear cache entry if it exists
         CacheLock.EnterWriteLock();
@@ -96,7 +114,7 @@ public static class Singleton
 
         if (!TypeMapping.TryAdd(interfaceType, implementationType))
         {
-            throw new InvalidOperationException($"Type {interfaceType.Name} has been registered.");
+            throw new System.InvalidOperationException($"Type {interfaceType.Name} has been registered.");
         }
 
         if (factory != null)
@@ -111,11 +129,12 @@ public static class Singleton
     /// <typeparam name="TClass">The type to resolve.</typeparam>
     /// <param name="createIfNotExists">If true, creates the instance if not already registered. Environment to true.</param>
     /// <returns>The resolved or newly created instance of the requested type.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if the type cannot be resolved or created.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <exception cref="System.InvalidOperationException">Thrown if the type cannot be resolved or created.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static TClass? Resolve<TClass>(bool createIfNotExists = true) where TClass : class
     {
-        Type type = typeof(TClass);
+        System.Type type = typeof(TClass);
 
         // Fast path: Check resolution cache first
         CacheLock.EnterReadLock();
@@ -154,10 +173,11 @@ public static class Singleton
     /// <summary>
     /// Internal implementation of Resolve without caching
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static TClass? ResolveInternal<TClass>(bool createIfNotExists) where TClass : class
     {
-        Type type = typeof(TClass);
+        System.Type type = typeof(TClass);
 
         if (Services.TryGetValue(type, out var lazyService))
         {
@@ -166,12 +186,14 @@ public static class Singleton
 
         if (Factories.TryGetValue(type, out var factory))
         {
-            var lazyInstance = new Lazy<object>(() => factory(), LazyThreadSafetyMode.ExecutionAndPublication);
+            System.Lazy<System.Object> lazyInstance = new(
+                () => factory(), System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
+
             Services.TryAdd(type, lazyInstance);
             return (TClass)lazyInstance.Value;
         }
 
-        if (TypeMapping.TryGetValue(type, out Type? implementationType))
+        if (TypeMapping.TryGetValue(type, out System.Type? implementationType))
         {
             if (!Services.TryGetValue(implementationType, out var lazyImpl))
             {
@@ -182,21 +204,22 @@ public static class Singleton
 
                 try
                 {
-                    var lazyInstance = new Lazy<object>(() =>
+                    var lazyInstance = new System.Lazy<System.Object>(() =>
                     {
-                        object instance = Activator.CreateInstance(implementationType)
-                        ?? throw new InvalidOperationException($"Failed to create instance of type {implementationType.Name}");
+                        object instance = System.Activator.CreateInstance(implementationType)
+                        ?? throw new System.InvalidOperationException(
+                            $"Failed to create instance of type {implementationType.Name}");
 
                         return instance;
-                    }, LazyThreadSafetyMode.ExecutionAndPublication);
+                    }, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
                     Services.TryAdd(implementationType, lazyInstance);
                     Services.TryAdd(type, lazyInstance);
                     return (TClass)lazyInstance.Value;
                 }
-                catch (Exception ex)
+                catch (System.Exception ex)
                 {
-                    throw new InvalidOperationException(
+                    throw new System.InvalidOperationException(
                         $"Failed to create instance of type {implementationType.Name}", ex);
                 }
             }
@@ -208,7 +231,7 @@ public static class Singleton
             return null;
         }
 
-        throw new InvalidOperationException($"No registration found for type {type.Name}");
+        throw new System.InvalidOperationException($"No registration found for type {type.Name}");
     }
 
     /// <summary>
@@ -216,10 +239,11 @@ public static class Singleton
     /// </summary>
     /// <typeparam name="TClass">The type to check for registration.</typeparam>
     /// <returns>True if the type is registered, otherwise false.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static bool IsRegistered<TClass>() where TClass : class
     {
-        Type type = typeof(TClass);
+        System.Type type = typeof(TClass);
         return Services.ContainsKey(type) ||
                TypeMapping.ContainsKey(type) ||
                Factories.ContainsKey(type);
@@ -229,10 +253,11 @@ public static class Singleton
     /// Removes the registration of a specific type.
     /// </summary>
     /// <typeparam name="TClass">The type to remove from registration.</typeparam>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Remove<TClass>() where TClass : class
     {
-        Type type = typeof(TClass);
+        System.Type type = typeof(TClass);
 
         // Remove from cache
         CacheLock.EnterWriteLock();
@@ -282,17 +307,16 @@ public static class Singleton
     /// <summary>
     /// Helper method to get all cached types for clearing
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static List<Type> GetAllCachedTypes()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Collections.Generic.List<System.Type> GetAllCachedTypes()
     {
-        var result = new List<Type>();
-
-        // This is a bit of a hack because ConditionalWeakTable doesn't expose keys directly
-        // In production, you might want a different approach
-        foreach (var service in Services.Keys)
-        {
-            result.Add(service);
-        }
+        System.Collections.Generic.List<System.Type> result =
+        [
+            // This is a bit of a hack because ConditionalWeakTable doesn't expose keys directly
+            // In production, you might want a different approach
+            .. Services.Keys,
+        ];
 
         return result;
     }
@@ -308,14 +332,14 @@ public static class Singleton
     public static void Dispose()
     {
         // Ensure Dispose is only called once
-        if (Interlocked.Exchange(ref _isDisposing, 1) == 1)
+        if (System.Threading.Interlocked.Exchange(ref _isDisposing, 1) == 1)
             return;
 
         // Collect disposable instances first to avoid modification during enumeration
-        var disposables = new List<IDisposable>();
+        System.Collections.Generic.List<System.IDisposable> disposables = [];
         foreach (var lazyService in Services.Values)
         {
-            if (lazyService.IsValueCreated && lazyService.Value is IDisposable disposable)
+            if (lazyService.IsValueCreated && lazyService.Value is System.IDisposable disposable)
             {
                 disposables.Add(disposable);
             }
@@ -328,7 +352,7 @@ public static class Singleton
             {
                 disposable.Dispose();
             }
-            catch (Exception)
+            catch (System.Exception)
             {
                 // Log exception but continue disposing other services
                 // In production: consider logging the exception
@@ -339,7 +363,7 @@ public static class Singleton
         Clear();
 
         // Reset the disposing flag
-        Interlocked.Exchange(ref _isDisposing, 0);
+        System.Threading.Interlocked.Exchange(ref _isDisposing, 0);
     }
 
     #endregion Disposal
