@@ -21,7 +21,7 @@ public readonly struct PacketHeader(in IPacket packet)
     /// <summary>
     /// Gets the command associated with the packet, which can specify an operation or request type.
     /// </summary>
-    public readonly System.UInt16 Id = packet.OpCode;
+    public readonly System.UInt16 OpCode = packet.OpCode;
 
     /// <summary>
     /// Gets the unique identifier for the packet instance.

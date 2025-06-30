@@ -13,7 +13,7 @@ public static class PacketSize
     /// <summary>
     /// The size of the Number field in the packet header, in bytes.
     /// </summary>
-    public const System.Int32 Id = sizeof(System.UInt16);
+    public const System.Int32 OpCode = sizeof(System.UInt16);
 
     /// <summary>
     /// The size of the Number field in the packet header, in bytes.
@@ -48,5 +48,5 @@ public static class PacketSize
     /// <summary>
     /// The total size of the packet header, which is the sum of the sizes of all header fields.
     /// </summary>
-    public const System.Int32 Header = Id + Length + Number + Type + Flags + Priority + Timestamp + Checksum;
+    public const System.Int32 Header = OpCode + Length + Number + Type + Flags + Priority + Timestamp + Checksum;
 }

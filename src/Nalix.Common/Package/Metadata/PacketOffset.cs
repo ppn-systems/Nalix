@@ -13,12 +13,12 @@ public static class PacketOffset
     /// <summary>
     /// Offset for the packet command.
     /// </summary>
-    public const System.Int32 Id = Length + PacketSize.Length;
+    public const System.Int32 OpCode = Length + PacketSize.Length;
 
     /// <summary>
     /// Offset for the packet Number.
     /// </summary>
-    public const System.Int32 Number = Id + PacketSize.Id;
+    public const System.Int32 Number = OpCode + PacketSize.OpCode;
 
     /// <summary>
     /// Offset for the packet checksum.

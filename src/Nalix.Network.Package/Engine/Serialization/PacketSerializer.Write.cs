@@ -31,7 +31,7 @@ public static partial class PacketSerializer
         {
             // Writing the first part of the header in one block (could optimize by grouping)
             System.Runtime.InteropServices.MemoryMarshal.Write(buffer, in totalSize);
-            System.Runtime.InteropServices.MemoryMarshal.Write(buffer[PacketOffset.Id..], in id);
+            System.Runtime.InteropServices.MemoryMarshal.Write(buffer[PacketOffset.OpCode..], in id);
             System.Runtime.InteropServices.MemoryMarshal.Write(buffer[PacketOffset.Timestamp..], in timestamp);
             System.Runtime.InteropServices.MemoryMarshal.Write(buffer[PacketOffset.Checksum..], in checksum);
 

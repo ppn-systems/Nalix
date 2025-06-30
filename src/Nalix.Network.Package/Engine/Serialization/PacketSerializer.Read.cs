@@ -33,7 +33,7 @@ public static partial class PacketSerializer
                     throw new PackageException($"Packet length ({length}) exceeds available data ({data.Length}).");
 
                 // Extract all fields from the header in one go
-                ushort id = pHeader->Id;
+                ushort id = pHeader->OpCode;
                 uint checksum = pHeader->Checksum;
                 long timestamp = pHeader->Timestamp;
                 byte number = pHeader->Number;
