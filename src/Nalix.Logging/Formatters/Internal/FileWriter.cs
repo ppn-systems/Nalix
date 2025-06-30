@@ -1,37 +1,38 @@
 using Nalix.Logging.Exceptions;
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Text;
-using System.Threading;
 
 namespace Nalix.Logging.Formatters.Internal;
 
 /// <summary>
 /// Manages writing logs to a file with support for file rotation and error handling.
 /// </summary>
-internal sealed class FileWriter : IDisposable
+internal sealed class FileWriter : System.IDisposable
 {
+    #region Fields
+
     // Set buffer size to 8KB for optimal performance
-    private const int WriteBufferSize = 8 * 1024;
+    private const System.Int32 WriteBufferSize = 8 * 1024;
 
     private readonly FileLoggerProvider _provider;
-    private readonly Lock _fileLock = new();
+    private readonly System.Threading.Lock _fileLock = new();
 
-    private bool _isDisposed;
-    private int _fileCounter;
-    private long _currentFileSize;
-    private FileStream? _logFileStream;
-    private StreamWriter? _logFileWriter;
+    private System.Boolean _isDisposed;
+    private System.Int32 _fileCounter;
+    private System.Int64 _currentFileSize;
+    private System.IO.FileStream? _logFileStream;
+    private System.IO.StreamWriter? _logFileWriter;
+
+    #endregion Fields
+
+    #region Constructor
 
     /// <summary>
     /// Initializes a new instance of <see cref="FileWriter"/>.
     /// </summary>
     /// <param name="provider">The file logger provider.</param>
-    /// <exception cref="ArgumentNullException">Thrown if provider is null.</exception>
+    /// <exception cref="System.ArgumentNullException">Thrown if provider is null.</exception>
     internal FileWriter(FileLoggerProvider provider)
     {
-        _provider = provider ?? throw new ArgumentNullException(nameof(provider));
+        _provider = provider ?? throw new System.ArgumentNullException(nameof(provider));
 
         // Create the directory if it doesn't exist
         EnsureDirectoryExists();
@@ -40,200 +41,23 @@ internal sealed class FileWriter : IDisposable
         OpenFile(provider.Append);
     }
 
-    /// <summary>
-    /// Ensures the log directory exists.
-    /// </summary>
-    private void EnsureDirectoryExists()
-    {
-        try
-        {
-            var directory = _provider.Options.LogDirectory;
-            if (!Directory.Exists(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error creating log directory: {ex.Message}");
+    #endregion Constructor
 
-            // Try to use a fallback directory in case of permission issues
-            try
-            {
-                var tempPath = Path.Combine(Path.GetTempPath(), "Nalix", "Logs");
-                Directory.CreateDirectory(tempPath);
-                _provider.Options.LogDirectory = tempPath;
-            }
-            catch
-            {
-                // Last resort - use current directory
-                _provider.Options.LogDirectory = ".";
-            }
-        }
-    }
-
-    /// <summary>
-    /// Generates a unique log file name.
-    /// </summary>
-    private string GenerateUniqueLogFileName()
-    {
-        string baseFileName = _provider.Options.LogFileName;
-        string extension = Path.GetExtension(baseFileName);
-        string fileNameWithoutExt = Path.GetFileNameWithoutExtension(baseFileName);
-
-        // Start with the original file name
-        string fileName = baseFileName;
-
-        // Apply custom formatter if provided
-        if (_provider.FormatLogFileName != null)
-        {
-            try
-            {
-                fileName = _provider.FormatLogFileName(baseFileName);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error applying custom file name formatter: {ex.Message}");
-            }
-        }
-        // Otherwise apply the default date-based naming
-        else if (_provider.Options.IncludeDateInFileName)
-        {
-            var now = DateTime.Now; // Use local time for file names
-            fileName = $"{fileNameWithoutExt}_{now:yyyy-MM-dd}_{_fileCounter++}{extension}";
-        }
-
-        string logDirectory = _provider.Options.LogDirectory;
-        string fullPath = Path.Combine(logDirectory, fileName);
-
-        // Ensure file name uniqueness by adding counter if file exists
-        int uniqueCounter = 0;
-        while (File.Exists(fullPath))
-        {
-            uniqueCounter++;
-            string uniqueName = $"{fileNameWithoutExt}_{DateTime.Now:yyyy-MM-dd}_{_fileCounter}_{uniqueCounter}{extension}";
-            fullPath = Path.Combine(logDirectory, uniqueName);
-
-            // Safety check to avoid infinite loop
-            if (uniqueCounter > 9999)
-            {
-                fullPath = Path.Combine(logDirectory,
-                    $"{fileNameWithoutExt}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss-fff}_{Guid.NewGuid().ToString()[..8]}{extension}");
-                break;
-            }
-        }
-
-        return Path.GetFileName(fullPath);
-    }
-
-    /// <summary>
-    /// Creates a new log file when the existing one exceeds size limits.
-    /// </summary>
-    private void CreateNewLogFile()
-    {
-        lock (_fileLock)
-        {
-            Close(); // Ensure the old file is closed properly
-            string newFileName = GenerateUniqueLogFileName();
-            _provider.Options.LogFileName = newFileName;
-            OpenFile(false); // Open new file in create mode
-        }
-    }
-
-    /// <summary>
-    /// Creates and opens the log file stream.
-    /// </summary>
-    /// <param name="append">Whether to append to an existing file.</param>
-    private void CreateLogFileStream(bool append)
-    {
-        string logFilePath = Path.Combine(_provider.Options.LogDirectory, _provider.Options.LogFileName);
-
-        try
-        {
-            // Check if file exists and get its size
-            bool fileExists = File.Exists(logFilePath);
-            _currentFileSize = fileExists ? new FileInfo(logFilePath).Length : 0;
-
-            // If file exists, is non-empty, and exceeds size limit, create a new one instead
-            if (fileExists && _currentFileSize > 0 && _currentFileSize >= _provider.MaxFileSize)
-            {
-                CreateNewLogFile();
-                return;
-            }
-
-            // Create the file stream with appropriate sharing mode
-            _logFileStream = new FileStream(
-                logFilePath,
-                append ? FileMode.Append : FileMode.Create,
-                FileAccess.Write,
-                FileShare.Read,
-                WriteBufferSize,
-                FileOptions.WriteThrough);
-
-            // Create the writer with appropriate encoding and buffer
-            _logFileWriter = new StreamWriter(_logFileStream, Encoding.UTF8, WriteBufferSize)
-            {
-                AutoFlush = false // We'll control flushing explicitly
-            };
-
-            // Write a header for new files
-            if (!append || _currentFileSize == 0)
-            {
-                var headerBuilder = new StringBuilder();
-                headerBuilder.AppendLine("-----------------------------------------------------");
-                headerBuilder.AppendLine($"Log Files Created: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
-                headerBuilder.AppendLine($"User: {Environment.UserName}");
-                headerBuilder.AppendLine($"Machine: {Environment.MachineName}");
-                headerBuilder.AppendLine($"OS: {Environment.OSVersion}");
-                headerBuilder.AppendLine("-----------------------------------------------------");
-
-                _logFileWriter.WriteLine(headerBuilder.ToString());
-                _logFileWriter.Flush();
-
-                // Update current file size to include header
-                _currentFileSize = _logFileStream.Length;
-            }
-        }
-        catch (Exception ex)
-        {
-            // Let the provider handle file errors
-            _provider.HandleFileError?.Invoke(new FileError(ex, logFilePath));
-
-            // Clean up any partially created resources
-            _logFileWriter?.Dispose();
-            _logFileStream?.Dispose();
-            _logFileWriter = null;
-            _logFileStream = null;
-
-            throw; // Re-throw for provider to handle
-        }
-    }
-
-    /// <summary>
-    /// Opens a log file.
-    /// </summary>
-    /// <param name="append">Whether to append to an existing file.</param>
-    private void OpenFile(bool append)
-    {
-        lock (_fileLock)
-        {
-            CreateLogFileStream(append);
-        }
-    }
+    #region APIs
 
     /// <summary>
     /// Use a new log file, typically after an error with the current one.
     /// </summary>
     /// <param name="newLogFileName">New log file name.</param>
-    internal void UseNewLogFile(string newLogFileName)
+    internal void UseNewLogFile(System.String newLogFileName)
     {
-        if (string.IsNullOrEmpty(newLogFileName))
-            throw new ArgumentException("New log file name cannot be empty", nameof(newLogFileName));
+        if (System.String.IsNullOrEmpty(newLogFileName))
+            throw new System.ArgumentException("New log file name cannot be empty", nameof(newLogFileName));
 
         lock (_fileLock)
         {
             Close(); // Close the current file first
-            _provider.Options.LogFileName = Path.GetFileName(newLogFileName);
+            _provider.Options.LogFileName = System.IO.Path.GetFileName(newLogFileName);
             OpenFile(_provider.Append);
         }
     }
@@ -243,9 +67,9 @@ internal sealed class FileWriter : IDisposable
     /// </summary>
     /// <param name="message">The message to write.</param>
     /// <param name="flush">Whether to flush after writing.</param>
-    internal void WriteMessage(string message, bool flush)
+    internal void WriteMessage(System.String message, bool flush)
     {
-        if (string.IsNullOrEmpty(message))
+        if (System.String.IsNullOrEmpty(message))
             return;
 
         lock (_fileLock)
@@ -261,7 +85,8 @@ internal sealed class FileWriter : IDisposable
             }
 
             // Estimate message size (approximate for performance)
-            int messageSize = message.Length * sizeof(char) + Environment.NewLine.Length * sizeof(char);
+            int messageSize = (message.Length * sizeof(System.Char)) +
+                (System.Environment.NewLine.Length * sizeof(System.Char));
 
             // Check if adding this message would exceed the file size limit
             if (_currentFileSize + messageSize > _provider.MaxFileSize)
@@ -311,9 +136,10 @@ internal sealed class FileWriter : IDisposable
                 _logFileWriter?.Dispose();
                 _logFileStream?.Dispose();
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
-                Debug.WriteLine($"Error closing log file: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine(
+                    $"Error closing log file: {ex.Message}");
             }
             finally
             {
@@ -335,4 +161,199 @@ internal sealed class FileWriter : IDisposable
         _isDisposed = true;
         Close();
     }
+
+    #endregion APIs
+
+    #region Private Methods
+
+    /// <summary>
+    /// Ensures the log directory exists.
+    /// </summary>
+    private void EnsureDirectoryExists()
+    {
+        try
+        {
+            System.String directory = _provider.Options.LogDirectory;
+            if (!System.IO.Directory.Exists(directory))
+            {
+                System.IO.Directory.CreateDirectory(directory);
+            }
+        }
+        catch (System.Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"Error creating log directory: {ex.Message}");
+
+            // Try to use a fallback directory in case of permission issues
+            try
+            {
+                System.String tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "assets", "logs");
+                System.IO.Directory.CreateDirectory(tempPath);
+                _provider.Options.LogDirectory = tempPath;
+            }
+            catch
+            {
+                // Last resort - use current directory
+                _provider.Options.LogDirectory = ".";
+            }
+        }
+    }
+
+    /// <summary>
+    /// Generates a unique log file name.
+    /// </summary>
+    private System.String GenerateUniqueLogFileName()
+    {
+        System.String baseFileName = _provider.Options.LogFileName;
+        System.String extension = System.IO.Path.GetExtension(baseFileName);
+        System.String fileNameWithoutExt = System.IO.Path.GetFileNameWithoutExtension(baseFileName);
+
+        // Start with the original file name
+        System.String fileName = baseFileName;
+
+        // Apply custom formatter if provided
+        if (_provider.FormatLogFileName != null)
+        {
+            try
+            {
+                fileName = _provider.FormatLogFileName(baseFileName);
+            }
+            catch (System.Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"Error applying custom file name formatter: {ex.Message}");
+            }
+        }
+        // Otherwise apply the default date-based naming
+        else if (_provider.Options.IncludeDateInFileName)
+        {
+            System.DateTime now = System.DateTime.Now; // Use local time for file names
+            fileName = $"{fileNameWithoutExt}_{now:yyyy-MM-dd}_{_fileCounter++}{extension}";
+        }
+
+        System.String logDirectory = _provider.Options.LogDirectory;
+        System.String fullPath = System.IO.Path.Combine(logDirectory, fileName);
+
+        // Ensure file name uniqueness by adding counter if file exists
+        int uniqueCounter = 0;
+        while (System.IO.File.Exists(fullPath))
+        {
+            uniqueCounter++;
+            System.String uniqueName = $"{fileNameWithoutExt}_" +
+                $"{System.DateTime.Now:yyyy-MM-dd}_" +
+                $"{_fileCounter}_" +
+                $"{uniqueCounter}{extension}";
+
+            fullPath = System.IO.Path.Combine(logDirectory, uniqueName);
+
+            // Safety check to avoid infinite loop
+            if (uniqueCounter > 9999)
+            {
+                fullPath = System.IO.Path.Combine(logDirectory,
+                    $"{fileNameWithoutExt}_" +
+                    $"{System.DateTime.Now:yyyy-MM-dd_HH-mm-ss-fff}_" +
+                    $"{System.Guid.NewGuid().ToString()[..8]}{extension}");
+                break;
+            }
+        }
+
+        return System.IO.Path.GetFileName(fullPath);
+    }
+
+    /// <summary>
+    /// Creates a new log file when the existing one exceeds size limits.
+    /// </summary>
+    private void CreateNewLogFile()
+    {
+        lock (_fileLock)
+        {
+            Close(); // Ensure the old file is closed properly
+            System.String newFileName = GenerateUniqueLogFileName();
+            _provider.Options.LogFileName = newFileName;
+            OpenFile(false); // Open new file in create mode
+        }
+    }
+
+    /// <summary>
+    /// Creates and opens the log file stream.
+    /// </summary>
+    /// <param name="append">Whether to append to an existing file.</param>
+    private void CreateLogFileStream(System.Boolean append)
+    {
+        System.String logFilePath = System.IO.Path.Combine(_provider.Options.LogDirectory, _provider.Options.LogFileName);
+
+        try
+        {
+            // Check if file exists and get its size
+            System.Boolean fileExists = System.IO.File.Exists(logFilePath);
+            _currentFileSize = fileExists ? new System.IO.FileInfo(logFilePath).Length : 0;
+
+            // If file exists, is non-empty, and exceeds size limit, create a new one instead
+            if (fileExists && _currentFileSize > 0 && _currentFileSize >= _provider.MaxFileSize)
+            {
+                CreateNewLogFile();
+                return;
+            }
+
+            // Create the file stream with appropriate sharing mode
+            _logFileStream = new System.IO.FileStream(
+                logFilePath,
+                append ? System.IO.FileMode.Append : System.IO.FileMode.Create,
+                System.IO.FileAccess.Write,
+                System.IO.FileShare.Read,
+                WriteBufferSize,
+                System.IO.FileOptions.WriteThrough);
+
+            // Create the writer with appropriate encoding and buffer
+            _logFileWriter = new System.IO.StreamWriter(_logFileStream, System.Text.Encoding.UTF8, WriteBufferSize)
+            {
+                AutoFlush = false // We'll control flushing explicitly
+            };
+
+            // Write a header for new files
+            if (!append || _currentFileSize == 0)
+            {
+                System.Text.StringBuilder headerBuilder = new();
+                headerBuilder.AppendLine("-----------------------------------------------------");
+                headerBuilder.AppendLine($"Log Files Created: {System.DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
+                headerBuilder.AppendLine($"User: {System.Environment.UserName}");
+                headerBuilder.AppendLine($"Machine: {System.Environment.MachineName}");
+                headerBuilder.AppendLine($"OS: {System.Environment.OSVersion}");
+                headerBuilder.AppendLine("-----------------------------------------------------");
+
+                _logFileWriter.WriteLine(headerBuilder.ToString());
+                _logFileWriter.Flush();
+
+                // Update current file size to include header
+                _currentFileSize = _logFileStream.Length;
+            }
+        }
+        catch (System.Exception ex)
+        {
+            // Let the provider handle file errors
+            _provider.HandleFileError?.Invoke(new FileError(ex, logFilePath));
+
+            // Clean up any partially created resources
+            _logFileWriter?.Dispose();
+            _logFileStream?.Dispose();
+            _logFileWriter = null;
+            _logFileStream = null;
+
+            throw; // Re-throw for provider to handle
+        }
+    }
+
+    /// <summary>
+    /// Opens a log file.
+    /// </summary>
+    /// <param name="append">Whether to append to an existing file.</param>
+    private void OpenFile(System.Boolean append)
+    {
+        lock (_fileLock)
+        {
+            CreateLogFileStream(append);
+        }
+    }
+
+    #endregion Private Methods
 }
