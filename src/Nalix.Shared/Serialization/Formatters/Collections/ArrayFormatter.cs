@@ -15,6 +15,8 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The array to serialize.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public unsafe void Serialize(ref DataWriter writer, T[] value)
     {
         if (value == null)
@@ -53,6 +55,8 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
     /// </summary>
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized array of unmanaged values, or null if applicable.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public unsafe T[] Deserialize(ref DataReader reader)
     {
         System.UInt16 length = FormatterProvider
@@ -60,7 +64,9 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
             .Deserialize(ref reader);
 
         if (length == 0) return [];
-        if (length == SerializerBounds.Null) return [];
+#pragma warning disable CS8603 // Possible null reference return.
+        if (length == SerializerBounds.Null) return null;
+#pragma warning restore CS8603 // Possible null reference return.
         if (length > SerializerBounds.MaxArray)
             throw new SerializationException("Array length out of range");
 

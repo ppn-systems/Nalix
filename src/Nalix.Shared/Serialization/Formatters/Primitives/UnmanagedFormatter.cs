@@ -1,5 +1,6 @@
 using Nalix.Shared.Serialization.Buffers;
 using Nalix.Shared.Serialization.Internal.Types;
+using System;
 
 namespace Nalix.Shared.Serialization.Formatters.Primitives;
 
@@ -44,20 +45,25 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
     /// <summary>
     /// Reads an unmanaged value from the buffer without alignment requirements.
     /// </summary>
-    /// <param name="writer">The <see cref="DataReader"/> to read from.</param>
+    /// <param name="reader">The <see cref="DataReader"/> to read from.</param>
     /// <returns>The unmanaged value read from the buffer.</returns>
-    public unsafe T Deserialize(ref DataReader writer)
+    public unsafe T Deserialize(ref DataReader reader)
     {
         T value;
         System.Int32 size = TypeMetadata.SizeOf<T>();
-        System.ReadOnlySpan<System.Byte> span = writer.GetSpan(size);
+        System.ReadOnlySpan<System.Byte> span = reader.GetSpan(size);
+
+#if DEBUG
+        if (reader.BytesRemaining < size)
+            throw new InvalidOperationException($"Buffer underrun while deserializing {typeof(T)}. Needed {size} bytes.");
+#endif
 
         fixed (System.Byte* ptr = span)
         {
             value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(ptr);
         }
 
-        writer.Advance(size);
+        reader.Advance(size);
         return value;
     }
 }
