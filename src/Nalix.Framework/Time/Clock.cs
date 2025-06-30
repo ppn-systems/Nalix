@@ -25,9 +25,6 @@ public static partial class Clock
     private static System.DateTime _lastExternalTime;
     private static readonly System.Double _swToDateTimeTicks;
 
-    // Performance measurement fields
-    private static readonly System.Threading.ThreadLocal<System.Diagnostics.Stopwatch> _threadStopwatch;
-
     #endregion Constants and Fields
 
     #region Properties
@@ -55,7 +52,6 @@ public static partial class Clock
     {
         _timeOffset = 0; // In ticks, adjusted from external time sources
         _driftCorrection = 1.0; // Multiplier to correct for system clock drift
-        _threadStopwatch = new(System.Diagnostics.Stopwatch.StartNew);
         _swToDateTimeTicks = (System.Double)System.TimeSpan.TicksPerSecond / System.Diagnostics.Stopwatch.Frequency;
 
         // Static class, no instantiation allowed
@@ -186,23 +182,4 @@ public static partial class Clock
     }
 
     #endregion Time Synchronization Methods
-
-    #region Performance Measurement
-
-    /// <summary>
-    /// Starts a new performance measurement using the current thread's stopwatch.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void BeginFrameMeasure() => _threadStopwatch.Value!.Restart();
-
-    /// <summary>
-    /// Gets the elapsed time in milliseconds since the last call to BeginFrameMeasure() for the current thread.
-    /// </summary>
-    /// <returns>The elapsed time in milliseconds.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Double GetFrameElapsedMs() => _threadStopwatch.Value!.Elapsed.TotalMilliseconds;
-
-    #endregion Performance Measurement
 }
