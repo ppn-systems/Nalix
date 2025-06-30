@@ -2,7 +2,6 @@ using Nalix.Common.Exceptions;
 using Nalix.Shared.Serialization.Buffers;
 using Nalix.Shared.Serialization.Formatters;
 using Nalix.Shared.Serialization.Internal.Types;
-using System;
 
 namespace Nalix.Shared.Serialization;
 
@@ -22,6 +21,8 @@ public static class LiteSerializer
     private static readonly byte[] EmptyArrayMarker = [0, 0, 0, 0];
 
     #endregion Constants
+
+    #region APIs
 
     /// <summary>
     /// Serializes an object into a byte array.
@@ -51,7 +52,7 @@ public static class LiteSerializer
         IFormatter<T> formatter = FormatterProvider.GetComplex<T>();
         TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out System.Int32 size);
 
-        if (kind == TypeKind.None)
+        if (kind is TypeKind.None)
         {
             DataWriter writer = (size > 0) ? new(size) : new(512);
 
@@ -66,16 +67,16 @@ public static class LiteSerializer
                 writer.Dispose();
             }
         }
-        else if (kind == TypeKind.UnmanagedSZArray)
+        else if (kind is TypeKind.UnmanagedSZArray)
         {
-            if (value == null)
+            if (value is null)
             {
                 return NullArrayMarker;
             }
 
             System.Array array = (System.Array)(System.Object)value;
             System.Int32 length = array.Length;
-            if (length == 0) return EmptyArrayMarker;
+            if (length is 0) return EmptyArrayMarker;
 
             System.Int32 dataSize = size * length;
             System.Byte[] buffer = System.GC.AllocateUninitializedArray<System.Byte>(dataSize + 4);
@@ -88,19 +89,10 @@ public static class LiteSerializer
 
             return buffer;
         }
-        else if (kind == TypeKind.FixedSizeSerializable)
+        else if (kind is TypeKind.FixedSizeSerializable)
         {
-            System.Byte[] buffer = GC.AllocateUninitializedArray<byte>(size);
-            DataWriter writer;
-
-            if (size == 0)
-            {
-                writer = new(buffer);
-            }
-            else
-            {
-                writer = new(512);
-            }
+            System.Byte[] buffer = System.GC.AllocateUninitializedArray<System.Byte>(size);
+            DataWriter writer = (size > 0) ? new(buffer) : new(512);
 
             try
             {
@@ -129,42 +121,64 @@ public static class LiteSerializer
     /// <exception cref="SerializationException">
     /// Thrown if serialization fails or the buffer is too small.
     /// </exception>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="System.NotSupportedException">
     /// Thrown if the type is not supported for span-based serialization.
     /// </exception>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 Serialize<T>(in T value, Span<byte> buffer)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Int32 Serialize<T>(in T value, System.Byte[] buffer)
     {
-        System.Int32 size;
+        System.ArgumentNullException.ThrowIfNull(buffer);
 
+        // Primitive or unmanaged struct
         if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
-            size = TypeMetadata.SizeOf<T>();
+            System.Int32 size = TypeMetadata.SizeOf<T>();
             if (buffer.Length < size)
                 throw new SerializationException($"Buffer too small. Required: {size}, Actual: {buffer.Length}");
 
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
-                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer), value);
+                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(buffer), value);
 
             return size;
         }
 
-        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out size);
+        // Reference or Nullable/Complex types
+        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out System.Int32 fixedSize);
 
-        if (kind == TypeKind.FixedSizeSerializable)
+        if (kind is TypeKind.FixedSizeSerializable)
         {
-            if (buffer.Length < size)
-                throw new SerializationException($"Buffer too small. Required: {size}, Actual: {buffer.Length}");
+            if (buffer.Length < fixedSize)
+                throw new SerializationException($"Buffer too small. Required: {fixedSize}, Actual: {buffer.Length}");
 
             IFormatter<T> formatter = FormatterProvider.GetComplex<T>();
-            DataWriter writer = new(buffer.ToArray());
+            DataWriter writer = new(buffer);
 
             formatter.Serialize(ref writer, value);
             return writer.BytesWritten;
         }
 
-        throw new NotSupportedException($"Span-based serialization is not supported for type {typeof(T)}.");
+        throw new System.NotSupportedException(
+            $"Array-based serialization is not supported for type {typeof(T)}. Use Serialize<T>(in T) to get byte[] instead.");
     }
+
+    /// <summary>
+    /// Serializes an object into the provided span.
+    /// </summary>
+    /// <typeparam name="T">The type of object to serialize.</typeparam>
+    /// <param name="value">The object to serialize.</param>
+    /// <param name="buffer">The target span to write the serialized data into.</param>
+    /// <returns>The number of bytes written into the buffer.</returns>
+    /// <exception cref="SerializationException">
+    /// Thrown if serialization fails or the buffer is too small.
+    /// </exception>
+    /// <exception cref="System.NotSupportedException">
+    /// Thrown if the type is not supported for span-based serialization.
+    /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Int32 Serialize<T>(in T value, System.Span<System.Byte> buffer)
+        => throw new System.NotSupportedException("Span<byte> serialization is not yet supported.");
 
     /// <summary>
     /// Deserializes an object from a byte array.
@@ -199,7 +213,7 @@ public static class LiteSerializer
 
         TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out System.Int32 size);
 
-        if (kind == TypeKind.UnmanagedSZArray)
+        if (kind is TypeKind.UnmanagedSZArray)
         {
             if (IsNullArrayMarker(buffer))
             {
@@ -207,7 +221,8 @@ public static class LiteSerializer
                 return 4;
             }
 
-            Type elementType = typeof(T).GetElementType() ?? throw new SerializationException("Invalid array type.");
+            System.Type elementType = typeof(T).GetElementType()
+                ?? throw new SerializationException("Invalid array type.");
 
             if (IsEmptyArrayMarker(buffer))
             {
@@ -242,6 +257,8 @@ public static class LiteSerializer
         value = formatter.Deserialize(ref reader);
         return reader.BytesRead;
     }
+
+    #endregion APIs
 
     #region Private Methods
 

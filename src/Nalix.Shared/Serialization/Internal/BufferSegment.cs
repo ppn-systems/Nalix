@@ -8,17 +8,17 @@ namespace Nalix.Shared.Serialization.Internal;
     System.Runtime.InteropServices.LayoutKind.Auto)]
 internal struct BufferSegment
 {
-    private readonly bool _rent;
+    private readonly System.Boolean _rent;
 
-    private int _written;
-    private byte[] _buffer;
+    private System.Int32 _written;
+    private System.Byte[] _buffer;
 
     /// <summary>
     /// Initializes a new instance of <see cref="BufferSegment"/> with a rented buffer of the specified size.
     /// </summary>
     /// <param name="size">The initial size of the buffer.</param>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if size is not positive.</exception>
-    public BufferSegment(int size)
+    public BufferSegment(System.Int32 size)
     {
         if (size <= 0)
         {
@@ -27,7 +27,7 @@ internal struct BufferSegment
 
         _rent = true;
         _written = 0;
-        _buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(size);
+        _buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(size);
     }
 
     /// <summary>
@@ -35,7 +35,7 @@ internal struct BufferSegment
     /// </summary>
     /// <param name="buffer">The external buffer to use.</param>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if the buffer has zero length.</exception>
-    public BufferSegment(byte[] buffer)
+    public BufferSegment(System.Byte[] buffer)
     {
         if (buffer.Length <= 0)
         {
@@ -48,43 +48,34 @@ internal struct BufferSegment
     }
 
     /// <summary>
-    /// Initializes a new instance of <see cref="BufferSegment"/> from a span by copying it.
-    /// </summary>
-    /// <param name="buffer">The source span to copy.</param>
-    public BufferSegment(System.Span<byte> buffer)
-        : this(buffer.ToArray())
-    {
-    }
-
-    /// <summary>
     /// Gets the number of bytes written to the buffer.
     /// </summary>
-    public readonly int WrittenCount => _written;
+    public readonly System.Int32 WrittenCount => _written;
 
     /// <summary>
     /// Gets a value indicating whether the buffer is null.
     /// </summary>
-    public readonly bool IsNull => _buffer == null;
+    public readonly System.Boolean IsNull => _buffer == null;
 
     /// <summary>
     /// Gets the total capacity of the internal buffer.
     /// </summary>
-    public readonly int Length => _buffer?.Length ?? 0;
+    public readonly System.Int32 Length => _buffer?.Length ?? 0;
 
     /// <summary>
     /// Gets a span of the remaining unwritten portion of the buffer.
     /// </summary>
-    public readonly System.Span<byte> FreeBuffer => System.MemoryExtensions.AsSpan(_buffer, _written);
+    public readonly System.Span<System.Byte> FreeBuffer => System.MemoryExtensions.AsSpan(_buffer, _written);
 
     /// <summary>
     /// Gets a span of the written portion of the buffer.
     /// </summary>
-    public readonly System.Span<byte> WrittenBuffer => System.MemoryExtensions.AsSpan(_buffer, 0, _written);
+    public readonly System.Span<System.Byte> WrittenBuffer => System.MemoryExtensions.AsSpan(_buffer, 0, _written);
 
     /// <summary>
     /// Gets a memory representation of the written data.
     /// </summary>
-    public readonly System.Memory<byte> WrittenMemory => System.MemoryExtensions.AsMemory(_buffer, 0, _written);
+    public readonly System.Memory<System.Byte> WrittenMemory => System.MemoryExtensions.AsMemory(_buffer, 0, _written);
 
     /// <summary>
     /// Advances the write cursor by the specified count.
@@ -92,7 +83,7 @@ internal struct BufferSegment
     /// <param name="count">The number of bytes written.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Advance(int count) => _written += count;
+    public void Advance(System.Int32 count) => _written += count;
 
     /// <summary>
     /// Ensures the buffer has enough free space, expanding if necessary.
@@ -101,11 +92,16 @@ internal struct BufferSegment
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if minimumSize is not positive.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Expand(int minimumSize)
+    public void Expand(System.Int32 minimumSize)
     {
         if (minimumSize <= 0)
         {
             throw new System.ArgumentOutOfRangeException(nameof(minimumSize), "Size must be greater than zero.");
+        }
+
+        if (!_rent)
+        {
+            throw new System.InvalidOperationException("Cannot expand a fixed buffer.");
         }
 
         if (_buffer != null && _buffer.Length - _written >= minimumSize)
@@ -113,8 +109,8 @@ internal struct BufferSegment
             return;
         }
 
-        int newSize = System.Math.Max((_buffer?.Length ?? 0) * 2, _written + minimumSize);
-        byte[] newBuffer = System.Buffers.ArrayPool<byte>.Shared.Rent(newSize);
+        System.Int32 newSize = System.Math.Max((_buffer?.Length ?? 0) * 2, _written + minimumSize);
+        System.Byte[] newBuffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(newSize);
 
         if (_buffer != null && _written > 0)
         {
@@ -123,7 +119,7 @@ internal struct BufferSegment
 
         if (_buffer != null && _rent)
         {
-            System.Buffers.ArrayPool<byte>.Shared.Return(_buffer);
+            System.Buffers.ArrayPool<System.Byte>.Shared.Return(_buffer);
         }
 
         _buffer = newBuffer;
@@ -138,7 +134,7 @@ internal struct BufferSegment
     {
         if (_buffer != null && _rent == true)
         {
-            System.Buffers.ArrayPool<byte>.Shared.Return(_buffer);
+            System.Buffers.ArrayPool<System.Byte>.Shared.Return(_buffer);
             _written = 0;
             _buffer = null!;
         }
