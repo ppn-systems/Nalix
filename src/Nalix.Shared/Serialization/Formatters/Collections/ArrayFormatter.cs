@@ -64,9 +64,7 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
             .Deserialize(ref reader);
 
         if (length == 0) return [];
-#pragma warning disable CS8603 // Possible null reference return.
-        if (length == SerializerBounds.Null) return null;
-#pragma warning restore CS8603 // Possible null reference return.
+        if (length == SerializerBounds.Null) return null!;
         if (length > SerializerBounds.MaxArray)
             throw new SerializationException("Array length out of range");
 

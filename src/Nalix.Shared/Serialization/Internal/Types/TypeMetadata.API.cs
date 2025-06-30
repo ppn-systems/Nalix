@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace Nalix.Shared.Serialization.Internal.Types;
 
 /// <summary>
@@ -25,6 +27,26 @@ internal static partial class TypeMetadata
     public static bool IsUnmanaged<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>()
         => Cache<T>.IsUnmanaged;
+
+    /// <summary>
+    /// Determines whether the specified type is unmanaged by examining its structure and fields.
+    /// </summary>
+    /// <param name="type">The type to check for unmanaged status.</param>
+    /// <returns>True if the type is unmanaged; otherwise, false.</returns>
+    /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="type"/> is null.</exception>
+    public static bool IsUnmanaged(System.Type type)
+    {
+        try
+        {
+            return type.IsValueType &&
+                   System.Runtime.InteropServices.Marshal.SizeOf(type) > 0 &&
+                   type.GetFields(System.Reflection.BindingFlags.Instance |
+                                  System.Reflection.BindingFlags.NonPublic |
+                                  System.Reflection.BindingFlags.Public)
+                       .All(f => IsUnmanaged(f.FieldType));
+        }
+        catch { return false; }
+    }
 
     /// <summary>
     /// Determines whether the specified type is nullable.
