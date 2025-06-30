@@ -48,7 +48,7 @@ public sealed class ReferenceArrayFormatter<T> : IFormatter<T[]> where T : class
         System.UInt16 length = FormatterProvider.Get<System.UInt16>()
                                                 .Deserialize(ref reader);
 
-        if (length == SerializerBounds.Null) return [];
+        if (length == SerializerBounds.Null) return null!;
         if (length == 0) return [];
 
         IFormatter<T> formatter = FormatterProvider.Get<T>();

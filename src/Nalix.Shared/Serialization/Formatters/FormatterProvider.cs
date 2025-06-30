@@ -2,6 +2,7 @@ using Nalix.Shared.Serialization.Formatters.Automatic;
 using Nalix.Shared.Serialization.Formatters.Cache;
 using Nalix.Shared.Serialization.Formatters.Collections;
 using Nalix.Shared.Serialization.Formatters.Primitives;
+using Nalix.Shared.Serialization.Internal.Types;
 
 namespace Nalix.Shared.Serialization.Formatters;
 
@@ -140,12 +141,70 @@ public static class FormatterProvider
         {
             System.Type? elementType = typeof(T).GetElementType();
 
-            if (elementType is { IsEnum: true })
+            if (elementType != null)
             {
-                // T là kiểu TEnum[], ta cần tạo EnumArrayFormatter<TEnum>
-                System.Type formatterType = typeof(EnumArrayFormatter<>).MakeGenericType(elementType);
-                System.Object instance = System.Activator.CreateInstance(formatterType)!;
+                if (elementType.IsEnum)
+                {
+                    // T là Enum[], => dùng EnumArrayFormatter<TEnum>
+                    var formatterType = typeof(EnumArrayFormatter<>).MakeGenericType(elementType);
+                    var formatterInstance = (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
+                    Register(formatterInstance);
+                    return formatterInstance;
+                }
 
+                if (elementType.IsValueType && !elementType.IsEnum)
+                {
+                    // T là unmanaged[] => ArrayFormatter<T>
+                    if (System.Runtime.InteropServices.Marshal.SizeOf(elementType) > 0)
+                    {
+                        var formatterType = typeof(ArrayFormatter<>).MakeGenericType(elementType);
+                        var formatterInstance = (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
+                        Register(formatterInstance);
+                        return formatterInstance;
+                    }
+                }
+
+                if (elementType.IsClass || (elementType.IsValueType && !elementType.IsPrimitive))
+                {
+                    // T là TRef[] => ReferenceArrayFormatter<T>
+                    var formatterType = typeof(ReferenceArrayFormatter<>).MakeGenericType(elementType);
+                    var formatterInstance = (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
+                    Register(formatterInstance);
+                    return formatterInstance;
+                }
+            }
+        }
+
+        if (typeof(T).IsGenericType &&
+            typeof(T).GetGenericTypeDefinition() == typeof(System.Collections.Generic.List<>))
+        {
+            System.Type elementType = typeof(T).GetGenericArguments()[0];
+
+            // Enum
+            if (elementType.IsEnum)
+            {
+                System.Type formatterType = typeof(EnumListFormatter<>).MakeGenericType(elementType);
+                System.Object instance = System.Activator.CreateInstance(formatterType)!;
+                Register((IFormatter<T>)instance);
+                return (IFormatter<T>)instance;
+            }
+
+            // Unmanaged struct (value type, không phải enum)
+            if (elementType.IsValueType &&
+               !elementType.IsEnum && TypeMetadata.IsUnmanaged(elementType))
+            {
+                System.Type formatterType = typeof(ListFormatter<>).MakeGenericType(elementType);
+                System.Object instance = System.Activator.CreateInstance(formatterType)!;
+                Register((IFormatter<T>)instance);
+                return (IFormatter<T>)instance;
+            }
+
+            // Complex struct or class (reference type or boxed struct)
+            if (elementType.IsClass ||
+               (elementType.IsValueType && !elementType.IsPrimitive && !elementType.IsEnum))
+            {
+                System.Type formatterType = typeof(ReferenceListFormatter<>).MakeGenericType(elementType);
+                object instance = System.Activator.CreateInstance(formatterType)!;
                 Register((IFormatter<T>)instance);
                 return (IFormatter<T>)instance;
             }
