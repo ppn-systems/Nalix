@@ -2,6 +2,7 @@ using Nalix.Common.Exceptions;
 using Nalix.Shared.Serialization.Buffers;
 using Nalix.Shared.Serialization.Formatters;
 using Nalix.Shared.Serialization.Internal.Types;
+using System;
 
 namespace Nalix.Shared.Serialization;
 
@@ -31,6 +32,8 @@ public static class LiteSerializer
     /// <exception cref="SerializationException">
     /// Thrown if serialization encounters an error.
     /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte[] Serialize<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(in T value)
     {
@@ -50,7 +53,7 @@ public static class LiteSerializer
 
         if (kind == TypeKind.None)
         {
-            DataWriter writer = new(256);
+            DataWriter writer = (size > 0) ? new(size) : new(512);
 
             try
             {
@@ -70,24 +73,34 @@ public static class LiteSerializer
                 return NullArrayMarker;
             }
 
-            System.Array srcArray = (System.Array)(System.Object)value;
-            System.Int32 length = srcArray.Length;
+            System.Array array = (System.Array)(System.Object)value;
+            System.Int32 length = array.Length;
             if (length == 0) return EmptyArrayMarker;
 
             System.Int32 dataSize = size * length;
-            System.Byte[] destArray = System.GC.AllocateUninitializedArray<System.Byte>(dataSize + 4);
-            ref System.Byte head = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(destArray);
+            System.Byte[] buffer = System.GC.AllocateUninitializedArray<System.Byte>(dataSize + 4);
+            ref System.Byte ptr = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(buffer);
 
-            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref head, length);
+            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref ptr, length);
             System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
-                ref System.Runtime.CompilerServices.Unsafe.Add(ref head, 4),
-                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(srcArray), (System.UInt32)dataSize);
+                ref System.Runtime.CompilerServices.Unsafe.Add(ref ptr, 4),
+                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(array), (System.UInt32)dataSize);
 
-            return destArray;
+            return buffer;
         }
         else if (kind == TypeKind.FixedSizeSerializable)
         {
-            DataWriter writer = new(size);
+            System.Byte[] buffer = GC.AllocateUninitializedArray<byte>(size);
+            DataWriter writer;
+
+            if (size == 0)
+            {
+                writer = new(buffer);
+            }
+            else
+            {
+                writer = new(512);
+            }
 
             try
             {
@@ -107,6 +120,53 @@ public static class LiteSerializer
     }
 
     /// <summary>
+    /// Serializes an object into the provided span.
+    /// </summary>
+    /// <typeparam name="T">The type of object to serialize.</typeparam>
+    /// <param name="value">The object to serialize.</param>
+    /// <param name="buffer">The target span to write the serialized data into.</param>
+    /// <returns>The number of bytes written into the buffer.</returns>
+    /// <exception cref="SerializationException">
+    /// Thrown if serialization fails or the buffer is too small.
+    /// </exception>
+    /// <exception cref="NotSupportedException">
+    /// Thrown if the type is not supported for span-based serialization.
+    /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Int32 Serialize<T>(in T value, Span<byte> buffer)
+    {
+        System.Int32 size;
+
+        if (!TypeMetadata.IsReferenceOrNullable<T>())
+        {
+            size = TypeMetadata.SizeOf<T>();
+            if (buffer.Length < size)
+                throw new SerializationException($"Buffer too small. Required: {size}, Actual: {buffer.Length}");
+
+            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
+                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer), value);
+
+            return size;
+        }
+
+        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out size);
+
+        if (kind == TypeKind.FixedSizeSerializable)
+        {
+            if (buffer.Length < size)
+                throw new SerializationException($"Buffer too small. Required: {size}, Actual: {buffer.Length}");
+
+            IFormatter<T> formatter = FormatterProvider.GetComplex<T>();
+            DataWriter writer = new(buffer.ToArray());
+
+            formatter.Serialize(ref writer, value);
+            return writer.BytesWritten;
+        }
+
+        throw new NotSupportedException($"Span-based serialization is not supported for type {typeof(T)}.");
+    }
+
+    /// <summary>
     /// Deserializes an object from a byte array.
     /// </summary>
     /// <typeparam name="T">The type of object to deserialize.</typeparam>
@@ -116,9 +176,11 @@ public static class LiteSerializer
     /// <exception cref="SerializationException">
     /// Thrown if deserialization encounters an error or if there is insufficient data in the buffer.
     /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Deserialize<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
-        System.ReadOnlySpan<byte> buffer, ref T value)
+        System.ReadOnlySpan<System.Byte> buffer, ref T value)
     {
         if (buffer.IsEmpty)
             throw new System.ArgumentException("Buffer cannot be empty", nameof(buffer));
@@ -139,19 +201,17 @@ public static class LiteSerializer
 
         if (kind == TypeKind.UnmanagedSZArray)
         {
-            if (buffer.Length >= 4 &&
-                buffer[0] == NullArrayMarker[0] && buffer[1] == NullArrayMarker[1] &&
-                buffer[2] == NullArrayMarker[2] && buffer[3] == NullArrayMarker[3])
+            if (IsNullArrayMarker(buffer))
             {
                 value = default!;
                 return 4;
             }
 
-            if (buffer.Length >= 4 &&
-                buffer[0] == EmptyArrayMarker[0] && buffer[1] == EmptyArrayMarker[1] &&
-                buffer[2] == EmptyArrayMarker[2] && buffer[3] == EmptyArrayMarker[3])
+            Type elementType = typeof(T).GetElementType() ?? throw new SerializationException("Invalid array type.");
+
+            if (IsEmptyArrayMarker(buffer))
             {
-                value = (T)(System.Object)System.Array.CreateInstance(typeof(T).GetElementType()!, 0);
+                value = (T)(System.Object)System.Array.CreateInstance(elementType, 0);
                 return 4;
             }
 
@@ -165,7 +225,7 @@ public static class LiteSerializer
             if (buffer.Length < dataSize + 4)
                 throw new SerializationException($"Expected {dataSize + 4} bytes, found {buffer.Length} bytes.");
 
-            System.Array arr = System.Array.CreateInstance(typeof(T).GetElementType()!, length);
+            System.Array arr = System.Array.CreateInstance(elementType, length);
             ref byte dest = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(arr);
 
             System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
@@ -182,4 +242,22 @@ public static class LiteSerializer
         value = formatter.Deserialize(ref reader);
         return reader.BytesRead;
     }
+
+    #region Private Methods
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Boolean IsNullArrayMarker(System.ReadOnlySpan<System.Byte> buffer) =>
+        buffer.Length >= 4 &&
+        System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.Int32>(
+            ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer)) == -1;
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Boolean IsEmptyArrayMarker(System.ReadOnlySpan<System.Byte> buffer) =>
+        buffer.Length >= 4 &&
+        System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.Int32>(
+            ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer)) == 0;
+
+    #endregion Private Methods
 }

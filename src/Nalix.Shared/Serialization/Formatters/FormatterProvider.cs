@@ -128,86 +128,18 @@ public static class FormatterProvider
     /// </exception>
     public static IFormatter<T> Get<T>()
     {
-        IFormatter<T> formatter = FormatterCache<T>.Formatter;
-        if (formatter != null) return formatter;
+        if (FormatterCache<T>.Formatter is not null)
+            return FormatterCache<T>.Formatter;
 
         // Auto-register for enums
-        if (typeof(T).IsEnum)
+        IFormatter<T>? formatter = TryCreateEnumFormatter<T>()
+             ?? TryCreateArrayFormatter<T>()
+             ?? TryCreateListFormatter<T>();
+
+        if (formatter is not null)
         {
-            return FormatterEnum<T>();
-        }
-
-        if (typeof(T).IsArray)
-        {
-            System.Type? elementType = typeof(T).GetElementType();
-
-            if (elementType != null)
-            {
-                if (elementType.IsEnum)
-                {
-                    // T là Enum[], => dùng EnumArrayFormatter<TEnum>
-                    var formatterType = typeof(EnumArrayFormatter<>).MakeGenericType(elementType);
-                    var formatterInstance = (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
-                    Register(formatterInstance);
-                    return formatterInstance;
-                }
-
-                if (elementType.IsValueType && !elementType.IsEnum)
-                {
-                    // T là unmanaged[] => ArrayFormatter<T>
-                    if (System.Runtime.InteropServices.Marshal.SizeOf(elementType) > 0)
-                    {
-                        var formatterType = typeof(ArrayFormatter<>).MakeGenericType(elementType);
-                        var formatterInstance = (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
-                        Register(formatterInstance);
-                        return formatterInstance;
-                    }
-                }
-
-                if (elementType.IsClass || (elementType.IsValueType && !elementType.IsPrimitive))
-                {
-                    // T là TRef[] => ReferenceArrayFormatter<T>
-                    var formatterType = typeof(ReferenceArrayFormatter<>).MakeGenericType(elementType);
-                    var formatterInstance = (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
-                    Register(formatterInstance);
-                    return formatterInstance;
-                }
-            }
-        }
-
-        if (typeof(T).IsGenericType &&
-            typeof(T).GetGenericTypeDefinition() == typeof(System.Collections.Generic.List<>))
-        {
-            System.Type elementType = typeof(T).GetGenericArguments()[0];
-
-            // Enum
-            if (elementType.IsEnum)
-            {
-                System.Type formatterType = typeof(EnumListFormatter<>).MakeGenericType(elementType);
-                System.Object instance = System.Activator.CreateInstance(formatterType)!;
-                Register((IFormatter<T>)instance);
-                return (IFormatter<T>)instance;
-            }
-
-            // Unmanaged struct (value type, không phải enum)
-            if (elementType.IsValueType &&
-               !elementType.IsEnum && TypeMetadata.IsUnmanaged(elementType))
-            {
-                System.Type formatterType = typeof(ListFormatter<>).MakeGenericType(elementType);
-                System.Object instance = System.Activator.CreateInstance(formatterType)!;
-                Register((IFormatter<T>)instance);
-                return (IFormatter<T>)instance;
-            }
-
-            // Complex struct or class (reference type or boxed struct)
-            if (elementType.IsClass ||
-               (elementType.IsValueType && !elementType.IsPrimitive && !elementType.IsEnum))
-            {
-                System.Type formatterType = typeof(ReferenceListFormatter<>).MakeGenericType(elementType);
-                object instance = System.Activator.CreateInstance(formatterType)!;
-                Register((IFormatter<T>)instance);
-                return (IFormatter<T>)instance;
-            }
+            Register(formatter);
+            return formatter;
         }
 
         throw new System.InvalidOperationException($"No formatter registered for type {typeof(T)}.");
@@ -260,11 +192,72 @@ public static class FormatterProvider
 
     #region Private Methods
 
-    private static EnumFormatter<T> FormatterEnum<T>()
+    private static EnumFormatter<T>? TryCreateEnumFormatter<T>()
     {
-        EnumFormatter<T> enumFormatter = new();
-        Register(enumFormatter);
-        return enumFormatter;
+        if (typeof(T).IsEnum)
+        {
+            EnumFormatter<T> enumFormatter = new();
+            Register(enumFormatter);
+            return enumFormatter;
+        }
+        else return null;
+    }
+
+    private static IFormatter<T>? TryCreateArrayFormatter<T>()
+    {
+        if (!typeof(T).IsArray) return null;
+
+        System.Type? elementType = typeof(T).GetElementType();
+        if (elementType == null) return null;
+
+        System.Type formatterType;
+        if (elementType.IsEnum)
+        {
+            formatterType = typeof(EnumArrayFormatter<>).MakeGenericType(elementType);
+        }
+        else if (elementType.IsValueType && !elementType.IsEnum)
+        {
+            if (System.Runtime.InteropServices.Marshal.SizeOf(elementType) > 0)
+            {
+                formatterType = typeof(ArrayFormatter<>).MakeGenericType(elementType);
+            }
+            else return null;
+        }
+        else if (elementType.IsClass || (elementType.IsValueType && !elementType.IsPrimitive))
+        {
+            formatterType = typeof(ReferenceArrayFormatter<>).MakeGenericType(elementType);
+        }
+        else return null;
+
+        return (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
+    }
+
+    private static IFormatter<T>? TryCreateListFormatter<T>()
+    {
+        if (!typeof(T).IsGenericType ||
+            typeof(T).GetGenericTypeDefinition() != typeof(System.Collections.Generic.List<>))
+            return null;
+
+        System.Type formatterType;
+        System.Type elementType = typeof(T).GetGenericArguments()[0];
+
+        if (elementType.IsEnum)
+        {
+            formatterType = typeof(EnumListFormatter<>).MakeGenericType(elementType);
+        }
+        else if (elementType.IsValueType &&
+                !elementType.IsEnum && TypeMetadata.IsUnmanaged(elementType))
+        {
+            formatterType = typeof(ListFormatter<>).MakeGenericType(elementType);
+        }
+        else if (elementType.IsClass ||
+                (elementType.IsValueType && !elementType.IsPrimitive && !elementType.IsEnum))
+        {
+            formatterType = typeof(ReferenceListFormatter<>).MakeGenericType(elementType);
+        }
+        else return null;
+
+        return (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
     }
 
     #endregion Private Methods
