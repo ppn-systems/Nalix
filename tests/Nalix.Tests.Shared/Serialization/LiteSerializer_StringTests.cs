@@ -36,6 +36,7 @@ public class LiteSerializer_StringTests
         // Chuyển mảng byte về chuỗi và lưu vào output.
         LiteSerializer.Deserialize(buffer, ref output);
         // Kiểm tra xem output có phải là null không.
+        System.Diagnostics.Debug.WriteLine($"Output: {output}");
         Assert.Null(output);
     }
 }

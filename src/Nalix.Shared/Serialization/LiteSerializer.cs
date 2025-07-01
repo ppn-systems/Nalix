@@ -38,7 +38,7 @@ public static class LiteSerializer
     public static System.Byte[] Serialize<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(in T value)
     {
-        System.ArgumentNullException.ThrowIfNull(value, nameof(value));
+        // System.ArgumentNullException.ThrowIfNull(value, nameof(value));
 
         if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
@@ -97,8 +97,11 @@ public static class LiteSerializer
             System.Diagnostics.Debug.WriteLine(
                 $"Serializing fixed-size type {typeof(T).FullName} with size {size} bytes.");
 
-            DataWriter writer = (size > 0) ?
-                new(System.GC.AllocateUninitializedArray<System.Byte>(size)) : new(512);
+            System.Byte[] buffer = size > 0
+                ? System.GC.AllocateUninitializedArray<System.Byte>(size)
+                : new byte[512]; // small fallback
+
+            DataWriter writer = new(buffer);
 
             try
             {
@@ -187,7 +190,18 @@ public static class LiteSerializer
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Serialize<T>(in T value, System.Span<System.Byte> buffer)
-        => throw new System.NotSupportedException("Span<byte> serialization is not yet supported.");
+    {
+        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
+        if (kind == TypeKind.FixedSizeSerializable)
+        {
+            if (buffer.Length < size) throw new SerializationException("Buffer too small.");
+            var writer = new DataWriter(buffer.ToArray());
+            FormatterProvider.GetComplex<T>().Serialize(ref writer, value);
+            return writer.WrittenCount;
+        }
+
+        throw new System.NotSupportedException($"Span<byte> serialization not supported for {typeof(T)}.");
+    }
 
     /// <summary>
     /// Deserializes an object from a byte array.

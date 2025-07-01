@@ -10,11 +10,9 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 public sealed class EnumArrayFormatter<T> : IFormatter<T[]> where T : struct, System.Enum
 {
     private static readonly System.Int32 _elementSize;
-    private static readonly System.TypeCode _underlyingTypeCode;
 
     static EnumArrayFormatter()
     {
-        _underlyingTypeCode = System.Type.GetTypeCode(System.Enum.GetUnderlyingType(typeof(T)));
         _elementSize = System.Runtime.InteropServices.Marshal.SizeOf(System.Enum.GetUnderlyingType(typeof(T)));
 
         if (_elementSize == 0 || _elementSize > 8)
@@ -48,22 +46,13 @@ public sealed class EnumArrayFormatter<T> : IFormatter<T[]> where T : struct, Sy
         System.Int32 totalBytes = value.Length * _elementSize;
         writer.Expand(totalBytes);
 
-        System.Runtime.InteropServices.GCHandle handle = System.Runtime.InteropServices.GCHandle.Alloc(
-            value, System.Runtime.InteropServices.GCHandleType.Pinned);
-        try
-        {
-            void* srcPtr = handle.AddrOfPinnedObject().ToPointer();
-            ref System.Byte dstRef = ref writer.GetFreeBufferReference();
+        ref System.Byte dstRef = ref writer.GetFreeBufferReference();
+        ref T srcRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(value);
 
-            fixed (System.Byte* dstPtr = &dstRef)
-            {
-                System.Buffer.MemoryCopy(srcPtr, dstPtr, totalBytes, totalBytes);
-            }
-        }
-        finally
-        {
-            handle.Free();
-        }
+        System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+            ref dstRef,
+            ref System.Runtime.CompilerServices.Unsafe.As<T, System.Byte>(ref srcRef),
+            (System.UInt32)totalBytes);
 
         writer.Advance(totalBytes);
     }
@@ -81,30 +70,28 @@ public sealed class EnumArrayFormatter<T> : IFormatter<T[]> where T : struct, Sy
     public unsafe T[] Deserialize(ref DataReader reader)
     {
         System.UInt16 length = FormatterProvider.Get<System.UInt16>()
-                                         .Deserialize(ref reader);
+                                                .Deserialize(ref reader);
 
         if (length == 0) return [];
         if (length == SerializerBounds.Null) return null!;
-        if (length > SerializerBounds.MaxArray) throw new SerializationException("Array length out of range");
+        if (length > SerializerBounds.MaxArray)
+            throw new SerializationException("Array length out of range");
 
-        System.Int32 totalBytes = length * _elementSize;
-        System.ReadOnlySpan<System.Byte> src = reader.GetSpan(totalBytes);
+        int totalBytes = length * _elementSize;
+
+#if DEBUG
+        if (reader.BytesRemaining < totalBytes)
+            throw new SerializationException(
+                $"Buffer underrun when reading array of {typeof(T)}. Needed {totalBytes} bytes.");
+#endif
+
         T[] result = new T[length];
+        ref System.Byte src = ref reader.GetSpanReference(totalBytes);
+        ref T dst = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(result);
 
-        System.Runtime.InteropServices.GCHandle handle = System.Runtime.InteropServices.GCHandle.Alloc(
-            result, System.Runtime.InteropServices.GCHandleType.Pinned);
-        try
-        {
-            System.IntPtr dstPtr = handle.AddrOfPinnedObject();
-            fixed (System.Byte* pSrc = src)
-            {
-                System.Buffer.MemoryCopy(pSrc, (void*)dstPtr, totalBytes, totalBytes);
-            }
-        }
-        finally
-        {
-            handle.Free();
-        }
+        System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+            ref System.Runtime.CompilerServices.Unsafe.As<T, System.Byte>(ref dst),
+            ref src, (System.UInt32)totalBytes);
 
         reader.Advance(totalBytes);
         return result;

@@ -69,14 +69,15 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
             throw new SerializationException("Array length out of range");
 
         System.Int32 total = length * TypeMetadata.SizeOf<T>();
-        System.ReadOnlySpan<System.Byte> span = reader.GetSpan(total);
-        T[] result = new T[length];
 
-        fixed (System.Byte* src = span)
-        fixed (T* dst = result)
-        {
-            System.Buffer.MemoryCopy(src, dst, total, total);
-        }
+        ref System.Byte src = ref reader.GetSpanReference(total);
+
+        T[] result = new T[length];
+        ref T dst = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(result);
+
+        System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+            ref System.Runtime.CompilerServices.Unsafe.As<T, System.Byte>(ref dst),
+            ref src, (System.UInt32)total);
 
         reader.Advance(total);
         return result;
