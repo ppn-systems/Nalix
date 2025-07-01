@@ -1,4 +1,4 @@
-using Nalix.Shared.Serialization.Formatters.Automatic;
+﻿using Nalix.Shared.Serialization.Formatters.Automatic;
 using Nalix.Shared.Serialization.Formatters.Cache;
 using Nalix.Shared.Serialization.Formatters.Collections;
 using Nalix.Shared.Serialization.Formatters.Primitives;
@@ -142,6 +142,7 @@ public static class FormatterProvider
             return formatter;
         }
 
+        return GetComplex<T>();
         throw new System.InvalidOperationException($"No formatter registered for type {typeof(T)}.");
     }
 
@@ -160,8 +161,8 @@ public static class FormatterProvider
         IFormatter<T> formatter;
         System.Type type = typeof(T);
 
-        if (typeof(T) == typeof(System.String))
-            return (IFormatter<T>)FormatterCache<System.String>.Formatter!;
+        //if (type == typeof(System.String))
+        //    return (IFormatter<T>)FormatterCache<System.String>.Formatter!;
 
         if (type.IsValueType && !type.IsEnum)
         {
@@ -208,31 +209,24 @@ public static class FormatterProvider
 
     private static IFormatter<T>? TryCreateArrayFormatter<T>()
     {
-        if (!typeof(T).IsArray) return null;
+        System.Type type = typeof(T);
+        if (!typeof(T).IsArray && !typeof(T).IsSZArray) return null;
 
-        System.Type? elementType = typeof(T).GetElementType();
-        if (elementType == null) return null;
+        System.Type elementType = type.GetElementType()!;
+        System.Type formatterGeneric;
 
-        System.Type formatterType;
         if (elementType.IsEnum)
-        {
-            formatterType = typeof(EnumArrayFormatter<>).MakeGenericType(elementType);
-        }
+            formatterGeneric = typeof(EnumArrayFormatter<>);
         else if (elementType.IsValueType && !elementType.IsEnum)
-        {
-            if (System.Runtime.InteropServices.Marshal.SizeOf(elementType) > 0)
-            {
-                formatterType = typeof(ArrayFormatter<>).MakeGenericType(elementType);
-            }
-            else return null;
-        }
-        else if (elementType.IsClass || (elementType.IsValueType && !elementType.IsPrimitive))
-        {
-            formatterType = typeof(ReferenceArrayFormatter<>).MakeGenericType(elementType);
-        }
-        else return null;
+            formatterGeneric = typeof(ArrayFormatter<>);
+        else
+            formatterGeneric = typeof(ReferenceArrayFormatter<>);
 
-        return (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
+        // T = int[] -> elementType = int -> formatterGeneric<int> = IFormatter<int[]>
+        System.Type actualFormatterType = formatterGeneric.MakeGenericType(elementType);
+
+        // object → IFormatter<int[]>
+        return (IFormatter<T>)System.Activator.CreateInstance(actualFormatterType)!;
     }
 
     private static IFormatter<T>? TryCreateListFormatter<T>()
