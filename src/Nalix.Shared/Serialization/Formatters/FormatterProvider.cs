@@ -33,9 +33,9 @@ public static class FormatterProvider
         Register<System.Decimal>(new UnmanagedFormatter<System.Decimal>());
 
         Register<System.Guid>(new UnmanagedFormatter<System.Guid>());
+        Register<System.TimeSpan>(new UnmanagedFormatter<System.TimeSpan>());
         Register<System.DateTime>(new UnmanagedFormatter<System.DateTime>());
         Register<System.DateTimeOffset>(new UnmanagedFormatter<System.DateTimeOffset>());
-        Register<System.TimeSpan>(new UnmanagedFormatter<System.TimeSpan>());
 
         // ============================================================ //
         // Integer arrays
@@ -154,15 +154,12 @@ public static class FormatterProvider
     /// <exception cref="System.InvalidOperationException">
     /// Thrown if no formatter is registered for the specified type.
     /// </exception>
-    public static IFormatter<T> GetComplex<[
+    internal static IFormatter<T> GetComplex<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>()
     {
         IFormatter<T> formatter;
         System.Type type = typeof(T);
-
-        //if (type == typeof(System.String))
-        //    return (IFormatter<T>)FormatterCache<System.String>.Formatter!;
 
         if (type.IsValueType && !type.IsEnum)
         {
