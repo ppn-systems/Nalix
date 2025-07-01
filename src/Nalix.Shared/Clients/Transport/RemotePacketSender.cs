@@ -1,4 +1,3 @@
-using Nalix.Common.Networking;
 using Nalix.Common.Package;
 
 namespace Nalix.Shared.Clients.Transport;
@@ -11,7 +10,7 @@ namespace Nalix.Shared.Clients.Transport;
 /// </remarks>
 /// <param name="stream">The <see cref="System.Net.Sockets.NetworkStream"/> used for sending data.</param>
 /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
-public sealed class RemotePacketSender<TPacket>(System.Net.Sockets.NetworkStream stream) : INetworkSender<TPacket>
+public sealed class RemotePacketSender<TPacket>(System.Net.Sockets.NetworkStream stream)
     where TPacket : IPacket
 {
     private readonly System.Net.Sockets.NetworkStream _stream = stream
