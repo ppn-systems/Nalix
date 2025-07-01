@@ -74,7 +74,7 @@ public sealed class TransientConsoleScope : System.IDisposable
                         Kernel32.FILE_SHARE_READ | Kernel32.FILE_SHARE_WRITE, System.IntPtr.Zero,
                         Kernel32.OPEN_EXISTING, 0, System.IntPtr.Zero);
 
-            if (_hPrivOut == System.IntPtr.Zero || _hPrivOut == (System.IntPtr)(-1))
+            if (_hPrivOut == System.IntPtr.Zero || _hPrivOut == -1)
             {
                 _ownsGlobalMux = false;
                 try
@@ -92,7 +92,7 @@ public sealed class TransientConsoleScope : System.IDisposable
                        Kernel32.FILE_SHARE_READ | Kernel32.FILE_SHARE_WRITE, System.IntPtr.Zero,
                        Kernel32.OPEN_EXISTING, 0, System.IntPtr.Zero);
 
-            if (_hPrivIn == System.IntPtr.Zero || _hPrivIn == (System.IntPtr)(-1))
+            if (_hPrivIn == System.IntPtr.Zero || _hPrivIn == -1)
             {
                 _ownsGlobalMux = false;
                 try
@@ -105,9 +105,9 @@ public sealed class TransientConsoleScope : System.IDisposable
                     $"CreateFile(CONIN$) failed: {System.Runtime.InteropServices.Marshal.GetLastPInvokeError()}");
             }
 
-            Kernel32.SET_STD_HANDLE(Kernel32.STD_OUTPUT_HANDLE, _hPrivOut);
-            Kernel32.SET_STD_HANDLE(Kernel32.STD_ERROR_HANDLE, _hPrivOut);
-            Kernel32.SET_STD_HANDLE(Kernel32.STD_INPUT_HANDLE, _hPrivIn);
+            _ = Kernel32.SET_STD_HANDLE(Kernel32.STD_OUTPUT_HANDLE, _hPrivOut);
+            _ = Kernel32.SET_STD_HANDLE(Kernel32.STD_ERROR_HANDLE, _hPrivOut);
+            _ = Kernel32.SET_STD_HANDLE(Kernel32.STD_INPUT_HANDLE, _hPrivIn);
             REBIND_SYSTEM_CONSOLE_STREAMS();
 
             if (!System.String.IsNullOrEmpty(title))
@@ -123,8 +123,8 @@ public sealed class TransientConsoleScope : System.IDisposable
 
             if (cols > 0 && rows > 0)
             {
-                Kernel32.SET_WINDOW_SIZE(cols, rows);
-                Kernel32.SET_BUFFER_SIZE(System.Math.Max(cols, (System.Int16)3000), System.Math.Max(rows, (System.Int16)1000));
+                _ = Kernel32.SET_WINDOW_SIZE(cols, rows);
+                _ = Kernel32.SET_BUFFER_SIZE(System.Math.Max(cols, (System.Int16)3000), System.Math.Max(rows, (System.Int16)1000));
             }
         }
 
@@ -182,13 +182,13 @@ public sealed class TransientConsoleScope : System.IDisposable
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     public static void WriteLine(System.String message)
     {
-        if (_hPrivOut == System.IntPtr.Zero || _hPrivOut == (System.IntPtr)(-1))
+        if (_hPrivOut == System.IntPtr.Zero || _hPrivOut == -1)
         {
             throw new System.InvalidOperationException("Console output handle is invalid.");
         }
 
         System.Byte[] bytes = System.Text.Encoding.UTF8.GetBytes(message + System.Environment.NewLine);
-        if (!Kernel32.WRITE_CONSOLE_W(_hPrivOut, message + System.Environment.NewLine, (System.Int32)bytes.Length + 2, out System.Int32 _, System.IntPtr.Zero))
+        if (!Kernel32.WRITE_CONSOLE_W(_hPrivOut, message + System.Environment.NewLine, bytes.Length + 2, out System.Int32 _, System.IntPtr.Zero))
         {
             throw new System.InvalidOperationException(
                 $"WriteFile to console failed: {System.Runtime.InteropServices.Marshal.GetLastPInvokeError()}");
@@ -204,7 +204,7 @@ public sealed class TransientConsoleScope : System.IDisposable
     {
         const System.String ch = "\0";
 
-        if (_hPrivIn == System.IntPtr.Zero || _hPrivIn == (System.IntPtr)(-1))
+        if (_hPrivIn == System.IntPtr.Zero || _hPrivIn == -1)
         {
             throw new System.InvalidOperationException("Console input handle is invalid.");
         }
@@ -231,12 +231,12 @@ public sealed class TransientConsoleScope : System.IDisposable
             return;
         }
 
-        if (_hPrivOut != System.IntPtr.Zero && _hPrivOut != (System.IntPtr)(-1))
+        if (_hPrivOut != System.IntPtr.Zero && _hPrivOut != -1)
         {
             _ = Kernel32.CLOSE_HANDLE(_hPrivOut);
             _hPrivOut = System.IntPtr.Zero;
         }
-        if (_hPrivIn != System.IntPtr.Zero && _hPrivIn != (System.IntPtr)(-1))
+        if (_hPrivIn != System.IntPtr.Zero && _hPrivIn != -1)
         {
             _ = Kernel32.CLOSE_HANDLE(_hPrivIn);
             _hPrivIn = System.IntPtr.Zero;
@@ -273,12 +273,12 @@ public sealed class TransientConsoleScope : System.IDisposable
                             Kernel32.FILE_SHARE_WRITE | Kernel32.FILE_SHARE_READ,
                             System.IntPtr.Zero, Kernel32.OPEN_EXISTING, 0, System.IntPtr.Zero);
 
-        if (hOut != System.IntPtr.Zero && hOut != (System.IntPtr)(-1) &&
-            hIn != System.IntPtr.Zero && hIn != (System.IntPtr)(-1))
+        if (hOut != System.IntPtr.Zero && hOut != (-1) &&
+            hIn != System.IntPtr.Zero && hIn != (-1))
         {
-            Kernel32.SET_STD_HANDLE(Kernel32.STD_OUTPUT_HANDLE, hOut);
-            Kernel32.SET_STD_HANDLE(Kernel32.STD_ERROR_HANDLE, hOut);
-            Kernel32.SET_STD_HANDLE(Kernel32.STD_INPUT_HANDLE, hIn);
+            _ = Kernel32.SET_STD_HANDLE(Kernel32.STD_OUTPUT_HANDLE, hOut);
+            _ = Kernel32.SET_STD_HANDLE(Kernel32.STD_ERROR_HANDLE, hOut);
+            _ = Kernel32.SET_STD_HANDLE(Kernel32.STD_INPUT_HANDLE, hIn);
             REBIND_SYSTEM_CONSOLE_STREAMS();
         }
 
