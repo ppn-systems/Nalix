@@ -1,6 +1,5 @@
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
-using Nalix.Network.Package;
 using Nalix.Shared.Serialization;
 using System;
 
@@ -87,13 +86,9 @@ public class Class1
         Console.WriteLine("Tests Enter");
         Console.ReadLine();
 
-        for (int i = 0; i < 100_000_000; i++)
-        {
-            // Explicitly specify the Memory<byte> overload to resolve ambiguity
-            Packet v = new(0, new Memory<byte>(new byte[60_000]));
-            // packet.Dispose(); // Uncomment to test memory leak
-            _ = v.Priority;
-        }
+        Test1();
+        Test2();
+        Test3();
         Console.WriteLine("Done");
     }
 
@@ -107,7 +102,8 @@ public class Class1
         Console.WriteLine($"Serialized: Id={obj.Id}, Name={obj.Name}, Enum={obj.EnumT}");
 
         var objn = new TestClass();
-        LiteSerializer.Deserialize(data, ref objn);
+        byte[] data2 = new byte[data.Length];
+        LiteSerializer.Deserialize(data2, ref objn);
         Console.WriteLine($"Deserialized: Id={objn.Id}, Name={objn.Name}, Enum ={objn.EnumT}");
 
         Console.WriteLine("");

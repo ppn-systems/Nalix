@@ -197,13 +197,19 @@ public static class LiteSerializer
         System.ReadOnlySpan<System.Byte> buffer, ref T value)
     {
         if (buffer.IsEmpty)
-            throw new System.ArgumentException("Buffer cannot be empty", nameof(buffer));
+            throw new System.ArgumentException(
+                $"Cannot deserialize type '{typeof(T)}' from an empty buffer.",
+                nameof(buffer)
+            );
 
         if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
             if (buffer.Length < TypeMetadata.SizeOf<T>())
             {
-                throw new SerializationException($"Expected {TypeMetadata.SizeOf<T>()} bytes, found {buffer.Length} bytes.");
+                throw new SerializationException(
+                    $"Insufficient buffer size for unmanaged type '{typeof(T)}'. " +
+                    $"Expected {TypeMetadata.SizeOf<T>()} bytes but got {buffer.Length} bytes."
+                );
             }
             value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer));
@@ -222,7 +228,9 @@ public static class LiteSerializer
             }
 
             System.Type elementType = typeof(T).GetElementType()
-                ?? throw new SerializationException("Invalid array type.");
+                ?? throw new SerializationException(
+                    $"Type '{typeof(T)}' is expected to be an array, but element type could not be resolved."
+                );
 
             if (IsEmptyArrayMarker(buffer))
             {
@@ -231,14 +239,19 @@ public static class LiteSerializer
             }
 
             if (buffer.Length < 4)
-                throw new SerializationException("Buffer too small to contain array length.");
+                throw new SerializationException(
+                    $"Buffer too small to contain array length prefix for type '{typeof(T)}'."
+                );
 
             int length = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<int>(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer));
 
             int dataSize = size * length;
             if (buffer.Length < dataSize + 4)
-                throw new SerializationException($"Expected {dataSize + 4} bytes, found {buffer.Length} bytes.");
+                throw new SerializationException(
+                    $"Insufficient buffer size for array data. Expected {dataSize + 4} bytes " +
+                    $"(including length prefix), but got {buffer.Length} bytes."
+                );
 
             System.Array arr = System.Array.CreateInstance(elementType, length);
             ref byte dest = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(arr);
