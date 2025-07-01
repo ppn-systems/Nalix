@@ -4,7 +4,6 @@ using Nalix.Common.Package.Metadata;
 using Nalix.Network.Package.Engine;
 using Nalix.Network.Package.Engine.Internal;
 using Nalix.Shared.Time;
-using System;
 
 namespace Nalix.Network.Package;
 
@@ -99,7 +98,7 @@ public readonly partial struct Packet
                 // Register large packets for garbage collection
                 PacketAutoDisposer.Register(this);
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to register packet for disposal: {ex.Message}");
             }
