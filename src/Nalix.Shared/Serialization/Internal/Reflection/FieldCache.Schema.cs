@@ -5,13 +5,13 @@ namespace Nalix.Shared.Serialization.Internal.Reflection;
 /// </summary>
 internal readonly record struct FieldSchema(
     // The order of the field in the serialized structure.
-    int Order,
+    System.Int32 Order,
 
     // The name of the field.
-    string Name,
+    System.String Name,
 
     // Indicates whether the field is a value type.
-    bool IsValueType,
+    System.Boolean IsValueType,
 
     // The type of the field.
     System.Type FieldType,

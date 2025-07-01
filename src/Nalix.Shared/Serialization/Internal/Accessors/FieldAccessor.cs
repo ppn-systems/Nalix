@@ -33,7 +33,7 @@ internal abstract class FieldAccessor<T>
     /// <returns>Optimized field accessor instance.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static FieldAccessor<T> Create(FieldSchema schema, int index)
+    public static FieldAccessor<T> Create(FieldSchema schema, System.Int32 index)
     {
         System.ArgumentNullException.ThrowIfNull(schema.FieldInfo);
 
@@ -60,5 +60,5 @@ internal abstract class FieldAccessor<T>
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static FieldAccessorImpl<T, TField> CreateTyped<TField>(int index) => new(index);
+    private static FieldAccessorImpl<T, TField> CreateTyped<TField>(System.Int32 index) => new(index);
 }

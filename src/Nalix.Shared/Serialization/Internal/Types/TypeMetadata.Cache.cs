@@ -1,5 +1,4 @@
 using Nalix.Common.Serialization;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Shared.Serialization.Internal.Types;
 
@@ -36,7 +35,7 @@ internal static partial class TypeMetadata
             {
                 IsReference = !type.IsValueType;
                 IsNullable = System.Nullable.GetUnderlyingType(type) != null;
-                IsUnmanaged = !RuntimeHelpers.IsReferenceOrContainsReferences<T>();
+                IsUnmanaged = !System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<T>();
 
                 if (type.IsSZArray)
                 {

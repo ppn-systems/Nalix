@@ -1,9 +1,5 @@
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 
 namespace Nalix.Shared.Serialization.Internal.Reflection;
 
@@ -41,16 +37,16 @@ internal static partial class FieldCache<T>
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicFields)] TField>()
     {
-        Type type = typeof(TField);
-        FieldInfo[] fields = type.GetFields(
-            BindingFlags.Public |
-            BindingFlags.NonPublic |
-            BindingFlags.Instance);
+        System.Type type = typeof(TField);
+        System.Reflection.FieldInfo[] fields = type.GetFields(
+            System.Reflection.BindingFlags.Public |
+            System.Reflection.BindingFlags.NonPublic |
+            System.Reflection.BindingFlags.Instance);
 
-        var includedFields = new List<FieldSchema>(fields.Length);
+        System.Collections.Generic.List<FieldSchema> includedFields = new(fields.Length);
         int sequentialOrder = 0;
 
-        foreach (FieldInfo field in fields)
+        foreach (System.Reflection.FieldInfo field in fields)
         {
             if (ShouldIgnoreField(field)) continue;
 
@@ -86,14 +82,15 @@ internal static partial class FieldCache<T>
 
         // Sort theo order nếu là Explicit layout
         return _layout is SerializeLayout.Explicit
-            ? [.. includedFields.OrderBy(f => f.Order)]
+            ? [.. System.Linq.Enumerable.OrderBy(includedFields, f => f.Order)]
             : [.. includedFields];
     }
 
-    private static Dictionary<string, int> BuildFieldIndex()
+    private static System.Collections.Generic.Dictionary<System.String, System.Int32> BuildFieldIndex()
     {
         // Performance: StringComparer.Ordinal nhanh hơn default
-        Dictionary<string, int> index = new(_metadata.Length, StringComparer.Ordinal);
+        System.Collections.Generic.Dictionary<System.String, System.Int32> index = new(
+            _metadata.Length, System.StringComparer.Ordinal);
 
         for (int i = 0; i < _metadata.Length; i++)
         {
@@ -109,16 +106,18 @@ internal static partial class FieldCache<T>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
         "IL2090:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. " +
         "The generic parameter of the source method or type does not have matching annotations.", Justification = "<Pending>")]
-    private static int? GetExplicitOrder(FieldInfo field)
+    private static int? GetExplicitOrder(System.Reflection.FieldInfo field)
     {
-        PropertyInfo? property = typeof(T).GetProperties()
-            .FirstOrDefault(p =>
-                p.Name.Equals(field.Name, StringComparison.Ordinal) ||
-                IsBackingFieldFor(field, p));
+        System.Reflection.PropertyInfo? property =
+            System.Linq.Enumerable.FirstOrDefault(
+                typeof(T).GetProperties(),
+                p => p.Name.Equals(field.Name, System.StringComparison.Ordinal) ||
+                     IsBackingFieldFor(field, p));
 
         if (property is not null)
         {
-            SerializeOrderAttribute? orderAttr = property.GetCustomAttribute<SerializeOrderAttribute>();
+            SerializeOrderAttribute? orderAttr = System.Reflection.CustomAttributeExtensions
+                .GetCustomAttribute<SerializeOrderAttribute>(property);
             if (orderAttr is not null) return orderAttr.Order;
         }
 
@@ -127,14 +126,16 @@ internal static partial class FieldCache<T>
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static bool IsBackingFieldFor(FieldInfo field, PropertyInfo property)
+    private static bool IsBackingFieldFor(
+        System.Reflection.FieldInfo field,
+        System.Reflection.PropertyInfo property)
         => field.Name == $"<{property.Name}>k__BackingField";
 
     #endregion Field Discovery
 
     #region Domain Rules - Business Logic
 
-    private static bool ShouldIgnoreField(FieldInfo field)
+    private static bool ShouldIgnoreField(System.Reflection.FieldInfo field)
     {
         // Rule 1: Skip backing fields nếu property có SerializeIgnoreAttribute
         if (field.Name.StartsWith('<') && field.Name.Contains(">k__BackingField"))
@@ -143,13 +144,20 @@ internal static partial class FieldCache<T>
             var property = typeof(T).GetProperty(propertyName);
 
             // Nếu property bị ignore thì skip backing field
-            if (property?.GetCustomAttribute<SerializeIgnoreAttribute>() is not null)
+            if (property is not null &&
+                System.Reflection.CustomAttributeExtensions
+                    .GetCustomAttribute<SerializeIgnoreAttribute>(property) is not null)
+            {
                 return true;
+            }
         }
 
         // Rule 2: Skip fields có SerializeIgnoreAttribute
-        if (field.GetCustomAttribute<SerializeIgnoreAttribute>() is not null)
+        if (System.Reflection.CustomAttributeExtensions
+                .GetCustomAttribute<SerializeIgnoreAttribute>(field) is not null)
+        {
             return true;
+        }
 
         return false;
     }
@@ -162,7 +170,9 @@ internal static partial class FieldCache<T>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static SerializeLayout GetSerializeLayout()
     {
-        SerializePackableAttribute? packableAttr = typeof(T).GetCustomAttribute<SerializePackableAttribute>();
+        SerializePackableAttribute? packableAttr = System.Reflection.CustomAttributeExtensions
+            .GetCustomAttribute<SerializePackableAttribute>(typeof(T));
+
         return packableAttr?.SerializeLayout ?? SerializeLayout.Sequential;
     }
 
@@ -184,27 +194,34 @@ internal static partial class FieldCache<T>
 
     private static void EnsureNoDuplicateOrders()
     {
-        var orderGroups = _metadata.GroupBy(f => f.Order).Where(g => g.Count() > 1);
+        var orderGroups = System.Linq.Enumerable.Where(
+            System.Linq.Enumerable.GroupBy(_metadata, f => f.Order),
+            g => System.Linq.Enumerable.Count(g) > 1
+        );
 
-        if (orderGroups.Any())
+        if (System.Linq.Enumerable.Any(orderGroups))
         {
-            System.String duplicates = string.Join(", ",
-                orderGroups.Select(g => $"Order {g.Key}: [{string.Join(", ", g.Select(f => f.Name))}]"));
+            System.String duplicates = System.String.Join(", ",
+                System.Linq.Enumerable.Select(orderGroups, g =>
+                    $"Order {g.Key}: [{System.String.Join(", ",
+                        System.Linq.Enumerable.Select(g, f => f.Name))}]"));
 
-            throw new InvalidOperationException(
+            throw new System.InvalidOperationException(
                 $"Duplicate serialize orders in type '{typeof(T).Name}': {duplicates}");
         }
     }
 
     private static void EnsureNoNegativeOrders()
     {
-        var negativeOrders = _metadata.Where(f => f.Order < 0);
-        if (negativeOrders.Any())
-        {
-            var negativeFields = string.Join(", ",
-                negativeOrders.Select(f => $"{f.Name}({f.Order})"));
+        System.Collections.Generic.IEnumerable<FieldSchema> negativeOrders = System.Linq.Enumerable
+            .Where(_metadata, f => f.Order < 0);
 
-            throw new InvalidOperationException(
+        if (System.Linq.Enumerable.Any(negativeOrders))
+        {
+            var negativeFields = System.String.Join(", ",
+                System.Linq.Enumerable.Select(negativeOrders, f => $"{f.Name}({f.Order})"));
+
+            throw new System.InvalidOperationException(
                 $"Negative serialize orders not allowed in type '{typeof(T).Name}': {negativeFields}");
         }
     }

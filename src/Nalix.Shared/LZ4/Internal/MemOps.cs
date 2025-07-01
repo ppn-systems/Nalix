@@ -1,6 +1,3 @@
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
 namespace Nalix.Shared.LZ4.Internal;
 
 /// <summary>
@@ -19,9 +16,10 @@ public static unsafe class MemOps
     /// <typeparam name="T">The type of the value to read. Must be unmanaged.</typeparam>
     /// <param name="source">A pointer to the source memory location.</param>
     /// <returns>The value read from the specified memory location.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static T ReadUnaligned<T>(System.Byte* source) where T : unmanaged
-        => Unsafe.ReadUnaligned<T>(source);
+        => System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(source);
 
     /// <summary>
     /// Reads an unaligned value from a span of memory.
@@ -29,11 +27,12 @@ public static unsafe class MemOps
     /// <typeparam name="T">The type of the value to read. Must be unmanaged.</typeparam>
     /// <param name="source">A <see cref="System.ReadOnlySpan{Byte}"/> representing the source memory.</param>
     /// <returns>The value read from the specified memory location.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static T ReadUnaligned<T>(System.ReadOnlySpan<System.Byte> source) where T : unmanaged
     {
-        fixed (System.Byte* pSource = &MemoryMarshal.GetReference(source))
-            return Unsafe.ReadUnaligned<T>(pSource);
+        fixed (System.Byte* pSource = &System.Runtime.InteropServices.MemoryMarshal.GetReference(source))
+            return System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(pSource);
     }
 
     /// <summary>
@@ -42,9 +41,10 @@ public static unsafe class MemOps
     /// <typeparam name="T">The type of the value to write. Must be unmanaged.</typeparam>
     /// <param name="destination">A pointer to the destination memory location.</param>
     /// <param name="value">The value to write.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void WriteUnaligned<T>(System.Byte* destination, T value) where T : unmanaged
-        => Unsafe.WriteUnaligned(destination, value);
+        => System.Runtime.CompilerServices.Unsafe.WriteUnaligned(destination, value);
 
     /// <summary>
     /// Writes an unaligned value to a span of memory.
@@ -52,11 +52,12 @@ public static unsafe class MemOps
     /// <typeparam name="T">The type of the value to write. Must be unmanaged.</typeparam>
     /// <param name="destination">A <see cref="System.Span{Byte}"/> representing the destination memory.</param>
     /// <param name="value">The value to write.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void WriteUnaligned<T>(System.Span<System.Byte> destination, T value) where T : unmanaged
     {
-        fixed (System.Byte* pDest = &MemoryMarshal.GetReference(destination))
-            Unsafe.WriteUnaligned(pDest, value);
+        fixed (System.Byte* pDest = &System.Runtime.InteropServices.MemoryMarshal.GetReference(destination))
+            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(pDest, value);
     }
 
     /// <summary>
@@ -69,7 +70,8 @@ public static unsafe class MemOps
     /// This method ensures correct handling of memory overlaps, which is crucial when dealing with operations
     /// such as LZ decompression, where memory regions may overlap.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Copy(
         System.Byte* source,
         System.Byte* destination, System.Int32 length)
@@ -96,15 +98,17 @@ public static unsafe class MemOps
     /// </summary>
     /// <param name="source">A <see cref="System.ReadOnlySpan{Byte}"/> representing the source memory.</param>
     /// <param name="destination">A pointer to the destination memory location.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Copy(
         System.ReadOnlySpan<System.Byte> source,
         System.Byte* destination)
     {
         if (source.IsEmpty) return;
-        fixed (System.Byte* pSource = &MemoryMarshal.GetReference(source))
+        fixed (System.Byte* pSource = &System.Runtime.InteropServices.MemoryMarshal.GetReference(source))
         {
-            Unsafe.CopyBlockUnaligned(destination, pSource, (System.UInt32)source.Length);
+            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+                destination, pSource, (System.UInt32)source.Length);
         }
     }
 
@@ -113,15 +117,17 @@ public static unsafe class MemOps
     /// </summary>
     /// <param name="source">A pointer to the source memory location.</param>
     /// <param name="destination">A <see cref="System.Span{Byte}"/> representing the destination memory.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Copy(
         System.Byte* source,
         System.Span<System.Byte> destination)
     {
         if (destination.IsEmpty) return;
-        fixed (System.Byte* pDest = &MemoryMarshal.GetReference(destination))
+        fixed (System.Byte* pDest = &System.Runtime.InteropServices.MemoryMarshal.GetReference(destination))
         {
-            Unsafe.CopyBlockUnaligned(pDest, source, (System.UInt32)destination.Length);
+            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+                pDest, source, (System.UInt32)destination.Length);
         }
     }
 
@@ -132,7 +138,8 @@ public static unsafe class MemOps
     /// <param name="p2">A pointer to the second memory region.</param>
     /// <param name="length">The number of bytes to compare.</param>
     /// <returns><c>true</c> if the two memory regions are equal, otherwise <c>false</c>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static bool SequenceEqual(
         System.Byte* p1,
         System.Byte* p2,
@@ -152,7 +159,8 @@ public static unsafe class MemOps
         System.Int32 n = 0;
         while (length >= sizeof(System.UInt64))
         {
-            if (Unsafe.ReadUnaligned<System.UInt64>(p1 + n) != Unsafe.ReadUnaligned<System.UInt64>(p2 + n))
+            if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p1 + n) !=
+                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p2 + n))
                 return false;
             n += sizeof(System.UInt64);
             length -= sizeof(System.UInt64);
@@ -160,21 +168,24 @@ public static unsafe class MemOps
         // Check remaining bytes (up to 7)
         if (length >= sizeof(System.UInt32))
         {
-            if (Unsafe.ReadUnaligned<System.UInt32>(p1 + n) != Unsafe.ReadUnaligned<System.UInt32>(p2 + n))
+            if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt32>(p1 + n) !=
+                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt32>(p2 + n))
                 return false;
             n += sizeof(System.UInt32);
             length -= sizeof(System.UInt32);
         }
         if (length >= sizeof(System.UInt16))
         {
-            if (Unsafe.ReadUnaligned<System.UInt16>(p1 + n) != Unsafe.ReadUnaligned<System.UInt16>(p2 + n))
+            if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt16>(p1 + n) !=
+                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt16>(p2 + n))
                 return false;
             n += sizeof(System.UInt16);
             length -= sizeof(System.UInt16);
         }
         if (length > 0) // Remaining byte
         {
-            if (Unsafe.ReadUnaligned<System.Byte>(p1 + n) != Unsafe.ReadUnaligned<System.Byte>(p2 + n))
+            if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.Byte>(p1 + n) !=
+                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.Byte>(p2 + n))
                 return false;
         }
 
@@ -188,7 +199,8 @@ public static unsafe class MemOps
     /// <param name="p2">A pointer to the second memory region.</param>
     /// <param name="maxLength">The maximum number of bytes to compare.</param>
     /// <returns>The number of matching bytes.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 CountEqualBytes(
         System.Byte* p1,
         System.Byte* p2,
@@ -198,7 +210,8 @@ public static unsafe class MemOps
 
         // Optimize for common case using 64-bit reads
         while (count + sizeof(System.UInt64) <= maxLength &&
-            Unsafe.ReadUnaligned<System.UInt64>(p1 + count) == Unsafe.ReadUnaligned<System.UInt64>(p2 + count))
+            System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p1 + count) ==
+            System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p2 + count))
             count += sizeof(System.UInt64);
 
         // Check remaining bytes (up to 7)
