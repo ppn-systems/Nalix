@@ -73,18 +73,20 @@ public sealed class StringFormatter : IFormatter<System.String>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public unsafe System.String Deserialize(ref DataReader reader)
     {
-        ushort length = FormatterProvider.Get<ushort>().Deserialize(ref reader);
+        System.UInt16 length = FormatterProvider.Get<System.UInt16>()
+                                                .Deserialize(ref reader);
+
         if (length == 0) return string.Empty;
         if (length == SerializerBounds.Null) return null!;
         if (length > SerializerBounds.MaxString)
             throw new SerializationException("String length out of range");
 
-        System.ReadOnlySpan<System.Byte> dest = reader.GetSpan(length);
+        ref System.Byte start = ref reader.GetSpanReference(length);
 
         System.String result;
-        fixed (System.Byte* src = dest)
+        fixed (System.Byte* ptr = &start)
         {
-            result = Utf8.GetString(src, length);
+            result = Utf8.GetString(ptr, length);
         }
 
         reader.Advance(length);

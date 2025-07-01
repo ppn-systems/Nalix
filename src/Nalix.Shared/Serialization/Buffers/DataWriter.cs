@@ -8,17 +8,17 @@ namespace Nalix.Shared.Serialization.Buffers;
     System.Runtime.InteropServices.LayoutKind.Auto)]
 public struct DataWriter
 {
-    private readonly bool _rent;
+    private readonly System.Boolean _rent;
 
-    private int _written;
-    private byte[] _buffer;
+    private System.Int32 _written;
+    private System.Byte[] _buffer;
 
     /// <summary>
     /// Initializes a new instance of <see cref="DataWriter"/> with a rented buffer of the specified size.
     /// </summary>
     /// <param name="size">The initial size of the buffer.</param>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if size is not positive.</exception>
-    public DataWriter(int size)
+    public DataWriter(System.Int32 size)
     {
         if (size <= 0)
         {
@@ -27,7 +27,7 @@ public struct DataWriter
 
         _rent = true;
         _written = 0;
-        _buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(size);
+        _buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(size);
     }
 
     /// <summary>
@@ -35,7 +35,7 @@ public struct DataWriter
     /// </summary>
     /// <param name="buffer">The external buffer to use.</param>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if the buffer has zero length.</exception>
-    public DataWriter(byte[] buffer)
+    public DataWriter(System.Byte[] buffer)
     {
         if (buffer.Length <= 0)
         {
@@ -50,34 +50,34 @@ public struct DataWriter
     /// <summary>
     /// Gets the number of bytes written to the buffer.
     /// </summary>
-    public readonly int WrittenCount => _written;
+    public readonly System.Int32 WrittenCount => _written;
 
     /// <summary>
     /// Gets a value indicating whether the buffer is null.
     /// </summary>
-    public readonly bool IsNull => _buffer == null;
+    public readonly System.Boolean IsNull => _buffer == null;
 
     /// <summary>
     /// Gets the total capacity of the internal buffer.
     /// </summary>
-    public readonly int Length => _buffer?.Length ?? 0;
+    public readonly System.Int32 Length => _buffer?.Length ?? 0;
 
     /// <summary>
     /// Gets a span of the remaining unwritten portion of the buffer.
     /// </summary>
-    public readonly System.Span<byte> FreeBuffer
+    public readonly System.Span<System.Byte> FreeBuffer
         => System.MemoryExtensions.AsSpan(_buffer, _written);
 
     /// <summary>
     /// Gets a span of the written portion of the buffer.
     /// </summary>
-    public readonly System.Span<byte> WrittenBuffer
+    public readonly System.Span<System.Byte> WrittenBuffer
         => System.MemoryExtensions.AsSpan(_buffer, 0, _written);
 
     /// <summary>
     /// Gets a memory representation of the written data.
     /// </summary>
-    public readonly System.Memory<byte> WrittenMemory
+    public readonly System.Memory<System.Byte> WrittenMemory
         => System.MemoryExtensions.AsMemory(_buffer, 0, _written);
 
     /// <summary>
@@ -86,7 +86,7 @@ public struct DataWriter
     /// <param name="count">The number of bytes written.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Advance(int count)
+    public void Advance(System.Int32 count)
     {
         if (count <= 0 || _written + count > _buffer.Length)
             throw new System.ArgumentOutOfRangeException(nameof(count), "Advance out of buffer bounds.");
@@ -100,7 +100,7 @@ public struct DataWriter
     /// <returns>A reference to the first byte in the free buffer.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public readonly ref byte GetFreeBufferReference()
+    public readonly ref System.Byte GetFreeBufferReference()
         => ref System.Runtime.InteropServices.MemoryMarshal.GetReference(FreeBuffer);
 
     /// <summary>
@@ -110,7 +110,7 @@ public struct DataWriter
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if minimumSize is not positive.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Expand(int minimumSize)
+    public void Expand(System.Int32 minimumSize)
     {
         if (minimumSize <= 0)
         {
@@ -128,7 +128,7 @@ public struct DataWriter
         }
 
         int newSize = System.Math.Max((_buffer?.Length ?? 0) * 2, _written + minimumSize);
-        byte[] newBuffer = System.Buffers.ArrayPool<byte>.Shared.Rent(newSize);
+        System.Byte[] newBuffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(newSize);
 
         if (_buffer != null && _written > 0)
         {
@@ -137,7 +137,7 @@ public struct DataWriter
 
         if (_buffer != null && _rent)
         {
-            System.Buffers.ArrayPool<byte>.Shared.Return(_buffer);
+            System.Buffers.ArrayPool<System.Byte>.Shared.Return(_buffer);
         }
 
         _buffer = newBuffer;
@@ -148,7 +148,7 @@ public struct DataWriter
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public readonly byte[] ToArray()
+    public readonly System.Byte[] ToArray()
     {
         if (_written == 0)
             return [];
@@ -166,7 +166,7 @@ public struct DataWriter
         if (_buffer != null)
         {
             if (_rent)
-                System.Buffers.ArrayPool<byte>.Shared.Return(_buffer);
+                System.Buffers.ArrayPool<System.Byte>.Shared.Return(_buffer);
 
             _written = 0;
             _buffer = null!;
