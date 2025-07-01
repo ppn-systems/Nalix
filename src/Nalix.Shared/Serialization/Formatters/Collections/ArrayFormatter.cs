@@ -38,11 +38,11 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
         System.Int32 totalBytes = value.Length * TypeMetadata.SizeOf<T>();
 
         writer.Expand(totalBytes);
-        System.Span<System.Byte> span = writer.GetSpan(totalBytes);
+        ref System.Byte destination = ref writer.GetFreeBufferReference();
 
         // Copy block memory
         fixed (T* src = value)
-        fixed (System.Byte* dst = span)
+        fixed (System.Byte* dst = &destination)
         {
             System.Buffer.MemoryCopy(src, dst, totalBytes, totalBytes);
         }

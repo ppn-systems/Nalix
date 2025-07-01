@@ -31,13 +31,10 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
     public unsafe void Serialize(ref DataWriter writer, T value)
     {
         System.Int32 size = TypeMetadata.SizeOf<T>();
-        System.Span<System.Byte> span = writer.GetSpan(size);
 
         // Pin the span to get a pointer and write unaligned
-        fixed (System.Byte* ptr = span)
-        {
-            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ptr, value);
-        }
+        ref System.Byte dest = ref writer.GetFreeBufferReference();
+        System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref dest, value);
 
         writer.Advance(size);
     }
