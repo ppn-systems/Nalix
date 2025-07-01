@@ -102,7 +102,7 @@ internal class TypePool(int maxCapacity)
 
         if (percentage <= 0)
         {
-            // Clear everything
+            // Dispose everything
             return Clear();
         }
 

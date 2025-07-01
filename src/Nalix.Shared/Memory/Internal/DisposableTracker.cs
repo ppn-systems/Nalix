@@ -33,7 +33,7 @@ internal sealed class DisposableTracker<T>(T[] array, int length, ArrayPool<T> p
 
         _array = null;
 
-        // Clear the array before returning it to the pool
+        // Dispose the array before returning it to the pool
         Array.Clear(array, 0, _length);
         _pool.Return(array);
     }

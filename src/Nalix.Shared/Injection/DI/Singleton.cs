@@ -64,7 +64,7 @@ public static class Singleton
         System.Lazy<System.Object> lazy = new(
             () => instance, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
-        // Clear cache entry if it exists
+        // Dispose cache entry if it exists
         CacheLock.EnterWriteLock();
         try
         {
@@ -101,7 +101,7 @@ public static class Singleton
         System.Type interfaceType = typeof(TInterface);
         System.Type implementationType = typeof(TImplementation);
 
-        // Clear cache entry if it exists
+        // Dispose cache entry if it exists
         CacheLock.EnterWriteLock();
         try
         {
@@ -284,11 +284,11 @@ public static class Singleton
     /// </summary>
     public static void Clear()
     {
-        // Clear the resolution cache
+        // Dispose the resolution cache
         CacheLock.EnterWriteLock();
         try
         {
-            // ConditionalWeakTable doesn't have Clear method, so we're recreating it
+            // ConditionalWeakTable doesn't have Dispose method, so we're recreating it
             foreach (System.Type key in GetAllCachedTypes())
             {
                 ResolutionCache.Remove(key);
@@ -364,7 +364,7 @@ public static class Singleton
             }
         }
 
-        // Clear all collections
+        // Dispose all collections
         Clear();
 
         // Reset the disposing flag

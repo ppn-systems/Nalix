@@ -301,7 +301,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
             removedCount += pool.Clear();
         }
 
-        TraceOccurred?.Invoke($"Clear: Removed {removedCount} objects from all pools");
+        TraceOccurred?.Invoke($"Dispose: Removed {removedCount} objects from all pools");
         return removedCount;
     }
 

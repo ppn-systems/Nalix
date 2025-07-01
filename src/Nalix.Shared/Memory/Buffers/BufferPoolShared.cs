@@ -95,8 +95,8 @@ public sealed class BufferPoolShared : IDisposable
         if (buffer == null || buffer.Length != _bufferSize)
             throw new ArgumentException("Invalid buffer.");
 
-        // Clear sensitive data for security if needed
-        // Array.Clear(buffer, 0, buffer.Length);
+        // Dispose sensitive data for security if needed
+        // Array.Dispose(buffer, 0, buffer.Length);
 
         _freeBuffers.Enqueue(buffer);
     }

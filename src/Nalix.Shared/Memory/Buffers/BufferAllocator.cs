@@ -402,7 +402,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
         _trimTimer?.Dispose();
         _trimTimer = null;
 
-        // Clear optimization caches
+        // Dispose optimization caches
         _suitablePoolSizeCache.Clear();
 
         // Dispose the pool manager

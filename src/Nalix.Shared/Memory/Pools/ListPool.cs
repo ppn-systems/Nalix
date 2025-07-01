@@ -154,7 +154,7 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
 
         Interlocked.Increment(ref _returned);
 
-        // Clear the list if requested
+        // Dispose the list if requested
         if (clearItems)
         {
             list.Clear();
@@ -232,7 +232,7 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
         while (_listBag.TryTake(out _)) { }
 
         Interlocked.Add(ref _trimmed, count);
-        TraceOccurred?.Invoke($"Clear(): Removed all {count} List<{typeof(T).Name}> instances from pool");
+        TraceOccurred?.Invoke($"Dispose(): Removed all {count} List<{typeof(T).Name}> instances from pool");
 
         return count;
     }

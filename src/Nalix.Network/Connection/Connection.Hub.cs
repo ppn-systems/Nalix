@@ -307,7 +307,7 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
             }
         });
 
-        // Clear all dictionaries
+        // Dispose all dictionaries
         _connections.Clear();
         _usernames.Clear();
         _usernameToId.Clear();

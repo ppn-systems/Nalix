@@ -47,16 +47,17 @@ public sealed class EnumArrayFormatter<T> : IFormatter<T[]> where T : struct, Sy
 
         System.Int32 totalBytes = value.Length * _elementSize;
         writer.Expand(totalBytes);
-        System.Span<System.Byte> dest = writer.GetSpan(totalBytes);
 
         System.Runtime.InteropServices.GCHandle handle = System.Runtime.InteropServices.GCHandle.Alloc(
             value, System.Runtime.InteropServices.GCHandleType.Pinned);
         try
         {
-            System.IntPtr srcPtr = handle.AddrOfPinnedObject();
-            fixed (System.Byte* dst = dest)
+            void* srcPtr = handle.AddrOfPinnedObject().ToPointer();
+            ref System.Byte dstRef = ref writer.GetFreeBufferReference();
+
+            fixed (System.Byte* dstPtr = &dstRef)
             {
-                System.Buffer.MemoryCopy((void*)srcPtr, dst, totalBytes, totalBytes);
+                System.Buffer.MemoryCopy(srcPtr, dstPtr, totalBytes, totalBytes);
             }
         }
         finally
