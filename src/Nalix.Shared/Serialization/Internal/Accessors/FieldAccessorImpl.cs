@@ -30,15 +30,25 @@ internal sealed class FieldAccessorImpl<T, TField>(int index) : FieldAccessor<T>
     {
         System.ArgumentNullException.ThrowIfNull(obj);
 
+#if DEBUG
+        var field = FieldCache<T>.GetField(_index);
+        string fieldName = field.Name ?? $"Field#{_index}";
+        System.Console.WriteLine($"[DEBUG] Serializing field '{fieldName}' ({field.FieldType.Name}) in {typeof(T).Name}");
+#endif
+
         try
         {
-            // Zero-boxing field access thông qua FieldCache
             TField value = FieldCache<T>.GetValue<TField>(obj, _index);
             _formatter.Serialize(ref writer, value);
+
+#if DEBUG
+            System.Console.WriteLine($"[DEBUG] ✔ Serialized field '{fieldName}'");
+#endif
         }
         catch (System.Exception ex)
         {
-            throw new System.InvalidOperationException($"Failed to serialize field at index {_index}", ex);
+            throw new System.InvalidOperationException(
+                $"Failed to serialize field '{fieldName}' of type '{typeof(TField).Name}' in '{typeof(T).Name}'.", ex);
         }
     }
 

@@ -1,3 +1,6 @@
+using System;
+using System.Buffers;
+
 namespace Nalix.Shared.Serialization.Internal;
 
 /// <summary>
@@ -83,7 +86,13 @@ internal struct BufferSegment
     /// <param name="count">The number of bytes written.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Advance(System.Int32 count) => _written += count;
+    public void Advance(int count)
+    {
+        if (count <= 0 || _written + count > _buffer.Length)
+            throw new ArgumentOutOfRangeException(nameof(count), "Advance out of buffer bounds.");
+
+        _written += count;
+    }
 
     /// <summary>
     /// Ensures the buffer has enough free space, expanding if necessary.
@@ -99,14 +108,14 @@ internal struct BufferSegment
             throw new System.ArgumentOutOfRangeException(nameof(minimumSize), "Size must be greater than zero.");
         }
 
-        if (!_rent)
-        {
-            throw new System.InvalidOperationException("Cannot expand a fixed buffer.");
-        }
-
         if (_buffer != null && _buffer.Length - _written >= minimumSize)
         {
             return;
+        }
+
+        if (!_rent)
+        {
+            throw new System.InvalidOperationException("Cannot expand a fixed buffer.");
         }
 
         System.Int32 newSize = System.Math.Max((_buffer?.Length ?? 0) * 2, _written + minimumSize);
@@ -132,9 +141,11 @@ internal struct BufferSegment
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Clear()
     {
-        if (_buffer != null && _rent == true)
+        if (_buffer != null)
         {
-            System.Buffers.ArrayPool<System.Byte>.Shared.Return(_buffer);
+            if (_rent)
+                ArrayPool<byte>.Shared.Return(_buffer);
+
             _written = 0;
             _buffer = null!;
         }

@@ -5,9 +5,9 @@ namespace Nalix.Shared.Serialization.Buffers;
 /// <summary>
 /// Provides functionality for writing serialized data with an internal buffer.
 /// </summary>
-public readonly struct DataWriter : System.IDisposable
+public struct DataWriter : System.IDisposable
 {
-    private readonly BufferSegment _segment;
+    private BufferSegment _segment;
 
     /// <summary>
     /// Gets the current buffer segment used for writing data.
@@ -40,7 +40,13 @@ public readonly struct DataWriter : System.IDisposable
     /// <param name="count">The number of bytes to advance.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Advance(System.Int32 count) => _segment.Advance(count);
+    public void Advance(System.Int32 count)
+    {
+        _segment.Advance(count);
+#if DEBUG
+        System.Console.WriteLine($"[DEBUG] Writer advanced by {count} → total {_segment.WrittenCount} bytes");
+#endif
+    }
 
     /// <summary>
     /// Expands the buffer to accommodate additional data.
@@ -62,8 +68,13 @@ public readonly struct DataWriter : System.IDisposable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public readonly System.Byte[] ToArray()
-        => _segment.WrittenBuffer.ToArray();
+    public readonly byte[] ToArray()
+    {
+        if (_segment.WrittenCount == 0)
+            return [];
+
+        return _segment.WrittenBuffer[.._segment.WrittenCount].ToArray();
+    }
 
     /// <summary>
     /// Xoá bộ nhớ đệm, trả lại ArrayPool.
