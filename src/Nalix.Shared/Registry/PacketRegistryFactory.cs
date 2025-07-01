@@ -6,7 +6,6 @@ using Nalix.Common.Middleware.Attributes;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Packets.Transformation;
 using Nalix.Common.Security.Enums;
-using Nalix.Common.Shared.Attributes;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Frames.Controls;
 using Nalix.Shared.Frames.Text;
@@ -28,7 +27,6 @@ namespace Nalix.Shared.Registry;
 /// Requirements for a packet type:
 /// <list type="bullet">
 ///   <item>Implements <see cref="IPacket"/>.</item>
-///   <item>Decorated with <see cref="MagicNumberAttribute"/>.</item>
 ///   <item>Implements the static abstract members defined by
 ///         <see cref="IPacketTransformer{TPacket}"/> on the concrete packet type:
 ///         <c>FromBytes(ReadOnlySpan&lt;byte&gt;)</c>, <c>Compress(TPacket)</c>,
@@ -164,27 +162,7 @@ public sealed class PacketRegistryFactory
         foreach (System.Type type in candidates)
         {
             // Magic number
-            System.UInt32 key;
-            MagicNumberAttribute? magicAttr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<MagicNumberAttribute>(type, inherit: false);
-            if (magicAttr is null)
-            {
-                if (type == null)
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[SH.{nameof(PacketRegistryFactory)}] skip reason=no-magic");
-
-                    continue;
-                }
-
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[SH.{nameof(PacketRegistryFactory)}] use key-hash");
-
-                key = Compute(type);
-            }
-            else
-            {
-                key = magicAttr.MagicNumber;
-            }
+            System.UInt32 key = PacketRegistryFactory.Compute(type);
 
             // Pipeline-managed?
             System.Boolean pipelineManaged = type.IsDefined(typeof(PipelineManagedTransformAttribute), inherit: false);

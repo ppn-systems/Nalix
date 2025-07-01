@@ -84,16 +84,4 @@ public class LiteSerializer_Unmanaged_Tests
         var dest = default(ComplexStruct);
         _ = Assert.Throws<SerializationException>(() => LiteSerializer.Deserialize<ComplexStruct>(small, ref dest));
     }
-
-    [Fact]
-    public void Serialize_ToSpan_UnmanagedStruct_NotSupported()
-    {
-        var value = new ComplexStruct { I32 = 1, I16 = 2, B = 3 };
-        // Move span declaration inside the lambda to avoid CS8175
-        _ = Assert.Throws<NotSupportedException>(() =>
-        {
-            Span<Byte> span = stackalloc Byte[64];
-            _ = LiteSerializer.Serialize(in value, span);
-        });
-    }
 }

@@ -8,7 +8,6 @@ using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
-using Nalix.Common.Shared.Attributes;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Memory.Pooling;
@@ -19,7 +18,6 @@ namespace Nalix.Shared.Frames.Text;
 /// <summary>
 /// Represents a simple text-based packet used for transmitting UTF-8 string content over the network.
 /// </summary>
-[MagicNumber(ProtocolMagic.TEXT256)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("TEXT256 OP_CODE={OP_CODE}, Length={Length}, FLAGS={FLAGS}")]
@@ -48,7 +46,6 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
         Content = System.String.Empty;
         Priority = PacketPriority.NONE;
         OpCode = PacketConstants.OPCODE_DEFAULT;
-        MagicNumber = (System.UInt32)ProtocolMagic.TEXT256;
     }
 
     /// <summary>Initializes the packet with content and transport protocol.</summary>
