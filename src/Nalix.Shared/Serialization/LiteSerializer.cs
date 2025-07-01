@@ -54,7 +54,7 @@ public static class LiteSerializer
 
         if (kind is TypeKind.None)
         {
-            DataWriter writer = (size > 0) ? new(size) : new(512);
+            DataWriter writer = (size > 512) ? new(size) : new(512);
 
             try
             {
@@ -195,7 +195,7 @@ public static class LiteSerializer
         if (kind == TypeKind.FixedSizeSerializable)
         {
             if (buffer.Length < size) throw new SerializationException("Buffer too small.");
-            var writer = new DataWriter(buffer.ToArray());
+            DataWriter writer = new(buffer.ToArray());
             FormatterProvider.GetComplex<T>().Serialize(ref writer, value);
             return writer.WrittenCount;
         }

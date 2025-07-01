@@ -1,5 +1,3 @@
-using System.Linq;
-
 namespace Nalix.Shared.Serialization.Internal.Types;
 
 /// <summary>
@@ -40,10 +38,11 @@ internal static partial class TypeMetadata
         {
             return type.IsValueType &&
                    System.Runtime.InteropServices.Marshal.SizeOf(type) > 0 &&
-                   type.GetFields(System.Reflection.BindingFlags.Instance |
-                                  System.Reflection.BindingFlags.NonPublic |
-                                  System.Reflection.BindingFlags.Public)
-                       .All(f => IsUnmanaged(f.FieldType));
+                   System.Linq.Enumerable.All(
+                       type.GetFields(System.Reflection.BindingFlags.Instance |
+                                      System.Reflection.BindingFlags.NonPublic |
+                                      System.Reflection.BindingFlags.Public),
+                       f => IsUnmanaged(f.FieldType));
         }
         catch { return false; }
     }
