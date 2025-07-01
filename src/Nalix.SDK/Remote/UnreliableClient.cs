@@ -28,8 +28,7 @@ public sealed class UnreliableClient
     private readonly System.Net.Sockets.UdpClient _udpClient;
 
     private readonly IPacketCatalog _catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
-        ?? throw new System.InvalidOperationException(
-            "Packet catalog instance is not registered in the dependency injection container.");
+        ?? throw new System.InvalidOperationException("Packet catalog instance is not registered in the dependency injection container.");
 
     #endregion Fields
 
