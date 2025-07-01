@@ -60,6 +60,9 @@ public static class LiteSerializer
             {
                 formatter.Serialize(ref writer, value);
 
+                System.Diagnostics.Debug.WriteLine(
+                    $"Serialized fixed-size type {typeof(T).FullName} into {writer.BytesWritten} bytes.");
+
                 return writer.ToArray();
             }
             finally
@@ -91,12 +94,18 @@ public static class LiteSerializer
         }
         else if (kind is TypeKind.FixedSizeSerializable)
         {
-            System.Byte[] buffer = System.GC.AllocateUninitializedArray<System.Byte>(size);
-            DataWriter writer = (size > 0) ? new(buffer) : new(512);
+            System.Diagnostics.Debug.WriteLine(
+                $"Serializing fixed-size type {typeof(T).FullName} with size {size} bytes.");
+
+            DataWriter writer = (size > 0) ?
+                new(System.GC.AllocateUninitializedArray<System.Byte>(size)) : new(512);
 
             try
             {
                 formatter.Serialize(ref writer, value);
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"Serialized fixed-size type {typeof(T).FullName} into {writer.BytesWritten} bytes.");
 
                 return writer.ToArray();
             }

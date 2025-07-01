@@ -101,9 +101,17 @@ public class Class1
         byte[] data = LiteSerializer.Serialize(obj);
         Console.WriteLine($"Serialized: Id={obj.Id}, Name={obj.Name}, Enum={obj.EnumT}");
 
+        if (data.Length == 0)
+        {
+            Console.WriteLine("[ERROR] Serialized data is empty!");
+        }
+        else
+        {
+            Console.WriteLine($"[DEBUG] Raw data: {BitConverter.ToString(data)}");
+        }
+
         var objn = new TestClass();
-        byte[] data2 = new byte[data.Length];
-        LiteSerializer.Deserialize(data2, ref objn);
+        LiteSerializer.Deserialize(data, ref objn);
         Console.WriteLine($"Deserialized: Id={objn.Id}, Name={objn.Name}, Enum ={objn.EnumT}");
 
         Console.WriteLine("");
