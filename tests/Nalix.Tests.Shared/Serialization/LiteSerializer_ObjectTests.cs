@@ -1,4 +1,6 @@
 ﻿using Nalix.Shared.Serialization;
+using Nalix.Shared.Serialization.Formatters;
+using Nalix.Shared.Serialization.Formatters.Primitives;
 using System;
 using Xunit;
 
@@ -58,7 +60,7 @@ public class LiteSerializer_ObjectTests
     {
         TestStruct? input = new TestStruct(9, 2.71f);
         byte[] buffer = LiteSerializer.Serialize(input);
-        TestStruct? output = new();
+        TestStruct? output = default;
         LiteSerializer.Deserialize(buffer, ref output);
 
         Assert.True(output.HasValue);
@@ -77,5 +79,13 @@ public class LiteSerializer_ObjectTests
         LiteSerializer.Deserialize(buffer, ref output);
 
         Assert.Null(output);
+    }
+
+    [Fact]
+    public void FormatterProvider_UsesNullableFormatter_ForNullableStruct()
+    {
+        var formatter = FormatterProvider.Get<TestStruct?>();
+
+        Assert.IsType<NullableFormatter<TestStruct>>(formatter);
     }
 }
