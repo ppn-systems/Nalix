@@ -1,6 +1,3 @@
-using System;
-using System.Runtime.CompilerServices;
-
 namespace Nalix.Randomization;
 
 /// <summary>
@@ -10,28 +7,32 @@ namespace Nalix.Randomization;
 /// Initializes a new instance of the <see cref="Rand"/> class with a specified seed.
 /// </remarks>
 /// <param name="seed">The seed value to initialize the random Number generator.</param>
-public sealed class Rand(uint seed) : MwcRandom(seed)
+public sealed class Rand(System.UInt32 seed) : MwcRandom(seed)
 {
     /// <summary>
     /// Returns a random integer in the range [0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random integer in the range [0, max).</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int Get(int max)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Int32 Get(System.Int32 max)
     {
         if (max <= 0)
             return 0;
 
         // Avoid modulo bias for integer ranges
-        uint threshold = ((uint)(int.MaxValue) - (uint)(int.MaxValue % max));
-        uint result;
+        System.UInt32 threshold =
+            (System.UInt32)System.Int32.MaxValue -
+            (System.UInt32)(System.Int32.MaxValue % max);
+
+        System.UInt32 result;
         do
         {
             result = Get() & 0x7FFFFFFF; // Ensure positive value
         } while (result >= threshold);
 
-        return (int)(result % (uint)max);
+        return (int)(result % (System.UInt32)max);
     }
 
     /// <summary>
@@ -39,8 +40,9 @@ public sealed class Rand(uint seed) : MwcRandom(seed)
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random unsigned integer in the range [0, max).</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public new uint Get(uint max)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public new System.UInt32 Get(System.UInt32 max)
     {
         if (max == 0)
             return 0;
@@ -50,8 +52,8 @@ public sealed class Rand(uint seed) : MwcRandom(seed)
             return Get() & (max - 1);
 
         // Avoid modulo bias by rejecting values in the unfair region
-        uint threshold = RandMax - (RandMax % max);
-        uint result;
+        System.UInt32 threshold = RandMax - (RandMax % max);
+        System.UInt32 result;
         do
         {
             result = Get();
@@ -65,8 +67,9 @@ public sealed class Rand(uint seed) : MwcRandom(seed)
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random unsigned long integer in the range [0, max).</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ulong Get(ulong max)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.UInt64 Get(System.UInt64 max)
     {
         if (max == 0)
             return 0;
@@ -80,8 +83,8 @@ public sealed class Rand(uint seed) : MwcRandom(seed)
             return Get64() & (max - 1);
 
         // Use rejection sampling to avoid modulo bias
-        ulong threshold = ulong.MaxValue - (ulong.MaxValue % max);
-        ulong result;
+        System.UInt64 threshold = System.UInt64.MaxValue - (System.UInt64.MaxValue % max);
+        System.UInt64 result;
         do
         {
             result = Get64();
@@ -95,15 +98,16 @@ public sealed class Rand(uint seed) : MwcRandom(seed)
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random signed long integer in the range [0, max).</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public long Get(long max)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Int64 Get(System.Int64 max)
     {
         if (max <= 0)
             return 0;
 
         // Ensure positive result
-        ulong result = Get((ulong)max);
-        return (long)result;
+        System.UInt64 result = Get((System.UInt64)max);
+        return (System.Int64)result;
     }
 
     /// <summary>
@@ -112,15 +116,16 @@ public sealed class Rand(uint seed) : MwcRandom(seed)
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random integer in the range [min, max).</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int Get(int min, int max)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Int32 Get(System.Int32 min, System.Int32 max)
     {
         if (min >= max)
             return min;
 
         // Handle potential overflow when calculating range
-        uint range = (uint)(max - min);
-        return min + (int)Get(range);
+        System.UInt32 range = (System.UInt32)(max - min);
+        return min + (System.Int32)Get(range);
     }
 
     /// <summary>
@@ -129,13 +134,14 @@ public sealed class Rand(uint seed) : MwcRandom(seed)
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random unsigned integer in the range [min, max).</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public new uint Get(uint min, uint max)
+    [System.Runtime.CompilerServices.MethodImpl(
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public new System.UInt32 Get(System.UInt32 min, System.UInt32 max)
     {
         if (min >= max)
             return min;
 
-        uint range = max - min;
+        System.UInt32 range = max - min;
         return min + Get(range);
     }
 
@@ -145,13 +151,14 @@ public sealed class Rand(uint seed) : MwcRandom(seed)
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random unsigned long integer in the range [min, max).</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ulong Get(ulong min, ulong max)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.UInt64 Get(System.UInt64 min, System.UInt64 max)
     {
         if (min >= max)
             return min;
 
-        ulong range = max - min;
+        System.UInt64 range = max - min;
         return min + Get(range);
     }
 
@@ -162,15 +169,16 @@ public sealed class Rand(uint seed) : MwcRandom(seed)
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random signed long integer in the range [min, max).</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public long Get(long min, long max)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Int64 Get(System.Int64 min, System.Int64 max)
     {
         if (min >= max)
             return min;
 
         // Handle negative range carefully
-        ulong range = (ulong)(max - min);
-        return min + (long)Get(range);
+        System.UInt64 range = (System.UInt64)(max - min);
+        return min + (System.Int64)Get(range);
     }
 
     /// <summary>
@@ -178,8 +186,9 @@ public sealed class Rand(uint seed) : MwcRandom(seed)
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random floating-point Number in the range [0, max).</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public float Get(float max)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Single Get(System.Single max)
     {
         if (max <= 0)
             return 0;
@@ -192,8 +201,9 @@ public sealed class Rand(uint seed) : MwcRandom(seed)
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random double-precision floating-point Number in the range [0, max).</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double Get(double max)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Double Get(System.Double max)
     {
         if (max <= 0)
             return 0;
@@ -207,13 +217,14 @@ public sealed class Rand(uint seed) : MwcRandom(seed)
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random floating-point Number in the range [min, max).</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public float Get(float min, float max)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Single Get(System.Single min, System.Single max)
     {
         if (min >= max)
             return min;
 
-        return min + GetFloat() * (max - min);
+        return min + (GetFloat() * (max - min));
     }
 
     /// <summary>
@@ -222,13 +233,14 @@ public sealed class Rand(uint seed) : MwcRandom(seed)
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random double-precision floating-point Number in the range [min, max).</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double Get(double min, double max)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Double Get(System.Double min, System.Double max)
     {
         if (min >= max)
             return min;
 
-        return min + GetDouble() * (max - min);
+        return min + (GetDouble() * (max - min));
     }
 
     /// <summary>
@@ -236,8 +248,9 @@ public sealed class Rand(uint seed) : MwcRandom(seed)
     /// </summary>
     /// <param name="probability">The probability of returning true (0.0 to 1.0).</param>
     /// <returns>A random boolean.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool GetBool(double probability = 0.5)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean GetBool(System.Double probability = 0.5)
     {
         if (probability <= 0.0)
             return false;
@@ -256,8 +269,9 @@ public sealed class Rand(uint seed) : MwcRandom(seed)
     /// </remarks>
     /// <returns>A random float in the range [0.0, 1.0).</returns>
     // Use 24 bits (mantissa size for float) to ensure uniform distribution
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public new float GetFloat() => (Get() >> 8) * (1.0f / 16777216.0f);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public new System.Single GetFloat() => (Get() >> 8) * (1.0f / 16777216.0f);
 
     /// <summary>
     /// Returns a random double-precision floating-point Number in the range [0.0, 1.0).
@@ -268,13 +282,15 @@ public sealed class Rand(uint seed) : MwcRandom(seed)
     /// </remarks>
     /// <returns>A random double in the range [0.0, 1.0).</returns>
     // Use all 53 bits of precision available in a double
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public new double GetDouble() => (Get64() >> 11) * (1.0 / 9007199254740992.0);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public new System.Double GetDouble() => (Get64() >> 11) * (1.0 / 9007199254740992.0);
 
     /// <summary>
     /// Fills the specified buffer with random bytes.
     /// </summary>
     /// <param name="buffer">The buffer to fill with random bytes.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public new void NextBytes(Span<byte> buffer) => base.NextBytes(buffer);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public new void NextBytes(System.Span<System.Byte> buffer) => base.NextBytes(buffer);
 }

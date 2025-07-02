@@ -11,7 +11,7 @@ namespace Nalix.Randomization;
 /// Initializes a new instance of the <see cref="GRandom"/> class with a user-provided seed value.
 /// </remarks>
 /// <param name="seed">The seed to initialize the random Number generator.</param>
-public sealed class GRandom(int seed)
+public sealed class GRandom(System.Int32 seed)
 {
     #region Constants
 
@@ -153,7 +153,7 @@ public sealed class GRandom(int seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random float.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public float NextFloat(float min, float max) => min + NextFloat() * (max - min);
+    public float NextFloat(float min, float max) => min + (NextFloat() * (max - min));
 
     /// <summary>
     /// Generates a random double-precision floating-point Number in the range [0.0, 1.0].
@@ -177,7 +177,7 @@ public sealed class GRandom(int seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random double.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double NextDouble(double min, double max) => min + NextDouble() * (max - min);
+    public double NextDouble(double min, double max) => min + (NextDouble() * (max - min));
 
     /// <summary>
     /// Performs a random check with a given percentage probability.

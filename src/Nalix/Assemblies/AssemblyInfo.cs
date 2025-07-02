@@ -1,5 +1,3 @@
-using System;
-
 namespace Nalix.Assemblies;
 
 /// <summary>
@@ -10,40 +8,40 @@ public readonly struct AssemblyInfo
     /// <summary>
     /// The product name associated with the assembly.
     /// </summary>
-    public string Product { get; init; }
+    public System.String Product { get; init; }
 
     /// <summary>
     /// The version of the assembly.
     /// </summary>
-    public string Version { get; init; }
+    public System.String Version { get; init; }
 
     /// <summary>
     /// The company name associated with the assembly.
     /// </summary>
-    public string Company { get; init; }
+    public System.String Company { get; init; }
 
     /// <summary>
     /// The copyright information associated with the assembly.
     /// </summary>
-    public string Copyright { get; init; }
+    public System.String Copyright { get; init; }
 
     /// <summary>
     /// The build time of the assembly.
     /// </summary>
-    public DateTime BuildTime { get; init; }
+    public System.DateTime BuildTime { get; init; }
 
     /// <summary>
     /// The file version of the assembly.
     /// </summary>
-    public string FileVersion { get; init; }
+    public System.String FileVersion { get; init; }
 
     /// <summary>
     /// The name of the assembly.
     /// </summary>
-    public string AssemblyName { get; init; }
+    public System.String AssemblyName { get; init; }
 
     /// <summary>
     /// The informational version of the assembly.
     /// </summary>
-    public string InformationalVersion { get; init; }
+    public System.String InformationalVersion { get; init; }
 }

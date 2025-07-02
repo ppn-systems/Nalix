@@ -1,5 +1,3 @@
-using System.Numerics;
-
 namespace Nalix.Extensions.Maths;
 
 /// <summary>
@@ -16,7 +14,10 @@ public static class BigIntegerExtensions
     /// <returns>The result of (a + b) % mod.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static BigInteger ModAdd(this BigInteger a, BigInteger b, BigInteger mod)
+    public static System.Numerics.BigInteger ModAdd(
+        this System.Numerics.BigInteger a,
+        System.Numerics.BigInteger b,
+        System.Numerics.BigInteger mod)
     {
         a += b;
         if (a >= mod)
@@ -35,7 +36,10 @@ public static class BigIntegerExtensions
     /// <returns>The result of (a - b) % mod.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static BigInteger ModSub(this BigInteger a, BigInteger b, BigInteger mod)
+    public static System.Numerics.BigInteger ModSub(
+        this System.Numerics.BigInteger a,
+        System.Numerics.BigInteger b,
+        System.Numerics.BigInteger mod)
     {
         a -= b;
         if (a < 0)
@@ -54,7 +58,10 @@ public static class BigIntegerExtensions
     /// <returns>The result of (a * b) % mod.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static BigInteger MultiplyMod(this BigInteger a, BigInteger b, BigInteger mod)
+    public static System.Numerics.BigInteger MultiplyMod(
+        this System.Numerics.BigInteger a,
+        System.Numerics.BigInteger b,
+        System.Numerics.BigInteger mod)
         => a * b % mod;
 
     /// <summary>
@@ -65,9 +72,11 @@ public static class BigIntegerExtensions
     /// <returns>The result of num % modulo, adjusted to be non-negative.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static BigInteger Mod(this BigInteger num, BigInteger modulo)
+    public static System.Numerics.BigInteger Mod(
+        this System.Numerics.BigInteger num,
+        System.Numerics.BigInteger modulo)
     {
-        BigInteger result = num % modulo;
+        System.Numerics.BigInteger result = num % modulo;
         return result < 0 ? result + modulo : result;
     }
 }
