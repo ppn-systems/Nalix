@@ -1,5 +1,3 @@
-using Nalix.Diagnostics;
-
 namespace Nalix.Extensions.IO;
 
 /// <summary>
@@ -474,7 +472,7 @@ public static partial class SpanExtensions
         fixed (char* pChar = &value)
         fixed (byte* pTemp = temp)
         {
-            bytesWritten = SerializerOptions.Encoding.GetBytes(pChar, 1, pTemp, 4);
+            bytesWritten = System.Text.Encoding.UTF8.GetBytes(pChar, 1, pTemp, 4);
         }
 
         if (bytesWritten > 4)
@@ -502,7 +500,7 @@ public static partial class SpanExtensions
         fixed (char* pChar = &value)
         fixed (byte* pTemp = temp)
         {
-            bytesWritten = SerializerOptions.Encoding.GetBytes(pChar, 1, pTemp, 4);
+            bytesWritten = System.Text.Encoding.UTF8.GetBytes(pChar, 1, pTemp, 4);
         }
 
         if (bytesWritten > 4)
@@ -527,7 +525,7 @@ public static partial class SpanExtensions
             return;
         }
 
-        int byteCount = SerializerOptions.Encoding.GetByteCount(value);
+        int byteCount = System.Text.Encoding.UTF8.GetByteCount(value);
 
         if (span.Length < offset + sizeof(int) + byteCount)
             throw new System.ArgumentException("Span too small to write string.", nameof(span));
@@ -538,7 +536,7 @@ public static partial class SpanExtensions
         fixed (char* pChars = value)
         fixed (byte* pBytes = &span[offset])
         {
-            int written = SerializerOptions.Encoding.GetBytes(pChars, value.Length, pBytes, byteCount);
+            int written = System.Text.Encoding.UTF8.GetBytes(pChars, value.Length, pBytes, byteCount);
             offset += written;
         }
     }
@@ -556,7 +554,7 @@ public static partial class SpanExtensions
             return;
         }
 
-        int byteCount = SerializerOptions.Encoding.GetByteCount(value);
+        int byteCount = System.Text.Encoding.UTF8.GetByteCount(value);
 
         if (buffer.Length < offset + sizeof(int) + byteCount)
             throw new System.ArgumentException("Buffer too small to write string.", nameof(buffer));
@@ -567,7 +565,7 @@ public static partial class SpanExtensions
         fixed (char* pChars = value)
         fixed (byte* pBytes = &buffer[offset])
         {
-            int written = SerializerOptions.Encoding.GetBytes(pChars, value.Length, pBytes, byteCount);
+            int written = System.Text.Encoding.UTF8.GetBytes(pChars, value.Length, pBytes, byteCount);
             offset += written;
         }
     }

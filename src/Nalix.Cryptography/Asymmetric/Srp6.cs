@@ -1,7 +1,6 @@
 using Nalix.Common.Cryptography.Asymmetric;
 using Nalix.Common.Exceptions;
 using Nalix.Cryptography.Hashing;
-using Nalix.Diagnostics;
 using Nalix.Randomization;
 using System;
 using System.Linq;
@@ -47,7 +46,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
 
     private readonly BigInteger _saltValue = new(salt, true);
     private readonly BigInteger _verifier = new(verifier, true);
-    private readonly byte[] _usernameBytes = SerializerOptions.Encoding.GetBytes(username);
+    private readonly byte[] _usernameBytes = System.Text.Encoding.UTF8.GetBytes(username);
 
     private BigInteger _sessionKey;
     private BigInteger _clientProof;
@@ -69,7 +68,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
     /// <returns>Verifier as a byte array.</returns>
     public static byte[] GenerateVerifier(byte[] salt, string username, string password)
     {
-        byte[] data = SHA256.HashData(SerializerOptions.Encoding.GetBytes($"{username}:{password}"));
+        byte[] data = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"{username}:{password}"));
         BigInteger x = Hash(true, new BigInteger(salt, true), new BigInteger(data, true));
 
         return BigInteger.ModPow(G, x, N).ToByteArray();
@@ -83,7 +82,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
     {
         _serverPrivateValue = new BigInteger(RandGenerator.GetBytes((int)128u), true);
         BigInteger multiplierParameter = Hash(true, N, G);
-        _serverPublicValue = (multiplierParameter * _verifier + BigInteger.ModPow(G, _serverPrivateValue, N)) % N;
+        _serverPublicValue = ((multiplierParameter * _verifier) + BigInteger.ModPow(G, _serverPrivateValue, N)) % N;
 
         return _serverPublicValue.ToByteArray(true);
     }
@@ -202,7 +201,7 @@ public sealed class Srp6(string username, byte[] salt, byte[] verifier) : ISrp6
 
         byte[] oddIndexedBytes = new byte[length / 2];
         for (uint i = 0u; i < oddIndexedBytes.Length; i++)
-            oddIndexedBytes[i] = reversedSecretBytes[i * 2 + 1];
+            oddIndexedBytes[i] = reversedSecretBytes[(i * 2) + 1];
 
         byte[] evenHash = SHA256.HashData(evenIndexedBytes);
         byte[] oddHash = SHA256.HashData(oddIndexedBytes);

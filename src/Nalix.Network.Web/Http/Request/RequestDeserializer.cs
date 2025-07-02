@@ -1,6 +1,6 @@
-using Nalix.Diagnostics;
 using Nalix.Network.Web.Http.Exceptions;
 using Nalix.Network.Web.Http.Extensions;
+using Nalix.Network.Web.Http.Response;
 using System;
 using System.Diagnostics;
 using System.Text.Json;
@@ -52,7 +52,7 @@ public static class RequestDeserializer
 
         try
         {
-            TData result = JsonSerializer.Deserialize<TData>(body, SerializerOptions.HttpFormatted) ??
+            TData result = JsonSerializer.Deserialize<TData>(body, ResponseSerializer.HttpFormatted) ??
                 throw new FormatException("Deserialized result is null.");
 
             return result;

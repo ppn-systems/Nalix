@@ -1,6 +1,6 @@
-using Nalix.Diagnostics;
 using Nalix.Network.Web.Http.Exceptions;
 using Nalix.Network.Web.Http.Extensions;
+using Nalix.Network.Web.Http.Response;
 using System;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -33,7 +33,7 @@ public class JsonDataAttribute : Attribute, IRequestDataAttribute<WebApiControll
 
         try
         {
-            return JsonSerializer.Deserialize(body, type, SerializerOptions.HttpFormatted);
+            return JsonSerializer.Deserialize(body, type, ResponseSerializer.HttpFormatted);
         }
         catch (FormatException)
         {
