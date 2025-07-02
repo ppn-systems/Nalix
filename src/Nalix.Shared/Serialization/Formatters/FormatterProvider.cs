@@ -128,11 +128,27 @@ public static class FormatterProvider
     /// </exception>
     public static IFormatter<T> Get<T>()
     {
+        IFormatter<T>? formatter;
+
+        // NEW: Handle Nullable<T>
+        if (typeof(T).IsGenericType &&
+            typeof(T).GetGenericTypeDefinition() == typeof(System.Nullable<>))
+        {
+            System.Type underlyingType = System.Nullable.GetUnderlyingType(typeof(T))!;
+            System.Type formatterType = typeof(NullableFormatter<>).MakeGenericType(underlyingType);
+
+            var instance = System.Activator.CreateInstance(formatterType)!;
+
+            formatter = (IFormatter<T>)instance;
+            Register(formatter);
+            return formatter;
+        }
+
         if (FormatterCache<T>.Formatter is not null)
             return FormatterCache<T>.Formatter;
 
         // Auto-register for enums
-        IFormatter<T>? formatter = TryCreateEnumFormatter<T>()
+        formatter = TryCreateEnumFormatter<T>()
              ?? TryCreateArrayFormatter<T>()
              ?? TryCreateListFormatter<T>();
 
@@ -142,8 +158,16 @@ public static class FormatterProvider
             return formatter;
         }
 
-        return GetComplex<T>();
-        throw new System.InvalidOperationException($"No formatter registered for type {typeof(T)}.");
+        // fallback to GetComplex
+        try
+        {
+            return GetComplex<T>();
+        }
+        catch (System.Exception ex)
+        {
+            throw new System.InvalidOperationException(
+                $"No formatter registered for type {typeof(T)} and could not auto-generate one.", ex);
+        }
     }
 
     /// <summary>
@@ -160,6 +184,9 @@ public static class FormatterProvider
     {
         IFormatter<T> formatter;
         System.Type type = typeof(T);
+
+        if (System.Nullable.GetUnderlyingType(typeof(T)) is not null)
+            throw new System.InvalidOperationException($"Cannot call GetComplex<T>() on Nullable<T>: {typeof(T)}");
 
         if (type.IsValueType && !type.IsEnum)
         {

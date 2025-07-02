@@ -18,7 +18,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, System.IDisposable where
     /// <summary>
     /// Logger instance for tracking serialization diagnostics.
     /// </summary>
-    private readonly ILogger _logger = null!;
+    private readonly ILogger? _logger = null;
 
     /// <summary>
     /// Array of cached field accessors for optimized serialization performance.
