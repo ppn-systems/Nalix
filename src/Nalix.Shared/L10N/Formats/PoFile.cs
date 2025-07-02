@@ -201,7 +201,7 @@ public partial class PoFile
 
     #endregion Public API
 
-    #region Private API
+    #region Private Methods
 
     // Add this helper method to format strings consistently
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -279,11 +279,15 @@ public partial class PoFile
         return n => n == 1 ? 0 : 1;
     }
 
+    #endregion Private Methods
+
+    #region Generated Regex Patterns
+
     [GeneratedRegex(@"msgstr\[(\d+)\]")]
     private static partial Regex ExtractPluralIndex();
 
     [GeneratedRegex("\"(.*?)\"")]
     private static partial Regex ExtractQuotedText();
 
-    #endregion Private API
+    #endregion Generated Regex Patterns
 }
