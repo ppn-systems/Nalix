@@ -17,7 +17,7 @@ public static partial class BitwiseUtils
     /// <returns>The rotated value.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint RotateRight(uint value, int bits)
+    public static System.UInt32 RotateRight(System.UInt32 value, System.Int32 bits)
         => (value >> bits) | (value << (32 - bits));
 
     /// <summary>
@@ -28,7 +28,7 @@ public static partial class BitwiseUtils
     /// <returns>The rotated value.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint RotateLeft(uint value, int bits)
+    public static System.UInt32 RotateLeft(System.UInt32 value, System.Int32 bits)
         => (value << bits) | (value >> (32 - bits));
 
     #endregion Bit Rotations
@@ -43,7 +43,7 @@ public static partial class BitwiseUtils
     /// <returns>The result of (v XOR w).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint XOr(uint v, uint w) => v ^ w;
+    public static System.UInt32 XOr(System.UInt32 v, System.UInt32 w) => v ^ w;
 
     /// <summary>
     /// Unchecked integer addition. The ChaCha spec defines certain operations to use 32-bit unsigned integer addition modulo 2^32.
@@ -56,7 +56,7 @@ public static partial class BitwiseUtils
     /// <returns>The result of (v + w) modulo 2^32.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint Add(uint v, uint w) => unchecked(v + w);
+    public static System.UInt32 Add(System.UInt32 v, System.UInt32 w) => unchecked(v + w);
 
     /// <summary>
     /// Add 1 to the input parameter using unchecked integer addition. The ChaCha spec defines certain operations to use 32-bit unsigned integer addition modulo 2^32.
@@ -68,7 +68,7 @@ public static partial class BitwiseUtils
     /// <returns>The result of (v + 1) modulo 2^32.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint AddOne(uint v) => unchecked(v + 1);
+    public static System.UInt32 AddOne(System.UInt32 v) => unchecked(v + 1);
 
     /// <summary>
     /// Unchecked integer subtraction. Performs modular subtraction (v - w) mod 2^32.
@@ -78,7 +78,7 @@ public static partial class BitwiseUtils
     /// <returns>The result of (v - w) modulo 2^32.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint Subtract(uint v, uint w) => unchecked(v - w);
+    public static System.UInt32 Subtract(System.UInt32 v, System.UInt32 w) => unchecked(v - w);
 
     #endregion Arithmetic Operations
 
@@ -92,13 +92,13 @@ public static partial class BitwiseUtils
     /// <returns>An unsigned 32-bit integer.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe uint U8To32Little(byte[] p, int inputOffset)
+    public static unsafe System.UInt32 U8To32Little(System.Byte[] p, System.Int32 inputOffset)
     {
         if (p == null || p.Length < inputOffset + 4)
             throw new System.ArgumentOutOfRangeException(nameof(p), "Input array is too small.");
 
-        fixed (byte* ptr = &p[inputOffset])
-            return System.Runtime.CompilerServices.Unsafe.ReadUnaligned<uint>(ptr);
+        fixed (System.Byte* ptr = &p[inputOffset])
+            return System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt32>(ptr);
     }
 
     /// <summary>
@@ -109,13 +109,13 @@ public static partial class BitwiseUtils
     /// <returns>An unsigned 32-bit integer.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe uint U8To32Little(System.ReadOnlySpan<byte> data, int offset)
+    public static unsafe System.UInt32 U8To32Little(System.ReadOnlySpan<System.Byte> data, System.Int32 offset)
     {
         if (data.Length < offset + 4)
             throw new System.ArgumentOutOfRangeException(nameof(data), "Input span is too small.");
 
-        fixed (byte* ptr = &System.Runtime.InteropServices.MemoryMarshal.GetReference(data))
-            return System.Runtime.CompilerServices.Unsafe.ReadUnaligned<uint>(ptr + offset);
+        fixed (System.Byte* ptr = &System.Runtime.InteropServices.MemoryMarshal.GetReference(data))
+            return System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt32>(ptr + offset);
     }
 
     /// <summary>
@@ -127,12 +127,12 @@ public static partial class BitwiseUtils
     /// <param name="outputOffset">The offset within the buffer to write to.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe void ToBytes(byte[] output, uint input, int outputOffset)
+    public static unsafe void ToBytes(System.Byte[] output, System.UInt32 input, System.Int32 outputOffset)
     {
         if (output == null || output.Length < outputOffset + 4)
             throw new System.ArgumentOutOfRangeException(nameof(output), "Output array is too small.");
 
-        fixed (byte* ptr = &output[outputOffset])
+        fixed (System.Byte* ptr = &output[outputOffset])
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ptr, input);
     }
 
@@ -145,12 +145,14 @@ public static partial class BitwiseUtils
     /// <param name="offset">The offset within the span to write to.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe void ToBytes(System.Span<byte> output, uint input, int offset)
+    public static unsafe void ToBytes(
+        System.Span<System.Byte> output,
+        System.UInt32 input, System.Int32 offset)
     {
         if (output.Length < offset + 4)
             throw new System.ArgumentOutOfRangeException(nameof(output), "Output span is too small.");
 
-        fixed (byte* ptr = &System.Runtime.InteropServices.MemoryMarshal.GetReference(output))
+        fixed (System.Byte* ptr = &System.Runtime.InteropServices.MemoryMarshal.GetReference(output))
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ptr + offset, input);
     }
 

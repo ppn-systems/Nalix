@@ -1,7 +1,3 @@
-using System;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
 namespace Nalix.Cryptography.Symmetric;
 
 /// <summary>
@@ -9,24 +5,24 @@ namespace Nalix.Cryptography.Symmetric;
 /// WARNING: ARC4 is considered cryptographically weak and should not be used for new applications.
 /// Consider using more secure alternatives like ChaCha20 or AES-GCM.
 /// </summary>
-public sealed class Arc4 : IDisposable
+public sealed class Arc4 : System.IDisposable
 {
     #region Constants
 
-    private const int PermutationSize = 256;
-    private const int WeakKeyMitigationBytes = 3072;
+    private const System.Int32 PermutationSize = 256;
+    private const System.Int32 WeakKeyMitigationBytes = 3072;
 
     #endregion Constants
 
     #region Fields
 
     // Store state as individual fields for better performance
-    private byte _i;
+    private System.Byte _i;
 
-    private byte _j;
-    private readonly byte[] _s = new byte[256];
+    private System.Byte _j;
+    private readonly System.Byte[] _s = new System.Byte[256];
 
-    private bool _disposed;
+    private System.Boolean _disposed;
 
     #endregion Fields
 
@@ -36,19 +32,19 @@ public sealed class Arc4 : IDisposable
     /// Initializes a new instance of the <see cref="Arc4"/> class with the given key.
     /// </summary>
     /// <param name="key">The encryption/decryption key (should be between 5 and 256 bytes).</param>
-    /// <exception cref="ArgumentNullException">
+    /// <exception cref="System.ArgumentNullException">
     /// Thrown if the key is <c>null</c>.
     /// </exception>
-    /// <exception cref="ArgumentException">
+    /// <exception cref="System.ArgumentException">
     /// Thrown if the key is shorter than 5 bytes or longer than 256 bytes.
     /// </exception>
-    public Arc4(ReadOnlySpan<byte> key)
+    public Arc4(System.ReadOnlySpan<System.Byte> key)
     {
         if (key.IsEmpty)
-            throw new ArgumentNullException(nameof(key));
+            throw new System.ArgumentNullException(nameof(key));
 
         if (key.Length < 5 || key.Length > 256)
-            throw new ArgumentException("Key length must be between 5 and 256 bytes.", nameof(key));
+            throw new System.ArgumentException("Key length must be between 5 and 256 bytes.", nameof(key));
 
         this.Initialize(key);
     }
@@ -61,19 +57,21 @@ public sealed class Arc4 : IDisposable
     /// Encrypts or decrypts the given data in-place using the ARC4 stream cipher.
     /// </summary>
     /// <param name="buffer">The data buffer to be encrypted or decrypted.</param>
-    /// <exception cref="ObjectDisposedException">Thrown if this instance has been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Process(Span<byte> buffer)
+    /// <exception cref="System.ObjectDisposedException">Thrown if this instance has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Process(System.Span<System.Byte> buffer)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        System.ObjectDisposedException.ThrowIf(_disposed, this);
 
         // Process 4 bytes at a time when possible
-        int blockCount = buffer.Length / 4;
-        int remainder = buffer.Length % 4;
+        System.Int32 blockCount = buffer.Length / 4;
+        System.Int32 remainder = buffer.Length % 4;
 
         if (blockCount > 0)
         {
-            this.ProcessBlocks(MemoryMarshal.Cast<byte, uint>(buffer[..(blockCount * 4)]));
+            this.ProcessBlocks(System.Runtime.InteropServices.MemoryMarshal
+                .Cast<System.Byte, System.UInt32>(buffer[..(blockCount * 4)]));
         }
 
         // Process any remaining bytes
@@ -86,25 +84,27 @@ public sealed class Arc4 : IDisposable
     /// <summary>
     /// Resets the internal state of the cipher.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Reset()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        System.ObjectDisposedException.ThrowIf(_disposed, this);
         _i = 0;
         _j = 0;
-        Array.Clear(_s, 0, _s.Length);
+        System.Array.Clear(_s, 0, _s.Length);
     }
 
     /// <summary>
     /// Disposes the resources used by this instance.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (!_disposed)
         {
             // Clear the state array to remove sensitive data
-            Array.Clear(_s, 0, _s.Length);
+            System.Array.Clear(_s, 0, _s.Length);
             _disposed = true;
         }
     }
@@ -116,20 +116,21 @@ public sealed class Arc4 : IDisposable
     /// <summary>
     /// Initializes the cipher with the provided key.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void Initialize(ReadOnlySpan<byte> key)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void Initialize(System.ReadOnlySpan<System.Byte> key)
     {
         // Initialize the permutation array (S)
-        for (int k = 0; k < PermutationSize; k++)
+        for (System.Int32 k = 0; k < PermutationSize; k++)
         {
-            _s[k] = (byte)k;
+            _s[k] = (System.Byte)k;
         }
 
         // Perform Key Scheduling Algorithm (KSA)
-        byte j = 0;
-        for (int k = 0; k < PermutationSize; k++)
+        System.Byte j = 0;
+        for (System.Int32 k = 0; k < PermutationSize; k++)
         {
-            j += (byte)(_s[k] + key[k % key.Length]);
+            j += (System.Byte)(_s[k] + key[k % key.Length]);
             (_s[k], _s[j]) = (_s[j], _s[k]); // Swap values in the permutation array
         }
 
@@ -137,40 +138,41 @@ public sealed class Arc4 : IDisposable
         _i = 0;
         _j = 0;
 
-        Span<byte> dummy = stackalloc byte[WeakKeyMitigationBytes];
+        System.Span<System.Byte> dummy = stackalloc System.Byte[WeakKeyMitigationBytes];
         this.Process(dummy); // Process the dummy bytes to discard the weak initial state
     }
 
     /// <summary>
     /// Processes blocks of 4 bytes at a time for better performance.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ProcessBlocks(Span<uint> blocks)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void ProcessBlocks(System.Span<System.UInt32> blocks)
     {
-        for (int i = 0; i < blocks.Length; i++)
+        for (System.Int32 i = 0; i < blocks.Length; i++)
         {
-            uint keystream = 0;
+            System.UInt32 keystream = 0;
 
             // Unroll the loop to process 4 bytes directly
             _i++;
             _j += _s[_i];
             (_s[_i], _s[_j]) = (_s[_j], _s[_i]);
-            keystream |= (uint)_s[(byte)(_s[_i] + _s[_j])] << 24;
+            keystream |= (System.UInt32)_s[(System.Byte)(_s[_i] + _s[_j])] << 24;
 
             _i++;
             _j += _s[_i];
             (_s[_i], _s[_j]) = (_s[_j], _s[_i]);
-            keystream |= (uint)_s[(byte)(_s[_i] + _s[_j])] << 16;
+            keystream |= (System.UInt32)_s[(System.Byte)(_s[_i] + _s[_j])] << 16;
 
             _i++;
             _j += _s[_i];
             (_s[_i], _s[_j]) = (_s[_j], _s[_i]);
-            keystream |= (uint)_s[(byte)(_s[_i] + _s[_j])] << 8;
+            keystream |= (System.UInt32)_s[(System.Byte)(_s[_i] + _s[_j])] << 8;
 
             _i++;
             _j += _s[_i];
             (_s[_i], _s[_j]) = (_s[_j], _s[_i]);
-            keystream |= _s[(byte)(_s[_i] + _s[_j])];
+            keystream |= _s[(System.Byte)(_s[_i] + _s[_j])];
 
             // XOR the block with the keystream
             blocks[i] ^= keystream;
@@ -180,17 +182,18 @@ public sealed class Arc4 : IDisposable
     /// <summary>
     /// Processes individual bytes (used for the remainder).
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ProcessBytes(Span<byte> buffer)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void ProcessBytes(System.Span<System.Byte> buffer)
     {
-        for (int k = 0; k < buffer.Length; k++)
+        for (System.Int32 k = 0; k < buffer.Length; k++)
         {
             _i++;
             _j += _s[_i];
             (_s[_i], _s[_j]) = (_s[_j], _s[_i]);
 
             // Compute keystream byte and XOR it with the buffer
-            byte keystream = _s[(byte)(_s[_i] + _s[_j])];
+            System.Byte keystream = _s[(System.Byte)(_s[_i] + _s[_j])];
             buffer[k] ^= keystream;
         }
     }

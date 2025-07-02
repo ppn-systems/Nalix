@@ -3,7 +3,6 @@ using Nalix.Graphics.Scenes;
 using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
-using System.Collections.Generic;
 
 namespace Nalix.Graphics;
 
@@ -112,7 +111,7 @@ public static class GameEngine
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void Render(RenderTarget target)
     {
-        List<RenderObject> renderObjects = [.. SceneManager.AllObjects<RenderObject>()];
+        System.Collections.Generic.List<RenderObject> renderObjects = [.. SceneManager.AllObjects<RenderObject>()];
         renderObjects.Sort(RenderObject.CompareByZIndex);
         foreach (RenderObject r in renderObjects)
         {

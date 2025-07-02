@@ -15,13 +15,13 @@ public static partial class BitwiseUtils
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static byte[] FixedSize(System.ReadOnlySpan<byte> input, int length = 16)
+    public static System.Byte[] FixedSize(System.ReadOnlySpan<System.Byte> input, System.Int32 length = 16)
     {
         if (length < 0)
             throw new System.ArgumentOutOfRangeException(nameof(length), "Length must be non-negative.");
 
-        int bytesToCopy = System.Math.Min(input.Length, length);
-        byte[] result = new byte[length];
+        System.Int32 bytesToCopy = System.Math.Min(input.Length, length);
+        System.Byte[] result = new System.Byte[length];
         input[..bytesToCopy].CopyTo(result);
 
         return result;
@@ -36,14 +36,16 @@ public static partial class BitwiseUtils
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.NoOptimization)]
-    public static bool FixedTimeEquals(System.ReadOnlySpan<byte> left, System.ReadOnlySpan<byte> right)
+    public static System.Boolean FixedTimeEquals(
+        System.ReadOnlySpan<System.Byte> left,
+        System.ReadOnlySpan<System.Byte> right)
     {
         if (left.Length != right.Length)
             return false;
 
-        int result = 0;
+        System.Int32 result = 0;
 
-        for (int i = 0; i < left.Length; i++)
+        for (System.Int32 i = 0; i < left.Length; i++)
         {
             result |= left[i] ^ right[i];
         }
@@ -57,9 +59,9 @@ public static partial class BitwiseUtils
     /// <param name="counter">The counter to increment.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void IncrementCounter(System.Span<byte> counter)
+    public static void IncrementCounter(System.Span<System.Byte> counter)
     {
-        for (int i = 0; i < counter.Length; i++)
+        for (System.Int32 i = 0; i < counter.Length; i++)
         {
             if (++counter[i] != 0) break;
         }

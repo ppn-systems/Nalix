@@ -15,7 +15,8 @@ public static partial class BitwiseUtils
     /// <returns>The result of (x &amp; y) ^ (~x &amp; z).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint Choose(uint x, uint y, uint z) => (x & y) ^ (~x & z);
+    public static System.UInt32 Choose(System.UInt32 x, System.UInt32 y, System.UInt32 z)
+        => (x & y) ^ (~x & z);
 
     /// <summary>
     /// Performs the "Majority" (Majority) bitwise function used in SHA-family hash algorithms.
@@ -30,7 +31,8 @@ public static partial class BitwiseUtils
     /// <returns>The result of (x &amp; y) ^ (x &amp; z) ^ (y &amp; z).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint Majority(uint x, uint y, uint z) => (x & y) ^ (x & z) ^ (y & z);
+    public static System.UInt32 Majority(System.UInt32 x, System.UInt32 y, System.UInt32 z)
+        => (x & y) ^ (x & z) ^ (y & z);
 
     /// <summary>
     /// Computes the Σ₀ (Big Sigma 0) function used in the SHA-256 compression function.
@@ -42,7 +44,7 @@ public static partial class BitwiseUtils
     /// <returns>The result of Σ₀(x).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint SigmaUpper0(uint x) =>
+    public static System.UInt32 SigmaUpper0(System.UInt32 x) =>
         RotateRight(x, 2) ^ RotateRight(x, 13) ^ RotateRight(x, 22);
 
     /// <summary>
@@ -55,7 +57,7 @@ public static partial class BitwiseUtils
     /// <returns>The result of Σ₁(x).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint SigmaUpper1(uint x) =>
+    public static System.UInt32 SigmaUpper1(System.UInt32 x) =>
         RotateRight(x, 6) ^ RotateRight(x, 11) ^ RotateRight(x, 25);
 
     /// <summary>
@@ -68,7 +70,7 @@ public static partial class BitwiseUtils
     /// <returns>The result of σ₀(x).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint Sigma0(uint x) => RotateRight(x, 7) ^ RotateRight(x, 18) ^ (x >> 3);
+    public static System.UInt32 Sigma0(System.UInt32 x) => RotateRight(x, 7) ^ RotateRight(x, 18) ^ (x >> 3);
 
     /// <summary>
     /// Computes the σ₁ (Small Sigma 1) function used in SHA-256 message schedule expansion.
@@ -80,5 +82,6 @@ public static partial class BitwiseUtils
     /// <returns>The result of σ₁(x).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint Sigma1(uint x) => RotateRight(x, 17) ^ RotateRight(x, 19) ^ (x >> 10);
+    public static System.UInt32 Sigma1(System.UInt32 x)
+        => RotateRight(x, 17) ^ RotateRight(x, 19) ^ (x >> 10);
 }
