@@ -1,6 +1,8 @@
+using Nalix.Common.Exceptions;
 using Nalix.Common.Package;
+using Nalix.Common.Package.Metadata;
 using Nalix.Network.Package.Engine;
-using Nalix.Network.Package.Engine.Serialization;
+using Nalix.Shared.Serialization;
 
 namespace Nalix.Network.Package.Extensions;
 
@@ -27,7 +29,7 @@ public static class PacketExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte[] Serialize(this in Packet packet)
-        => PacketSerializer.Serialize(in packet);
+        => LiteSerializer.Serialize(in packet);
 
     /// <summary>
     /// Deserializes a packet from a <see cref="System.ReadOnlySpan{T}"/> of bytes.
@@ -37,7 +39,11 @@ public static class PacketExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static IPacket Deserialize(this System.ReadOnlySpan<System.Byte> data)
-        => PacketSerializer.Deserialize(data);
+    {
+        IPacket? packet = default;
+        LiteSerializer.Deserialize(data, ref packet);
+        return packet ?? throw new System.InvalidOperationException("Deserialization resulted in a null packet.");
+    }
 
     /// <summary>
     /// Deserializes a packet from a <see cref="System.ReadOnlyMemory{T}"/> of bytes.
@@ -47,7 +53,11 @@ public static class PacketExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static IPacket Deserialize(this System.ReadOnlyMemory<System.Byte> data)
-        => PacketSerializer.Deserialize(data);
+    {
+        IPacket? packet = default;
+        LiteSerializer.Deserialize(data.Span, ref packet);
+        return packet ?? throw new System.InvalidOperationException("Deserialization resulted in a null packet.");
+    }
 
     /// <summary>
     /// Deserializes a packet from a byte array.
@@ -56,8 +66,12 @@ public static class PacketExtensions
     /// <returns>A <see cref="IPacket"/> instance created from the data.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Packet Deserialize(this System.Byte[] data)
-        => PacketSerializer.Deserialize(data);
+    public static IPacket Deserialize(this System.Byte[] data)
+    {
+        IPacket? packet = default;
+        LiteSerializer.Deserialize(data, ref packet);
+        return packet ?? throw new System.InvalidOperationException("Deserialization resulted in a null packet.");
+    }
 
     /// <summary>
     /// Attempts to serialize a packet into a provided span of bytes.
@@ -72,7 +86,33 @@ public static class PacketExtensions
         this in Packet packet,
         System.Span<System.Byte> destination,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 bytesWritten)
-        => PacketSerializer.TrySerialize(in packet, destination, out bytesWritten);
+    {
+        System.Int32 payloadLength = packet.Payload.Length;
+        System.Int32 totalSize = PacketSize.Header + payloadLength;
+
+        // Validate before attempting to serialize
+        if (payloadLength > ushort.MaxValue || destination.Length < totalSize)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+
+        try
+        {
+            bytesWritten = LiteSerializer.Serialize(in packet, destination);
+            return true;
+        }
+        catch (SerializationException) // Specific catch (optional)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+        catch (System.NotSupportedException)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+    }
 
     /// <summary>
     /// Attempts to deserialize a packet from a span of bytes.
@@ -85,5 +125,30 @@ public static class PacketExtensions
     public static System.Boolean TryDeserialize(
         this System.ReadOnlySpan<System.Byte> source,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Packet packet)
-        => PacketSerializer.TryDeserialize(source, out packet);
+    {
+        packet = default;
+
+        // Check if at least the header is present
+        if (source.Length < PacketSize.Header)
+            return false;
+
+        // Read packet length from first 2 bytes (ushort)
+        System.UInt16 length = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt16>(
+            ref System.Runtime.InteropServices.MemoryMarshal.GetReference(source));
+
+        // Validate length is within expected range
+        if (length < PacketSize.Header || length > source.Length)
+            return false;
+
+        // Safe deserialize without throwing
+        try
+        {
+            int bytesRead = LiteSerializer.Deserialize(source[..length], ref packet);
+            return bytesRead == length;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }
