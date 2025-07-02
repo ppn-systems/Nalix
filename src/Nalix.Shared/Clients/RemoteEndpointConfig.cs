@@ -13,7 +13,7 @@ public sealed class RemoteEndpointConfig : ConfigurationLoader
 
     /// <summary>
     /// Gets or sets the port number for the connection.
-    /// Default value is 52006.
+    /// Default value is 57206.
     /// </summary>
     public System.UInt16 Port { get; set; } = 57206;
 
