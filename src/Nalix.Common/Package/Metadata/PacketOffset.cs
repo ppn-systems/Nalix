@@ -33,7 +33,7 @@ public static class PacketOffset
     /// <summary>
     /// Offset for the packet type.
     /// </summary>
-    public const System.Int32 Type = Number + PacketSize.Number;
+    public const System.Int32 Type = Timestamp + PacketSize.Timestamp;
 
     /// <summary>
     /// Offset for the packet flags.
