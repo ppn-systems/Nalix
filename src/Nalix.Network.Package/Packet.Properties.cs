@@ -17,6 +17,11 @@ public readonly partial struct Packet
     private const System.Int32 MaxHeapAllocSize = PacketConstants.HeapAllocLimit;
     private const System.Int32 MaxStackAllocSize = PacketConstants.StackAllocLimit;
 
+    /// <summary>
+    /// UTF-8 encoding instance for packet processing.
+    /// </summary>
+    public static readonly System.Text.Encoding Utf = System.Text.Encoding.UTF8;
+
     #endregion Constants
 
     #region Fields
