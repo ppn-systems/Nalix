@@ -1,5 +1,4 @@
 using Nalix.Common.Exceptions;
-using Nalix.Exceptions;
 using Nalix.Network.Web.Utilities;
 using Nalix.Network.Web.WebModule;
 using System.Runtime.CompilerServices;

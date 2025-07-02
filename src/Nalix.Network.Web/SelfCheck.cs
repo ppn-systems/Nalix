@@ -1,6 +1,6 @@
 using Nalix.Common.Exceptions;
 
-namespace Nalix.Exceptions;
+namespace Nalix.Network.Web;
 
 /// <summary>
 /// Provides methods to perform self-checks in library or application code.

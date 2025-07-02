@@ -1,4 +1,3 @@
-using Nalix.Exceptions;
 using Nalix.Network.Web.Http;
 using Nalix.Network.Web.Http.Response;
 using Nalix.Network.Web.Internal;

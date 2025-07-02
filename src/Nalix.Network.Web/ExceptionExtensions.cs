@@ -1,7 +1,6 @@
 using Nalix.Common.Exceptions;
-using Nalix.Exceptions;
 
-namespace Nalix.Extensions;
+namespace Nalix.Network.Web;
 
 /// <summary>
 /// Provides extension methods for <see cref="System.Exception"/>.
@@ -18,8 +17,8 @@ public static class ExceptionExtensions
     public static bool IsCriticalException(this System.Exception @this)
         => @this.IsCriticalExceptionCore()
         || (@this.InnerException?.IsCriticalException() ?? false)
-        || @this is System.AggregateException aggregateException
-        && System.Linq.Enumerable.Any(aggregateException.InnerExceptions, e => e.IsCriticalExceptionCore());
+        || (@this is System.AggregateException aggregateException
+        && System.Linq.Enumerable.Any(aggregateException.InnerExceptions, e => e.IsCriticalExceptionCore()));
 
     /// <summary>
     /// Returns a value that tells whether an <see cref="System.Exception"/> is of a type that
@@ -31,8 +30,8 @@ public static class ExceptionExtensions
     public static bool IsFatalException(this System.Exception @this)
         => @this.IsFatalExceptionCore()
         || (@this.InnerException?.IsFatalException() ?? false)
-        || @this is System.AggregateException aggregateException
-        && System.Linq.Enumerable.Any(aggregateException.InnerExceptions, e => e.IsCriticalExceptionCore());
+        || (@this is System.AggregateException aggregateException
+        && System.Linq.Enumerable.Any(aggregateException.InnerExceptions, e => e.IsCriticalExceptionCore()));
 
     /// <summary>
     /// <para>Rethrows an already-thrown exception, preserving the stack trace of the original throw.</para>

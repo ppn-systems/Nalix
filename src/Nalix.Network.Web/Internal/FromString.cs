@@ -1,5 +1,4 @@
 using Nalix.Common.Exceptions;
-using Nalix.Extensions;
 using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;

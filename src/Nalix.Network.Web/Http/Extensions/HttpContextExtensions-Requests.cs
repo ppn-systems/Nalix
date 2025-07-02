@@ -1,5 +1,3 @@
-using Nalix.Exceptions;
-using Nalix.Extensions;
 using Nalix.Network.Web.Http.Request;
 using Nalix.Network.Web.Utilities;
 using System;

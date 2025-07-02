@@ -1,4 +1,3 @@
-using Nalix.Exceptions;
 using Nalix.Network.Web.MimeTypes;
 using Nalix.Network.Web.Utilities;
 using System;
