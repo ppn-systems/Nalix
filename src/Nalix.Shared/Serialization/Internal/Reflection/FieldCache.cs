@@ -3,7 +3,6 @@
 
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
-using System.Linq;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
@@ -132,7 +131,7 @@ internal static partial class FieldCache<
         }
 
         return _layout is SerializeLayout.Explicit
-            ? [.. includedFields.OrderBy(f => f.Order)]
+            ? [.. System.Linq.Enumerable.OrderBy(includedFields, f => f.Order)]
             : [.. includedFields];
     }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics.Abstractions;
@@ -132,7 +132,8 @@ public sealed class PacketRegistryFactory
                     continue;
                 }
 
-                if (type.Namespace is not null && Namespaces.Contains(type.Namespace))
+                if (!_explicitPacketTypes.Contains(type) &&
+                    type.Namespace is not null && Namespaces.Contains(type.Namespace))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Trace($"[SH.{nameof(PacketRegistryFactory)}] skip reason=default-ns type={type?.Name}");
@@ -167,41 +168,34 @@ public sealed class PacketRegistryFactory
             // Pipeline-managed?
             System.Boolean pipelineManaged = type.IsDefined(typeof(PipelineManagedTransformAttribute), inherit: false);
 
-            // Locate static abstract implementations on the concrete packet type
-            System.Reflection.MethodInfo? miDeserialize = type.GetMethod(
-                name: nameof(IPacketDeserializer<>.Deserialize),
-                bindingAttr: FLAGS,
-                binder: null,
-                types: [typeof(System.ReadOnlySpan<System.Byte>)],
-                modifiers: null);
+            // Locate static implementations — search concrete type first, then climb
+            // the inheritance chain. Inherited static methods are not returned by
+            // GetMethod without FlattenHierarchy, and FlattenHierarchy cannot resolve
+            // generic base types correctly, so we walk manually.
+            System.Reflection.MethodInfo? miDeserialize = FindStaticMethod(
+                type, FLAGS,
+                nameof(IPacketDeserializer<>.Deserialize),
+                [typeof(System.ReadOnlySpan<System.Byte>)]);
 
-            System.Reflection.MethodInfo? miCompress = type.GetMethod(
-                name: nameof(IPacketCompressor<>.Compress),
-                bindingAttr: FLAGS,
-                binder: null,
-                types: [type],
-                modifiers: null);
+            System.Reflection.MethodInfo? miCompress = FindStaticMethod(
+                type, FLAGS,
+                nameof(IPacketCompressor<>.Compress),
+                [type]);
 
-            System.Reflection.MethodInfo? miDecompress = type.GetMethod(
-                name: nameof(IPacketCompressor<>.Decompress),
-                bindingAttr: FLAGS,
-                binder: null,
-                types: [type],
-                modifiers: null);
+            System.Reflection.MethodInfo? miDecompress = FindStaticMethod(
+                type, FLAGS,
+                nameof(IPacketCompressor<>.Decompress),
+                [type]);
 
-            System.Reflection.MethodInfo? miEncrypt = type.GetMethod(
-                name: nameof(IPacketEncryptor<>.Encrypt),
-                bindingAttr: FLAGS,
-                binder: null,
-                types: [type, typeof(System.Byte[]), typeof(CipherSuiteType)],
-                modifiers: null);
+            System.Reflection.MethodInfo? miEncrypt = FindStaticMethod(
+                type, FLAGS,
+                nameof(IPacketEncryptor<>.Encrypt),
+                [type, typeof(System.Byte[]), typeof(CipherSuiteType)]);
 
-            System.Reflection.MethodInfo? miDecrypt = type.GetMethod(
-                name: nameof(IPacketEncryptor<>.Decrypt),
-                bindingAttr: FLAGS,
-                binder: null,
-                types: [type, typeof(System.Byte[]), typeof(CipherSuiteType)],
-                modifiers: null);
+            System.Reflection.MethodInfo? miDecrypt = FindStaticMethod(
+                type, FLAGS,
+                nameof(IPacketEncryptor<>.Decrypt),
+                [type, typeof(System.Byte[]), typeof(CipherSuiteType)]);
 
             // ---- Deserializer binding (required if magic exists) ----
             if (miDeserialize is not null)
@@ -415,6 +409,46 @@ public sealed class PacketRegistryFactory
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static IPacket Decrypt(IPacket p, System.Byte[] key, CipherSuiteType alg) => DecryptFunc((TPacket)p, key, alg);
+    }
+
+    /// <summary>
+    /// Searches for a static method by name and parameter types on <paramref name="startType"/>,
+    /// then walks up the inheritance chain if not found on the concrete type.
+    /// <para>
+    /// This is necessary because <c>GetMethod</c> with <c>Public | Static</c> does not return
+    /// inherited static methods from generic base types (e.g. <c>PacketBase&lt;TSelf&gt;</c>).
+    /// </para>
+    /// If the method found on a base type is a generic method definition, it is closed
+    /// over <paramref name="startType"/> automatically.
+    /// </summary>
+    private static System.Reflection.MethodInfo? FindStaticMethod(
+        System.Type startType,
+        System.Reflection.BindingFlags flags,
+        System.String name,
+        System.Type[] parameterTypes)
+    {
+        System.Type? current = startType;
+        while (current is not null && current != typeof(System.Object))
+        {
+            System.Reflection.MethodInfo? mi = current.GetMethod(
+                name: name,
+                bindingAttr: flags,
+                binder: null,
+                types: parameterTypes,
+                modifiers: null);
+
+            if (mi is not null)
+            {
+                // Close over the concrete type when the method is generic (e.g. Deserialize<TSelf>)
+                return mi.IsGenericMethodDefinition
+                    ? mi.MakeGenericMethod(startType)
+                    : mi;
+            }
+
+            current = current.BaseType;
+        }
+
+        return null;
     }
 
     /// <summary>

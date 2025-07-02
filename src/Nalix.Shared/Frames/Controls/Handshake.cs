@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Middleware.Attributes;
-using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
@@ -34,13 +33,7 @@ public sealed class Handshake : PacketBase<Handshake>
     /// <summary>
     /// Initializes a new <see cref="Handshake"/> with empty content.
     /// </summary>
-    public Handshake()
-    {
-        Flags = PacketFlags.NONE;
-        Protocol = ProtocolType.NONE;
-        Priority = PacketPriority.NONE;
-        OpCode = PacketConstants.OPCODE_DEFAULT;
-    }
+    public Handshake() => ResetForPool();
 
     /// <summary>
     /// Initializes a new instance with the specified operation code, binary data, and protocol.
@@ -74,7 +67,5 @@ public sealed class Handshake : PacketBase<Handshake>
         base.ResetForPool(); // always call for consistency!
 
         Data = [];
-        Protocol = ProtocolType.NONE;
-        base.Priority = PacketPriority.LOW;
     }
 }

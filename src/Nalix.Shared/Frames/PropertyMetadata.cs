@@ -102,12 +102,14 @@ internal sealed class PropertyMetadata
         // the first parameter becomes the target instance.
         if (prop.CanRead && prop.GetMethod is not null)
         {
-            _getter = prop.GetMethod.CreateDelegate<System.Func<System.Object, System.Object?>>();
+            System.Reflection.MethodInfo getter = prop.GetMethod;
+            _getter = instance => getter.Invoke(instance, null);
         }
 
         if (prop.CanWrite && prop.SetMethod is not null)
         {
-            _setter = prop.SetMethod.CreateDelegate<System.Action<System.Object, System.Object?>>();
+            System.Reflection.MethodInfo setter = prop.SetMethod;
+            _setter = (instance, value) => setter.Invoke(instance, [value]);
         }
     }
 
@@ -172,12 +174,9 @@ internal sealed class PropertyMetadata
     /// </summary>
     private static System.Object? ComputeDefaultValue(System.Type type)
     {
-        if (type == typeof(System.Byte[]))
-        {
-            return System.Array.Empty<System.Byte>();
-        }
-
-        return type == typeof(System.String) ? System.String.Empty : type.IsValueType ? System.Activator.CreateInstance(type) : null;
+        return type == typeof(System.Byte[])
+            ? System.Array.Empty<System.Byte>()
+            : type == typeof(System.String) ? System.String.Empty : type.IsValueType ? System.Activator.CreateInstance(type) : null;
     }
 
     #endregion Private Static Helpers
