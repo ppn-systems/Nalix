@@ -30,13 +30,16 @@ public abstract partial class Listener : IListener, System.IDisposable
     private readonly ILogger _logger;
     private readonly System.Int32 _port;
     private readonly IProtocol _protocol;
-    private readonly IBufferPool _buffer;
+    private readonly IBufferPool _bufferPool;
     private readonly TimeSynchronizer _timeSyncWorker;
     private readonly UdpIngressWorker _udpIngressWorker;
+    private readonly SocketAsyncEventArgsPool _argsPool;
     private readonly System.Net.Sockets.Socket _listener;
     private readonly System.Threading.SemaphoreSlim _lock;
+    private readonly System.Collections.Concurrent.ConcurrentQueue<AcceptState> _acceptStatePool;
 
     private System.Threading.CancellationTokenSource? _cts;
+    private System.Threading.CancellationToken _cancellationToken;
 
     private volatile bool _isDisposed = false;
     private volatile bool _isRunning = false;
@@ -101,7 +104,9 @@ public abstract partial class Listener : IListener, System.IDisposable
         _port = port;
         _logger = logger;
         _protocol = protocol;
-        _buffer = bufferPool;
+        _bufferPool = bufferPool;
+        _argsPool = new();
+        _acceptStatePool = new();
         _lock = new System.Threading.SemaphoreSlim(1, 1);
 
         // Create the optimal socket listener.
