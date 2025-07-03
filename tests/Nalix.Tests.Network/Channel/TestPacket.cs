@@ -17,7 +17,7 @@ public class TestPacket : IPacket
     public long Timestamp { get; set; }
     public PacketType Type { get; set; }
     public PacketFlags Flags { get; set; }
-    public Memory<byte> Payload { get; set; }
+    public ReadOnlyMemory<byte> Payload { get; set; }
 
     public int Hash => ComputeHash();
 
