@@ -28,7 +28,7 @@ internal static class MemoryAllocator
             case 0:
                 {
                     // For empty payloads, return an empty memory block
-                    return System.Memory<System.Byte>.Empty;
+                    return System.ReadOnlyMemory<System.Byte>.Empty;
                 }
             case <= PacketConstants.StackAllocLimit:
                 {
