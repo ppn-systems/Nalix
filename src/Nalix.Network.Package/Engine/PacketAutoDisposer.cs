@@ -21,7 +21,13 @@ internal static class PacketAutoDisposer
     /// <summary>
     /// Queue storing packets scheduled for disposal.
     /// </summary>
-    private static readonly System.Collections.Concurrent.ConcurrentQueue<Entry> _queue = new();
+    private static readonly System.Threading.Channels.Channel<Entry> _channel =
+        System.Threading.Channels.Channel.CreateUnbounded<Entry>(
+            new System.Threading.Channels.UnboundedChannelOptions
+            {
+                SingleWriter = false,
+                SingleReader = true
+            });
 
     /// <summary>
     /// Timer to periodically scan and clean expired packets.
@@ -48,7 +54,7 @@ internal static class PacketAutoDisposer
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static void Register(Packet packet)
-        => _queue.Enqueue(new Entry(Clock.UnixMillisecondsNow(), packet));
+        => _channel.Writer.TryWrite(new Entry(packet.Timestamp, packet));
 
     /// <summary>
     /// Processes the queue and disposes packets that have exceeded their lifetime.
@@ -56,12 +62,12 @@ internal static class PacketAutoDisposer
     /// <param name="_">Unused parameter required by <see cref="System.Threading.TimerCallback"/>.</param>
     private static void ProcessQueue(System.Object? _)
     {
-        if (_queue.IsEmpty) return;
+        System.Int64 now = Clock.UnixMillisecondsNow();
 
-        while (_queue.TryPeek(out Entry item) &&
-               Clock.UnixMillisecondsNow() - item.Timestamp >= LifetimeMs)
+        while (_channel.Reader.TryPeek(out Entry entry) &&
+               now - entry.Timestamp >= LifetimeMs)
         {
-            if (_queue.TryDequeue(out Entry expired))
+            if (_channel.Reader.TryRead(out Entry expired))
             {
                 try
                 {
@@ -69,7 +75,6 @@ internal static class PacketAutoDisposer
                 }
                 catch (System.Exception ex)
                 {
-                    // Ghi log lỗi thay vì bỏ qua
                     System.Diagnostics.Debug.WriteLine("Error disposing packet: " + ex.Message);
                 }
             }
