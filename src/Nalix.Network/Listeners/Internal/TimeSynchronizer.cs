@@ -1,20 +1,17 @@
 using Nalix.Common.Logging;
 using Nalix.Shared.Time;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Nalix.Network.Listeners.Internal;
 
 internal class TimeSynchronizer(ILogger logger)
 {
-    private volatile bool _isRunning = false;
-    private volatile bool _isTimeSyncEnabled = false;
-    private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private volatile System.Boolean _isRunning = false;
+    private volatile System.Boolean _isTimeSyncEnabled = false;
+    private readonly ILogger _logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
 
-    public bool IsRunning => _isRunning;
+    public System.Boolean IsRunning => _isRunning;
 
-    public bool IsTimeSyncEnabled
+    public System.Boolean IsTimeSyncEnabled
     {
         get => _isTimeSyncEnabled;
         set => _isTimeSyncEnabled = value;
@@ -24,9 +21,10 @@ internal class TimeSynchronizer(ILogger logger)
     /// Event that gets triggered when it's time to synchronize.
     /// The value passed is the current timestamp in milliseconds.
     /// </summary>
-    public event Action<long>? TimeSynchronized;
+    public event System.Action<System.Int64>? TimeSynchronized;
 
-    public async Task RunAsync(CancellationToken cancellationToken)
+    public async System.Threading.Tasks.Task RunAsync(
+        System.Threading.CancellationToken cancellationToken)
     {
         if (_isRunning)
         {
@@ -45,7 +43,7 @@ internal class TimeSynchronizer(ILogger logger)
 
             while (!_isTimeSyncEnabled && !cancellationToken.IsCancellationRequested)
             {
-                await Task.Delay(10000, cancellationToken).ConfigureAwait(false);
+                await System.Threading.Tasks.Task.Delay(10000, cancellationToken).ConfigureAwait(false);
             }
 
             _logger.Info("Time sync loop enabled, starting update cycle.");
@@ -61,15 +59,16 @@ internal class TimeSynchronizer(ILogger logger)
 
                 if (remaining > 0)
                 {
-                    await Task.Delay((int)remaining, cancellationToken).ConfigureAwait(false);
+                    await System.Threading.Tasks.Task.Delay((System.Int32)remaining, cancellationToken)
+                                                     .ConfigureAwait(false);
                 }
             }
         }
-        catch (OperationCanceledException)
+        catch (System.OperationCanceledException)
         {
             _logger.Debug("Time synchronization loop cancelled");
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
             _logger.Error("Time synchronization loop error: {0}", ex.Message);
         }
