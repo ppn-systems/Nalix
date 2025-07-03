@@ -14,7 +14,7 @@ internal sealed class TransportCache : System.IDisposable
     private static Configurations.CacheSizeConfig Config
         => ConfigurationStore.Instance.Get<Configurations.CacheSizeConfig>();
 
-    private readonly long _startTime = (long)Clock.UnixTime().TotalMilliseconds;
+    private readonly System.Int64 _startTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
 
     #endregion Fields
 
@@ -23,12 +23,12 @@ internal sealed class TransportCache : System.IDisposable
     /// <summary>
     /// Gets the connection uptime in milliseconds (how long the connection has been active).
     /// </summary>
-    public long Uptime => (long)Clock.UnixTime().TotalMilliseconds - _startTime;
+    public System.Int64 Uptime => (System.Int64)Clock.UnixTime().TotalMilliseconds - _startTime;
 
     /// <summary>
     /// Gets or sets the timestamp (in milliseconds) of the last received ping.
     /// </summary>
-    public long LastPingTime { get; set; }
+    public System.Int64 LastPingTime { get; set; }
 
     /// <summary>
     /// Occurs when a new incoming packet is added to the cache.
@@ -43,7 +43,7 @@ internal sealed class TransportCache : System.IDisposable
     /// <summary>
     /// Gets the cache that stores recently received (incoming) packets.
     /// </summary>
-    public readonly FifoCache<System.ReadOnlyMemory<byte>> Incoming = new(Config.Incoming);
+    public readonly FifoCache<System.ReadOnlyMemory<System.Byte>> Incoming = new(Config.Incoming);
 
     #endregion Properties
 
@@ -56,9 +56,9 @@ internal sealed class TransportCache : System.IDisposable
     /// <param name="data">The packet data to cache.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void PushOutgoing(System.ReadOnlyMemory<byte> data)
+    public void PushOutgoing(System.ReadOnlyMemory<System.Byte> data)
     {
-        System.Span<byte> key = stackalloc byte[8];
+        System.Span<System.Byte> key = stackalloc System.Byte[8];
         data.Span[0..4].CopyTo(key);
         data.Span[^4..].CopyTo(key[4..]);
 
@@ -71,7 +71,7 @@ internal sealed class TransportCache : System.IDisposable
     /// <param name="data">The received packet data.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void PushIncoming(System.ReadOnlyMemory<byte> data)
+    public void PushIncoming(System.ReadOnlyMemory<System.Byte> data)
     {
         Incoming.Add(data);
         PacketCached?.Invoke();
