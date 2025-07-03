@@ -75,8 +75,8 @@ public abstract partial class Protocol
                 return;
             }
 
-            // Connection failed validation, disconnect immediately
-            connection.Disconnect();
+            // Connection failed validation, close immediately
+            connection.Close();
         }
         catch (System.Exception ex)
         {

@@ -1,4 +1,4 @@
-using Nalix.Common.Cryptography;
+﻿using Nalix.Common.Cryptography;
 using Nalix.Common.Exceptions;
 using Nalix.Cryptography.Aead;
 using Nalix.Cryptography.Symmetric;
@@ -21,8 +21,8 @@ public static class Ciphers
     /// The encryption algorithm to use.
     /// </param>
     /// <returns>The encrypted data as <see cref="System.ReadOnlyMemory{Byte}"/>.</returns>
-    public static System.Memory<byte> Encrypt(
-        System.Memory<byte> data, byte[] key,
+    public static System.ReadOnlyMemory<byte> Encrypt(
+        System.ReadOnlyMemory<byte> data, byte[] key,
         EncryptionType algorithm)
     {
         if (key == null)
@@ -249,8 +249,8 @@ public static class Ciphers
     /// The encryption algorithm that was used.
     /// </param>
     /// <returns>The decrypted data as <see cref="System.ReadOnlyMemory{Byte}"/>.</returns>
-    public static System.Memory<byte> Decrypt(
-        System.Memory<byte> data, byte[] key,
+    public static System.ReadOnlyMemory<byte> Decrypt(
+        System.ReadOnlyMemory<byte> data, byte[] key,
         EncryptionType algorithm = EncryptionType.XTEA)
     {
         if (key == null)
@@ -299,36 +299,46 @@ public static class Ciphers
                 case EncryptionType.Speck:
                     {
                         const int blockSize = 8;
+
                         if (data.Length < 4)
                             throw new System.ArgumentException("Input data too short to contain length prefix.");
 
-                        int originalLength = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(data.Span[..4]);
-                        if (originalLength < 0 || originalLength > data.Length - 4)
-                            throw new System.ArgumentException("Invalid length prefix.");
+                        System.ReadOnlySpan<byte> input = data.Span;
+
+                        int originalLength = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(input[..4]);
 
                         int bufferSize = data.Length - 4;
+                        if (originalLength < 0 || originalLength > bufferSize)
+                            throw new System.ArgumentException("Invalid length prefix.");
+
                         if (bufferSize % blockSize != 0)
                             throw new System.ArgumentException("Input data length is not aligned to block size.");
 
-                        byte[] output = System.Buffers.ArrayPool<byte>.Shared.Rent(originalLength);
+                        byte[] rented = System.Buffers.ArrayPool<byte>.Shared.Rent(originalLength);
+                        var output = new System.Span<byte>(rented, 0, originalLength);
+
                         try
                         {
-                            System.Span<byte> workSpan = data.Span[4..];
+                            // Slice phần mã hóa
+                            System.Span<byte> workSpan = new(rented, 0, bufferSize);
+                            System.ReadOnlySpan<byte> encrypted = input[4..];
+                            encrypted.CopyTo(workSpan); // Copy vào buffer để giải mã in-place
+
+                            // Key đã fixed size
                             System.ReadOnlySpan<byte> fixedKey = BitwiseUtils.FixedSize(key);
 
                             for (int i = 0; i < bufferSize / blockSize; i++)
                             {
                                 System.Span<byte> block = workSpan.Slice(i * blockSize, blockSize);
-                                Speck.Decrypt(block, fixedKey, block);
+                                Speck.Decrypt(block, fixedKey, block); // In-place decryption
                             }
 
-                            workSpan[..originalLength].CopyTo(output);
-
-                            return System.MemoryExtensions.AsMemory(output, 0, originalLength);
+                            return new System.ReadOnlyMemory<byte>(rented, 0, originalLength);
                         }
-                        finally
+                        catch
                         {
-                            System.Buffers.ArrayPool<byte>.Shared.Return(output);
+                            System.Buffers.ArrayPool<byte>.Shared.Return(rented);
+                            throw;
                         }
                     }
 
@@ -427,9 +437,9 @@ public static class Ciphers
     /// <param name="mode">The encryption mode to use. Default is <see cref="EncryptionType.XTEA"/>.</param>
     /// <returns><c>true</c> if encryption succeeded; otherwise, <c>false</c>.</returns>
     public static bool TryEncrypt(
-        System.Memory<byte> data, byte[] key,
+        System.ReadOnlyMemory<byte> data, byte[] key,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out System.Memory<byte> memory, EncryptionType mode)
+        out System.ReadOnlyMemory<byte> memory, EncryptionType mode)
     {
         try
         {
@@ -454,9 +464,9 @@ public static class Ciphers
     /// <param name="mode">The encryption mode to use. Default is <see cref="EncryptionType.XTEA"/>.</param>
     /// <returns><c>true</c> if encryption succeeded; otherwise, <c>false</c>.</returns>
     public static bool TryDecrypt(
-        System.Memory<byte> data, byte[] key,
+        System.ReadOnlyMemory<byte> data, byte[] key,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out System.Memory<byte> memory, EncryptionType mode)
+        out System.ReadOnlyMemory<byte> memory, EncryptionType mode)
     {
         try
         {

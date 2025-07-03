@@ -52,7 +52,7 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// <summary>
     /// Gets the payload of the packet.
     /// </summary>
-    System.Memory<System.Byte> Payload { get; }
+    System.ReadOnlyMemory<System.Byte> Payload { get; }
 
     #endregion Metadata
 

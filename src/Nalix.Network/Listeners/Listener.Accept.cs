@@ -5,6 +5,32 @@ namespace Nalix.Network.Listeners;
 
 public abstract partial class Listener
 {
+    #region Fields
+
+    private static readonly System.Threading.WaitCallback ProcessConnectionCallback = static state =>
+    {
+        if (state is (Listener listener, IConnection conn))
+        {
+            listener.ProcessConnection(conn);
+        }
+        else
+        {
+            throw new System.NotImplementedException();
+        }
+    };
+
+    private static readonly System.EventHandler<
+        System.Net.Sockets.SocketAsyncEventArgs> AsyncAcceptCompleted = static (s, e) =>
+        {
+            var tcs = (System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>)e.UserToken!;
+            if (e.SocketError == System.Net.Sockets.SocketError.Success)
+                tcs.TrySetResult(e.AcceptSocket!);
+            else
+                tcs.TrySetException(new System.Net.Sockets.SocketException((System.Int32)e.SocketError));
+        };
+
+    #endregion Fields
+
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private IConnection InitializeConnection(System.Net.Sockets.Socket socket)
@@ -142,24 +168,6 @@ public abstract partial class Listener
         return InitializeConnection(socket);
     }
 
-    #region Private
-
-    private static readonly System.Threading.WaitCallback ProcessConnectionCallback = static state =>
-    {
-        var (listener, conn) = ((Listener, IConnection))state!;
-        listener.ProcessConnection(conn);
-    };
-
-    private static readonly System.EventHandler<
-        System.Net.Sockets.SocketAsyncEventArgs> AsyncAcceptCompleted = static (s, e) =>
-    {
-        var tcs = (System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>)e.UserToken!;
-        if (e.SocketError == System.Net.Sockets.SocketError.Success)
-            tcs.TrySetResult(e.AcceptSocket!);
-        else
-            tcs.TrySetException(new System.Net.Sockets.SocketException((System.Int32)e.SocketError));
-    };
-
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnSyncAcceptCompleted(
@@ -235,6 +243,4 @@ public abstract partial class Listener
             _logger.Warn("[TCP] Accept failed: {0}", e.SocketError);
         }
     }
-
-    #endregion Private
 }

@@ -15,12 +15,12 @@ internal static class MemoryAllocator
     /// <returns>A tuple containing the allocated memory and a flag indicating whether the memory is pooled.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static System.Memory<System.Byte> Allocate(System.Memory<System.Byte> payload)
+    internal static System.ReadOnlyMemory<System.Byte> Allocate(System.ReadOnlyMemory<System.Byte> payload)
         => Allocate(payload.Span);
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static unsafe System.Memory<System.Byte> Allocate(
+    internal static unsafe System.ReadOnlyMemory<System.Byte> Allocate(
         System.ReadOnlySpan<System.Byte> payload)
     {
         switch (payload.Length)
