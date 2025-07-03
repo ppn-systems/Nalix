@@ -20,7 +20,7 @@ public readonly partial struct Packet
         PacketType type,
         PacketFlags flags,
         PacketPriority priority,
-        System.Memory<System.Byte> payload)
+        System.ReadOnlyMemory<System.Byte> payload)
         : this(opCode, number, 0, 0, type, flags, priority, payload)
     {
     }
@@ -39,7 +39,7 @@ public readonly partial struct Packet
         System.Byte type,
         System.Byte flags,
         System.Byte priority,
-        System.Memory<System.Byte> payload)
+        System.ReadOnlyMemory<System.Byte> payload)
         : this(opCode, number, checksum, timestamp, (PacketType)type,
               (PacketFlags)flags, (PacketPriority)priority, payload)
     {
@@ -67,7 +67,7 @@ public readonly partial struct Packet
         PacketType type,
         PacketFlags flags,
         PacketPriority priority,
-        System.Memory<System.Byte> payload)
+        System.ReadOnlyMemory<System.Byte> payload)
     {
         // Validate payload size
         if (payload.Length + PacketSize.Header > MaxPacketSize)

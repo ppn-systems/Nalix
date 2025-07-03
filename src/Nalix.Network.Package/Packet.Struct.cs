@@ -33,7 +33,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     /// <param name="payload">The packet payload (data).</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Packet(System.UInt16 opCode, System.Memory<System.Byte> payload)
+    public Packet(System.UInt16 opCode, System.ReadOnlyMemory<System.Byte> payload)
         : this(opCode, PacketType.Binary, PacketFlags.None, PacketPriority.Low, payload)
     {
     }
@@ -65,7 +65,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
         System.Byte type,
         System.Byte flags,
         System.Byte priority,
-        System.Memory<System.Byte> payload)
+        System.ReadOnlyMemory<System.Byte> payload)
         : this(opCode, (PacketType)type, (PacketFlags)flags, (PacketPriority)priority, payload)
     {
     }
@@ -85,7 +85,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
         PacketType type,
         PacketFlags flags,
         PacketPriority priority,
-        System.Memory<System.Byte> payload)
+        System.ReadOnlyMemory<System.Byte> payload)
         : this(opCode, 0, 0, 0, type, flags, priority, payload)
     {
     }
