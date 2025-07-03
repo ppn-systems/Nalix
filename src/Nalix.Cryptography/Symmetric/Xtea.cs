@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Cryptography.Symmetric;
@@ -36,6 +36,12 @@ public static unsafe class Xtea
     private const uint Delta = 0x9E3779B9;
 
     #endregion Constants
+
+    #region Fields
+
+    private static readonly System.Buffers.ArrayPool<byte> Pool = System.Buffers.ArrayPool<byte>.Shared;
+
+    #endregion Fields
 
     #region Core Encryption/Decryption Methods
 
@@ -84,45 +90,33 @@ public static unsafe class Xtea
     #region Public API Methods
 
     /// <summary>
-    /// Encrypts data using XTEA algorithm
+    /// Encrypts data using the XTEA algorithm.
     /// </summary>
-    /// <param name="plaintext">Data to encrypt (must be multiple of 8 bytes)</param>
-    /// <param name="key">128-bit key (16 bytes)</param>
-    /// <param name="rounds">Number of rounds (default is 32)</param>
-    /// <returns>Encrypted data</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Encrypt(ReadOnlySpan<byte> plaintext, ReadOnlySpan<byte> key, int rounds = DefaultRounds)
+    /// <param name="plaintext">The data to encrypt. Must be a multiple of 8 bytes.</param>
+    /// <param name="key">The 128-bit encryption key (16 bytes).</param>
+    /// <param name="rounds">The number of encryption rounds. Default is 32.</param>
+    /// <returns>The encrypted data as a byte array.</returns>
+    public static byte[] Encrypt(
+        ReadOnlySpan<byte> plaintext,
+        ReadOnlySpan<byte> key,
+        int rounds = Xtea.DefaultRounds)
     {
         AssertInputSizes(plaintext, key);
 
-        byte[] ciphertext = new byte[plaintext.Length];
-        fixed (byte* keyPtr = key)
-        fixed (byte* plaintextPtr = plaintext)
-        fixed (byte* ciphertextPtr = ciphertext)
+        // rent a buffer (thuê bộ đệm) at least plaintext.Length
+        byte[] rented = Pool.Rent(plaintext.Length);
+        try
         {
-            uint* keyWords = (uint*)keyPtr;
-
-            // Process each 8-byte block
-            for (int i = 0; i < plaintext.Length; i += BlockSize)
-            {
-                // Get pointers to current block
-                uint* inputBlock = (uint*)(plaintextPtr + i);
-                uint* outputBlock = (uint*)(ciphertextPtr + i);
-
-                // Copy input values
-                uint v0 = inputBlock[0];
-                uint v1 = inputBlock[1];
-
-                // Encrypt the block
-                EncryptBlock(ref v0, ref v1, keyWords, rounds);
-
-                // Store results
-                outputBlock[0] = v0;
-                outputBlock[1] = v1;
-            }
+            int written = Encrypt(plaintext, key, rented.AsSpan(0, plaintext.Length), rounds);
+            // copy out only the used portion
+            var result = new byte[written];
+            Buffer.BlockCopy(rented, 0, result, 0, written);
+            return result;
         }
-
-        return ciphertext;
+        finally
+        {
+            Pool.Return(rented);
+        }
     }
 
     /// <summary>
@@ -132,8 +126,12 @@ public static unsafe class Xtea
     /// <param name="key">128-bit key (16 bytes)</param>
     /// <param name="rounds">Number of rounds (default is 32)</param>
     /// <returns>Decrypted data</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Decrypt(ReadOnlySpan<byte> ciphertext, ReadOnlySpan<byte> key, int rounds = DefaultRounds)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static byte[] Decrypt(
+        ReadOnlySpan<byte> ciphertext,
+        ReadOnlySpan<byte> key,
+        int rounds = DefaultRounds)
     {
         AssertInputSizes(ciphertext, key);
 
@@ -227,7 +225,8 @@ public static unsafe class Xtea
     public static int Decrypt(
         ReadOnlySpan<byte> ciphertext,
         ReadOnlySpan<byte> key,
-        Span<byte> output, int rounds = DefaultRounds)
+        Span<byte> output,
+        int rounds = DefaultRounds)
     {
         AssertInputSizes(ciphertext, key);
 
@@ -270,7 +269,8 @@ public static unsafe class Xtea
     /// <summary>
     /// Validates input parameters
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void AssertInputSizes(ReadOnlySpan<byte> data, ReadOnlySpan<byte> key)
     {
         if (data.Length % BlockSize != 0)
