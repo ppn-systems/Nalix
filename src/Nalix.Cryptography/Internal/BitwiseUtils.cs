@@ -5,7 +5,7 @@ namespace Nalix.Cryptography.Utils;
 /// Uses hardware intrinsics when available for maximum efficiency.
 /// </summary>
 [System.Runtime.CompilerServices.SkipLocalsInit]
-public static partial class BitwiseUtils
+internal static partial class BitwiseUtils
 {
     #region Bit Rotations
 

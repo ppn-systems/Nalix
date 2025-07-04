@@ -1,6 +1,6 @@
 namespace Nalix.Cryptography.Utils;
 
-public static partial class BitwiseUtils
+internal static partial class BitwiseUtils
 {
     /// <summary>
     /// Creates a fixed-length key from an arbitrary-length input span.
