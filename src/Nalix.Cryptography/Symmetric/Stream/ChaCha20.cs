@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Threading.Tasks;
 
-namespace Nalix.Cryptography.Symmetric;
+namespace Nalix.Cryptography.Symmetric.Stream;
 
 /// <summary>
 /// Class for ChaCha20 encryption / decryption

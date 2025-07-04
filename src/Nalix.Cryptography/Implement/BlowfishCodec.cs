@@ -1,4 +1,4 @@
-using Nalix.Cryptography.Symmetric;
+using Nalix.Cryptography.Symmetric.Block;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Cryptography.Implement;

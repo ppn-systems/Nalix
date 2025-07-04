@@ -3,7 +3,7 @@ using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Cryptography.Symmetric;
+namespace Nalix.Cryptography.Symmetric.Block;
 
 /// <summary>
 /// Provides encryption and decryption utilities using the Twofish block cipher.
@@ -446,8 +446,8 @@ public static class Twofish
         {
             t0 = G(input[0], key.SBoxKeys);
             t1 = G(BitwiseUtils.RotateLeft(input[1], 8), key.SBoxKeys);
-            input[2] = BitwiseUtils.RotateRight(input[2] ^ (t0 + t1 + key.ExpandedKey[2 * round + 8]), 1);
-            input[3] = BitwiseUtils.RotateLeft(input[3], 1) ^ (t0 + 2 * t1 + key.ExpandedKey[2 * round + 9]);
+            input[2] = BitwiseUtils.RotateRight(input[2] ^ t0 + t1 + key.ExpandedKey[2 * round + 8], 1);
+            input[3] = BitwiseUtils.RotateLeft(input[3], 1) ^ t0 + 2 * t1 + key.ExpandedKey[2 * round + 9];
 
             // Rotate for next round
             if (round < 15)
@@ -502,8 +502,8 @@ public static class Twofish
 
             t0 = G(input[0], key.SBoxKeys);
             t1 = G(BitwiseUtils.RotateLeft(input[1], 8), key.SBoxKeys);
-            input[2] = BitwiseUtils.RotateLeft(input[2], 1) ^ (t0 + t1 + key.ExpandedKey[2 * round + 8]);
-            input[3] = BitwiseUtils.RotateRight(input[3] ^ (t0 + 2 * t1 + key.ExpandedKey[2 * round + 9]), 1);
+            input[2] = BitwiseUtils.RotateLeft(input[2], 1) ^ t0 + t1 + key.ExpandedKey[2 * round + 8];
+            input[3] = BitwiseUtils.RotateRight(input[3] ^ t0 + 2 * t1 + key.ExpandedKey[2 * round + 9], 1);
         }
 
         // Input whitening (reverse)
@@ -531,9 +531,9 @@ public static class Twofish
         byte[] result =
         [
             Q01((byte)(x & 0xFF)),
-            Q00((byte)((x >> 8) & 0xFF)),
-            Q00((byte)((x >> 16) & 0xFF)),
-            Q01((byte)((x >> 24) & 0xFF)),
+            Q00((byte)(x >> 8 & 0xFF)),
+            Q00((byte)(x >> 16 & 0xFF)),
+            Q01((byte)(x >> 24 & 0xFF)),
         ];
 
         // MDS matrix multiplication
@@ -541,7 +541,7 @@ public static class Twofish
         uint b = (uint)(result[0] ^ result[1]);
         uint c = (uint)(result[2] ^ result[3]);
 
-        return (a << 24) | (b << 16) | (c << 8) | (uint)(result[0] ^ result[3]);
+        return a << 24 | b << 16 | c << 8 | (uint)(result[0] ^ result[3]);
     }
 
     /// <summary>
@@ -555,9 +555,9 @@ public static class Twofish
         // k, Number of 64-bit words in key
 
         byte y0 = Q00((byte)(X & 0xFF));
-        byte y1 = Q01((byte)((X >> 8) & 0xFF));
-        byte y2 = Q00((byte)((X >> 16) & 0xFF));
-        byte y3 = Q01((byte)((X >> 24) & 0xFF));
+        byte y1 = Q01((byte)(X >> 8 & 0xFF));
+        byte y2 = Q00((byte)(X >> 16 & 0xFF));
+        byte y3 = Q01((byte)(X >> 24 & 0xFF));
 
         // Apply the MDS matrix
         return MDS_Apply(y0, y1, y2, y3, L, k);
@@ -576,9 +576,9 @@ public static class Twofish
         for (int i = 0; i < k; i++)
         {
             z0 ^= L[i] & 0xFF;
-            z1 ^= (L[i] >> 8) & 0xFF;
-            z2 ^= (L[i] >> 16) & 0xFF;
-            z3 ^= (L[i] >> 24) & 0xFF;
+            z1 ^= L[i] >> 8 & 0xFF;
+            z2 ^= L[i] >> 16 & 0xFF;
+            z3 ^= L[i] >> 24 & 0xFF;
         }
 
         // Final S-box applications
@@ -588,10 +588,10 @@ public static class Twofish
         y3 ^= (byte)z3;
 
         // Final MDS matrix multiply
-        return (uint)MDS[0][y0 % MDS[0].Length] ^
-               ((uint)MDS[1][y1 % MDS[1].Length] << 8) ^
-               ((uint)MDS[2][y2 % MDS[2].Length] << 16) ^
-               ((uint)MDS[3][y3 % MDS[3].Length] << 24);
+        return MDS[0][y0 % MDS[0].Length] ^
+               (uint)MDS[1][y1 % MDS[1].Length] << 8 ^
+               (uint)MDS[2][y2 % MDS[2].Length] << 16 ^
+               (uint)MDS[3][y3 % MDS[3].Length] << 24;
     }
 
     /// <summary>
@@ -605,8 +605,8 @@ public static class Twofish
         // Apply the Reed-Solomon encoding
         for (int i = 0; i < 4; i++)
         {
-            byte b0 = (byte)(k0 >> (8 * i));
-            byte b1 = (byte)(k1 >> (8 * i));
+            byte b0 = (byte)(k0 >> 8 * i);
+            byte b1 = (byte)(k1 >> 8 * i);
 
             // Reed-Solomon multiplication
             byte r = 0;
@@ -615,7 +615,7 @@ public static class Twofish
                 r ^= (byte)(RS[i][j] * ((j < 4 ? b0 : b1) & 0xFF));
             }
 
-            result |= ((uint)r) << (8 * i);
+            result |= (uint)r << 8 * i;
         }
 
         return result;

@@ -1,5 +1,5 @@
 using Nalix.Cryptography.Mac;
-using Nalix.Cryptography.Symmetric;
+using Nalix.Cryptography.Symmetric.Stream;
 
 namespace Nalix.Cryptography.Aead;
 

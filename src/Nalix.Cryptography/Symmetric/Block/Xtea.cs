@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Cryptography.Symmetric;
+namespace Nalix.Cryptography.Symmetric.Block;
 
 /// <summary>
 /// Provides an implementation of XTEA (eXtended Tiny Encryption Algorithm) cipher
@@ -59,9 +59,9 @@ public static unsafe class Xtea
 
         for (int i = 0; i < rounds; i++)
         {
-            v0 += (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[sum & 3]);
+            v0 += (v1 << 4 ^ v1 >> 5) + v1 ^ sum + key[sum & 3];
             sum += Delta;
-            v1 += (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(sum >> 11) & 3]);
+            v1 += (v0 << 4 ^ v0 >> 5) + v0 ^ sum + key[sum >> 11 & 3];
         }
     }
 
@@ -79,9 +79,9 @@ public static unsafe class Xtea
 
         for (int i = 0; i < rounds; i++)
         {
-            v1 -= (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(sum >> 11) & 3]);
+            v1 -= (v0 << 4 ^ v0 >> 5) + v0 ^ sum + key[sum >> 11 & 3];
             sum -= Delta;
-            v0 -= (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[sum & 3]);
+            v0 -= (v1 << 4 ^ v1 >> 5) + v1 ^ sum + key[sum & 3];
         }
     }
 
@@ -99,7 +99,7 @@ public static unsafe class Xtea
     public static byte[] Encrypt(
         ReadOnlySpan<byte> plaintext,
         ReadOnlySpan<byte> key,
-        int rounds = Xtea.DefaultRounds)
+        int rounds = DefaultRounds)
     {
         AssertInputSizes(plaintext, key);
 
@@ -126,8 +126,8 @@ public static unsafe class Xtea
     /// <param name="key">128-bit key (16 bytes)</param>
     /// <param name="rounds">Number of rounds (default is 32)</param>
     /// <returns>Decrypted data</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static byte[] Decrypt(
         ReadOnlySpan<byte> ciphertext,
         ReadOnlySpan<byte> key,
@@ -269,8 +269,8 @@ public static unsafe class Xtea
     /// <summary>
     /// Validates input parameters
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static void AssertInputSizes(ReadOnlySpan<byte> data, ReadOnlySpan<byte> key)
     {
         if (data.Length % BlockSize != 0)

@@ -2,7 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Nalix.Cryptography.Symmetric;
+namespace Nalix.Cryptography.Symmetric.Block;
 
 /// <summary>
 /// Provides Blowfish encryption and decryption functionalities.
@@ -405,12 +405,12 @@ public class Blowfish
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private uint SubstitutionFunction(uint value)
     {
-        ushort a = (ushort)((value >> 24) & 0xFF);
-        ushort b = (ushort)((value >> 16) & 0xFF);
-        ushort c = (ushort)((value >> 8) & 0xFF);
+        ushort a = (ushort)(value >> 24 & 0xFF);
+        ushort b = (ushort)(value >> 16 & 0xFF);
+        ushort c = (ushort)(value >> 8 & 0xFF);
         ushort d = (ushort)(value & 0xFF);
 
-        return (S[0, a] + S[1, b]) ^ S[2, c] + S[3, d];
+        return S[0, a] + S[1, b] ^ S[2, c] + S[3, d];
     }
 
     /// <summary>
@@ -432,7 +432,7 @@ public class Blowfish
         {
             for (short k = 0; k < 4; ++k)
             {
-                data = (data << 8) | key[j++];
+                data = data << 8 | key[j++];
                 if (j >= key.Length) j = 0;
             }
             P[i] ^= data;

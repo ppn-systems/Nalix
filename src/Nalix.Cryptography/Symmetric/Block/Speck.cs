@@ -2,7 +2,7 @@ using Nalix.Cryptography.Utils;
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Cryptography.Symmetric;
+namespace Nalix.Cryptography.Symmetric.Block;
 
 /// <summary>
 /// Implementation of the Speck lightweight block cipher developed by the NSA.
