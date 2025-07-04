@@ -1,4 +1,4 @@
-namespace Nalix.Integrity;
+namespace Nalix.Cryptography.Checksums;
 
 /// <summary>
 /// Provides methods for computing Cyclic Redundancy Check (CRC) checksums.
@@ -16,7 +16,7 @@ internal static class Crc00
         {
             byte crc = (byte)i;
             for (int j = 0; j < 8; j++)
-                crc = (byte)((crc & 0x80) != 0 ? crc << 1 ^ poly : crc << 1);
+                crc = (byte)((crc & 0x80) != 0 ? (crc << 1) ^ poly : crc << 1);
 
             table[i] = crc;
         }
@@ -35,7 +35,7 @@ internal static class Crc00
         {
             ushort crc = (ushort)i;
             for (int j = 0; j < 8; j++)
-                crc = (ushort)((crc & 1) != 0 ? crc >> 1 ^ poly : crc >> 1);
+                crc = (ushort)((crc & 1) != 0 ? (crc >> 1) ^ poly : crc >> 1);
 
             table[i] = crc;
         }
@@ -55,7 +55,7 @@ internal static class Crc00
         {
             uint crc = i;
             for (int j = 0; j < 8; j++)
-                crc = (crc & 1) != 0 ? crc >> 1 ^ poly : crc >> 1;
+                crc = (crc & 1) != 0 ? (crc >> 1) ^ poly : crc >> 1;
 
             table[i] = crc;
         }
@@ -75,7 +75,7 @@ internal static class Crc00
         {
             ulong crc = (ulong)i;
             for (int j = 0; j < 8; j++)
-                crc = (crc & 1) != 0 ? crc >> 1 ^ poly : crc >> 1;
+                crc = (crc & 1) != 0 ? (crc >> 1) ^ poly : crc >> 1;
 
             table[i] = crc;
         }

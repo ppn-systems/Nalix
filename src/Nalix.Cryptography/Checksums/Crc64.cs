@@ -1,6 +1,6 @@
 using System;
 
-namespace Nalix.Integrity;
+namespace Nalix.Cryptography.Checksums;
 
 /// <summary>
 /// Provides methods for computing CRC-64 checksums using the ISO and ECMA polynomials.

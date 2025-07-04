@@ -1,6 +1,7 @@
 using Nalix.Common.Constants;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Metadata;
+using Nalix.Cryptography.Checksums;
 
 namespace Nalix.Network.Package.Engine;
 
@@ -56,5 +57,5 @@ public static class PacketOps
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static bool IsValidChecksum(System.Byte[] packet)
         => System.BitConverter.ToUInt32(packet, PacketOffset.Checksum)
-        == Integrity.Crc32.Compute(packet[PacketOffset.Payload..]);
+        == Crc32.Compute(packet[PacketOffset.Payload..]);
 }

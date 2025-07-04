@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.X86;
 
-namespace Nalix.Integrity;
+namespace Nalix.Cryptography.Checksums;
 
 /// <summary>
 /// High-performance implementation of CRC16 checksum calculation.

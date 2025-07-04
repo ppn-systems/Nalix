@@ -1,4 +1,4 @@
-using Nalix.Integrity;
+using Nalix.Cryptography.Checksums;
 using Nalix.Shared.Time;
 
 namespace Nalix.Network.Package;

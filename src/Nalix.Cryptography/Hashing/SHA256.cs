@@ -3,6 +3,7 @@ using Nalix.Cryptography.Utils;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Nalix.Cryptography.Hashing;
 
@@ -53,7 +54,10 @@ public sealed class SHA256 : ISHA, IDisposable
     {
         using SHA256 sha256 = new();
         sha256.Update(data);
-        return (byte[])sha256.FinalizeHash().Clone();
+        byte[] hash = sha256.FinalizeHash();
+        byte[] result = GC.AllocateUninitializedArray<byte>(hash.Length);
+        hash.CopyTo(result, 0);
+        return result;
     }
 
     /// <summary>
@@ -70,7 +74,7 @@ public sealed class SHA256 : ISHA, IDisposable
 
         using SHA256 sha256 = new();
         sha256.Update(data);
-        sha256.FinalizeHash().AsSpan().CopyTo(output);
+        sha256.FinalizeHash(output);
     }
 
     /// <summary>
@@ -82,7 +86,12 @@ public sealed class SHA256 : ISHA, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Initialize()
     {
-        Buffer.BlockCopy(SHA.H256, 0, _state, 0, SHA.H256.Length * sizeof(uint));
+        unsafe
+        {
+            ref byte src = ref Unsafe.As<uint, byte>(ref MemoryMarshal.GetArrayDataReference(SHA.H256));
+            ref byte dst = ref Unsafe.As<uint, byte>(ref MemoryMarshal.GetArrayDataReference(_state));
+            Unsafe.CopyBlockUnaligned(ref dst, ref src, (uint)(SHA.H256.Length * sizeof(uint)));
+        }
 
         _byteCount = 0;
         _bufferLength = 0;
@@ -104,7 +113,7 @@ public sealed class SHA256 : ISHA, IDisposable
     /// <returns>The computed 256-bit hash as a byte array.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     /// <remarks>
-    /// This method allows incremental hashing by calling <see cref="Update"/> before finalizing with <see cref="FinalizeHash"/>.
+    /// This method allows incremental hashing by calling <see cref="Update"/> before finalizing with <see cref="FinalizeHash()"/>.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] ComputeHash(ReadOnlySpan<byte> data)
@@ -113,7 +122,9 @@ public sealed class SHA256 : ISHA, IDisposable
 
         // Process the data
         Update(data);
-        return (byte[])FinalizeHash().Clone();
+        byte[] result = GC.AllocateUninitializedArray<byte>(32);
+        FinalizeHash().AsSpan().CopyTo(result);
+        return result;
     }
 
     /// <summary>
@@ -133,19 +144,17 @@ public sealed class SHA256 : ISHA, IDisposable
         if (_finalized)
             throw new InvalidOperationException("Cannot update after finalization.");
 
-        int dataOffset = 0;
-        int dataLength = data.Length;
+        ReadOnlySpan<byte> input = data;
 
-        // Process any previously buffered data.
+        // Fill buffer if partially full
         if (_bufferLength > 0)
         {
-            int remainingBufferSpace = 64 - _bufferLength;
-            int bytesToCopy = Math.Min(remainingBufferSpace, dataLength);
+            int space = 64 - _bufferLength;
+            int toCopy = Math.Min(space, input.Length);
 
-            data[..bytesToCopy].CopyTo(_buffer.AsSpan(_bufferLength));
-            _bufferLength += bytesToCopy;
-            dataOffset += bytesToCopy;
-            dataLength -= bytesToCopy;
+            input[..toCopy].CopyTo(_buffer.AsSpan(_bufferLength));
+            _bufferLength += toCopy;
+            input = input[toCopy..];
 
             if (_bufferLength == 64)
             {
@@ -154,22 +163,78 @@ public sealed class SHA256 : ISHA, IDisposable
             }
         }
 
-        // Process full blocks from the input.
-        while (dataLength >= 64)
+        // Process full 64-byte blocks
+        while (input.Length >= 64)
         {
-            ProcessBlock(data.Slice(dataOffset, 64));
-            dataOffset += 64;
-            dataLength -= 64;
+            ProcessBlock(input[..64]);
+            input = input[64..];
         }
 
-        // Buffer any remaining data.
-        if (dataLength > 0)
+        // Buffer remainder
+        if (!input.IsEmpty)
         {
-            data.Slice(dataOffset, dataLength).CopyTo(_buffer.AsSpan(_bufferLength));
-            _bufferLength += dataLength;
+            input.CopyTo(_buffer.AsSpan(_bufferLength));
+            _bufferLength += input.Length;
         }
 
         _byteCount += (ulong)data.Length;
+    }
+
+    /// <summary>
+    /// Finalizes the hash computation and writes the resulting 256-bit hash to the provided output buffer.
+    /// </summary>
+    /// <param name="output">The output buffer where the 32-byte hash will be written. Must be at least 32 bytes long.</param>
+    /// <exception cref="ArgumentException">Thrown if the output buffer is smaller than 32 bytes.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    /// <remarks>
+    /// Once finalized, the hash cannot be updated further. Calling this method multiple times returns the same result.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void FinalizeHash(Span<byte> output)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
+
+        if (output.Length < 32)
+            throw new ArgumentException("Output buffer must be at least 32 bytes", nameof(output));
+
+        if (_finalized)
+        {
+            _finalHash.AsSpan().CopyTo(output);
+            return;
+        }
+
+        // Compute padding
+        int remainder = (int)(_byteCount & 0x3F);
+        int padLength = (remainder < 56) ? (56 - remainder) : (120 - remainder);
+
+        Span<byte> finalBlock = stackalloc byte[128];
+        finalBlock.Clear();
+        finalBlock[0] = 0x80;
+
+        // Append length in bits
+        BinaryPrimitives.WriteUInt64BigEndian(finalBlock.Slice(padLength, 8), _byteCount * 8);
+
+        Update(finalBlock[..(padLength + 8)]);
+
+        // Write final state to output buffer
+        unsafe
+        {
+            fixed (byte* dst = output)
+            {
+                uint* outPtr = (uint*)dst;
+                for (int i = 0; i < 8; i++)
+                {
+                    outPtr[i] = BitConverter.IsLittleEndian
+                        ? BinaryPrimitives.ReverseEndianness(_state[i])
+                        : _state[i];
+                }
+            }
+        }
+
+        // Cache hash internally for .Hash and fallback use
+        _finalHash = GC.AllocateUninitializedArray<byte>(32);
+        output.CopyTo(_finalHash);
+        _finalized = true;
     }
 
     /// <summary>
@@ -191,24 +256,31 @@ public sealed class SHA256 : ISHA, IDisposable
         int remainder = (int)(_byteCount & 0x3F);
         int padLength = (remainder < 56) ? (56 - remainder) : (120 - remainder);
 
-        Span<byte> padding = stackalloc byte[64];
-        padding[0] = 0x80;
-        padding[1..padLength].Clear();
+        Span<byte> finalBlock = stackalloc byte[128];
+        finalBlock.Clear();
+        finalBlock[0] = 0x80;
 
         // Append length in bits
-        Span<byte> lengthBytes = stackalloc byte[8];
-        BinaryPrimitives.WriteUInt64BigEndian(lengthBytes, _byteCount * 8);
+        BinaryPrimitives.WriteUInt64BigEndian(finalBlock.Slice(padLength, 8), _byteCount * 8);
 
-        Update(padding[..padLength]);
-        Update(lengthBytes);
+        // Single update call
+        Update(finalBlock[..(padLength + 8)]);
 
         // Create new hash array
         byte[] hash = new byte[32];
 
-        // Convert state to bytes with proper endianness
-        for (int i = 0; i < 8; i++)
+        // Convert to big-endian hash output
+        unsafe
         {
-            BinaryPrimitives.WriteUInt32BigEndian(hash.AsSpan(i * 4), _state[i]);
+            fixed (byte* p = hash)
+            {
+                uint* u = (uint*)p;
+                for (int i = 0; i < 8; i++)
+                {
+                    u[i] = BitConverter.IsLittleEndian
+                        ? BinaryPrimitives.ReverseEndianness(_state[i]) : _state[i];
+                }
+            }
         }
 
         // Store and mark as finalized
@@ -222,7 +294,7 @@ public sealed class SHA256 : ISHA, IDisposable
     /// Gets the computed hash value after finalization.
     /// </summary>
     /// <exception cref="InvalidOperationException">
-    /// Thrown if <see cref="FinalizeHash"/> has not been called yet.
+    /// Thrown if <see cref="FinalizeHash()"/> has not been called yet.
     /// </exception>
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     public byte[] Hash
@@ -261,11 +333,11 @@ public sealed class SHA256 : ISHA, IDisposable
         byte[] outputBuffer,
         int outputOffset)
     {
+        ArgumentNullException.ThrowIfNull(inputBuffer);
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
 
-        ArgumentNullException.ThrowIfNull(inputBuffer);
-        if (inputOffset < 0 || inputCount < 0 || inputOffset + inputCount > inputBuffer.Length)
-            throw new ArgumentOutOfRangeException(nameof(inputOffset), "The input offset or count is out of range.");
+        if ((uint)inputOffset > inputBuffer.Length || (uint)inputCount > inputBuffer.Length - inputOffset)
+            throw new ArgumentOutOfRangeException(nameof(inputOffset));
 
         Update(new ReadOnlySpan<byte>(inputBuffer, inputOffset, inputCount));
 
@@ -291,19 +363,20 @@ public sealed class SHA256 : ISHA, IDisposable
     /// This method calls <see cref="Update"/> with the final block and then finalizes the hash.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] TransformFinalBlock(byte[] inputBuffer, int inputOffset, int inputCount)
+    public void TransformFinalBlock(byte[] inputBuffer, int inputOffset, int inputCount)
     {
+        ArgumentNullException.ThrowIfNull(inputBuffer);
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA256));
 
-        ArgumentNullException.ThrowIfNull(inputBuffer);
-        if (inputOffset < 0 || inputCount < 0 || inputOffset + inputCount > inputBuffer.Length)
-            throw new ArgumentOutOfRangeException(nameof(inputOffset), "The input offset or count is out of range.");
+        if ((uint)inputOffset > inputBuffer.Length ||
+            (uint)inputCount > inputBuffer.Length - inputOffset)
+            throw new ArgumentOutOfRangeException(nameof(inputOffset));
 
-        byte[] finalBlock = new byte[inputCount];
+        byte[] finalBlock = GC.AllocateUninitializedArray<byte>(inputCount);
         Buffer.BlockCopy(inputBuffer, inputOffset, finalBlock, 0, inputCount);
+
         Update(finalBlock);
         _finalHash = FinalizeHash();
-        return finalBlock;
     }
 
     #endregion Public Methods
@@ -320,29 +393,29 @@ public sealed class SHA256 : ISHA, IDisposable
 
         fixed (byte* ptr = block)
         {
-            // Load W[0..15] from block (big-endian)
             for (int i = 0; i < 16; i++)
             {
-                uint raw = Unsafe.ReadUnaligned<uint>(ptr + (i * 4));
+                uint raw = Unsafe.ReadUnaligned<uint>(ptr + (i << 2)); // i * 4
                 w[i] = BinaryPrimitives.ReverseEndianness(raw);
             }
-
-            // Expand W[16..63]
             for (int i = 16; i < 64; i++)
-            {
                 w[i] = w[i - 16] + BitwiseUtils.Sigma0(w[i - 15]) + w[i - 7] + BitwiseUtils.Sigma1(w[i - 2]);
-            }
         }
 
         // Initialize working variables
         uint a = _state[0], b = _state[1], c = _state[2], d = _state[3];
         uint e = _state[4], f = _state[5], g = _state[6], h = _state[7];
 
+        var Ch = BitwiseUtils.Choose;
+        var Maj = BitwiseUtils.Majority;
+        var S0 = BitwiseUtils.SigmaUpper0;
+        var S1 = BitwiseUtils.SigmaUpper1;
+
         // Compression loop
         for (int i = 0; i < 64; i++)
         {
-            uint t1 = h + BitwiseUtils.SigmaUpper1(e) + BitwiseUtils.Choose(e, f, g) + SHA.K256[i] + w[i];
-            uint t2 = BitwiseUtils.SigmaUpper0(a) + BitwiseUtils.Majority(a, b, c);
+            uint t1 = h + S1(e) + Ch(e, f, g) + SHA.K256[i] + w[i];
+            uint t2 = S0(a) + Maj(a, b, c);
 
             h = g;
             g = f;
@@ -355,9 +428,16 @@ public sealed class SHA256 : ISHA, IDisposable
         }
 
         // Update hash state
-        _state[0] += a; _state[1] += b; _state[2] += c; _state[3] += d;
-        _state[4] += e; _state[5] += f; _state[6] += g; _state[7] += h;
+        fixed (uint* s = _state)
+        {
+            s[0] += a; s[1] += b; s[2] += c; s[3] += d;
+            s[4] += e; s[5] += f; s[6] += g; s[7] += h;
+        }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static unsafe uint Reverse(byte* ptr) =>
+        BinaryPrimitives.ReverseEndianness(Unsafe.ReadUnaligned<uint>(ptr));
 
     #endregion Private Methods
 

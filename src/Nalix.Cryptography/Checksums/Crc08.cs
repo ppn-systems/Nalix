@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.X86;
 
-namespace Nalix.Integrity;
+namespace Nalix.Cryptography.Checksums;
 
 /// <summary>
 /// A high-performance CRC-08 implementation using polynomial x^8 + x^7 + x^6 + x^4 + x^2 + 1

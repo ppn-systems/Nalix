@@ -3,7 +3,7 @@ using Nalix.Cryptography.Utils;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
+using System.Runtime.InteropServices;
 
 namespace Nalix.Cryptography.Hashing;
 
@@ -224,15 +224,29 @@ public sealed class SHA1 : ISHA, IDisposable
 
         // Create a temporary copy of the hash state to preserve the instance state
         Span<uint> h = stackalloc uint[5];
-        _state.CopyTo(h);
+
+        unsafe
+        {
+            ref byte srcRef = ref Unsafe.As<uint, byte>(ref MemoryMarshal.GetArrayDataReference(_state));
+            ref byte dstRef = ref Unsafe.As<uint, byte>(ref MemoryMarshal.GetReference(h));
+
+            Unsafe.CopyBlockUnaligned(ref dstRef, ref srcRef, 20); // 5 * sizeof(uint)
+        }
 
         // Calculate message length in bits (before padding)
         ulong bitLength = (ulong)data.Length * 8;
 
         // Process all complete blocks
         int fullBlocks = data.Length / 64;
-        for (int i = 0; i < fullBlocks; i++)
-            this.ProcessBlock(data.Slice(i * 64, 64), h);
+        unsafe
+        {
+            ref byte inputRef = ref MemoryMarshal.GetReference(data);
+            for (int i = 0; i < fullBlocks; i++)
+            {
+                ReadOnlySpan<byte> block = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref inputRef, i * 64), 64);
+                ProcessBlock(block, h);
+            }
+        }
 
         // Handle the final block with padding
         int remainingBytes = data.Length % 64;
@@ -250,32 +264,63 @@ public sealed class SHA1 : ISHA, IDisposable
         int finalBlockSize = blockCount * 64;
 
         // WriteInt16 the length in bits as a 64-bit big-endian integer
-        BinaryPrimitives.WriteUInt64BigEndian(
-            finalBlock[(finalBlockSize - 8)..],
-            bitLength);
+        unsafe
+        {
+            fixed (byte* p = finalBlock)
+            {
+                *(ulong*)(p + finalBlockSize - 8) = BitConverter.IsLittleEndian
+                    ? BinaryPrimitives.ReverseEndianness(bitLength)
+                    : bitLength;
+            }
+        }
 
         // Process the final block(s)
         for (int i = 0; i < blockCount; i++)
-            this.ProcessBlock(finalBlock.Slice(i * 64, 64), h);
+            ProcessBlock(finalBlock.Slice(i * 64, 64), h);
 
         // Convert the hash to bytes in big-endian format
-        Span<byte> result = stackalloc byte[20];
-        for (int i = 0; i < 5; i++)
+        unsafe
         {
-            BinaryPrimitives.WriteUInt32BigEndian(result[(i * 4)..], h[i]);
-            _state[i] = h[i];
-        }
+            byte[] result = new byte[20];
+            fixed (byte* resultPtr = result)
+            {
+                uint v0 = h[0];
+                uint v1 = h[1];
+                uint v2 = h[2];
+                uint v3 = h[3];
+                uint v4 = h[4];
 
-        return result.ToArray();
+                if (BitConverter.IsLittleEndian)
+                {
+                    v0 = BinaryPrimitives.ReverseEndianness(v0);
+                    v1 = BinaryPrimitives.ReverseEndianness(v1);
+                    v2 = BinaryPrimitives.ReverseEndianness(v2);
+                    v3 = BinaryPrimitives.ReverseEndianness(v3);
+                    v4 = BinaryPrimitives.ReverseEndianness(v4);
+                }
+
+                ((uint*)resultPtr)[0] = v0;
+                ((uint*)resultPtr)[1] = v1;
+                ((uint*)resultPtr)[2] = v2;
+                ((uint*)resultPtr)[3] = v3;
+                ((uint*)resultPtr)[4] = v4;
+
+                _state[0] = h[0];
+                _state[1] = h[1];
+                _state[2] = h[2];
+                _state[3] = h[3];
+                _state[4] = h[4];
+            }
+            return result;
+        }
     }
 
     #endregion Public Methods
 
     #region Private Methods
 
-    // Rest of the implementation remains the same...
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe void ProcessBlock(ReadOnlySpan<byte> block, Span<uint> h)
+    private static unsafe void ProcessBlock(ReadOnlySpan<byte> block, Span<uint> h)
     {
         Span<uint> w = stackalloc uint[80];
 
