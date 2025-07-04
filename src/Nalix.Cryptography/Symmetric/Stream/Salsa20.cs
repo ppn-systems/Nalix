@@ -1,4 +1,4 @@
-using Nalix.Cryptography.Utils;
+using Nalix.Cryptography.Internal;
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;

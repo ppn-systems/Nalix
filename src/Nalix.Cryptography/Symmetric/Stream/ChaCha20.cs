@@ -1,7 +1,6 @@
 using Nalix.Cryptography.Enums;
-using Nalix.Cryptography.Utils;
+using Nalix.Cryptography.Internal;
 using System;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Threading.Tasks;
@@ -145,7 +144,7 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EncryptStream(
-        Stream output, Stream input,
+        System.IO.Stream output, System.IO.Stream input,
         int howManyBytesToProcessAtTime = 1024,
         SimdMode simdMode = SimdMode.AutoDetect)
     {
@@ -166,7 +165,8 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public async Task EncryptStreamAsync(
-        Stream output, Stream input,
+        System.IO.Stream output,
+        System.IO.Stream input,
         int howManyBytesToProcessAtTime = 1024,
         SimdMode simdMode = SimdMode.AutoDetect)
     {
@@ -318,7 +318,11 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="howManyBytesToProcessAtTime">How many bytes to read and write at time, default is 1024</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void DecryptStream(Stream output, Stream input, int howManyBytesToProcessAtTime = 1024, SimdMode simdMode = SimdMode.AutoDetect)
+    public void DecryptStream(
+        System.IO.Stream output,
+        System.IO.Stream input,
+        int howManyBytesToProcessAtTime = 1024,
+        SimdMode simdMode = SimdMode.AutoDetect)
     {
         if (simdMode == SimdMode.AutoDetect)
         {
@@ -336,7 +340,11 @@ public sealed class ChaCha20 : IDisposable
     /// <param name="howManyBytesToProcessAtTime">How many bytes to read and write at time, default is 1024</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public async Task DecryptStreamAsync(Stream output, Stream input, int howManyBytesToProcessAtTime = 1024, SimdMode simdMode = SimdMode.AutoDetect)
+    public async Task DecryptStreamAsync(
+        System.IO.Stream output,
+        System.IO.Stream input,
+        int howManyBytesToProcessAtTime = 1024,
+        SimdMode simdMode = SimdMode.AutoDetect)
     {
         if (simdMode == SimdMode.AutoDetect)
         {
@@ -517,8 +525,8 @@ public sealed class ChaCha20 : IDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void WorkStreams(
-        Stream output, Stream input, SimdMode simdMode,
-        int howManyBytesToProcessAtTime = 1024)
+        System.IO.Stream output, System.IO.Stream input,
+        SimdMode simdMode, int howManyBytesToProcessAtTime = 1024)
     {
         int readBytes;
 
@@ -537,8 +545,8 @@ public sealed class ChaCha20 : IDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private async Task WorkStreamsAsync(
-        Stream output, Stream input, SimdMode simdMode,
-        int howManyBytesToProcessAtTime = 1024)
+        System.IO.Stream output, System.IO.Stream input,
+        SimdMode simdMode, int howManyBytesToProcessAtTime = 1024)
     {
         byte[] readBytesBuffer = new byte[howManyBytesToProcessAtTime];
         byte[] writeBytesBuffer = new byte[howManyBytesToProcessAtTime];
@@ -577,7 +585,7 @@ public sealed class ChaCha20 : IDisposable
         int offset = 0;
 
         int howManyFullLoops = numBytes / BlockSize;
-        int tailByteCount = numBytes - howManyFullLoops * BlockSize;
+        int tailByteCount = numBytes - (howManyFullLoops * BlockSize);
 
         for (int loop = 0; loop < howManyFullLoops; loop++)
         {

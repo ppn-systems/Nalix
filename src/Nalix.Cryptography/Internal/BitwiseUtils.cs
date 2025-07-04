@@ -1,4 +1,4 @@
-namespace Nalix.Cryptography.Utils;
+namespace Nalix.Cryptography.Internal;
 
 /// <summary>
 /// High-performance bitwise utilities for cryptographic operations.
