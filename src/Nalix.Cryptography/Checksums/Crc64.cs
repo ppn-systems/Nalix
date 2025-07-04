@@ -1,5 +1,3 @@
-using System;
-
 namespace Nalix.Cryptography.Checksums;
 
 /// <summary>
@@ -7,12 +5,22 @@ namespace Nalix.Cryptography.Checksums;
 /// </summary>
 public static class Crc64
 {
-    private const ulong ISO = 0xD800000000000000;
-    private const ulong ECMA = 0xC96C5795D7870F42;
-    private const ulong InitialValue = 0xFFFFFFFFFFFFFFFF;
+    #region Constants
 
-    private static readonly ulong[] IsoTable = Crc00.GenerateTable64(ISO);
-    private static readonly ulong[] EcmaTable = Crc00.GenerateTable64(ECMA);
+    private const System.UInt64 ISO = 0xD800000000000000;
+    private const System.UInt64 ECMA = 0xC96C5795D7870F42;
+    private const System.UInt64 InitialValue = 0xFFFFFFFFFFFFFFFF;
+
+    #endregion Constants
+
+    #region Fields
+
+    private static readonly System.UInt64[] IsoTable = Crc00.GenerateTable64(ISO);
+    private static readonly System.UInt64[] EcmaTable = Crc00.GenerateTable64(ECMA);
+
+    #endregion Fields
+
+    #region APIs
 
     /// <summary>
     /// Computes the CRC-64 checksum of the given data.
@@ -20,13 +28,15 @@ public static class Crc64
     /// <param name="data">The input data to compute the checksum for.</param>
     /// <param name="useEcma">If true, uses the ECMA polynomial; otherwise, uses the ISO polynomial.</param>
     /// <returns>The computed CRC-64 checksum.</returns>
-    public static ulong Compute(ReadOnlySpan<byte> data, bool useEcma = false)
+    public static System.UInt64 Compute(
+        System.ReadOnlySpan<System.Byte> data,
+        System.Boolean useEcma = false)
     {
-        ulong[] table = useEcma ? EcmaTable : IsoTable;
-        ulong crc = InitialValue;
+        System.UInt64[] table = useEcma ? EcmaTable : IsoTable;
+        System.UInt64 crc = InitialValue;
 
-        foreach (byte b in data)
-            crc = table[(crc ^ b) & 0xFF] ^ crc >> 8;
+        foreach (System.Byte b in data)
+            crc = table[(crc ^ b) & 0xFF] ^ (crc >> 8);
 
         return ~crc;
     }
@@ -37,6 +47,10 @@ public static class Crc64
     /// <param name="data">The input byte array.</param>
     /// <param name="useEcma">If true, uses the ECMA polynomial; otherwise, uses the ISO polynomial.</param>
     /// <returns>The computed CRC-64 checksum.</returns>
-    public static ulong Compute(byte[] data, bool useEcma = false)
-        => Compute((ReadOnlySpan<byte>)data, useEcma);
+    public static System.UInt64 Compute(
+        System.Byte[] data,
+        System.Boolean useEcma = false)
+        => Compute((System.ReadOnlySpan<System.Byte>)data, useEcma);
+
+    #endregion APIs
 }
