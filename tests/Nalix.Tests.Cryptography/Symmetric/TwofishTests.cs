@@ -1,4 +1,4 @@
-using Nalix.Cryptography.Symmetric;
+using Nalix.Cryptography.Symmetric.Block;
 using System;
 using Xunit;
 

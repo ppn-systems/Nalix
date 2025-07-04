@@ -1,5 +1,5 @@
 using Nalix.Cryptography.Enums;
-using Nalix.Cryptography.Symmetric;
+using Nalix.Cryptography.Symmetric.Stream;
 using System;
 using System.Text;
 using Xunit;
