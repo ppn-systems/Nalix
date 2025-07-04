@@ -1,4 +1,4 @@
-namespace Nalix.Cryptography.Utils;
+namespace Nalix.Cryptography.Internal;
 
 internal static partial class BitwiseUtils
 {

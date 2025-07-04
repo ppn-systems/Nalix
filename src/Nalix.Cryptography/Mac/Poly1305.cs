@@ -1,3 +1,4 @@
+using Nalix.Cryptography.Internal;
 using System;
 using System.Buffers.Binary;
 using System.Diagnostics;
@@ -163,7 +164,7 @@ public sealed class Poly1305 : IDisposable
         Span<byte> computedTag = stackalloc byte[TagSize];
         Compute(key, message, computedTag);
 
-        return Utils.BitwiseUtils.FixedTimeEquals(tag, computedTag);
+        return BitwiseUtils.FixedTimeEquals(tag, computedTag);
     }
 
     /// <summary>

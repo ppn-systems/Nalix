@@ -1,6 +1,6 @@
 using Nalix.Common.Cryptography.Hashing;
 using Nalix.Cryptography.Hashing;
-using Nalix.Cryptography.Utils;
+using Nalix.Cryptography.Internal;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Cryptography.Mac;

@@ -41,15 +41,13 @@ public abstract partial class Listener
             int acceptCount = Config.MaxParallel;
 
             System.Threading.Tasks.Task updateTask = _timeSyncWorker.RunAsync(linkedToken);
-            System.Threading.Tasks.Task receiveTask = _udpIngressWorker.RunAsync(linkedToken);
-            System.Threading.Tasks.Task[] acceptTasks = new System.Threading.Tasks.Task[acceptCount + 2];
+            System.Threading.Tasks.Task[] acceptTasks = new System.Threading.Tasks.Task[acceptCount + 1];
 
             for (int i = 0; i < acceptCount; i++)
             {
                 acceptTasks[i] = this.AcceptConnectionsAsync(linkedToken);
             }
 
-            acceptTasks[Config.MaxParallel] = receiveTask;
             acceptTasks[Config.MaxParallel + 1] = updateTask;
 
             await System.Threading.Tasks.Task.WhenAll(acceptTasks).ConfigureAwait(false);
@@ -94,11 +92,6 @@ public abstract partial class Listener
             {
                 _listener.Close();
                 _logger.Info("[TCP] Listener on {0} stopped", Config.Port);
-            }
-
-            if (_udpIngressWorker.IsRunning)
-            {
-                _udpIngressWorker.Close();
             }
         }
         catch (System.Exception ex)
