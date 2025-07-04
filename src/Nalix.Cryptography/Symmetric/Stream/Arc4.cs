@@ -1,4 +1,4 @@
-namespace Nalix.Cryptography.Symmetric;
+namespace Nalix.Cryptography.Symmetric.Stream;
 
 /// <summary>
 /// Implements the ARC4 (Alleged RC4) symmetric stream cipher.
