@@ -1,6 +1,6 @@
 namespace Nalix.Cryptography.Utils;
 
-public static partial class BitwiseUtils
+internal static partial class BitwiseUtils
 {
     /// <summary>
     /// Performs the "Choose" (Choose) bitwise function used in SHA-family hash algorithms.
