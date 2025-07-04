@@ -1,8 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 //
 // Unified, span-first symmetric cipher engine for Nalix.
-// Supports: ChaCha20 (nonce 12, counter u32), Salsa20 (nonce 8, counter u64),
-// Speck-CTR (nonce 16, 128-bit LE nonce + u64 counter), XTEA-CTR (nonce 8, u64 counter).
+// Supports: CHACHA20 (nonce 12, counter u32), SALSA20 (nonce 8, counter u64),
+// SPECK-CTR (nonce 16, 128-bit LE nonce + u64 counter), XTEA-CTR (nonce 8, u64 counter).
 //
 // Now includes envelope helpers using SymmetricFormat (header || nonce || ciphertext).
 
@@ -43,16 +43,16 @@ public static class SymmetricEngine
 
         switch (type)
         {
-            case CipherSuiteType.ChaCha20:
+            case CipherSuiteType.CHACHA20:
                 ChaChaPath(key, nonce, (System.UInt32)counter, src, dst);
                 break;
-            case CipherSuiteType.Salsa20:
+            case CipherSuiteType.SALSA20:
                 SalsaPath(key, nonce, counter, src, dst);
                 break;
-            case CipherSuiteType.Speck:
+            case CipherSuiteType.SPECK:
                 SpeckCtrPath(key, nonce, counter, src, dst);
                 break;
-            case CipherSuiteType.Xtea:
+            case CipherSuiteType.XTEA:
                 XteaCtrPath(key, nonce, counter, src, dst);
                 break;
             default:
@@ -109,7 +109,7 @@ public static class SymmetricEngine
 
     /// <summary>
     /// Encrypts plaintext and returns an envelope: header(12) || nonce || ciphertext.
-    /// API aligned with AeadEngine: (key, plaintext, algorithm = ChaCha20, nonce = default, seq = null).
+    /// API aligned with AeadEngine: (key, plaintext, algorithm = CHACHA20, nonce = default, seq = null).
     /// If <paramref name="nonce"/> is empty, a random nonce of the appropriate length is generated.
     /// If <paramref name="seq"/> is null a random 4-byte seq is generated and used as counter.
     /// The seq value is written into the header and also used as the initial counter for keystream.
@@ -119,7 +119,7 @@ public static class SymmetricEngine
     public static System.Byte[] Encrypt(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> plaintext,
-        CipherSuiteType algorithm = CipherSuiteType.ChaCha20,
+        CipherSuiteType algorithm = CipherSuiteType.CHACHA20,
         System.ReadOnlySpan<System.Byte> nonce = default,
         System.UInt32? seq = null, System.Byte flags = 0)
     {
@@ -393,10 +393,10 @@ public static class SymmetricEngine
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Int32 GetDefaultNonceLen(CipherSuiteType type) => type switch
     {
-        CipherSuiteType.ChaCha20 => ChaCha20.NonceSize,
-        CipherSuiteType.Salsa20 => 8,
-        CipherSuiteType.Speck => 16,
-        CipherSuiteType.Xtea => 8,
+        CipherSuiteType.CHACHA20 => ChaCha20.NonceSize,
+        CipherSuiteType.SALSA20 => 8,
+        CipherSuiteType.SPECK => 16,
+        CipherSuiteType.XTEA => 8,
         _ => throw new System.ArgumentException("Unsupported cipher type", nameof(type))
     };
 
@@ -422,23 +422,23 @@ public static class SymmetricEngine
         public static void BadKeyLen32() => throw new System.ArgumentException("Key must be 32 bytes", "key");
 
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadKeyLenSalsa() => throw new System.ArgumentException("Key must be 16 or 32 bytes for Salsa20", "key");
+        public static void BadKeyLenSalsa() => throw new System.ArgumentException("Key must be 16 or 32 bytes for SALSA20", "key");
 
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadKeyLenSpeck() => throw new System.ArgumentException($"Key must be {Speck.KeySizeBytes} bytes (Speck)", "key");
+        public static void BadKeyLenSpeck() => throw new System.ArgumentException($"Key must be {Speck.KeySizeBytes} bytes (SPECK)", "key");
 
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
         public static void BadKeyLenXtea() => throw new System.ArgumentException("Key must be 16 bytes (or 32 bytes will be reduced) for XTEA", "key");
 
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
         public static void BadNonceLenChaCha()
-            => throw new System.ArgumentException($"Nonce must be {ChaCha20.NonceSize} bytes for ChaCha20", "nonce");
+            => throw new System.ArgumentException($"Nonce must be {ChaCha20.NonceSize} bytes for CHACHA20", "nonce");
 
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadNonceLenSalsa() => throw new System.ArgumentException("Nonce must be 8 bytes for Salsa20", "nonce");
+        public static void BadNonceLenSalsa() => throw new System.ArgumentException("Nonce must be 8 bytes for SALSA20", "nonce");
 
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadNonceLenSpeck() => throw new System.ArgumentException("Nonce must be 16 bytes for Speck CTR", "nonce");
+        public static void BadNonceLenSpeck() => throw new System.ArgumentException("Nonce must be 16 bytes for SPECK CTR", "nonce");
 
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
         public static void BadNonceLenXtea() => throw new System.ArgumentException("Nonce must be 8 bytes for XTEA CTR", "nonce");

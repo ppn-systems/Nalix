@@ -75,7 +75,7 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
         this.SequenceId = 0;
         this.Reason = 0;
         this.Type = ControlType.NONE; // Default type, can be changed later
-        this.Flags = PacketFlags.None;
+        this.Flags = PacketFlags.NONE;
         this.Priority = PacketPriority.Urgent;
         this.Protocol = ProtocolType.NONE;
         this.OpCode = PacketConstants.OpCodeDefault;
@@ -145,11 +145,7 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
                                                  .Get<Control>();
 
         System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
-
-        return bytesRead == 0
-            ? throw new System.InvalidOperationException(
-                "Failed to deserialize packet: No bytes were read.")
-            : packet;
+        return bytesRead == 0 ? throw new System.InvalidOperationException("Failed to deserialize packet: No bytes were read.") : packet;
     }
 
     /// <inheritdoc/>
@@ -163,18 +159,18 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
     /// </summary>
     public override void ResetForPool()
     {
+        this.Reason = 0;
         this.Timestamp = 0;
         this.MonoTicks = 0;
         this.SequenceId = 0;
-        this.Reason = 0;
         this.Type = ControlType.NONE;
-        this.Flags = PacketFlags.None;
-        this.Priority = PacketPriority.Urgent;
+        this.Flags = PacketFlags.NONE;
         this.Protocol = ProtocolType.NONE;
+        this.Priority = PacketPriority.Urgent;
     }
 
     /// <inheritdoc/>
     public override System.String ToString() =>
-        $"CONTROL(Op={OpCode}, Len={Length}, Flg={Flags}, Pri={Priority}, " +
+        $"Control(Op={OpCode}, Len={Length}, Flg={Flags}, Pri={Priority}, " +
         $"Tr={Protocol}, Seq={SequenceId}, Rsn={Reason}, Typ={Type}, Ts={Timestamp}, Mono={MonoTicks})";
 }

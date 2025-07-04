@@ -94,9 +94,8 @@ public sealed class PacketCatalog : IPacketCatalog
     /// does not match any registered deserializer.
     /// </remarks>
     public System.Boolean TryDeserialize(
-        System.ReadOnlySpan<System.Byte> raw,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out IPacket? packet)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> raw,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IPacket? packet)
     {
         if (raw.Length < PacketConstants.HeaderSize)
         {
@@ -126,9 +125,8 @@ public sealed class PacketCatalog : IPacketCatalog
     /// <see langword="true"/> if a deserializer is registered for the given magic number; otherwise, <see langword="false"/>.
     /// </returns>
     public System.Boolean TryGetDeserializer(
-        System.UInt32 magic,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out PacketDeserializer? deserializer)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 magic,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PacketDeserializer? deserializer)
     {
         System.Boolean ok = _deserializers.TryGetValue(magic, out PacketDeserializer? d);
         deserializer = ok ? d : null;
@@ -147,7 +145,7 @@ public sealed class PacketCatalog : IPacketCatalog
     /// <see langword="true"/> if a transformer set is registered for the specified type; otherwise, <see langword="false"/>.
     /// </returns>
     public System.Boolean TryGetTransformer(
-        System.Type packetType,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Type packetType,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PacketTransformer transformer)
         => _transformers.TryGetValue(packetType, out transformer);
 }
