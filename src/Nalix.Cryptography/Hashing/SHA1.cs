@@ -141,10 +141,16 @@ public sealed class SHA1 : ISHA, IDisposable
         if (_finalized)
         {
             // Create a copy of the hash result without reprocessing
-            for (int i = 0; i < 5; i++)
+            unsafe
             {
-                BinaryPrimitives.WriteUInt32BigEndian(result.AsSpan()[(i * 4)..], _state[i]);
+                fixed (byte* p = result)
+                {
+                    uint* ptr = (uint*)p;
+                    for (int i = 0; i < 5; i++)
+                        ptr[i] = BinaryPrimitives.ReverseEndianness(_state[i]);
+                }
             }
+
             return result;
         }
 
@@ -187,9 +193,15 @@ public sealed class SHA1 : ISHA, IDisposable
         _finalized = true;
 
         // Convert hash to bytes in big-endian format
-        for (int i = 0; i < 5; i++)
-            BinaryPrimitives.WriteUInt32BigEndian(
-                result.AsSpan()[(i * 4)..], _state[i]);
+        unsafe
+        {
+            fixed (byte* p = result)
+            {
+                uint* ptr = (uint*)p;
+                for (int i = 0; i < 5; i++)
+                    ptr[i] = BinaryPrimitives.ReverseEndianness(_state[i]);
+            }
+        }
 
         return result;
     }
@@ -325,9 +337,10 @@ public sealed class SHA1 : ISHA, IDisposable
         Span<uint> w = stackalloc uint[80];
 
         // Load first 16 words from big-endian data
-        for (int j = 0; j < 16; j++)
+        fixed (byte* ptr = block)
         {
-            w[j] = BinaryPrimitives.ReadUInt32BigEndian(block[(j * 4)..]);
+            for (int j = 0; j < 16; j++)
+                w[j] = BinaryPrimitives.ReverseEndianness(Unsafe.ReadUnaligned<uint>(ptr + (j << 2)));
         }
 
         // Message schedule expansion
