@@ -239,22 +239,16 @@ public sealed partial class Connection : IConnection
             }
             else if (packet.Length < BufferLease.StackAllocThreshold)
             {
-                System.Span<System.Byte> buffer = stackalloc System.Byte[packet.Length * 110 / 100];
-                try
-                {
-                    System.Int32 written = packet.Serialize(buffer);
+                System.Span<System.Byte> buffer = stackalloc System.Byte[packet.Length * 4];
 
-                    _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
-                    return this.Send(buffer[..written]);
-                }
-                catch
-                {
-                    return false;
-                }
+                System.Int32 written = packet.Serialize(buffer);
+                _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
+
+                return this.Send(buffer[..written]);
             }
             else
             {
-                using BufferLease lease = BufferLease.Rent(packet.Length);
+                using BufferLease lease = BufferLease.Rent(packet.Length * 4);
 
                 System.Int32 written = packet.Serialize(lease.Span);
                 _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
@@ -346,23 +340,16 @@ public sealed partial class Connection : IConnection
             }
             else if (packet.Length < BufferLease.StackAllocThreshold)
             {
-                System.Byte[] buffer = new System.Byte[packet.Length * 110 / 100];
-                try
-                {
-                    System.Int32 written = packet.Serialize(buffer);
+                System.Byte[] buffer = new System.Byte[packet.Length * 4];
+                System.Int32 written = packet.Serialize(buffer);
 
-                    _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
-                    return await this.SendAsync(new System.ReadOnlyMemory<System.Byte>(buffer, 0, written), cancellationToken)
-                                     .ConfigureAwait(false);
-                }
-                catch
-                {
-                    return false;
-                }
+                _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
+                return await this.SendAsync(new System.ReadOnlyMemory<System.Byte>(buffer, 0, written), cancellationToken)
+                                 .ConfigureAwait(false);
             }
             else
             {
-                using BufferLease lease = BufferLease.Rent(packet.Length);
+                using BufferLease lease = BufferLease.Rent(packet.Length * 4);
 
                 System.Int32 written = packet.Serialize(lease.Span);
                 _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);

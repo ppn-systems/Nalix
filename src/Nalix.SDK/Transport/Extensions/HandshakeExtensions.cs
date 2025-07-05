@@ -76,7 +76,7 @@ public static class HandshakeExtensions
             return true;
         }
 
-        IPacketCatalog catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>();
+        IPacketRegistry catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
 
         System.Threading.Tasks.TaskCompletionSource<Handshake> tcs =
             new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);

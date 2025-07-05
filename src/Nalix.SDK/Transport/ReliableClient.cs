@@ -147,7 +147,7 @@ public sealed class ReliableClient : IClientConnection
     /// <see cref="ConfigurationManager"/>. Falls back to safe defaults if configuration is unavailable.
     /// </summary>
     /// <exception cref="System.InvalidOperationException">
-    /// Thrown (via <see cref="System.Environment.FailFast(System.String)"/>) when <see cref="IPacketCatalog"/>
+    /// Thrown (via <see cref="System.Environment.FailFast(System.String)"/>) when <see cref="IPacketRegistry"/>
     /// is not registered — this is an unrecoverable misconfiguration.
     /// </exception>
     public ReliableClient()
@@ -176,14 +176,14 @@ public sealed class ReliableClient : IClientConnection
         }
 
         // IPacketCatalog is required for deserialization; fail fast with a clear message.
-        if (InstanceManager.Instance.GetExistingInstance<IPacketCatalog>() is null)
+        if (InstanceManager.Instance.GetExistingInstance<IPacketRegistry>() is null)
         {
             _log?.Error(
-                $"[SDK.{nameof(ReliableClient)}] No IPacketCatalog instance found; " +
+                $"[SDK.{nameof(ReliableClient)}] No IPacketRegistry instance found; " +
                 "this is a fatal configuration error. The process will terminate.");
 
             System.Environment.FailFast(
-                $"[SDK.{nameof(ReliableClient)}] Missing required service: IPacketCatalog.");
+                $"[SDK.{nameof(ReliableClient)}] Missing required service: IPacketRegistry.");
         }
     }
 
