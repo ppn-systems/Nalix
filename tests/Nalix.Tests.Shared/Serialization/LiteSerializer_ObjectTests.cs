@@ -58,12 +58,13 @@ public class LiteSerializer_ObjectTests
     [Fact]
     public void SerializeDeserialize_NullableStruct()
     {
-        TestStruct? input = new TestStruct(9, 2.71f);
+        TestStruct? input = new(9, 2.71f);
         byte[] buffer = LiteSerializer.Serialize(input);
-        TestStruct? output = default;
+        TestStruct? output = null; // Change to nullable TestStruct
+
         LiteSerializer.Deserialize(buffer, ref output);
 
-        Assert.True(output.HasValue);
+        Assert.True(output.HasValue); // This now works because output is nullable
         Assert.Equal(input!.Value.X, output.Value.X);
         Assert.Equal(input.Value.Y, output.Value.Y, precision: 3);
     }

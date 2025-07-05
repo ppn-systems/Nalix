@@ -1,4 +1,5 @@
 using Nalix.Common.Connection;
+using Nalix.Common.Logging;
 using Nalix.Common.Package;
 using Nalix.Network.Dispatch.Options;
 
@@ -21,12 +22,12 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket,
     /// <summary>
     /// Gets the logger instance associated with this dispatcher, if configured.
     /// </summary>
-    protected Common.Logging.ILogger? Logger => Options.Logger;
+    protected ILogger? Logger => Options.Logger;
 
     /// <summary>
     /// Gets the configuration options for this dispatcher instance.
     /// </summary>
-    protected readonly Options.PacketDispatchOptions<TPacket> Options;
+    protected readonly PacketDispatchOptions<TPacket> Options;
 
     #endregion Properties
 

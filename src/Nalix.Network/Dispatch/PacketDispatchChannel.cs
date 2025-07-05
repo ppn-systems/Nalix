@@ -59,7 +59,7 @@ public sealed class PacketDispatchChannel<TPacket>
     private readonly System.Threading.SemaphoreSlim _semaphore;
 
     // Processing state
-    private bool _isProcessing;
+    private System.Boolean _isProcessing;
 
     private readonly System.Threading.CancellationTokenSource _ctokens = new();
 
@@ -68,14 +68,9 @@ public sealed class PacketDispatchChannel<TPacket>
     #region Properties
 
     /// <summary>
-    /// Maximum number of packets that can be queued
-    /// </summary>
-    public int MaxQueueSize { get; set; } = 1000;
-
-    /// <summary>
     /// Current number of packets in the queue
     /// </summary>
-    public int QueueCount
+    public System.Int32 QueueCount
     {
         get
         {
@@ -165,7 +160,7 @@ public sealed class PacketDispatchChannel<TPacket>
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void HandlePacket(byte[]? raw, IConnection connection)
+    public void HandlePacket(System.Byte[]? raw, IConnection connection)
     {
         if (raw == null)
         {
@@ -179,7 +174,7 @@ public sealed class PacketDispatchChannel<TPacket>
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void HandlePacket(System.ReadOnlyMemory<byte>? raw, IConnection connection)
+    public void HandlePacket(System.ReadOnlyMemory<System.Byte>? raw, IConnection connection)
     {
         if (raw == null)
         {
@@ -194,7 +189,7 @@ public sealed class PacketDispatchChannel<TPacket>
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void HandlePacket(in System.ReadOnlySpan<byte> raw, IConnection connection)
+    public void HandlePacket(in System.ReadOnlySpan<System.Byte> raw, IConnection connection)
     {
         if (raw.IsEmpty)
         {
@@ -290,7 +285,7 @@ public sealed class PacketDispatchChannel<TPacket>
 
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void OnConnectionClosed(object? sender, IConnectEventArgs e)
+    private void OnConnectionClosed(System.Object? sender, IConnectEventArgs e)
     {
         if (sender is not IConnection connection) return;
 
@@ -322,7 +317,7 @@ public sealed class PacketDispatchChannel<TPacket>
     /// </summary>
     public void Dispose()
     {
-        Stop();
+        this.Stop();
         _ctokens.Dispose();
         _semaphore.Dispose();
     }
