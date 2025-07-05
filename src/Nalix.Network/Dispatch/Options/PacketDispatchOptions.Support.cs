@@ -123,12 +123,12 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
             // Handle Compression
             TPacket? processedPacket = default;
-            bool needDisposeOriginal = false;
+            System.Boolean needDisposeOriginal = false;
             try
             {
                 try
                 {
-                    var decompressed = TPacket.Decompress(packet);
+                    TPacket decompressed = TPacket.Decompress(packet);
                     if (!ReferenceEquals(decompressed, packet))
                     {
                         processedPacket = decompressed;
@@ -151,9 +151,9 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 // Check encryption flag
                 if (attributes.Encryption?.IsEncrypted == true && !workingPacket.IsEncrypted)
                 {
-                    string message = $"Encrypted packet not allowed for command " +
-                                     $"'{attributes.Opcode.OpCode}' " +
-                                     $"from connection {connection.RemoteEndPoint}.";
+                    System.String message = $"Encrypted packet not allowed for command " +
+                                            $"'{attributes.Opcode.OpCode}' " +
+                                            $"from connection {connection.RemoteEndPoint}.";
                     _logger?.Warn(message);
                     connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.PacketEncryption));
                     return;
@@ -161,7 +161,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
                 // Handle Decryption
                 TPacket? decryptedPacket = default;
-                bool needDisposeDecrypted = false;
+                System.Boolean needDisposeDecrypted = false;
                 if (attributes.Encryption?.IsEncrypted == true)
                 {
                     try
@@ -183,7 +183,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
                 try
                 {
-                    object? result;
+                    System.Object? result;
 
                     // Cache method invocation with improved performance
                     if (attributes.Timeout != null)
@@ -236,6 +236,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                         ex.Message,
                         connection.RemoteEndPoint
                     );
+
                     _errorHandler?.Invoke(ex, attributes.Opcode.OpCode);
                     connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.ServerError));
                 }
