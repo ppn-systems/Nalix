@@ -42,8 +42,9 @@ public static class Pbkdf2
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Hash(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String credential,
-        out System.Byte[] salt, out System.Byte[] hash)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String credential,
+        [System.Diagnostics.CodeAnalysis.NotNull] out System.Byte[] salt,
+        [System.Diagnostics.CodeAnalysis.NotNull] out System.Byte[] hash)
     {
         salt = Csprng.GetBytes(SaltSize);
         using PBKDF2_I pbkdf2 = new(salt, Iterations, KeySize);
@@ -60,8 +61,9 @@ public static class Pbkdf2
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Verify(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String credential,
-        System.Byte[] salt, System.Byte[] hash)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String credential,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] salt,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] hash)
     {
         using PBKDF2_I pbkdf2 = new(salt, Iterations, KeySize);
         return BitwiseOperations.FixedTimeEquals(pbkdf2.GenerateKey(credential), hash);
@@ -81,7 +83,7 @@ public static class Pbkdf2
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public static System.String Hash(
-            [System.Diagnostics.CodeAnalysis.DisallowNull] System.String credential)
+            [System.Diagnostics.CodeAnalysis.NotNull] System.String credential)
         {
             Pbkdf2.Hash(credential, out System.Byte[] salt, out System.Byte[] hash);
             System.Byte[] blob = new System.Byte[1 + salt.Length + hash.Length];
@@ -100,7 +102,8 @@ public static class Pbkdf2
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public static System.Boolean Verify(
-            [System.Diagnostics.CodeAnalysis.DisallowNull] System.String credential, System.String encoded)
+            [System.Diagnostics.CodeAnalysis.NotNull] System.String credential,
+            [System.Diagnostics.CodeAnalysis.NotNull] System.String encoded)
         {
             if (!TryParse(encoded, out System.Byte[] salt, out System.Byte[] hash, out System.Byte version))
             {

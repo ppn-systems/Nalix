@@ -34,6 +34,7 @@ public static class X25519
     /// The private key is generated using a secure random number generator and modified according to the X25519 specification
     /// (see <see href="https://cr.yp.to/ecdh.html"/>). The public key is computed using scalar multiplication with the Curve25519 basepoint.
     /// </remarks>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static X25519KeyPair GenerateKeyPair()
     {
         // at first generate the private key
@@ -63,7 +64,7 @@ public static class X25519
     /// <remarks>
     /// The public key is computed using scalar multiplication of the provided private key with the Curve25519 basepoint.
     /// </remarks>
-    public static X25519KeyPair GenerateKeyFromPrivateKey(System.Byte[] privateKey)
+    public static X25519KeyPair GenerateKeyFromPrivateKey([System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] privateKey)
     {
         X25519KeyPair key = new()
         {
@@ -85,7 +86,9 @@ public static class X25519
     /// The shared secret is computed by performing scalar multiplication of the local private key with the remote public key
     /// using the Curve25519 algorithm.
     /// </remarks>
-    public static System.Byte[] Agreement(System.Byte[] myPrivateKey, System.Byte[] otherPublicKey)
+    public static System.Byte[] Agreement(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] myPrivateKey,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] otherPublicKey)
         => Curve25519.ScalarMultiplication(myPrivateKey, otherPublicKey);
 }
 
@@ -203,7 +206,7 @@ internal static class Curve25519
             v = (System.Byte)(v | (zero[i] ^ result[i]));
         }
 
-        return (System.Int32)((System.UInt32)(v ^ 0) - 1 >> 31) == 1
+        return (System.Int32)(((System.UInt32)(v ^ 0) - 1) >> 31) == 1
             ? throw new System.Exception("bad input point: low order point")
             : result;
     }

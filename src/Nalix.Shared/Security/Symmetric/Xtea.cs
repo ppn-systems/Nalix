@@ -78,9 +78,10 @@ public static class Xtea
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static unsafe System.Int32 Encrypt(
-        System.ReadOnlySpan<System.Byte> plaintext,
-        System.ReadOnlySpan<System.Byte> key,
-        System.Span<System.Byte> output, System.Byte rounds = DefaultRounds)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> output,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte rounds = DefaultRounds)
     {
         A9B8C7D6(plaintext, key);
 
@@ -138,9 +139,10 @@ public static class Xtea
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static unsafe System.Int32 Decrypt(
-        System.ReadOnlySpan<System.Byte> ciphertext,
-        System.ReadOnlySpan<System.Byte> key,
-        System.Span<System.Byte> output, System.Byte rounds = DefaultRounds)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> output,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte rounds = DefaultRounds)
     {
         A9B8C7D6(ciphertext, key);
 
