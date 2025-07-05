@@ -1,5 +1,4 @@
-using Nalix.Common.Constants;
-using Nalix.Common.Package;
+﻿using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
 
 namespace Nalix.Network.Package;
@@ -22,7 +21,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Packet(System.UInt16 opCode, System.ReadOnlySpan<System.Byte> payload)
-        : this(opCode, new System.Memory<System.Byte>(payload.ToArray()))
+        : this(opCode, CopyToMemory(payload))
     {
     }
 
@@ -92,6 +91,21 @@ public readonly partial struct Packet : IPacket, System.IDisposable
 
     #endregion Constructors
 
+    #region Private Methods
+
+    private static System.ReadOnlyMemory<byte> CopyToMemory(System.ReadOnlySpan<byte> span)
+    {
+        if (span.Length == 0)
+            return System.ReadOnlyMemory<byte>.Empty;
+
+        // Tối ưu: chỉ alloc khi cần
+        byte[] buffer = new byte[span.Length];
+        span.CopyTo(buffer);
+        return new System.ReadOnlyMemory<byte>(buffer);
+    }
+
+    #endregion Private Methods
+
     #region IDisposable
 
     /// <summary>
@@ -99,17 +113,7 @@ public readonly partial struct Packet : IPacket, System.IDisposable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Dispose()
-    {
-        // Only return large arrays to the pool
-        if (Payload.Length > PacketConstants.HeapAllocLimit &&
-            System.Runtime.InteropServices.MemoryMarshal.TryGetArray<System.Byte>
-            (Payload, out System.ArraySegment<System.Byte> segment) &&
-            segment.Array is { } array)
-        {
-            System.Buffers.ArrayPool<System.Byte>.Shared.Return(array, clearArray: true);
-        }
-    }
+    public void Dispose() => _buffer.Dispose();
 
     #endregion IDisposable
 }

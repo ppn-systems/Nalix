@@ -39,7 +39,7 @@ public sealed class Hmac : System.IDisposable
     private readonly byte[] _key;
     private readonly int _hashSize;
     private readonly int _blockSize;
-    private readonly HashAlgorithm _algorithm;
+    private readonly HashingMode _algorithm;
 
     private bool _disposed;
 
@@ -54,7 +54,7 @@ public sealed class Hmac : System.IDisposable
     /// <param name="algorithm">The hash algorithm to use.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when the key is null.</exception>
     /// <exception cref="System.ArgumentException">Thrown when the key is empty.</exception>
-    public Hmac(System.ReadOnlySpan<byte> key, HashAlgorithm algorithm = HashAlgorithm.Sha256)
+    public Hmac(System.ReadOnlySpan<byte> key, HashingMode algorithm = HashingMode.Sha256)
     {
         if (key.IsEmpty)
             throw new System.ArgumentException("HMAC key cannot be empty", nameof(key));
@@ -64,10 +64,10 @@ public sealed class Hmac : System.IDisposable
         // Set block size and hash size based on algorithm
         (_blockSize, _hashSize) = algorithm switch
         {
-            HashAlgorithm.Sha1 => (Sha1BlockSize, Sha1HashSize),
-            HashAlgorithm.Sha224 => (Sha224BlockSize, Sha224HashSize),
-            HashAlgorithm.Sha256 => (Sha256BlockSize, Sha256HashSize),
-            HashAlgorithm.Sha384 => (Sha384BlockSize, Sha384HashSize),
+            HashingMode.Sha1 => (Sha1BlockSize, Sha1HashSize),
+            HashingMode.Sha224 => (Sha224BlockSize, Sha224HashSize),
+            HashingMode.Sha256 => (Sha256BlockSize, Sha256HashSize),
+            HashingMode.Sha384 => (Sha384BlockSize, Sha384HashSize),
             _ => throw new System.ArgumentException("Unsupported hash algorithm", nameof(algorithm))
         };
 
@@ -91,7 +91,7 @@ public sealed class Hmac : System.IDisposable
     public static byte[] ComputeHash(
         System.ReadOnlySpan<byte> key,
         System.ReadOnlySpan<byte> data,
-        HashAlgorithm algorithm = HashAlgorithm.Sha256)
+        HashingMode algorithm = HashingMode.Sha256)
     {
         using Hmac hmac = new(key, algorithm);
         return hmac.ComputeHash(data);
@@ -162,7 +162,7 @@ public sealed class Hmac : System.IDisposable
         System.ReadOnlySpan<byte> key,
         System.ReadOnlySpan<byte> data,
         System.ReadOnlySpan<byte> expectedHmac,
-        HashAlgorithm algorithm = HashAlgorithm.Sha256)
+        HashingMode algorithm = HashingMode.Sha256)
     {
         using Hmac hmac = new(key, algorithm);
         return hmac.VerifyHash(data, expectedHmac);
@@ -181,10 +181,10 @@ public sealed class Hmac : System.IDisposable
         {
             byte[] hashedKey = _algorithm switch
             {
-                HashAlgorithm.Sha1 => SHA1.HashData(key),
-                HashAlgorithm.Sha224 => SHA224.HashData(key),
-                HashAlgorithm.Sha256 => SHA256.HashData(key),
-                HashAlgorithm.Sha384 => SHA384.HashData(key),
+                HashingMode.Sha1 => SHA1.HashData(key),
+                HashingMode.Sha224 => SHA224.HashData(key),
+                HashingMode.Sha256 => SHA256.HashData(key),
+                HashingMode.Sha384 => SHA384.HashData(key),
                 _ => throw new System.ArgumentException("Unsupported hash algorithm", nameof(key))
             };
 
@@ -211,7 +211,7 @@ public sealed class Hmac : System.IDisposable
     {
         switch (_algorithm)
         {
-            case HashAlgorithm.Sha1:
+            case HashingMode.Sha1:
                 {
                     using SHA1 sha1 = new();
                     sha1.Update(innerKeyPad);
@@ -219,7 +219,7 @@ public sealed class Hmac : System.IDisposable
                     return sha1.FinalizeHash();
                 }
 
-            case HashAlgorithm.Sha224:
+            case HashingMode.Sha224:
                 {
                     using SHA224 sha224 = new();
                     sha224.Update(innerKeyPad);
@@ -227,7 +227,7 @@ public sealed class Hmac : System.IDisposable
                     return sha224.FinalizeHash();
                 }
 
-            case HashAlgorithm.Sha256:
+            case HashingMode.Sha256:
                 {
                     using SHA256 sha256 = new();
                     sha256.Update(innerKeyPad);
@@ -235,7 +235,7 @@ public sealed class Hmac : System.IDisposable
                     return sha256.FinalizeHash();
                 }
 
-            case HashAlgorithm.Sha384:
+            case HashingMode.Sha384:
                 {
                     using SHA384 sha384 = new();
                     sha384.Update(innerKeyPad);
@@ -260,7 +260,7 @@ public sealed class Hmac : System.IDisposable
     {
         switch (_algorithm)
         {
-            case HashAlgorithm.Sha1:
+            case HashingMode.Sha1:
                 {
                     using SHA1 sha1 = new();
                     sha1.Update(outerKeyPad);
@@ -268,7 +268,7 @@ public sealed class Hmac : System.IDisposable
                     return sha1.FinalizeHash();
                 }
 
-            case HashAlgorithm.Sha224:
+            case HashingMode.Sha224:
                 {
                     using SHA224 sha224 = new();
                     sha224.Update(outerKeyPad);
@@ -276,7 +276,7 @@ public sealed class Hmac : System.IDisposable
                     return sha224.FinalizeHash();
                 }
 
-            case HashAlgorithm.Sha256:
+            case HashingMode.Sha256:
                 {
                     using SHA256 sha256 = new();
                     sha256.Update(outerKeyPad);
@@ -284,7 +284,7 @@ public sealed class Hmac : System.IDisposable
                     return sha256.FinalizeHash();
                 }
 
-            case HashAlgorithm.Sha384:
+            case HashingMode.Sha384:
                 {
                     using SHA384 sha384 = new();
                     sha384.Update(outerKeyPad);

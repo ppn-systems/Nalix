@@ -7,7 +7,7 @@ namespace Nalix.Common.Cryptography.Hashing;
 /// Implementations of this interface provide incremental hashing, allowing data
 /// to be processed in chunks rather than all at once.
 /// </remarks>
-public interface ISHA
+public interface IShaHasher
 {
     /// <summary>
     /// Initializes or resets the hashing state.

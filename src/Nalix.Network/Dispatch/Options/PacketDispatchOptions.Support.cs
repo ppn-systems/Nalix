@@ -110,14 +110,14 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             if (!CheckRateLimit(connection.RemoteEndPoint.ToString()!, attributes))
             {
                 _logger?.Warn("Rate limit exceeded on '{0}' from {1}", method.Name, connection.RemoteEndPoint);
-                connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.RateLimited));
+                connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.RateLimited));
                 return;
             }
 
             if (attributes.Permission?.Level > connection.Level)
             {
                 _logger?.Warn("You do not have permission to perform this action.");
-                connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.PermissionDenied));
+                connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.PermissionDenied));
                 return;
             }
 
@@ -142,7 +142,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 catch (System.Exception ex)
                 {
                     _logger?.Error("Failed to decompress packet: {0}", ex.Message);
-                    connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
+                    connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.ServerError));
                     return;
                 }
 
@@ -155,7 +155,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                                      $"'{attributes.Opcode.OpCode}' " +
                                      $"from connection {connection.RemoteEndPoint}.";
                     _logger?.Warn(message);
-                    connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.PacketEncryption));
+                    connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.PacketEncryption));
                     return;
                 }
 
@@ -176,7 +176,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                             decryptedPacket.Dispose();
 
                         _logger?.Error("Failed to Decrypt packet: {0}", ex.Message);
-                        connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
+                        connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.ServerError));
                         return;
                     }
                 }
@@ -200,7 +200,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                                 attributes.Opcode.OpCode,
                                 attributes.Timeout.TimeoutMilliseconds);
 
-                            connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.RequestTimeout));
+                            connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.RequestTimeout));
                             return;
                         }
                     }
@@ -224,7 +224,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                                     ex.Message
                     );
                     _errorHandler?.Invoke(ex, attributes.Opcode.OpCode);
-                    connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
+                    connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.ServerError));
                 }
                 catch (System.Exception ex)
                 {
@@ -237,7 +237,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                         connection.RemoteEndPoint
                     );
                     _errorHandler?.Invoke(ex, attributes.Opcode.OpCode);
-                    connection.Tcp.Send(TPacket.Create(0, ProtocolMessage.ServerError));
+                    connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.ServerError));
                 }
                 finally
                 {

@@ -15,7 +15,7 @@ namespace Nalix.Cryptography.Hashing;
 /// It supports incremental updates and can be used in a streaming manner.
 /// </remarks>
 [System.Runtime.InteropServices.ComVisible(true)]
-public sealed class SHA256 : ISHA, IDisposable
+public sealed class SHA256 : IShaHasher, IDisposable
 {
     #region Fields
 

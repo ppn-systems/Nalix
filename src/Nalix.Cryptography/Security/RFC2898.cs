@@ -17,7 +17,7 @@ public static class RFC2898
     /// <param name="salt">The cryptographic salt as a byte array. Must not be null or empty.</param>
     /// <param name="iterations">The number of iterations to apply the hash function. Must be greater than 0.</param>
     /// <param name="keyLength">The desired length of the derived key in bytes. Must be greater than 0.</param>
-    /// <param name="hashType">The hash algorithm to use (default is <see cref="HashAlgorithm.Sha1"/>).</param>
+    /// <param name="hashType">The hash algorithm to use (default is <see cref="HashingMode.Sha1"/>).</param>
     /// <returns>A byte array containing the derived key.</returns>
     /// <exception cref="System.ArgumentException">Thrown if password or salt is null or empty.</exception>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if iterations or keyLength is less than or equal to zero.</exception>
@@ -26,7 +26,7 @@ public static class RFC2898
     public static byte[] DeriveKey(
         string password, byte[] salt,
         int iterations, int keyLength,
-        HashAlgorithm hashType = HashAlgorithm.Sha1)
+        HashingMode hashType = HashingMode.Sha1)
     {
         if (string.IsNullOrEmpty(password))
             throw new System.ArgumentException("Password cannot be null or empty.", nameof(password));
@@ -48,14 +48,14 @@ public static class RFC2898
     /// <param name="salt">The cryptographic salt as a byte array.</param>
     /// <param name="iterations">The number of iterations to apply the hash function.</param>
     /// <param name="keyLength">The desired length of the derived key in bytes.</param>
-    /// <param name="hashType">The hash algorithm to use (default is <see cref="HashAlgorithm.Sha1"/>).</param>
+    /// <param name="hashType">The hash algorithm to use (default is <see cref="HashingMode.Sha1"/>).</param>
     /// <returns>A Base64Value-encoded string representing the derived key.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static string DeriveKeyBase64(
         string password, byte[] salt,
         int iterations, int keyLength,
-        HashAlgorithm hashType = HashAlgorithm.Sha1)
+        HashingMode hashType = HashingMode.Sha1)
     {
         byte[] key = DeriveKey(password, salt, iterations, keyLength, hashType);
         return System.Convert.ToBase64String(key);
@@ -68,14 +68,14 @@ public static class RFC2898
     /// <param name="salt">The cryptographic salt as a byte array.</param>
     /// <param name="iterations">The number of iterations to apply the hash function.</param>
     /// <param name="keyLength">The desired length of the derived key in bytes.</param>
-    /// <param name="hashType">The hash algorithm to use (default is <see cref="HashAlgorithm.Sha1"/>).</param>
+    /// <param name="hashType">The hash algorithm to use (default is <see cref="HashingMode.Sha1"/>).</param>
     /// <returns>A lowercase hexadecimal string representing the derived key.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static string DeriveKeyHex(
         string password, byte[] salt,
         int iterations, int keyLength,
-        HashAlgorithm hashType = HashAlgorithm.Sha1)
+        HashingMode hashType = HashingMode.Sha1)
     {
         byte[] key = DeriveKey(password, salt, iterations, keyLength, hashType);
         System.Text.StringBuilder sb = new(key.Length * 2);

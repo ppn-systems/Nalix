@@ -3,7 +3,7 @@ namespace Nalix.Common.Connection.Protocols;
 /// <summary>
 /// Contains standard protocol error messages used across the application.
 /// </summary>
-public static class ProtocolMessage
+public static class ProtocolErrorTexts
 {
     /// <summary>No error or status code provided.</summary>
     public const System.String None = "No error or status code provided.";

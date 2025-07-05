@@ -13,10 +13,142 @@ namespace Nalix.Tests.Network.Package;
 public class PacketTests
 {
     [Fact]
+    public void Packet_Empty_HasDefaultValues()
+    {
+        var packet = Packet.Empty;
+
+        Assert.Equal(0, packet.OpCode);
+        Assert.Equal(PacketType.None, packet.Type);
+        Assert.Equal(PacketFlags.None, packet.Flags);
+        Assert.Equal(PacketPriority.Low, packet.Priority);
+        Assert.True(packet.Timestamp >= 0);
+        Assert.Equal(packet.Length, PacketSize.Header + packet.Payload.Length);
+    }
+
+    [Fact]
+    public void Packet_Construct_WithStringPayload_EncodesUtf8()
+    {
+        string text = "Hello";
+        ushort opCode = 456;
+
+        var packet = new Packet(opCode, text);
+
+        Assert.Equal(PacketType.String, packet.Type);
+        Assert.Equal(Encoding.UTF8.GetByteCount(text) + PacketSize.Header, packet.Length);
+    }
+
+    [Fact]
+    public void Packet_SerializeDeserialize_RoundTrip_ShouldMatch()
+    {
+        var original = new Packet(200, PacketType.String, PacketFlags.Encrypted, PacketPriority.High, new byte[] { 1, 2, 3 });
+
+        var bytes = original.Serialize();
+
+        Packet deserialized = default;
+        LiteSerializer.Deserialize(bytes.Span, ref deserialized);
+
+        Assert.Equal(original.OpCode, deserialized.OpCode);
+        Assert.Equal(original.Type, deserialized.Type);
+        Assert.Equal(original.Flags, deserialized.Flags);
+        Assert.Equal(original.Priority, deserialized.Priority);
+        Assert.Equal(original.Payload.ToArray(), deserialized.Payload.ToArray());
+        Assert.Equal(original.Checksum, deserialized.Checksum);
+        Assert.Equal(original.Timestamp, deserialized.Timestamp);
+        Assert.True(deserialized.IsValid());
+    }
+
+    [Fact]
+    public void Packet_IsValid_ReturnsTrueForCorrectChecksum()
+    {
+        var packet = new Packet(1, "valid");
+
+        Assert.True(packet.IsValid());
+    }
+
+    [Fact]
+    public void Packet_IsExpired_WorksCorrectly()
+    {
+        var packet = new Packet(99, "check");
+
+        Assert.False(packet.IsExpired(TimeSpan.FromSeconds(5)));
+        Assert.True(packet.IsExpired(TimeSpan.FromSeconds(-1)));
+    }
+
+    [Fact]
+    public void Packet_Dispose_DoesNotThrow()
+    {
+        var payload = new byte[PacketConstants.HeapAllocLimit + 1];
+        var packet = new Packet(123, new Memory<byte>(payload));
+
+        packet.Dispose();
+
+        Assert.True(true); // just verifying no exception
+    }
+
+    [Fact]
+    public void Packet_Equals_ReturnsTrueForIdenticalValues()
+    {
+        var a = new Packet(1, PacketType.Binary, PacketFlags.None, PacketPriority.Low, new byte[] { 1, 2, 3 });
+        var b = new Packet(1, PacketType.Binary, PacketFlags.None, PacketPriority.Low, new byte[] { 1, 2, 3 });
+
+        Assert.Equal(a, b);
+        Assert.True(a == b);
+        Assert.False(a != b);
+        Assert.Equal(a.GetHashCode(), b.GetHashCode());
+    }
+
+    [Fact]
+    public void Packet_Equals_ReturnsFalseForDifferentContent()
+    {
+        var a = new Packet(1, new ReadOnlyMemory<byte>([1, 2]));
+        var b = new Packet(1, new ReadOnlyMemory<byte>([1, 2, 3]));
+
+        Assert.NotEqual(a, b);
+        Assert.True(a != b);
+    }
+
+    [Fact]
+    public void Packet_ToDetailedString_IncludesImportantFields()
+    {
+        var packet = new Packet(1234, new ReadOnlyMemory<byte>([1, 2, 3, 4]));
+
+        string result = packet.ToDetailedString();
+
+        Assert.Contains("Packet [1234]", result);
+        Assert.Contains("Payload: 4 bytes", result);
+    }
+
+    [Fact]
+    public void Packet_Throws_WhenPayloadTooLarge()
+    {
+        var tooLarge = new byte[PacketConstants.PacketSizeLimit + 1];
+
+        // Explicitly specify the constructor to resolve ambiguity
+        Assert.ThrowsAny<Exception>(() => new Packet(1, new ReadOnlyMemory<byte>(tooLarge)));
+    }
+
+    [Fact]
+    public void Packet_Construct_WithFullParameters_SetsAllCorrectly()
+    {
+        var packet = new Packet(
+            555,
+            PacketType.String,
+            PacketFlags.Compressed,
+            PacketPriority.High,
+            new byte[] { 1, 1, 2 });
+
+        Assert.Equal(555, packet.OpCode);
+        Assert.Equal(PacketType.String, packet.Type);
+        Assert.Equal(PacketFlags.Compressed, packet.Flags);
+        Assert.Equal(PacketPriority.High, packet.Priority);
+        Assert.Equal(3, packet.Payload.Length);
+    }
+
+    [Fact]
     public void Packet_CanBeConstructed_WithPayload()
     {
         ushort opCode = 1234;
-        byte[] payload = { 0x01, 0x02, 0x03 };
+        byte[] payload = [0x01, 0x02, 0x03];
 
         // Act
         var packet = new Packet(opCode, new Memory<byte>(payload)); // Explicitly use Memory<byte> constructor
@@ -55,7 +187,7 @@ public class PacketTests
     public void Packet_Checksum_IsValid()
     {
         // Arrange
-        var packet = new Packet(100, new Memory<byte>(new byte[] { 0xAA, 0xBB, 0xCC })); // Explicitly use Memory<byte>
+        var packet = new Packet(100, new Memory<byte>([0xAA, 0xBB, 0xCC])); // Explicitly use Memory<byte>
 
         // Act
         var isValid = packet.IsValid();
@@ -68,8 +200,8 @@ public class PacketTests
     public void Packet_Equals_ShouldWorkForIdenticalPackets()
     {
         // Arrange
-        var a = new Packet(1, new Memory<byte>(new byte[] { 1, 2, 3 })); // Explicitly use Memory<byte>
-        var b = new Packet(1, new Memory<byte>(new byte[] { 1, 2, 3 })); // Explicitly use Memory<byte>
+        var a = new Packet(1, new Memory<byte>([1, 2, 3])); // Explicitly use Memory<byte>
+        var b = new Packet(1, new Memory<byte>([1, 2, 3])); // Explicitly use Memory<byte>
 
         // Act & Assert
         Assert.Equal(a, b);
@@ -81,8 +213,8 @@ public class PacketTests
     public void Packet_Equals_ShouldDetectDifferentPayloads()
     {
         // Arrange
-        var a = new Packet(1, new Memory<byte>(new byte[] { 1, 2, 3 })); // Explicitly use Memory<byte>
-        var b = new Packet(1, new Memory<byte>(new byte[] { 1, 2, 4 })); // Explicitly use Memory<byte>
+        var a = new Packet(1, new Memory<byte>([1, 2, 3])); // Explicitly use Memory<byte>
+        var b = new Packet(1, new Memory<byte>([1, 2, 3])); // Explicitly use Memory<byte>
 
         // Act & Assert
         Assert.NotEqual(a, b);
@@ -92,7 +224,7 @@ public class PacketTests
     public void Packet_ToDetailedString_ShouldContainOpCode()
     {
         // Arrange
-        var packet = new Packet(2222, new Memory<byte>(new byte[] { 0x1, 0x2, 0x3, 0x4 })); // Explicitly use Memory<byte>
+        var packet = new Packet(2222, new Memory<byte>([0x1, 0x2, 0x3, 0x4])); // Explicitly use Memory<byte>
 
         // Act
         string detail = packet.ToDetailedString();

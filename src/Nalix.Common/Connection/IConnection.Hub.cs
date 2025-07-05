@@ -23,7 +23,7 @@ public interface IConnectionHub
     /// <remarks>
     /// This method should be called after the connection is successfully registered.
     /// </remarks>
-    void AssociateUsername(IConnection connection, string username);
+    void AssociateUsername(IConnection connection, System.String username);
 
     /// <summary>
     /// Unregisters a client connection from the session manager using its unique identifier.
