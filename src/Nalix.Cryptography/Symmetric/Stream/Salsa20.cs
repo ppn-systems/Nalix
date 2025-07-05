@@ -3,7 +3,7 @@ using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Cryptography.Symmetric;
+namespace Nalix.Cryptography.Symmetric.Stream;
 
 /// <summary>
 /// Provides encryption and decryption utilities using the Salsa20 stream cipher.

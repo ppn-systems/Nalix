@@ -15,7 +15,7 @@ namespace Nalix.Cryptography.Hashing;
 /// This implementation processes data in 512-bit (64-byte) blocks.
 /// </remarks>
 [System.Runtime.InteropServices.ComVisible(true)]
-public sealed class SHA224 : ISHA, IDisposable
+public sealed class SHA224 : IShaHasher, IDisposable
 {
     #region Fields
 
