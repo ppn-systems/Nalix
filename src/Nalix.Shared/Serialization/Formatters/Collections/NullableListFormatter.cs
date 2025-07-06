@@ -17,8 +17,7 @@ internal sealed class NullableValueListFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
-    : IFormatter<System.Collections.Generic.List<T?>>
-    where T : struct
+    : IFormatter<System.Collections.Generic.List<T?>> where T : struct
 {
     private static System.String DebuggerDisplay => $"NullableValueListFormatter<{typeof(T).FullName}?>";
 

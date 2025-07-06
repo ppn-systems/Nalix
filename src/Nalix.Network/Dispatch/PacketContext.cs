@@ -167,8 +167,9 @@ public sealed class PacketContext<TPacket> : IPoolable
     internal void Reset()
     {
         this.Packet = default!;
-        this.Connection = default!;
         this.Attributes = default;
+        this.Connection = default!;
+
         _isInitialized = false;
     }
 
