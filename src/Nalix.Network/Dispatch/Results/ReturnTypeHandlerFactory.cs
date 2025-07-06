@@ -41,6 +41,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static IReturnHandler<TPacket> GetHandler(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Type returnType)
     {

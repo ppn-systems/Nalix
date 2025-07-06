@@ -27,6 +27,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public PacketDispatchOptions<TPacket> WithLogging([System.Diagnostics.CodeAnalysis.NotNull] ILogger logger)
     {
         this.Logger = logger;
@@ -53,6 +54,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public PacketDispatchOptions<TPacket> WithErrorHandling(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Action<System.Exception, System.UInt16> errorHandler)
     {
@@ -79,6 +81,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public PacketDispatchOptions<TPacket> WithInbound([System.Diagnostics.CodeAnalysis.NotNull] IPacketMiddleware<TPacket> middleware)
     {
         _pipeline.UseInbound(middleware);
@@ -101,6 +104,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public PacketDispatchOptions<TPacket> WithOutbound([System.Diagnostics.CodeAnalysis.NotNull] IPacketMiddleware<TPacket> middleware)
     {
         _pipeline.UseOutbound(middleware);
@@ -123,6 +127,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public PacketDispatchOptions<TPacket> WithOutboundAlways([System.Diagnostics.CodeAnalysis.NotNull] IPacketMiddleware<TPacket> middleware)
     {
         _pipeline.UseOutboundAlways(middleware);
@@ -144,6 +149,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public PacketDispatchOptions<TPacket> WithHandler<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
@@ -168,6 +174,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public PacketDispatchOptions<TPacket> WithHandler<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
@@ -195,6 +202,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public PacketDispatchOptions<TPacket> WithHandler<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController>(
@@ -243,6 +251,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean TryResolveHandler(
         [System.Diagnostics.CodeAnalysis.NotNull] System.UInt16 opCode,
         [System.Diagnostics.CodeAnalysis.AllowNull]
@@ -289,6 +298,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean TryResolveHandlerDescriptor(
         [System.Diagnostics.CodeAnalysis.NotNull] System.UInt16 opCode,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PacketHandler<TPacket> descriptor)

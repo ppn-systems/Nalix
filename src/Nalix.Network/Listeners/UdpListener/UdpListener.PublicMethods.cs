@@ -199,6 +199,7 @@ public abstract partial class UdpListenerBase : IListener
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     protected abstract System.Boolean IsAuthenticated(
         IConnection connection, in System.Net.Sockets.UdpReceiveResult result);
 
@@ -208,6 +209,7 @@ public abstract partial class UdpListenerBase : IListener
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.String GenerateReport()
     {
         System.Text.StringBuilder sb = new(512);
