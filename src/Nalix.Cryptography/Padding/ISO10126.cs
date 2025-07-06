@@ -1,4 +1,4 @@
-using Nalix.Randomization;
+using Nalix.Shared.Randomization;
 using System;
 using System.Runtime.CompilerServices;
 

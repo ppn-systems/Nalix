@@ -1,7 +1,7 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Package;
-using Nalix.Extensions;
 using Nalix.Network.Dispatch.Options;
+using Nalix.Shared.Extensions;
 
 namespace Nalix.Network.Dispatch;
 

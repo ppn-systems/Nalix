@@ -1,6 +1,6 @@
 using Nalix.Common.Cryptography.Hashing;
 using Nalix.Cryptography.Internal;
-using Nalix.Randomization;
+using Nalix.Shared.Randomization;
 
 namespace Nalix.Cryptography.Security;
 

@@ -1,5 +1,5 @@
 using Nalix.Common.Cryptography.Asymmetric;
-using Nalix.Randomization;
+using Nalix.Shared.Randomization;
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -193,8 +193,8 @@ public sealed class X25519 : IX25519
             z1 = PositiveMod(ModMul(uValue, ModMul(PositiveMod(da - cb), PositiveMod(da - cb))));
 
             x2 = PositiveMod(ModMul(a * b, a * b));
-            BigInteger e = PositiveMod(a * a - b * b);
-            z2 = PositiveMod(ModMul(e, PositiveMod(a * a + ModMul(A24, e))));
+            BigInteger e = PositiveMod((a * a) - (b * b));
+            z2 = PositiveMod(ModMul(e, PositiveMod((a * a) + ModMul(A24, e))));
         }
 
         // Final conditional swap

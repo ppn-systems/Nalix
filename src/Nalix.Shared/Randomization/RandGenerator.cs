@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 
-namespace Nalix.Randomization;
+namespace Nalix.Shared.Randomization;
 
 /// <summary>
 /// High-performance cryptographically strong random Number generator
@@ -20,7 +20,7 @@ public static class RandGenerator
 
     // Thread-local state instances for true thread safety
     [ThreadStatic]
-    private static ulong[] _threadState;
+    private static ulong[]? _threadState;
 
     // Thread synchronization object for the initial seeding
     private static readonly Lock SyncRoot = new();
@@ -223,7 +223,7 @@ public static class RandGenerator
         ulong range = (ulong)((long)max - min);
 
         // Use rejection sampling to avoid modulo bias
-        ulong mask = (1UL << BitOperations.Log2((uint)range) + 1) - 1;
+        ulong mask = (1UL << (BitOperations.Log2((uint)range) + 1)) - 1;
         ulong result;
 
         do
@@ -528,8 +528,8 @@ public static class RandGenerator
         {
             // Mix with more entropy
             seed[i] ^= (byte)(i * 97);
-            seed[i] ^= (byte)(timestamp >> ((i % 8) * 8));
-            seed[i] ^= (byte)(cpuCycles >> ((i % 8) * 8));
+            seed[i] ^= (byte)(timestamp >> (i % 8 * 8));
+            seed[i] ^= (byte)(cpuCycles >> (i % 8 * 8));
         }
 
         // Initialize the state with the seed
