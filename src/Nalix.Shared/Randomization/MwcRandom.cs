@@ -1,4 +1,4 @@
-namespace Nalix.Randomization;
+namespace Nalix.Shared.Randomization;
 
 /// <summary>
 /// A high-performance implementation of the Multiply-with-carry (MWC) random Number generator algorithm.
@@ -54,7 +54,7 @@ public abstract class MwcRandom
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetSeed(System.UInt32 seed)
     {
-        _state = (InitialCarry << 32) | seed;
+        _state = InitialCarry << 32 | seed;
 
         // Warm up the generator to avoid initial patterns
         for (int i = 0; i < 10; i++)
@@ -78,7 +78,7 @@ public abstract class MwcRandom
     public System.UInt32 Get()
     {
         // MWC algorithm: state = (multiplier * (state & 0xFFFFFFFF) + (state >> 32))
-        _state = (Multiplier * (_state & 0xFFFFFFFF)) + (_state >> 32);
+        _state = Multiplier * (_state & 0xFFFFFFFF) + (_state >> 32);
         return (System.UInt32)_state;
     }
 
@@ -95,11 +95,11 @@ public abstract class MwcRandom
             return 0;
 
         // Fast path for power of 2
-        if ((max & (max - 1)) == 0)
-            return Get() & (max - 1);
+        if ((max & max - 1) == 0)
+            return Get() & max - 1;
 
         // Avoid modulo bias by rejecting values in the unfair region
-        System.UInt32 threshold = RandMax - (RandMax % max);
+        System.UInt32 threshold = RandMax - RandMax % max;
         System.UInt32 result;
         do
         {
@@ -136,7 +136,7 @@ public abstract class MwcRandom
         // Use each 32-bit generation individually for better statistical properties
         System.UInt64 hi = Get();
         System.UInt64 lo = Get();
-        return (hi << 32) | lo;
+        return hi << 32 | lo;
     }
 
     /// <summary>

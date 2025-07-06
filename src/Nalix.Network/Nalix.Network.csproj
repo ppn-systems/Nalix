@@ -28,8 +28,7 @@ Nalix.Network is a high-performance .NET library for network communication. It p
   <Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
-		<ProjectReference Include="..\Nalix\Nalix.csproj" />
-    <ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
+		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
 		<ProjectReference Include="..\Nalix.Shared\Nalix.Shared.csproj" />
 	</ItemGroup>
 

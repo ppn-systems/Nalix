@@ -1,7 +1,7 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Identity;
 using Nalix.Common.Logging;
-using Nalix.Identifiers;
+using Nalix.Shared.Identifiers;
 using Nalix.Shared.Injection.DI;
 
 namespace Nalix.Network.Connection;
@@ -137,7 +137,7 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public IConnection? GetConnection(System.ReadOnlySpan<byte> id)
-        => _connections.TryGetValue(Base36Id.FromByteArray(id), out var connection) ? connection : null;
+        => _connections.TryGetValue(Handle.FromByteArray(id), out var connection) ? connection : null;
 
     /// <summary>
     /// Get connection by username (fast lookup)

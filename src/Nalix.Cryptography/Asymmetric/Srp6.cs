@@ -1,7 +1,7 @@
 using Nalix.Common.Cryptography.Asymmetric;
 using Nalix.Common.Exceptions;
 using Nalix.Cryptography.Hashing;
-using Nalix.Randomization;
+using Nalix.Shared.Randomization;
 using System;
 using System.Linq;
 using System.Numerics;

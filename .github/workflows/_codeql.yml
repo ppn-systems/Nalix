@@ -1,0 +1,57 @@
+name: "CodeQL Analysis"
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  schedule:
+    - cron: '44 13 * * 2'  # Every Tuesday at 13:44 UTC
+
+jobs:
+  analyze:
+    name: Analyze C#
+    runs-on: ubuntu-latest
+
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: csharp
+        build-mode: manual
+
+    - name: Create signing key file
+      run: |
+          echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./Nalix.snk
+
+    - name: Restore & Build src/
+      run: |
+        dotnet restore src/Nalix.sln  # Assuming you have a solution file
+        dotnet build src/Nalix.sln --configuration Debug
+
+    - name: Restore & Build tests/
+      run: |
+        dotnet restore tests/Nalix.Tests.sln  # Assuming you have a solution file for tests
+        dotnet build tests/Nalix.Tests.sln --configuration Debug
+
+    # - name: Run xUnit Tests (Optional but good for CI)
+    #   run: dotnet test tests/Nalix.Tests.sln --configuration Debug --no-build --verbosity normal
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:csharp"

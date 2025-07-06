@@ -1,4 +1,4 @@
-namespace Nalix.Randomization;
+namespace Nalix.Shared.Randomization;
 
 /// <summary>
 /// A high-performance class that supports generating random numbers with various data types and ranges.
@@ -92,11 +92,11 @@ public sealed class GRandom(System.Int32 seed)
             throw new System.ArgumentOutOfRangeException(nameof(max), "Max must be positive");
 
         // Fast path for power of 2
-        if ((max & (max - 1)) == 0)
-            return (System.Int32)(((_rand.Get() & RandMax) * max) >> 31);
+        if ((max & max - 1) == 0)
+            return (System.Int32)((_rand.Get() & RandMax) * max >> 31);
 
         // Avoid modulo bias by rejecting values in the unfair region
-        System.UInt32 threshold = (System.UInt32)((RandMax - (RandMax % max)) & RandMax);
+        System.UInt32 threshold = (System.UInt32)(RandMax - RandMax % max & RandMax);
         System.UInt32 result;
         do
         {
@@ -157,7 +157,7 @@ public sealed class GRandom(System.Int32 seed)
     /// <returns>A random float.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Single NextFloat(System.Single min, System.Single max) => min + (NextFloat() * (max - min));
+    public System.Single NextFloat(System.Single min, System.Single max) => min + NextFloat() * (max - min);
 
     /// <summary>
     /// Generates a random double-precision floating-point Number in the range [0.0, 1.0].
@@ -184,7 +184,7 @@ public sealed class GRandom(System.Int32 seed)
     /// <returns>A random double.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Double NextDouble(System.Double min, System.Double max) => min + (NextDouble() * (max - min));
+    public System.Double NextDouble(System.Double min, System.Double max) => min + NextDouble() * (max - min);
 
     /// <summary>
     /// Performs a random check with a given percentage probability.

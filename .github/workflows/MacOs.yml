@@ -20,7 +20,6 @@ jobs:
     with:
       os: macos-latest
       project:  |
-        src/Nalix/Nalix.csproj
         src/Nalix.Common/Nalix.Common.csproj
         src/Nalix.Cryptography/Nalix.Cryptography.csproj
         src/Nalix.Logging/Nalix.Logging.csproj
