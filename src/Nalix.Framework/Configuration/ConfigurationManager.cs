@@ -115,6 +115,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     [System.Diagnostics.CodeAnalysis.MemberNotNull]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean ReloadAll()
     {
         // Ensure only one reload happens at a time
@@ -173,6 +174,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean IsLoaded<TClass>() where TClass : ConfigurationLoader => _configContainerDict.ContainsKey(typeof(TClass));
 
     /// <summary>
@@ -182,6 +184,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <returns>True if the configuration was removed; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean Remove<TClass>() where TClass : ConfigurationLoader
     {
         _configLock.EnterWriteLock();
