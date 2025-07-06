@@ -1,4 +1,4 @@
-namespace Nalix.Extensions;
+namespace Nalix.Shared.Extensions;
 
 /// <summary>
 /// Provides extension methods for <see cref="System.Threading.Tasks.Task"/>

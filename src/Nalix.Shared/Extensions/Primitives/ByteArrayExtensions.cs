@@ -1,4 +1,4 @@
-namespace Nalix.Extensions.Primitives;
+namespace Nalix.Shared.Extensions.Primitives;
 
 /// <summary>
 /// Provides various extension methods for byte arrays and streams.

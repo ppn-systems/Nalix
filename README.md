@@ -1,7 +1,7 @@
 # ![Icon](https://raw.githubusercontent.com/phcnguyen/Notio/refs/heads/master/assets/Nalix.ico) **Nalix**
 
-![NuGet Version](https://img.shields.io/nuget/v/Nalix?style=flat-square&logo=nuget)
-![NuGet Downloads](https://img.shields.io/nuget/dt/Nalix?style=flat-square&logo=nuget)
+![NuGet Version](https://img.shields.io/nuget/v/Nalix.Common?style=flat-square&logo=nuget)
+![NuGet Downloads](https://img.shields.io/nuget/dt/Nalix.Common?style=flat-square&logo=nuget)
 
 ![GitHub License](https://img.shields.io/github/license/phcnguyen/Nalix?style=flat-square)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/phcnguyen/Nalix?style=flat-square&logo=github)
@@ -47,15 +47,12 @@ Nalix is a real-time server solution designed for efficient communication and da
 
 | Package ID                |Description                             | Install Command                            |
 |---------------------------|----------------------------------------|--------------------------------------------|
-| **Nalix**                 | Core real-time server & client library | `dotnet add package Nalix`                 |
 | **Nalix.Common**          | Common utilities for Nalix             | `dotnet add package Nalix.Common`          |
 | **Nalix.Cryptography**    | Secure cryptographic functions         | `dotnet add package Nalix.Cryptography`    |
 | **Nalix.Logging**         | Logging utilities for Nalix            | `dotnet add package Nalix.Logging`         |
 | **Nalix.Network**         | Low-level networking functionality     | `dotnet add package Nalix.Network`         |
 | **Nalix.Network.Package** | Custom packet handling for Nalix       | `dotnet add package Nalix.Network.Package` |
-| **Nalix.Network.Web**     | WebSocket support for Nalix            | `dotnet add package Nalix.Network.Web`     |
 | **Nalix.Shared**          | Shared models and definitions          | `dotnet add package Nalix.Shared`          |
-| **Nalix.Storage**         | Storage solutions for Nalix            | `dotnet add package Nalix.Storage`         |
 
 ## 🛠️ Contributing
 

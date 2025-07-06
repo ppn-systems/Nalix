@@ -1,4 +1,4 @@
-namespace Nalix.Extensions.Maths;
+namespace Nalix.Shared.Extensions.Maths;
 
 /// <summary>
 /// Provides extension methods for BigInteger operations with modular arithmetic.
