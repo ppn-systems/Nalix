@@ -12,9 +12,9 @@ namespace Nalix.Tests.Network.Channel;
 /// </summary>
 public class ChannelDispatchTests
 {
-    private static DispatchQueueConfig CreateDefaultConfig()
+    private static DispatchQueueOptions CreateDefaultConfig()
     {
-        return new DispatchQueueConfig
+        return new DispatchQueueOptions
         {
             MaxCapacity = 100,
             EnableMetrics = true,
