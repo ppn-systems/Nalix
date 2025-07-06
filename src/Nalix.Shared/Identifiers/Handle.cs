@@ -200,6 +200,40 @@ public readonly struct Handle : IIdentifier, IEquatable<Handle>
     }
 
     /// <summary>
+    /// Creates a <see cref="Handle"/> from a 7-byte array.
+    /// </summary>
+    /// <param name="bytes">The byte array containing the identifier data.</param>
+    /// <returns>A reconstructed <see cref="Handle"/> instance.</returns>
+    /// <exception cref="ArgumentException">Thrown if the input array is null or not exactly 7 bytes.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Handle FromByteArray(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.Length != 7)
+            throw new ArgumentException("Input must be exactly 7 bytes.", nameof(bytes));
+
+        uint value = Unsafe.ReadUnaligned<uint>(ref MemoryMarshal.GetReference(bytes));
+        ushort machineId = Unsafe.ReadUnaligned<ushort>(ref MemoryMarshal.GetReference(bytes[4..]));
+        byte type = bytes[6];
+
+        return new Handle(value, machineId, (HandleType)type);
+    }
+
+    /// <summary>
+    /// Creates a <see cref="Handle"/> from a 7-byte array.
+    /// </summary>
+    /// <param name="bytes">The byte array containing the identifier data.</param>
+    /// <returns>A reconstructed <see cref="Handle"/> instance.</returns>
+    /// <exception cref="ArgumentException">Thrown if the input array is null or not exactly 7 bytes.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Handle FromByteArray(byte[] bytes)
+    {
+        if (bytes == null || bytes.Length != 7)
+            throw new ArgumentException("Input must be a non-null array of exactly 7 bytes.", nameof(bytes));
+
+        return FromByteArray(bytes.AsSpan());
+    }
+
+    /// <summary>
     /// Attempts to write the binary representation of this identifier to the specified span.
     /// </summary>
     /// <param name="destination">The span to write the bytes to.</param>
