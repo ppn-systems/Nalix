@@ -12,7 +12,7 @@ public partial interface IConnection : System.IDisposable
     /// <summary>
     /// Gets the unique identifier for the connection.
     /// </summary>
-    IEncodedId Id { get; }
+    IIdentifier Id { get; }
 
     /// <summary>
     /// Gets the total duration (in milliseconds) since the connection was established.

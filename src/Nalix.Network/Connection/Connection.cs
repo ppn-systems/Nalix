@@ -14,7 +14,7 @@ public sealed partial class Connection : IConnection
 {
     #region Fields
 
-    private readonly IEncodedId _id;
+    private readonly IIdentifier _id;
     private readonly ILogger? _logger;
     private readonly IConnection.ITcp _tcp;
     private readonly IConnection.IUdp _udp;
@@ -77,7 +77,7 @@ public sealed partial class Connection : IConnection
     #region Properties
 
     /// <inheritdoc />
-    public IEncodedId Id => _id;
+    public IIdentifier Id => _id;
 
     /// <inheritdoc/>
     public IConnection.ITcp Tcp => _tcp;
