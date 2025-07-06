@@ -13,16 +13,16 @@ namespace Nalix.Shared.Identifiers;
 /// serialization capabilities.
 /// </summary>
 /// <remarks>
-/// The Identifier uses explicit layout to ensure consistent memory representation
+/// The Handle uses explicit layout to ensure consistent memory representation
 /// across different platforms and provides both hexadecimal and Base36 string representations.
 ///
 /// Memory layout:
 /// - Bytes 0-3: Value (uint, little-endian)
 /// - Bytes 4-5: Machine ID (ushort, little-endian)
-/// - Byte 6: Identifier type (byte)
+/// - Byte 6: Handle type (byte)
 /// </remarks>
 [StructLayout(LayoutKind.Explicit, Size = 7)]
-public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
+public readonly struct Handle : IIdentifier, IEquatable<Handle>
 {
     #region Private Fields
 
@@ -64,19 +64,19 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// Gets the identifier type.
     /// </summary>
     /// <value>An enum value representing the type of this identifier.</value>
-    public IdentifierType Type => (IdentifierType)_type;
+    public HandleType Type => (HandleType)_type;
 
     #endregion Public Properties
 
     #region Constructors and Factory Methods
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Identifier"/> struct.
+    /// Initializes a new instance of the <see cref="Handle"/> struct.
     /// </summary>
     /// <param name="value">The main identifier value.</param>
     /// <param name="machineId">The machine identifier.</param>
     /// <param name="type">The identifier type.</param>
-    private Identifier(uint value, ushort machineId, IdentifierType type)
+    private Handle(uint value, ushort machineId, HandleType type)
     {
         _value = value;
         _machineId = machineId;
@@ -84,28 +84,28 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     }
 
     /// <summary>
-    /// Creates a new <see cref="Identifier"/> with the specified components.
+    /// Creates a new <see cref="Handle"/> with the specified components.
     /// </summary>
     /// <param name="value">The main identifier value.</param>
     /// <param name="machineId">The machine identifier.</param>
     /// <param name="type">The identifier type.</param>
-    /// <returns>A new <see cref="Identifier"/> instance.</returns>
+    /// <returns>A new <see cref="Handle"/> instance.</returns>
     /// <example>
     /// <code>
-    /// var id = Identifier.CreateNew(12345, 1001, IdentifierType.User);
+    /// var id = Handle.CreateNew(12345, 1001, HandleType.User);
     /// Console.WriteLine(id.ToBase36String()); // Outputs Base36 representation
     /// </code>
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Identifier CreateNew(uint value, ushort machineId, IdentifierType type)
+    public static Handle CreateNew(uint value, ushort machineId, HandleType type)
         => new(value, machineId, type);
 
     /// <summary>
-    /// Creates an empty <see cref="Identifier"/> with all components set to zero.
+    /// Creates an empty <see cref="Handle"/> with all components set to zero.
     /// </summary>
-    /// <returns>An empty <see cref="Identifier"/> instance.</returns>
+    /// <returns>An empty <see cref="Handle"/> instance.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Identifier CreateEmpty()
+    public static Handle CreateEmpty()
         => new(0, 0, 0);
 
     #endregion Constructors and Factory Methods
@@ -225,7 +225,7 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
         // Use unsafe operations for optimal performance
         ref byte destinationRef = ref MemoryMarshal.GetReference(destination);
 
-        // Fix: Use MemoryMarshal to treat the Identifier struct as a ReadOnlySpan<byte>
+        // Fix: Use MemoryMarshal to treat the Handle struct as a ReadOnlySpan<byte>
         ReadOnlySpan<byte> sourceSpan = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in this), 1));
         sourceSpan[..7].CopyTo(destination);
 
@@ -246,17 +246,17 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(IIdentifier? other)
-        => other is Identifier compactId && Equals(compactId);
+        => other is Handle compactId && Equals(compactId);
 
     /// <summary>
-    /// Determines whether this identifier is equal to another <see cref="Identifier"/>.
+    /// Determines whether this identifier is equal to another <see cref="Handle"/>.
     /// </summary>
     /// <param name="other">The identifier to compare with this instance.</param>
     /// <returns>
     /// <c>true</c> if the identifiers are equal; otherwise, <c>false</c>.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(Identifier other)
+    public bool Equals(Handle other)
     {
         // Optimize comparison by treating the struct as a single 64-bit value
         ulong thisValue = GetCombinedValue();
@@ -269,11 +269,11 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// </summary>
     /// <param name="obj">The object to compare with this instance.</param>
     /// <returns>
-    /// <c>true</c> if the object is a <see cref="Identifier"/> and is equal to this instance;
+    /// <c>true</c> if the object is a <see cref="Handle"/> and is equal to this instance;
     /// otherwise, <c>false</c>.
     /// </returns>
     public override bool Equals(object? obj)
-        => obj is Identifier other && Equals(other);
+        => obj is Handle other && Equals(other);
 
     /// <summary>
     /// Returns the hash code for this identifier.
@@ -296,7 +296,7 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     #region Operators
 
     /// <summary>
-    /// Determines whether two <see cref="Identifier"/> instances are equal.
+    /// Determines whether two <see cref="Handle"/> instances are equal.
     /// </summary>
     /// <param name="left">The first identifier to compare.</param>
     /// <param name="right">The second identifier to compare.</param>
@@ -304,11 +304,11 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// <c>true</c> if the identifiers are equal; otherwise, <c>false</c>.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(Identifier left, Identifier right)
+    public static bool operator ==(Handle left, Handle right)
         => left.Equals(right);
 
     /// <summary>
-    /// Determines whether two <see cref="Identifier"/> instances are not equal.
+    /// Determines whether two <see cref="Handle"/> instances are not equal.
     /// </summary>
     /// <param name="left">The first identifier to compare.</param>
     /// <param name="right">The second identifier to compare.</param>
@@ -316,7 +316,7 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     /// <c>true</c> if the identifiers are not equal; otherwise, <c>false</c>.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(Identifier left, Identifier right)
+    public static bool operator !=(Handle left, Handle right)
         => !left.Equals(right);
 
     #endregion Operators
@@ -331,7 +331,7 @@ public readonly struct Identifier : IIdentifier, IEquatable<Identifier>
     private ulong GetCombinedValue()
     {
         // Mask to ensure we only use the lower 56 bits (7 bytes)
-        return Unsafe.As<Identifier, ulong>(ref Unsafe.AsRef(in this)) & 0x00FFFFFFFFFFFFFF;
+        return Unsafe.As<Handle, ulong>(ref Unsafe.AsRef(in this)) & 0x00FFFFFFFFFFFFFF;
     }
 
     /// <summary>

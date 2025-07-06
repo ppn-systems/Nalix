@@ -52,9 +52,9 @@ public readonly struct Base64Id(uint value) : IIdentifier, IEquatable<Base64Id>,
     public uint Value => _value;
 
     /// <summary>
-    /// Gets the IdentifierType encoded within this Base64Id.
+    /// Gets the HandleType encoded within this Base64Id.
     /// </summary>
-    public IdentifierType Type => (IdentifierType)(_value >> 24);
+    public HandleType Type => (HandleType)(_value >> 24);
 
     /// <summary>
     /// Gets the machine Number component encoded within this Base64Id.
@@ -75,7 +75,7 @@ public readonly struct Base64Id(uint value) : IIdentifier, IEquatable<Base64Id>,
     /// <returns>A new <see cref="Base64Id"/> instance.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if type exceeds the allowed limit.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Base64Id NewId(IdentifierType type = IdentifierType.Unknown, ushort machineId = 0)
+    public static Base64Id NewId(HandleType type = HandleType.Unknown, ushort machineId = 0)
         => new(BaseNEncoding.GenerateId(type, machineId));
 
     /// <summary>
@@ -171,10 +171,10 @@ public readonly struct Base64Id(uint value) : IIdentifier, IEquatable<Base64Id>,
     /// <param name="randomValue">A custom random value (if not provided, a secure random value will be generated).</param>
     /// <returns>A new Base64Id with the specified components.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Base64Id FromComponents(IdentifierType type, ushort machineId, uint? randomValue = null)
+    public static Base64Id FromComponents(HandleType type, ushort machineId, uint? randomValue = null)
     {
-        if ((int)type >= (int)IdentifierType.MaxValue)
-            throw new ArgumentOutOfRangeException(nameof(type), "IdentifierType exceeds the allowed limit.");
+        if ((int)type >= (int)HandleType.MaxValue)
+            throw new ArgumentOutOfRangeException(nameof(type), "HandleType exceeds the allowed limit.");
 
         uint random = randomValue ?? BaseNEncoding.GenerateSecureRandomUInt();
 

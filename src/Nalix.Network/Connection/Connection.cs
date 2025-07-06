@@ -45,7 +45,7 @@ public sealed partial class Connection : IConnection
     public Connection(System.Net.Sockets.Socket socket, IBufferPool bufferAllocator, ILogger? logger = null)
     {
         _lock = new System.Threading.Lock();
-        _id = Identifiers.Base36Id.NewId(IdentifierType.Session);
+        _id = Identifiers.Base36Id.NewId(HandleType.Session);
         _ctokens = new System.Threading.CancellationTokenSource();
 
         _logger = logger;
