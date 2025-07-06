@@ -1,3 +1,4 @@
+using Nalix.Common.Abstractions;
 using Nalix.Network.Snapshot;
 
 namespace Nalix.Network.Listeners;
@@ -20,6 +21,6 @@ public abstract partial class Listener : ISnapshot<ListenerSnapshot>
             IsDisposed = _isDisposed,
             IsListening = IsListening,
             Address = ListenerSnapshot.GetIpAddress(_listener),
-            ListenerSocketStatus = ListenerSnapshot.GetSocketStatus(_listener)
+            SocketInfo = ListenerSnapshot.GetSocketStatus(_listener)
         };
 }

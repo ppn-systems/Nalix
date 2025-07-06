@@ -1,3 +1,4 @@
+using Nalix.Common.Abstractions;
 using Nalix.Network.Snapshot;
 
 namespace Nalix.Network.Protocols;

@@ -30,7 +30,7 @@ public record ListenerSnapshot
     /// Gets a string representation of the status of the listener's socket,
     /// including socket type, protocol type, address family, and other details.
     /// </summary>
-    public required string ListenerSocketStatus { get; init; }
+    public required string SocketInfo { get; init; }
 
     /// <summary>
     /// Retrieves detailed information about the listener socket's status, including
@@ -95,7 +95,7 @@ public record ListenerSnapshot
         sb.AppendLine($"Port: {Port}");
         sb.AppendLine($"Is Listening: {IsListening}");
         sb.AppendLine($"Is Disposed: {IsDisposed}");
-        sb.AppendLine($"Listener _udpListener Status: {ListenerSocketStatus}");
+        sb.AppendLine($"Listener _udpListener Status: {SocketInfo}");
         sb.AppendLine($"Address: {Address}");
 
         return sb.ToString();

@@ -49,7 +49,7 @@ public partial interface IConnection : System.IDisposable
     /// <summary>
     /// Gets or sets the encryption mode used.
     /// </summary>
-    EncryptionType Encryption { get; set; }
+    SymmetricAlgorithmType Encryption { get; set; }
 
     /// <summary>
     /// Occurs when the connection is closed.

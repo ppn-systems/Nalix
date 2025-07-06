@@ -23,7 +23,7 @@ namespace Nalix.Cryptography.Hashing;
 /// </para>
 /// </remarks>
 [System.Runtime.InteropServices.ComVisible(true)]
-public sealed unsafe class SHA384 : IShaHasher, IDisposable
+public sealed unsafe class SHA384 : IShaDigest, IDisposable
 {
     #region Fields
 

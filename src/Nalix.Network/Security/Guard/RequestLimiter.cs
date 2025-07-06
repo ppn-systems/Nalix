@@ -30,7 +30,7 @@ public sealed class RequestLimiter : IDisposable
 
     private readonly ILogger? _logger;
     private readonly Timer _cleanupTimer;
-    private readonly RateLimitConfig _config;
+    private readonly RequestRateLimitOptions _config;
     private readonly long _timeWindowTicks;
     private readonly long _lockoutDurationTicks;
     private readonly ConcurrentDictionary<string, RequestLimiterInfo> _ipData;
@@ -50,10 +50,10 @@ public sealed class RequestLimiter : IDisposable
     /// <exception cref="InternalErrorException">
     /// Thrown when the configuration contains invalid rate-limiting settings.
     /// </exception>
-    public RequestLimiter(RateLimitConfig? config = null, ILogger? logger = null)
+    public RequestLimiter(RequestRateLimitOptions? config = null, ILogger? logger = null)
     {
         _logger = logger;
-        _config = config ?? ConfigurationStore.Instance.Get<RateLimitConfig>();
+        _config = config ?? ConfigurationStore.Instance.Get<RequestRateLimitOptions>();
 
         if (_config.MaxAllowedRequests <= 0)
             throw new InternalErrorException("MaxAllowedRequests must be greater than 0");
@@ -77,14 +77,14 @@ public sealed class RequestLimiter : IDisposable
     /// Initializes with default configuration and logger.
     /// </summary>
     public RequestLimiter(ILogger? logger = null)
-        : this((RateLimitConfig?)null, logger)
+        : this((RequestRateLimitOptions?)null, logger)
     {
     }
 
     /// <summary>
     /// Initializes with custom configuration via action callback.
     /// </summary>
-    public RequestLimiter(Action<RateLimitConfig>? configure = null, ILogger? logger = null)
+    public RequestLimiter(Action<RequestRateLimitOptions>? configure = null, ILogger? logger = null)
         : this(CreateConfiguredConfig(configure), logger)
     {
     }
@@ -167,9 +167,9 @@ public sealed class RequestLimiter : IDisposable
     /// Creates a configured connection configuration.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static RateLimitConfig CreateConfiguredConfig(Action<RateLimitConfig>? configure)
+    private static RequestRateLimitOptions CreateConfiguredConfig(Action<RequestRateLimitOptions>? configure)
     {
-        RateLimitConfig config = ConfigurationStore.Instance.Get<RateLimitConfig>();
+        RequestRateLimitOptions config = ConfigurationStore.Instance.Get<RequestRateLimitOptions>();
         configure?.Invoke(config);
         return config;
     }

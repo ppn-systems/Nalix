@@ -122,7 +122,7 @@ public sealed partial class Connection : IConnection
     public PermissionLevel Level { get; set; } = PermissionLevel.Guest;
 
     /// <inheritdoc />
-    public EncryptionType Encryption { get; set; } = EncryptionType.XTEA;
+    public SymmetricAlgorithmType Encryption { get; set; } = SymmetricAlgorithmType.XTEA;
 
     #endregion Properties
 

@@ -58,7 +58,7 @@ internal class UdpIngressWorker
         _listener.SetSocketOption(
             System.Net.Sockets.SocketOptionLevel.Socket,
             System.Net.Sockets.SocketOptionName.ReuseAddress,
-            Listener.Config.ReuseAddress ? SocketConfig.True : SocketConfig.False);
+            Listener.Config.ReuseAddress ? SocketSettings.True : SocketSettings.False);
 
         _listener.Bind(
             new System.Net.IPEndPoint(System.Net.IPAddress.Any, Listener.Config.Port));

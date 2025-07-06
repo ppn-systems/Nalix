@@ -1,3 +1,4 @@
+using Nalix.Common.Abstractions;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
 using Nalix.Network.Snapshot;
@@ -79,7 +80,7 @@ public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot>
     /// <returns>
     /// A <see cref="PacketSnapshot"/> object containing the current queue statistics:
     /// - TotalPendingPackets: Total number of packets currently in the queue.
-    /// - PriorityLevel: A dictionary containing the count of packets for each priority level.
+    /// - PerPriorityStats: A dictionary containing the count of packets for each priority level.
     /// - AvgProcessingTimeMs: The average time (in milliseconds) taken to process a packet.
     /// - UptimeSeconds: The total uptime of the queue in seconds.
     /// </returns>
@@ -106,7 +107,7 @@ public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot>
         return new PacketSnapshot
         {
             TotalPendingPackets = Count,
-            PriorityLevel = stats,
+            PerPriorityStats = stats,
             AvgProcessingTimeMs = avgProcessingMs,
             UptimeSeconds = (int)_queueTimer.Elapsed.TotalSeconds // _queueTimer is guaranteed to be non-null here
         };

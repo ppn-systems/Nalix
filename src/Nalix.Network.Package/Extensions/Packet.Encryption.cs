@@ -21,7 +21,7 @@ public static class PacketEncryption
     public static Packet EncryptPayload(
         this Packet packet,
         System.Byte[] key,
-        EncryptionType algorithm = EncryptionType.XTEA)
+        SymmetricAlgorithmType algorithm = SymmetricAlgorithmType.XTEA)
         => PacketGuard.Encrypt(packet, key, algorithm);
 
     /// <summary>
@@ -37,6 +37,6 @@ public static class PacketEncryption
     public static Packet DecryptPayload(
         this Packet packet,
         System.Byte[] key,
-        EncryptionType algorithm = EncryptionType.XTEA)
+        SymmetricAlgorithmType algorithm = SymmetricAlgorithmType.XTEA)
         => PacketGuard.Decrypt(packet, key, algorithm);
 }
