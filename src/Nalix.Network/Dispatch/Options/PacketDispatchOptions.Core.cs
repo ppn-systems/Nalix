@@ -79,7 +79,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <summary>
     /// Configuration options for ChannelDispatch
     /// </summary>
-    public DispatchQueueConfig QueueOptions { get; set; } = new DispatchQueueConfig();
+    public DispatchQueueOptions QueueOptions { get; set; } = new DispatchQueueOptions();
 
     #endregion Properties
 

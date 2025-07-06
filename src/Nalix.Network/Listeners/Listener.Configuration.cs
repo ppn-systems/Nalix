@@ -20,7 +20,7 @@ public abstract partial class Listener
         socket.ReceiveBufferSize = Config.BufferSize;
 
         // When you want to disconnect immediately without making sure the data has been sent.
-        // socket.LingerState = new LingerOption(true, SocketConfig.False);
+        // socket.LingerState = new LingerOption(true, SocketSettings.False);
 
         // if using async or non-blocking I/O.
         socket.Blocking = false;

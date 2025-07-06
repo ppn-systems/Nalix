@@ -25,7 +25,7 @@ public abstract partial class Listener : IListener, System.IDisposable
 
     #region Fields
 
-    internal static readonly SocketConfig Config;
+    internal static readonly SocketSettings Config;
 
     private readonly ILogger _logger;
     private readonly System.Int32 _port;
@@ -70,7 +70,7 @@ public abstract partial class Listener : IListener, System.IDisposable
 
     #region Constructors
 
-    static Listener() => Config = ConfigurationStore.Instance.Get<SocketConfig>();
+    static Listener() => Config = ConfigurationStore.Instance.Get<SocketSettings>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Listener"/> class using the port defined in the configuration,
@@ -102,7 +102,7 @@ public abstract partial class Listener : IListener, System.IDisposable
         {
             ExclusiveAddressUse = !Config.ReuseAddress,
             // No need for LingerState if not close soon
-            LingerState = new System.Net.Sockets.LingerOption(true, SocketConfig.False)
+            LingerState = new System.Net.Sockets.LingerOption(true, SocketSettings.False)
         };
 
         // Increase the queue size on the socket listener.
@@ -113,7 +113,7 @@ public abstract partial class Listener : IListener, System.IDisposable
         _listener.SetSocketOption(
             System.Net.Sockets.SocketOptionLevel.Socket,
             System.Net.Sockets.SocketOptionName.ReuseAddress,
-            Config.ReuseAddress ? SocketConfig.True : SocketConfig.False);
+            Config.ReuseAddress ? SocketSettings.True : SocketSettings.False);
 
         System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, Config.Port);
         _logger.Debug("[TCP] TCP socket bound to {0}", remote);

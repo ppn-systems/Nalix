@@ -1,4 +1,4 @@
-namespace Nalix.Network.Snapshot;
+namespace Nalix.Common.Abstractions;
 
 /// <summary>
 /// Defines a contract for capturing a snapshot of an object's current state.

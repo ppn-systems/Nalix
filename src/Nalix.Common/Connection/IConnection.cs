@@ -12,7 +12,7 @@ public partial interface IConnection : System.IDisposable
     /// <summary>
     /// Gets the unique identifier for the connection.
     /// </summary>
-    IEncodedId Id { get; }
+    IIdentifier Id { get; }
 
     /// <summary>
     /// Gets the total duration (in milliseconds) since the connection was established.
@@ -49,7 +49,7 @@ public partial interface IConnection : System.IDisposable
     /// <summary>
     /// Gets or sets the encryption mode used.
     /// </summary>
-    EncryptionType Encryption { get; set; }
+    SymmetricAlgorithmType Encryption { get; set; }
 
     /// <summary>
     /// Occurs when the connection is closed.

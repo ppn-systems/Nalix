@@ -17,7 +17,7 @@ namespace Nalix.Identifiers;
 /// Initializes a new instance of the <see cref="Base58Id"/> struct with the specified value.
 /// </remarks>
 /// <param name="value">The 32-bit unsigned integer value.</param>
-public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, IComparable<Base58Id>
+public readonly struct Base58Id(uint value) : IIdentifier, IEquatable<Base58Id>, IComparable<Base58Id>
 {
     #region Fields and Static Constructor
 
@@ -314,11 +314,11 @@ public readonly struct Base58Id(uint value) : IEncodedId, IEquatable<Base58Id>, 
     public bool Equals(Base58Id other) => _value == other._value;
 
     /// <summary>
-    /// Determines whether the current instance is equal to another <see cref="IEncodedId"/>.
+    /// Determines whether the current instance is equal to another <see cref="IIdentifier"/>.
     /// </summary>
-    /// <param name="other">The <see cref="IEncodedId"/> to compare with the current instance.</param>
+    /// <param name="other">The <see cref="IIdentifier"/> to compare with the current instance.</param>
     /// <returns>true if both instances have the same value; otherwise, false.</returns>
-    public bool Equals(IEncodedId other) => _value == other.Value;
+    public bool Equals(IIdentifier other) => _value == other.Value;
 
     /// <summary>
     /// Returns the hash code for the current instance.

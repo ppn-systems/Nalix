@@ -51,5 +51,5 @@ public sealed class RemoteEndpointConfig : ConfigurationLoader
     /// This property is ignored during configuration binding.
     /// </summary>
     [ConfiguredIgnore]
-    public EncryptionType EncryptionMode { get; set; }
+    public SymmetricAlgorithmType EncryptionMode { get; set; }
 }

@@ -25,5 +25,5 @@ public record PacketSnapshot
     /// <summary>
     /// Gets the per-priority level statistics, grouped by <see cref="PacketPriority"/>.
     /// </summary>
-    public System.Collections.Generic.Dictionary<PacketPriority, PriorityQueueSnapshot> PriorityLevel { get; init; } = [];
+    public System.Collections.Generic.Dictionary<PacketPriority, PriorityQueueSnapshot> PerPriorityStats { get; init; } = [];
 }

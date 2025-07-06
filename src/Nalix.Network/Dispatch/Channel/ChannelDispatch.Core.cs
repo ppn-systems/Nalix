@@ -14,7 +14,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
 
     // Use channels instead of queues for better thread-safety and performance
 
-    private readonly DispatchQueueConfig _options;
+    private readonly DispatchQueueOptions _options;
     private readonly System.Threading.Channels.Channel<TPacket>[] _priorityChannels;
 
     // Snapshot variables
@@ -84,7 +84,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
     /// Initialize a new ChannelDispatch using options
     /// </summary>
     /// <param name="options">Configuration options for the packet queue</param>
-    public ChannelDispatch(DispatchQueueConfig options) : this()
+    public ChannelDispatch(DispatchQueueOptions options) : this()
     {
         _options = options;
 

@@ -20,6 +20,6 @@ public sealed class PacketRateLimitGuard
     /// <returns><c>true</c> if the request is allowed; otherwise, <c>false</c>.</returns>
     public bool Check(string endpoint, PacketRateLimitAttribute attr)
         => _methodRateLimiters.GetOrAdd(
-            (endpoint, attr.Level), _ => new RequestLimiter(new RateLimitConfig(attr.Level))
+            (endpoint, attr.Level), _ => new RequestLimiter(new RequestRateLimitOptions(attr.Level))
         ).CheckLimit(endpoint);
 }

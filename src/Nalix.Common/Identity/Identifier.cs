@@ -1,11 +1,9 @@
-using System;
-
 namespace Nalix.Common.Identity;
 
 /// <summary>
 /// Defines core functionality for unique identifier implementations.
 /// </summary>
-public interface IEncodedId : IEquatable<IEncodedId>
+public interface IIdentifier : System.IEquatable<IIdentifier>
 {
     /// <summary>
     /// Gets the underlying 32-bit unsigned integer value.
