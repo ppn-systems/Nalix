@@ -36,7 +36,7 @@ public static unsafe class LZ4Encoder
         System.Span<System.Byte> output,
         System.Int32* hashTable)
     {
-        if (input.IsEmpty || output.IsEmpty) return -1; // Handle empty input/output
+        if (input.IsEmpty || output.IsEmpty) return -1; // Token empty input/output
 
         // Pin the input and output spans to fixed memory addresses
         fixed (System.Byte* inputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(input))

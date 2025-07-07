@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace Nalix.Shared.L10N;
 
 /// <summary>
@@ -39,10 +36,10 @@ public sealed class Localizer
     /// and loads a PO file from the specified path.
     /// </summary>
     /// <param name="path">The file path to the PO file.</param>
-    /// <exception cref="FileNotFoundException">
+    /// <exception cref="System.IO.FileNotFoundException">
     /// Thrown if the specified file does not exist.
     /// </exception>
-    /// <exception cref="FormatException">
+    /// <exception cref="System.FormatException">
     /// Thrown if the PO file is invalid or cannot be parsed.
     /// </exception>
     /// <example>
@@ -60,10 +57,10 @@ public sealed class Localizer
     /// Loads localization messages from a PO file.
     /// </summary>
     /// <param name="path">The file path to the PO file.</param>
-    /// <exception cref="FileNotFoundException">
+    /// <exception cref="System.IO.FileNotFoundException">
     /// Thrown if the specified file does not exist.
     /// </exception>
-    /// <exception cref="FormatException">
+    /// <exception cref="System.FormatException">
     /// Thrown if the PO file is invalid or cannot be parsed.
     /// </exception>
     /// <example>

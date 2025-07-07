@@ -22,7 +22,7 @@ internal readonly struct LZ4Encoder
         System.ReadOnlySpan<System.Byte> input,
         System.Span<System.Byte> output)
     {
-        // Handle empty input
+        // Token empty input
         if (input.IsEmpty)
             return WriteEmptyHeader(output);
 
@@ -38,7 +38,7 @@ internal readonly struct LZ4Encoder
         System.Span<System.Byte> compressedDataOutput = output[Header.Size..];
         System.Int32 compressedDataLength = Encoders.LZ4Encoder.EncodeBlock(input, compressedDataOutput, hashTable);
 
-        // Handle compression failure
+        // Token compression failure
         if (compressedDataLength < 0)
             return -1;
 
@@ -65,7 +65,7 @@ internal readonly struct LZ4Encoder
     {
         bytesWritten = 0;
 
-        // Handle empty input
+        // Token empty input
         if (input.IsEmpty)
         {
             if (WriteEmptyHeader(output) == -1)
@@ -87,7 +87,7 @@ internal readonly struct LZ4Encoder
         System.Span<System.Byte> compressedDataOutput = output[Header.Size..];
         System.Int32 compressedDataLength = Encoders.LZ4Encoder.EncodeBlock(input, compressedDataOutput, hashTable);
 
-        // Handle compression failure
+        // Token compression failure
         if (compressedDataLength < 0)
             return false;
 

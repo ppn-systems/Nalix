@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-
 namespace Nalix.Shared.L10N;
 
 /// <summary>
@@ -16,7 +12,7 @@ public sealed class MultiLocalizer
     #region Fields
 
     private Localizer _defaultLocalizer = new();
-    private readonly Dictionary<string, Localizer> _localizers = [];
+    private readonly System.Collections.Generic.Dictionary<string, Localizer> _localizers = [];
 
     #endregion Fields
 
@@ -27,10 +23,10 @@ public sealed class MultiLocalizer
     /// </summary>
     /// <param name="languageName">The language identifier (e.g., "en", "fr").</param>
     /// <param name="path">The file path to the PO file.</param>
-    /// <exception cref="FileNotFoundException">
+    /// <exception cref="System.IO.FileNotFoundException">
     /// Thrown if the specified PO file does not exist.
     /// </exception>
-    /// <exception cref="FormatException">
+    /// <exception cref="System.FormatException">
     /// Thrown if the PO file is invalid or cannot be parsed.
     /// </exception>
     /// <example>
@@ -44,8 +40,8 @@ public sealed class MultiLocalizer
     {
         languageName = languageName.ToLower();
 
-        if (!File.Exists(path))
-            throw new FileNotFoundException($"File not found: {path}");
+        if (!System.IO.File.Exists(path))
+            throw new System.IO.FileNotFoundException($"File not found: {path}");
 
         lock (_localizers)
             _localizers[languageName] = new Localizer(path);
@@ -152,7 +148,7 @@ public sealed class MultiLocalizer
     /// Sets the default localizer to use when a language-specific localizer is unavailable.
     /// </summary>
     /// <param name="languageName">The language identifier (e.g., "en", "fr").</param>
-    /// <exception cref="ArgumentException">
+    /// <exception cref="System.ArgumentException">
     /// Thrown if the specified language does not exist in the loaded localizers.
     /// </exception>
     /// <example>
@@ -167,7 +163,7 @@ public sealed class MultiLocalizer
         lock (_localizers)
         {
             if (!_localizers.TryGetValue(loweredName, out var localizer))
-                throw new ArgumentException($"No localizer for language {languageName} found.");
+                throw new System.ArgumentException($"No localizer for language {languageName} found.");
 
             _defaultLocalizer = localizer;
         }
