@@ -48,11 +48,11 @@ public sealed class Rand(System.UInt32 seed) : MwcRandom(seed)
             return 0;
 
         // Fast path for power of 2
-        if ((max & max - 1) == 0)
-            return Get() & max - 1;
+        if ((max & (max - 1)) == 0)
+            return Get() & (max - 1);
 
         // Avoid modulo bias by rejecting values in the unfair region
-        System.UInt32 threshold = RandMax - RandMax % max;
+        System.UInt32 threshold = RandMax - (RandMax % max);
         System.UInt32 result;
         do
         {
@@ -79,11 +79,11 @@ public sealed class Rand(System.UInt32 seed) : MwcRandom(seed)
             return Get((uint)max);
 
         // Optimize for powers of 2
-        if ((max & max - 1) == 0)
-            return Get64() & max - 1;
+        if ((max & (max - 1)) == 0)
+            return Get64() & (max - 1);
 
         // Use rejection sampling to avoid modulo bias
-        System.UInt64 threshold = System.UInt64.MaxValue - System.UInt64.MaxValue % max;
+        System.UInt64 threshold = System.UInt64.MaxValue - (System.UInt64.MaxValue % max);
         System.UInt64 result;
         do
         {
@@ -123,7 +123,7 @@ public sealed class Rand(System.UInt32 seed) : MwcRandom(seed)
         if (min >= max)
             return min;
 
-        // Token potential overflow when calculating range
+        // Handle potential overflow when calculating range
         System.UInt32 range = (System.UInt32)(max - min);
         return min + (System.Int32)Get(range);
     }
@@ -176,7 +176,7 @@ public sealed class Rand(System.UInt32 seed) : MwcRandom(seed)
         if (min >= max)
             return min;
 
-        // Token negative range carefully
+        // Handle negative range carefully
         System.UInt64 range = (System.UInt64)(max - min);
         return min + (System.Int64)Get(range);
     }
@@ -224,7 +224,7 @@ public sealed class Rand(System.UInt32 seed) : MwcRandom(seed)
         if (min >= max)
             return min;
 
-        return min + GetFloat() * (max - min);
+        return min + (GetFloat() * (max - min));
     }
 
     /// <summary>
@@ -240,7 +240,7 @@ public sealed class Rand(System.UInt32 seed) : MwcRandom(seed)
         if (min >= max)
             return min;
 
-        return min + GetDouble() * (max - min);
+        return min + (GetDouble() * (max - min));
     }
 
     /// <summary>

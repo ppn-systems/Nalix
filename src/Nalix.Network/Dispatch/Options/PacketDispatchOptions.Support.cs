@@ -121,7 +121,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 return;
             }
 
-            // Token Compression
+            // Handle Compression
             TPacket? processedPacket = default;
             System.Boolean needDisposeOriginal = false;
             try
@@ -159,7 +159,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     return;
                 }
 
-                // Token Decryption
+                // Handle Decryption
                 TPacket? decryptedPacket = default;
                 System.Boolean needDisposeDecrypted = false;
                 if (attributes.Encryption?.IsEncrypted == true)

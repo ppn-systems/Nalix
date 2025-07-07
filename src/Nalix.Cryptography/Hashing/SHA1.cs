@@ -260,7 +260,7 @@ public sealed class SHA1 : IShaDigest, IDisposable
             }
         }
 
-        // Token the final block with padding
+        // Handle the final block with padding
         int remainingBytes = data.Length % 64;
         Span<byte> finalBlock = stackalloc byte[128]; // Max 2 blocks needed
 

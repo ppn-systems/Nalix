@@ -25,7 +25,7 @@ public readonly partial struct Packet
         // Use direct math operations for better performance
         System.Int64 currentTime = Clock.UnixMillisecondsNow();
 
-        // Token potential overflow (rare but possible)
+        // Handle potential overflow (rare but possible)
         if (currentTime < Timestamp) return false;
         return (currentTime - Timestamp) > timeout;
     }
@@ -43,7 +43,7 @@ public readonly partial struct Packet
         System.Int64 currentTime = Clock.UnixMillisecondsNow();
         System.Int64 timeoutMs = (System.Int64)timeout.TotalMilliseconds;
 
-        // Token potential overflow (rare but possible)
+        // Handle potential overflow (rare but possible)
         if (currentTime < Timestamp) return false;
         return (currentTime - Timestamp) > timeoutMs;
     }

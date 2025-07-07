@@ -177,7 +177,7 @@ public static class RandGenerator
             remainingBytes -= 8;
         }
 
-        // Token any remaining bytes (less than 8)
+        // Handle any remaining bytes (less than 8)
         if (remainingBytes > 0)
         {
             ulong lastValue = NextUInt64(state);

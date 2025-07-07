@@ -130,7 +130,7 @@ public static class FormatterProvider
     {
         IFormatter<T>? formatter;
 
-        // NEW: Token Nullable<T>
+        // NEW: Handle Nullable<T>
         if (typeof(T).IsGenericType &&
             typeof(T).GetGenericTypeDefinition() == typeof(System.Nullable<>))
         {

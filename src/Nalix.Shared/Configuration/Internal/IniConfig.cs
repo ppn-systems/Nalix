@@ -695,7 +695,7 @@ internal sealed class IniConfig
                 }
                 else
                 {
-                    // Token key-value pairs with optimized parsing
+                    // Handle key-value pairs with optimized parsing
                     int separatorIndex = trimmedLine.IndexOf(KeyValueSeparator);
                     if (separatorIndex > 0)
                     {

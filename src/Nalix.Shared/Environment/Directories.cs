@@ -32,7 +32,7 @@ public static class Directories
         if (_basePathOverride != null)
             return _basePathOverride;
 
-        // Token Docker and Kubernetes environments by using /app as base path
+        // Handle Docker and Kubernetes environments by using /app as base path
         if (IsContainerLazy.Value && System.IO.Directory.Exists("/assets"))
             return "/assets";
 
