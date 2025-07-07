@@ -9,18 +9,6 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     IPacketEncryptor<TPacket>,
     IPacketCompressor<TPacket>
 {
-    #region Constants
-
-    private const System.Reflection.BindingFlags BindingFlags =
-                  System.Reflection.BindingFlags.Public |
-                  System.Reflection.BindingFlags.Instance |
-                  System.Reflection.BindingFlags.Static;
-
-    private const System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes PublicMethods =
-                  System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods;
-
-    #endregion Constants
-
     /// <summary>
     /// Registers a handler by creating an instance of the specified controller type
     /// and scanning its methods decorated with <see cref="PacketOpcodeAttribute"/>.

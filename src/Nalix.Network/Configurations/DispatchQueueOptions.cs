@@ -11,28 +11,36 @@ public sealed class DispatchQueueOptions : ConfigurationLoader
     /// <summary>
     /// Maximum number of packets in the queue (0 = unlimited)
     /// </summary>
-    public int MaxCapacity { get; set; }
+    public int MaxCapacity { get; set; } = 0;
 
     /// <summary>
     /// Collect detailed statistics
     /// </summary>
-    public bool EnableMetrics { get; set; }
+    public bool EnableMetrics { get; set; } = false;
 
     /// <summary>
     /// Check packet validity when dequeuing
     /// </summary>
-    public bool EnableValidation { get; set; }
+    public bool EnableValidation { get; set; } = true;
 
     /// <summary>
     /// Maximum time a packet is allowed to exist in the queue
     /// </summary>
-    public int TimeoutSeconds { get; set; } = 30;
+    public int TimeoutSeconds { get; set; } = 60;
 
     /// <summary>
     /// Maximum time a packet is allowed to exist in the queue
     /// </summary>
     [ConfiguredIgnore]
     public System.TimeSpan Timeout { get; set; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DispatchQueueOptions"/> class with default values.
+    /// </summary>
+    public DispatchQueueOptions()
+    {
+        this.Timeout = System.TimeSpan.FromSeconds(this.TimeoutSeconds);
+    }
 
     /// <remarks>
     /// Initializes a new instance of <see cref="DispatchQueueOptions"/>.

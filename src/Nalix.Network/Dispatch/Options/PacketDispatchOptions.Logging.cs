@@ -24,7 +24,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public PacketDispatchOptions<TPacket> WithMetrics(System.Action<string, long> metricsCallback)
+    public PacketDispatchOptions<TPacket> WithMetrics(
+        System.Action<System.String, System.Int64> metricsCallback)
     {
         _logger?.Info("Packet metrics tracking has been enabled. Execution time will be logged per handler.");
 
@@ -72,7 +73,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public PacketDispatchOptions<TPacket> WithErrorHandling(System.Action<System.Exception, ushort> errorHandler)
+    public PacketDispatchOptions<TPacket> WithErrorHandling(
+        System.Action<System.Exception, System.UInt16> errorHandler)
     {
         _logger?.Info("Custom error handler has been set. All unhandled exceptions during packet processing will be routed.");
         _errorHandler = errorHandler;
