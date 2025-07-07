@@ -110,7 +110,7 @@ public static class Crc08
         }
         else
         {
-            // Token non-byte spans by reinterpreting as bytes
+            // Handle non-byte spans by reinterpreting as bytes
             bytes = MemoryMarshal.AsBytes(data);
         }
 
