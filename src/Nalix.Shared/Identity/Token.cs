@@ -1,7 +1,7 @@
 ﻿using Nalix.Common.Identity;
 using Nalix.Shared.Randomization;
 
-namespace Nalix.Shared.Identifiers;
+namespace Nalix.Shared.Identity;
 
 /// <summary>
 /// Represents a compact, high-performance identifier that encodes a 32-bit value,

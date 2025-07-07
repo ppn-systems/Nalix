@@ -1,7 +1,7 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Identity;
 using Nalix.Common.Logging;
-using Nalix.Shared.Identifiers;
+using Nalix.Shared.Identity;
 using Nalix.Shared.Injection.DI;
 
 namespace Nalix.Network.Connection;

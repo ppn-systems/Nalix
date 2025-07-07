@@ -31,7 +31,9 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
             System.Threading.Interlocked.Increment(ref _priorityCounts[priorityIndex]);
 
             if (_options.EnableMetrics)
-                System.Threading.Interlocked.Increment(ref _enqueuedCounts[priorityIndex]);
+            {
+                System.Threading.Interlocked.Increment(ref _enqueuedCounts![priorityIndex]);
+            }
 
             return true;
         }
@@ -145,7 +147,9 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
             System.Threading.Interlocked.Increment(ref _priorityCounts[priorityIndex]);
 
             if (_options.EnableMetrics)
-                System.Threading.Interlocked.Increment(ref _enqueuedCounts[priorityIndex]);
+            {
+                System.Threading.Interlocked.Increment(ref _enqueuedCounts![priorityIndex]);
+            }
 
             return true;
         }

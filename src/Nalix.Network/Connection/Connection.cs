@@ -4,7 +4,7 @@ using Nalix.Common.Cryptography;
 using Nalix.Common.Identity;
 using Nalix.Common.Logging;
 using Nalix.Common.Security;
-using Nalix.Shared.Identifiers;
+using Nalix.Shared.Identity;
 
 namespace Nalix.Network.Connection;
 

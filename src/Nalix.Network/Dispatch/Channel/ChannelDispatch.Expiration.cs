@@ -113,7 +113,11 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
                 {
                     packet.Dispose();
                     totalExpired++;
-                    if (_options.EnableMetrics) _expiredCounts[i]++;
+
+                    if (_options.EnableMetrics)
+                    {
+                        _expiredCounts![i]++;
+                    }
                 }
                 else
                 {

@@ -170,7 +170,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
 
                 if (_options.EnableMetrics)
                 {
-                    System.Threading.Interlocked.Increment(ref _dequeuedCounts[i]);
+                    System.Threading.Interlocked.Increment(ref _dequeuedCounts![i]);
                     UpdatePerformanceStats(ticks);
                 }
 
@@ -216,7 +216,9 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
                 if (!isValid)
                 {
                     if (_options.EnableMetrics)
-                        System.Threading.Interlocked.Increment(ref _rejectedCounts[i]);
+                    {
+                        System.Threading.Interlocked.Increment(ref _rejectedCounts![i]);
+                    }
 
                     rejected = temp; // Assign the invalid packet
                     temp.Dispose();
@@ -226,7 +228,9 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
                 if (isExpired)
                 {
                     if (_options.EnableMetrics)
-                        System.Threading.Interlocked.Increment(ref _expiredCounts[i]);
+                    {
+                        System.Threading.Interlocked.Increment(ref _expiredCounts![i]);
+                    }
 
                     rejected = temp; // Assign the expired packet
                     temp.Dispose();
@@ -235,8 +239,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : Common.Pack
 
                 if (_options.EnableMetrics)
                 {
-                    System.Threading.Interlocked.Increment(ref _dequeuedCounts[i]);
-                    UpdatePerformanceStats(startTicks);
+                    System.Threading.Interlocked.Increment(ref _dequeuedCounts![i]);
+                    this.UpdatePerformanceStats(startTicks);
                 }
 
                 packet = temp;

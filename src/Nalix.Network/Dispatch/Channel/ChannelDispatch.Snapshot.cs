@@ -124,10 +124,13 @@ public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot>
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void ClearStatistics(int index)
     {
-        _expiredCounts[index] = 0;
-        _rejectedCounts[index] = 0;
-        _enqueuedCounts[index] = 0;
-        _dequeuedCounts[index] = 0;
+        if (_options.EnableMetrics)
+        {
+            _expiredCounts![index] = 0;
+            _rejectedCounts![index] = 0;
+            _enqueuedCounts![index] = 0;
+            _dequeuedCounts![index] = 0;
+        }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -137,14 +140,28 @@ public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot>
     {
         for (int i = 0; i < _priorityCount; i++)
         {
-            stats[(PacketPriority)i] = new PriorityQueueSnapshot
+            if (_options.EnableMetrics)
             {
-                PendingPackets = System.Threading.Volatile.Read(ref _priorityCounts[i]),
-                TotalEnqueued = _enqueuedCounts[i],
-                TotalDequeued = _dequeuedCounts[i],
-                TotalExpiredPackets = _expiredCounts[i],
-                TotalRejectedPackets = _rejectedCounts[i]
-            };
+                stats[(PacketPriority)i] = new PriorityQueueSnapshot
+                {
+                    PendingPackets = System.Threading.Volatile.Read(ref _priorityCounts[i]),
+                    TotalEnqueued = _enqueuedCounts![i],
+                    TotalDequeued = _dequeuedCounts![i],
+                    TotalExpiredPackets = _expiredCounts![i],
+                    TotalRejectedPackets = _rejectedCounts![i]
+                };
+            }
+            else
+            {
+                stats[(PacketPriority)i] = new PriorityQueueSnapshot
+                {
+                    PendingPackets = System.Threading.Volatile.Read(ref _priorityCounts[i]),
+                    TotalEnqueued = 0,
+                    TotalDequeued = 0,
+                    TotalExpiredPackets = 0,
+                    TotalRejectedPackets = 0
+                };
+            }
         }
     }
 
