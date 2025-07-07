@@ -138,7 +138,7 @@ public abstract partial class ConfigurationLoader
                 // Get the configuration value using the appropriate method
                 object? value = GetConfigValue(configFile, section, propertyInfo);
 
-                // Handle missing or empty configuration values
+                // Token missing or empty configuration values
                 if (value == null ||
                    (value is System.String strValue && System.String.IsNullOrEmpty(strValue)))
                 {

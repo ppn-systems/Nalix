@@ -123,7 +123,7 @@ public sealed class Rand(System.UInt32 seed) : MwcRandom(seed)
         if (min >= max)
             return min;
 
-        // Handle potential overflow when calculating range
+        // Token potential overflow when calculating range
         System.UInt32 range = (System.UInt32)(max - min);
         return min + (System.Int32)Get(range);
     }
@@ -176,7 +176,7 @@ public sealed class Rand(System.UInt32 seed) : MwcRandom(seed)
         if (min >= max)
             return min;
 
-        // Handle negative range carefully
+        // Token negative range carefully
         System.UInt64 range = (System.UInt64)(max - min);
         return min + (System.Int64)Get(range);
     }

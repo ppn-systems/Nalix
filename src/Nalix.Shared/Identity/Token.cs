@@ -10,17 +10,17 @@ namespace Nalix.Shared.Identifiers;
 /// serialization capabilities.
 /// </summary>
 /// <remarks>
-/// The Handle uses explicit layout to ensure consistent memory representation
+/// The Token uses explicit layout to ensure consistent memory representation
 /// across different platforms and provides both hexadecimal and Base36 string representations.
 ///
 /// Memory layout:
 /// - Bytes 0-3: Value (uint, little-endian)
 /// - Bytes 4-5: Machine ID (ushort, little-endian)
-/// - Byte 6: Handle type (byte)
+/// - Byte 6: Token type (byte)
 /// </remarks>
 [System.Runtime.InteropServices.StructLayout(
     System.Runtime.InteropServices.LayoutKind.Explicit, Size = 7)]
-public readonly struct Handle : IIdentifier, System.IEquatable<Handle>
+public readonly struct Token : IIdentifier, System.IEquatable<Token>
 {
     #region Private Fields
 
@@ -62,19 +62,19 @@ public readonly struct Handle : IIdentifier, System.IEquatable<Handle>
     /// Gets the identifier type.
     /// </summary>
     /// <value>An enum value representing the type of this identifier.</value>
-    public HandleType Type => (HandleType)_type;
+    public TokenType Type => (TokenType)_type;
 
     #endregion Public Properties
 
     #region Constructors and Factory Methods
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Handle"/> struct.
+    /// Initializes a new instance of the <see cref="Token"/> struct.
     /// </summary>
     /// <param name="value">The main identifier value.</param>
     /// <param name="machineId">The machine identifier.</param>
     /// <param name="type">The identifier type.</param>
-    private Handle(System.UInt32 value, System.UInt16 machineId, HandleType type)
+    private Token(System.UInt32 value, System.UInt16 machineId, TokenType type)
     {
         _value = value;
         _machineId = machineId;
@@ -82,47 +82,47 @@ public readonly struct Handle : IIdentifier, System.IEquatable<Handle>
     }
 
     /// <summary>
-    /// Creates a new <see cref="Handle"/> with the specified components.
+    /// Creates a new <see cref="Token"/> with the specified components.
     /// </summary>
     /// <param name="value">The main identifier value.</param>
     /// <param name="machineId">The machine identifier.</param>
     /// <param name="type">The identifier type.</param>
-    /// <returns>A new <see cref="Handle"/> instance.</returns>
+    /// <returns>A new <see cref="Token"/> instance.</returns>
     /// <example>
     /// <code>
-    /// var id = Handle.NewId(12345, 1001, HandleType.User);
+    /// var id = Token.NewId(12345, 1001, TokenType.User);
     /// Console.WriteLine(id.ToBase36String()); // Outputs Base36 representation
     /// </code>
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Handle NewId(System.UInt32 value, System.UInt16 machineId, HandleType type)
+    public static Token NewId(System.UInt32 value, System.UInt16 machineId, TokenType type)
         => new(value, machineId, type);
 
     /// <summary>
-    /// Creates a new <see cref="Handle"/> with the specified components.
+    /// Creates a new <see cref="Token"/> with the specified components.
     /// </summary>
     /// <param name="type">The identifier type.</param>
     /// <param name="machineId">The machine identifier.</param>
-    /// <returns>A new <see cref="Handle"/> instance.</returns>
+    /// <returns>A new <see cref="Token"/> instance.</returns>
     /// <example>
     /// <code>
-    /// var id = Handle.NewId(HandleType.System);
+    /// var id = Token.NewId(TokenType.System);
     /// Console.WriteLine(id.ToBase36String()); // Outputs Base36 representation
     /// </code>
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Handle NewId(HandleType type, System.UInt16 machineId = 1)
+    public static Token NewId(TokenType type, System.UInt16 machineId = 1)
         => new(RandGenerator.NextUInt32(), machineId, type);
 
     /// <summary>
-    /// Creates an empty <see cref="Handle"/> with all components set to zero.
+    /// Creates an empty <see cref="Token"/> with all components set to zero.
     /// </summary>
-    /// <returns>An empty <see cref="Handle"/> instance.</returns>
+    /// <returns>An empty <see cref="Token"/> instance.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Handle CreateEmpty()
+    public static Token CreateEmpty()
         => new(0, 0, 0);
 
     #endregion Constructors and Factory Methods
@@ -219,14 +219,14 @@ public readonly struct Handle : IIdentifier, System.IEquatable<Handle>
     }
 
     /// <summary>
-    /// Creates a <see cref="Handle"/> from a 7-byte array.
+    /// Creates a <see cref="Token"/> from a 7-byte array.
     /// </summary>
     /// <param name="bytes">The byte array containing the identifier data.</param>
-    /// <returns>A reconstructed <see cref="Handle"/> instance.</returns>
+    /// <returns>A reconstructed <see cref="Token"/> instance.</returns>
     /// <exception cref="System.ArgumentException">Thrown if the input array is null or not exactly 7 bytes.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Handle FromByteArray(System.ReadOnlySpan<System.Byte> bytes)
+    public static Token FromByteArray(System.ReadOnlySpan<System.Byte> bytes)
     {
         if (bytes.Length != 7)
             throw new System.ArgumentException("Input must be exactly 7 bytes.", nameof(bytes));
@@ -239,23 +239,39 @@ public readonly struct Handle : IIdentifier, System.IEquatable<Handle>
 
         byte type = bytes[6];
 
-        return new Handle(value, machineId, (HandleType)type);
+        return new Token(value, machineId, (TokenType)type);
     }
 
     /// <summary>
-    /// Creates a <see cref="Handle"/> from a 7-byte array.
+    /// Creates a <see cref="Token"/> from a 7-byte array.
     /// </summary>
     /// <param name="bytes">The byte array containing the identifier data.</param>
-    /// <returns>A reconstructed <see cref="Handle"/> instance.</returns>
+    /// <returns>A reconstructed <see cref="Token"/> instance.</returns>
     /// <exception cref="System.ArgumentException">Thrown if the input array is null or not exactly 7 bytes.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Handle FromByteArray(System.Byte[] bytes)
+    public static Token FromByteArray(System.Byte[] bytes)
     {
         if (bytes == null || bytes.Length != 7)
             throw new System.ArgumentException("Input must be a non-null array of exactly 7 bytes.", nameof(bytes));
 
         return FromByteArray(System.MemoryExtensions.AsSpan(bytes));
+    }
+
+    /// <summary>
+    /// Parses a Base36 string representation of a <see cref="Token"/>.
+    /// </summary>
+    /// <param name="text">The Base36 string to parse.</param>
+    /// <returns>A <see cref="Token"/> instance equivalent to the Base36 string.</returns>
+    /// <exception cref="System.FormatException">
+    /// Thrown if the input string is not a valid Base36 representation of a <see cref="Token"/>.
+    /// </exception>
+    public static Token ParseBase36(System.String text)
+    {
+        if (!TryParseBase36(System.MemoryExtensions.AsSpan(text), out Token result))
+            throw new System.FormatException($"Invalid Base36 handle: '{text}'");
+
+        return result;
     }
 
     /// <summary>
@@ -285,7 +301,7 @@ public readonly struct Handle : IIdentifier, System.IEquatable<Handle>
         // Use unsafe operations for optimal performance
         ref byte destinationRef = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(destination);
 
-        // Fix: Use MemoryMarshal to treat the Handle struct as a ReadOnlySpan<byte>
+        // Fix: Use MemoryMarshal to treat the Token struct as a ReadOnlySpan<byte>
         System.ReadOnlySpan<System.Byte> sourceSpan =
             System.Runtime.InteropServices.MemoryMarshal.AsBytes(
             System.Runtime.InteropServices.MemoryMarshal.CreateReadOnlySpan(
@@ -294,6 +310,55 @@ public readonly struct Handle : IIdentifier, System.IEquatable<Handle>
         sourceSpan[..7].CopyTo(destination);
 
         bytesWritten = 7;
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to parse a Base36 string representation of a <see cref="Token"/>.
+    /// </summary>
+    /// <param name="text">The Base36 string to parse.</param>
+    /// <param name="handle">
+    /// When this method returns, contains the <see cref="Token"/> value equivalent to the Base36 string,
+    /// if the conversion succeeded, or the default value if the conversion failed.
+    /// </param>
+    /// <returns>
+    /// <c>true</c> if the string was successfully parsed; otherwise, <c>false</c>.
+    /// </returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static bool TryParseBase36(System.ReadOnlySpan<System.Char> text, out Token handle)
+    {
+        handle = default;
+
+        if (text.Length == 0 || text.Length > 13) // Max length of 7-byte base36
+            return false;
+
+        System.UInt64 value = 0;
+
+        for (System.Byte i = 0; i < text.Length; i++)
+        {
+            System.Char c = text[i];
+            System.Int32 digit;
+
+            if (c >= '0' && c <= '9') digit = c - '0';
+            else if (c >= 'A' && c <= 'Z') digit = c - 'A' + 10;
+            else if (c >= 'a' && c <= 'z') digit = c - 'a' + 10; // allow lowercase
+            else return false;
+
+            if (digit >= 36) return false;
+
+            value = (value * 36) + (System.UInt32)digit;
+        }
+
+        if (value > 0x00FFFFFFFFFFFFFFUL) // must be <= 7 bytes (56 bits)
+            return false;
+
+        // Split to struct layout
+        System.UInt32 rawValue = (System.UInt32)(value & 0xFFFFFFFF);
+        System.UInt16 machineId = (System.UInt16)((value >> 32) & 0xFFFF);
+        System.Byte type = (System.Byte)((value >> 48) & 0xFF);
+
+        handle = new Token(rawValue, machineId, (TokenType)type);
         return true;
     }
 
@@ -311,10 +376,10 @@ public readonly struct Handle : IIdentifier, System.IEquatable<Handle>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean Equals(IIdentifier? other)
-        => other is Handle compactId && Equals(compactId);
+        => other is Token compactId && Equals(compactId);
 
     /// <summary>
-    /// Determines whether this identifier is equal to another <see cref="Handle"/>.
+    /// Determines whether this identifier is equal to another <see cref="Token"/>.
     /// </summary>
     /// <param name="other">The identifier to compare with this instance.</param>
     /// <returns>
@@ -322,7 +387,7 @@ public readonly struct Handle : IIdentifier, System.IEquatable<Handle>
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean Equals(Handle other)
+    public System.Boolean Equals(Token other)
     {
         // Optimize comparison by treating the struct as a single 64-bit value
         ulong thisValue = GetCombinedValue();
@@ -335,11 +400,11 @@ public readonly struct Handle : IIdentifier, System.IEquatable<Handle>
     /// </summary>
     /// <param name="obj">The object to compare with this instance.</param>
     /// <returns>
-    /// <c>true</c> if the object is a <see cref="Handle"/> and is equal to this instance;
+    /// <c>true</c> if the object is a <see cref="Token"/> and is equal to this instance;
     /// otherwise, <c>false</c>.
     /// </returns>
     public override System.Boolean Equals(System.Object? obj)
-        => obj is Handle other && Equals(other);
+        => obj is Token other && Equals(other);
 
     /// <summary>
     /// Returns the hash code for this identifier.
@@ -363,7 +428,7 @@ public readonly struct Handle : IIdentifier, System.IEquatable<Handle>
     #region Operators
 
     /// <summary>
-    /// Determines whether two <see cref="Handle"/> instances are equal.
+    /// Determines whether two <see cref="Token"/> instances are equal.
     /// </summary>
     /// <param name="left">The first identifier to compare.</param>
     /// <param name="right">The second identifier to compare.</param>
@@ -372,10 +437,10 @@ public readonly struct Handle : IIdentifier, System.IEquatable<Handle>
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean operator ==(Handle left, Handle right) => left.Equals(right);
+    public static System.Boolean operator ==(Token left, Token right) => left.Equals(right);
 
     /// <summary>
-    /// Determines whether two <see cref="Handle"/> instances are not equal.
+    /// Determines whether two <see cref="Token"/> instances are not equal.
     /// </summary>
     /// <param name="left">The first identifier to compare.</param>
     /// <param name="right">The second identifier to compare.</param>
@@ -384,7 +449,7 @@ public readonly struct Handle : IIdentifier, System.IEquatable<Handle>
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean operator !=(Handle left, Handle right) => !left.Equals(right);
+    public static System.Boolean operator !=(Token left, Token right) => !left.Equals(right);
 
     #endregion Operators
 
@@ -399,7 +464,7 @@ public readonly struct Handle : IIdentifier, System.IEquatable<Handle>
     private System.UInt64 GetCombinedValue()
     {
         // Mask to ensure we only use the lower 56 bits (7 bytes)
-        return System.Runtime.CompilerServices.Unsafe.As<Handle, System.UInt64>(
+        return System.Runtime.CompilerServices.Unsafe.As<Token, System.UInt64>(
             ref System.Runtime.CompilerServices.Unsafe.AsRef(in this)) & 0x00FFFFFFFFFFFFFF;
     }
 

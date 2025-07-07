@@ -11,9 +11,9 @@ public interface IIdentifier : System.IEquatable<IIdentifier>
     System.UInt32 Value { get; }
 
     /// <summary>
-    /// Gets the HandleType encoded within this identifier.
+    /// Gets the TokenType encoded within this identifier.
     /// </summary>
-    HandleType Type { get; }
+    TokenType Type { get; }
 
     /// <summary>
     /// Gets the machine Number component encoded within this identifier.

@@ -128,7 +128,7 @@ public sealed class GRandom(System.Int32 seed)
         if (range <= System.Int32.MaxValue)
             return min + Next((System.Int32)range);
 
-        // Handle large ranges that exceed int.MaxValue
+        // Token large ranges that exceed int.MaxValue
         return min + (System.Int32)(NextDouble() * range);
     }
 

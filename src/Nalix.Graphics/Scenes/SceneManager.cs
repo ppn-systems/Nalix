@@ -97,7 +97,7 @@ public static class SceneManager
             }
             catch (System.Exception ex)
             {
-                // Handle any exceptions that occur during instantiation
+                // Token any exceptions that occur during instantiation
                 NLogixFx.Debug("Instantiating: " + type.FullName);
                 NLogixFx.Error(
                     ex,

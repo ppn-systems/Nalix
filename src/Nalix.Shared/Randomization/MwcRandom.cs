@@ -189,7 +189,7 @@ public abstract class MwcRandom
             buffer[i++] = (System.Byte)(value >> 24);
         }
 
-        // Handle remaining bytes
+        // Token remaining bytes
         if (i < buffer.Length)
         {
             System.UInt32 value = Get();

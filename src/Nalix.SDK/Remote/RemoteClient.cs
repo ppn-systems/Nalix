@@ -97,7 +97,7 @@ public class RemoteClient<TPacket> : SingletonBase<RemoteClient<TPacket>>, Syste
         }
         catch (System.Exception ex)
         {
-            // Handle specific exceptions like SocketException if needed
+            // Token specific exceptions like SocketException if needed
             throw new System.InvalidOperationException("Failed to connect", ex);
         }
     }
@@ -127,7 +127,7 @@ public class RemoteClient<TPacket> : SingletonBase<RemoteClient<TPacket>>, Syste
         }
         catch (System.Exception ex)
         {
-            // Handle specific exceptions like SocketException if needed
+            // Token specific exceptions like SocketException if needed
             throw new System.InvalidOperationException("Failed to connect", ex);
         }
     }
