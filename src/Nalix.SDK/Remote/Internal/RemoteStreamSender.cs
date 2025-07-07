@@ -1,16 +1,16 @@
 using Nalix.Common.Package;
 
-namespace Nalix.Shared.Clients.Transport;
+namespace Nalix.SDK.Remote.Internal;
 
 /// <summary>
 /// Handles sending packets and raw bytes over a network stream.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="RemotePacketSender{TPacket}"/> class with the specified network stream.
+/// Initializes a new instance of the <see cref="RemoteStreamSender{TPacket}"/> class with the specified network stream.
 /// </remarks>
 /// <param name="stream">The <see cref="System.Net.Sockets.NetworkStream"/> used for sending data.</param>
 /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
-public sealed class RemotePacketSender<TPacket>(System.Net.Sockets.NetworkStream stream)
+internal sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStream stream)
     where TPacket : IPacket
 {
     private readonly System.Net.Sockets.NetworkStream _stream = stream

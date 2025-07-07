@@ -1,9 +1,9 @@
 using Nalix.Common.Package;
-using Nalix.Shared.Clients.Transport;
+using Nalix.SDK.Remote.Internal;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Injection.DI;
 
-namespace Nalix.Shared.Clients;
+namespace Nalix.SDK.Remote;
 
 /// <summary>
 /// Represents a network client that connects to a remote server using Reliable.
@@ -18,9 +18,9 @@ public class RemoteClient<TPacket> : SingletonBase<RemoteClient<TPacket>>, Syste
     #region Fields
 
     private System.Net.Sockets.TcpClient _client;
-    private RemotePacketSender<TPacket>? _sender;
-    private RemotePacketReceiver<TPacket>? _reader;
-    private System.Net.Sockets.NetworkStream? _stream;
+    private RemoteStreamSender<TPacket> _sender;
+    private RemoteStreamReceiver<TPacket> _reader;
+    private System.Net.Sockets.NetworkStream _stream;
 
     #endregion Fields
 
@@ -29,19 +29,19 @@ public class RemoteClient<TPacket> : SingletonBase<RemoteClient<TPacket>>, Syste
     /// <summary>
     /// Gets the context associated with the network connection.
     /// </summary>
-    public RemoteEndpointConfig Context { get; }
+    public RemoteTransportOptions Context { get; }
 
-    /// <summary>
-    /// Gets the network sender used to send packets.
-    /// </summary>
-    public RemotePacketSender<TPacket> Sender => _sender
-        ?? throw new System.InvalidOperationException("Sender is not initialized.");
+    ///// <summary>
+    ///// Gets the network sender used to send packets.
+    ///// </summary>
+    //public RemoteStreamSender<TPacket> Sender => _sender
+    //    ?? throw new System.InvalidOperationException("Sender is not initialized.");
 
-    /// <summary>
-    /// Gets the network receiver used to receive packets.
-    /// </summary>
-    public RemotePacketReceiver<TPacket> Receiver => _reader
-        ?? throw new System.InvalidOperationException("Receiver is not initialized.");
+    ///// <summary>
+    ///// Gets the network receiver used to receive packets.
+    ///// </summary>
+    //public RemoteStreamReceiver<TPacket> Receiver => _reader
+    //    ?? throw new System.InvalidOperationException("Receiver is not initialized.");
 
     /// <summary>
     /// Gets the <see cref="System.Net.Sockets.NetworkStream"/> used for network communication.
@@ -63,7 +63,7 @@ public class RemoteClient<TPacket> : SingletonBase<RemoteClient<TPacket>>, Syste
     /// </summary>
     private RemoteClient()
     {
-        this.Context = ConfigurationStore.Instance.Get<RemoteEndpointConfig>();
+        this.Context = ConfigurationStore.Instance.Get<RemoteTransportOptions>();
 
         _client = new System.Net.Sockets.TcpClient { NoDelay = true };
     }
@@ -92,8 +92,8 @@ public class RemoteClient<TPacket> : SingletonBase<RemoteClient<TPacket>>, Syste
             _client.Connect(Context.Address, Context.Port); // Synchronous Connect
 
             _stream = _client.GetStream();
-            _sender = new RemotePacketSender<TPacket>(_stream);
-            _reader = new RemotePacketReceiver<TPacket>(_stream);
+            _sender = new RemoteStreamSender<TPacket>(_stream);
+            _reader = new RemoteStreamReceiver<TPacket>(_stream);
         }
         catch (System.Exception ex)
         {
@@ -122,8 +122,8 @@ public class RemoteClient<TPacket> : SingletonBase<RemoteClient<TPacket>>, Syste
             await _client.ConnectAsync(Context.Address, Context.Port, cts.Token);
 
             _stream = _client.GetStream();
-            _sender = new RemotePacketSender<TPacket>(_stream);
-            _reader = new RemotePacketReceiver<TPacket>(_stream);
+            _sender = new RemoteStreamSender<TPacket>(_stream);
+            _reader = new RemoteStreamReceiver<TPacket>(_stream);
         }
         catch (System.Exception ex)
         {
