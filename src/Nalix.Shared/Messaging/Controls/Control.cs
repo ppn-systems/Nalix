@@ -33,7 +33,7 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
         + sizeof(System.Int64)   // Timestamp
         + sizeof(System.Int64)   // MonoTicks
         + sizeof(System.UInt32)  // SequenceId
-        + sizeof(ProtocolCode); // Reason
+        + sizeof(ProtocolCode);  // Reason
 
     /// <summary>
     /// Gets or sets the sequence identifier for this packet.
@@ -76,7 +76,7 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
         this.Reason = 0;
         this.Type = ControlType.NONE; // Default type, can be changed later
         this.Flags = PacketFlags.NONE;
-        this.Priority = PacketPriority.Urgent;
+        this.Priority = PacketPriority.URGENT;
         this.Protocol = ProtocolType.NONE;
         this.OpCode = PacketConstants.OpCodeDefault;
         this.MagicNumber = (System.UInt32)FrameMagicCode.CONTROL;
@@ -145,7 +145,14 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
                                                  .Get<Control>();
 
         System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
-        return bytesRead == 0 ? throw new System.InvalidOperationException("Failed to deserialize packet: No bytes were read.") : packet;
+        if (bytesRead == 0)
+        {
+            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .Return(packet);
+            throw new System.InvalidOperationException("Failed to deserialize packet: No bytes were read.");
+        }
+
+        return packet;
     }
 
     /// <inheritdoc/>
@@ -166,7 +173,7 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
         this.Type = ControlType.NONE;
         this.Flags = PacketFlags.NONE;
         this.Protocol = ProtocolType.NONE;
-        this.Priority = PacketPriority.Urgent;
+        this.Priority = PacketPriority.URGENT;
     }
 
     /// <inheritdoc/>

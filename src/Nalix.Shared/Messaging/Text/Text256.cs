@@ -42,7 +42,7 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
     {
         Flags = PacketFlags.NONE;
         Content = System.String.Empty;
-        Priority = PacketPriority.None;
+        Priority = PacketPriority.NONE;
         Protocol = ProtocolType.NONE;
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)FrameMagicCode.TEXT256;
@@ -78,11 +78,14 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
                                                  .Get<Text256>();
 
         System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
+        if (bytesRead == 0)
+        {
+            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .Return(packet);
+            throw new System.InvalidOperationException("Failed to deserialize packet: No bytes were read.");
+        }
 
-        return bytesRead == 0
-            ? throw new System.InvalidOperationException(
-                "Failed to deserialize packet: No bytes were read.")
-            : packet;
+        return packet;
     }
 
     /// <summary>
@@ -134,7 +137,7 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
     {
         this.Flags = PacketFlags.NONE;
         this.Content = System.String.Empty;
-        this.Priority = PacketPriority.None;
+        this.Priority = PacketPriority.NONE;
         this.Protocol = ProtocolType.NONE;
     }
 
