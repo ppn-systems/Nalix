@@ -1,5 +1,7 @@
 ﻿using Nalix.Common.Connection;
 using Nalix.Network.Listeners.Internal;
+using Nalix.Shared.Memory.Pools;
+using System.Net.Sockets;
 
 namespace Nalix.Network.Listeners;
 
@@ -19,7 +21,7 @@ public abstract partial class Listener
         }
     };
 
-    private static readonly System.EventHandler<
+    internal static readonly System.EventHandler<
         System.Net.Sockets.SocketAsyncEventArgs> AsyncAcceptCompleted = static (s, e) =>
         {
             var tcs = (System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>)e.UserToken!;
@@ -93,7 +95,7 @@ public abstract partial class Listener
     {
         _cancellationToken = cancellationToken;
 
-        System.Net.Sockets.SocketAsyncEventArgs args = _argsPool.Rent();
+        System.Net.Sockets.SocketAsyncEventArgs args = ObjectPoolManager.Instance.Get<PooledSocketAsyncEventArgs>();
         args.Completed += this.OnSyncAcceptCompleted;
 
         this.AcceptNext(args);
@@ -147,25 +149,25 @@ public abstract partial class Listener
     private async System.Threading.Tasks.ValueTask<IConnection> CreateConnectionAsync(
         System.Threading.CancellationToken cancellationToken)
     {
-        AcceptState state = _acceptStatePool.TryDequeue(out var pooled)
-            ? pooled : new AcceptState();
+        PooledAcceptContext state = ObjectPoolManager.Instance.Get<PooledAcceptContext>();
 
-        state.Reset();
-
-        if (!_listener.AcceptAsync(state.Args))
+        try
         {
-            if (state.Args.SocketError == System.Net.Sockets.SocketError.Success)
+            if (!_listener.AcceptAsync(state.Args))
             {
-                _acceptStatePool.Enqueue(state);
-                return InitializeConnection(state.Args.AcceptSocket!);
+                if (state.Args.SocketError == SocketError.Success)
+                    return InitializeConnection(state.Args.AcceptSocket!);
+
+                throw new SocketException((int)state.Args.SocketError);
             }
 
-            throw new System.Net.Sockets.SocketException((System.Int32)state.Args.SocketError);
+            Socket socket = await state.Tcs.Task.ConfigureAwait(false);
+            return InitializeConnection(socket);
         }
-
-        System.Net.Sockets.Socket socket = await state.Tcs.Task.ConfigureAwait(false);
-        _acceptStatePool.Enqueue(state);
-        return InitializeConnection(socket);
+        finally
+        {
+            ObjectPoolManager.Instance.Return(state);
+        }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -174,8 +176,18 @@ public abstract partial class Listener
         System.Object? sender,
         System.Net.Sockets.SocketAsyncEventArgs e)
     {
-        HandleAccept(e);
-        AcceptNext(e);
+        try
+        {
+            this.HandleAccept(e);
+        }
+        finally
+        {
+            ObjectPoolManager.Instance.Return((PooledSocketAsyncEventArgs)e);
+        }
+
+        PooledSocketAsyncEventArgs newArgs = ObjectPoolManager.Instance.Get<PooledSocketAsyncEventArgs>();
+        newArgs.Completed += this.OnSyncAcceptCompleted;
+        this.AcceptNext(newArgs);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -193,7 +205,7 @@ public abstract partial class Listener
                 if (_listener.AcceptAsync(args)) break;
 
                 // If the connection has been received synchronously, process it immediately.
-                HandleAccept(args);
+                this.HandleAccept(args);
             }
             catch (System.Net.Sockets.SocketException ex) when (
                 ex.SocketErrorCode == System.Net.Sockets.SocketError.Interrupted ||

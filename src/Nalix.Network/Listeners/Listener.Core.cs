@@ -4,6 +4,7 @@ using Nalix.Network.Configurations;
 using Nalix.Network.Listeners.Internal;
 using Nalix.Network.Protocols;
 using Nalix.Shared.Configuration;
+using Nalix.Shared.Memory.Pools;
 
 namespace Nalix.Network.Listeners;
 
@@ -32,10 +33,8 @@ public abstract partial class Listener : IListener, System.IDisposable
     private readonly IProtocol _protocol;
     private readonly IBufferPool _bufferPool;
     private readonly TimeSynchronizer _timeSyncWorker;
-    private readonly SocketAsyncEventArgsPool _argsPool;
     private readonly System.Net.Sockets.Socket _listener;
     private readonly System.Threading.SemaphoreSlim _lock;
-    private readonly System.Collections.Concurrent.ConcurrentQueue<AcceptState> _acceptStatePool;
 
     private System.Threading.CancellationTokenSource? _cts;
     private System.Threading.CancellationToken _cancellationToken;
@@ -90,8 +89,6 @@ public abstract partial class Listener : IListener, System.IDisposable
         _logger = logger;
         _protocol = protocol;
         _bufferPool = bufferPool;
-        _argsPool = new();
-        _acceptStatePool = new();
         _lock = new System.Threading.SemaphoreSlim(1, 1);
 
         // Create the optimal socket listener.
@@ -137,6 +134,9 @@ public abstract partial class Listener : IListener, System.IDisposable
         _timeSyncWorker = new TimeSynchronizer(logger);
 
         _timeSyncWorker.TimeSynchronized += SynchronizeTime;
+
+        ObjectPoolManager.Instance.Prealloc<PooledSocketAsyncEventArgs>(100);
+        ObjectPoolManager.Instance.Prealloc<PooledAcceptContext>(50);
     }
 
     /// <summary>

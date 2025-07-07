@@ -1,4 +1,4 @@
-# ![Icon](https://raw.githubusercontent.com/phcnguyen/Notio/refs/heads/master/assets/Nalix.ico) **Nalix**
+# ![Icon](https://raw.githubusercontent.com/ppn-systems/Nalix/refs/heads/master/assets/Nalix.ico) **Nalix**
 
 ![NuGet Version](https://img.shields.io/nuget/v/Nalix.Common?style=flat-square&logo=nuget)
 ![NuGet Downloads](https://img.shields.io/nuget/dt/Nalix.Common?style=flat-square&logo=nuget)

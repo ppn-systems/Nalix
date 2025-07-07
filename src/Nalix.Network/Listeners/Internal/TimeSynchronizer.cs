@@ -3,14 +3,25 @@ using Nalix.Shared.Time;
 
 namespace Nalix.Network.Listeners.Internal;
 
+/// <summary>
+/// Manages time synchronization operations by periodically triggering time updates.
+/// This class ensures time synchronization occurs at a fixed interval when enabled.
+/// </summary>
 internal class TimeSynchronizer(ILogger logger)
 {
     private volatile System.Boolean _isRunning = false;
     private volatile System.Boolean _isTimeSyncEnabled = false;
     private readonly ILogger _logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
 
+    /// <summary>
+    /// Gets a value indicating whether the time synchronization loop is currently running.
+    /// </summary>
     public System.Boolean IsRunning => _isRunning;
 
+    /// <summary>
+    /// Gets or sets a value indicating whether time synchronization is enabled.
+    /// When set to <c>true</c>, the synchronization loop will start processing if not already running.
+    /// </summary>
     public System.Boolean IsTimeSyncEnabled
     {
         get => _isTimeSyncEnabled;
@@ -23,6 +34,13 @@ internal class TimeSynchronizer(ILogger logger)
     /// </summary>
     public event System.Action<System.Int64>? TimeSynchronized;
 
+    /// <summary>
+    /// Runs the time synchronization loop asynchronously.
+    /// The loop waits for synchronization to be enabled and then triggers the <see cref="TimeSynchronized"/> event
+    /// at approximately 16ms intervals, adjusted for processing time.
+    /// </summary>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async System.Threading.Tasks.Task RunAsync(
         System.Threading.CancellationToken cancellationToken)
     {
@@ -78,6 +96,9 @@ internal class TimeSynchronizer(ILogger logger)
         }
     }
 
+    /// <summary>
+    /// Stops the time synchronization loop if it is currently running.
+    /// </summary>
     public void Stop()
     {
         if (!_isRunning)

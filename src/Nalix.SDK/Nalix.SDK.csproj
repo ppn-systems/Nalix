@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsPackable>true</IsPackable>
+		<IsTrimmable>true</IsTrimmable>
+		<OutputType>Library</OutputType>
+
+		<Version>1.7.0</Version>
+		<PackageVersion>1.7.0</PackageVersion>
+
+		<Description>
+A high-performance, configurable TCP remote client for integrating with Nalix-based systems. Provides reliable communication, automatic packet handling, and simple async connection support.
+		</Description>
+
+		<PackageReleaseNotes>
+			- Added async connection support
+			- Improved stream disposal and error handling
+			- Integrated RemotePacketSender and RemotePacketReceiver
+		</PackageReleaseNotes>
+
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+	</PropertyGroup>
+
+	<Import Project="..\Nalix.Build.props" />
+	<Import Project="..\Package.Build.props" />
+
+	<ItemGroup>
+		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
+		<ProjectReference Include="..\Nalix.Shared\Nalix.Shared.csproj" />
+	</ItemGroup>
+
+</Project>

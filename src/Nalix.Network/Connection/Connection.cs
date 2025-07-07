@@ -4,7 +4,7 @@ using Nalix.Common.Cryptography;
 using Nalix.Common.Identity;
 using Nalix.Common.Logging;
 using Nalix.Common.Security;
-using Nalix.Shared.Identifiers;
+using Nalix.Shared.Identity;
 
 namespace Nalix.Network.Connection;
 
@@ -46,7 +46,7 @@ public sealed partial class Connection : IConnection
     public Connection(System.Net.Sockets.Socket socket, IBufferPool bufferAllocator, ILogger? logger = null)
     {
         _lock = new System.Threading.Lock();
-        _id = Handle.NewId(HandleType.Session);
+        _id = Token.NewId(TokenType.Session);
         _ctokens = new System.Threading.CancellationTokenSource();
 
         _logger = logger;

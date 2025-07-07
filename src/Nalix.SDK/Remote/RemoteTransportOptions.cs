@@ -2,12 +2,12 @@ using Nalix.Common.Cryptography;
 using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;
 
-namespace Nalix.Shared.Clients;
+namespace Nalix.SDK.Remote;
 
 /// <summary>
 /// Represents the configuration settings for establishing a network connection.
 /// </summary>
-public sealed class RemoteEndpointConfig : ConfigurationLoader
+public sealed class RemoteTransportOptions : ConfigurationLoader
 {
     private System.Byte[] _key = new System.Byte[32];
 

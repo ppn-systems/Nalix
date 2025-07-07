@@ -3,6 +3,7 @@ using Nalix.Common.Logging;
 using Nalix.Common.Package;
 using Nalix.Network.Configurations;
 using Nalix.Network.Security.Guard;
+using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -26,6 +27,14 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     private const System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes RequiredMembers =
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor;
+
+    private const System.Reflection.BindingFlags BindingFlags =
+              System.Reflection.BindingFlags.Public |
+              System.Reflection.BindingFlags.Instance |
+              System.Reflection.BindingFlags.Static;
+
+    private const System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes PublicMethods =
+                  System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods;
 
     #endregion Constants
 
@@ -79,7 +88,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <summary>
     /// Configuration options for ChannelDispatch
     /// </summary>
-    public DispatchQueueOptions QueueOptions { get; set; } = new DispatchQueueOptions();
+    public DispatchQueueOptions QueueOptions { get; } = ConfigurationStore.Instance.Get<DispatchQueueOptions>();
 
     #endregion Properties
 
@@ -91,7 +100,10 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <remarks>
     /// This constructor sets up the packet handler map and allows subsequent fluent configuration.
     /// </remarks>
-    public PacketDispatchOptions() => _rateLimiter = new PacketRateLimitGuard();
+    public PacketDispatchOptions()
+    {
+        _rateLimiter = new PacketRateLimitGuard();
+    }
 
     #endregion Constructors
 }
