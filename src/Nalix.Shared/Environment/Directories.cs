@@ -645,10 +645,11 @@ public static class Directories
         }
         catch (System.Exception ex)
         {
-            string errorMessage = $"Failed to create directory: {path}. Error: {ex.Message}";
-            errorMessage += $" (Called from {callerMemberName} at";
-            errorMessage += $" {System.IO.Path.GetFileName(callerFilePath)}:{callerLineNumber})";
-            throw new DirectoryException(errorMessage, path, ex);
+            string errorMessage = $"Failed to create directory: {path}. Error: {ex.Message} " +
+                                  $"(Called from {callerMemberName} at " +
+                                  $"{System.IO.Path.GetFileName(callerFilePath)}:{callerLineNumber})";
+
+            throw new InternalErrorException(errorMessage, ex);
         }
         finally
         {
