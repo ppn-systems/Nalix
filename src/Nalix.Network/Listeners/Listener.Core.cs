@@ -135,8 +135,8 @@ public abstract partial class Listener : IListener, System.IDisposable
 
         _timeSyncWorker.TimeSynchronized += SynchronizeTime;
 
-        ObjectPoolManager.Instance.Prealloc<PooledSocketAsyncEventArgs>(100);
-        ObjectPoolManager.Instance.Prealloc<PooledAcceptContext>(50);
+        ObjectPoolManager.Instance.Prealloc<PooledSocketAsyncEventArgs>(80);
+        ObjectPoolManager.Instance.Prealloc<PooledAcceptContext>(40);
     }
 
     /// <summary>

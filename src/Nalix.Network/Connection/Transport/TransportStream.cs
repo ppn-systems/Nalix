@@ -1,6 +1,8 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Logging;
 using Nalix.Extensions.IO;
+using Nalix.Network.Listeners.Internal;
+using Nalix.Shared.Memory.Pools;
 using Nalix.Shared.Time;
 
 namespace Nalix.Network.Connection.Transport;
@@ -223,14 +225,14 @@ internal class TransportStream : System.IDisposable
     /// <param name="task">The task representing the read operation.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     private async System.Threading.Tasks.Task OnReceiveCompleted(
-        System.Threading.Tasks.Task<int> task,
+        System.Threading.Tasks.Task<System.Int32> task,
         System.Threading.CancellationToken cancellationToken)
     {
         if (task.IsCanceled || _disposed) return;
 
         try
         {
-            int totalBytesRead = await task;
+            System.Int32 totalBytesRead = await task;
             if (totalBytesRead == 0)
             {
                 _logger?.Debug("[{0}] Clients closed", nameof(TransportStream));
@@ -240,9 +242,9 @@ internal class TransportStream : System.IDisposable
             }
 
             if (totalBytesRead < 2) return;
-            int offset = 0;
+            System.Int32 offset = 0;
 
-            ushort size = _buffer.ToUInt16(ref offset);
+            System.UInt16 size = _buffer.ToUInt16(ref offset);
             _logger?.Debug("[{0}] Packet size: {1} bytes.", nameof(TransportStream), size);
 
             if (size > _pool.MaxBufferSize)
@@ -262,37 +264,44 @@ internal class TransportStream : System.IDisposable
 
             while (totalBytesRead < size)
             {
-                System.Threading.Tasks.TaskCompletionSource<int> tcs = new();
-                System.Net.Sockets.SocketAsyncEventArgs saea = new();
+                System.Int32 bytesRead;
+                System.Threading.Tasks.TaskCompletionSource<System.Int32> tcs = new();
+                PooledSocketAsyncEventArgs saea = ObjectPoolManager.Instance.Get<PooledSocketAsyncEventArgs>();
 
-                saea.SetBuffer(_buffer, totalBytesRead, size - totalBytesRead);
-
-                saea.Completed += (sender, args) =>
+                try
                 {
-                    if (args.SocketError == System.Net.Sockets.SocketError.Success)
+                    saea.SetBuffer(_buffer, totalBytesRead, size - totalBytesRead);
+                    saea.Completed += (sender, args) =>
                     {
-                        tcs.SetResult(args.BytesTransferred);
-                    }
-                    else
-                    {
-                        tcs.SetException(new System.Net.Sockets.SocketException((int)args.SocketError));
-                    }
-                };
+                        if (args.SocketError == System.Net.Sockets.SocketError.Success)
+                        {
+                            tcs.SetResult(args.BytesTransferred);
+                        }
+                        else
+                        {
+                            tcs.SetException(new System.Net.Sockets.SocketException((System.Int32)args.SocketError));
+                        }
+                    };
 
-                if (!_socket.ReceiveAsync(saea))
-                {
-                    // Nếu hoàn thành đồng bộ, set kết quả thủ công
-                    if (saea.SocketError == System.Net.Sockets.SocketError.Success)
+                    if (!_socket.ReceiveAsync(saea))
                     {
-                        tcs.SetResult(saea.BytesTransferred);
+                        // Nếu hoàn thành đồng bộ, set kết quả thủ công
+                        if (saea.SocketError == System.Net.Sockets.SocketError.Success)
+                        {
+                            tcs.SetResult(saea.BytesTransferred);
+                        }
+                        else
+                        {
+                            tcs.SetException(new System.Net.Sockets.SocketException((int)saea.SocketError));
+                        }
                     }
-                    else
-                    {
-                        tcs.SetException(new System.Net.Sockets.SocketException((int)saea.SocketError));
-                    }
+
+                    bytesRead = await tcs.Task;
                 }
-
-                int bytesRead = await tcs.Task;
+                finally
+                {
+                    ObjectPoolManager.Instance.Return(saea);
+                }
 
                 if (bytesRead == 0)
                 {
