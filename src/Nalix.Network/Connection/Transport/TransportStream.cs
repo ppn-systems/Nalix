@@ -1,6 +1,8 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Logging;
 using Nalix.Extensions.IO;
+using Nalix.Network.Listeners.Internal;
+using Nalix.Shared.Memory.Pools;
 using Nalix.Shared.Time;
 
 namespace Nalix.Network.Connection.Transport;
@@ -263,7 +265,7 @@ internal class TransportStream : System.IDisposable
             while (totalBytesRead < size)
             {
                 System.Threading.Tasks.TaskCompletionSource<int> tcs = new();
-                System.Net.Sockets.SocketAsyncEventArgs saea = new();
+                PooledSocketAsyncEventArgs saea = ObjectPoolManager.Instance.Get<PooledSocketAsyncEventArgs>();
 
                 saea.SetBuffer(_buffer, totalBytesRead, size - totalBytesRead);
 
@@ -293,6 +295,7 @@ internal class TransportStream : System.IDisposable
                 }
 
                 int bytesRead = await tcs.Task;
+                ObjectPoolManager.Instance.Return(saea);
 
                 if (bytesRead == 0)
                 {
