@@ -15,7 +15,7 @@ public abstract partial class Protocol : IProtocol
     /// <param name="bytes">The message data.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public abstract void ProcessMessage(System.ReadOnlySpan<byte> bytes);
+    public abstract void ProcessMessage(System.ReadOnlySpan<System.Byte> bytes);
 
     /// <summary>
     /// Processes a message received on the connection.
@@ -25,7 +25,7 @@ public abstract partial class Protocol : IProtocol
     /// <param name="args">Event arguments containing the connection and message data.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public abstract void ProcessMessage(object sender, IConnectEventArgs args);
+    public abstract void ProcessMessage(System.Object sender, IConnectEventArgs args);
 
     /// <summary>
     /// Allows subclasses to execute custom logic after a message has been processed.
@@ -47,7 +47,7 @@ public abstract partial class Protocol : IProtocol
     /// <exception cref="System.ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void PostProcessMessage(object sender, IConnectEventArgs args)
+    public void PostProcessMessage(System.Object sender, IConnectEventArgs args)
     {
         System.ArgumentNullException.ThrowIfNull(args);
         System.ObjectDisposedException.ThrowIf(_isDisposed, this);

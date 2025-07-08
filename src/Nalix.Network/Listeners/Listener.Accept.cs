@@ -1,7 +1,6 @@
 ﻿using Nalix.Common.Connection;
 using Nalix.Network.Internal;
 using Nalix.Shared.Memory.Pools;
-using System.Net.Sockets;
 
 namespace Nalix.Network.Listeners;
 
@@ -155,13 +154,15 @@ public abstract partial class Listener
         {
             if (!_listener.AcceptAsync(state.Args))
             {
-                if (state.Args.SocketError == SocketError.Success)
+                if (state.Args.SocketError == System.Net.Sockets.SocketError.Success)
+                {
                     return InitializeConnection(state.Args.AcceptSocket!);
+                }
 
-                throw new SocketException((int)state.Args.SocketError);
+                throw new System.Net.Sockets.SocketException((int)state.Args.SocketError);
             }
 
-            Socket socket = await state.Tcs.Task.ConfigureAwait(false);
+            System.Net.Sockets.Socket socket = await state.Tcs.Task.ConfigureAwait(false);
             return InitializeConnection(socket);
         }
         finally
@@ -198,9 +199,6 @@ public abstract partial class Listener
         {
             try
             {
-                // Reset SocketAsyncEventArgs
-                args.AcceptSocket = null;
-
                 // Try accepting the connection asynchronously
                 if (_listener.AcceptAsync(args)) break;
 

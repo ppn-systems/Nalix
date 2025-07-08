@@ -14,13 +14,13 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <summary>
     /// Defines metadata and behavior for a packet.
     /// </summary>
-    /// <param name="Opcode">Unique identifier for the packet type.</param>
+    /// <param name="OpCode">Unique identifier for the packet type.</param>
     /// <param name="Timeout">Optional response timeout.</param>
     /// <param name="RateLimit">Optional sending rate limit.</param>
     /// <param name="Permission">Optional required privileges.</param>
     /// <param name="Encryption">Optional encryption setting.</param>
     private record PacketDescriptor(
-        PacketOpcodeAttribute Opcode,
+        PacketOpcodeAttribute OpCode,
         PacketTimeoutAttribute? Timeout,
         PacketRateLimitAttribute? RateLimit,
         PacketPermissionAttribute? Permission,
@@ -121,66 +121,46 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 return;
             }
 
-            // Handle Compression
-            TPacket? processedPacket = default;
-            System.Boolean needDisposeOriginal = false;
-            try
+            if (!packet.IsEncrypted &&
+                     attributes.Encryption?.IsEncrypted == true)
+            {
+                System.String message = $"Encrypted packet request for command " +
+                                        $"'{attributes.OpCode.OpCode}' " +
+                                        $"from connection {connection.RemoteEndPoint}.";
+
+                _logger?.Warn(message);
+                connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.PacketEncryption));
+                return;
+            }
+            else if (packet.IsEncrypted && attributes.Encryption?.IsEncrypted == false)
+            {
+                System.String message = $"Encrypted packet not allowed for command " +
+                                        $"'{attributes.OpCode.OpCode}' " +
+                                        $"from connection {connection.RemoteEndPoint}.";
+
+                _logger?.Warn(message);
+                connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.PacketEncryption));
+                return;
+            }
+            else if (packet.IsEncrypted && attributes.Encryption?.IsEncrypted == true)
             {
                 try
                 {
-                    TPacket decompressed = TPacket.Decompress(packet);
-                    if (!ReferenceEquals(decompressed, packet))
-                    {
-                        processedPacket = decompressed;
-                        needDisposeOriginal = true;
-                    }
-                    else
-                    {
-                        processedPacket = packet;
-                    }
+                    packet = TPacket.Decrypt(
+                        packet,
+                        connection.EncryptionKey,
+                        attributes.Encryption!.AlgorithmType);
                 }
                 catch (System.Exception ex)
                 {
-                    _logger?.Error("Failed to decompress packet: {0}", ex.Message);
+                    _logger?.Error("Failed to Decrypt packet: {0}", ex.Message);
                     connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.ServerError));
                     return;
                 }
+            }
 
-                TPacket workingPacket = processedPacket;
-
-                // Check encryption flag
-                if (attributes.Encryption?.IsEncrypted == true && !workingPacket.IsEncrypted)
-                {
-                    System.String message = $"Encrypted packet not allowed for command " +
-                                            $"'{attributes.Opcode.OpCode}' " +
-                                            $"from connection {connection.RemoteEndPoint}.";
-                    _logger?.Warn(message);
-                    connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.PacketEncryption));
-                    return;
-                }
-
-                // Handle Decryption
-                TPacket? decryptedPacket = default;
-                System.Boolean needDisposeDecrypted = false;
-                if (attributes.Encryption?.IsEncrypted == true)
-                {
-                    try
-                    {
-                        decryptedPacket = TPacket.Decrypt(workingPacket, connection.EncryptionKey, connection.Encryption);
-                        needDisposeDecrypted = !ReferenceEquals(decryptedPacket, workingPacket);
-                        workingPacket = decryptedPacket;
-                    }
-                    catch (System.Exception ex)
-                    {
-                        if (decryptedPacket is not null && needDisposeDecrypted)
-                            decryptedPacket.Dispose();
-
-                        _logger?.Error("Failed to Decrypt packet: {0}", ex.Message);
-                        connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.ServerError));
-                        return;
-                    }
-                }
-
+            try
+            {
                 try
                 {
                     System.Object? result;
@@ -192,12 +172,12 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                         try
                         {
                             result = await System.Threading.Tasks.Task.Run(
-                                () => method.Invoke(controllerInstance, [workingPacket, connection]), cts.Token);
+                                () => method.Invoke(controllerInstance, [packet, connection]), cts.Token);
                         }
                         catch (System.OperationCanceledException)
                         {
                             _logger?.Error("Packet '{0}' timed out after {1}ms.",
-                                attributes.Opcode.OpCode,
+                                attributes.OpCode.OpCode,
                                 attributes.Timeout.TimeoutMilliseconds);
 
                             connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.RequestTimeout));
@@ -206,30 +186,30 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                     }
                     else
                     {
-                        result = method.Invoke(controllerInstance, [workingPacket, connection]);
+                        result = method.Invoke(controllerInstance, [packet, connection]);
                     }
 
                     // Await the return result, could be ValueTask if method is synchronous
-                    await ResolveHandlerDelegate(method.ReturnType)(result, workingPacket, connection).ConfigureAwait(false);
+                    await ResolveHandlerDelegate(method.ReturnType)(result, packet, connection).ConfigureAwait(false);
                 }
                 catch (PackageException ex)
                 {
                     _logger?.Error("Error occurred while processing packet id '{0}' in controller '{1}' (Method: '{2}'). " +
                                    "Exception: {3}. Clients: {4}, Exception Details: {5}",
-                                    attributes.Opcode.OpCode,
+                                    attributes.OpCode.OpCode,
                                     controllerInstance.GetType().Name,
                                     method.Name,
                                     ex.GetType().Name,
                                     connection.RemoteEndPoint,
                                     ex.Message
                     );
-                    _errorHandler?.Invoke(ex, attributes.Opcode.OpCode);
+                    _errorHandler?.Invoke(ex, attributes.OpCode.OpCode);
                     connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.ServerError));
                 }
                 catch (System.Exception ex)
                 {
                     _logger?.Error("Packet [OpCode={0}] ({1}.{2}) threw {3}: {4} [Clients: {5}]",
-                        attributes.Opcode.OpCode,
+                        attributes.OpCode.OpCode,
                         controllerInstance.GetType().Name,
                         method.Name,
                         ex.GetType().Name,
@@ -237,18 +217,12 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                         connection.RemoteEndPoint
                     );
 
-                    _errorHandler?.Invoke(ex, attributes.Opcode.OpCode);
+                    _errorHandler?.Invoke(ex, attributes.OpCode.OpCode);
                     connection.Tcp.Send(TPacket.Create(0, ProtocolErrorTexts.ServerError));
-                }
-                finally
-                {
-                    if (decryptedPacket is not null && needDisposeDecrypted) decryptedPacket.Dispose();
                 }
             }
             finally
             {
-                // Dispose packet gốc nếu đã tạo packet mới
-                if (needDisposeOriginal) processedPacket?.Dispose();
                 if (stopwatch is not null)
                 {
                     stopwatch.Stop();

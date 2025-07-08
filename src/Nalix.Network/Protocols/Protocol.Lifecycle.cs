@@ -4,8 +4,8 @@ public abstract partial class Protocol
 {
     #region Fields
 
-    private bool _isDisposed;
-    private int _keepConnectionOpen;
+    private System.Boolean _isDisposed;
+    private System.Int32 _keepConnectionOpen;
 
     #endregion Fields
 
@@ -16,7 +16,7 @@ public abstract partial class Protocol
     /// Standard value is false unless overridden.
     /// Thread-safe implementation using atomic operations.
     /// </summary>
-    public virtual bool KeepConnectionOpen
+    public virtual System.Boolean KeepConnectionOpen
     {
         get => System.Threading.Interlocked.CompareExchange(ref _keepConnectionOpen, 0, 0) == 1;
         protected set => System.Threading.Interlocked.Exchange(ref _keepConnectionOpen, value ? 1 : 0);

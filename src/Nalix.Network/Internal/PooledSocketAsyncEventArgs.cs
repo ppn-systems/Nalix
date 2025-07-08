@@ -12,8 +12,10 @@ internal sealed class PooledSocketAsyncEventArgs : System.Net.Sockets.SocketAsyn
     /// </summary>
     public void ResetForPool()
     {
-        base.AcceptSocket = null;
+        // Reset SocketAsyncEventArgs
+
         base.UserToken = null;
+        base.AcceptSocket = null;
 
         // Optional: Clear buffer if you use SetBuffer()
         base.SetBuffer(null, 0, 0);
