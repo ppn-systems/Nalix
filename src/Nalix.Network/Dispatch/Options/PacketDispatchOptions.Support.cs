@@ -261,186 +261,320 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     }
 
     /// <summary>
+    /// Dictionary mapping return types to their corresponding handler delegates.
+    /// </summary>
+    private static readonly System.Collections.Generic.Dictionary<System.Type, System.Func<PacketDispatchOptions<TPacket>, System.Type, System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task>>> _handlerMappings = new()
+    {
+        [typeof(void)] = (instance, returnType) => instance.HandleVoidResult,
+        [typeof(System.Byte[])] = (instance, returnType) => instance.HandleByteArrayResult,
+        [typeof(System.String)] = (instance, returnType) => instance.HandleStringResult,
+        [typeof(System.Memory<System.Byte>)] = (instance, returnType) => instance.HandleMemoryByteResult,
+        [typeof(TPacket)] = (instance, returnType) => instance.HandleTPacketResult,
+        [typeof(System.Threading.Tasks.ValueTask)] = (instance, returnType) => instance.HandleValueTaskResult(returnType),
+        [typeof(System.Threading.Tasks.ValueTask<System.Byte[]>)] = (instance, returnType) => instance.HandleValueTaskByteArrayResult(returnType),
+        [typeof(System.Threading.Tasks.ValueTask<System.String>)] = (instance, returnType) => instance.HandleValueTaskStringResult(returnType),
+        [typeof(System.Threading.Tasks.ValueTask<System.Memory<System.Byte>>)] = (instance, returnType) => instance.HandleValueTaskMemoryByteResult(returnType),
+        [typeof(System.Threading.Tasks.ValueTask<TPacket>)] = (instance, returnType) => instance.HandleValueTaskTPacketResult(returnType),
+        [typeof(System.Threading.Tasks.Task)] = (instance, returnType) => instance.HandleTaskResult(returnType),
+        [typeof(System.Threading.Tasks.Task<System.Byte[]>)] = (instance, returnType) => instance.HandleTaskByteArrayResult(returnType),
+        [typeof(System.Threading.Tasks.Task<System.String>)] = (instance, returnType) => instance.HandleTaskStringResult(returnType),
+        [typeof(System.Threading.Tasks.Task<System.Memory<System.Byte>>)] = (instance, returnType) => instance.HandleTaskMemoryByteResult(returnType),
+        [typeof(System.Threading.Tasks.Task<TPacket>)] = (instance, returnType) => instance.HandleTaskTPacketResult(returnType)
+    };
+
+    /// <summary>
     /// Determines the correct handler based on the method's return type.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
          System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task>
         ResolveHandlerDelegate(System.Type returnType)
-        => returnType switch
+    {
+        if (_handlerMappings.TryGetValue(returnType, out var handlerFactory))
         {
-            System.Type t when t == typeof(void) => (_, _, _) =>
+            return handlerFactory(this, returnType);
+        }
+
+        return HandleUnsupportedResult(returnType);
+    }
+
+    /// <summary>
+    /// Handles void return type.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Threading.Tasks.Task HandleVoidResult(object? result, TPacket packet, IConnection connection)
+    {
+        return System.Threading.Tasks.Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Handles byte array return type.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private async System.Threading.Tasks.Task HandleByteArrayResult(object? result, TPacket packet, IConnection connection)
+    {
+        if (result is System.Byte[] data)
+            await connection.Tcp.SendAsync(data);
+    }
+
+    /// <summary>
+    /// Handles string return type.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private async System.Threading.Tasks.Task HandleStringResult(object? result, TPacket packet, IConnection connection)
+    {
+        if (result is System.String data)
+        {
+            await connection.Tcp.SendAsync(TPacket.Create(0, data));
+        }
+    }
+
+    /// <summary>
+    /// Handles Memory&lt;byte&gt; return type.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private async System.Threading.Tasks.Task HandleMemoryByteResult(object? result, TPacket packet, IConnection connection)
+    {
+        if (result is System.Memory<System.Byte> memory)
+            await connection.Tcp.SendAsync(memory);
+    }
+
+    /// <summary>
+    /// Handles TPacket return type.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private async System.Threading.Tasks.Task HandleTPacketResult(object? result, TPacket packet, IConnection connection)
+    {
+        if (result is TPacket resultPacket)
+            await PacketDispatchOptions<TPacket>.DispatchPacketAsync(resultPacket, connection);
+    }
+
+    /// <summary>
+    /// Handles ValueTask return type.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task> HandleValueTaskResult(System.Type returnType)
+    {
+        return async (result, packet, connection) =>
+        {
+            if (result is System.Threading.Tasks.ValueTask task)
             {
-                return System.Threading.Tasks.Task.CompletedTask;
-            }
-            ,
-            System.Type t when t == typeof(System.Byte[]) => async (result, _, connection) =>
-            {
-                if (result is System.Byte[] data)
-                    await connection.Tcp.SendAsync(data);
-            }
-            ,
-            System.Type t when t == typeof(System.String) => async (result, _, connection) =>
-            {
-                if (result is System.String data)
+                try
                 {
-                    await connection.Tcp.SendAsync(TPacket.Create(0, data));
+                    await task;
                 }
-            }
-            ,
-            System.Type t when t == typeof(System.Memory<System.Byte>) => async (result, _, connection) =>
-            {
-                if (result is System.Memory<System.Byte> memory)
-                    await connection.Tcp.SendAsync(memory);
-            }
-            ,
-            System.Type t when t == typeof(TPacket) => async (result, _, connection) =>
-            {
-                if (result is TPacket packet)
-                    await PacketDispatchOptions<TPacket>.DispatchPacketAsync(packet, connection);
-            }
-            ,
-            System.Type t when t == typeof(System.Threading.Tasks.ValueTask) => async (result, _, _) =>
-            {
-                if (result is System.Threading.Tasks.ValueTask task)
-                {
-                    try
-                    {
-                        await task;
-                    }
-                    catch (System.Exception ex) { Failure(returnType, ex); }
-                }
-            }
-            ,
-            System.Type t when t == typeof(System.Threading.Tasks.ValueTask<System.Byte[]>) => async (result, _, connection) =>
-            {
-                if (result is System.Threading.Tasks.ValueTask<System.Byte[]> task)
-                {
-                    try
-                    {
-                        System.Byte[] data = await task;
-                        await connection.Tcp.SendAsync(data);
-                    }
-                    catch (System.Exception ex) { Failure(returnType, ex); }
-                }
-            }
-            ,
-            System.Type t when t == typeof(System.Threading.Tasks.ValueTask<System.String>) => async (result, _, connection) =>
-            {
-                if (result is System.Threading.Tasks.ValueTask<System.String> task)
-                {
-                    try
-                    {
-                        System.String data = await task;
-                        using TPacket packet = TPacket.Create(0, data);
-                        await connection.Tcp.SendAsync(packet.Serialize());
-                    }
-                    catch (System.Exception ex) { Failure(returnType, ex); }
-                }
-            }
-            ,
-            System.Type t when t == typeof(System.Threading.Tasks.ValueTask<System.Memory<System.Byte>>)
-            => async (result, _, connection) =>
-            {
-                if (result is System.Threading.Tasks.ValueTask<System.Memory<System.Byte>> task)
-                {
-                    try
-                    {
-                        System.Memory<System.Byte> memory = await task;
-                        await connection.Tcp.SendAsync(memory);
-                    }
-                    catch (System.Exception ex) { Failure(returnType, ex); }
-                }
-            }
-            ,
-            System.Type t when t == typeof(System.Threading.Tasks.ValueTask<TPacket>)
-            => async (result, _, connection) =>
-            {
-                if (result is System.Threading.Tasks.ValueTask<TPacket> task)
-                {
-                    try
-                    {
-                        TPacket packet = await task;
-                        await PacketDispatchOptions<TPacket>.DispatchPacketAsync(packet, connection);
-                    }
-                    catch (System.Exception ex) { Failure(returnType, ex); }
-                }
-            }
-            ,
-            System.Type t when t == typeof(System.Threading.Tasks.Task)
-            => async (result, _, _) =>
-            {
-                if (result is System.Threading.Tasks.Task task)
-                {
-                    try
-                    {
-                        await task;
-                    }
-                    catch (System.Exception ex) { Failure(returnType, ex); }
-                }
-            }
-            ,
-            System.Type t when t == typeof(System.Threading.Tasks.Task<System.Byte[]>)
-            => async (result, _, connection) =>
-            {
-                if (result is System.Threading.Tasks.Task<System.Byte[]> task)
-                {
-                    try
-                    {
-                        System.Byte[] data = await task;
-                        await connection.Tcp.SendAsync(data);
-                    }
-                    catch (System.Exception ex) { Failure(returnType, ex); }
-                }
-            }
-            ,
-            System.Type t when t == typeof(System.Threading.Tasks.Task<System.String>)
-            => async (result, _, connection) =>
-            {
-                if (result is System.Threading.Tasks.Task<System.String> task)
-                {
-                    try
-                    {
-                        System.String data = await task;
-                        using TPacket packet = TPacket.Create(0, data);
-                        await connection.Tcp.SendAsync(packet.Serialize());
-                    }
-                    catch (System.Exception ex) { Failure(returnType, ex); }
-                }
-            }
-            ,
-            System.Type t when t == typeof(System.Threading.Tasks.Task<System.Memory<System.Byte>>)
-            => async (result, _, connection) =>
-            {
-                if (result is System.Threading.Tasks.Task<System.Memory<System.Byte>> task)
-                {
-                    try
-                    {
-                        System.Memory<System.Byte> memory = await task;
-                        await connection.Tcp.SendAsync(memory);
-                    }
-                    catch (System.Exception ex) { Failure(returnType, ex); }
-                }
-            }
-            ,
-            System.Type t when t == typeof(System.Threading.Tasks.Task<TPacket>)
-            => async (result, _, connection) =>
-            {
-                if (result is System.Threading.Tasks.Task<TPacket> task)
-                {
-                    try
-                    {
-                        TPacket packet = await task;
-                        await PacketDispatchOptions<TPacket>.DispatchPacketAsync(packet, connection);
-                    }
-                    catch (System.Exception ex) { Failure(returnType, ex); }
-                }
-            }
-            ,
-            _ => (_, _, _) =>
-            {
-                _logger?.Warn("Unsupported return type: {0}", returnType.Name);
-                return System.Threading.Tasks.Task.CompletedTask;
+                catch (System.Exception ex) { Failure(returnType, ex); }
             }
         };
+    }
+
+    /// <summary>
+    /// Handles ValueTask&lt;byte[]&gt; return type.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task> HandleValueTaskByteArrayResult(System.Type returnType)
+    {
+        return async (result, packet, connection) =>
+        {
+            if (result is System.Threading.Tasks.ValueTask<System.Byte[]> task)
+            {
+                try
+                {
+                    System.Byte[] data = await task;
+                    await connection.Tcp.SendAsync(data);
+                }
+                catch (System.Exception ex) { Failure(returnType, ex); }
+            }
+        };
+    }
+
+    /// <summary>
+    /// Handles ValueTask&lt;string&gt; return type.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task> HandleValueTaskStringResult(System.Type returnType)
+    {
+        return async (result, packet, connection) =>
+        {
+            if (result is System.Threading.Tasks.ValueTask<System.String> task)
+            {
+                try
+                {
+                    System.String data = await task;
+                    using TPacket resultPacket = TPacket.Create(0, data);
+                    await connection.Tcp.SendAsync(resultPacket.Serialize());
+                }
+                catch (System.Exception ex) { Failure(returnType, ex); }
+            }
+        };
+    }
+
+    /// <summary>
+    /// Handles ValueTask&lt;Memory&lt;byte&gt;&gt; return type.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task> HandleValueTaskMemoryByteResult(System.Type returnType)
+    {
+        return async (result, packet, connection) =>
+        {
+            if (result is System.Threading.Tasks.ValueTask<System.Memory<System.Byte>> task)
+            {
+                try
+                {
+                    System.Memory<System.Byte> memory = await task;
+                    await connection.Tcp.SendAsync(memory);
+                }
+                catch (System.Exception ex) { Failure(returnType, ex); }
+            }
+        };
+    }
+
+    /// <summary>
+    /// Handles ValueTask&lt;TPacket&gt; return type.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task> HandleValueTaskTPacketResult(System.Type returnType)
+    {
+        return async (result, packet, connection) =>
+        {
+            if (result is System.Threading.Tasks.ValueTask<TPacket> task)
+            {
+                try
+                {
+                    TPacket resultPacket = await task;
+                    await PacketDispatchOptions<TPacket>.DispatchPacketAsync(resultPacket, connection);
+                }
+                catch (System.Exception ex) { Failure(returnType, ex); }
+            }
+        };
+    }
+
+    /// <summary>
+    /// Handles Task return type.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task> HandleTaskResult(System.Type returnType)
+    {
+        return async (result, packet, connection) =>
+        {
+            if (result is System.Threading.Tasks.Task task)
+            {
+                try
+                {
+                    await task;
+                }
+                catch (System.Exception ex) { Failure(returnType, ex); }
+            }
+        };
+    }
+
+    /// <summary>
+    /// Handles Task&lt;byte[]&gt; return type.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task> HandleTaskByteArrayResult(System.Type returnType)
+    {
+        return async (result, packet, connection) =>
+        {
+            if (result is System.Threading.Tasks.Task<System.Byte[]> task)
+            {
+                try
+                {
+                    System.Byte[] data = await task;
+                    await connection.Tcp.SendAsync(data);
+                }
+                catch (System.Exception ex) { Failure(returnType, ex); }
+            }
+        };
+    }
+
+    /// <summary>
+    /// Handles Task&lt;string&gt; return type.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task> HandleTaskStringResult(System.Type returnType)
+    {
+        return async (result, packet, connection) =>
+        {
+            if (result is System.Threading.Tasks.Task<System.String> task)
+            {
+                try
+                {
+                    System.String data = await task;
+                    using TPacket resultPacket = TPacket.Create(0, data);
+                    await connection.Tcp.SendAsync(resultPacket.Serialize());
+                }
+                catch (System.Exception ex) { Failure(returnType, ex); }
+            }
+        };
+    }
+
+    /// <summary>
+    /// Handles Task&lt;Memory&lt;byte&gt;&gt; return type.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task> HandleTaskMemoryByteResult(System.Type returnType)
+    {
+        return async (result, packet, connection) =>
+        {
+            if (result is System.Threading.Tasks.Task<System.Memory<System.Byte>> task)
+            {
+                try
+                {
+                    System.Memory<System.Byte> memory = await task;
+                    await connection.Tcp.SendAsync(memory);
+                }
+                catch (System.Exception ex) { Failure(returnType, ex); }
+            }
+        };
+    }
+
+    /// <summary>
+    /// Handles Task&lt;TPacket&gt; return type.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task> HandleTaskTPacketResult(System.Type returnType)
+    {
+        return async (result, packet, connection) =>
+        {
+            if (result is System.Threading.Tasks.Task<TPacket> task)
+            {
+                try
+                {
+                    TPacket resultPacket = await task;
+                    await PacketDispatchOptions<TPacket>.DispatchPacketAsync(resultPacket, connection);
+                }
+                catch (System.Exception ex) { Failure(returnType, ex); }
+            }
+        };
+    }
+
+    /// <summary>
+    /// Handles unsupported return types.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task> HandleUnsupportedResult(System.Type returnType)
+    {
+        return (result, packet, connection) =>
+        {
+            _logger?.Warn("Unsupported return type: {0}", returnType.Name);
+            return System.Threading.Tasks.Task.CompletedTask;
+        };
+    }
 }
