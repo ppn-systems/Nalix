@@ -24,7 +24,7 @@ public interface IProtocol : System.IDisposable
     /// <param name="args">The event arguments containing connection and message data.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when args is null.</exception>
     void ProcessMessage(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args);
 
     /// <summary>
