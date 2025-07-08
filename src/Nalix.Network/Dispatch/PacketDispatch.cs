@@ -40,7 +40,7 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(
-        [System.Diagnostics.CodeAnalysis.AllowNull] IBufferLease raw,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] IBufferLease raw,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
         try

@@ -70,7 +70,7 @@ public static partial class OsCsprng
     /// <param name="buffer">The buffer to fill with random bytes.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void Fill(System.Span<System.Byte> buffer)
+    public static void Fill([System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> buffer)
     {
         if (buffer.Length == 0)
         {

@@ -88,7 +88,8 @@ public sealed class PacketDispatchChannel
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Activate(System.Threading.CancellationToken cancellationToken = default)
+    public void Activate(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default)
     {
         if (System.Threading.Interlocked.CompareExchange(ref _running, 1, 0) != 0)
         {
@@ -129,7 +130,8 @@ public sealed class PacketDispatchChannel
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
+    public void Deactivate(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default)
     {
         if (System.Threading.Interlocked.Exchange(ref _running, 0) == 0)
         {
@@ -169,7 +171,7 @@ public sealed class PacketDispatchChannel
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(
-        [System.Diagnostics.CodeAnalysis.AllowNull] IBufferLease lease,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] IBufferLease lease,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
         if (lease is null || lease.Length <= 0)
