@@ -28,4 +28,11 @@ public interface ILogDistributor : System.IDisposable
     /// </summary>
     /// <param name="entry">The log entry to be published.</param>
     void Publish(LogEntry? entry);
+
+    /// <summary>
+    /// Asynchronously publishes the provided log entry to all configured log targets.
+    /// </summary>
+    /// <param name="entry">The log entry to be published.</param>
+    /// <returns>A task that represents the asynchronous publish operation.</returns>
+    System.Threading.Tasks.ValueTask PublishAsync(LogEntry? entry);
 }

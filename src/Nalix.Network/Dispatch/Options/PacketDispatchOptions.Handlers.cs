@@ -78,7 +78,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             ?? throw new System.InvalidOperationException(
                 $"ConnectionOps '{controllerType.Name}' is missing the PacketController attribute.");
 
-        string controllerName = controllerAttr.Name ?? controllerType.Name;
+        System.String controllerName = controllerAttr.Name ?? controllerType.Name;
 
         TController controllerInstance = EnsureNotNull(factory(), nameof(factory));
 
@@ -93,8 +93,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
         if (methods.Count == 0)
         {
-            string message = $"ConnectionOps '{controllerType.FullName}' has no methods marked with [PacketId]. " +
-                             $"Ensure at least one public method is decorated.";
+            System.String message = $"ConnectionOps '{controllerType.FullName}' has no methods marked with [OpCode]. " +
+                                    $"Ensure at least one public method is decorated.";
 
             _logger?.Warn(message);
             throw new System.InvalidOperationException(message);
@@ -115,7 +115,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
         if (System.Linq.Enumerable.Any(duplicateCommandIds))
         {
-            string message = $"Duplicate PacketId values found in controller " +
+            string message = $"Duplicate [OpCode] values found in controller " +
                              $"'{controllerName}': {string.Join(", ", duplicateCommandIds)}. " +
                              $"Each handler must have a unique ID.";
 
@@ -133,10 +133,10 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
             if (_handlers.ContainsKey(id))
             {
-                _logger?.Error("PacketId '{0}' already registered in another controller. Conflict in controller '{1}'.",
-                                id, controllerName);
+                _logger?.Error("OpCode '{0}' already registered in another controller. " +
+                               "Conflict in controller '{1}'.", id, controllerName);
 
-                throw new System.InvalidOperationException($"PacketId '{id}' already registered.");
+                throw new System.InvalidOperationException($"OpCode '{id}' already registered.");
             }
 
             _handlers[id] = this.CreateHandlerDelegate(method, controllerInstance);
@@ -188,7 +188,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         if (_handlers.TryGetValue(id, out handler))
             return true;
 
-        Logger?.Warn("No handler found for packet [ID={0}]", id);
+        Logger?.Warn("No handler found for packet [OpCode={0}]", id);
         return false;
     }
 }

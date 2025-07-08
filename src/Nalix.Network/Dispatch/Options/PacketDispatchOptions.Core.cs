@@ -40,6 +40,13 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
     #region Fields
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
+        System.Reflection.MethodInfo,
+        System.Func<TPacket, IConnection, System.Threading.Tasks.Task>> _compiledHandlers = new();
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
+        System.Reflection.MethodInfo, PacketDescriptor> _attributeCache = new();
+
     private ILogger? _logger;
     private readonly PacketRateLimitGuard _rateLimiter;
 
@@ -73,6 +80,10 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     private readonly System.Collections.Generic.Dictionary
         <ushort, System.Func<TPacket, IConnection, System.Threading.Tasks.Task>> _handlers = [];
 
+    private readonly System.Collections.Frozen.FrozenDictionary<
+        System.Type,
+        System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task>> _handlerLookup;
+
     #endregion Fields
 
     #region Properties
@@ -103,6 +114,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     public PacketDispatchOptions()
     {
         _rateLimiter = new PacketRateLimitGuard();
+        _handlerLookup = CreateHandlerLookup();
     }
 
     #endregion Constructors
