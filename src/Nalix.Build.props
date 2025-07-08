@@ -4,11 +4,11 @@
     <License>Apache</License>
     <Platforms>AnyCPU</Platforms>
     <Authors>PhucNguyen</Authors>
-    <LangVersion>13.0</LangVersion>
+    <LangVersion>12.0</LangVersion>
     <ProductName>Nalix® .NET</ProductName>
     <Deterministic>true</Deterministic>
     <Copyright>© Nalix Corporation. All rights reserved.</Copyright>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/phcnguyen/Nalix</RepositoryUrl>
   </PropertyGroup>
