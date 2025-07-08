@@ -1,5 +1,5 @@
 ﻿using Nalix.Common.Connection;
-using Nalix.Network.Listeners.Internal;
+using Nalix.Network.Internal;
 using Nalix.Shared.Memory.Pools;
 using System.Net.Sockets;
 

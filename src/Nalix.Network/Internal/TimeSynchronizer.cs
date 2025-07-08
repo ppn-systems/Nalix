@@ -1,7 +1,7 @@
 using Nalix.Common.Logging;
 using Nalix.Shared.Time;
 
-namespace Nalix.Network.Listeners.Internal;
+namespace Nalix.Network.Internal;
 
 /// <summary>
 /// Manages time synchronization operations by periodically triggering time updates.
