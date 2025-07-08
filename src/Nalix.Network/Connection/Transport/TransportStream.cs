@@ -1,7 +1,7 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Logging;
 using Nalix.Extensions.IO;
-using Nalix.Network.Listeners.Internal;
+using Nalix.Network.Internal;
 using Nalix.Shared.Memory.Pools;
 using Nalix.Shared.Time;
 

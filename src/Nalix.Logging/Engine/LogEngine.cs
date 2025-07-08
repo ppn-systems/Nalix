@@ -93,7 +93,7 @@ public abstract class LogEngine : System.IDisposable
             return;
 
         // Create and publish the log entry
-        _distributor.Publish(new LogEntry(level, eventId, message, error));
+        _distributor.PublishAsync(new LogEntry(level, eventId, message, error));
     }
 
     /// <summary>

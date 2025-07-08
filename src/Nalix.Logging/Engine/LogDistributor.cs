@@ -109,7 +109,7 @@ public sealed class LogDistributor : ILogDistributor
     /// <returns>A task representing the asynchronous publish operation.</returns>
     /// <exception cref="System.ArgumentNullException">Thrown if entry is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    public System.Threading.Tasks.Task PublishAsync(LogEntry? entry)
+    public System.Threading.Tasks.ValueTask PublishAsync(LogEntry? entry)
     {
         if (entry == null)
             throw new System.ArgumentNullException(nameof(entry));
@@ -122,10 +122,12 @@ public sealed class LogDistributor : ILogDistributor
         if (_targets.Count <= 1)
         {
             Publish(entry.Value);
-            return System.Threading.Tasks.Task.CompletedTask;
+            return System.Threading.Tasks.ValueTask.CompletedTask;
         }
 
-        return System.Threading.Tasks.Task.Run(() => Publish(entry.Value));
+        return new System.Threading.Tasks.ValueTask(
+            System.Threading.Tasks.Task.Run(() => Publish(entry.Value))
+        );
     }
 
     /// <summary>
