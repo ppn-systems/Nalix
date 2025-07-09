@@ -16,8 +16,7 @@ public static partial class Directories
     // ---------- Locks & Events ----------
 
     /// <summary>Global lock for thread-safe directory creation.</summary>
-    private static readonly System.Threading.ReaderWriterLockSlim DirectoryLock =
-        new(System.Threading.LockRecursionPolicy.SupportsRecursion);
+    private static readonly System.Threading.ReaderWriterLockSlim DirectoryLock = new(System.Threading.LockRecursionPolicy.SupportsRecursion);
 
     /// <summary>
     /// Raised after a directory has been created. Handlers are isolated per-invocation.
@@ -37,7 +36,7 @@ public static partial class Directories
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    private static System.String GetEnv([System.Diagnostics.CodeAnalysis.DisallowNull] System.String name)
+    private static System.String GET_ENV([System.Diagnostics.CodeAnalysis.DisallowNull] System.String name)
     {
         System.String value = System.Environment.GetEnvironmentVariable(name);
         return System.String.IsNullOrWhiteSpace(value) ? null : value;
@@ -94,7 +93,7 @@ public static partial class Directories
         }
 
         // 2) Environment override
-        System.String env = GetEnv("NALIX_BASE_PATH");
+        System.String env = GET_ENV("NALIX_BASE_PATH");
         if (!System.String.IsNullOrEmpty(env))
         {
             return System.IO.Path.GetFullPath(env);
@@ -115,7 +114,7 @@ public static partial class Directories
         else
         {
             // XDG base dir or ~/.local/share
-            System.String xdg = GetEnv("XDG_DATA_HOME");
+            System.String xdg = GET_ENV("XDG_DATA_HOME");
             System.String dataHome = !System.String.IsNullOrEmpty(xdg)
                 ? xdg
                 : System.IO.Path.Join(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), ".local", "share");
@@ -125,12 +124,12 @@ public static partial class Directories
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.String ResolveOrEnv(
+    private static System.String RESOLVE_OR_ENV(
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String envName,
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String containerPath,
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String relative)
     {
-        System.String env = GetEnv(envName);
+        System.String env = GET_ENV(envName);
         return !System.String.IsNullOrEmpty(env)
             ? System.IO.Path.GetFullPath(env)
             : IsContainerLazy.Value && System.IO.Directory.Exists(containerPath)
@@ -140,37 +139,29 @@ public static partial class Directories
 
     // ---------- Lazies for each directory ----------
 
-    private static readonly System.Lazy<System.String> DataPathLazy = new(() =>
-        EnsureAndHarden(ResolveOrEnv("NALIX_DATA_PATH", "/data", "data")));
+    private static readonly System.Lazy<System.String> DataPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_DATA_PATH", "/data", "data")));
 
-    private static readonly System.Lazy<System.String> LogsPathLazy = new(() =>
-        EnsureAndHarden(ResolveOrEnv("NALIX_LOGS_PATH", "/logs", "logs"), UnixDirPerms.WorldReadable));
+    private static readonly System.Lazy<System.String> LogsPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_LOGS_PATH", "/logs", "logs"), UnixDirPerms.WorldReadable));
 
-    private static readonly System.Lazy<System.String> ConfigPathLazy = new(() =>
-        EnsureAndHarden(ResolveOrEnv("NALIX_CONFIG_PATH", "/config", "config"), UnixDirPerms.Private700));
+    private static readonly System.Lazy<System.String> ConfigPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_CONFIG_PATH", "/config", "config"), UnixDirPerms.Private700));
 
-    private static readonly System.Lazy<System.String> StoragePathLazy = new(() =>
-        EnsureAndHarden(ResolveOrEnv("NALIX_STORAGE_PATH", "/storage", "storage"), UnixDirPerms.Shared750));
+    private static readonly System.Lazy<System.String> StoragePathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_STORAGE_PATH", "/storage", "storage"), UnixDirPerms.Shared750));
 
-    private static readonly System.Lazy<System.String> DatabasePathLazy = new(() =>
-        EnsureAndHarden(ResolveOrEnv("NALIX_DB_PATH", "/db", "db"), UnixDirPerms.Private700));
+    private static readonly System.Lazy<System.String> DatabasePathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_DB_PATH", "/db", "db"), UnixDirPerms.Private700));
 
-    private static readonly System.Lazy<System.String> CachesPathLazy = new(() =>
-        EnsureAndHarden(System.IO.Path.Join(DataPathLazy.Value, "caches")));
+    private static readonly System.Lazy<System.String> CachesPathLazy = new(() => ENSURE_AND_HARDEN(System.IO.Path.Join(DataPathLazy.Value, "caches")));
 
-    private static readonly System.Lazy<System.String> UploadsPathLazy = new(() =>
-        EnsureAndHarden(System.IO.Path.Join(DataPathLazy.Value, "uploads"), UnixDirPerms.Shared750));
+    private static readonly System.Lazy<System.String> UploadsPathLazy = new(() => ENSURE_AND_HARDEN(System.IO.Path.Join(DataPathLazy.Value, "uploads"), UnixDirPerms.Shared750));
 
-    private static readonly System.Lazy<System.String> BackupsPathLazy = new(() =>
-        EnsureAndHarden(System.IO.Path.Join(DataPathLazy.Value, "backups"), UnixDirPerms.Private700));
+    private static readonly System.Lazy<System.String> BackupsPathLazy = new(() => ENSURE_AND_HARDEN(System.IO.Path.Join(DataPathLazy.Value, "backups"), UnixDirPerms.Private700));
 
     private static readonly System.Lazy<System.String> TempPathLazy = new(() =>
     {
-        System.String path = ResolveOrEnv("NALIX_TEMP_PATH", "/tmp", System.IO.Path.Join("data", "tmp"));
-        _ = EnsureAndHarden(path, UnixDirPerms.Private700);
+        System.String path = RESOLVE_OR_ENV("NALIX_TEMP_PATH", "/tmp", System.IO.Path.Join("data", "tmp"));
+        _ = ENSURE_AND_HARDEN(path, UnixDirPerms.Private700);
 
         System.Int32 days = 7;
-        System.String envDaysStr = GetEnv("NALIX_TEMP_RETENTION_DAYS");
+        System.String envDaysStr = GET_ENV("NALIX_TEMP_RETENTION_DAYS");
         if (!System.String.IsNullOrEmpty(envDaysStr))
         {
             if (System.Int32.TryParse(envDaysStr, out System.Int32 envDaysParsed) && envDaysParsed > 0)
@@ -179,7 +170,7 @@ public static partial class Directories
             }
         }
 
-        _ = CleanupDirectory(path, System.TimeSpan.FromDays(days));
+        _ = DeleteOldFiles(path, System.TimeSpan.FromDays(days));
         return path;
     });
 

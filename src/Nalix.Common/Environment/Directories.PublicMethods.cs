@@ -37,6 +37,7 @@ public static partial class Directories
     /// <summary>
     /// Creates a subdirectory under the specified parent directory, if it does not exist.
     /// </summary>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.String CreateSubdirectory(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String parentPath,
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String directoryName)
@@ -51,14 +52,15 @@ public static partial class Directories
             throw new System.ArgumentNullException(nameof(directoryName));
         }
 
-        System.String fullPath = CombineSafe(parentPath, directoryName);
-        EnsureDirectoryExists(fullPath);
+        System.String fullPath = COMBINE_SAFE(parentPath, directoryName);
+        ENSURE_DIRECTORY_EXISTS(fullPath);
         return fullPath;
     }
 
     /// <summary>
     /// Creates a subdirectory with a UTC timestamp-based name (yyyyMMddTHHmmssZ).
     /// </summary>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.String CreateTimestampedDirectory(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String parentPath,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String prefix = "")
@@ -77,6 +79,7 @@ public static partial class Directories
     /// <summary>
     /// Returns a full file path under a given directory, ensuring the directory exists.
     /// </summary>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.String GetFilePath(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String directoryPath,
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String fileName)
@@ -91,19 +94,21 @@ public static partial class Directories
             throw new System.ArgumentNullException(nameof(fileName));
         }
 
-        EnsureDirectoryExists(directoryPath);
-        return CombineSafe(directoryPath, fileName);
+        ENSURE_DIRECTORY_EXISTS(directoryPath);
+        return COMBINE_SAFE(directoryPath, fileName);
     }
 
     /// <summary>
     /// Returns a temp file path under <see cref="TemporaryDirectory"/>.
     /// </summary>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.String GetTempFilePath(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String fileName) => GetFilePath(TemporaryDirectory, fileName);
 
     /// <summary>
     /// Returns a timestamped file path (yyyyMMddTHHmmssZ) under a directory.
     /// </summary>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.String GetTimestampedFilePath(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String directoryPath,
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String fileNameBase,
@@ -128,24 +133,28 @@ public static partial class Directories
     /// <summary>
     /// Returns a log file path under <see cref="LogsDirectory"/>.
     /// </summary>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.String GetLogFilePath(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String fileName) => GetFilePath(LogsDirectory, fileName);
 
     /// <summary>
     /// Returns a config file path under <see cref="ConfigurationDirectory"/>.
     /// </summary>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.String GetConfigFilePath(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String fileName) => GetFilePath(ConfigurationDirectory, fileName);
 
     /// <summary>
     /// Returns a storage file path under <see cref="StorageDirectory"/>.
     /// </summary>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.String GetStorageFilePath(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String fileName) => GetFilePath(StorageDirectory, fileName);
 
     /// <summary>
     /// Returns a database file path under <see cref="DatabaseDirectory"/>.
     /// </summary>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.String GetDatabaseFilePath(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String fileName) => GetFilePath(DatabaseDirectory, fileName);
 
@@ -156,7 +165,8 @@ public static partial class Directories
     /// <param name="maxAge">The maximum age to keep.</param>
     /// <param name="searchPattern">Glob pattern to select files.</param>
     /// <returns>Number of files deleted.</returns>
-    public static System.Int32 CleanupDirectory(
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public static System.Int32 DeleteOldFiles(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String directoryPath,
         [System.Diagnostics.CodeAnalysis.NotNull] System.TimeSpan maxAge,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String searchPattern = "*")
@@ -207,7 +217,8 @@ public static partial class Directories
     /// <returns>
     /// <c>true</c> if all directories accept writes; otherwise <c>false</c>.
     /// </returns>
-    public static System.Boolean ValidateDirectories()
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public static System.Boolean CanAccessAllDirectories()
     {
         try
         {
@@ -243,7 +254,7 @@ public static partial class Directories
     /// <summary>
     /// Overrides the base path for testing. The override is not persisted across process restarts.
     /// </summary>
-    public static void OverrideBasePathForTesting(
+    public static void SetBasePathOverride(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String path)
     {
         if (System.String.IsNullOrWhiteSpace(path))
@@ -257,19 +268,20 @@ public static partial class Directories
     /// <summary>
     /// Enumerates files from a directory with optional recursion.
     /// </summary>
-    public static System.Collections.Generic.IEnumerable<System.String> GetFiles(
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public static System.Collections.Generic.IEnumerable<System.String> EnumerateFiles(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String directory,
-        System.String searchPattern = "*",
-        System.Boolean recursive = false)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String searchPattern = "*",
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean recursive = false)
     {
         if (System.String.IsNullOrWhiteSpace(directory))
         {
             throw new System.ArgumentNullException(nameof(directory));
         }
 
-        return GetFiles2();
+        return EnumerateFilesCore();
 
-        System.Collections.Generic.IEnumerable<System.String> GetFiles2()
+        System.Collections.Generic.IEnumerable<System.String> EnumerateFilesCore()
         {
             if (!System.IO.Directory.Exists(directory))
             {
@@ -292,9 +304,10 @@ public static partial class Directories
     /// <summary>
     /// Computes the size of a directory in bytes.
     /// </summary>
-    public static System.Int64 GetDirectorySize(
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public static System.Int64 CalculateDirectorySize(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String directoryPath,
-        System.Boolean includeSubdirectories = true)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean includeSubdirectories = true)
     {
         if (System.String.IsNullOrWhiteSpace(directoryPath))
         {
@@ -329,6 +342,7 @@ public static partial class Directories
     /// <summary>
     /// Creates a date-based directory (yyyy-MM-dd) under the specified parent path.
     /// </summary>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.String CreateDateDirectory(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String parentPath)
     {
@@ -338,7 +352,7 @@ public static partial class Directories
         }
 
         System.String dir = System.IO.Path.Join(parentPath, System.DateTime.UtcNow.ToString("yyyy-MM-dd"));
-        EnsureDirectoryExists(dir);
+        ENSURE_DIRECTORY_EXISTS(dir);
         return dir;
     }
 
@@ -347,6 +361,7 @@ public static partial class Directories
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.String CreateHierarchicalDateDirectory(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String parentPath)
     {
@@ -360,7 +375,7 @@ public static partial class Directories
         System.String month = System.IO.Path.Join(year, now.ToString("MM"));
         System.String day = System.IO.Path.Join(month, now.ToString("dd"));
 
-        EnsureDirectoryExists(day);
+        ENSURE_DIRECTORY_EXISTS(day);
         return day;
     }
 
@@ -371,11 +386,12 @@ public static partial class Directories
     /// <param name="key">A key used to derive shard segments.</param>
     /// <param name="depth">Number of shard levels (e.g., 2).</param>
     /// <param name="width">Hex digits per level (e.g., 2 => 00..FF).</param>
-    public static System.String GetShardedPath(
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public static System.String EnsureShardedPath(
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String parentPath,
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String key,
-        System.Int32 depth = 2,
-        System.Int32 width = 2)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 depth = 2,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 width = 2)
     {
         if (System.String.IsNullOrWhiteSpace(parentPath))
         {
@@ -410,7 +426,7 @@ public static partial class Directories
                 p = System.IO.Path.Join(p, seg);
                 h >>= width * 4;
             }
-            EnsureDirectoryExists(p);
+            ENSURE_DIRECTORY_EXISTS(p);
             return System.IO.Path.Join(p, key);
         }
     }
