@@ -2,7 +2,6 @@ using Nalix.Common.Connection;
 using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Package;
-using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -16,15 +15,11 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     IPacketCompressor<TPacket>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private Func<TPacket, IConnection, Task> CreateHandlerDelegate(MethodInfo method, object controllerInstance)
-    => _compiledHandlers.GetOrAdd(method, (m, instance) =>
-    {
-        var attributes = GetPacketAttributes(m);
-        return CreateOptimizedHandler(m, instance, attributes);
-    }, controllerInstance);
+    private System.Func<TPacket, IConnection, Task> CreateHandlerDelegate(MethodInfo method, object controllerInstance)
+        => CreateOptimizedHandler(method, controllerInstance, GetPacketAttributes(method));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private Func<TPacket, IConnection, Task> CreateOptimizedHandler(
+    private System.Func<TPacket, IConnection, Task> CreateOptimizedHandler(
         MethodInfo method,
         object controllerInstance,
         PacketDescriptor attributes)
@@ -60,7 +55,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 var handler = ResolveHandlerDelegate(method.ReturnType);
                 await handler(result, packet, connection).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 await HandleException(ex, controllerInstance, method, attributes, connection);
             }
@@ -87,7 +82,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         {
             fixed (char* endPointPtr = endPointStr)
             {
-                ReadOnlySpan<char> span = new(endPointPtr, endPointStr.Length);
+                System.ReadOnlySpan<char> span = new(endPointPtr, endPointStr.Length);
                 return _rateLimiter.Check(span.ToString(), attributes.RateLimit);
             }
         }
@@ -116,10 +111,10 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             {
                 return TPacket.Decrypt(packet, connection.EncryptionKey, attributes.Encryption.AlgorithmType);
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 _logger?.Error("Failed to decrypt packet: {0}", ex.Message);
-                await connection.Tcp.SendAsync(TPacket.Create(0, ProtocolErrorTexts.ServerError));
+                await connection.Tcp.SendAsync(TPacket.Create(0, ProtocolErrorTexts.PacketEncryption));
                 return default;
             }
         }
@@ -143,7 +138,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             {
                 return await Task.Run(() => method.Invoke(controllerInstance, parameters), cts.Token);
             }
-            catch (OperationCanceledException)
+            catch (System.OperationCanceledException)
             {
                 _logger?.Error("Packet '{0}' timed out after {1}ms.",
                                attributes.OpCode.OpCode, attributes.Timeout.TimeoutMilliseconds);
@@ -157,7 +152,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     }
 
     private async Task HandleException(
-        Exception ex, object controllerInstance,
+        System.Exception ex, object controllerInstance,
         MethodInfo method, PacketDescriptor attributes, IConnection connection)
     {
         if (ex is PackageException packageEx)

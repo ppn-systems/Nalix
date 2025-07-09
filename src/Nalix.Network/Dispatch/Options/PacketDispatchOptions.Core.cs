@@ -40,9 +40,15 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
     #region Fields
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        System.Reflection.MethodInfo,
-        System.Func<TPacket, IConnection, System.Threading.Tasks.Task>> _compiledHandlers = new();
+    /// <summary>
+    /// A dictionary mapping packet command IDs (ushort) to their respective handlers.
+    /// </summary>
+    private readonly System.Collections.Generic.Dictionary
+        <ushort, System.Func<TPacket, IConnection, System.Threading.Tasks.Task>> _handlers = [];
+
+    private readonly System.Collections.Frozen.FrozenDictionary<
+        System.Type,
+        System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task>> _handlerLookup;
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
         System.Reflection.MethodInfo, PacketDescriptor> _attributeCache = new();
@@ -73,16 +79,6 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// If not set, exceptions are only logged. You can override this to trigger alerts or retries.
     /// </remarks>
     private System.Action<System.Exception, ushort>? _errorHandler;
-
-    /// <summary>
-    /// A dictionary mapping packet command IDs (ushort) to their respective handlers.
-    /// </summary>
-    private readonly System.Collections.Generic.Dictionary
-        <ushort, System.Func<TPacket, IConnection, System.Threading.Tasks.Task>> _handlers = [];
-
-    private readonly System.Collections.Frozen.FrozenDictionary<
-        System.Type,
-        System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task>> _handlerLookup;
 
     #endregion Fields
 
