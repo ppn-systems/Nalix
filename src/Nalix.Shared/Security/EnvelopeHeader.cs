@@ -27,11 +27,11 @@ internal readonly struct EnvelopeHeader
     public const System.Int32 Size = 12;
     private static readonly System.Byte[] MagicBytes = "NALX"u8.ToArray();
 
-    public readonly System.Byte Version;
-    public readonly CipherSuiteType Type;
     public readonly System.Byte Flags;
-    public readonly System.Byte NonceLen;
     public readonly System.UInt32 Seq;
+    public readonly System.Byte Version;
+    public readonly System.Byte NonceLen;
+    public readonly CipherSuiteType Type;
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]

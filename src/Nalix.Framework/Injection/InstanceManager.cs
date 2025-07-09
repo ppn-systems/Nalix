@@ -261,7 +261,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public T GetOrCreateInstance<T>(
         [System.Diagnostics.CodeAnalysis.MaybeNull] params System.Object?[] args) where T : class
     {
@@ -300,7 +300,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Object GetOrCreateInstance(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Type type,
         [System.Diagnostics.CodeAnalysis.MaybeNull] params System.Object?[] args)
@@ -329,7 +329,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Object CreateInstance(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Type type,
         [System.Diagnostics.CodeAnalysis.MaybeNull] params System.Object?[] args)
@@ -348,7 +348,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean RemoveInstance(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Type type)
     {
@@ -389,7 +389,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean HasInstance<T>() => _instanceCache.ContainsKey(typeof(T).TypeHandle);
 
     /// <summary>
