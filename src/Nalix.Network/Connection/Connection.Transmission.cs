@@ -145,7 +145,7 @@ public sealed partial class Connection : IConnection
         {
             System.ObjectDisposedException.ThrowIf(_outer._disposed, nameof(Connection));
 
-            using var linkedCts = System.Threading.CancellationTokenSource
+            using System.Threading.CancellationTokenSource linkedCts = System.Threading.CancellationTokenSource
                 .CreateLinkedTokenSource(cancellationToken, _outer._ctokens.Token);
 
             _outer._cstream.BeginReceive(linkedCts.Token);
@@ -156,7 +156,7 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public bool Send(in IPacket packet)
+        public System.Boolean Send(in IPacket packet)
         {
             try
             {
@@ -177,7 +177,7 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public bool Send(System.ReadOnlySpan<byte> message)
+        public System.Boolean Send(System.ReadOnlySpan<System.Byte> message)
         {
             if (_outer._cstream.Send(message))
             {
@@ -196,7 +196,7 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public async System.Threading.Tasks.Task<bool> SendAsync(
+        public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             IPacket packet,
             System.Threading.CancellationToken cancellationToken = default)
             => await SendAsync(packet.Serialize(), cancellationToken);
@@ -204,8 +204,8 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public async System.Threading.Tasks.Task<bool> SendAsync(
-            System.ReadOnlyMemory<byte> message,
+        public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
+            System.ReadOnlyMemory<System.Byte> message,
             System.Threading.CancellationToken cancellationToken = default)
         {
             if (await _outer._cstream.SendAsync(message, cancellationToken))
