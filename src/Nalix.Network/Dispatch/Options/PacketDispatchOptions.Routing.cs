@@ -1,7 +1,5 @@
 ﻿using Nalix.Common.Connection;
 using Nalix.Common.Package;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -10,42 +8,51 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     IPacketEncryptor<TPacket>,
     IPacketCompressor<TPacket>
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private System.Func<object?, TPacket, IConnection, Task> ResolveHandlerDelegate(System.Type returnType)
-        => _handlerLookup.TryGetValue(returnType, out var handler)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        ResolveHandlerDelegate(System.Type returnType)
+        => _handlerLookup.TryGetValue(
+            returnType, out System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>? handler)
             ? handler : CreateUnsupportedHandler(returnType);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private System.Func<object?, TPacket, IConnection, Task> CreateUnsupportedHandler(System.Type returnType)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreateUnsupportedHandler(System.Type returnType)
         => (_, _, _) =>
         {
             _logger?.Warn("Unsupported return type: {0}", returnType.Name);
-            return Task.CompletedTask;
+            return System.Threading.Tasks.Task.CompletedTask;
         };
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private System.Collections.Frozen.FrozenDictionary<
-        System.Type, System.Func<System.Object?, TPacket, IConnection, Task>> CreateHandlerLookup()
+        System.Type, System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>>
+        CreateHandlerLookup()
     {
         System.Collections.Generic.Dictionary<
             System.Type, System.Func<
-                System.Object?, TPacket, IConnection, Task>> handlers = new()
+                System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>> handlers = new()
                 {
-                    [typeof(void)] = static (_, _, _) => Task.CompletedTask,
-                    [typeof(byte[])] = CreateByteArrayHandler(),
-                    [typeof(string)] = CreateStringHandler(),
-                    [typeof(System.Memory<byte>)] = CreateMemoryHandler(),
+                    [typeof(void)] = static (_, _, _) => System.Threading.Tasks.Task.CompletedTask,
+                    [typeof(System.Byte[])] = CreateByteArrayHandler(),
+                    [typeof(System.String)] = CreateStringHandler(),
+                    [typeof(System.Memory<System.Byte>)] = CreateMemoryHandler(),
                     [typeof(TPacket)] = CreatePacketHandler(),
-                    [typeof(ValueTask)] = CreateValueTaskHandler(),
-                    [typeof(ValueTask<byte[]>)] = CreateValueTaskByteArrayHandler(),
-                    [typeof(ValueTask<string>)] = CreateValueTaskStringHandler(),
-                    [typeof(ValueTask<System.Memory<byte>>)] = CreateValueTaskMemoryHandler(),
-                    [typeof(ValueTask<TPacket>)] = CreateValueTaskPacketHandler(),
-                    [typeof(Task)] = CreateTaskHandler(),
-                    [typeof(Task<byte[]>)] = CreateTaskByteArrayHandler(),
-                    [typeof(Task<string>)] = CreateTaskStringHandler(),
-                    [typeof(Task<System.Memory<byte>>)] = CreateTaskMemoryHandler(),
-                    [typeof(Task<TPacket>)] = CreateTaskPacketHandler(),
+                    [typeof(System.Threading.Tasks.ValueTask)] = CreateValueTaskHandler(),
+                    [typeof(System.Threading.Tasks.ValueTask<System.Byte[]>)] = CreateValueTaskByteArrayHandler(),
+                    [typeof(System.Threading.Tasks.ValueTask<System.String>)] = CreateValueTaskStringHandler(),
+                    [typeof(System.Threading.Tasks.ValueTask<System.Memory<System.Byte>>)] = CreateValueTaskMemoryHandler(),
+                    [typeof(System.Threading.Tasks.ValueTask<TPacket>)] = CreateValueTaskPacketHandler(),
+                    [typeof(System.Threading.Tasks.Task)] = CreateTaskHandler(),
+                    [typeof(System.Threading.Tasks.Task<System.Byte[]>)] = CreateTaskByteArrayHandler(),
+                    [typeof(System.Threading.Tasks.Task<System.String>)] = CreateTaskStringHandler(),
+                    [typeof(System.Threading.Tasks.Task<System.Memory<System.Byte>>)] = CreateTaskMemoryHandler(),
+                    [typeof(System.Threading.Tasks.Task<TPacket>)] = CreateTaskPacketHandler(),
                 };
 
         return System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(handlers);
@@ -53,167 +60,207 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
     #region Factory methods
 
-    private static System.Func<object?, TPacket, IConnection, Task> CreateByteArrayHandler()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreateByteArrayHandler()
         => static async (result, _, connection) =>
         {
-            if (result is byte[] data)
+            if (result is System.Byte[] data)
                 await connection.Tcp.SendAsync(data);
         };
 
-    private static System.Func<object?, TPacket, IConnection, Task> CreateStringHandler()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreateStringHandler()
         => static async (result, _, connection) =>
         {
-            if (result is string data)
+            if (result is System.String data)
                 await connection.Tcp.SendAsync(TPacket.Create(0, data));
         };
 
-    private static System.Func<object?, TPacket, IConnection, Task> CreateMemoryHandler()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreateMemoryHandler()
         => static async (result, _, connection) =>
         {
-            if (result is System.Memory<byte> memory)
+            if (result is System.Memory<System.Byte> memory)
                 await connection.Tcp.SendAsync(memory);
         };
 
-    private static System.Func<object?, TPacket, IConnection, Task> CreatePacketHandler()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreatePacketHandler()
         => static async (result, _, connection) =>
         {
             if (result is TPacket packet)
                 await DispatchPacketAsync(packet, connection);
         };
 
-    // ValueTask handlers
-    private System.Func<object?, TPacket, IConnection, Task> CreateValueTaskHandler()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreateValueTaskHandler()
         => async (result, _, _) =>
         {
-            if (result is ValueTask task)
+            if (result is System.Threading.Tasks.ValueTask task)
             {
                 try { await task; }
-                catch (System.Exception ex) { Failure(typeof(ValueTask), ex); }
+                catch (System.Exception ex) { Failure(typeof(System.Threading.Tasks.ValueTask), ex); }
             }
         };
 
-    private System.Func<object?, TPacket, IConnection, Task> CreateValueTaskByteArrayHandler()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreateValueTaskByteArrayHandler()
         => async (result, _, connection) =>
         {
-            if (result is ValueTask<byte[]> task)
+            if (result is System.Threading.Tasks.ValueTask<System.Byte[]> task)
             {
                 try
                 {
                     var data = await task;
                     await connection.Tcp.SendAsync(data);
                 }
-                catch (System.Exception ex) { Failure(typeof(ValueTask<byte[]>), ex); }
+                catch (System.Exception ex) { Failure(typeof(System.Threading.Tasks.ValueTask<System.Byte[]>), ex); }
             }
         };
 
-    private System.Func<object?, TPacket, IConnection, Task> CreateValueTaskStringHandler()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreateValueTaskStringHandler()
         => async (result, _, connection) =>
         {
-            if (result is ValueTask<string> task)
+            if (result is System.Threading.Tasks.ValueTask<System.String> task)
             {
                 try
                 {
-                    var data = await task;
-                    using var packet = TPacket.Create(0, data);
+                    System.String data = await task;
+                    using TPacket packet = TPacket.Create(0, data);
                     await connection.Tcp.SendAsync(packet.Serialize());
                 }
-                catch (System.Exception ex) { Failure(typeof(ValueTask<string>), ex); }
+                catch (System.Exception ex) { Failure(typeof(System.Threading.Tasks.ValueTask<System.String>), ex); }
             }
         };
 
-    private System.Func<object?, TPacket, IConnection, Task> CreateValueTaskMemoryHandler()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreateValueTaskMemoryHandler()
         => async (result, _, connection) =>
         {
-            if (result is ValueTask<System.Memory<byte>> task)
+            if (result is System.Threading.Tasks.ValueTask<System.Memory<System.Byte>> task)
             {
                 try
                 {
                     var memory = await task;
                     await connection.Tcp.SendAsync(memory);
                 }
-                catch (System.Exception ex) { Failure(typeof(ValueTask<System.Memory<byte>>), ex); }
+                catch (System.Exception ex) { Failure(typeof(System.Threading.Tasks.ValueTask<System.Memory<System.Byte>>), ex); }
             }
         };
 
-    private System.Func<object?, TPacket, IConnection, Task> CreateValueTaskPacketHandler()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreateValueTaskPacketHandler()
         => async (result, _, connection) =>
         {
-            if (result is ValueTask<TPacket> task)
+            if (result is System.Threading.Tasks.ValueTask<TPacket> task)
             {
                 try
                 {
-                    var packet = await task;
+                    TPacket packet = await task;
                     await DispatchPacketAsync(packet, connection);
                 }
-                catch (System.Exception ex) { Failure(typeof(ValueTask<TPacket>), ex); }
+                catch (System.Exception ex) { Failure(typeof(System.Threading.Tasks.ValueTask<TPacket>), ex); }
             }
         };
 
-    // Task handlers
-    private System.Func<object?, TPacket, IConnection, Task> CreateTaskHandler()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreateTaskHandler()
         => async (result, _, _) =>
         {
-            if (result is Task task)
+            if (result is System.Threading.Tasks.Task task)
             {
                 try { await task; }
-                catch (System.Exception ex) { Failure(typeof(Task), ex); }
+                catch (System.Exception ex) { Failure(typeof(System.Threading.Tasks.Task), ex); }
             }
         };
 
-    private System.Func<object?, TPacket, IConnection, Task> CreateTaskByteArrayHandler()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreateTaskByteArrayHandler()
         => async (result, _, connection) =>
         {
-            if (result is Task<byte[]> task)
+            if (result is System.Threading.Tasks.Task<System.Byte[]> task)
             {
                 try
                 {
-                    var data = await task;
+                    System.Byte[] data = await task;
                     await connection.Tcp.SendAsync(data);
                 }
-                catch (System.Exception ex) { Failure(typeof(Task<byte[]>), ex); }
+                catch (System.Exception ex) { Failure(typeof(System.Threading.Tasks.Task<System.Byte[]>), ex); }
             }
         };
 
-    private System.Func<object?, TPacket, IConnection, Task> CreateTaskStringHandler()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreateTaskStringHandler()
         => async (result, _, connection) =>
         {
-            if (result is Task<string> task)
+            if (result is System.Threading.Tasks.Task<System.String> task)
             {
                 try
                 {
-                    var data = await task;
-                    using var packet = TPacket.Create(0, data);
+                    System.String data = await task;
+                    using TPacket packet = TPacket.Create(0, data);
                     await connection.Tcp.SendAsync(packet.Serialize());
                 }
-                catch (System.Exception ex) { Failure(typeof(Task<string>), ex); }
+                catch (System.Exception ex) { Failure(typeof(System.Threading.Tasks.Task<System.String>), ex); }
             }
         };
 
-    private System.Func<object?, TPacket, IConnection, Task> CreateTaskMemoryHandler()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreateTaskMemoryHandler()
         => async (result, _, connection) =>
         {
-            if (result is Task<System.Memory<byte>> task)
+            if (result is System.Threading.Tasks.Task<System.Memory<System.Byte>> task)
             {
                 try
                 {
                     var memory = await task;
                     await connection.Tcp.SendAsync(memory);
                 }
-                catch (System.Exception ex) { Failure(typeof(Task<System.Memory<byte>>), ex); }
+                catch (System.Exception ex) { Failure(typeof(System.Threading.Tasks.Task<System.Memory<System.Byte>>), ex); }
             }
         };
 
-    private System.Func<object?, TPacket, IConnection, Task> CreateTaskPacketHandler()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreateTaskPacketHandler()
         => async (result, _, connection) =>
         {
-            if (result is Task<TPacket> task)
+            if (result is System.Threading.Tasks.Task<TPacket> task)
             {
                 try
                 {
                     var packet = await task;
                     await DispatchPacketAsync(packet, connection);
                 }
-                catch (System.Exception ex) { Failure(typeof(Task<TPacket>), ex); }
+                catch (System.Exception ex) { Failure(typeof(System.Threading.Tasks.Task<TPacket>), ex); }
             }
         };
 

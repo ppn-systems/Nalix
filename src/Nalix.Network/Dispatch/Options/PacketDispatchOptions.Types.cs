@@ -1,7 +1,5 @@
 ﻿using Nalix.Common.Package;
 using Nalix.Common.Package.Attributes;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -13,20 +11,27 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <summary>
     /// Performance metrics structure
     /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
-    [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private readonly struct MetricsData(long elapsedTicks, string handlerName, bool isEnabled)
+    [System.Runtime.InteropServices.StructLayout(
+        System.Runtime.InteropServices.LayoutKind.Sequential)]
+    [method: System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private readonly struct MetricsData(
+        System.Int64 elapsedTicks,
+        System.String handlerName,
+        System.Boolean isEnabled)
     {
-        public readonly bool IsEnabled = isEnabled;
-        public readonly long ElapsedTicks = elapsedTicks;
-        public readonly string HandlerName = handlerName;
+        public readonly System.Boolean IsEnabled = isEnabled;
+        public readonly System.String HandlerName = handlerName;
+        public readonly System.Int64 ElapsedTicks = elapsedTicks;
     }
 
     /// <summary>
     /// Optimized packet descriptor với struct layout cho performance
     /// </summary>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.InteropServices.StructLayout(
+        System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]
+    [method: System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private readonly struct PacketDescriptor(
         PacketOpcodeAttribute opCode,
         PacketTimeoutAttribute? timeout,
