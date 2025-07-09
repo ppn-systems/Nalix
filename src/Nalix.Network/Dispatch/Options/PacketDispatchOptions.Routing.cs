@@ -39,20 +39,22 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>> handlers = new()
                 {
                     [typeof(void)] = static (_, _, _) => System.Threading.Tasks.Task.CompletedTask,
+                    [typeof(TPacket)] = CreatePacketHandler(),
                     [typeof(System.Byte[])] = CreateByteArrayHandler(),
                     [typeof(System.String)] = CreateStringHandler(),
                     [typeof(System.Memory<System.Byte>)] = CreateMemoryHandler(),
-                    [typeof(TPacket)] = CreatePacketHandler(),
+                    [typeof(System.ReadOnlyMemory<System.Byte>)] = CreateReadOnlyMemoryHandler(),
+                    [typeof(System.Collections.Generic.IEnumerable<TPacket>)] = CreatePacketEnumerableHandler(),
                     [typeof(System.Threading.Tasks.ValueTask)] = CreateValueTaskHandler(),
+                    [typeof(System.Threading.Tasks.ValueTask<TPacket>)] = CreateValueTaskPacketHandler(),
                     [typeof(System.Threading.Tasks.ValueTask<System.Byte[]>)] = CreateValueTaskByteArrayHandler(),
                     [typeof(System.Threading.Tasks.ValueTask<System.String>)] = CreateValueTaskStringHandler(),
                     [typeof(System.Threading.Tasks.ValueTask<System.Memory<System.Byte>>)] = CreateValueTaskMemoryHandler(),
-                    [typeof(System.Threading.Tasks.ValueTask<TPacket>)] = CreateValueTaskPacketHandler(),
                     [typeof(System.Threading.Tasks.Task)] = CreateTaskHandler(),
+                    [typeof(System.Threading.Tasks.Task<TPacket>)] = CreateTaskPacketHandler(),
                     [typeof(System.Threading.Tasks.Task<System.Byte[]>)] = CreateTaskByteArrayHandler(),
                     [typeof(System.Threading.Tasks.Task<System.String>)] = CreateTaskStringHandler(),
                     [typeof(System.Threading.Tasks.Task<System.Memory<System.Byte>>)] = CreateTaskMemoryHandler(),
-                    [typeof(System.Threading.Tasks.Task<TPacket>)] = CreateTaskPacketHandler(),
                 };
 
         return System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(handlers);
@@ -93,6 +95,16 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreateReadOnlyMemoryHandler()
+        => static async (result, _, connection) =>
+        {
+            if (result is System.ReadOnlyMemory<System.Byte> memory)
+                await connection.Tcp.SendAsync(memory);
+        };
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
         CreatePacketHandler()
         => static async (result, _, connection) =>
         {
@@ -100,9 +112,20 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
                 await DispatchPacketAsync(packet, connection);
         };
 
+    private static System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
+        CreatePacketEnumerableHandler()
+        => async (result, _, connection) =>
+        {
+            if (result is System.Collections.Generic.IEnumerable<TPacket> packets)
+            {
+                foreach (var packet in packets)
+                    await DispatchPacketAsync(packet, connection);
+            }
+        };
+
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task>
+    private System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>
         CreateValueTaskHandler()
         => async (result, _, _) =>
         {
