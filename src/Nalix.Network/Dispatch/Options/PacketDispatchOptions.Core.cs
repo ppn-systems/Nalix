@@ -2,7 +2,6 @@ using Nalix.Common.Connection;
 using Nalix.Common.Logging;
 using Nalix.Common.Package;
 using Nalix.Network.Configurations;
-using Nalix.Network.Security.Guard;
 using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Dispatch.Options;
@@ -54,23 +53,6 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         System.Reflection.MethodInfo, PacketDescriptor> _attributeCache = new();
 
     private ILogger? _logger;
-    private readonly PacketRateLimitGuard _rateLimiter;
-
-    /// <summary>
-    /// Gets or sets the callback used to report the execution time of packet handlers.
-    /// </summary>
-    /// <remarks>
-    /// This is invoked after each packet is processed, passing the handler name and time taken (ms).
-    /// </remarks>
-    private bool _isMetricsEnabled;
-
-    /// <summary>
-    /// Callback function to collect execution time metrics for packet processing.
-    /// </summary>
-    /// <remarks>
-    /// The callback receives the packet handler name and execution time in milliseconds.
-    /// </remarks>
-    private System.Action<string, long>? _metricsCallback;
 
     /// <summary>
     /// Gets or sets a custom error-handling delegate invoked when packet processing fails.
@@ -109,7 +91,6 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// </remarks>
     public PacketDispatchOptions()
     {
-        _rateLimiter = new PacketRateLimitGuard();
         _handlerLookup = CreateHandlerLookup();
     }
 
