@@ -24,6 +24,7 @@ namespace Nalix.SDK.Transport;
 /// - Rate sampler scheduled as TaskManager recurring job
 /// - Use BufferPoolManager and BufferLease for received payloads
 /// </summary>
+[System.Obsolete("UnreliableClient is intended for testing and diagnostics only. It does not implement reliability features such as retransmission, ordering, or congestion control. Use ReliableClient for production scenarios.", error: false)]
 public sealed class UnreliableClient : IClientConnection
 {
     #region Fields
