@@ -9,23 +9,6 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     IPacketCompressor<TPacket>
 {
     /// <summary>
-    /// Performance metrics structure
-    /// </summary>
-    [System.Runtime.InteropServices.StructLayout(
-        System.Runtime.InteropServices.LayoutKind.Sequential)]
-    [method: System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private readonly struct MetricsData(
-        System.Int64 elapsedTicks,
-        System.String handlerName,
-        System.Boolean isEnabled)
-    {
-        public readonly System.Boolean IsEnabled = isEnabled;
-        public readonly System.String HandlerName = handlerName;
-        public readonly System.Int64 ElapsedTicks = elapsedTicks;
-    }
-
-    /// <summary>
     /// Optimized packet descriptor với struct layout cho performance
     /// </summary>
     [System.Runtime.InteropServices.StructLayout(

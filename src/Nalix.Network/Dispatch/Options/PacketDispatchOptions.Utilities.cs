@@ -27,7 +27,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void Failure(System.Type returnType, System.Exception ex)
-        => _logger?.Error("Handler failed: {0} - {1}", returnType.Name, ex.Message);
+        => _logger?.Error($"Handler failed: {returnType.Name} - {ex.Message}");
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
@@ -35,11 +35,4 @@ public sealed partial class PacketDispatchOptions<TPacket>
     private static System.Threading.Tasks.ValueTask<System.Boolean> DispatchPacketAsync(
         TPacket packet, IConnection connection)
         => new(connection.Tcp.SendAsync(packet));
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private System.Boolean CheckRateLimit(
-        System.ReadOnlySpan<System.Char> remoteEndPoint, in PacketDescriptor attributes)
-        => attributes.RateLimit is null || _rateLimiter.Check(remoteEndPoint.ToString(), attributes.RateLimit);
 }
