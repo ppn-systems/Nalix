@@ -39,19 +39,6 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
     #region Fields
 
-    /// <summary>
-    /// A dictionary mapping packet command IDs (ushort) to their respective handlers.
-    /// </summary>
-    private readonly System.Collections.Generic.Dictionary
-        <ushort, System.Func<TPacket, IConnection, System.Threading.Tasks.Task>> _handlers = [];
-
-    private readonly System.Collections.Frozen.FrozenDictionary<
-        System.Type,
-        System.Func<object?, TPacket, IConnection, System.Threading.Tasks.Task>> _handlerLookup;
-
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        System.Reflection.MethodInfo, PacketDescriptor> _attributeCache = new();
-
     private ILogger? _logger;
 
     /// <summary>
@@ -60,7 +47,20 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <remarks>
     /// If not set, exceptions are only logged. You can override this to trigger alerts or retries.
     /// </remarks>
-    private System.Action<System.Exception, ushort>? _errorHandler;
+    private System.Action<System.Exception, System.UInt16>? _errorHandler;
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
+        System.Reflection.MethodInfo, PacketDescriptor> _attributeCache = new();
+
+    private readonly System.Collections.Frozen.FrozenDictionary<
+        System.Type,
+        System.Func<System.Object?, TPacket, IConnection, System.Threading.Tasks.Task>> _typeCache;
+
+    /// <summary>
+    /// A dictionary mapping packet command IDs (ushort) to their respective handlers.
+    /// </summary>
+    private readonly System.Collections.Generic.Dictionary
+        <System.UInt16, System.Func<TPacket, IConnection, System.Threading.Tasks.Task>> _handlerCache = [];
 
     #endregion Fields
 
@@ -91,7 +91,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// </remarks>
     public PacketDispatchOptions()
     {
-        _handlerLookup = CreateHandlerLookup();
+        _typeCache = CreateHandlerLookup();
     }
 
     #endregion Constructors
