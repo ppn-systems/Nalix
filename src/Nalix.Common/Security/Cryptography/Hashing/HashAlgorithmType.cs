@@ -1,4 +1,4 @@
-namespace Nalix.Common.Cryptography.Hashing;
+namespace Nalix.Common.Security.Cryptography.Hashing;
 
 /// <summary>
 /// Supported hash algorithms for HMAC computation.

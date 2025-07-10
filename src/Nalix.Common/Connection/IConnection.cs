@@ -1,6 +1,6 @@
-using Nalix.Common.Cryptography;
-using Nalix.Common.Identity;
-using Nalix.Common.Security;
+using Nalix.Common.Security.Cryptography;
+using Nalix.Common.Security.Identity;
+using Nalix.Common.Security.Types;
 
 namespace Nalix.Common.Connection;
 

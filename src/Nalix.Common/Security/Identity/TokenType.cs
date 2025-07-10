@@ -1,4 +1,4 @@
-namespace Nalix.Common.Identity;
+namespace Nalix.Common.Security.Identity;
 
 /// <summary>
 /// Number type to serve different purposes in the system.

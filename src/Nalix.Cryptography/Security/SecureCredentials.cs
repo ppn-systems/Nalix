@@ -1,4 +1,4 @@
-using Nalix.Common.Cryptography.Hashing;
+using Nalix.Common.Security.Cryptography.Hashing;
 using Nalix.Cryptography.Internal;
 using Nalix.Framework.Randomization;
 

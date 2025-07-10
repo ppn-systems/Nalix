@@ -1,4 +1,4 @@
-﻿using Nalix.Common.Identity;
+﻿using Nalix.Common.Security.Identity;
 using Nalix.Framework.Randomization;
 
 namespace Nalix.Framework.Identity;
