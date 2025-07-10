@@ -1,4 +1,4 @@
-namespace Nalix.Common.Cryptography.Asymmetric;
+namespace Nalix.Common.Security.Cryptography.Asymmetric;
 
 /// <summary>
 /// Interface for SRP-6 encryption and authentication methods.

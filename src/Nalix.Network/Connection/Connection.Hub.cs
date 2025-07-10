@@ -1,6 +1,6 @@
 using Nalix.Common.Connection;
-using Nalix.Common.Identity;
 using Nalix.Common.Logging;
+using Nalix.Common.Security.Identity;
 using Nalix.Framework.Identity;
 using Nalix.Shared.Injection.DI;
 

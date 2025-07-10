@@ -1,4 +1,4 @@
-namespace Nalix.Common.Cryptography.Asymmetric;
+namespace Nalix.Common.Security.Cryptography.Asymmetric;
 
 /// <summary>
 /// Interface for X25519 elliptic curve Diffie-Hellman (ECDH) key exchange operations.

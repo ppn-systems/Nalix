@@ -1,4 +1,4 @@
-using Nalix.Common.Cryptography;
+using Nalix.Common.Security.Cryptography;
 using Nalix.Network.Package.Engine;
 
 namespace Nalix.Network.Package.Extensions;

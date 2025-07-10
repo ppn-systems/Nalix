@@ -1,5 +1,5 @@
-using Nalix.Common.Cryptography.Asymmetric;
 using Nalix.Common.Exceptions;
+using Nalix.Common.Security.Cryptography.Asymmetric;
 using Nalix.Cryptography.Hashing;
 using Nalix.Framework.Randomization;
 using System;

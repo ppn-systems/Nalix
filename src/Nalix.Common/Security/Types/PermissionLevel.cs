@@ -1,4 +1,4 @@
-namespace Nalix.Common.Security;
+namespace Nalix.Common.Security.Types;
 
 /// <summary>
 /// Represents different authority levels of users in the system.

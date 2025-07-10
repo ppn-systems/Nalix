@@ -1,4 +1,4 @@
-namespace Nalix.Common.Security;
+namespace Nalix.Common.Security.Types;
 
 /// <summary>
 /// Represents different levels of request limits that can be applied to a firewall configuration.

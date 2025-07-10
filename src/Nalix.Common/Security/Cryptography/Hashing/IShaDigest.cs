@@ -1,4 +1,4 @@
-namespace Nalix.Common.Cryptography.Hashing;
+namespace Nalix.Common.Security.Cryptography.Hashing;
 
 /// <summary>
 /// Defines a common interface for SHA-based cryptographic hash functions.

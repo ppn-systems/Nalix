@@ -1,7 +1,7 @@
 using Nalix.Common.Connection;
-using Nalix.Common.Cryptography;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Package.Enums;
+using Nalix.Common.Security.Cryptography;
 using Nalix.Cryptography;
 
 namespace Nalix.Network.Package.Engine;
