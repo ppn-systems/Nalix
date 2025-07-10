@@ -35,4 +35,25 @@ public sealed partial class PacketDispatchOptions<TPacket>
     private static System.Threading.Tasks.ValueTask<System.Boolean> DispatchPacketAsync(
         TPacket packet, IConnection connection)
         => new(connection.Tcp.SendAsync(packet));
+
+    /// <summary>
+    /// Optimized packet descriptor với struct layout cho performance
+    /// </summary>
+    [System.Runtime.InteropServices.StructLayout(
+        System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]
+    [method: System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private readonly struct PacketDescriptor(
+        PacketOpcodeAttribute opCode,
+        PacketTimeoutAttribute? timeout,
+        PacketRateLimitAttribute? rateLimit,
+        PacketPermissionAttribute? permission,
+        PacketEncryptionAttribute? encryption)
+    {
+        public readonly PacketOpcodeAttribute OpCode = opCode;
+        public readonly PacketTimeoutAttribute? Timeout = timeout;
+        public readonly PacketRateLimitAttribute? RateLimit = rateLimit;
+        public readonly PacketPermissionAttribute? Permission = permission;
+        public readonly PacketEncryptionAttribute? Encryption = encryption;
+    }
 }
