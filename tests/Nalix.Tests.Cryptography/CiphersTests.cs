@@ -1,5 +1,5 @@
-using Nalix.Common.Cryptography;
 using Nalix.Common.Exceptions;
+using Nalix.Common.Security.Cryptography;
 using Nalix.Cryptography;
 using System;
 using System.Text;
