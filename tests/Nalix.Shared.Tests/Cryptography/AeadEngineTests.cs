@@ -1,8 +1,7 @@
-﻿using System;
-using Xunit;
-using Nalix.Common.Enums;
-using Nalix.Shared.Security.Aead;
+﻿using Nalix.Common.Enums;
 using Nalix.Shared.Security.Engine;
+using System;
+using Xunit;
 
 namespace Nalix.Shared.Tests.Cryptography;
 
@@ -18,7 +17,7 @@ public class AeadEngineTests
         }
 
         var out16 = new Byte[16];
-        AeadEngine.ConvertKeyToXtea(key32, out16);
+        AeadEngine.U32ToU16(key32, out16);
 
         for (Int32 i = 0; i < 16; i++)
         {
@@ -32,7 +31,7 @@ public class AeadEngineTests
         var badKey = new Byte[31];
         var out16 = new Byte[16];
 
-        var ex = Assert.Throws<ArgumentException>(() => AeadEngine.ConvertKeyToXtea(badKey, out16));
+        var ex = Assert.Throws<ArgumentException>(() => AeadEngine.U32ToU16(badKey, out16));
         Assert.Equal("key", ex.ParamName);
     }
 
@@ -42,7 +41,7 @@ public class AeadEngineTests
         var key32 = new Byte[32];
         var outTooSmall = new Byte[8];
 
-        var ex = Assert.Throws<ArgumentException>(() => AeadEngine.ConvertKeyToXtea(key32, outTooSmall));
+        var ex = Assert.Throws<ArgumentException>(() => AeadEngine.U32ToU16(key32, outTooSmall));
         Assert.Equal("out16", ex.ParamName);
     }
 
@@ -59,7 +58,7 @@ public class AeadEngineTests
         var aad = System.Text.Encoding.UTF8.GetBytes("header-aad");
 
         // Use fixed seq to make test deterministic
-        var envelope = AeadEngine.Encrypt(key, plaintext, CipherSuiteType.ChaCha20Poly1305, aad, seq: 0x12345678u);
+        var envelope = AeadEngine.Encrypt(key, plaintext, CipherSuiteType.CHACHA20_POLY1305, aad, seq: 0x12345678u);
 
         Assert.NotNull(envelope);
         Assert.True(envelope.Length > plaintext.Length);
@@ -77,7 +76,7 @@ public class AeadEngineTests
         var plaintext = new Byte[10];
 
         var ex = Assert.Throws<ArgumentException>(() =>
-            AeadEngine.Encrypt(badKey, plaintext, CipherSuiteType.ChaCha20Poly1305));
+            AeadEngine.Encrypt(badKey, plaintext, CipherSuiteType.CHACHA20_POLY1305));
         Assert.Equal("key", ex.ParamName);
     }
 
@@ -91,7 +90,7 @@ public class AeadEngineTests
         }
 
         var plaintext = System.Text.Encoding.UTF8.GetBytes("Sensitive message");
-        var envelope = AeadEngine.Encrypt(key, plaintext, CipherSuiteType.ChaCha20Poly1305, seq: 1);
+        var envelope = AeadEngine.Encrypt(key, plaintext, CipherSuiteType.CHACHA20_POLY1305, seq: 1);
 
         // Tamper: flip the last byte (tag area is at the end)
         envelope[^1] ^= 0xFF;
