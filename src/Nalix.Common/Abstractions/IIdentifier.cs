@@ -74,5 +74,5 @@ public interface IIdentifier
     /// otherwise, returns a Base36-encoded string.
     /// </param>
     /// <returns>The string representation of the identifier.</returns>
-    System.String ToString([System.Diagnostics.CodeAnalysis.NotNull] System.Boolean isHex);
+    System.String ToString(System.Boolean isHex);
 }

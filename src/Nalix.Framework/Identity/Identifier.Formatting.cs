@@ -166,7 +166,8 @@ public readonly partial struct Identifier
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TryFormatBase36(
-        System.Span<System.Char> destination, out System.Byte charsWritten)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Char> destination,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte charsWritten)
     {
         System.UInt64 value = GetCombinedValue();
         System.Span<System.Char> buffer = stackalloc System.Char[13];
@@ -211,7 +212,8 @@ public readonly partial struct Identifier
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TryWriteBytes(
-        System.Span<System.Byte> destination, out System.Int32 bytesWritten)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> destination,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 bytesWritten)
     {
         if (destination.Length < 7)
         {
