@@ -1,222 +1,250 @@
-# TaskManager Documentation
+# TaskManager — Powerful Background Task & Scheduling Manager
 
-## Overview
+**TaskManager** provides robust scheduling for background workers and recurring tasks — with advanced features like group limiting, dynamic concurrency, diagnostics, and sophisticated error/backoff handling.  
+It is ideal for distributed background processing, regular polling, periodic health checks, or complex ETL jobs.
 
-`TaskManager` is a robust class for managing background tasks in .NET applications. It supports two main types of tasks: recurring (scheduled, repeated) tasks and workers (background jobs, either single-run or long-running). The manager is fully thread-safe, supports automatic cleanup of finished workers, task cancellation, group concurrency control, detailed reporting, and is designed for high efficiency and maintainability.
-
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Detailed Code Explanation](#detailed-code-explanation)
-  - [Fields & Structure](#fields--structure)
-  - [Main APIs](#main-apis)
-  - [State Tracking & Reporting](#state-tracking--reporting)
-  - [Automatic Cleanup & Internal Mechanics](#automatic-cleanup--internal-mechanics)
-  - [Task & Worker Options](#task--worker-options)
-- [Usage](#usage)
-- [Examples](#examples)
-- [Notes & Security](#notes--security)
-- [SOLID & DDD Principles](#solid--ddd-principles)
+- **Namespace:** `Nalix.Framework.Tasks`
+- **Class:** `TaskManager`
+- **Configurable via:** `TaskManagerOptions`, `WorkerOptions`, `RecurringOptions` (set directly or via `ConfigurationManager`)
 
 ---
 
-## Detailed Code Explanation
+## Features
 
-### Fields & Structure
-
-- Uses thread-safe collections (`ConcurrentDictionary`) to store workers, recurring tasks, and group gates.
-- Each worker/recurring task has its own state class (e.g., `WorkerState`, `RecurringState`).
-- Internal timer (`_cleanupTimer`) periodically checks and removes finished workers to conserve memory.
-- Uses `CancellationTokenSource` for cancellation support, ensuring safe task termination.
-
----
-
-### Main APIs
-
-#### Recurring Task Management
-
-- `ScheduleRecurring(...)`: Schedule a recurring background task with a specified interval.
-- `CancelRecurring(name)`: Cancel a recurring task by its unique name.
-- `TryGetRecurring(name, out handle)`: Try to retrieve a recurring task handle by name.
-- `ListRecurring()`: List all scheduled recurring tasks.
-
-#### Worker Management
-
-- `StartWorker(name, group, work, options)`: Start a new worker task in the background, with optional group-based concurrency limit.
-- `CancelWorker(id)`: Cancel a worker by its unique identifier.
-- `CancelGroup(group)`: Cancel all workers in a specific group.
-- `CancelAllWorkers()`: Cancel all running workers.
-- `TryGetWorker(id, out handle)`: Try to retrieve a worker handle by identifier.
-- `ListWorkers(runningOnly, group)`: List all workers, with optional filters for running status and group.
-
-#### Single-Run Job
-
-- `RunSingleJob(name, work, ct)`: Run a single background job with cancellation support.
-
-#### Reporting
-
-- `GenerateReport()`: Generate a detailed report of all recurring tasks and workers, grouped and summarized.
+- **Schedule one-off, recurring, or group-limited tasks**
+- **Dynamic worker concurrency** with automatic CPU/load monitoring and throttling
+- **Built-in metrics:** execution time, error rates, task progress, reporting
+- **Full diagnostics and cancellation APIs**
+- **All operations thread-safe**
 
 ---
 
-### State Tracking & Reporting
+## Basic Usage
 
-- **WorkerState**: Tracks execution status, statistics, timestamps, progress, and notes for each worker.
-- **RecurringState**: Tracks scheduled execution, run statistics, failure counts, and timing for recurring tasks.
-- **WorkerContext**: Passed into worker delegates, lets you update progress, check for cancellation, and record activity ("heartbeat").
-
----
-
-### Automatic Cleanup & Internal Mechanics
-
-- Finished workers are automatically removed from memory after a configurable retention period.
-- Group gates (using `SemaphoreSlim`) are disposed and removed if no workers remain in the group.
-- Recurring tasks use backoff and jitter logic to handle errors and avoid scheduling spikes.
-- All resource handles (timers, semaphores, CancellationTokenSource) are properly disposed to avoid leaks.
-
----
-
-### Task & Worker Options
-
-- **RecurringOptions**:
-  - `Tag`, `NonReentrant`, `Jitter`, `RunTimeout`, `MaxFailuresBeforeBackoff`, `MaxBackoff`.
-- **WorkerOptions**:
-  - `Tag`, `MachineId`, `IdType`, `Retention`, `MaxGroupConcurrency`, `TryAcquireGroupSlotImmediately`, `CancellationToken`, `OnCompleted`, `OnFailed`.
-
----
-
-## Usage
-
-### 1. Schedule a recurring task
-
-```csharp
-var manager = new TaskManager();
-manager.ScheduleRecurring(
-    "data-sync",
-    TimeSpan.FromMinutes(5),
-    async ct => { await SyncDataAsync(ct); },
-    new RecurringOptions { Tag = "sync", Jitter = TimeSpan.FromSeconds(5) }
-);
-```
-
-### 2. Start a worker
-
-```csharp
-var workerHandle = manager.StartWorker(
-    "file-upload",
-    "upload-group",
-    async (ctx, ct) => {
-        // ... file upload logic
-        ctx.Advance(20, "Uploaded chunk 1");
-        await Task.Delay(1000, ct);
-        ctx.Advance(80, "Uploaded chunk 2");
-    },
-    new WorkerOptions { Tag = "uploader", MaxGroupConcurrency = 3 }
-);
-```
-
-### 3. Cancel a worker or recurring task
-
-```csharp
-bool cancelled = manager.CancelWorker(workerHandle.Id);
-// Or
-manager.CancelRecurring("data-sync");
-```
-
-### 4. Generate a status report
-
-```csharp
-string report = manager.GenerateReport();
-Console.WriteLine(report);
-```
-
-### 5. Dispose resources
-
-```csharp
-manager.Dispose();
-```
-
----
-
-## Examples
+### Instantiate the TaskManager
 
 ```csharp
 using Nalix.Framework.Tasks;
-using Nalix.Framework.Tasks.Options;
 
-var manager = new TaskManager();
-
-// Schedule a recurring task every 10 minutes
-manager.ScheduleRecurring(
-    "heartbeat",
-    TimeSpan.FromMinutes(10),
-    async ct =>
-    {
-        // Send heartbeat logic
-        await Task.Delay(300, ct);
-    }
-);
-
-// Start a file upload worker
-var handle = manager.StartWorker(
-    "upload",
-    "file-group",
-    async (ctx, ct) =>
-    {
-        for (int i = 1; i <= 5; i++)
-        {
-            ctx.Advance(20, $"Chunk {i}/5");
-            await Task.Delay(500, ct);
-        }
-    },
-    new WorkerOptions { MaxGroupConcurrency = 2 }
-);
-
-// Cancel a worker if needed
-manager.CancelWorker(handle.Id);
-
-// Print a report of all tasks
-Console.WriteLine(manager.GenerateReport());
-
-// Clean up when finished
-manager.Dispose();
+// Default options (from ConfigurationManager), or pass custom options
+TaskManager taskManager = new TaskManager();
+// Or with custom options
+TaskManager taskManager = new TaskManager(new TaskManagerOptions { MaxWorkers = 20 });
 ```
 
 ---
 
-## Notes & Security
+### Schedule a One-off Worker
 
-- **Thread Safety:** All collections and state are thread-safe (`ConcurrentDictionary`, atomic variables, `SemaphoreSlim`).
-- **Resource Limits:** Always set an appropriate retention time for workers to prevent memory leaks; recurring tasks back off after repeated failures.
-- **Proper Disposal:** Always call `Dispose()` to release timers, CancellationTokenSource, and semaphores.
-- **Logging:** Integrate `ILogger` for full visibility on errors, timeouts, and concurrency rejections.
-- **No Resource Leaks:** All handles (Task, Cts, Gate) are disposed when no longer needed.
-- **Avoid Deadlocks:** Do not use blocking calls inside task callbacks.
-- **Exception Handling:** All exceptions are logged, and `OnFailed` callbacks are invoked as appropriate.
+```csharp
+using Nalix.Framework.Options;
+
+// Start a worker (with group and options)
+IWorkerHandle handle = taskManager.ScheduleWorker(
+    name: "data.import",
+    group: "etl",
+    async (ctx, ct) => {
+        // ... worker logic here
+        await SomeLongOperationAsync(ct);
+        ctx.Advance(1, "step done");    // Report progress
+    },
+    new WorkerOptions
+    {
+        Tag = "import",
+        ExecutionTimeout = TimeSpan.FromMinutes(1)
+    }
+);
+
+// You can cancel/halt worker by handle:
+handle.Cancel();
+```
+
+---
+
+### Schedule a Recurring Task
+
+```csharp
+using Nalix.Framework.Options;
+
+// Schedule a recurring task every 10 seconds
+IRecurringHandle recurringHandle = taskManager.ScheduleRecurring(
+    name: "heartbeat",
+    interval: TimeSpan.FromSeconds(10),
+    async ct => { /* periodic logic here */ },
+    new RecurringOptions
+    {
+        ExecutionTimeout = TimeSpan.FromSeconds(4),
+        Jitter = TimeSpan.FromMilliseconds(500),
+        NonReentrant = true
+    }
+);
+
+// Later, to stop:
+taskManager.CancelRecurring("heartbeat");
+```
 
 ---
 
-## SOLID & DDD Principles
+## API Overview
 
-- **SRP:** `TaskManager` is responsible only for task lifecycle and state management.
-- **OCP:** Easily extendable for new task types or behaviors via options and interfaces.
-- **LSP:** All handles implement interfaces (e.g. `IWorkerHandle`, `IRecurringHandle`) for easy substitution and mocking.
-- **ISP:** Separate interfaces for each task/job type improve maintainability and clarity.
-- **DIP:** Depends on abstractions (e.g. `ILogger`, `IIdentifier`, `IWorkerHandle`) for easier testing and extension.
+| Method                                                              | Description                                  |
+|---------------------------------------------------------------------|----------------------------------------------|
+| `ScheduleWorker(name, group, work, options?)`                       | Schedule a one-off worker task               |
+| `ScheduleRecurring(name, interval, work, options?)`                 | Schedule a periodic/recurring background task|
+| `RunOnceAsync(name, work, ct)`                                      | Run a fire-and-forget async task once        |
+| `CancelAllWorkers()`                                                | Cancel all active workers                    |
+| `CancelWorker(id)`                                                  | Cancel a specific worker by ID               |
+| `CancelGroup(group)`                                                | Cancel all workers by group                  |
+| `CancelRecurring(name)`                                             | Cancel (stop) a recurring task               |
+| `GetWorkers(runningOnly, group?)`                                   | Get all (or running) worker handles          |
+| `GetRecurring()`                                                    | List all active recurring handles            |
+| `GenerateReport()`                                                  | Full runtime status and metrics report       |
 
-**Domain-Driven Design (DDD):**  
+---
 
-- Workers and recurring tasks are managed as value objects with immutable state outside their lifecycle.
-- Suitable for use as aggregate roots or within bounded contexts.
+## Key Options
+
+### TaskManagerOptions (global)
+
+| Property                  | Type          | Meaning                                                |
+|---------------------------|---------------|--------------------------------------------------------|
+| `MaxWorkers`              | int           | Global worker concurrency limit (default: 100)         |
+| `DynamicAdjustmentEnabled`| bool          | Adaptive concurrency based on CPU load (default: true) |
+| `CleanupInterval`         | TimeSpan      | Worker cleanup frequency (default: 30s)                |
+| `IsEnableLatency`         | bool          | Collect/track latency & timing info (default: true)    |
 
 ---
 
-## Additional Notes
+### WorkerOptions
 
-- Designed for modern .NET (C#), leveraging features like records, `init`, cancellation tokens, and `async/await`.
-- Can be integrated into ASP.NET Core, Worker Services, or any .NET app needing robust background task orchestration.
-- Well-suited for distributed systems, multi-process applications, or any scenario with complex background processing.
+| Property                    | Type         | Meaning                                      |
+|-----------------------------|--------------|----------------------------------------------|
+| `Tag`                       | string?      | Custom tag for diagnostics                   |
+| `MachineId`                 | ushort       | Node/machine identity                        |
+| `IdType`                    | enum         | Worker type, for system audits               |
+| `ExecutionTimeout`          | TimeSpan?    | Auto-cancel if exceeded                      |
+| `RetainFor`                 | TimeSpan?    | How long to keep worker data after finish    |
+| `GroupConcurrencyLimit`     | int?         | Max concurrent tasks for a group             |
+| `TryAcquireSlotImmediately` | bool         | If true, fail immediately if group saturated |
+| `OnCompleted`               | Action       | Handler callback on success                  |
+| `OnFailed`                  | Action       | Handler callback on error                    |
 
 ---
+
+### RecurringOptions
+
+| Property                 | Type         | Meaning                             |
+|--------------------------|--------------|-------------------------------------|
+| `NonReentrant`           | bool         | Prevent overlapping invocations     |
+| `Jitter`                 | TimeSpan?    | Randomize initial delay (def: 250ms)|
+| `ExecutionTimeout`       | TimeSpan?    | Soft time budget/cancel per run     |
+| `FailuresBeforeBackoff`  | int          | Max fails before backoff            |
+| `BackoffCap`             | TimeSpan     | Max backoff delay after errors      |
+| `Tag`                    | string?      | Diagnostic tag                      |
+
+---
+
+## Accessing Diagnostics & Reporting
+
+**Generate a live snapshot of all workers and recurring tasks:**
+
+```csharp
+string report = taskManager.GenerateReport();
+Console.WriteLine(report);
+```
+
+---
+
+## Cancellation
+
+- **By worker ID:**  
+
+  ```csharp
+  taskManager.CancelWorker(workerId);
+  ```
+
+- **By group:**  
+
+  ```csharp
+  taskManager.CancelGroup("etl");
+  ```
+
+- **All workers:**  
+
+  ```csharp
+  taskManager.CancelAllWorkers();
+  ```
+
+- **Recurring task:**  
+
+  ```csharp
+  taskManager.CancelRecurring("heartbeat");
+  ```
+
+---
+
+## Querying Task Status
+
+**Worker handles** report progress, running/completed state, last note, start time:
+
+```csharp
+foreach (IReadOnlyCollection<IWorkerHandle> worker in taskManager.GetWorkers(runningOnly: true))
+{
+    Console.WriteLine($"{worker.Name} ({worker.Group}): Running={worker.IsRunning} Progress={worker.Progress}");
+}
+```
+
+**Recurring handles** report last/next run, total errors, etc.
+
+---
+
+## Best Practices
+
+- Use **group names** to organize/constrain similar jobs (ETL, pollers, etc).
+- Leverage **Jitter** and **NonReentrant** for safe, distributed scheduling.
+- Always set **ExecutionTimeout** in noisy/long operations to avoid runaway tasks.
+- Use **Tag** property for easy search/diagnostics of workers.
+- Clean up with **Dispose()** or use in a `using` block for graceful shutdown.
+
+---
+
+## Example: Complex Scheduling
+
+```csharp
+TaskManager tm = new TaskManager();
+
+tm.ScheduleRecurring(
+    "poll.weather", TimeSpan.FromSeconds(30),
+    async ct => {
+        // Polling logic here
+    },
+    new RecurringOptions { NonReentrant = true, Jitter = TimeSpan.FromMilliseconds(400) }
+);
+
+tm.ScheduleWorker(
+    "bulk.process", "analytics",
+    async (ctx, ct) => {
+        // Heavy processing
+        ctx.Advance(10, "started step 1");
+        // ...
+    },
+    new WorkerOptions { GroupConcurrencyLimit = 2 }
+);
+
+// Live console diagnostics
+Console.WriteLine(tm.GenerateReport());
+```
+
+---
+
+## Notes
+
+- All APIs are thread-safe and robust for use in modern .NET apps.
+- Concurrency limits and adaptive throttling make this manager scalable for cloud/server tasks.
+- Configuration can be set in code or by `ConfigurationManager` from ini/json.
+
+---
+
+## License
+
+Licensed under the Apache License, Version 2.0.
