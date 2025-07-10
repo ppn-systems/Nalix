@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<IsPackable>true</IsPackable>
+		<IsTrimmable>false</IsTrimmable>
+		<OutputType>Library</OutputType>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<Import Project="..\Nalix.Build.props" />
+
+	<ItemGroup>
+		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
+	</ItemGroup>
+
+</Project>

@@ -1,4 +1,4 @@
-namespace Nalix.Shared.Time;
+namespace Nalix.Framework.Time;
 
 /// <summary>
 /// Handles precise time for the system with high accuracy, supporting various time-related operations
@@ -148,7 +148,7 @@ public static class Clock
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int64 UnixMicrosecondsNow()
-        => (System.Int64)(GetUtcNowPrecise() - System.DateTime.UnixEpoch).Ticks / 10;
+        => (GetUtcNowPrecise() - System.DateTime.UnixEpoch).Ticks / 10;
 
     /// <summary>
     /// Current Unix timestamp (ticks) as long.
@@ -215,7 +215,7 @@ public static class Clock
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.DateTime UnixTimeMicrosecondsToDateTime(long timestamp)
     {
-        if (timestamp > (System.DateTime.MaxValue.Subtract(System.DateTime.UnixEpoch).Ticks / 10))
+        if (timestamp > System.DateTime.MaxValue.Subtract(System.DateTime.UnixEpoch).Ticks / 10)
             throw new System.OverflowException("Timestamp exceeds DateTime limits");
 
         return System.DateTime.UnixEpoch.AddTicks(timestamp * 10);
@@ -650,7 +650,7 @@ public static class Clock
         if (timeSpan.Minutes > 0)
             parts.Add($"{timeSpan.Minutes}m");
 
-        if (timeSpan.Seconds > 0 || (parts.Count == 0 && !includeMilliseconds))
+        if (timeSpan.Seconds > 0 || parts.Count == 0 && !includeMilliseconds)
             parts.Add($"{timeSpan.Seconds}s");
 
         if (includeMilliseconds && (timeSpan.Milliseconds > 0 || parts.Count == 0))

@@ -1,7 +1,7 @@
 ﻿using Nalix.Common.Identity;
-using Nalix.Shared.Randomization;
+using Nalix.Framework.Randomization;
 
-namespace Nalix.Shared.Identity;
+namespace Nalix.Framework.Identity;
 
 /// <summary>
 /// Represents a compact, high-performance identifier that encodes a 32-bit value,
@@ -347,7 +347,7 @@ public readonly struct Token : IIdentifier, System.IEquatable<Token>
 
             if (digit >= 36) return false;
 
-            value = (value * 36) + (System.UInt32)digit;
+            value = value * 36 + (System.UInt32)digit;
         }
 
         if (value > 0x00FFFFFFFFFFFFFFUL) // must be <= 7 bytes (56 bits)
@@ -355,8 +355,8 @@ public readonly struct Token : IIdentifier, System.IEquatable<Token>
 
         // Split to struct layout
         System.UInt32 rawValue = (System.UInt32)(value & 0xFFFFFFFF);
-        System.UInt16 machineId = (System.UInt16)((value >> 32) & 0xFFFF);
-        System.Byte type = (System.Byte)((value >> 48) & 0xFF);
+        System.UInt16 machineId = (System.UInt16)(value >> 32 & 0xFFFF);
+        System.Byte type = (System.Byte)(value >> 48 & 0xFF);
 
         handle = new Token(rawValue, machineId, (TokenType)type);
         return true;

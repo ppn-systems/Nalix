@@ -1,6 +1,6 @@
 using Nalix.Common.Exceptions;
 
-namespace Nalix.Shared.Environment;
+namespace Nalix.Common.Environment;
 
 /// <summary>
 /// Class that defines default directories for the application with enhanced functionality
@@ -15,16 +15,16 @@ public static class Directories
         new(System.Threading.LockRecursionPolicy.SupportsRecursion);
 
     // Directory creation event (nullable to resolve CS8618)
-    private static event System.Action<System.String>? DirectoryCreated;
+    private static event System.Action<System.String> DirectoryCreated;
 
     // Flag to indicate if we're running in a container
     private static readonly System.Lazy<System.Boolean> IsContainerLazy = new(() =>
         System.IO.File.Exists("/.dockerenv") ||
-        (System.IO.File.Exists("/proc/1/cgroup") &&
-        System.IO.File.ReadAllText("/proc/1/cgroup").Contains("docker")));
+        System.IO.File.Exists("/proc/1/cgroup") &&
+        System.IO.File.ReadAllText("/proc/1/cgroup").Contains("docker"));
 
     // For testing purposes, to override base path (nullable to resolve CS8618)
-    private static string? _basePathOverride;
+    private static string _basePathOverride;
 
     // Lazy-initialized paths
     private static readonly System.Lazy<System.String> BasePathLazy = new(() =>
