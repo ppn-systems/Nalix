@@ -1,5 +1,5 @@
 using Nalix.Common.Exceptions;
-using Nalix.Shared.Time;
+using Nalix.Framework.Time;
 
 namespace Nalix.Network.Listeners;
 

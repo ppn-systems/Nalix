@@ -1,5 +1,5 @@
 using Nalix.Common.Logging;
-using Nalix.Shared.Time;
+using Nalix.Framework.Time;
 
 namespace Nalix.Network.Internal;
 

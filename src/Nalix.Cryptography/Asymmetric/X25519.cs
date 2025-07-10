@@ -1,5 +1,5 @@
 using Nalix.Common.Cryptography.Asymmetric;
-using Nalix.Shared.Randomization;
+using Nalix.Framework.Randomization;
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;

@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 
-namespace Nalix.Shared.Randomization;
+namespace Nalix.Framework.Randomization;
 
 /// <summary>
 /// High-performance cryptographically strong random Number generator
@@ -223,7 +223,7 @@ public static class RandGenerator
         ulong range = (ulong)((long)max - min);
 
         // Use rejection sampling to avoid modulo bias
-        ulong mask = (1UL << (BitOperations.Log2((uint)range) + 1)) - 1;
+        ulong mask = (1UL << BitOperations.Log2((uint)range) + 1) - 1;
         ulong result;
 
         do
@@ -410,21 +410,21 @@ public static class RandGenerator
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ulong RotateLeft(ulong value, int shift)
-        => (value << shift) | (value >> (64 - shift));
+        => value << shift | value >> 64 - shift;
 
     /// <summary>
     /// Performs left rotation of bits in a 32-bit value.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint RotateLeft(uint value, int shift)
-        => (value << shift) | (value >> (32 - shift));
+        => value << shift | value >> 32 - shift;
 
     /// <summary>
     /// Performs left rotation of bits in an 8-bit value.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static byte RotateLeft(byte value, int shift)
-        => (byte)((value << shift) | (value >> (8 - shift)));
+        => (byte)(value << shift | value >> 8 - shift);
 
     /// <summary>
     /// Shuffles the characters in a string.
@@ -479,8 +479,8 @@ public static class RandGenerator
         // Initialize thread-local state from global state plus thread-specific entropy
         lock (SyncRoot)
         {
-            localState[0] = State[0] ^ (ulong)System.Environment.CurrentManagedThreadId;
-            localState[1] = State[1] ^ (ulong)System.Environment.CurrentManagedThreadId;
+            localState[0] = State[0] ^ (ulong)Environment.CurrentManagedThreadId;
+            localState[1] = State[1] ^ (ulong)Environment.CurrentManagedThreadId;
             localState[2] = State[2] ^ (ulong)DateTime.UtcNow.Ticks;
             localState[3] = State[3] ^ GetCpuCycles();
 
@@ -509,14 +509,14 @@ public static class RandGenerator
         BitConverter.TryWriteBytes(seed.AsSpan(0, 8), timestamp);
 
         // Use Environment.TickCount64 for additional entropy
-        long tickCount = System.Environment.TickCount64;
+        long tickCount = Environment.TickCount64;
         BitConverter.TryWriteBytes(seed.AsSpan(8, 8), tickCount);
 
         // Use process and thread IDs
-        int processId = System.Environment.ProcessId;
+        int processId = Environment.ProcessId;
         BitConverter.TryWriteBytes(seed.AsSpan(16, 4), processId);
 
-        int threadId = System.Environment.CurrentManagedThreadId;
+        int threadId = Environment.CurrentManagedThreadId;
         BitConverter.TryWriteBytes(seed.AsSpan(20, 4), threadId);
 
         // Hardware-specific information like CPU cycles
@@ -528,8 +528,8 @@ public static class RandGenerator
         {
             // Mix with more entropy
             seed[i] ^= (byte)(i * 97);
-            seed[i] ^= (byte)(timestamp >> (i % 8 * 8));
-            seed[i] ^= (byte)(cpuCycles >> (i % 8 * 8));
+            seed[i] ^= (byte)(timestamp >> i % 8 * 8);
+            seed[i] ^= (byte)(cpuCycles >> i % 8 * 8);
         }
 
         // Initialize the state with the seed
@@ -566,12 +566,12 @@ public static class RandGenerator
             long end = System.Diagnostics.Stopwatch.GetTimestamp();
 
             // Combine timing and calculation result
-            return (ulong)((end - start) ^ sum);
+            return (ulong)(end - start ^ sum);
         }
         catch
         {
             // Fall back to Environment.TickCount if Stopwatch fails
-            return (ulong)(System.Environment.TickCount ^ GC.GetTotalMemory(false));
+            return (ulong)(Environment.TickCount ^ GC.GetTotalMemory(false));
         }
     }
 

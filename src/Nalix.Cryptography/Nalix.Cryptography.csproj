@@ -31,8 +31,9 @@ Nalix.Cryptography is a high-performance .NET library providing secure and effic
     <Import Project="..\Package.Build.props" />
 
   <ItemGroup>
-    <ProjectReference Include="..\Nalix.Shared\Nalix.Shared.csproj" />
-    <ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
+        <ProjectReference Include="..\Nalix.Shared\Nalix.Shared.csproj" />
+        <ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
+	    <ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
   </ItemGroup>
 
 </Project>

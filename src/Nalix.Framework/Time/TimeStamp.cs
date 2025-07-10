@@ -1,4 +1,4 @@
-namespace Nalix.Shared.Time;
+namespace Nalix.Framework.Time;
 
 /// <summary>
 /// Represents a precise timestamp for interval measurement.

@@ -1,5 +1,5 @@
 using Nalix.Cryptography.Checksums;
-using Nalix.Shared.Time;
+using Nalix.Framework.Time;
 
 namespace Nalix.Network.Package;
 
