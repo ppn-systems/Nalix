@@ -9,13 +9,13 @@ namespace Nalix.Cryptography.Asymmetric;
 /// </summary>
 public static unsafe class X25519
 {
-    #region Const
+    #region Constants
 
     private const System.Byte ScalarSize = 32;
     private const System.Byte PointSize = 32;
     private const System.Byte FieldElementSize = 32;
 
-    #endregion Const
+    #endregion Constants
 
     #region APIs
 
@@ -112,7 +112,7 @@ public static unsafe class X25519
     /// </summary>
     /// <param name="privateKey">Output buffer containing the generated private key.</param>
     /// <param name="publicKey">Output buffer containing the corresponding public key.</param>
-    public static void Generate(out System.Byte[] privateKey, out System.Byte[] publicKey)
+    public static void GenerateKeyPair(out System.Byte[] privateKey, out System.Byte[] publicKey)
     {
         privateKey = new System.Byte[ScalarSize];
         publicKey = new System.Byte[PointSize];
