@@ -117,7 +117,7 @@ public static unsafe class X25519
         privateKey = new System.Byte[ScalarSize];
         publicKey = new System.Byte[PointSize];
 
-        RandGenerator.NextBytes(privateKey);
+        SecureRandom.NextBytes(privateKey);
 
         ClampScalar(privateKey);
 

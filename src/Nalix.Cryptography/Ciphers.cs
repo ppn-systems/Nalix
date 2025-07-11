@@ -43,7 +43,7 @@ public static class Ciphers
             {
                 case SymmetricAlgorithmType.ChaCha20Poly1305:
                     {
-                        System.Span<byte> nonce = RandGenerator.CreateNonce();
+                        System.Span<byte> nonce = SecureRandom.CreateNonce();
 
                         ChaCha20Poly1305.Encrypt(key, nonce, data.Span, null,
                             out byte[] ciphertext, out byte[] tag);
@@ -88,7 +88,7 @@ public static class Ciphers
 
                             if (bufferSize > originalLength)
                             {
-                                RandGenerator.Fill(workSpan[originalLength..bufferSize]);
+                                SecureRandom.Fill(workSpan[originalLength..bufferSize]);
                             }
 
                             System.ReadOnlySpan<byte> fixedKey = BitwiseUtils.FixedSize(key);
@@ -128,7 +128,7 @@ public static class Ciphers
 
                             if (paddedLength > originalLength)
                             {
-                                RandGenerator.Fill(workSpan[originalLength..paddedLength]);
+                                SecureRandom.Fill(workSpan[originalLength..paddedLength]);
                             }
 
                             byte[] encrypted = Twofish.ECB.Encrypt(key, workSpan);
@@ -151,7 +151,7 @@ public static class Ciphers
                             throw new System.ArgumentException("Input data cannot be empty.", nameof(data));
 
                         int paddedLength = (originalLength + blockSize - 1) & ~(blockSize - 1); // Align to 16 bytes
-                        System.Span<byte> iv = RandGenerator.CreateNonce(16); // 16 bytes IV
+                        System.Span<byte> iv = SecureRandom.CreateNonce(16); // 16 bytes IV
 
                         // 4 bytes for original length + 16 bytes IV + padded content
                         byte[] output = System.Buffers.ArrayPool<byte>.Shared.Rent(4 + 16 + paddedLength);
@@ -167,7 +167,7 @@ public static class Ciphers
 
                             if (paddedLength > originalLength)
                             {
-                                RandGenerator.Fill(workSpan[originalLength..paddedLength]); // random padding
+                                SecureRandom.Fill(workSpan[originalLength..paddedLength]); // random padding
                             }
 
                             byte[] encrypted = Twofish.CBC.Encrypt(key, iv, workSpan);
@@ -206,7 +206,7 @@ public static class Ciphers
                             {
                                 inputSpan.CopyTo(paddedInput);
                                 // Random padding instead of zero-padding for better security
-                                RandGenerator.Fill(
+                                SecureRandom.Fill(
                                     System.MemoryExtensions.AsSpan(paddedInput, originalLength, bufferSize - originalLength));
 
                                 Xtea.Encrypt(
