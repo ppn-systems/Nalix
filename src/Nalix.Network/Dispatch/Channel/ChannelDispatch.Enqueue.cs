@@ -3,7 +3,7 @@ using Nalix.Common.Package.Enums;
 
 namespace Nalix.Network.Dispatch.Channel;
 
-public sealed partial class PriorityQueue<TPacket> where TPacket : IPacket
+public sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Adds a packet to the appropriate priority queue.

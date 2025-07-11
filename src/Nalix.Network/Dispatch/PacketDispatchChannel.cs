@@ -45,7 +45,7 @@ public sealed class PacketDispatchChannel<TPacket>
     #region Fields
 
     // Queue for storing raw handling tasks
-    private readonly Channel.PriorityQueue<TPacket> _dispatchQueue;
+    private readonly Channel.MultiLevelQueue<TPacket> _dispatchQueue;
 
     // Reverse mapping: IConnection -> set of all associated raw keys
     private readonly System.Collections.Generic.Dictionary<
@@ -99,7 +99,7 @@ public sealed class PacketDispatchChannel<TPacket>
         _lock = new System.Threading.Lock();
         _semaphore = new System.Threading.SemaphoreSlim(0);
         _ctokens = new System.Threading.CancellationTokenSource();
-        _dispatchQueue = new Channel.PriorityQueue<TPacket>(Options.QueueOptions);
+        _dispatchQueue = new Channel.MultiLevelQueue<TPacket>(Options.QueueOptions);
 
         // Add any additional initialization here if needed
         base.Logger?.Debug("[Dispatch] Initialized with custom options");

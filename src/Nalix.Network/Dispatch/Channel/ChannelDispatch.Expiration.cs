@@ -7,7 +7,7 @@ namespace Nalix.Network.Dispatch.Channel;
 /// <summary>
 /// Priority-based packet queue with support for expiration, statistics, and background cleanup.
 /// </summary>
-public sealed partial class PriorityQueue<TPacket> where TPacket : IPacket
+public sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
 {
     #region Public Methods
 
