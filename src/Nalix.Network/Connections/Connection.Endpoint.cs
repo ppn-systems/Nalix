@@ -11,7 +11,7 @@ public sealed partial class Connection
     [System.Runtime.CompilerServices.SkipLocalsInit]
     [System.Diagnostics.DebuggerDisplay("{ToString()}")]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    internal readonly struct EndpointToken : IEndpointKey, System.IEquatable<EndpointToken>
+    internal readonly struct EndpointToken : INetworkEndpoint, System.IEquatable<EndpointToken>
     {
         private readonly System.UInt64 _hi;
         private readonly System.UInt64 _lo;
@@ -178,7 +178,7 @@ public sealed partial class Connection
         }
 
         /// <summary>
-        /// Compares this instance to another <see cref="IEndpointKey"/>.
+        /// Compares this instance to another <see cref="INetworkEndpoint"/>.
         /// </summary>
         /// <remarks>
         /// Fast path is used when <paramref name="other"/> is also a <see cref="EndpointToken"/>.
@@ -188,7 +188,7 @@ public sealed partial class Connection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public System.Boolean Equals([System.Diagnostics.CodeAnalysis.AllowNull] IEndpointKey other)
+        public System.Boolean Equals([System.Diagnostics.CodeAnalysis.AllowNull] INetworkEndpoint other)
         {
             if (other is null)
             {

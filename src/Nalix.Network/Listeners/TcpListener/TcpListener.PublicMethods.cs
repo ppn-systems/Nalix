@@ -4,8 +4,8 @@ using Nalix.Common.Enums;
 using Nalix.Common.Logging;
 using Nalix.Common.Tasks;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Framework.Tasks.Options;
 using Nalix.Framework.Time;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal;
@@ -170,7 +170,7 @@ public abstract partial class TcpListenerBase
                     {
                         CancellationToken = linkedToken,
                         RetainFor = System.TimeSpan.FromSeconds(30),
-                        IdType = IdentifierType.System,
+                        IdType = SnowflakeType.System,
                         Tag = NetTaskCatalog.Segments.Net
                     }
                 );
