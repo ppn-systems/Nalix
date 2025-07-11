@@ -1,12 +1,13 @@
-using Nalix.Common.Package;
+﻿using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
+using Nalix.Shared.Memory.Pools;
 
 namespace Nalix.Network.Dispatch.Channel;
 
 /// <summary>
 /// Priority-based packet queue with support for expiration, statistics, and background cleanup.
 /// </summary>
-public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
+public sealed partial class PriorityQueue<TPacket> where TPacket : IPacket
 {
     #region Public Methods
 
@@ -35,13 +36,18 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
     public int Flush(PacketPriority priority)
     {
         int index = (int)priority;
-        int removed = ChannelDispatch<TPacket>.DrainAndDisposePackets(_priorityChannels[index].Reader);
+        int removed = FlushInternal(index);
 
         if (removed > 0)
         {
             System.Threading.Interlocked.Add(ref _totalCount, -removed);
             System.Threading.Interlocked.Exchange(ref _priorityCounts[index], 0);
-            if (_options.EnableMetrics) this.ClearStatistics(index);
+
+            if (_options.EnableMetrics)
+            {
+                _expiredCounts![index] = 0;
+                this.ClearStatistics(index);
+            }
         }
 
         return removed;
@@ -92,6 +98,20 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
 
     #region Private Methods
 
+    private int FlushInternal(int index)
+    {
+        int cleared = 0;
+        var reader = _priorityChannels[index].Reader;
+
+        while (reader.TryRead(out TPacket? packet))
+        {
+            packet.Dispose();
+            cleared++;
+        }
+
+        return cleared;
+    }
+
     /// <summary>
     /// Internal implementation for removing expired packets.
     /// </summary>
@@ -103,9 +123,10 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
 
         for (int i = 0; i < _priorityCount; i++)
         {
-            System.Collections.Generic.Queue<TPacket> temp = new();
-            System.Threading.Channels.ChannelReader<TPacket> reader = _priorityChannels[i].Reader;
-            System.Threading.Channels.ChannelWriter<TPacket> writer = _priorityChannels[i].Writer;
+            var reader = _priorityChannels[i].Reader;
+            var writer = _priorityChannels[i].Writer;
+
+            System.Collections.Generic.List<TPacket> buffer = ListPool<TPacket>.Instance.Rent();
 
             while (reader.TryRead(out TPacket? packet))
             {
@@ -115,17 +136,21 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
                     totalExpired++;
 
                     if (_options.EnableMetrics)
-                    {
                         _expiredCounts![i]++;
-                    }
                 }
                 else
                 {
-                    temp.Enqueue(packet);
+                    buffer.Add(packet);
                 }
             }
 
-            while (temp.TryDequeue(out TPacket? p)) await writer.WriteAsync(p);
+            for (int j = 0; j < buffer.Count; j++)
+            {
+                await writer.WriteAsync(buffer[j]);
+            }
+
+            buffer.Clear();
+            ListPool<TPacket>.Instance.Return(buffer);
         }
 
         if (totalExpired > 0)
@@ -144,7 +169,17 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
         int totalCleared = 0;
 
         for (int i = 0; i < _priorityCount; i++)
-            totalCleared += ChannelDispatch<TPacket>.DrainAndDisposePackets(_priorityChannels[i].Reader);
+        {
+            int removed = FlushInternal(i);
+            totalCleared += removed;
+
+            if (_options.EnableMetrics)
+            {
+                System.Threading.Interlocked.Exchange(ref _priorityCounts[i], 0);
+                _expiredCounts![i] = 0;
+                this.ClearStatistics(i);
+            }
+        }
 
         if (totalCleared > 0)
             System.Threading.Interlocked.Exchange(ref _totalCount, 0);

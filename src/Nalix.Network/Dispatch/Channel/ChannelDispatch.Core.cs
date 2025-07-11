@@ -9,13 +9,14 @@ namespace Nalix.Network.Dispatch.Channel;
 /// A high-performance priority queue for network packets based on System.Threading.Channels.
 /// Supports multiple priority levels with highest priority processing first.
 /// </summary>
-public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
+public sealed partial class PriorityQueue<TPacket> where TPacket : IPacket
 {
     #region Fields
 
     // Use channels instead of queues for better thread-safety and performance
 
     private readonly DispatchQueueOptions _options;
+    private System.Threading.SpinLock _capacityLock = new(false);
     private readonly System.Threading.Channels.Channel<TPacket>[] _priorityChannels;
 
     // Snapshot variables
@@ -31,11 +32,7 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
     private readonly int _priorityCount;
     private readonly int[] _priorityCounts;
 
-    // Performance measurements
-
-    private long _packetsProcessed;
-    private long _totalProcessingTicks;
-    private readonly System.Diagnostics.Stopwatch? _queueTimer;
+    private int _lastSuccessfulPriority = -1;
 
     #endregion Fields
 
@@ -51,9 +48,9 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
     #region Constructors
 
     /// <summary>
-    /// Initialize a new ChannelDispatch using options.
+    /// Initialize a new PriorityQueue using options.
     /// </summary>
-    private ChannelDispatch()
+    private PriorityQueue()
     {
         _priorityCount = System.Enum.GetValues<PacketPriority>().Length;
         _options ??= ConfigurationStore.Instance.Get<DispatchQueueOptions>();
@@ -64,15 +61,15 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
         // Create channels for each priority level
         for (System.Byte i = 0; i < _priorityCount; i++)
         {
-            _priorityChannels[i] = ChannelDispatch<TPacket>.CreateChannel(_options.MaxCapacity);
+            _priorityChannels[i] = PriorityQueue<TPacket>.CreateChannel(_options.MaxCapacity);
         }
     }
 
     /// <summary>
-    /// Initialize a new ChannelDispatch using options
+    /// Initialize a new PriorityQueue using options
     /// </summary>
     /// <param name="options">Configuration options for the packet queue</param>
-    public ChannelDispatch(DispatchQueueOptions options) : this()
+    public PriorityQueue(DispatchQueueOptions options) : this()
     {
         _options = options;
 
@@ -84,9 +81,6 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
             _rejectedCounts = new System.Int32[_priorityCount];
             _enqueuedCounts = new System.Int32[_priorityCount];
             _dequeuedCounts = new System.Int32[_priorityCount];
-
-            _queueTimer = new System.Diagnostics.Stopwatch();
-            _queueTimer.Start();
         }
     }
 

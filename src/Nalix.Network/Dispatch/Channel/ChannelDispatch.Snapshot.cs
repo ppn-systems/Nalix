@@ -5,7 +5,7 @@ using Nalix.Network.Snapshot;
 
 namespace Nalix.Network.Dispatch.Channel;
 
-public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot> where TPacket : IPacket
+public sealed partial class PriorityQueue<TPacket> : ISnapshot<PacketSnapshot> where TPacket : IPacket
 {
     #region Properties
 
@@ -93,7 +93,7 @@ public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot>
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PacketSnapshot GetSnapshot()
     {
-        if (!_options.EnableMetrics || _queueTimer == null)
+        if (!_options.EnableMetrics)
             return new PacketSnapshot();
 
         System.Collections.Generic.Dictionary<PacketPriority, PriorityQueueSnapshot> stats = [];
@@ -101,15 +101,12 @@ public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot>
         this.CollectStatisticsInternal(stats);
 
         float avgProcessingMs = 0;
-        if (_packetsProcessed > 0)
-            avgProcessingMs = (float)(_totalProcessingTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency) / _packetsProcessed;
 
         return new PacketSnapshot
         {
             TotalPendingPackets = Count,
             PerPriorityStats = stats,
-            AvgProcessingTimeMs = avgProcessingMs,
-            UptimeSeconds = (int)_queueTimer.Elapsed.TotalSeconds // _queueTimer is guaranteed to be non-null here
+            AvgProcessingTimeMs = avgProcessingMs
         };
     }
 
@@ -163,20 +160,6 @@ public sealed partial class ChannelDispatch<TPacket> : ISnapshot<PacketSnapshot>
                 };
             }
         }
-    }
-
-    /// <summary>
-    /// SynchronizeTime performance statistics
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void UpdatePerformanceStats(long startTicks)
-    {
-        long endTicks = System.Diagnostics.Stopwatch.GetTimestamp();
-        long elapsed = endTicks - startTicks;
-
-        _totalProcessingTicks += elapsed;
-        _packetsProcessed++;
     }
 
     #endregion Private Methods

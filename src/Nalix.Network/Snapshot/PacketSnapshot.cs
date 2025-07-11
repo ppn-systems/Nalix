@@ -8,11 +8,6 @@ namespace Nalix.Network.Snapshot;
 public record PacketSnapshot
 {
     /// <summary>
-    /// Gets the total uptime of the queue system in seconds since the tracking started.
-    /// </summary>
-    public int UptimeSeconds { get; init; }
-
-    /// <summary>
     /// Gets the total number of packets currently in the queue across all priority levels.
     /// </summary>
     public int TotalPendingPackets { get; init; }
