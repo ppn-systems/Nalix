@@ -3,7 +3,7 @@ using Nalix.Common.Package.Enums;
 
 namespace Nalix.Network.Dispatch.Channel;
 
-public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
+public sealed partial class PriorityQueue<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Adds a packet to the appropriate priority queue.
@@ -22,7 +22,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
 
         int priorityIndex = (int)packet.Priority;
 
-        if (_options.MaxCapacity > 0 && _totalCount >= _options.MaxCapacity)
+        if (_options.MaxCapacity > 0 &&
+            System.Threading.Volatile.Read(ref _totalCount) >= _options.MaxCapacity)
             return false;
 
         if (_priorityChannels[priorityIndex].Writer.TryWrite(packet))
@@ -138,7 +139,8 @@ public sealed partial class ChannelDispatch<TPacket> where TPacket : IPacket
         if (priorityIndex < 0 || priorityIndex >= _priorityChannels.Length)
             throw new System.ArgumentOutOfRangeException(nameof(priority), "Invalid priority level.");
 
-        if (_options.MaxCapacity > 0 && _totalCount >= _options.MaxCapacity)
+        if (_options.MaxCapacity > 0 &&
+            System.Threading.Volatile.Read(ref _totalCount) >= _options.MaxCapacity)
             return false;
 
         if (_priorityChannels[priorityIndex].Writer.TryWrite(packet))

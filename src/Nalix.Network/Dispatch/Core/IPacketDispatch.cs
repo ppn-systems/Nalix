@@ -1,7 +1,7 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Package;
 
-namespace Nalix.Network.Dispatch;
+namespace Nalix.Network.Dispatch.Core;
 
 /// <summary>
 /// Defines a dispatcher interface for handling incoming network packets.
