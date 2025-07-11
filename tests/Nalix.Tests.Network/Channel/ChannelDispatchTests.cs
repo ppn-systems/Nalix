@@ -28,7 +28,7 @@ public class ChannelDispatchTests
     {
         // Arrange
         var config = CreateDefaultConfig();
-        var dispatch = new ChannelDispatch<TestPacket>(config);
+        var dispatch = new MultiLevelQueue<TestPacket>(config);
         var packet = new TestPacket { Priority = PacketPriority.Medium };
 
         // Act
@@ -44,7 +44,7 @@ public class ChannelDispatchTests
     {
         // Arrange
         var config = CreateDefaultConfig();
-        var dispatch = new ChannelDispatch<TestPacket>(config);
+        var dispatch = new MultiLevelQueue<TestPacket>(config);
 
         // Act
         bool result = dispatch.Enqueue((TestPacket?)null!); // Explicitly cast to resolve ambiguity
@@ -60,7 +60,7 @@ public class ChannelDispatchTests
         // Arrange
         var config = CreateDefaultConfig();
         config.MaxCapacity = 2;
-        var dispatch = new ChannelDispatch<TestPacket>(config);
+        var dispatch = new MultiLevelQueue<TestPacket>(config);
 
         var packet1 = new TestPacket { Priority = PacketPriority.Low };
         var packet2 = new TestPacket { Priority = PacketPriority.Low };
@@ -81,7 +81,7 @@ public class ChannelDispatchTests
     {
         // Arrange
         var config = CreateDefaultConfig();
-        var dispatch = new ChannelDispatch<TestPacket>(config);
+        var dispatch = new MultiLevelQueue<TestPacket>(config);
 
         var lowPriorityPacket = new TestPacket { Priority = PacketPriority.Low };
         var highPriorityPacket = new TestPacket { Priority = PacketPriority.High };
@@ -102,7 +102,7 @@ public class ChannelDispatchTests
     {
         // Arrange
         var config = CreateDefaultConfig();
-        var dispatch = new ChannelDispatch<TestPacket>(config);
+        var dispatch = new MultiLevelQueue<TestPacket>(config);
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() => dispatch.Dequeue());
@@ -113,7 +113,7 @@ public class ChannelDispatchTests
     {
         // Arrange
         var config = CreateDefaultConfig();
-        var dispatch = new ChannelDispatch<TestPacket>(config);
+        var dispatch = new MultiLevelQueue<TestPacket>(config);
         var packet = new TestPacket { Priority = PacketPriority.Low };
 
         dispatch.Enqueue(packet);
@@ -132,7 +132,7 @@ public class ChannelDispatchTests
     {
         // Arrange
         var config = CreateDefaultConfig();
-        var dispatch = new ChannelDispatch<TestPacket>(config);
+        var dispatch = new MultiLevelQueue<TestPacket>(config);
 
         // Act
         bool result = dispatch.TryDequeue(out var dequeuedPacket);
@@ -147,7 +147,7 @@ public class ChannelDispatchTests
     {
         // Arrange
         var config = CreateDefaultConfig();
-        var dispatch = new ChannelDispatch<TestPacket>(config);
+        var dispatch = new MultiLevelQueue<TestPacket>(config);
 
         var packets = new List<TestPacket>
         {
@@ -169,7 +169,7 @@ public class ChannelDispatchTests
     {
         // Arrange
         var config = CreateDefaultConfig();
-        var dispatch = new ChannelDispatch<TestPacket>(config);
+        var dispatch = new MultiLevelQueue<TestPacket>(config);
 
         var packets = new List<TestPacket>
         {
@@ -193,7 +193,7 @@ public class ChannelDispatchTests
     {
         // Arrange
         var config = CreateDefaultConfig();
-        var dispatch = new ChannelDispatch<TestPacket>(config);
+        var dispatch = new MultiLevelQueue<TestPacket>(config);
 
         var packet = new TestPacket { Priority = PacketPriority.Low };
 
@@ -211,7 +211,7 @@ public class ChannelDispatchTests
     {
         // Arrange
         var config = CreateDefaultConfig();
-        var dispatch = new ChannelDispatch<TestPacket>(config);
+        var dispatch = new MultiLevelQueue<TestPacket>(config);
 
         var packet1 = new TestPacket { Priority = PacketPriority.Medium };
         var packet2 = new TestPacket { Priority = PacketPriority.Medium };
@@ -234,7 +234,7 @@ public class ChannelDispatchTests
     {
         // Arrange
         var config = CreateDefaultConfig();
-        var dispatch = new ChannelDispatch<TestPacket>(config);
+        var dispatch = new MultiLevelQueue<TestPacket>(config);
         var invalidPacket = new TestPacket { Priority = (PacketPriority)99 }; // Invalid priority
 
         // Act & Assert
@@ -246,7 +246,7 @@ public class ChannelDispatchTests
     {
         // Arrange
         var config = CreateDefaultConfig();
-        var dispatch = new ChannelDispatch<TestPacket>(config);
+        var dispatch = new MultiLevelQueue<TestPacket>(config);
 
         var packet1 = new TestPacket { Priority = PacketPriority.Low };
         var packet2 = new TestPacket { Priority = PacketPriority.Medium };
@@ -270,7 +270,7 @@ public class ChannelDispatchTests
     {
         // Arrange
         var config = CreateDefaultConfig();
-        var dispatch = new ChannelDispatch<TestPacket>(config);
+        var dispatch = new MultiLevelQueue<TestPacket>(config);
 
         // Act
         var dequeuedPackets = dispatch.DequeueBatch(5);
@@ -284,7 +284,7 @@ public class ChannelDispatchTests
     {
         // Arrange
         var config = CreateDefaultConfig();
-        var dispatch = new ChannelDispatch<TestPacket>(config);
+        var dispatch = new MultiLevelQueue<TestPacket>(config);
 
         var packet = new TestPacket { Priority = PacketPriority.Low };
 

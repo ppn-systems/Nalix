@@ -1,9 +1,10 @@
-﻿using Nalix.Common.Package.Enums;
+﻿using Nalix.Common.Package;
+using Nalix.Common.Package.Enums;
 using Nalix.Shared.Memory.Pools;
 
 namespace Nalix.Network.Dispatch.Channel;
 
-public sealed partial class PriorityQueue<TPacket> where TPacket : Common.Package.IPacket
+public sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Retrieves and removes the next available packet from the queue, following priority order.

@@ -4,7 +4,7 @@ using Nalix.Shared.Configuration.Binding;
 namespace Nalix.Network.Configurations;
 
 /// <summary>
-/// Configuration options for PriorityQueue
+/// Configuration options for MultiLevelQueue
 /// </summary>
 public sealed class DispatchQueueOptions : ConfigurationLoader
 {

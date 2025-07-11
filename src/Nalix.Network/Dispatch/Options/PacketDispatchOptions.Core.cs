@@ -75,7 +75,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     public ILogger? Logger => _logger;
 
     /// <summary>
-    /// Configuration options for PriorityQueue
+    /// Configuration options for MultiLevelQueue
     /// </summary>
     public DispatchQueueOptions QueueOptions { get; } = ConfigurationStore.Instance.Get<DispatchQueueOptions>();
 
