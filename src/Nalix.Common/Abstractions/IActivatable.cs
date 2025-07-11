@@ -21,7 +21,7 @@ public interface IActivatable : System.IDisposable
     /// This method should be idempotent: calling it multiple times
     /// should not cause side effects if the component is already active.
     /// </remarks>
-    void Activate([System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default);
+    void Activate(System.Threading.CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deactivates the component, transitioning it into a non-operational state.
@@ -31,5 +31,5 @@ public interface IActivatable : System.IDisposable
     /// background work started during <see cref="Activate"/>.
     /// It should be safe to call multiple times.
     /// </remarks>
-    void Deactivate([System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default);
+    void Deactivate(System.Threading.CancellationToken cancellationToken = default);
 }
