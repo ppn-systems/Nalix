@@ -2,8 +2,8 @@
 
 using Nalix.Common.Tasks;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Framework.Tasks.Options;
 
 namespace Nalix.Framework.Random.Core;
 
