@@ -44,7 +44,7 @@ public interface IProtocol : System.IDisposable
     /// This method should implement the logic for initializing the connection and setting up data reception.
     /// </summary>
     /// <param name="connection">The connection to handle.</param>
-    /// <param name="cancellationToken">Token for cancellation</param>
+    /// <param name="cancellationToken">Identifier for cancellation</param>
     /// <exception cref="System.ArgumentNullException">Thrown when connection is null.</exception>
     void OnAccept(IConnection connection, System.Threading.CancellationToken cancellationToken = default);
 }

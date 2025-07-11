@@ -1,13 +1,14 @@
 namespace Nalix.Framework.Randomization;
 
 /// <summary>
-/// A high-performance class that supports generating random numbers with various data types and ranges.
+/// A .NET-style wrapper around a high-performance random number generator.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="GRandom"/> class with a user-provided seed value.
+/// This class wraps a low-level random number generator (SeededRandom)
+/// and exposes a familiar interface similar to <see cref="System.Random"/>.
 /// </remarks>
 /// <param name="seed">The seed to initialize the random Number generator.</param>
-public sealed class GRandom(System.Int32 seed)
+public sealed class Rand32(System.Int32 seed)
 {
     #region Constants
 
@@ -33,22 +34,22 @@ public sealed class GRandom(System.Int32 seed)
     /// <summary>
     /// Random Number generator instance.
     /// </summary>
-    private readonly Rand _rand = new((uint)seed);
+    private readonly SeededRandom _rand = new((uint)seed);
 
     #endregion Fields
 
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="GRandom"/> class with the default seed value of 0.
+    /// Initializes a new instance of the <see cref="Rand32"/> class with the default seed value of 0.
     /// </summary>
-    public GRandom() : this(0)
+    public Rand32() : this(0)
     {
     }
 
     #endregion Constructors
 
-    #region Public Methods
+    #region APIs
 
     /// <summary>
     /// Resets the seed for the random Number generator.
@@ -92,11 +93,11 @@ public sealed class GRandom(System.Int32 seed)
             throw new System.ArgumentOutOfRangeException(nameof(max), "Max must be positive");
 
         // Fast path for power of 2
-        if ((max & max - 1) == 0)
-            return (System.Int32)((_rand.Get() & RandMax) * max >> 31);
+        if ((max & (max - 1)) == 0)
+            return (System.Int32)(((_rand.Get() & RandMax) * max) >> 31);
 
         // Avoid modulo bias by rejecting values in the unfair region
-        System.UInt32 threshold = (System.UInt32)(RandMax - RandMax % max & RandMax);
+        System.UInt32 threshold = (System.UInt32)((RandMax - (RandMax % max)) & RandMax);
         System.UInt32 result;
         do
         {
@@ -157,7 +158,7 @@ public sealed class GRandom(System.Int32 seed)
     /// <returns>A random float.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Single NextFloat(System.Single min, System.Single max) => min + NextFloat() * (max - min);
+    public System.Single NextFloat(System.Single min, System.Single max) => min + (NextFloat() * (max - min));
 
     /// <summary>
     /// Generates a random double-precision floating-point Number in the range [0.0, 1.0].
@@ -184,7 +185,7 @@ public sealed class GRandom(System.Int32 seed)
     /// <returns>A random double.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Double NextDouble(System.Double min, System.Double max) => min + NextDouble() * (max - min);
+    public System.Double NextDouble(System.Double min, System.Double max) => min + (NextDouble() * (max - min));
 
     /// <summary>
     /// Performs a random check with a given percentage probability.
@@ -284,17 +285,13 @@ public sealed class GRandom(System.Int32 seed)
     /// <param name="buffer">The buffer to fill.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void NextBytes(System.Span<System.Byte> buffer)
-    {
-        for (int i = 0; i < buffer.Length; i++)
-            buffer[i] = (System.Byte)Next(256);
-    }
+    public void NextBytes(System.Span<System.Byte> buffer) => _rand.NextBytes(buffer);
 
     /// <summary>
     /// Returns a string representation of the random Number generator state.
     /// </summary>
     /// <returns>A string representation of the RNG.</returns>
-    public override System.String ToString() => $"GRandom(seed={_seed}): {_rand}";
+    public override System.String ToString() => $"Rand32[Seed={_seed}]";
 
-    #endregion Public Methods
+    #endregion APIs
 }

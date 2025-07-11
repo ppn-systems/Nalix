@@ -35,7 +35,7 @@ public static class ISO10126
         if (paddingSize > 1)
         {
             // Fill with random bytes except the last byte
-            RandGenerator.Fill(randomBytes);
+            SecureRandom.Fill(randomBytes);
             Buffer.BlockCopy(randomBytes, 0, paddedData, data.Length, paddingSize - 1);
         }
 
@@ -67,7 +67,7 @@ public static class ISO10126
         if (paddingSize > 1)
         {
             // Fill with random bytes except the last byte
-            RandGenerator.Fill(randomBytes);
+            SecureRandom.Fill(randomBytes);
             randomBytes.AsSpan().CopyTo(paddedData.AsSpan(data.Length, paddingSize - 1));
         }
 
