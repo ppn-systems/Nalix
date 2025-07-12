@@ -100,6 +100,14 @@ public sealed class ConnectionLimiter : IDisposable
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ConnectionLimiter"/> class with default configuration and logger.
+    /// </summary>
+    public ConnectionLimiter()
+        : this((ConnectionLimitOptions?)null, null)
+    {
+    }
+
     #endregion Constructors
 
     #region Public Methods

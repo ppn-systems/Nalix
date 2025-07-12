@@ -3,6 +3,7 @@ using Nalix.Common.Logging;
 using Nalix.Network.Configurations;
 using Nalix.Network.Internal;
 using Nalix.Network.Protocols;
+using Nalix.Network.Security.Guard;
 using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Listeners;
@@ -34,6 +35,7 @@ public abstract partial class Listener : IListener, System.IDisposable
     private readonly TimeSynchronizer _timeSyncWorker;
     private readonly System.Net.Sockets.Socket _listener;
     private readonly System.Threading.SemaphoreSlim _lock;
+    private readonly ConnectionLimiter _connectionLimiter;
 
     private System.Threading.CancellationTokenSource? _cts;
     private System.Threading.CancellationToken _cancellationToken;
@@ -88,6 +90,7 @@ public abstract partial class Listener : IListener, System.IDisposable
         _logger = logger;
         _protocol = protocol;
         _bufferPool = bufferPool;
+        _connectionLimiter = new ConnectionLimiter(logger);
         _lock = new System.Threading.SemaphoreSlim(1, 1);
 
         // Create the optimal socket listener.
