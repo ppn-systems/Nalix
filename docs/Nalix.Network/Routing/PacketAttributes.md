@@ -19,6 +19,27 @@ You use these attributes to declaratively control **dispatch, security, rate lim
 
 ---
 
+## Supported Handler Return Types
+
+Each packet handler method can use the following return types.  
+The framework will automatically select the correct result handler based on the return type:
+
+| Return Type                                      | Description                                                  |
+|--------------------------------------------------|--------------------------------------------------------------|
+| `void`                                           | Synchronous, no return value (fire-and-forget)               |
+| `Task`                                           | Asynchronous, no return value                                |
+| `ValueTask`                                      | Lightweight asynchronous, no return value                    |
+| `T` (e.g. your Packet class)                     | Returns a response packet directly                           |
+| `Task<T>`                                        | Asynchronous with response packet/data                       |
+| `ValueTask<T>`                                   | Lightweight async with response packet/data                  |
+| `string`, `byte[]`, `Memory<byte>`               | Simple primitives—sent as-is                                 |
+| `ReadOnlyMemory<byte>`                           | For high-performance buffer return                           |
+
+- `T` is typically your packet or result type that implements `IPacket`.
+- If an unsupported return type is used, the system will throw or reject the method signature at runtime or registration.
+
+---
+
 ## 1. `PacketControllerAttribute`
 
 Marks a class as a *packet controller* and defines its metadata.
