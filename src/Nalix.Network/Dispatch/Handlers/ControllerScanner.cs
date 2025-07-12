@@ -282,4 +282,5 @@ public sealed class ControllerScanner<[
 public readonly record struct CompiledMethodInfo<TPacket>(
     MethodInfo MethodInfo,
     System.Type ReturnType,
-    System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object?>> CompiledInvoker);
+    System.Func<System.Object, PacketContext<TPacket>,
+        System.Threading.Tasks.ValueTask<System.Object?>> CompiledInvoker);

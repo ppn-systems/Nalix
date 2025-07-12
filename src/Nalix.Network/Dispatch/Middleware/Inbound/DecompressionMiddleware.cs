@@ -14,7 +14,7 @@ internal class DecompressionMiddleware<TPacket> : IPacketMiddleware<TPacket>
         {
             try
             {
-                context.Packet = TPacket.Decompress(context.Packet);
+                context.SetPacket(TPacket.Decompress(context.Packet));
             }
             catch (System.Exception)
             {

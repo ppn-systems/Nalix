@@ -30,10 +30,10 @@ public class DecryptionMiddleware<TPacket> : IPacketMiddleware<TPacket>
         {
             try
             {
-                context.Packet = TPacket.Decrypt(
+                context.SetPacket(TPacket.Decrypt(
                     context.Packet,
                     context.Connection.EncryptionKey,
-                    context.Connection.Encryption);
+                    context.Connection.Encryption));
             }
             catch (System.Exception)
             {
