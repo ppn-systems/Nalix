@@ -1,0 +1,151 @@
+﻿using Nalix.Common.Connection;
+using System.Runtime.CompilerServices;
+
+namespace Nalix.Network.Dispatch.Core;
+
+/// <summary>
+/// Enhanced PacketContext với pooling support và zero-allocation design.
+/// </summary>
+/// <typeparam name="TPacket">Packet type</typeparam>
+public sealed class PacketContext<TPacket> : System.IDisposable
+{
+    #region Fields
+
+    private TPacket _packet = default!;
+    private IConnection _connection = default!;
+    private PacketDescriptor _descriptor;
+    private bool _isInitialized;
+
+    // Context state
+    private readonly System.Collections.Generic.Dictionary<System.String, System.Object> _properties = [];
+
+    #endregion Fields
+
+    #region Properties
+
+    /// <summary>
+    /// Current packet being processed.
+    /// </summary>
+    public TPacket Packet
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _packet;
+    }
+
+    /// <summary>
+    /// Connection associated with packet.
+    /// </summary>
+    public IConnection Connection
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _connection;
+    }
+
+    /// <summary>
+    /// Packet descriptor với attributes.
+    /// </summary>
+    public PacketDescriptor Descriptor
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _descriptor;
+    }
+
+    /// <summary>
+    /// Properties dictionary để middleware có thể share data.
+    /// </summary>
+    public System.Collections.Generic.IDictionary<System.String, System.Object> Properties
+        => _properties;
+
+    #endregion Properties
+
+    #region Constructor
+
+    /// <summary>
+    /// Default constructor cho pooling.
+    /// </summary>
+    internal PacketContext()
+    { }
+
+    /// <summary>
+    /// Constructor với initial values.
+    /// </summary>
+    public PacketContext(TPacket packet, IConnection connection)
+    {
+        Initialize(packet, connection, default);
+    }
+
+    #endregion Constructor
+
+    #region Methods
+
+    /// <summary>
+    /// Initialize context với new values (dùng khi rent từ pool).
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void Initialize(TPacket packet, IConnection connection, PacketDescriptor descriptor)
+    {
+        _packet = packet;
+        _connection = connection;
+        _descriptor = descriptor;
+        _isInitialized = true;
+    }
+
+    /// <summary>
+    /// Reset context state để có thể return về pool.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void Reset()
+    {
+        _packet = default!;
+        _connection = default!;
+        _descriptor = default;
+        _isInitialized = false;
+        _properties.Clear();
+    }
+
+    /// <summary>
+    /// Set property value.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetProperty<T>(System.String key, T value) where T : notnull
+    {
+        _properties[key] = value;
+    }
+
+    /// <summary>
+    /// Get property value.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public T? GetProperty<T>(System.String key) where T : class
+    {
+        return _properties.TryGetValue(key, out var value) ? value as T : null;
+    }
+
+    /// <summary>
+    /// Get value type property.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public T GetValueProperty<T>(System.String key, T defaultValue = default) where T : struct
+    {
+        if (_properties.TryGetValue(key, out var value) && value is T typedValue)
+            return typedValue;
+        return defaultValue;
+    }
+
+    #endregion Methods
+
+    #region IDisposable
+
+    /// <summary>
+    /// Dispose context.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_isInitialized)
+        {
+            Reset();
+        }
+    }
+
+    #endregion IDisposable
+}

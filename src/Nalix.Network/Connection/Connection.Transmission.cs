@@ -38,7 +38,7 @@ public sealed partial class Connection : IConnection
         /// <param name="outer"></param>
         /// <exception cref="System.InvalidOperationException"></exception>
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
+            "Style", "IDE0290:UsePre primary constructor", Justification = "<Pending>")]
         public UdpTransport(Connection outer)
         {
             _logger = outer._logger;

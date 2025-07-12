@@ -13,7 +13,7 @@ public sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
 {
     #region Fields
 
-    // Use channels instead of queues for better thread-safety and performance
+    // UsePre channels instead of queues for better thread-safety and performance
 
     private readonly DispatchQueueOptions _options;
     private System.Threading.SpinLock _capacityLock = new(false);
