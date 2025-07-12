@@ -1,9 +1,11 @@
 ﻿using Nalix.Common.Logging;
 using Nalix.Common.Package;
+using Nalix.Network.Configurations;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Handlers;
 using Nalix.Network.Dispatch.Middleware;
 using Nalix.Network.Dispatch.Middleware.Inbound;
+using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -34,13 +36,30 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
     private readonly PacketMiddlewarePipeline<TPacket> _pipeline;
 
-    private PacketDispatchOptions()
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PacketDispatchOptions{TPacket}"/> class.
+    /// </summary>
+    public PacketDispatchOptions()
     {
         _handlerCache = [];
         _pipeline = new PacketMiddlewarePipeline<TPacket>();
     }
 
     #endregion Fields
+
+    #region Properties
+
+    /// <summary>
+    /// Gets the logger instance used for logging within the packet dispatch options.
+    /// </summary>
+    public ILogger? Logger => _logger;
+
+    /// <summary>
+    /// Gets the dispatch queue options.
+    /// </summary>
+    public readonly DispatchQueueOptions QueueOptions = ConfigurationStore.Instance.Get<DispatchQueueOptions>();
+
+    #endregion Properties
 
     #region Private Methods
 
