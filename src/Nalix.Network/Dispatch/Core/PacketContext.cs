@@ -1,4 +1,5 @@
-﻿using Nalix.Common.Connection;
+﻿using Nalix.Common.Caching;
+using Nalix.Common.Connection;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Dispatch.Core;
@@ -7,7 +8,7 @@ namespace Nalix.Network.Dispatch.Core;
 /// Enhanced PacketContext với pooling support và zero-allocation design.
 /// </summary>
 /// <typeparam name="TPacket">Packet type</typeparam>
-public sealed class PacketContext<TPacket> : System.IDisposable
+public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
 {
     #region Fields
 
@@ -63,7 +64,7 @@ public sealed class PacketContext<TPacket> : System.IDisposable
     /// <summary>
     /// Default constructor cho pooling.
     /// </summary>
-    internal PacketContext()
+    public PacketContext()
     { }
 
     /// <summary>
@@ -137,13 +138,24 @@ public sealed class PacketContext<TPacket> : System.IDisposable
     #region IDisposable
 
     /// <summary>
+    /// Reset context.
+    /// </summary>
+    public void ResetForPool()
+    {
+        if (_isInitialized)
+        {
+            this.Reset();
+        }
+    }
+
+    /// <summary>
     /// Dispose context.
     /// </summary>
     public void Dispose()
     {
         if (_isInitialized)
         {
-            Reset();
+            this.Reset();
         }
     }
 
