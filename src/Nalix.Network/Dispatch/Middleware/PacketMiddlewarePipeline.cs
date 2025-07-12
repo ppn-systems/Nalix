@@ -1,4 +1,6 @@
-﻿namespace Nalix.Network.Dispatch.Middleware;
+﻿using Nalix.Network.Dispatch.Core;
+
+namespace Nalix.Network.Dispatch.Middleware;
 
 /// <summary>
 /// Represents a middleware pipeline for processing packets.
@@ -7,16 +9,28 @@
 /// <typeparam name="TPacket">The type of packet being processed in the pipeline.</typeparam>
 public class PacketMiddlewarePipeline<TPacket>
 {
-    private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _middlewares = [];
+    private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _pre = [];
+    private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _post = [];
 
     /// <summary>
     /// Adds a middleware component to the pipeline.
     /// </summary>
     /// <param name="middleware">The middleware to be added.</param>
     /// <returns>The current pipeline instance for chaining.</returns>
-    public PacketMiddlewarePipeline<TPacket> Use(IPacketMiddleware<TPacket> middleware)
+    public PacketMiddlewarePipeline<TPacket> UsePre(IPacketMiddleware<TPacket> middleware)
     {
-        _middlewares.Add(middleware);
+        _pre.Add(middleware);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a middleware component to the pipeline.
+    /// </summary>
+    /// <param name="middleware">The middleware to be added.</param>
+    /// <returns>The current pipeline instance for chaining.</returns>
+    public PacketMiddlewarePipeline<TPacket> UsePost(IPacketMiddleware<TPacket> middleware)
+    {
+        _post.Add(middleware);
         return this;
     }
 
@@ -31,11 +45,25 @@ public class PacketMiddlewarePipeline<TPacket>
         PacketContext<TPacket> context,
         System.Func<System.Threading.Tasks.Task> handler)
     {
-        System.Func<System.Threading.Tasks.Task> next = handler;
-        for (System.Int32 i = _middlewares.Count - 1; i >= 0; i--)
+        return ExecuteMiddlewareChain(_pre, context, async () =>
         {
-            IPacketMiddleware<TPacket> current = _middlewares[i];
+            await handler();
+            await ExecuteMiddlewareChain(_post, context, () => System.Threading.Tasks.Task.CompletedTask);
+        });
+    }
+
+    private static System.Threading.Tasks.Task ExecuteMiddlewareChain(
+        System.Collections.Generic.List<IPacketMiddleware<TPacket>> middlewares,
+        PacketContext<TPacket> context,
+        System.Func<System.Threading.Tasks.Task> final)
+    {
+        System.Func<System.Threading.Tasks.Task> next = final;
+
+        for (System.Int32 i = middlewares.Count - 1; i >= 0; i--)
+        {
+            IPacketMiddleware<TPacket> current = middlewares[i];
             System.Func<System.Threading.Tasks.Task> localNext = next;
+
             next = () => current.InvokeAsync(context, localNext);
         }
 

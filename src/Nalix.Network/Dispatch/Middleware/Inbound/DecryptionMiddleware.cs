@@ -1,4 +1,5 @@
 ﻿using Nalix.Common.Package;
+using Nalix.Network.Dispatch.Core;
 
 namespace Nalix.Network.Dispatch.Middleware.Inbound;
 
