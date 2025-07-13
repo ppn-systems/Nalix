@@ -1,10 +1,10 @@
 ﻿using Nalix.Network.Dispatch.Core;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.Handlers;
+namespace Nalix.Network.Dispatch.ReturnHandlers;
 
 /// <inheritdoc/>
-public sealed class TaskVoidReturnHandler<TPacket> : IReturnTypeHandler<TPacket>
+public sealed class TaskVoidReturnHandler<TPacket> : IPacketReturnHandler<TPacket>
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

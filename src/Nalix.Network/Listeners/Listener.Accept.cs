@@ -1,7 +1,7 @@
 ﻿using Nalix.Common.Connection;
 using Nalix.Network.Connection;
 using Nalix.Network.Internal;
-using Nalix.Shared.Memory.Pools;
+using Nalix.Shared.Memory.Pooling;
 using System.Net;
 
 namespace Nalix.Network.Listeners;

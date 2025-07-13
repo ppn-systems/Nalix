@@ -2,9 +2,8 @@
 using Nalix.Common.Logging;
 using Nalix.Common.Package.Attributes;
 using Nalix.Network.Dispatch.Core;
-using Nalix.Network.Dispatch.Handlers;
 using Nalix.Network.Dispatch.Middleware;
-using Nalix.Shared.Memory.Pools;
+using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -112,10 +111,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
             ?? throw new System.InvalidOperationException(
                 $"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
-        ControllerScanner<TController, TPacket> scanner = new(_logger);
-        PacketHandlerDescriptor<TPacket>[] handlerDescriptors = scanner.ScanController(factory);
+        PacketAnalyzer<TController, TPacket> scanner = new(_logger);
+        PacketHandlerInvoker<TPacket>[] handlerDescriptors = scanner.ScanController(factory);
 
-        foreach (PacketHandlerDescriptor<TPacket> descriptor in handlerDescriptors)
+        foreach (PacketHandlerInvoker<TPacket> descriptor in handlerDescriptors)
         {
             if (_handlerCache.ContainsKey(descriptor.OpCode))
             {
@@ -148,7 +147,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             // Wrap descriptor execution trong legacy Task-based signature
             handler = async (packet, connection) =>
             {
-                // Rent context từ pool
+                // Rent context from pool
                 PacketContext<TPacket> context = ObjectPoolManager.Instance.Get<PacketContext<TPacket>>();
 
                 try
@@ -182,7 +181,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public bool TryResolveHandlerDescriptor(
         System.UInt16 opCode,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out PacketHandlerDescriptor<TPacket> descriptor)
+        out PacketHandlerInvoker<TPacket> descriptor)
     {
         if (_handlerCache.TryGetValue(opCode, out descriptor))
             return true;

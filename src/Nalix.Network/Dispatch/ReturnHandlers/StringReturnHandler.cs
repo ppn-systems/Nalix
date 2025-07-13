@@ -1,10 +1,10 @@
 ﻿using Nalix.Network.Dispatch.Core;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.Handlers;
+namespace Nalix.Network.Dispatch.ReturnHandlers;
 
 /// <inheritdoc/>
-public sealed class StringReturnHandler<TPacket> : IReturnTypeHandler<TPacket>
+public sealed class StringReturnHandler<TPacket> : IPacketReturnHandler<TPacket>
     where TPacket : Common.Package.IPacket, Common.Package.IPacketFactory<TPacket>
 {
     /// <inheritdoc/>

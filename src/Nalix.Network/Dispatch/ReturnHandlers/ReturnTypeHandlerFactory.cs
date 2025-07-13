@@ -1,7 +1,7 @@
 ﻿using System.Collections.Frozen;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.Handlers;
+namespace Nalix.Network.Dispatch.ReturnHandlers;
 
 /// <summary>
 /// Factory để tạo return type handlers với zero allocation approach.
@@ -16,13 +16,13 @@ public static class ReturnTypeHandlerFactory<TPacket>
     /// <summary>
     /// Cached handlers để tránh recreation.
     /// </summary>
-    private static readonly FrozenDictionary<System.Type, IReturnTypeHandler<TPacket>> _handlers = CreateHandlers();
+    private static readonly FrozenDictionary<System.Type, IPacketReturnHandler<TPacket>> _handlers = CreateHandlers();
 
     /// <summary>
     /// Get handler cho specific return type.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IReturnTypeHandler<TPacket> GetHandler(System.Type returnType)
+    public static IPacketReturnHandler<TPacket> GetHandler(System.Type returnType)
     {
         if (_handlers.TryGetValue(returnType, out var handler))
             return handler;
@@ -53,9 +53,9 @@ public static class ReturnTypeHandlerFactory<TPacket>
     /// <summary>
     /// Create base handlers dictionary.
     /// </summary>
-    private static FrozenDictionary<System.Type, IReturnTypeHandler<TPacket>> CreateHandlers()
+    private static FrozenDictionary<System.Type, IPacketReturnHandler<TPacket>> CreateHandlers()
     {
-        var handlers = new System.Collections.Generic.Dictionary<System.Type, IReturnTypeHandler<TPacket>>
+        var handlers = new System.Collections.Generic.Dictionary<System.Type, IPacketReturnHandler<TPacket>>
         {
             [typeof(void)] = new VoidReturnHandler<TPacket>(),
             [typeof(TPacket)] = new PacketReturnHandler<TPacket>(),
@@ -70,19 +70,19 @@ public static class ReturnTypeHandlerFactory<TPacket>
         return handlers.ToFrozenDictionary();
     }
 
-    private static IReturnTypeHandler<TPacket> CreateTaskHandler(
-        IReturnTypeHandler<TPacket> innerHandler,
+    private static IPacketReturnHandler<TPacket> CreateTaskHandler(
+        IPacketReturnHandler<TPacket> innerHandler,
         System.Type resultType)
     {
         var handlerType = typeof(TaskReturnHandler<,>).MakeGenericType(typeof(TPacket), resultType);
-        return (IReturnTypeHandler<TPacket>)System.Activator.CreateInstance(handlerType, innerHandler)!;
+        return (IPacketReturnHandler<TPacket>)System.Activator.CreateInstance(handlerType, innerHandler)!;
     }
 
-    private static IReturnTypeHandler<TPacket> CreateValueTaskHandler(
-        IReturnTypeHandler<TPacket> innerHandler,
+    private static IPacketReturnHandler<TPacket> CreateValueTaskHandler(
+        IPacketReturnHandler<TPacket> innerHandler,
         System.Type resultType)
     {
         var handlerType = typeof(ValueTaskReturnHandler<,>).MakeGenericType(typeof(TPacket), resultType);
-        return (IReturnTypeHandler<TPacket>)System.Activator.CreateInstance(handlerType, innerHandler)!;
+        return (IPacketReturnHandler<TPacket>)System.Activator.CreateInstance(handlerType, innerHandler)!;
     }
 }
