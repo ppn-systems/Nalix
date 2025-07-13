@@ -6,7 +6,7 @@ namespace Nalix.Shared.Memory.Buffers;
 /// Manages a pool of shared buffers with optimized memory handling.
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
-[System.Diagnostics.DebuggerDisplay("Size={_bufferSize}, Total={_totalBuffers}, Free={_freeBuffers.Count}")]
+[System.Diagnostics.DebuggerDisplay("SIZE={_bufferSize}, Total={_totalBuffers}, Free={_freeBuffers.Count}")]
 internal sealed class BufferPoolShared : System.IDisposable
 {
     #region Fields
