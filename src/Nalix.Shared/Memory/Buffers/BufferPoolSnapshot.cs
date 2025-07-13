@@ -1,14 +1,11 @@
-using System;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
 namespace Nalix.Shared.Memory.Buffers;
 
 /// <summary>
 /// Information about the Buffers Pools with optimized memory layout.
 /// </summary>
-[StructLayout(LayoutKind.Sequential)]
-public readonly record struct BufferInfo : IEquatable<BufferInfo>
+[System.Runtime.InteropServices.StructLayout(
+    System.Runtime.InteropServices.LayoutKind.Sequential)]
+public readonly record struct BufferPoolSnapshot : System.IEquatable<BufferPoolSnapshot>
 {
     /// <summary>
     /// Number of misses
@@ -43,12 +40,15 @@ public readonly record struct BufferInfo : IEquatable<BufferInfo>
     /// <summary>
     /// Gets the usage ratio of the buffer pool
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double GetUsageRatio() => Math.Max(0, Math.Min(1.0, 1.0 - (FreeBuffers / (double)Math.Max(1, TotalBuffers))));
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public double GetUsageRatio()
+        => System.Math.Max(0, System.Math.Min(1.0, 1.0 - (FreeBuffers / (double)System.Math.Max(1, TotalBuffers))));
 
     /// <summary>
     /// Gets the miss rate as a ratio of total buffers
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double GetMissRate() => Misses / (double)Math.Max(1, TotalBuffers);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public double GetMissRate() => Misses / (double)System.Math.Max(1, TotalBuffers);
 }

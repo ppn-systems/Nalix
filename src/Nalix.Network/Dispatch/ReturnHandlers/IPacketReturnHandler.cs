@@ -1,13 +1,13 @@
 ﻿using Nalix.Network.Dispatch.Core;
 
-namespace Nalix.Network.Dispatch.Handlers;
+namespace Nalix.Network.Dispatch.ReturnHandlers;
 
 /// <summary>
 /// Defines a handler interface for processing method return values of packet-handling methods
 /// in a zero-allocation manner.
 /// </summary>
 /// <typeparam name="TPacket">The packet type being handled.</typeparam>
-public interface IReturnTypeHandler<TPacket>
+public interface IPacketReturnHandler<TPacket>
 {
     /// <summary>
     /// Handles the result of a method call asynchronously.

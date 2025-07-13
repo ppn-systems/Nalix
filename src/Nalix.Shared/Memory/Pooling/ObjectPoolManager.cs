@@ -1,5 +1,6 @@
 using Nalix.Common.Caching;
 using Nalix.Shared.Injection.DI;
+using Nalix.Shared.Memory.Pools;
 using Nalix.Shared.Memory.PoolTypes;
 using System;
 using System.Collections.Concurrent;
@@ -9,7 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Nalix.Shared.Memory.Pools;
+namespace Nalix.Shared.Memory.Pooling;
 
 /// <summary>
 /// Provides thread-safe access to a collection of object pools containing instances of <see cref="IPoolable"/>.
@@ -74,7 +75,7 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
 
     #endregion Constructor
 
-    #region Public Methods
+    #region APIs
 
     /// <summary>
     /// Gets or creates and returns an instance of <typeparamref name="T"/>.
@@ -358,5 +359,5 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
         return _poolDict.GetOrAdd(type, _ => new ObjectPool(_defaultMaxPoolSize));
     }
 
-    #endregion Public Methods
+    #endregion APIs
 }

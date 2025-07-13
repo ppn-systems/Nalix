@@ -1,10 +1,10 @@
 ﻿using Nalix.Network.Dispatch.Core;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.Handlers;
+namespace Nalix.Network.Dispatch.ReturnHandlers;
 
 /// <inheritdoc/>
-public sealed class ByteArrayReturnHandler<TPacket> : IReturnTypeHandler<TPacket>
+public sealed class ValueTaskVoidReturnHandler<TPacket> : IPacketReturnHandler<TPacket>
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -12,9 +12,9 @@ public sealed class ByteArrayReturnHandler<TPacket> : IReturnTypeHandler<TPacket
         System.Object? result,
         PacketContext<TPacket> context)
     {
-        if (result is System.Byte[] data)
+        if (result is System.Threading.Tasks.ValueTask valueTask)
         {
-            await context.Connection.Tcp.SendAsync(data);
+            await valueTask;
         }
     }
 }

@@ -1,4 +1,5 @@
 using Nalix.Common.Caching;
+using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Memory.Pools;
 using System;
 using System.Collections.Generic;

@@ -1,10 +1,10 @@
 ﻿using Nalix.Network.Dispatch.Core;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.Handlers;
+namespace Nalix.Network.Dispatch.ReturnHandlers;
 
 /// <inheritdoc/>
-public sealed class VoidReturnHandler<TPacket> : IReturnTypeHandler<TPacket>
+public sealed class UnsupportedReturnHandler<TPacket>(System.Type returnType) : IPacketReturnHandler<TPacket>
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -12,6 +12,8 @@ public sealed class VoidReturnHandler<TPacket> : IReturnTypeHandler<TPacket>
         System.Object? result,
         PacketContext<TPacket> context)
     {
+        // Log warning về unsupported type
+        context.SetProperty("UnsupportedReturnType", returnType.Name);
         return System.Threading.Tasks.ValueTask.CompletedTask;
     }
 }
