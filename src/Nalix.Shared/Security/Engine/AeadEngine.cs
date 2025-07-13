@@ -107,7 +107,7 @@ public static class AeadEngine
             flags: 0, (System.Byte)nonceLen, seqVal
         );
 
-        EnvelopeHeader.WriteTo(header, headerStruct);
+        EnvelopeHeader.Encode(header, headerStruct);
 
         // Build combined AAD = header || nonce || userAAD
         System.Int32 combinedAadLen = header.Length + nonce.Length + aad.Length;

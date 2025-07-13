@@ -1,4 +1,6 @@
-﻿namespace Nalix.Common.Protocols;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+namespace Nalix.Common.Protocols;
 
 /// <summary>
 /// CONTROL flags providing additional context for control messages.

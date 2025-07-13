@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Abstractions;
+using Nalix.Common.Primitives;
 
 namespace Nalix.Framework.Identity;
 
@@ -24,8 +25,8 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Int32 CompareTo(Snowflake other)
     {
-        System.UInt64 a = ToUInt56();
-        System.UInt64 b = other.ToUInt56();
+        UInt56 a = ToUInt56();
+        UInt56 b = other.ToUInt56();
 
         if (a > b)
         {
@@ -96,9 +97,7 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean Equals(Snowflake other)
-        => Value == other.Value
-        && MachineId == other.MachineId
-        && _type == other._type;
+        => __combined == other.__combined;
 
     /// <summary>
     /// Determines whether this identifier is equal to the specified object.
