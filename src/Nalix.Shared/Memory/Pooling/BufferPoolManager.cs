@@ -1,6 +1,8 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Logging;
 using Nalix.Shared.Configuration;
+using Nalix.Shared.Injection.DI;
+using Nalix.Shared.Memory.Buffers;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
@@ -8,12 +10,12 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Nalix.Shared.Memory.Buffers;
+namespace Nalix.Shared.Memory.Pooling;
 
 /// <summary>
 /// Manages buffers of various sizes with optimized allocation and deallocation.
 /// </summary>
-public sealed class BufferAllocator : IBufferPool, IDisposable
+public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBufferPool, IDisposable
 {
     #region Constants
 
@@ -59,9 +61,9 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BufferAllocator"/> class with improved performance.
+    /// Initializes a new instance of the <see cref="BufferPoolManager"/> class with improved performance.
     /// </summary>
-    public BufferAllocator(BufferConfig? bufferConfig = null, ILogger? logger = null)
+    public BufferPoolManager(BufferConfig? bufferConfig = null, ILogger? logger = null)
     {
         BufferConfig config = bufferConfig ?? ConfigurationStore.Instance.Get<BufferConfig>();
 
@@ -189,7 +191,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
 
         while (left <= right)
         {
-            int mid = left + (right - left) / 2;
+            int mid = left + ((right - left) / 2);
             int midSize = _bufferAllocations[mid].BufferSize;
 
             if (midSize == size)
@@ -286,7 +288,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ShrinkBufferPoolSize(BufferPoolShared pool)
     {
-        ref readonly BufferInfo poolInfo = ref pool.GetPoolInfoRef();
+        ref readonly BufferPoolSnapshot poolInfo = ref pool.GetPoolInfoRef();
 
         double targetAllocation = GetAllocationForSize(poolInfo.BufferSize);
         int targetBuffers = (int)(targetAllocation * _totalBuffers);
@@ -337,7 +339,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void IncreaseBufferPoolSize(BufferPoolShared pool)
     {
-        ref readonly BufferInfo poolInfo = ref pool.GetPoolInfoRef();
+        ref readonly BufferPoolSnapshot poolInfo = ref pool.GetPoolInfoRef();
 
         // 25% threshold for adaptive resizing
         int threshold = Math.Max(1, poolInfo.TotalBuffers >> 2);
@@ -396,7 +398,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
     /// <summary>
     /// Releases all resources of the buffer pools.
     /// </summary>
-    public void Dispose()
+    protected override void Dispose(System.Boolean disposeManaged)
     {
         // Stop the trimming timer if enabled
         _trimTimer?.Dispose();
@@ -408,7 +410,7 @@ public sealed class BufferAllocator : IBufferPool, IDisposable
         // Dispose the pool manager
         _poolManager.Dispose();
 
-        GC.SuppressFinalize(this);
+        base.Dispose(disposeManaged);
     }
 
     #endregion IDisposable

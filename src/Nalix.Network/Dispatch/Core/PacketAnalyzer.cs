@@ -1,6 +1,5 @@
 ﻿using Nalix.Common.Logging;
 using Nalix.Common.Package.Attributes;
-using Nalix.Network.Dispatch.Core;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -8,7 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.Handlers;
+namespace Nalix.Network.Dispatch.Core;
 
 /// <summary>
 /// High-performance controller scanner với caching và zero-allocation lookups.
@@ -16,7 +15,7 @@ namespace Nalix.Network.Dispatch.Handlers;
 /// </summary>
 /// <typeparam name="TController">Controller type</typeparam>
 /// <typeparam name="TPacket">Packet type</typeparam>
-public sealed class ControllerScanner<[
+public sealed class PacketAnalyzer<[
     DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>(ILogger? logger = null)
     where TController : class
     where TPacket : Common.Package.IPacket,
@@ -32,7 +31,7 @@ public sealed class ControllerScanner<[
 
     // Cache attribute lookups
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        MethodInfo, PacketDescriptor> _attributeCache = new();
+        MethodInfo, PacketMetadata> _attributeCache = new();
 
     #endregion Fields
 
@@ -41,7 +40,7 @@ public sealed class ControllerScanner<[
     /// Sử dụng compiled expressions cho performance tối ưu.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public PacketHandlerDescriptor<TPacket>[] ScanController(System.Func<TController> factory)
+    public PacketHandlerInvoker<TPacket>[] ScanController(System.Func<TController> factory)
     {
         var controllerType = typeof(TController);
 
@@ -55,14 +54,14 @@ public sealed class ControllerScanner<[
         // Create controller instance
         var controllerInstance = factory();
 
-        var descriptors = new PacketHandlerDescriptor<TPacket>[compiledMethods.Count];
+        var descriptors = new PacketHandlerInvoker<TPacket>[compiledMethods.Count];
         var index = 0;
 
         foreach (var (opCode, compiledMethod) in compiledMethods)
         {
             var attributes = GetCachedAttributes(compiledMethod.MethodInfo);
 
-            descriptors[index++] = new PacketHandlerDescriptor<TPacket>(
+            descriptors[index++] = new PacketHandlerInvoker<TPacket>(
                 opCode,
                 attributes,
                 controllerInstance,
@@ -258,9 +257,9 @@ public sealed class ControllerScanner<[
     /// Get cached attributes cho method.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static PacketDescriptor GetCachedAttributes(MethodInfo method)
+    private static PacketMetadata GetCachedAttributes(MethodInfo method)
     {
-        return _attributeCache.GetOrAdd(method, static m => new PacketDescriptor(
+        return _attributeCache.GetOrAdd(method, static m => new PacketMetadata(
             m.GetCustomAttribute<PacketOpcodeAttribute>()!,
             m.GetCustomAttribute<PacketTimeoutAttribute>(),
             m.GetCustomAttribute<PacketRateLimitAttribute>(),

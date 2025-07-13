@@ -1,15 +1,15 @@
 ﻿namespace Nalix.Network.Dispatch.Core;
 
 /// <summary>
-/// Enhanced PacketHandlerDescriptor với compiled delegates cho zero-allocation execution.
+/// Enhanced PacketHandlerInvoker với compiled delegates cho zero-allocation execution.
 /// </summary>
 /// <typeparam name="TPacket">Packet type</typeparam>
 [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
 [method: System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-public readonly struct PacketHandlerDescriptor<TPacket>(
+public readonly struct PacketHandlerInvoker<TPacket>(
     System.UInt16 opCode,
-    PacketDescriptor attributes,
+    PacketMetadata attributes,
     System.Object controllerInstance,
     System.Reflection.MethodInfo method,
     System.Type returnType,
@@ -26,7 +26,7 @@ public readonly struct PacketHandlerDescriptor<TPacket>(
     /// <summary>
     /// Attributes của handler (timeout, rate limit, etc.)
     /// </summary>
-    public readonly PacketDescriptor Attributes = attributes;
+    public readonly PacketMetadata Attributes = attributes;
 
     /// <summary>
     /// Controller instance (cached cho reuse)

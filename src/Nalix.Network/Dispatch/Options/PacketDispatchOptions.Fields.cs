@@ -2,9 +2,9 @@
 using Nalix.Common.Package;
 using Nalix.Network.Configurations;
 using Nalix.Network.Dispatch.Core;
-using Nalix.Network.Dispatch.Handlers;
 using Nalix.Network.Dispatch.Middleware;
 using Nalix.Network.Dispatch.Middleware.Inbound;
+using Nalix.Network.Dispatch.ReturnHandlers;
 using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Dispatch.Options;
@@ -32,7 +32,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     private System.Action<System.Exception, System.UInt16>? _errorHandler;
 
     private readonly System.Collections.Generic.Dictionary<
-        System.UInt16, PacketHandlerDescriptor<TPacket>> _handlerCache;
+        System.UInt16, PacketHandlerInvoker<TPacket>> _handlerCache;
 
     private readonly PacketMiddlewarePipeline<TPacket> _pipeline;
 
@@ -85,7 +85,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private async System.Threading.Tasks.ValueTask ExecuteHandler(
-        PacketHandlerDescriptor<TPacket> descriptor,
+        PacketHandlerInvoker<TPacket> descriptor,
         PacketContext<TPacket> context)
     {
         // Validation check
@@ -99,7 +99,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             System.Object? result = await descriptor.ExecuteAsync(context);
 
             // Handle return value
-            IReturnTypeHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.GetHandler(descriptor.ReturnType);
+            IPacketReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.GetHandler(descriptor.ReturnType);
             await returnHandler.HandleAsync(result, context);
         }
         catch (System.Exception ex)
@@ -114,7 +114,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private async System.Threading.Tasks.ValueTask HandleExecutionException(
-        PacketHandlerDescriptor<TPacket> descriptor,
+        PacketHandlerInvoker<TPacket> descriptor,
         PacketContext<TPacket> context,
         System.Exception exception)
     {

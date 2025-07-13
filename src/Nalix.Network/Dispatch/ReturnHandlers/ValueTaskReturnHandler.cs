@@ -1,11 +1,11 @@
 ﻿using Nalix.Network.Dispatch.Core;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.Handlers;
+namespace Nalix.Network.Dispatch.ReturnHandlers;
 
 /// <inheritdoc/>
-public sealed class ValueTaskReturnHandler<TPacket, TResult>(IReturnTypeHandler<TPacket> innerHandler)
-    : IReturnTypeHandler<TPacket>
+public sealed class ValueTaskReturnHandler<TPacket, TResult>(IPacketReturnHandler<TPacket> innerHandler)
+    : IPacketReturnHandler<TPacket>
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
