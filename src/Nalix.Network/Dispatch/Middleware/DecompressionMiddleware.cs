@@ -1,7 +1,8 @@
 ﻿using Nalix.Common.Package;
 using Nalix.Network.Dispatch.Core;
+using Nalix.Network.Dispatch.Middleware.Core;
 
-namespace Nalix.Network.Dispatch.Middleware.Inbound;
+namespace Nalix.Network.Dispatch.Middleware;
 
 internal class DecompressionMiddleware<TPacket> : IPacketMiddleware<TPacket>
     where TPacket : IPacket, IPacketCompressor<TPacket>, IPacketFactory<TPacket>
