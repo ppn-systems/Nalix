@@ -2,7 +2,7 @@
 using Nalix.Common.Logging;
 using Nalix.Common.Package.Attributes;
 using Nalix.Network.Dispatch.Core;
-using Nalix.Network.Dispatch.Middleware;
+using Nalix.Network.Dispatch.Middleware.Core;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Dispatch.Options;
@@ -10,33 +10,66 @@ namespace Nalix.Network.Dispatch.Options;
 public sealed partial class PacketDispatchOptions<TPacket>
 {
     /// <summary>
-    /// Configure logging cho packet dispatcher.
+    /// Configures logging for the packet dispatcher, enabling logging of packet processing details.
     /// </summary>
+    /// <param name="logger">The logger instance that will be used for logging packet processing events.</param>
+    /// <returns>
+    /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
+    /// </returns>
+    /// <remarks>
+    /// The logger will be used to log various events such as packet handling, errors, and metrics if enabled.
+    /// If logging is not configured, the dispatcher will not produce any logs.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PacketDispatchOptions<TPacket> WithLogging(ILogger logger)
     {
         _logger = logger;
-        _logger.Info("Logging has been enabled for PacketDispatch.");
+        _logger.Info("Logger instance successfully attached to PacketDispatch. Logging is now active.");
+
         return this;
     }
 
     /// <summary>
-    /// Configure custom error handling.
+    /// Configures a custom error handler to manage exceptions during packet processing.
     /// </summary>
+    /// <param name="errorHandler">
+    /// An action that takes an exception and the packet ID, which allows custom handling of errors
+    /// that occur while processing packets.
+    /// </param>
+    /// <returns>
+    /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
+    /// </returns>
+    /// <remarks>
+    /// This method allows you to define a custom error-handling strategy, such as logging errors,
+    /// sending notifications, or taking corrective action in case of failures during packet processing.
+    /// If no custom error handler is configured, the default behavior is to log the exception.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PacketDispatchOptions<TPacket> WithErrorHandling(
         System.Action<System.Exception, System.UInt16> errorHandler)
     {
+        _logger?.Info("Custom error handler has been set. All unhandled exceptions during packet processing will be routed.");
         _errorHandler = errorHandler;
-        _logger?.Info("Custom error handler has been configured.");
+
         return this;
     }
 
     /// <summary>
-    /// Add custom middleware vào pipeline.
+    /// Adds a middleware component to the beginning of the packet processing pipeline.
     /// </summary>
+    /// <param name="middleware">
+    /// The <see cref="IPacketMiddleware{TPacket}"/> instance that will be invoked before the main packet handler.
+    /// </param>
+    /// <returns>
+    /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
+    /// </returns>
+    /// <remarks>
+    /// Pre-processing middleware allows for custom logic such as validation, authorization, logging,
+    /// or modification of packet data before it reaches the main handler. Middleware is executed in the
+    /// order it is added.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PacketDispatchOptions<TPacket> WithMiddleware(
@@ -47,8 +80,18 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
-    /// Add post-processing middleware.
+    /// Adds a middleware component to the end of the packet processing pipeline.
     /// </summary>
+    /// <param name="middleware">
+    /// The <see cref="IPacketMiddleware{TPacket}"/> instance that will be invoked after the main packet handler completes.
+    /// </param>
+    /// <returns>
+    /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
+    /// </returns>
+    /// <remarks>
+    /// Post-processing middleware is useful for tasks such as auditing, cleanup, metrics collection,
+    /// or response transformation. Middleware is executed in the order it is added.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PacketDispatchOptions<TPacket> WithPostMiddleware(
@@ -60,13 +103,16 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
     /// <summary>
     /// Registers a handler by creating an instance of the specified controller type
-    /// and scanning its methods decorated with PacketOpcodeAttribute.
+    /// and scanning its methods decorated with <see cref="PacketOpcodeAttribute"/>.
     /// </summary>
     /// <typeparam name="TController">
     /// The type of the controller to register.
     /// This type must have a parameterless constructor.
     /// </typeparam>
-    /// <returns>The current PacketDispatchOptions instance for chaining.</returns>
+    /// <returns>The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.</returns>
+    /// <exception cref="System.InvalidOperationException">
+    /// Thrown if a method with an unsupported return type is encountered.
+    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PacketDispatchOptions<TPacket> WithHandler<[
@@ -79,9 +125,18 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <summary>
     /// Registers a handler using an existing instance of the specified controller type.
     /// </summary>
-    /// <typeparam name="TController">The type of the controller to register.</typeparam>
-    /// <param name="instance">An existing instance of TController.</param>
-    /// <returns>The current PacketDispatchOptions instance for chaining.</returns>
+    /// <typeparam name="TController">
+    /// The type of the controller to register.
+    /// </typeparam>
+    /// <param name="instance">
+    /// An existing instance of <typeparamref name="TController"/>.
+    /// </param>
+    /// <returns>
+    /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown if <paramref name="instance"/> is null.
+    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PacketDispatchOptions<TPacket> WithHandler<[
@@ -92,12 +147,21 @@ public sealed partial class PacketDispatchOptions<TPacket>
         => this.WithHandler(() => EnsureNotNull(instance, nameof(instance)));
 
     /// <summary>
-    /// Core handler registration với factory pattern.
-    /// Đây là method chính để đăng ký handlers.
+    /// Registers a handler by creating an instance of the specified controller type
+    /// using a provided factory function, then scanning its methods decorated
+    /// with <see cref="PacketOpcodeAttribute"/>.
     /// </summary>
-    /// <typeparam name="TController">Controller type</typeparam>
-    /// <param name="factory">Factory function để tạo controller instance</param>
-    /// <returns>PacketDispatchOptions for chaining</returns>
+    /// <typeparam name="TController">
+    /// The type of the controller to register. This type does not require
+    /// a parameterless constructor.
+    /// </typeparam>
+    /// <param name="factory">
+    /// A function that returns an instance of <typeparamref name="TController"/>.
+    /// </param>
+    /// <returns>The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.</returns>
+    /// <exception cref="System.InvalidOperationException">
+    /// Thrown if a method with an unsupported return type is encountered.
+    /// </exception>
     public PacketDispatchOptions<TPacket> WithHandler<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController>(
@@ -112,9 +176,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 $"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         PacketAnalyzer<TController, TPacket> scanner = new(_logger);
-        PacketHandlerInvoker<TPacket>[] handlerDescriptors = scanner.ScanController(factory);
+        PacketHandlerDelegate<TPacket>[] handlerDescriptors = scanner.ScanController(factory);
 
-        foreach (PacketHandlerInvoker<TPacket> descriptor in handlerDescriptors)
+        foreach (PacketHandlerDelegate<TPacket> descriptor in handlerDescriptors)
         {
             if (_handlerCache.ContainsKey(descriptor.OpCode))
             {
@@ -181,7 +245,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public bool TryResolveHandlerDescriptor(
         System.UInt16 opCode,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out PacketHandlerInvoker<TPacket> descriptor)
+        out PacketHandlerDelegate<TPacket> descriptor)
     {
         if (_handlerCache.TryGetValue(opCode, out descriptor))
             return true;
