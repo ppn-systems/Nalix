@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -41,10 +41,35 @@ public sealed class BufferManager : IDisposable
     /// <summary>
     /// Private structure to track buffer usage counters
     /// </summary>
-    private struct BufferCounters
+    private unsafe struct BufferCounters
     {
-        public int RentCounter;
-        public int ReturnCounter;
+        private fixed int _counters[2]; // [rent, return]
+
+        public int RentCounter
+        {
+            get { fixed (int* ptr = _counters) return ptr[0]; }
+            set { fixed (int* ptr = _counters) ptr[0] = value; }
+        }
+
+        public int ReturnCounter
+        {
+            get { fixed (int* ptr = _counters) return ptr[1]; }
+            set { fixed (int* ptr = _counters) ptr[1] = value; }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int IncrementRent()
+        {
+            fixed (int* ptr = _counters)
+                return Interlocked.Increment(ref ptr[0]);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int IncrementReturn()
+        {
+            fixed (int* ptr = _counters)
+                return Interlocked.Increment(ref ptr[1]);
+        }
     }
 
     #endregion Constructor
@@ -176,51 +201,27 @@ public sealed class BufferManager : IDisposable
     /// Finds the most suitable pool size with optimized binary search.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int FindSuitablePoolSize(int size)
+    private unsafe int FindSuitablePoolSize(int size)
     {
-        // Use a local reference to avoid potential threading issues
         _keysLock.EnterReadLock();
-        int[] keys;
         try
         {
-            keys = _sortedKeys;
+            var keys = _sortedKeys.AsSpan();
+
+            if (keys.Length == 0) return 0;
+            if (size <= keys[0]) return keys[0];
+            if (size > keys[^1]) return 0;
+
+            int index = keys.BinarySearch(size);
+
+            return index >= 0
+                ? keys[index]
+                : (~index < keys.Length ? keys[~index] : 0);
         }
         finally
         {
             _keysLock.ExitReadLock();
         }
-
-        // Quick check for empty array
-        if (keys.Length == 0)
-            return 0;
-
-        // Quick check for size smaller than first key or larger than last key
-        if (size <= keys[0])
-            return keys[0];
-
-        if (size > keys[^1])
-            return 0;
-
-        // Binary search for efficiency with large Number of pools
-        int left = 0;
-        int right = keys.Length - 1;
-
-        while (left <= right)
-        {
-            int mid = left + (right - left) / 2;
-
-            if (keys[mid] == size)
-                return keys[mid];
-
-            if (keys[mid] < size)
-                left = mid + 1;
-            else
-                right = mid - 1;
-        }
-
-        // At this point, left > right and left is the insertion point
-        // Return the next larger key (ceiling value)
-        return left < keys.Length ? keys[left] : 0;
     }
 
     #endregion Private Methods
