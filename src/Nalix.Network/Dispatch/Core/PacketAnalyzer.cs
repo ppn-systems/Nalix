@@ -40,7 +40,7 @@ public sealed class PacketAnalyzer<[
     /// Sử dụng compiled expressions cho performance tối ưu.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public PacketHandlerInvoker<TPacket>[] ScanController(System.Func<TController> factory)
+    public PacketHandlerDelegate<TPacket>[] ScanController(System.Func<TController> factory)
     {
         var controllerType = typeof(TController);
 
@@ -54,14 +54,14 @@ public sealed class PacketAnalyzer<[
         // Create controller instance
         var controllerInstance = factory();
 
-        var descriptors = new PacketHandlerInvoker<TPacket>[compiledMethods.Count];
+        var descriptors = new PacketHandlerDelegate<TPacket>[compiledMethods.Count];
         var index = 0;
 
         foreach (var (opCode, compiledMethod) in compiledMethods)
         {
             var attributes = GetCachedAttributes(compiledMethod.MethodInfo);
 
-            descriptors[index++] = new PacketHandlerInvoker<TPacket>(
+            descriptors[index++] = new PacketHandlerDelegate<TPacket>(
                 opCode,
                 attributes,
                 controllerInstance,

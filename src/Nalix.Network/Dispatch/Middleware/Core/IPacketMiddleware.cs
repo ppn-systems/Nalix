@@ -1,6 +1,6 @@
 ﻿using Nalix.Network.Dispatch.Core;
 
-namespace Nalix.Network.Dispatch.Middleware;
+namespace Nalix.Network.Dispatch.Middleware.Core;
 
 /// <summary>
 /// Interface that standardizes middleware implementations for packet handling.

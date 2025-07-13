@@ -1,10 +1,11 @@
 ﻿using Nalix.Common.Package;
 using Nalix.Network.Configurations;
 using Nalix.Network.Dispatch.Core;
+using Nalix.Network.Dispatch.Middleware.Core;
 using Nalix.Network.Security.Guard;
 using Nalix.Shared.Configuration;
 
-namespace Nalix.Network.Dispatch.Middleware.Inbound;
+namespace Nalix.Network.Dispatch.Middleware;
 
 /// <summary>
 /// Middleware that enforces rate limiting for incoming packets.

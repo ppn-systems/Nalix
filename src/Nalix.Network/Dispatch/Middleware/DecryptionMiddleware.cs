@@ -1,7 +1,8 @@
 ﻿using Nalix.Common.Package;
 using Nalix.Network.Dispatch.Core;
+using Nalix.Network.Dispatch.Middleware.Core;
 
-namespace Nalix.Network.Dispatch.Middleware.Inbound;
+namespace Nalix.Network.Dispatch.Middleware;
 
 /// <summary>
 /// Middleware responsible for decrypting incoming packets if they are encrypted.
