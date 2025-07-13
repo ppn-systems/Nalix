@@ -46,12 +46,12 @@ public readonly record struct BufferPoolState : System.IEquatable<BufferPoolStat
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Double GetUsageRatio()
-        => System.Math.Max(0, System.Math.Min(1.0, 1.0 - (FreeBuffers / (System.Double)System.Math.Max(1, TotalBuffers))));
+        => TotalBuffers <= 0 ? 0.0 : System.Math.Max(0.0, System.Math.Min(1.0, 1.0 - (FreeBuffers / (System.Double)TotalBuffers)));
 
     /// <summary>
     /// Gets the miss rate as a ratio of total buffers.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Double GetMissRate() => Misses / (System.Double)System.Math.Max(1, TotalBuffers);
+    public System.Double GetMissRate() => TotalBuffers <= 0 ? 0.0 : System.Math.Min(1.0, Misses / (System.Double)TotalBuffers);
 }
