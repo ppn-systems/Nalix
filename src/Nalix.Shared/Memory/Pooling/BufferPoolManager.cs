@@ -841,7 +841,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
             System.Double usage = info.GetUsageRatio() * 100.0;
             System.Double miss = info.GetMissRate() * 100.0;
 
-            _ = sb.AppendLine($"{info.BufferSize,8} | {info.TotalBuffers,5} | {info.FreeBuffers,4} | {inUse,6} | {usage,7:F2}% | {miss,7:F2}%");
+            _ = sb.AppendLine($"{info.BufferSize,8} | {info.TotalBuffers,6} | {info.FreeBuffers,5} | {inUse,7} | {usage,8:F2}% | {miss,7:F2}%");
         }
 
         _ = sb.AppendLine("----------------------------------------------------------------------");
