@@ -38,7 +38,7 @@ public class DecryptionMiddleware<TPacket> : IPacketMiddleware<TPacket>
             }
             catch (System.Exception)
             {
-                await context.Connection.Tcp.SendAsync(TPacket.Create(0, "Packet decoding failed!"));
+                await context.Connection.Tcp.SendAsync(TPacket.Create(0, "Failed to process packet."));
                 return;
             }
         }
