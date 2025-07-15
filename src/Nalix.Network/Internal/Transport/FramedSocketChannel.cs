@@ -22,6 +22,10 @@ namespace Nalix.Network.Internal.Transport;
 /// Initializes a new instance of the <see cref="FramedSocketChannel"/> class.
 /// </remarks>
 /// <param name="socket">The socket.</param>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.DebuggerDisplay("{ToString()}")]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.IDisposable
 {
     #region Const 
@@ -45,6 +49,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     private System.Int32 _closeSignaled;
     private System.Int32 _receiveStarted;           // 0 = not yet, 1 = started
     private System.Int32 _cancelSignaled;           // 0 = not yet, 1 = started
+
+    [System.Diagnostics.CodeAnalysis.AllowNull]
     private System.Byte[] _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Rent(256);
 
     #endregion Fields
@@ -54,6 +60,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     /// <summary>
     /// Caches incoming packets.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.DisallowNull]
     public BufferLeaseCache Cache { get; } = new();
 
     #endregion Properties
@@ -63,6 +70,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     /// <summary>
     /// Registers a process to be invoked when a packet is cached. The state is passed back as the argument.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_sender), nameof(_cachedArgs))]
     public void SetCallback(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.EventHandler<IConnectEventArgs> close,
         [System.Diagnostics.CodeAnalysis.AllowNull] System.EventHandler<IConnectEventArgs> post,
@@ -83,7 +91,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     /// Starts the receive loop. The optional <paramref name="cancellationToken"/> can be used
     /// to stop this connection or for coordinated server shutdown. No linked tokens or callbacks.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Reliability", "CA2016:Forward the 'CancellationToken' parameter to methods", Justification = "<Pending>")]
     public void BeginReceive(System.Threading.CancellationToken cancellationToken = default)
@@ -125,9 +134,15 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     /// <param name="data">The data to send as a Span.</param>
     /// <returns>true if the data was sent successfully; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean Send(System.ReadOnlySpan<System.Byte> data)
     {
+        if (System.Threading.Volatile.Read(ref _disposed) != 0)
+        {
+            return false;
+        }
+
         if (data.IsEmpty)
         {
             return false;
@@ -150,9 +165,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 #endif
 
                 System.Span<System.Byte> bufferS = stackalloc System.Byte[totalLength];
-                System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(bufferS, totalLength);
-
-                data.CopyTo(bufferS[HeaderSize..]);
+                WriteFrameHeader(bufferS, totalLength, data);
 
                 System.Int32 sent = 0;
                 while (sent < bufferS.Length)
@@ -232,6 +245,11 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         System.ReadOnlyMemory<System.Byte> data,
         System.Threading.CancellationToken cancellationToken)
     {
+        if (System.Threading.Volatile.Read(ref _disposed) != 0)
+        {
+            return false;
+        }
+
         if (data.IsEmpty)
         {
             return false;
@@ -248,11 +266,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
         try
         {
-            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(System.MemoryExtensions
-                                                  .AsSpan(buffer), totalLength);
-
-            data.Span.CopyTo(System.MemoryExtensions
-                     .AsSpan(buffer, HeaderSize));
+            WriteFrameHeader(System.MemoryExtensions.AsSpan(buffer), totalLength, data.Span);
 
 #if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -301,6 +315,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     /// <summary>
     /// Safely formats the remote endpoint string without throwing if the socket is already disposed.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     private static System.String FormatEndpoint(System.Net.Sockets.Socket s)
     {
         try
@@ -317,8 +332,9 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         }
     }
 
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void InvokeCloseOnce()
     {
         if (System.Threading.Interlocked.Exchange(ref _closeSignaled, 1) != 0)
@@ -333,6 +349,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     /// Returns true when the exception indicates a peer-initiated close or shutdown flow
     /// that should be treated as a normal disconnect (not an error).
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     private static System.Boolean IsBenignDisconnect(System.Exception ex)
     {
         if (ex is System.OperationCanceledException or
@@ -375,7 +392,9 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         return false;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private async System.Threading.Tasks.ValueTask ReceiveExactlyAsync(
         System.Memory<System.Byte> dst,
         System.Threading.CancellationToken token)
@@ -400,6 +419,21 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         }
     }
 
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void WriteFrameHeader(
+        System.Span<System.Byte> buffer,
+        System.UInt16 totalLength,
+        System.ReadOnlySpan<System.Byte> payload)
+    {
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(buffer, totalLength);
+        payload.CopyTo(buffer[HeaderSize..]);
+    }
+
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private async System.Threading.Tasks.Task ReceiveLoopAsync(System.Threading.CancellationToken token)
     {
         try
@@ -455,6 +489,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                 this.Cache.PushIncoming(BufferLease
                           .TakeOwnership(_buffer, HeaderSize, payload));
 
+                _buffer = null; // ownership transferred
                 _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
                                                   .Rent(256); // prepare for next read
             }
@@ -487,6 +522,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     /// Disposes the managed and unmanaged resources.
     /// </summary>
     /// <param name="disposing">If true, releases managed resources; otherwise, only releases unmanaged resources.</param>
+    [System.Diagnostics.DebuggerStepThrough]
     private void Dispose(System.Boolean disposing)
     {
         if (System.Threading.Interlocked.Exchange(ref _disposed, 1) != 0)
@@ -496,6 +532,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
         if (disposing)
         {
+            this.CancelReceiveOnce();
             this.InvokeCloseOnce();
 
             try
@@ -511,13 +548,15 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             catch { /* ignore */ }
 
             // now it’s safe to return pooled buffer
-            InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
-                                    .Return(this._buffer);
-
-            this.Cache.Dispose();
-            this._socket.Dispose();
+            if (_buffer != null)
+            {
+                InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                        .Return(_buffer);
+            }
 
             _cts.Dispose();
+            this.Cache.Dispose();
+            this._socket.Dispose();
         }
 
 #if DEBUG
