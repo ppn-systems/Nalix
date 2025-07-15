@@ -8,7 +8,7 @@ namespace Nalix.Framework.Tasks;
 /// Conventions:
 /// - Groups use path-style with '/' separators (e.g., "net/tcp/5720").
 /// - Workers use dot-style with '.' separators (e.g., "tcp.accept.5720.0").
-/// - All names are lowercase; only [A-Za-z0-9-_.] allowed after <see cref="Safe(System.String)"/>.
+/// - All names are lowercase; only [A-Za-z0-9-_.] allowed after <see cref="SanitizeToken(System.String)"/>.
 /// </para>
 /// </summary>
 /// <remarks>
@@ -18,33 +18,18 @@ namespace Nalix.Framework.Tasks;
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-public static class TaskNames
+public static class TaskNaming
 {
     /// <summary>
-    /// Canonical short tags that appear in task names. 
+    /// Canonical short tags that appear in task names.
     /// Applications may extend this with domain-specific tags.
     /// </summary>
     public static class Tags
     {
         /// <summary>
-        /// Tag for tasks that accept connections or requests.
-        /// </summary>
-        public const System.String Accept = "accept";
-
-        /// <summary>
         /// Tag for tasks that process data or requests.
         /// </summary>
         public const System.String Process = "proc";
-
-        /// <summary>
-        /// Tag for tasks that dispatch work or messages.
-        /// </summary>
-        public const System.String Dispatch = "dispatch";
-
-        /// <summary>
-        /// Tag for tasks that perform cleanup operations.
-        /// </summary>
-        public const System.String Cleanup = "cleanup";
 
         /// <summary>
         /// Tag for tasks that synchronize time or state.
@@ -52,9 +37,24 @@ public static class TaskNames
         public const System.String Worker = "worker";
 
         /// <summary>
+        /// Tag for tasks that accept connections or requests.
+        /// </summary>
+        public const System.String Accept = "accept";
+
+        /// <summary>
+        /// Tag for tasks that perform cleanup operations.
+        /// </summary>
+        public const System.String Cleanup = "cleanup";
+
+        /// <summary>
         /// Tag for tasks related to service operations.
         /// </summary>
         public const System.String Service = "service";
+
+        /// <summary>
+        /// Tag for tasks that dispatch work or messages.
+        /// </summary>
+        public const System.String Dispatch = "dispatch";
     }
 
     /// <summary>
@@ -76,10 +76,53 @@ public static class TaskNames
 
             for (System.Int32 i = 0; i < parts.Length; i++)
             {
-                parts[i] = Safe(parts[i]);
+                parts[i] = SanitizeToken(parts[i]);
             }
 
             return System.String.Join('/', parts);
+        }
+
+        /// <summary>
+        /// Optimized overload for 3-part group paths (no params array).
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Roslynator", "RCS1267:Use string interpolation instead of 'string.Concat'", Justification = "<Pending>")]
+        public static System.String Build(System.String p1, System.String p2, System.String p3)
+        {
+            p1 = SanitizeToken(p1);
+            p2 = SanitizeToken(p2);
+            p3 = SanitizeToken(p3);
+
+            // "net/tcp/5720"
+            return System.String.Concat(
+                System.String.Concat(p1, "/"),
+                    System.String.Concat(p2,
+                        System.String.Concat("/", p3)));
+        }
+
+        /// <summary>
+        /// Optimized overload for 4-part group paths (no params array).
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Roslynator", "RCS1267:Use string interpolation instead of 'string.Concat'", Justification = "<Pending>")]
+        public static System.String Build(System.String p1, System.String p2, System.String p3, System.String p4)
+        {
+            p1 = SanitizeToken(p1);
+            p2 = SanitizeToken(p2);
+            p3 = SanitizeToken(p3);
+            p4 = SanitizeToken(p4);
+
+            // "net/tcp/5720/proc"
+            return System.String.Concat(
+                System.String.Concat(p1, "/"),
+                System.String.Concat(
+                    p2, System.String.Concat(
+                        "/", System.String.Concat(
+                            p3, System.String.Concat("/", p4)))));
         }
     }
 
@@ -102,10 +145,53 @@ public static class TaskNames
 
             for (System.Int32 i = 0; i < parts.Length; i++)
             {
-                parts[i] = Safe(parts[i]);
+                parts[i] = SanitizeToken(parts[i]);
             }
 
             return System.String.Join('.', parts);
+        }
+
+        /// <summary>
+        /// Optimized overload for 3-part worker ids (no params array).
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Roslynator", "RCS1267:Use string interpolation instead of 'string.Concat'", Justification = "<Pending>")]
+        public static System.String Build(System.String p1, System.String p2, System.String p3)
+        {
+            p1 = SanitizeToken(p1);
+            p2 = SanitizeToken(p2);
+            p3 = SanitizeToken(p3);
+
+            // "udp.proc.7777"
+            return System.String.Concat(
+                System.String.Concat(p1, "."),
+                    System.String.Concat(p2,
+                        System.String.Concat(".", p3)));
+        }
+
+        /// <summary>
+        /// Optimized overload for 4-part worker ids (no params array).
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Roslynator", "RCS1267:Use string interpolation instead of 'string.Concat'", Justification = "<Pending>")]
+        public static System.String Build(System.String p1, System.String p2, System.String p3, System.String p4)
+        {
+            p1 = SanitizeToken(p1);
+            p2 = SanitizeToken(p2);
+            p3 = SanitizeToken(p3);
+            p4 = SanitizeToken(p4);
+
+            // "tcp.accept.5720.0"
+            return System.String.Concat(
+                System.String.Concat(p1, "."),
+                System.String.Concat(
+                    p2, System.String.Concat(
+                        ".", System.String.Concat(
+                            p3, System.String.Concat(".", p4)))));
         }
 
         /// <summary>
@@ -113,14 +199,14 @@ public static class TaskNames
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-        public static System.String WithPeriod(System.String prefix, System.TimeSpan period)
+        public static System.String Periodic(System.String prefix, System.TimeSpan period)
         {
             System.Double ms = period.TotalMilliseconds;
             System.String token = ms % 1 == 0
                 ? ((System.Int64)ms).ToString(System.Globalization.CultureInfo.InvariantCulture) + "ms"
                 : ms.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "ms";
 
-            return $"{Safe(prefix)}.{token}";
+            return $"{SanitizeToken(prefix)}.{token}";
         }
     }
 
@@ -134,8 +220,7 @@ public static class TaskNames
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-        public static System.String WithKey(System.String prefix, System.Int32 instanceKey)
-            => $"{Safe(prefix)}.{Tags.Cleanup}.{instanceKey:X8}";
+        public static System.String CleanupJobId(System.String prefix, System.Int32 instanceKey) => $"{SanitizeToken(prefix)}.{Tags.Cleanup}.{instanceKey:X8}";
     }
 
     /// <summary>
@@ -145,7 +230,7 @@ public static class TaskNames
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [System.Runtime.CompilerServices.SkipLocalsInit]
-    public static System.String Safe(System.String s)
+    public static System.String SanitizeToken(System.String s)
     {
         if (System.String.IsNullOrEmpty(s))
         {
