@@ -19,7 +19,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         // Pre-processing middleware
         _pipeline
             .UsePre(new RateLimitMiddleware<TPacket>())
-            .UsePre(new DecompressionMiddleware<TPacket>())
+            .UsePre(new PermissionMiddleware<TPacket>())
+            .UsePre(new DecompressMiddleware<TPacket>())
             .UsePre(new DecryptionMiddleware<TPacket>());
         //.UsePre(new ValidationMiddleware<TPacket>());
 

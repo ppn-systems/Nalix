@@ -1,5 +1,6 @@
 ﻿using Nalix.Common.Package;
 using Nalix.Network.Dispatch.Core;
+using Nalix.Network.Dispatch.Middleware.Core;
 
 namespace Nalix.Network.Dispatch.Middleware;
 
@@ -8,7 +9,7 @@ namespace Nalix.Network.Dispatch.Middleware;
 /// before allowing the packet to proceed to the next handler.
 /// </summary>
 /// <typeparam name="TPacket">The packet type being processed.</typeparam>
-public class PermissionMiddleware<TPacket>
+public class PermissionMiddleware<TPacket> : IPacketMiddleware<TPacket>
     where TPacket : IPacket, IPacketFactory<TPacket>
 {
     /// <summary>
@@ -25,9 +26,7 @@ public class PermissionMiddleware<TPacket>
             context.Attributes.Permission.Level > context.Connection.Level)
         {
             await context.Connection.Tcp.SendAsync(TPacket
-                                        .Create(0,
-                $"Permission denied. Required level: {context.Attributes.Permission.Level}, " +
-                $"but your level is: {context.Connection.Level}."));
+                                        .Create(0, "Permission denied. You are not authorized to perform this action."));
 
             return;
         }

@@ -1,11 +1,5 @@
 ﻿using Nalix.Common.Logging;
 using Nalix.Common.Package.Attributes;
-using System.Collections.Frozen;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Dispatch.Core;
 
@@ -16,7 +10,8 @@ namespace Nalix.Network.Dispatch.Core;
 /// <typeparam name="TController">Controller type</typeparam>
 /// <typeparam name="TPacket">Packet type</typeparam>
 public sealed class PacketAnalyzer<[
-    DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>(ILogger? logger = null)
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>(ILogger? logger = null)
     where TController : class
     where TPacket : Common.Package.IPacket,
                    Common.Package.IPacketFactory<TPacket>,
@@ -27,35 +22,39 @@ public sealed class PacketAnalyzer<[
 
     // Cache compiled method accessors để tránh reflection overhead
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        System.Type, FrozenDictionary<System.UInt16, CompiledMethodInfo<TPacket>>> _compiledMethodCache = new();
+        System.Type, System.Collections.Frozen.FrozenDictionary<
+            System.UInt16, CompiledMethodInfo<TPacket>>> _compiledMethodCache = new();
 
     // Cache attribute lookups
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        MethodInfo, PacketMetadata> _attributeCache = new();
+        System.Reflection.MethodInfo, PacketMetadata> _attributeCache = new();
 
     #endregion Fields
 
     /// <summary>
     /// Scan controller và return array của handler descriptors.
-    /// Sử dụng compiled expressions cho performance tối ưu.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PacketHandlerDelegate<TPacket>[] ScanController(System.Func<TController> factory)
     {
-        var controllerType = typeof(TController);
+        System.Type controllerType = typeof(TController);
+
 
         // Validate controller có PacketController attribute
-        var controllerAttr = controllerType.GetCustomAttribute<PacketControllerAttribute>() ?? throw new System.InvalidOperationException(
+        PacketControllerAttribute controllerAttr = System.Reflection.CustomAttributeExtensions
+            .GetCustomAttribute<PacketControllerAttribute>(controllerType)
+            ?? throw new System.InvalidOperationException(
                 $"Controller '{controllerType.Name}' thiếu [PacketController] attribute.");
 
         // Get hoặc compile method accessors
         var compiledMethods = GetOrCompileMethodAccessors(controllerType);
 
         // Create controller instance
-        var controllerInstance = factory();
+        TController controllerInstance = factory();
 
-        var descriptors = new PacketHandlerDelegate<TPacket>[compiledMethods.Count];
-        var index = 0;
+        PacketHandlerDelegate<TPacket>[] descriptors = new PacketHandlerDelegate<TPacket>[compiledMethods.Count];
+        System.Int16 index = 0;
 
         foreach (var (opCode, compiledMethod) in compiledMethods)
         {
@@ -69,20 +68,26 @@ public sealed class PacketAnalyzer<[
                 compiledMethod.ReturnType,
                 compiledMethod.CompiledInvoker);
 
-            logger?.Debug("Đã scan handler OpCode={0} Method={1}",
+            logger?.Debug("Scanned handler OpCode={0} Method={1}",
                 opCode, compiledMethod.MethodInfo.Name);
         }
 
         return descriptors;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static FrozenDictionary<ushort, CompiledMethodInfo<TPacket>> GetOrCompileMethodAccessors(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] System.Type controllerType)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Collections.Frozen.FrozenDictionary<
+        System.UInt16, CompiledMethodInfo<TPacket>> GetOrCompileMethodAccessors(
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] System.Type controllerType)
     {
-        var methodInfos = controllerType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Where(m => m.GetCustomAttribute<PacketOpcodeAttribute>() is not null)
-            .ToArray();
+        var methodInfos = System.Linq.Enumerable.ToArray(
+            System.Linq.Enumerable.Where(
+                controllerType.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance),
+                m => System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m) is not null
+            )
+        );
 
         // Fail early nếu không có method nào có PacketOpcode
         if (methodInfos.Length == 0)
@@ -93,11 +98,13 @@ public sealed class PacketAnalyzer<[
 
         return _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
         {
-            var compiled = new Dictionary<ushort, CompiledMethodInfo<TPacket>>(methods.Length);
+            System.Collections.Generic.Dictionary<ushort, CompiledMethodInfo<TPacket>> compiled = new(methods.Length);
 
             foreach (var method in methods)
             {
-                var opcodeAttr = method.GetCustomAttribute<PacketOpcodeAttribute>()!;
+                PacketOpcodeAttribute opcodeAttr = System.Reflection.CustomAttributeExtensions
+                    .GetCustomAttribute<PacketOpcodeAttribute>(method)!;
+
                 var compiledMethod = CompileMethodAccessor(method);
 
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
@@ -109,7 +116,7 @@ public sealed class PacketAnalyzer<[
                 compiled[opcodeAttr.OpCode] = compiledMethod;
             }
 
-            return compiled.ToFrozenDictionary();
+            return System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(compiled);
         }, methodInfos); // Pass methods as state để không lặp lại logic trong Add
     }
 
@@ -117,11 +124,11 @@ public sealed class PacketAnalyzer<[
     /// Compile method accessor sử dụng expressions cho maximum performance.
     /// PERFORMANCE CRITICAL: Đây là nơi tạo compiled delegates.
     /// </summary>
-    [SuppressMessage("Trimming",
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
         "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.",
         Justification = "<Pending>")]
-    [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    private static CompiledMethodInfo<TPacket> CompileMethodAccessor(MethodInfo method)
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    private static CompiledMethodInfo<TPacket> CompileMethodAccessor(System.Reflection.MethodInfo method)
     {
         // Tạo expression tree cho method call
         var instanceParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
@@ -181,7 +188,8 @@ public sealed class PacketAnalyzer<[
     private static System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object?>>
         CreateAsyncWrapper(
             System.Func<System.Object, PacketContext<TPacket>, System.Object?> syncDelegate,
-            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] System.Type returnType)
+            [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] System.Type returnType)
     {
         if (returnType == typeof(System.Threading.Tasks.Task))
         {
@@ -256,20 +264,24 @@ public sealed class PacketAnalyzer<[
     /// <summary>
     /// Get cached attributes cho method.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static PacketMetadata GetCachedAttributes(MethodInfo method)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static PacketMetadata GetCachedAttributes(System.Reflection.MethodInfo method)
     {
         return _attributeCache.GetOrAdd(method, static m => new PacketMetadata(
-            m.GetCustomAttribute<PacketOpcodeAttribute>()!,
-            m.GetCustomAttribute<PacketTimeoutAttribute>(),
-            m.GetCustomAttribute<PacketRateLimitAttribute>(),
-            m.GetCustomAttribute<PacketPermissionAttribute>(),
-            m.GetCustomAttribute<PacketEncryptionAttribute>()
+            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m)!,
+            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketTimeoutAttribute>(m),
+            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketRateLimitAttribute>(m),
+            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketPermissionAttribute>(m),
+            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketEncryptionAttribute>(m)
         ));
     }
 
-    private static PropertyInfo? GetResultProperty(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] System.Type type)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Reflection.PropertyInfo? GetResultProperty(
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] System.Type type)
     {
         return type.GetProperty("Result");
     }
@@ -279,7 +291,7 @@ public sealed class PacketAnalyzer<[
 /// Chứa compiled method information để tránh reflection overhead.
 /// </summary>
 public readonly record struct CompiledMethodInfo<TPacket>(
-    MethodInfo MethodInfo,
+    System.Reflection.MethodInfo MethodInfo,
     System.Type ReturnType,
     System.Func<System.Object, PacketContext<TPacket>,
         System.Threading.Tasks.ValueTask<System.Object?>> CompiledInvoker);
