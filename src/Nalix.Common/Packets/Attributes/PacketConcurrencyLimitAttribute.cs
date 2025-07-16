@@ -20,7 +20,7 @@ public sealed class PacketConcurrencyLimitAttribute(
     public System.Boolean Queue { get; } = queue;
 
     /// <summary>
-    /// Maximum queue length (0 = unbounded or no queue).
+    /// Maximum queue length (0 = no queue, reject when full).
     /// </summary>
     public System.Int32 QueueMax { get; } = queueMax;
 }

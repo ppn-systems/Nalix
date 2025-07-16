@@ -16,7 +16,7 @@ namespace Nalix.Shared.Messaging.Text;
 /// <summary>
 /// Represents a simple text-based packet used for transmitting UTF-8 string content over the network.
 /// </summary>
-[MagicNumber(FrameMagicCode.TEXT256)]
+[MagicNumber(ProtocolMagic.TEXT256)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("TEXT256 OP_CODE={OP_CODE}, Length={Length}, FLAGS={FLAGS}")]
@@ -41,11 +41,11 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
     public Text256()
     {
         Flags = PacketFlags.NONE;
+        Protocol = ProtocolType.NONE;
         Content = System.String.Empty;
         Priority = PacketPriority.NONE;
-        Protocol = ProtocolType.NONE;
-        OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)FrameMagicCode.TEXT256;
+        OpCode = PacketConstants.OPCODE_DEFAULT;
+        MagicNumber = (System.UInt32)ProtocolMagic.TEXT256;
     }
 
     /// <summary>Initializes the packet with content and transport protocol.</summary>
@@ -136,9 +136,9 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
     public override void ResetForPool()
     {
         this.Flags = PacketFlags.NONE;
+        this.Protocol = ProtocolType.NONE;
         this.Content = System.String.Empty;
         this.Priority = PacketPriority.NONE;
-        this.Protocol = ProtocolType.NONE;
     }
 
     /// <inheritdoc/>

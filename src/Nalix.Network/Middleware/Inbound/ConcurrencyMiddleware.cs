@@ -50,8 +50,8 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
                 {
                     await context.Connection.SendAsync(
                         controlType: ControlType.FAIL,
-                        reason: ProtocolCode.RATE_LIMITED,
-                        action: ProtocolAction.RETRY,
+                        reason: ProtocolReason.RATE_LIMITED,
+                        action: ProtocolAdvice.RETRY,
                         sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                         flags: ControlFlags.IS_TRANSIENT,
                         arg0: context.Packet.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
@@ -65,8 +65,8 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
         {
             await context.Connection.SendAsync(
                 controlType: ControlType.FAIL,
-                reason: ProtocolCode.RATE_LIMITED,
-                action: ProtocolAction.RETRY,
+                reason: ProtocolReason.RATE_LIMITED,
+                action: ProtocolAdvice.RETRY,
                 sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                 flags: ControlFlags.IS_TRANSIENT,
                 arg0: context.Packet.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);

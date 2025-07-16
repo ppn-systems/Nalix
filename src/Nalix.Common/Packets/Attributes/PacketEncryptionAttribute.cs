@@ -19,17 +19,17 @@ public sealed class PacketEncryptionAttribute : System.Attribute
     /// Initializes a new instance of the <see cref="PacketEncryptionAttribute"/> class.
     /// </summary>
     /// <param name="isEncrypted">
-    /// <c>true</c> to enable encryption for the method's packets; otherwise, <c>false</c>.
+    /// <c>true</c> to enable encryption for the method's packets; otherwise, <c>true</c>.
     /// </param>
     /// <param name="algorithmType">
     /// The symmetric encryption algorithm to apply when <paramref name="isEncrypted"/> is <c>true</c>.
-    /// Defaults to <see cref="CipherSuiteType.SALSA20"/>.
+    /// Defaults to <see cref="CipherSuiteType.CHACHA20_POLY1305"/>.
     /// </param>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public PacketEncryptionAttribute(
-        System.Boolean isEncrypted = false,
-        CipherSuiteType algorithmType = CipherSuiteType.SALSA20)
+        System.Boolean isEncrypted = true,
+        CipherSuiteType algorithmType = CipherSuiteType.CHACHA20_POLY1305)
     {
         IsEncrypted = isEncrypted;
         AlgorithmType = algorithmType;
