@@ -3,6 +3,7 @@
 
 using Nalix.Common.Middleware.Attributes;
 using Nalix.Common.Middleware.Enums;
+using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Routing;
 
@@ -29,7 +30,7 @@ namespace Nalix.Network.Middleware;
 /// The pipeline creates immutable execution snapshots to avoid locking during execution.
 /// </para>
 /// </remarks>
-public class MiddlewarePipeline<TPacket>
+public class MiddlewarePipeline<TPacket> where TPacket : IPacket
 {
     #region Fields
 

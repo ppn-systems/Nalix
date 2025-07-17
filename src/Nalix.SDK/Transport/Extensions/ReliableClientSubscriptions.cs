@@ -26,6 +26,7 @@ namespace Nalix.SDK.Transport.Extensions;
 [System.Runtime.CompilerServices.SkipLocalsInit]
 public static class ReliableClientSubscriptions
 {
+    private static readonly IPacketRegistry s_catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
     // ── On<TPacket> ──────────────────────────────────────────────────────────
 
     /// <summary>
@@ -47,8 +48,7 @@ public static class ReliableClientSubscriptions
             // Wrapper is the sole owner of the lease; always dispose in finally.
             try
             {
-                if (!InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
-                        .TryDeserialize(buffer.Span, out IPacket p) || p is not TPacket t)
+                if (!s_catalog.TryDeserialize(buffer.Span, out IPacket p) || p is not TPacket t)
                 {
                     return;
                 }
@@ -93,8 +93,7 @@ public static class ReliableClientSubscriptions
         {
             try
             {
-                if (!InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
-                        .TryDeserialize(buffer.Span, out IPacket p))
+                if (!s_catalog.TryDeserialize(buffer.Span, out IPacket p))
                 {
                     return;
                 }
@@ -146,8 +145,7 @@ public static class ReliableClientSubscriptions
             try
             {
                 // Deserialize — if it fails, we still fall through to finally and dispose.
-                if (!InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
-                        .TryDeserialize(buffer.Span, out IPacket p))
+                if (!s_catalog.TryDeserialize(buffer.Span, out IPacket p))
                 {
                     return;
                 }

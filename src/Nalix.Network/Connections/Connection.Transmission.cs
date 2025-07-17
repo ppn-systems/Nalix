@@ -227,6 +227,11 @@ public sealed partial class Connection : IConnection
         #region Synchronous Methods
 
         /// <inheritdoc />
+        /// /// <remarks>
+        /// WARNING: Do NOT call connection.TCP.SendAsync() directly inside handlers.
+        /// Always return the response packet so the outbound middleware pipeline
+        /// (encryption, compression) can process it correctly.
+        /// </remarks>
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -258,6 +263,11 @@ public sealed partial class Connection : IConnection
         }
 
         /// <inheritdoc />
+        /// /// <remarks>
+        /// WARNING: Do NOT call connection.TCP.SendAsync() directly inside handlers.
+        /// Always return the response packet so the outbound middleware pipeline
+        /// (encryption, compression) can process it correctly.
+        /// </remarks>
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -326,6 +336,11 @@ public sealed partial class Connection : IConnection
         #region Asynchronous Methods
 
         /// <inheritdoc />
+        /// /// <remarks>
+        /// WARNING: Do NOT call connection.TCP.SendAsync() directly inside handlers.
+        /// Always return the response packet so the outbound middleware pipeline
+        /// (encryption, compression) can process it correctly.
+        /// </remarks>
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -360,6 +375,11 @@ public sealed partial class Connection : IConnection
         }
 
         /// <inheritdoc />
+        /// /// <remarks>
+        /// WARNING: Do NOT call connection.TCP.SendAsync() directly inside handlers.
+        /// Always return the response packet so the outbound middleware pipeline
+        /// (encryption, compression) can process it correctly.
+        /// </remarks>
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]

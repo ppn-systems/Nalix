@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Network.Routing;
 
 namespace Nalix.Network.Abstractions;
@@ -10,7 +11,7 @@ namespace Nalix.Network.Abstractions;
 /// Provides a method for asynchronous invocation that allows chaining via the next delegate.
 /// </summary>
 /// <typeparam name="TPacket">The type of packet to be handled by this middleware.</typeparam>
-public interface IPacketMiddleware<TPacket>
+public interface IPacketMiddleware<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Handles the processing of a packet in the middleware pipeline.

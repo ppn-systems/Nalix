@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Network.Routing;
 
 #if DEBUG
@@ -17,4 +18,4 @@ namespace Nalix.Network.Internal.Compilation;
 /// <typeparam name="TPacket">The packet type this handler processes.</typeparam>
 internal readonly record struct CompiledHandler<TPacket>(
     System.Reflection.MethodInfo MethodInfo, System.Type ReturnType,
-    System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object>> CompiledInvoker);
+    System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object>> CompiledInvoker) where TPacket : IPacket;
