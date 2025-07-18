@@ -19,19 +19,21 @@ public static class ISO10126
     /// <param name="blockSize">The block size to pad to.</param>
     /// <returns>A new byte array with ISO 10126 padding applied.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Pad(byte[] data, int blockSize)
+    public static Byte[] Pad(Byte[] data, Int32 blockSize)
     {
         ArgumentNullException.ThrowIfNull(data);
-        if (blockSize <= 0 || blockSize > byte.MaxValue)
+        if (blockSize is <= 0 or > Byte.MaxValue)
+        {
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
+        }
 
-        int paddingSize = blockSize - (data.Length % blockSize);
-        byte[] paddedData = new byte[data.Length + paddingSize];
+        Int32 paddingSize = blockSize - (data.Length % blockSize);
+        Byte[] paddedData = new Byte[data.Length + paddingSize];
 
         // Copy original data
         Buffer.BlockCopy(data, 0, paddedData, 0, data.Length);
 
-        byte[] randomBytes = new byte[paddingSize - 1];
+        Byte[] randomBytes = new Byte[paddingSize - 1];
         if (paddingSize > 1)
         {
             // Fill with random bytes except the last byte
@@ -40,7 +42,7 @@ public static class ISO10126
         }
 
         // Set the last byte to the padding size
-        paddedData[^1] = (byte)paddingSize;
+        paddedData[^1] = (Byte)paddingSize;
 
         return paddedData;
     }
@@ -52,18 +54,20 @@ public static class ISO10126
     /// <param name="blockSize">The block size to pad to.</param>
     /// <returns>A new byte array with ISO 10126 padding applied.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Pad(ReadOnlySpan<byte> data, int blockSize)
+    public static Byte[] Pad(ReadOnlySpan<Byte> data, Int32 blockSize)
     {
-        if (blockSize <= 0 || blockSize > byte.MaxValue)
+        if (blockSize is <= 0 or > Byte.MaxValue)
+        {
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
+        }
 
-        int paddingSize = blockSize - (data.Length % blockSize);
-        byte[] paddedData = new byte[data.Length + paddingSize];
+        Int32 paddingSize = blockSize - (data.Length % blockSize);
+        Byte[] paddedData = new Byte[data.Length + paddingSize];
 
         // Copy original data
         data.CopyTo(paddedData);
 
-        byte[] randomBytes = new byte[paddingSize - 1];
+        Byte[] randomBytes = new Byte[paddingSize - 1];
         if (paddingSize > 1)
         {
             // Fill with random bytes except the last byte
@@ -72,7 +76,7 @@ public static class ISO10126
         }
 
         // Set the last byte to the padding size
-        paddedData[^1] = (byte)paddingSize;
+        paddedData[^1] = (Byte)paddingSize;
 
         return paddedData;
     }
@@ -88,23 +92,30 @@ public static class ISO10126
     /// <param name="blockSize">The block size to unpad from.</param>
     /// <returns>A new byte array with ISO 10126 padding removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Unpad(byte[] data, int blockSize)
+    public static Byte[] Unpad(Byte[] data, Int32 blockSize)
     {
         ArgumentNullException.ThrowIfNull(data);
         if (data.Length == 0 || data.Length % blockSize != 0)
+        {
             throw new ArgumentException("The data length is invalid for ISO 10126 padding.", nameof(data));
-        if (blockSize <= 0 || blockSize > byte.MaxValue)
+        }
+
+        if (blockSize is <= 0 or > Byte.MaxValue)
+        {
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
+        }
 
         // Get padding size from the last byte
-        int paddingSize = data[^1];
+        Int32 paddingSize = data[^1];
 
         // Validate padding size
         if (paddingSize <= 0 || paddingSize > blockSize)
+        {
             throw new InvalidOperationException("Invalid padding size.");
+        }
 
         // Create new array without padding
-        byte[] unpaddedData = new byte[data.Length - paddingSize];
+        Byte[] unpaddedData = new Byte[data.Length - paddingSize];
         Buffer.BlockCopy(data, 0, unpaddedData, 0, unpaddedData.Length);
 
         return unpaddedData;
@@ -117,22 +128,29 @@ public static class ISO10126
     /// <param name="blockSize">The block size to unpad from.</param>
     /// <returns>A new byte array with ISO 10126 padding removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Unpad(ReadOnlySpan<byte> data, int blockSize)
+    public static Byte[] Unpad(ReadOnlySpan<Byte> data, Int32 blockSize)
     {
         if (data.Length == 0 || data.Length % blockSize != 0)
+        {
             throw new ArgumentException("The data length is invalid for ISO 10126 padding.", nameof(data));
-        if (blockSize <= 0 || blockSize > byte.MaxValue)
+        }
+
+        if (blockSize is <= 0 or > Byte.MaxValue)
+        {
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
+        }
 
         // Get padding size from the last byte
-        int paddingSize = data[^1];
+        Int32 paddingSize = data[^1];
 
         // Validate padding size
         if (paddingSize <= 0 || paddingSize > blockSize)
+        {
             throw new InvalidOperationException("Invalid padding size.");
+        }
 
         // Create new array without padding
-        byte[] unpaddedData = new byte[data.Length - paddingSize];
+        Byte[] unpaddedData = new Byte[data.Length - paddingSize];
         data[..^paddingSize].CopyTo(unpaddedData);
 
         return unpaddedData;

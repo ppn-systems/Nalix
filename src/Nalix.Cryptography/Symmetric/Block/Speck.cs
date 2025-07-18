@@ -15,10 +15,10 @@ public static unsafe class Speck
     #region Constants
 
     // Speck 64/128 — 64-bit block with a 128-bit key
-    private const int ROUNDS = 27;
+    private const Int32 ROUNDS = 27;
 
-    private const int BLOCK_SIZE_BYTES = 8;  // 64 bits = 8 bytes
-    private const int KEY_SIZE_BYTES = 16;   // 128 bits = 16 bytes
+    private const Int32 BLOCK_SIZE_BYTES = 8;  // 64 bits = 8 bytes
+    private const Int32 KEY_SIZE_BYTES = 16;   // 128 bits = 16 bytes
 
     #endregion Constants
 
@@ -31,30 +31,35 @@ public static unsafe class Speck
     /// <param name="key">The encryption key (16 bytes).</param>
     /// <returns>The encrypted ciphertext (8 bytes).</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Encrypt(byte[] plaintext, byte[] key)
+    public static Byte[] Encrypt(Byte[] plaintext, Byte[] key)
     {
         if (plaintext.Length != BLOCK_SIZE_BYTES)
+        {
             throw new ArgumentException($"Plaintext must be exactly {BLOCK_SIZE_BYTES} bytes.", nameof(plaintext));
+        }
+
         if (key.Length != KEY_SIZE_BYTES)
+        {
             throw new ArgumentException($"Key must be exactly {KEY_SIZE_BYTES} bytes.", nameof(key));
+        }
 
-        uint[] roundKeys = ExpandKey(key);
-        byte[] ciphertext = new byte[BLOCK_SIZE_BYTES];
+        UInt32[] roundKeys = ExpandKey(key);
+        Byte[] ciphertext = new Byte[BLOCK_SIZE_BYTES];
 
-        fixed (byte* plaintextPtr = plaintext)
-        fixed (byte* ciphertextPtr = ciphertext)
-        fixed (uint* roundKeysPtr = roundKeys)
+        fixed (Byte* plaintextPtr = plaintext)
+        fixed (Byte* ciphertextPtr = ciphertext)
+        fixed (UInt32* roundKeysPtr = roundKeys)
         {
             // Load plaintext into two 32-bit halves
-            uint x = *(uint*)plaintextPtr;
-            uint y = *(uint*)(plaintextPtr + 4);
+            UInt32 x = *(UInt32*)plaintextPtr;
+            UInt32 y = *(UInt32*)(plaintextPtr + 4);
 
             // Encrypt
             EncryptBlock(ref x, ref y, roundKeysPtr);
 
             // Store the result back into bytes
-            *(uint*)ciphertextPtr = x;
-            *(uint*)(ciphertextPtr + 4) = y;
+            *(UInt32*)ciphertextPtr = x;
+            *(UInt32*)(ciphertextPtr + 4) = y;
         }
 
         return ciphertext;
@@ -67,30 +72,35 @@ public static unsafe class Speck
     /// <param name="key">The decryption key (16 bytes).</param>
     /// <returns>The original plaintext (8 bytes).</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Decrypt(byte[] ciphertext, byte[] key)
+    public static Byte[] Decrypt(Byte[] ciphertext, Byte[] key)
     {
         if (ciphertext.Length != BLOCK_SIZE_BYTES)
+        {
             throw new ArgumentException($"Ciphertext must be exactly {BLOCK_SIZE_BYTES} bytes.", nameof(ciphertext));
+        }
+
         if (key.Length != KEY_SIZE_BYTES)
+        {
             throw new ArgumentException($"Key must be exactly {KEY_SIZE_BYTES} bytes.", nameof(key));
+        }
 
-        uint[] roundKeys = ExpandKey(key);
-        byte[] plaintext = new byte[BLOCK_SIZE_BYTES];
+        UInt32[] roundKeys = ExpandKey(key);
+        Byte[] plaintext = new Byte[BLOCK_SIZE_BYTES];
 
-        fixed (byte* ciphertextPtr = ciphertext)
-        fixed (byte* plaintextPtr = plaintext)
-        fixed (uint* roundKeysPtr = roundKeys)
+        fixed (Byte* ciphertextPtr = ciphertext)
+        fixed (Byte* plaintextPtr = plaintext)
+        fixed (UInt32* roundKeysPtr = roundKeys)
         {
             // Load ciphertext into two 32-bit halves
-            uint x = *(uint*)ciphertextPtr;
-            uint y = *(uint*)(ciphertextPtr + 4);
+            UInt32 x = *(UInt32*)ciphertextPtr;
+            UInt32 y = *(UInt32*)(ciphertextPtr + 4);
 
             // Decrypt
             DecryptBlock(ref x, ref y, roundKeysPtr);
 
             // Store the result back into bytes
-            *(uint*)plaintextPtr = x;
-            *(uint*)(plaintextPtr + 4) = y;
+            *(UInt32*)plaintextPtr = x;
+            *(UInt32*)(plaintextPtr + 4) = y;
         }
 
         return plaintext;
@@ -103,28 +113,36 @@ public static unsafe class Speck
     /// <param name="key">The encryption key (16 bytes).</param>
     /// <param name="output">The destination span to write the ciphertext.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Encrypt(ReadOnlySpan<byte> plaintext, ReadOnlySpan<byte> key, Span<byte> output)
+    public static void Encrypt(ReadOnlySpan<Byte> plaintext, ReadOnlySpan<Byte> key, Span<Byte> output)
     {
         if (plaintext.Length != BLOCK_SIZE_BYTES)
-            throw new ArgumentException($"Plaintext must be exactly {BLOCK_SIZE_BYTES} bytes.", nameof(plaintext));
-        if (key.Length != KEY_SIZE_BYTES)
-            throw new ArgumentException($"Key must be exactly {KEY_SIZE_BYTES} bytes.", nameof(key));
-        if (output.Length != BLOCK_SIZE_BYTES)
-            throw new ArgumentException($"Output must be exactly {BLOCK_SIZE_BYTES} bytes.", nameof(output));
-
-        uint[] roundKeys = ExpandKey(key);
-
-        fixed (byte* plaintextPtr = plaintext)
-        fixed (byte* outputPtr = output)
-        fixed (uint* roundKeysPtr = roundKeys)
         {
-            uint x = *(uint*)plaintextPtr;
-            uint y = *(uint*)(plaintextPtr + 4);
+            throw new ArgumentException($"Plaintext must be exactly {BLOCK_SIZE_BYTES} bytes.", nameof(plaintext));
+        }
+
+        if (key.Length != KEY_SIZE_BYTES)
+        {
+            throw new ArgumentException($"Key must be exactly {KEY_SIZE_BYTES} bytes.", nameof(key));
+        }
+
+        if (output.Length != BLOCK_SIZE_BYTES)
+        {
+            throw new ArgumentException($"Output must be exactly {BLOCK_SIZE_BYTES} bytes.", nameof(output));
+        }
+
+        UInt32[] roundKeys = ExpandKey(key);
+
+        fixed (Byte* plaintextPtr = plaintext)
+        fixed (Byte* outputPtr = output)
+        fixed (UInt32* roundKeysPtr = roundKeys)
+        {
+            UInt32 x = *(UInt32*)plaintextPtr;
+            UInt32 y = *(UInt32*)(plaintextPtr + 4);
 
             EncryptBlock(ref x, ref y, roundKeysPtr);
 
-            *(uint*)outputPtr = x;
-            *(uint*)(outputPtr + 4) = y;
+            *(UInt32*)outputPtr = x;
+            *(UInt32*)(outputPtr + 4) = y;
         }
     }
 
@@ -135,28 +153,36 @@ public static unsafe class Speck
     /// <param name="key">The decryption key (16 bytes).</param>
     /// <param name="output">The destination span to write the plaintext.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Decrypt(ReadOnlySpan<byte> ciphertext, ReadOnlySpan<byte> key, Span<byte> output)
+    public static void Decrypt(ReadOnlySpan<Byte> ciphertext, ReadOnlySpan<Byte> key, Span<Byte> output)
     {
         if (ciphertext.Length != BLOCK_SIZE_BYTES)
-            throw new ArgumentException($"Ciphertext must be exactly {BLOCK_SIZE_BYTES} bytes.", nameof(ciphertext));
-        if (key.Length != KEY_SIZE_BYTES)
-            throw new ArgumentException($"Key must be exactly {KEY_SIZE_BYTES} bytes.", nameof(key));
-        if (output.Length != BLOCK_SIZE_BYTES)
-            throw new ArgumentException($"Output must be exactly {BLOCK_SIZE_BYTES} bytes.", nameof(output));
-
-        uint[] roundKeys = ExpandKey(key);
-
-        fixed (byte* ciphertextPtr = ciphertext)
-        fixed (byte* outputPtr = output)
-        fixed (uint* roundKeysPtr = roundKeys)
         {
-            uint x = *(uint*)ciphertextPtr;
-            uint y = *(uint*)(ciphertextPtr + 4);
+            throw new ArgumentException($"Ciphertext must be exactly {BLOCK_SIZE_BYTES} bytes.", nameof(ciphertext));
+        }
+
+        if (key.Length != KEY_SIZE_BYTES)
+        {
+            throw new ArgumentException($"Key must be exactly {KEY_SIZE_BYTES} bytes.", nameof(key));
+        }
+
+        if (output.Length != BLOCK_SIZE_BYTES)
+        {
+            throw new ArgumentException($"Output must be exactly {BLOCK_SIZE_BYTES} bytes.", nameof(output));
+        }
+
+        UInt32[] roundKeys = ExpandKey(key);
+
+        fixed (Byte* ciphertextPtr = ciphertext)
+        fixed (Byte* outputPtr = output)
+        fixed (UInt32* roundKeysPtr = roundKeys)
+        {
+            UInt32 x = *(UInt32*)ciphertextPtr;
+            UInt32 y = *(UInt32*)(ciphertextPtr + 4);
 
             DecryptBlock(ref x, ref y, roundKeysPtr);
 
-            *(uint*)outputPtr = x;
-            *(uint*)(outputPtr + 4) = y;
+            *(UInt32*)outputPtr = x;
+            *(UInt32*)(outputPtr + 4) = y;
         }
     }
 
@@ -165,28 +191,28 @@ public static unsafe class Speck
     #region Private Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint[] ExpandKey(byte[] key) => ExpandKey((ReadOnlySpan<byte>)key);
+    private static UInt32[] ExpandKey(Byte[] key) => ExpandKey((ReadOnlySpan<Byte>)key);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint[] ExpandKey(ReadOnlySpan<byte> key)
+    private static UInt32[] ExpandKey(ReadOnlySpan<Byte> key)
     {
-        uint[] roundKeys = new uint[ROUNDS];
+        UInt32[] roundKeys = new UInt32[ROUNDS];
 
-        fixed (byte* keyPtr = key)
-        fixed (uint* roundKeysPtr = roundKeys)
+        fixed (Byte* keyPtr = key)
+        fixed (UInt32* roundKeysPtr = roundKeys)
         {
-            uint keyA = *(uint*)keyPtr;
-            uint keyB = *(uint*)(keyPtr + 4);
-            uint keyC = *(uint*)(keyPtr + 8);
-            uint keyD = *(uint*)(keyPtr + 12);
+            UInt32 keyA = *(UInt32*)keyPtr;
+            UInt32 keyB = *(UInt32*)(keyPtr + 4);
+            UInt32 keyC = *(UInt32*)(keyPtr + 8);
+            UInt32 keyD = *(UInt32*)(keyPtr + 12);
 
             roundKeysPtr[0] = keyA;
 
-            for (int i = 0; i < ROUNDS - 1; i++)
+            for (Int32 i = 0; i < ROUNDS - 1; i++)
             {
                 keyB = BitwiseUtils.RotateRight(keyB, 8);
                 keyB = BitwiseUtils.Add(keyB, keyA);
-                keyB = BitwiseUtils.XOr(keyB, (uint)i);
+                keyB = BitwiseUtils.XOr(keyB, (UInt32)i);
                 keyA = BitwiseUtils.RotateLeft(keyA, 3);
                 keyA = BitwiseUtils.XOr(keyA, keyB);
 
@@ -194,7 +220,7 @@ public static unsafe class Speck
 
                 if ((i + 1) % 3 == 0)
                 {
-                    uint temp = keyA;
+                    UInt32 temp = keyA;
                     keyA = keyB;
                     keyB = keyC;
                     keyC = keyD;
@@ -210,9 +236,9 @@ public static unsafe class Speck
     /// Encrypts a 64-bit block.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void EncryptBlock(ref uint x, ref uint y, uint* roundKeys)
+    private static void EncryptBlock(ref UInt32 x, ref UInt32 y, UInt32* roundKeys)
     {
-        for (int i = 0; i < ROUNDS; i++)
+        for (Int32 i = 0; i < ROUNDS; i++)
         {
             // Apply ARX (Add-Rotate-XOR) operations for each round
             x = BitwiseUtils.RotateRight(x, 8);
@@ -227,9 +253,9 @@ public static unsafe class Speck
     /// Decrypts a 64-bit block.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void DecryptBlock(ref uint x, ref uint y, uint* roundKeys)
+    private static void DecryptBlock(ref UInt32 x, ref UInt32 y, UInt32* roundKeys)
     {
-        for (int i = ROUNDS - 1; i >= 0; i--)
+        for (Int32 i = ROUNDS - 1; i >= 0; i--)
         {
             // Reverse the encryption operations
             y = BitwiseUtils.XOr(y, x);

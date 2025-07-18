@@ -18,7 +18,9 @@ internal static partial class BitwiseUtils
     public static System.Byte[] FixedSize(System.ReadOnlySpan<System.Byte> input, System.Int32 length = 16)
     {
         if (length < 0)
+        {
             throw new System.ArgumentOutOfRangeException(nameof(length), "Length must be non-negative.");
+        }
 
         System.Int32 bytesToCopy = System.Math.Min(input.Length, length);
         System.Byte[] result = new System.Byte[length];
@@ -41,7 +43,9 @@ internal static partial class BitwiseUtils
         System.ReadOnlySpan<System.Byte> right)
     {
         if (left.Length != right.Length)
+        {
             return false;
+        }
 
         System.Int32 result = 0;
 
@@ -63,7 +67,10 @@ internal static partial class BitwiseUtils
     {
         for (System.Int32 i = 0; i < counter.Length; i++)
         {
-            if (++counter[i] != 0) break;
+            if (++counter[i] != 0)
+            {
+                break;
+            }
         }
     }
 }

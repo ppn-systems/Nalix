@@ -3,7 +3,7 @@ namespace Nalix.Cryptography.Enums;
 /// <summary>
 /// Chosen SIMD mode
 /// </summary>
-public enum SimdMode : byte
+public enum SimdMode : System.Byte
 {
     /// <summary>
     /// No SIMD

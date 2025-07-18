@@ -76,7 +76,7 @@ public static unsafe class Xtea
         System.UInt32* key,
         System.Byte rounds = DefaultRounds)
     {
-        System.UInt32 sum = (System.UInt32)rounds * Delta;
+        System.UInt32 sum = rounds * Delta;
 
         for (System.Byte i = 0; i < rounds; i++)
         {
@@ -187,7 +187,9 @@ public static unsafe class Xtea
         AssertInputSizes(plaintext, key);
 
         if (output.Length < plaintext.Length)
+        {
             throw new System.ArgumentException("Output buffer too small", nameof(output));
+        }
 
         fixed (System.Byte* keyPtr = key)
         fixed (System.Byte* plaintextPtr = plaintext)
@@ -228,7 +230,7 @@ public static unsafe class Xtea
     /// <returns>Number of bytes written</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int Decrypt(
+    public static System.Int32 Decrypt(
         System.ReadOnlySpan<System.Byte> ciphertext,
         System.ReadOnlySpan<System.Byte> key,
         System.Span<System.Byte> output,
@@ -237,7 +239,9 @@ public static unsafe class Xtea
         AssertInputSizes(ciphertext, key);
 
         if (output.Length < ciphertext.Length)
+        {
             throw new System.ArgumentException("Output buffer too small", nameof(output));
+        }
 
         fixed (System.Byte* keyPtr = key)
         fixed (System.Byte* ciphertextPtr = ciphertext)
@@ -246,7 +250,7 @@ public static unsafe class Xtea
             System.UInt32* keyWords = (System.UInt32*)keyPtr;
 
             // Process each 8-byte block
-            for (int i = 0; i < ciphertext.Length; i += BlockSize)
+            for (System.Int32 i = 0; i < ciphertext.Length; i += BlockSize)
             {
                 // Get pointers to current block
                 System.UInt32* inputBlock = (System.UInt32*)(ciphertextPtr + i);
@@ -282,12 +286,16 @@ public static unsafe class Xtea
         System.ReadOnlySpan<System.Byte> key)
     {
         if (data.Length % BlockSize != 0)
+        {
             throw new System.ArgumentException(
                 $"Data length must be a multiple of {BlockSize} bytes", nameof(data));
+        }
 
         if (key.Length != KeySize)
+        {
             throw new System.ArgumentException(
                 $"Key must be exactly {KeySize} bytes", nameof(key));
+        }
     }
 
     #endregion Helper Methods

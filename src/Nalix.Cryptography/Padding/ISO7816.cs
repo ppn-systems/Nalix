@@ -17,14 +17,16 @@ public static class ISO7816
     /// <param name="blockSize">The block size to pad to.</param>
     /// <returns>A new byte array with ISO/IEC 7816-4 padding applied.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Pad(byte[] data, int blockSize)
+    public static Byte[] Pad(Byte[] data, Int32 blockSize)
     {
         ArgumentNullException.ThrowIfNull(data);
-        if (blockSize <= 0 || blockSize > byte.MaxValue)
+        if (blockSize is <= 0 or > Byte.MaxValue)
+        {
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
+        }
 
-        int paddingSize = blockSize - (data.Length % blockSize);
-        byte[] paddedData = new byte[data.Length + paddingSize];
+        Int32 paddingSize = blockSize - (data.Length % blockSize);
+        Byte[] paddedData = new Byte[data.Length + paddingSize];
 
         // Copy original data
         Buffer.BlockCopy(data, 0, paddedData, 0, data.Length);
@@ -33,7 +35,10 @@ public static class ISO7816
         paddedData[data.Length] = 0x80;
 
         // Fill remaining bytes with zeros
-        for (int i = data.Length + 1; i < paddedData.Length; i++) paddedData[i] = 0x00;
+        for (Int32 i = data.Length + 1; i < paddedData.Length; i++)
+        {
+            paddedData[i] = 0x00;
+        }
 
         return paddedData;
     }
@@ -45,13 +50,15 @@ public static class ISO7816
     /// <param name="blockSize">The block size to pad to.</param>
     /// <returns>A new byte array with ISO/IEC 7816-4 padding applied.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Pad(ReadOnlySpan<byte> data, int blockSize)
+    public static Byte[] Pad(ReadOnlySpan<Byte> data, Int32 blockSize)
     {
-        if (blockSize <= 0 || blockSize > byte.MaxValue)
+        if (blockSize is <= 0 or > Byte.MaxValue)
+        {
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
+        }
 
-        int paddingSize = blockSize - (data.Length % blockSize);
-        byte[] paddedData = new byte[data.Length + paddingSize];
+        Int32 paddingSize = blockSize - (data.Length % blockSize);
+        Byte[] paddedData = new Byte[data.Length + paddingSize];
 
         // Copy original data
         data.CopyTo(paddedData);
@@ -60,7 +67,10 @@ public static class ISO7816
         paddedData[data.Length] = 0x80;
 
         // Fill remaining bytes with zeros
-        for (int i = data.Length + 1; i < paddedData.Length; i++) paddedData[i] = 0x00;
+        for (Int32 i = data.Length + 1; i < paddedData.Length; i++)
+        {
+            paddedData[i] = 0x00;
+        }
 
         return paddedData;
     }
@@ -76,21 +86,28 @@ public static class ISO7816
     /// <param name="blockSize">The block size to unpad from.</param>
     /// <returns>A new byte array with ISO/IEC 7816-4 padding removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Unpad(byte[] data, int blockSize)
+    public static Byte[] Unpad(Byte[] data, Int32 blockSize)
     {
         ArgumentNullException.ThrowIfNull(data);
         if (data.Length == 0 || data.Length % blockSize != 0)
+        {
             throw new ArgumentException("The data length is invalid for ISO/IEC 7816-4 padding.", nameof(data));
-        if (blockSize <= 0 || blockSize > byte.MaxValue)
+        }
+
+        if (blockSize is <= 0 or > Byte.MaxValue)
+        {
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
+        }
 
         // Find the padding marker (0x80)
-        int paddingStart = FindPaddingStart(data);
+        Int32 paddingStart = FindPaddingStart(data);
         if (paddingStart == -1)
+        {
             throw new InvalidOperationException("Invalid padding: 0x80 marker not found.");
+        }
 
         // Create new array without padding
-        byte[] unpaddedData = new byte[paddingStart];
+        Byte[] unpaddedData = new Byte[paddingStart];
         Buffer.BlockCopy(data, 0, unpaddedData, 0, paddingStart);
 
         return unpaddedData;
@@ -103,20 +120,27 @@ public static class ISO7816
     /// <param name="blockSize">The block size to unpad from.</param>
     /// <returns>A new byte array with ISO/IEC 7816-4 padding removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Unpad(ReadOnlySpan<byte> data, int blockSize)
+    public static Byte[] Unpad(ReadOnlySpan<Byte> data, Int32 blockSize)
     {
         if (data.Length == 0 || data.Length % blockSize != 0)
+        {
             throw new ArgumentException("The data length is invalid for ISO/IEC 7816-4 padding.", nameof(data));
-        if (blockSize <= 0 || blockSize > byte.MaxValue)
+        }
+
+        if (blockSize is <= 0 or > Byte.MaxValue)
+        {
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
+        }
 
         // Find the padding marker (0x80)
-        int paddingStart = FindPaddingStart(data);
+        Int32 paddingStart = FindPaddingStart(data);
         if (paddingStart == -1)
+        {
             throw new InvalidOperationException("Invalid padding: 0x80 marker not found.");
+        }
 
         // Create new array without padding
-        byte[] unpaddedData = new byte[paddingStart];
+        Byte[] unpaddedData = new Byte[paddingStart];
         data[..paddingStart].CopyTo(unpaddedData);
 
         return unpaddedData;
@@ -132,14 +156,16 @@ public static class ISO7816
     /// <param name="data">The data to search.</param>
     /// <returns>The index of the 0x80 marker, or -1 if not found.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int FindPaddingStart(ReadOnlySpan<byte> data)
+    private static Int32 FindPaddingStart(ReadOnlySpan<Byte> data)
     {
-        for (int i = data.Length - 1; i >= 0; i--)
+        for (Int32 i = data.Length - 1; i >= 0; i--)
         {
             if (data[i] == 0x80)
             {
                 if (AnsiX923.HasValidPadding(data, i))
+                {
                     return i;
+                }
             }
             else if (data[i] != 0x00)
             {

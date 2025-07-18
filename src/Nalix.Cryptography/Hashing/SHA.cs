@@ -15,13 +15,13 @@ public static class SHA
     /// - `0x8F1BBCDC` for rounds 40-59
     /// - `0xCA62C1D6` for rounds 60-79
     /// </remarks>
-    public static readonly uint[] K1 = [0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC, 0xCA62C1D6];
+    public static readonly System.UInt32[] K1 = [0x5A827999, 0x6ED9EBA1, 0x8F1BBCDC, 0xCA62C1D6];
 
     /// <summary>
     /// The initial hash values (H0-H4) as defined in the SHA-1 specification.
     /// These values are used as the starting state of the hash computation.
     /// </summary>
-    public static readonly uint[] H1 = [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0];
+    public static readonly System.UInt32[] H1 = [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0];
 
     /// <summary>
     /// SHA-224 round constants (Ka), also used for SHA-256.
@@ -29,7 +29,7 @@ public static class SHA
     /// <remarks>
     /// These constants are derived from the fractional parts of the cube roots of the first 64 prime numbers.
     /// </remarks>
-    public static readonly uint[] K224 =
+    public static readonly System.UInt32[] K224 =
     [
         0X428A2F98, 0X71374491, 0XB5C0FBCF, 0XE9B5DBA5, 0X3956C25B, 0X59F111F1, 0X923F82A4, 0XAB1C5ED5,
         0XD807AA98, 0X12835B01, 0X243185BE, 0X550C7DC3, 0X72BE5D74, 0X80DEB1FE, 0X9BDC06A7, 0XC19BF174,
@@ -45,7 +45,7 @@ public static class SHA
     /// SHA-224 initial hash values (H0-H7).
     /// These values are used as the starting state of the SHA-224 hash computation.
     /// </summary>
-    public static readonly uint[] H224 =
+    public static readonly System.UInt32[] H224 =
     [
         0XC1059ED8, 0X367CD507, 0X3070DD17, 0XF70E5939,
         0XFFC00B31, 0X68581511, 0X64F98FA7, 0XBEFA4FA4
@@ -57,13 +57,13 @@ public static class SHA
     /// <remarks>
     /// SHA-256 uses the same constants as SHA-224.
     /// </remarks>
-    public static readonly uint[] K256 = K224;
+    public static readonly System.UInt32[] K256 = K224;
 
     /// <summary>
     /// SHA-256 initial hash values (H0-H7).
     /// These values are used as the starting state of the SHA-256 hash computation.
     /// </summary>
-    public static readonly uint[] H256 =
+    public static readonly System.UInt32[] H256 =
     [
         0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
         0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19
@@ -73,7 +73,7 @@ public static class SHA
     /// SHA-384 initial hash values (H0-H7).
     /// These values are used as the starting state of the SHA-384 hash computation.
     /// </summary>
-    public static readonly ulong[] H384 =
+    public static readonly System.UInt64[] H384 =
     [
         0XCBBB9D5DC1059ED8, 0X629A292A367CD507, 0X9159015A3070DD17, 0X152FECD8F70E5939,
         0X67332667FFC00B31, 0X8EB44A8768581511, 0XDB0C2E0D64F98FA7, 0X47B5481DBEFA4FA4,
@@ -85,7 +85,7 @@ public static class SHA
     /// <remarks>
     /// These constants are derived from the fractional parts of the cube roots of the first 64 prime numbers.
     /// </remarks>
-    public static readonly ulong[] K384 =
+    public static readonly System.UInt64[] K384 =
     [
         0X428A2F98D728AE22UL, 0X7137449123EF65CDUL, 0XB5C0FBCFEC4D3B2FUL, 0XE9B5DBA58189DBBCUL,
         0X3956C25BF348B538UL, 0X59F111F1B605D019UL, 0X923F82A4AF194F9BUL, 0XAB1C5ED5DA6D8118UL,
@@ -115,13 +115,13 @@ public static class SHA
     /// <remarks>
     /// These constants are derived from the fractional parts of the cube roots of the first 64 prime numbers.
     /// </remarks>
-    public static readonly ulong[] K512 = K384;
+    public static readonly System.UInt64[] K512 = K384;
 
     /// <summary>
     /// SHA-512 initial hash values (H0-H7).
     /// These values are used as the starting state of the SHA-512 hash computation.
     /// </summary>
-    public static readonly ulong[] H512 =
+    public static readonly System.UInt64[] H512 =
     [
         0X6A09E667F3BCC908UL, 0XBB67AE8584CAA73BUL, 0X3C6EF372FE94F82BUL, 0XA54FF53A5F1D36F1UL,
         0X510E527FADE682D1UL, 0X9B05688C2B3E6C1FUL, 0X1F83D9ABFB41BD6BUL, 0X5BE0CD19137E2179UL

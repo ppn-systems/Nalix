@@ -14,15 +14,15 @@ public sealed class SHA512 : IShaDigest, IDisposable
 {
     #region Fields
 
-    private readonly byte[] _buffer = new byte[128]; // 1024 bits = 128 bytes
-    private readonly ulong[] _state = new ulong[8];
+    private readonly Byte[] _buffer = new Byte[128]; // 1024 bits = 128 bytes
+    private readonly UInt64[] _state = new UInt64[8];
 
-    private ulong _byteCountHigh;
-    private ulong _byteCountLow;
-    private byte[] _finalHash;
-    private int _bufferLength;
-    private bool _finalized;
-    private bool _disposed;
+    private UInt64 _byteCountHigh;
+    private UInt64 _byteCountLow;
+    private Byte[] _finalHash;
+    private Int32 _bufferLength;
+    private Boolean _finalized;
+    private Boolean _disposed;
 
     #endregion Fields
 
@@ -43,7 +43,7 @@ public sealed class SHA512 : IShaDigest, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Initialize()
     {
-        Buffer.BlockCopy(SHA.H512, 0, _state, 0, SHA.H512.Length * sizeof(ulong));
+        Buffer.BlockCopy(SHA.H512, 0, _state, 0, SHA.H512.Length * sizeof(UInt64));
 
         _bufferLength = 0;
         _byteCountLow = 0;
@@ -58,7 +58,7 @@ public sealed class SHA512 : IShaDigest, IDisposable
     /// </summary>
     /// <param name="data">The input data to hash.</param>
     /// <returns>The computed SHA-512 hash as a byte array.</returns>
-    public static byte[] HashData(ReadOnlySpan<byte> data)
+    public static Byte[] HashData(ReadOnlySpan<Byte> data)
     {
         using SHA512 sha = new();
         sha.Update(data);
@@ -71,10 +71,12 @@ public sealed class SHA512 : IShaDigest, IDisposable
     /// <param name="data">The input data to hash.</param>
     /// <param name="output">The span to receive the 64-byte hash output.</param>
     /// <exception cref="ArgumentException">Thrown if the output span is less than 64 bytes.</exception>
-    public static void HashData(ReadOnlySpan<byte> data, Span<byte> output)
+    public static void HashData(ReadOnlySpan<Byte> data, Span<Byte> output)
     {
         if (output.Length < 64)
+        {
             throw new ArgumentException("Output must be at least 64 bytes.", nameof(output));
+        }
 
         using SHA512 sha = new();
         sha.Update(data);
@@ -86,7 +88,7 @@ public sealed class SHA512 : IShaDigest, IDisposable
     /// </summary>
     /// <param name="data">The input data.</param>
     /// <returns>The resulting hash.</returns>
-    public byte[] ComputeHash(ReadOnlySpan<byte> data)
+    public Byte[] ComputeHash(ReadOnlySpan<Byte> data)
     {
         Update(data);
         return FinalizeHash();
@@ -99,19 +101,25 @@ public sealed class SHA512 : IShaDigest, IDisposable
     /// <exception cref="ObjectDisposedException">Thrown if the object has been disposed.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the hash has already been finalized.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Update(ReadOnlySpan<byte> data)
+    public void Update(ReadOnlySpan<Byte> data)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA512));
-        if (_finalized) throw new InvalidOperationException("Hash already finalized.");
+        if (_finalized)
+        {
+            throw new InvalidOperationException("Hash already finalized.");
+        }
 
         // Update byte counters
-        ulong bits = (ulong)data.Length;
+        UInt64 bits = (UInt64)data.Length;
         _byteCountLow += bits;
-        if (_byteCountLow < bits) _byteCountHigh++;
+        if (_byteCountLow < bits)
+        {
+            _byteCountHigh++;
+        }
 
         if (_bufferLength > 0)
         {
-            int toFill = 128 - _bufferLength;
+            Int32 toFill = 128 - _bufferLength;
             if (data.Length < toFill)
             {
                 data.CopyTo(_buffer.AsSpan(_bufferLength));
@@ -140,26 +148,31 @@ public sealed class SHA512 : IShaDigest, IDisposable
     /// <returns>The 64-byte hash.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if the object has been disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] FinalizeHash()
+    public Byte[] FinalizeHash()
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA512));
-        if (_finalized) return (byte[])_finalHash.Clone();
+        if (_finalized)
+        {
+            return (Byte[])_finalHash.Clone();
+        }
 
-        Span<byte> padding = stackalloc byte[256]; // overprovision
+        Span<Byte> padding = stackalloc Byte[256]; // overprovision
         padding.Clear();
         padding[0] = 0x80;
 
-        int padLength = (_bufferLength < 112) ? (112 - _bufferLength) : (240 - _bufferLength);
+        Int32 padLength = (_bufferLength < 112) ? (112 - _bufferLength) : (240 - _bufferLength);
         Update(padding[..padLength]);
 
-        Span<byte> lengthBlock = stackalloc byte[16];
-        BinaryPrimitives.WriteUInt64BigEndian(lengthBlock[..8], _byteCountHigh << 3 | _byteCountLow >> 61);
+        Span<Byte> lengthBlock = stackalloc Byte[16];
+        BinaryPrimitives.WriteUInt64BigEndian(lengthBlock[..8], (_byteCountHigh << 3) | (_byteCountLow >> 61));
         BinaryPrimitives.WriteUInt64BigEndian(lengthBlock[8..], _byteCountLow << 3);
         Update(lengthBlock);
 
-        byte[] result = new byte[64];
-        for (int i = 0; i < 8; i++)
+        Byte[] result = new Byte[64];
+        for (Int32 i = 0; i < 8; i++)
+        {
             BinaryPrimitives.WriteUInt64BigEndian(result.AsSpan(i * 8), _state[i]);
+        }
 
         _finalHash = result;
         _finalized = true;
@@ -175,42 +188,42 @@ public sealed class SHA512 : IShaDigest, IDisposable
     /// </summary>
     /// <param name="block">The 128-byte block to process.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe void ProcessBlock(ReadOnlySpan<byte> block)
+    private unsafe void ProcessBlock(ReadOnlySpan<Byte> block)
     {
-        const int rounds = 80;
-        Span<ulong> w = stackalloc ulong[80];
+        const Int32 rounds = 80;
+        Span<UInt64> w = stackalloc UInt64[80];
 
-        for (int i = 0; i < 16; i++)
+        for (Int32 i = 0; i < 16; i++)
         {
             w[i] = BinaryPrimitives.ReadUInt64BigEndian(block.Slice(i * 8, 8));
         }
 
-        for (int i = 16; i < rounds; i++)
+        for (Int32 i = 16; i < rounds; i++)
         {
-            ulong s0 = BitOperations.RotateRight(w[i - 15], 1) ^ BitOperations.RotateRight(w[i - 15], 8) ^ (w[i - 15] >> 7);
-            ulong s1 = BitOperations.RotateRight(w[i - 2], 19) ^ BitOperations.RotateRight(w[i - 2], 61) ^ (w[i - 2] >> 6);
+            UInt64 s0 = BitOperations.RotateRight(w[i - 15], 1) ^ BitOperations.RotateRight(w[i - 15], 8) ^ (w[i - 15] >> 7);
+            UInt64 s1 = BitOperations.RotateRight(w[i - 2], 19) ^ BitOperations.RotateRight(w[i - 2], 61) ^ (w[i - 2] >> 6);
             w[i] = unchecked(w[i - 16] + s0 + w[i - 7] + s1);
         }
 
-        ulong a = _state[0];
-        ulong b = _state[1];
-        ulong c = _state[2];
-        ulong d = _state[3];
-        ulong e = _state[4];
-        ulong f = _state[5];
-        ulong g = _state[6];
-        ulong h = _state[7];
+        UInt64 a = _state[0];
+        UInt64 b = _state[1];
+        UInt64 c = _state[2];
+        UInt64 d = _state[3];
+        UInt64 e = _state[4];
+        UInt64 f = _state[5];
+        UInt64 g = _state[6];
+        UInt64 h = _state[7];
 
-        ReadOnlySpan<ulong> K = SHA.K512;
+        ReadOnlySpan<UInt64> K = SHA.K512;
 
-        for (int i = 0; i < rounds; i++)
+        for (Int32 i = 0; i < rounds; i++)
         {
-            ulong S1 = BitOperations.RotateRight(e, 14) ^ BitOperations.RotateRight(e, 18) ^ BitOperations.RotateRight(e, 41);
-            ulong ch = (e & f) ^ (~e & g);
-            ulong temp1 = h + S1 + ch + K[i] + w[i];
-            ulong S0 = BitOperations.RotateRight(a, 28) ^ BitOperations.RotateRight(a, 34) ^ BitOperations.RotateRight(a, 39);
-            ulong maj = (a & b) ^ (a & c) ^ (b & c);
-            ulong temp2 = S0 + maj;
+            UInt64 S1 = BitOperations.RotateRight(e, 14) ^ BitOperations.RotateRight(e, 18) ^ BitOperations.RotateRight(e, 41);
+            UInt64 ch = (e & f) ^ (~e & g);
+            UInt64 temp1 = h + S1 + ch + K[i] + w[i];
+            UInt64 S0 = BitOperations.RotateRight(a, 28) ^ BitOperations.RotateRight(a, 34) ^ BitOperations.RotateRight(a, 39);
+            UInt64 maj = (a & b) ^ (a & c) ^ (b & c);
+            UInt64 temp2 = S0 + maj;
 
             h = g;
             g = f;
@@ -242,9 +255,17 @@ public sealed class SHA512 : IShaDigest, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
-        if (_finalHash != null) Array.Clear(_finalHash, 0, _finalHash.Length);
+        if (_finalHash != null)
+        {
+            Array.Clear(_finalHash, 0, _finalHash.Length);
+        }
+
         Array.Clear(_state, 0, _state.Length);
     }
 

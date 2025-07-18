@@ -20,18 +20,22 @@ public static class NoPadding
     /// <returns>The original data if already aligned.</returns>
     /// <exception cref="ArgumentException">Thrown when data is not already aligned to the block size.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Pad(byte[] data, int blockSize)
+    public static Byte[] Pad(Byte[] data, Int32 blockSize)
     {
         ArgumentNullException.ThrowIfNull(data);
         if (blockSize <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be positive.");
+        }
 
         // Verify the data is already aligned to the block size
         if (data.Length % blockSize != 0)
+        {
             throw new ArgumentException($"Data length ({data.Length}) is not a multiple of the block size ({blockSize}).", nameof(data));
+        }
 
         // Return a copy of the input data
-        byte[] result = new byte[data.Length];
+        Byte[] result = new Byte[data.Length];
         Buffer.BlockCopy(data, 0, result, 0, data.Length);
         return result;
     }
@@ -45,17 +49,21 @@ public static class NoPadding
     /// <returns>The original data if already aligned.</returns>
     /// <exception cref="ArgumentException">Thrown when data is not already aligned to the block size.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Pad(ReadOnlySpan<byte> data, int blockSize)
+    public static Byte[] Pad(ReadOnlySpan<Byte> data, Int32 blockSize)
     {
         if (blockSize <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be positive.");
+        }
 
         // Verify the data is already aligned to the block size
         if (data.Length % blockSize != 0)
+        {
             throw new ArgumentException($"Data length ({data.Length}) is not a multiple of the block size ({blockSize}).", nameof(data));
+        }
 
         // Return a copy of the input data
-        byte[] result = new byte[data.Length];
+        Byte[] result = new Byte[data.Length];
         data.CopyTo(result);
         return result;
     }
@@ -71,18 +79,22 @@ public static class NoPadding
     /// <param name="blockSize">The block size (used for validation only).</param>
     /// <returns>A copy of the original data.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Unpad(byte[] data, int blockSize)
+    public static Byte[] Unpad(Byte[] data, Int32 blockSize)
     {
         ArgumentNullException.ThrowIfNull(data);
         if (blockSize <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be positive.");
+        }
 
         // Verify the data is already aligned to the block size
         if (data.Length % blockSize != 0)
+        {
             throw new ArgumentException($"Data length ({data.Length}) is not a multiple of the block size ({blockSize}).", nameof(data));
+        }
 
         // Return a copy of the input data
-        byte[] result = new byte[data.Length];
+        Byte[] result = new Byte[data.Length];
         Buffer.BlockCopy(data, 0, result, 0, data.Length);
         return result;
     }
@@ -94,17 +106,21 @@ public static class NoPadding
     /// <param name="blockSize">The block size (used for validation only).</param>
     /// <returns>A copy of the original data.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Unpad(ReadOnlySpan<byte> data, int blockSize)
+    public static Byte[] Unpad(ReadOnlySpan<Byte> data, Int32 blockSize)
     {
         if (blockSize <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be positive.");
+        }
 
         // Verify the data is already aligned to the block size
         if (data.Length % blockSize != 0)
+        {
             throw new ArgumentException($"Data length ({data.Length}) is not a multiple of the block size ({blockSize}).", nameof(data));
+        }
 
         // Return a copy of the input data
-        byte[] result = new byte[data.Length];
+        Byte[] result = new Byte[data.Length];
         data.CopyTo(result);
         return result;
     }

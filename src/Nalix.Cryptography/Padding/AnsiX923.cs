@@ -17,26 +17,28 @@ public static class AnsiX923
     /// <param name="blockSize">The block size to pad to.</param>
     /// <returns>A new byte array with ANSI X.923 padding applied.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Pad(byte[] data, int blockSize)
+    public static Byte[] Pad(Byte[] data, Int32 blockSize)
     {
         ArgumentNullException.ThrowIfNull(data);
-        if (blockSize <= 0 || blockSize > byte.MaxValue)
+        if (blockSize is <= 0 or > Byte.MaxValue)
+        {
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
+        }
 
-        int paddingSize = blockSize - (data.Length % blockSize);
-        byte[] paddedData = new byte[data.Length + paddingSize];
+        Int32 paddingSize = blockSize - (data.Length % blockSize);
+        Byte[] paddedData = new Byte[data.Length + paddingSize];
 
         // Copy original data
         Buffer.BlockCopy(data, 0, paddedData, 0, data.Length);
 
         // Fill with zeros except the last byte
-        for (int i = data.Length; i < paddedData.Length - 1; i++)
+        for (Int32 i = data.Length; i < paddedData.Length - 1; i++)
         {
             paddedData[i] = 0x00;
         }
 
         // Set the last byte to the padding size
-        paddedData[^1] = (byte)paddingSize;
+        paddedData[^1] = (Byte)paddingSize;
 
         return paddedData;
     }
@@ -48,25 +50,27 @@ public static class AnsiX923
     /// <param name="blockSize">The block size to pad to.</param>
     /// <returns>A new byte array with ANSI X.923 padding applied.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Pad(ReadOnlySpan<byte> data, int blockSize)
+    public static Byte[] Pad(ReadOnlySpan<Byte> data, Int32 blockSize)
     {
-        if (blockSize <= 0 || blockSize > byte.MaxValue)
+        if (blockSize is <= 0 or > Byte.MaxValue)
+        {
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
+        }
 
-        int paddingSize = blockSize - (data.Length % blockSize);
-        byte[] paddedData = new byte[data.Length + paddingSize];
+        Int32 paddingSize = blockSize - (data.Length % blockSize);
+        Byte[] paddedData = new Byte[data.Length + paddingSize];
 
         // Copy original data
         data.CopyTo(paddedData);
 
         // Fill with zeros except the last byte
-        for (int i = data.Length; i < paddedData.Length - 1; i++)
+        for (Int32 i = data.Length; i < paddedData.Length - 1; i++)
         {
             paddedData[i] = 0x00;
         }
 
         // Set the last byte to the padding size
-        paddedData[^1] = (byte)paddingSize;
+        paddedData[^1] = (Byte)paddingSize;
 
         return paddedData;
     }
@@ -82,25 +86,34 @@ public static class AnsiX923
     /// <param name="blockSize">The block size to unpad from.</param>
     /// <returns>A new byte array with ANSI X.923 padding removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Unpad(byte[] data, int blockSize)
+    public static Byte[] Unpad(Byte[] data, Int32 blockSize)
     {
         ArgumentNullException.ThrowIfNull(data);
         if (data.Length == 0 || data.Length % blockSize != 0)
+        {
             throw new ArgumentException("The data length is invalid for ANSI X.923 padding.", nameof(data));
-        if (blockSize <= 0 || blockSize > byte.MaxValue)
+        }
+
+        if (blockSize is <= 0 or > Byte.MaxValue)
+        {
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
+        }
 
         // Get padding size from the last byte
-        int paddingSize = data[^1];
+        Int32 paddingSize = data[^1];
         if (paddingSize <= 0 || paddingSize > blockSize)
+        {
             throw new InvalidOperationException("Invalid padding size.");
+        }
 
         // Validate padding - all bytes before the last padding byte must be 0x00
         if (!HasValidPadding(data.AsSpan(), paddingSize))
+        {
             throw new InvalidOperationException("Invalid padding.");
+        }
 
         // Create new array without padding
-        byte[] unpaddedData = new byte[data.Length - paddingSize];
+        Byte[] unpaddedData = new Byte[data.Length - paddingSize];
         Buffer.BlockCopy(data, 0, unpaddedData, 0, unpaddedData.Length);
 
         return unpaddedData;
@@ -113,24 +126,33 @@ public static class AnsiX923
     /// <param name="blockSize">The block size to unpad from.</param>
     /// <returns>A new byte array with ANSI X.923 padding removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Unpad(ReadOnlySpan<byte> data, int blockSize)
+    public static Byte[] Unpad(ReadOnlySpan<Byte> data, Int32 blockSize)
     {
         if (data.Length == 0 || data.Length % blockSize != 0)
+        {
             throw new ArgumentException("The data length is invalid for ANSI X.923 padding.", nameof(data));
-        if (blockSize <= 0 || blockSize > byte.MaxValue)
+        }
+
+        if (blockSize is <= 0 or > Byte.MaxValue)
+        {
             throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
+        }
 
         // Get padding size from the last byte
-        int paddingSize = data[^1];
+        Int32 paddingSize = data[^1];
         if (paddingSize <= 0 || paddingSize > blockSize)
+        {
             throw new InvalidOperationException("Invalid padding size.");
+        }
 
         // Validate padding - all bytes before the last padding byte must be 0x00
         if (!HasValidPadding(data, paddingSize))
+        {
             throw new InvalidOperationException("Invalid padding.");
+        }
 
         // Create new array without padding
-        byte[] unpaddedData = new byte[data.Length - paddingSize];
+        Byte[] unpaddedData = new Byte[data.Length - paddingSize];
         data[..^paddingSize].CopyTo(unpaddedData);
 
         return unpaddedData;
@@ -147,14 +169,16 @@ public static class AnsiX923
     /// <param name="paddingSize">The padding size obtained from the last byte.</param>
     /// <returns>True if the padding is valid, false otherwise.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static bool HasValidPadding(ReadOnlySpan<byte> data, int paddingSize)
+    internal static Boolean HasValidPadding(ReadOnlySpan<Byte> data, Int32 paddingSize)
     {
-        bool isValid = true;
+        Boolean isValid = true;
 
         // Check that all padding bytes (except the last one) are zeros
         // Constant-time comparison to avoid timing attacks
-        for (int i = data.Length - paddingSize; i < data.Length - 1; i++)
-            isValid &= (data[i] == 0x00);
+        for (Int32 i = data.Length - paddingSize; i < data.Length - 1; i++)
+        {
+            isValid &= data[i] == 0x00;
+        }
 
         return isValid;
     }

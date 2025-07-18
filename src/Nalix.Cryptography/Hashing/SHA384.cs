@@ -27,15 +27,15 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
 {
     #region Fields
 
-    private readonly byte[] _buffer = new byte[128];
-    private readonly ulong[] _state = new ulong[8];
+    private readonly Byte[] _buffer = new Byte[128];
+    private readonly UInt64[] _state = new UInt64[8];
 
-    private ulong _byteCountHigh;
-    private ulong _byteCountLow;
-    private byte[] _finalHash;
-    private int _bufferLength;
-    private bool _finalized;
-    private bool _disposed;
+    private UInt64 _byteCountHigh;
+    private UInt64 _byteCountLow;
+    private Byte[] _finalHash;
+    private Int32 _bufferLength;
+    private Boolean _finalized;
+    private Boolean _disposed;
 
     #endregion Fields
 
@@ -55,7 +55,7 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
     /// </summary>
     /// <param name="data">The input data to hash.</param>
     /// <returns>A 48-byte array containing the SHA-384 hash.</returns>
-    public static byte[] HashData(ReadOnlySpan<byte> data)
+    public static Byte[] HashData(ReadOnlySpan<Byte> data)
     {
         using SHA384 sha = new();
         sha.Update(data);
@@ -68,17 +68,19 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
     /// <param name="data">The input data to hash.</param>
     /// <param name="output">The span to receive the 48-byte hash.</param>
     /// <exception cref="ArgumentException">Thrown if <paramref name="output"/> is less than 48 bytes.</exception>
-    public static void HashData(ReadOnlySpan<byte> data, Span<byte> output)
+    public static void HashData(ReadOnlySpan<Byte> data, Span<Byte> output)
     {
         if (output.Length < 48)
+        {
             throw new ArgumentException("Output must be at least 48 bytes.", nameof(output));
+        }
 
         using SHA384 sha = new();
         sha.Update(data);
 
         // Use direct pointer access for faster copying
-        fixed (byte* resultPtr = sha.FinalizeHash())
-        fixed (byte* outputPtr = output)
+        fixed (Byte* resultPtr = sha.FinalizeHash())
+        fixed (Byte* outputPtr = output)
         {
             Buffer.MemoryCopy(resultPtr, outputPtr, 48, 48);
         }
@@ -90,11 +92,11 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Initialize()
     {
-        fixed (ulong* statePtr = _state)
-        fixed (ulong* initPtr = SHA.H384)
+        fixed (UInt64* statePtr = _state)
+        fixed (UInt64* initPtr = SHA.H384)
         {
             // Direct memory copy is faster than Buffer.BlockCopy
-            Buffer.MemoryCopy(initPtr, statePtr, SHA.H384.Length * sizeof(ulong), SHA.H384.Length * sizeof(ulong));
+            Buffer.MemoryCopy(initPtr, statePtr, SHA.H384.Length * sizeof(UInt64), SHA.H384.Length * sizeof(UInt64));
         }
 
         _bufferLength = 0;
@@ -112,23 +114,29 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the hash has already been finalized.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Update(ReadOnlySpan<byte> data)
+    public void Update(ReadOnlySpan<Byte> data)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA384));
-        if (_finalized) throw new InvalidOperationException("Hash already finalized.");
+        if (_finalized)
+        {
+            throw new InvalidOperationException("Hash already finalized.");
+        }
 
-        ulong bits = (ulong)data.Length;
+        UInt64 bits = (UInt64)data.Length;
         _byteCountLow += bits;
-        if (_byteCountLow < bits) _byteCountHigh++;
+        if (_byteCountLow < bits)
+        {
+            _byteCountHigh++;
+        }
 
         if (_bufferLength > 0)
         {
-            int toFill = 128 - _bufferLength;
+            Int32 toFill = 128 - _bufferLength;
             if (data.Length < toFill)
             {
                 // Use unsafe code for small copies
-                fixed (byte* destPtr = &_buffer[_bufferLength])
-                fixed (byte* srcPtr = data)
+                fixed (Byte* destPtr = &_buffer[_bufferLength])
+                fixed (Byte* srcPtr = data)
                 {
                     Buffer.MemoryCopy(srcPtr, destPtr, data.Length, data.Length);
                 }
@@ -137,8 +145,8 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
             }
 
             // Fill buffer and process it
-            fixed (byte* destPtr = &_buffer[_bufferLength])
-            fixed (byte* srcPtr = data)
+            fixed (Byte* destPtr = &_buffer[_bufferLength])
+            fixed (Byte* srcPtr = data)
             {
                 Buffer.MemoryCopy(srcPtr, destPtr, toFill, toFill);
             }
@@ -147,10 +155,10 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
         }
 
         // Process full blocks directly from input data
-        fixed (byte* dataPtr = data)
+        fixed (Byte* dataPtr = data)
         {
-            byte* currentPtr = dataPtr;
-            int remainingLength = data.Length;
+            Byte* currentPtr = dataPtr;
+            Int32 remainingLength = data.Length;
 
             // Process full blocks with pointer arithmetic (faster than span slicing)
             while (remainingLength >= 128)
@@ -163,7 +171,7 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
             // Copy any remaining bytes to the buffer
             if (remainingLength > 0)
             {
-                fixed (byte* bufferPtr = _buffer)
+                fixed (Byte* bufferPtr = _buffer)
                 {
                     Buffer.MemoryCopy(currentPtr, bufferPtr, remainingLength, remainingLength);
                 }
@@ -178,50 +186,56 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
     /// <returns>A 48-byte array containing the SHA-384 hash.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] FinalizeHash()
+    public Byte[] FinalizeHash()
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA384));
-        if (_finalized) return (byte[])_finalHash.Clone();
+        if (_finalized)
+        {
+            return (Byte[])_finalHash.Clone();
+        }
 
         // Prepare padding
-        byte* paddingPtr = stackalloc byte[256];
+        Byte* paddingPtr = stackalloc Byte[256];
         // Clear padding array
-        for (int i = 0; i < 256; i++)
+        for (Int32 i = 0; i < 256; i++)
+        {
             paddingPtr[i] = 0;
+        }
+
         paddingPtr[0] = 0x80;
 
-        int padLength = (_bufferLength < 112) ? (112 - _bufferLength) : (240 - _bufferLength);
+        Int32 padLength = (_bufferLength < 112) ? (112 - _bufferLength) : (240 - _bufferLength);
 
         // Create a span from the padding buffer and update
-        Span<byte> paddingSpan = new(paddingPtr, 256);
+        Span<Byte> paddingSpan = new(paddingPtr, 256);
         Update(paddingSpan[..padLength]);
 
         // Prepare length block
-        byte* lengthBlockPtr = stackalloc byte[16];
-        BinaryPrimitives.WriteUInt64BigEndian(new Span<byte>(lengthBlockPtr, 8), _byteCountHigh << 3 | _byteCountLow >> 61);
-        BinaryPrimitives.WriteUInt64BigEndian(new Span<byte>(lengthBlockPtr + 8, 8), _byteCountLow << 3);
-        Update(new Span<byte>(lengthBlockPtr, 16));
+        Byte* lengthBlockPtr = stackalloc Byte[16];
+        BinaryPrimitives.WriteUInt64BigEndian(new Span<Byte>(lengthBlockPtr, 8), (_byteCountHigh << 3) | (_byteCountLow >> 61));
+        BinaryPrimitives.WriteUInt64BigEndian(new Span<Byte>(lengthBlockPtr + 8, 8), _byteCountLow << 3);
+        Update(new Span<Byte>(lengthBlockPtr, 16));
 
         // Create result
-        byte[] result = new byte[48]; // Only 6 state words used
-        fixed (byte* resultPtr = result)
+        Byte[] result = new Byte[48]; // Only 6 state words used
+        fixed (Byte* resultPtr = result)
         {
-            ulong* resultULongPtr = (ulong*)resultPtr;
+            UInt64* resultULongPtr = (UInt64*)resultPtr;
 
-            for (int i = 0; i < 6; i++)
+            for (Int32 i = 0; i < 6; i++)
             {
                 // WriteInt16 the state values in big endian format
-                ulong value = _state[i];
-                byte* valuePtr = (byte*)(resultULongPtr + i);
+                UInt64 value = _state[i];
+                Byte* valuePtr = (Byte*)(resultULongPtr + i);
 
-                valuePtr[0] = (byte)(value >> 56);
-                valuePtr[1] = (byte)(value >> 48);
-                valuePtr[2] = (byte)(value >> 40);
-                valuePtr[3] = (byte)(value >> 32);
-                valuePtr[4] = (byte)(value >> 24);
-                valuePtr[5] = (byte)(value >> 16);
-                valuePtr[6] = (byte)(value >> 8);
-                valuePtr[7] = (byte)value;
+                valuePtr[0] = (Byte)(value >> 56);
+                valuePtr[1] = (Byte)(value >> 48);
+                valuePtr[2] = (Byte)(value >> 40);
+                valuePtr[3] = (Byte)(value >> 32);
+                valuePtr[4] = (Byte)(value >> 24);
+                valuePtr[5] = (Byte)(value >> 16);
+                valuePtr[6] = (Byte)(value >> 8);
+                valuePtr[7] = (Byte)value;
             }
         }
 
@@ -236,7 +250,7 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
     /// <param name="data">The input data to include in the hash.</param>
     /// <returns>A 48-byte array containing the SHA-384 hash.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
-    public byte[] ComputeHash(ReadOnlySpan<byte> data)
+    public Byte[] ComputeHash(ReadOnlySpan<Byte> data)
     {
         Update(data);
         return FinalizeHash();
@@ -251,9 +265,9 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
     /// </summary>
     /// <param name="block">The 128-byte block to process.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ProcessBlock(ReadOnlySpan<byte> block)
+    private void ProcessBlock(ReadOnlySpan<Byte> block)
     {
-        fixed (byte* blockPtr = block)
+        fixed (Byte* blockPtr = block)
         {
             ProcessBlockDirect(blockPtr);
         }
@@ -264,48 +278,48 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
     /// </summary>
     /// <param name="blockPtr">Pointer to the 128-byte block to process.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ProcessBlockDirect(byte* blockPtr)
+    private void ProcessBlockDirect(Byte* blockPtr)
     {
-        const int rounds = 80;
-        ulong* w = stackalloc ulong[rounds];
+        const Int32 rounds = 80;
+        UInt64* w = stackalloc UInt64[rounds];
 
         // Convert block from big-endian bytes to native ulong
-        for (int i = 0; i < 16; i++)
+        for (Int32 i = 0; i < 16; i++)
         {
-            int offset = i * 8;
-            w[i] = ((ulong)blockPtr[offset] << 56) |
-                   ((ulong)blockPtr[offset + 1] << 48) |
-                   ((ulong)blockPtr[offset + 2] << 40) |
-                   ((ulong)blockPtr[offset + 3] << 32) |
-                   ((ulong)blockPtr[offset + 4] << 24) |
-                   ((ulong)blockPtr[offset + 5] << 16) |
-                   ((ulong)blockPtr[offset + 6] << 8) |
+            Int32 offset = i * 8;
+            w[i] = ((UInt64)blockPtr[offset] << 56) |
+                   ((UInt64)blockPtr[offset + 1] << 48) |
+                   ((UInt64)blockPtr[offset + 2] << 40) |
+                   ((UInt64)blockPtr[offset + 3] << 32) |
+                   ((UInt64)blockPtr[offset + 4] << 24) |
+                   ((UInt64)blockPtr[offset + 5] << 16) |
+                   ((UInt64)blockPtr[offset + 6] << 8) |
                     blockPtr[offset + 7];
         }
 
         // Message schedule (phương trình lập lịch thông điệp)
-        for (int i = 16; i < rounds; i++)
+        for (Int32 i = 16; i < rounds; i++)
         {
-            ulong s0 = BitOperations.RotateRight(w[i - 15], 1) ^ BitOperations.RotateRight(w[i - 15], 8) ^ (w[i - 15] >> 7);
-            ulong s1 = BitOperations.RotateRight(w[i - 2], 19) ^ BitOperations.RotateRight(w[i - 2], 61) ^ (w[i - 2] >> 6);
+            UInt64 s0 = BitOperations.RotateRight(w[i - 15], 1) ^ BitOperations.RotateRight(w[i - 15], 8) ^ (w[i - 15] >> 7);
+            UInt64 s1 = BitOperations.RotateRight(w[i - 2], 19) ^ BitOperations.RotateRight(w[i - 2], 61) ^ (w[i - 2] >> 6);
             w[i] = w[i - 16] + s0 + w[i - 7] + s1;
         }
 
         // Initialize working variables
-        ulong a = _state[0], b = _state[1], c = _state[2], d = _state[3];
-        ulong e = _state[4], f = _state[5], g = _state[6], h = _state[7];
+        UInt64 a = _state[0], b = _state[1], c = _state[2], d = _state[3];
+        UInt64 e = _state[4], f = _state[5], g = _state[6], h = _state[7];
 
-        fixed (ulong* kPtr = SHA.K512)
+        fixed (UInt64* kPtr = SHA.K512)
         {
             // Main loop
-            for (int i = 0; i < rounds; i++)
+            for (Int32 i = 0; i < rounds; i++)
             {
-                ulong S1 = BitOperations.RotateRight(e, 14) ^ BitOperations.RotateRight(e, 18) ^ BitOperations.RotateRight(e, 41);
-                ulong ch = (e & f) ^ (~e & g);
-                ulong temp1 = h + S1 + ch + kPtr[i] + w[i];
-                ulong S0 = BitOperations.RotateRight(a, 28) ^ BitOperations.RotateRight(a, 34) ^ BitOperations.RotateRight(a, 39);
-                ulong maj = (a & b) ^ (a & c) ^ (b & c);
-                ulong temp2 = S0 + maj;
+                UInt64 S1 = BitOperations.RotateRight(e, 14) ^ BitOperations.RotateRight(e, 18) ^ BitOperations.RotateRight(e, 41);
+                UInt64 ch = (e & f) ^ (~e & g);
+                UInt64 temp1 = h + S1 + ch + kPtr[i] + w[i];
+                UInt64 S0 = BitOperations.RotateRight(a, 28) ^ BitOperations.RotateRight(a, 34) ^ BitOperations.RotateRight(a, 39);
+                UInt64 maj = (a & b) ^ (a & c) ^ (b & c);
+                UInt64 temp2 = S0 + maj;
 
                 h = g;
                 g = f;
@@ -333,24 +347,28 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
 
         // Securely clear memory containing sensitive cryptographic data
         if (_finalHash != null)
         {
-            fixed (byte* hashPtr = _finalHash)
+            fixed (Byte* hashPtr = _finalHash)
             {
-                for (int i = 0; i < _finalHash.Length; i++)
+                for (Int32 i = 0; i < _finalHash.Length; i++)
                 {
                     hashPtr[i] = 0;
                 }
             }
         }
 
-        fixed (ulong* statePtr = _state)
+        fixed (UInt64* statePtr = _state)
         {
-            for (int i = 0; i < _state.Length; i++)
+            for (Int32 i = 0; i < _state.Length; i++)
             {
                 statePtr[i] = 0;
             }

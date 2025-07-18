@@ -14,17 +14,17 @@ public static class SecureCredentials
     /// <summary>
     /// Standard key size in bytes.
     /// </summary>
-    public const int KeySize = 32;
+    public const System.Int32 KeySize = 32;
 
     /// <summary>
     /// Standard salt size in bytes.
     /// </summary>
-    public const int SaltSize = 32;
+    public const System.Int32 SaltSize = 32;
 
     /// <summary>
     /// Number of iterations for PBKDF2.
     /// </summary>
-    public const int Iterations = 100_000;
+    public const System.Int32 Iterations = 100_000;
 
     #endregion Constants
 
@@ -38,7 +38,7 @@ public static class SecureCredentials
     /// <param name="hash">The derived hash.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void GenerateCredentialHash(string credential, out byte[] salt, out byte[] hash)
+    public static void GenerateCredentialHash(System.String credential, out System.Byte[] salt, out System.Byte[] hash)
     {
         salt = SecureRandom.GetBytes(SaltSize);
         using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize, HashAlgorithmType.Sha256);
@@ -53,11 +53,11 @@ public static class SecureCredentials
     /// <returns>A Base64Value-encoded string containing version, salt, and hash.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static string GenerateCredentialBase64(string credential)
+    public static System.String GenerateCredentialBase64(System.String credential)
     {
-        GenerateCredentialHash(credential, out byte[] salt, out byte[] hash);
-        byte[] combined = new byte[1 + salt.Length + hash.Length];
-        byte version = 1;
+        GenerateCredentialHash(credential, out System.Byte[] salt, out System.Byte[] hash);
+        System.Byte[] combined = new System.Byte[1 + salt.Length + hash.Length];
+        System.Byte version = 1;
         combined[0] = version;
         System.Array.Copy(salt, 0, combined, 1, salt.Length);
         System.Array.Copy(hash, 0, combined, 1 + salt.Length, hash.Length);
@@ -73,7 +73,7 @@ public static class SecureCredentials
     /// <returns><c>true</c> if the credential is valid; otherwise, <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool VerifyCredentialHash(string credential, byte[] salt, byte[] hash)
+    public static System.Boolean VerifyCredentialHash(System.String credential, System.Byte[] salt, System.Byte[] hash)
     {
         using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize, HashAlgorithmType.Sha256);
         return BitwiseUtils.FixedTimeEquals(pbkdf2.DeriveKey(credential), hash);
@@ -87,18 +87,24 @@ public static class SecureCredentials
     /// <returns><c>true</c> if the credential matches; otherwise, <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool VerifyCredentialFromBase64(string credential, string encodedCredentials)
+    public static System.Boolean VerifyCredentialFromBase64(System.String credential, System.String encodedCredentials)
     {
-        if (string.IsNullOrEmpty(encodedCredentials)) return false;
+        if (System.String.IsNullOrEmpty(encodedCredentials))
+        {
+            return false;
+        }
 
         try
         {
-            byte[] combined = System.Convert.FromBase64String(encodedCredentials);
-            if (combined.Length < 1 + SaltSize + KeySize) return false;
+            System.Byte[] combined = System.Convert.FromBase64String(encodedCredentials);
+            if (combined.Length < 1 + SaltSize + KeySize)
+            {
+                return false;
+            }
 
-            byte version = combined[0];
-            byte[] salt = new byte[SaltSize];
-            byte[] storedHash = new byte[KeySize];
+            System.Byte version = combined[0];
+            System.Byte[] salt = new System.Byte[SaltSize];
+            System.Byte[] storedHash = new System.Byte[KeySize];
             System.Array.Copy(combined, 1, salt, 0, SaltSize);
             System.Array.Copy(combined, 1 + SaltSize, storedHash, 0, KeySize);
 
