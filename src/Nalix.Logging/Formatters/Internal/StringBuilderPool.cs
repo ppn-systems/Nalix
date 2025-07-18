@@ -8,10 +8,7 @@ internal static class StringBuilderPool
     // Use array pool for efficient reuse
     private static readonly System.Buffers.ArrayPool<System.Text.StringBuilder> _spool;
 
-    static StringBuilderPool()
-    {
-        _spool = System.Buffers.ArrayPool<System.Text.StringBuilder>.Create(20, 50);
-    }
+    static StringBuilderPool() => _spool = System.Buffers.ArrayPool<System.Text.StringBuilder>.Create(20, 50);
 
     /// <summary>
     /// Rents a StringBuilder from the pool with the specified capacity.
@@ -27,10 +24,10 @@ internal static class StringBuilderPool
         }
         else
         {
-            builder.Clear();
+            _ = builder.Clear();
             if (builder.Capacity < capacity)
             {
-                builder.EnsureCapacity(capacity);
+                _ = builder.EnsureCapacity(capacity);
             }
         }
 
@@ -44,10 +41,13 @@ internal static class StringBuilderPool
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Return(System.Text.StringBuilder builder)
     {
-        if (builder == null) return;
+        if (builder == null)
+        {
+            return;
+        }
 
         // Clear the builder to avoid leaking sensitive data
-        builder.Clear();
+        _ = builder.Clear();
 
         // Return to pool
         _spool.Return([builder], clearArray: false);
