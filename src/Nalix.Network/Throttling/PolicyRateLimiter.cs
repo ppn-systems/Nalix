@@ -40,14 +40,20 @@ public static class PolicyRateLimiter
 
     private sealed class Entry
     {
-        public System.Int64 LastUsedUtc;
+        private System.Int64 _lastUsedUtcTicks;
         public TokenBucketLimiter Limiter { get; }
-        public Entry(TokenBucketLimiter l)
+
+        public Entry(TokenBucketLimiter limiter)
         {
+            Limiter = limiter ?? throw new System.ArgumentNullException(nameof(limiter));
             Touch();
-            Limiter = l;
         }
-        public void Touch() => LastUsedUtc = System.DateTime.UtcNow.Ticks;
+
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public void Touch() => System.Threading.Interlocked.Exchange(ref _lastUsedUtcTicks, System.DateTime.UtcNow.Ticks);
+
+        public System.Int64 LastUsedUtcTicks => System.Threading.Interlocked.Read(ref _lastUsedUtcTicks);
     }
 
     static PolicyRateLimiter()
@@ -128,6 +134,29 @@ public static class PolicyRateLimiter
         };
     }
 
+    /// <summary>
+    /// Disposes all existing policy limiters and clears the internal cache.
+    /// Should be called on application shutdown.
+    /// </summary>
+    public static void Shutdown()
+    {
+        foreach (var (policy, _) in s_limiters)
+        {
+            if (s_limiters.TryRemove(policy, out var removed))
+            {
+                try
+                {
+                    removed.Limiter.Dispose();
+                }
+                catch
+                {
+                    // Swallow: shutdown path
+                }
+            }
+        }
+    }
+
+
     #region Private Methods
 
     private readonly struct CompositeEndpointKey(System.UInt16 op, INetworkEndpoint inner) : INetworkEndpoint, System.IEquatable<CompositeEndpointKey>
@@ -161,15 +190,18 @@ public static class PolicyRateLimiter
         // If over cap, map-nearest instead of creating a new one
         if (s_limiters.Count is >= MaxPolicies and > 0)
         {
-            var nearest = FindNearestPolicy(policy);
-            s_limiters[nearest].Touch();
-            return s_limiters[nearest].Limiter;
+            Policy nearest = FindNearestPolicy(policy);
+            if (s_limiters.TryGetValue(nearest, out var reused))
+            {
+                reused.Touch();
+                return reused.Limiter;
+            }
         }
 
         // Create new limiter
-        var opt = BuildOptions(policy);
-        var created = new Entry(new TokenBucketLimiter(opt));
-        var actual = s_limiters.GetOrAdd(policy, created);
+        TokenBucketOptions opt = BuildOptions(policy);
+        Entry created = new(new TokenBucketLimiter(opt));
+        Entry actual = s_limiters.GetOrAdd(policy, created);
         if (!ReferenceEquals(actual, created))
         {
             // Lost the race — dispose created if needed
@@ -229,11 +261,14 @@ public static class PolicyRateLimiter
         System.Int64 now = System.DateTime.UtcNow.Ticks;
         foreach (var (policy, entry) in s_limiters)
         {
-            System.Double ageSec = System.TimeSpan.FromTicks(now - entry.LastUsedUtc).TotalSeconds;
+            System.Double ageSec = System.TimeSpan.FromTicks(now - entry.LastUsedUtcTicks).TotalSeconds;
+
             if (ageSec > PolicyTtlSeconds)
             {
-                _ = s_limiters.TryRemove(policy, out _);
-                // Optionally dispose entry.Limiter if needed
+                if (s_limiters.TryRemove(policy, out var removed))
+                {
+                    removed.Limiter.Dispose();
+                }
             }
         }
     }
