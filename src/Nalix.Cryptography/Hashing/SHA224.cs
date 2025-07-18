@@ -19,15 +19,15 @@ public sealed class SHA224 : IShaDigest, IDisposable
 {
     #region Fields
 
-    private readonly uint[] _state = new uint[8];    // Hash state
-    private readonly byte[] _buffer = new byte[64];  // Input buffer (64 bytes = 512 bits)
-    private readonly uint[] _w = new uint[64];       // Message schedule
+    private readonly UInt32[] _state = new UInt32[8];    // Hash state
+    private readonly Byte[] _buffer = new Byte[64];  // Input buffer (64 bytes = 512 bits)
+    private readonly UInt32[] _w = new UInt32[64];       // Message schedule
 
-    private ulong _totalLength;                      // Total bytes processed
-    private int _bufferOffset;                       // Current position in buffer
-    private bool _isFinalized;                       // Whether hash has been finalized
-    private bool _disposed;                          // Whether instance has been disposed
-    private byte[] _finalHash;                       // Final hash value (28 bytes for SHA-224)
+    private UInt64 _totalLength;                      // Total bytes processed
+    private Int32 _bufferOffset;                       // Current position in buffer
+    private Boolean _isFinalized;                       // Whether hash has been finalized
+    private Boolean _disposed;                          // Whether instance has been disposed
+    private Byte[] _finalHash;                       // Final hash value (28 bytes for SHA-224)
 
     #endregion Fields
 
@@ -48,7 +48,7 @@ public sealed class SHA224 : IShaDigest, IDisposable
     /// <param name="data">The input data to hash.</param>
     /// <returns>The computed 224-bit hash as a byte array.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] HashData(ReadOnlySpan<byte> data)
+    public static Byte[] HashData(ReadOnlySpan<Byte> data)
     {
         using SHA224 sha224 = new();
         sha224.Update(data);
@@ -62,7 +62,7 @@ public sealed class SHA224 : IShaDigest, IDisposable
     public void Initialize()
     {
         // Initialize state with SHA-224 specific values
-        Buffer.BlockCopy(SHA.H224, 0, _state, 0, SHA.H224.Length * sizeof(uint));
+        Buffer.BlockCopy(SHA.H224, 0, _state, 0, SHA.H224.Length * sizeof(UInt32));
 
         _totalLength = 0;
         _bufferOffset = 0;
@@ -81,26 +81,30 @@ public sealed class SHA224 : IShaDigest, IDisposable
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     /// <exception cref="InvalidOperationException">Thrown if hash has already been finalized.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Update(ReadOnlySpan<byte> data)
+    public void Update(ReadOnlySpan<Byte> data)
     {
         ObjectDisposedException.ThrowIf(condition: _disposed, instance: this);
 
         if (_isFinalized)
+        {
             throw new InvalidOperationException("Hash has already been finalized.");
+        }
 
         if (data.IsEmpty)
+        {
             return;
+        }
 
-        _totalLength += (ulong)data.Length;
+        _totalLength += (UInt64)data.Length;
 
         // Process data in chunks
-        int bytesRemaining = data.Length;
-        int dataOffset = 0;
+        Int32 bytesRemaining = data.Length;
+        Int32 dataOffset = 0;
 
         // If we have data in the buffer, try to fill it first
         if (_bufferOffset > 0)
         {
-            int bytesToCopy = Math.Min(64 - _bufferOffset, bytesRemaining);
+            Int32 bytesToCopy = Math.Min(64 - _bufferOffset, bytesRemaining);
             data.Slice(dataOffset, bytesToCopy).CopyTo(_buffer.AsSpan(_bufferOffset));
 
             _bufferOffset += bytesToCopy;
@@ -147,7 +151,7 @@ public sealed class SHA224 : IShaDigest, IDisposable
     /// <returns>A 28-byte array containing the SHA-224 hash.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] FinalizeHash()
+    public Byte[] FinalizeHash()
     {
         ObjectDisposedException.ThrowIf(condition: _disposed, instance: this);
 
@@ -158,15 +162,15 @@ public sealed class SHA224 : IShaDigest, IDisposable
             // 2. Append 0 bits until data is 56 bytes (mod 64)
             // 3. Append bit length (original message length * 8) as 8 bytes
 
-            byte[] padding = new byte[64];
+            Byte[] padding = new Byte[64];
             padding[0] = 0x80; // Append 1 bit
 
             // Calculate padding length
-            ulong bits = _totalLength * 8;
-            int padLength = ((_bufferOffset < 56) ? 56 - _bufferOffset : 120 - _bufferOffset);
+            UInt64 bits = _totalLength * 8;
+            Int32 padLength = (_bufferOffset < 56) ? 56 - _bufferOffset : 120 - _bufferOffset;
 
             // Create a new buffer for padding and bit length
-            Span<byte> finalBlock = new byte[padLength + 8];
+            Span<Byte> finalBlock = new Byte[padLength + 8];
             finalBlock[0] = 0x80; // Leading 1 bit
 
             // Add message length as big-endian 64-bit integer
@@ -176,10 +180,10 @@ public sealed class SHA224 : IShaDigest, IDisposable
             Update(finalBlock[..(padLength + 8)]);
 
             // Store the final hash (Only store the first 28 bytes for SHA-224)
-            _finalHash = new byte[28]; // SHA-224 is 224 bits = 28 bytes
+            _finalHash = new Byte[28]; // SHA-224 is 224 bits = 28 bytes
 
             // Convert state to bytes (big-endian)
-            for (int i = 0; i < 7; i++) // Only 7 integers for SHA-224 (224/32 = 7)
+            for (Int32 i = 0; i < 7; i++) // Only 7 integers for SHA-224 (224/32 = 7)
             {
                 BinaryPrimitives.WriteUInt32BigEndian(_finalHash.AsSpan(i * 4), _state[i]);
             }
@@ -187,7 +191,7 @@ public sealed class SHA224 : IShaDigest, IDisposable
             _isFinalized = true;
         }
 
-        return (byte[])_finalHash.Clone();
+        return (Byte[])_finalHash.Clone();
     }
 
     /// <summary>
@@ -200,7 +204,7 @@ public sealed class SHA224 : IShaDigest, IDisposable
     /// This method allows incremental hashing by calling <see cref="Update"/> before finalizing with <see cref="FinalizeHash"/>.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] ComputeHash(ReadOnlySpan<byte> data)
+    public Byte[] ComputeHash(ReadOnlySpan<Byte> data)
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA224));
         Update(data);
@@ -216,37 +220,39 @@ public sealed class SHA224 : IShaDigest, IDisposable
     /// </summary>
     /// <param name="block">The 64-byte block to process.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe void ProcessBlock(ReadOnlySpan<byte> block)
+    private unsafe void ProcessBlock(ReadOnlySpan<Byte> block)
     {
         if (block.Length != 64)
+        {
             throw new ArgumentException("Block size must be 64 bytes", nameof(block));
+        }
 
-        fixed (byte* ptr = block)
-        fixed (uint* w = _w)
+        fixed (Byte* ptr = block)
+        fixed (UInt32* w = _w)
         {
             // Load first 16 words (big-endian)
-            for (int t = 0; t < 16; t++)
+            for (Int32 t = 0; t < 16; t++)
             {
-                uint value = Unsafe.ReadUnaligned<uint>(ptr + (t * 4));
+                UInt32 value = Unsafe.ReadUnaligned<UInt32>(ptr + (t * 4));
                 w[t] = BinaryPrimitives.ReverseEndianness(value);
             }
 
             // Expand W[16..63]
-            for (int t = 16; t < 64; t++)
+            for (Int32 t = 16; t < 64; t++)
             {
                 w[t] = BitwiseUtils.Sigma1(w[t - 2]) + w[t - 7] + BitwiseUtils.Sigma0(w[t - 15]) + w[t - 16];
             }
         }
 
         // Initialize working variables
-        uint a = _state[0]; uint b = _state[1]; uint c = _state[2]; uint d = _state[3];
-        uint e = _state[4]; uint f = _state[5]; uint g = _state[6]; uint h = _state[7];
+        UInt32 a = _state[0]; UInt32 b = _state[1]; UInt32 c = _state[2]; UInt32 d = _state[3];
+        UInt32 e = _state[4]; UInt32 f = _state[5]; UInt32 g = _state[6]; UInt32 h = _state[7];
 
         // Main compression loop
-        for (int t = 0; t < 64; t++)
+        for (Int32 t = 0; t < 64; t++)
         {
-            uint t1 = h + BitwiseUtils.SigmaUpper1(e) + BitwiseUtils.Choose(e, f, g) + SHA.K224[t] + _w[t];
-            uint t2 = BitwiseUtils.SigmaUpper0(a) + BitwiseUtils.Majority(a, b, c);
+            UInt32 t1 = h + BitwiseUtils.SigmaUpper1(e) + BitwiseUtils.Choose(e, f, g) + SHA.K224[t] + _w[t];
+            UInt32 t2 = BitwiseUtils.SigmaUpper0(a) + BitwiseUtils.Majority(a, b, c);
 
             h = g;
             g = f;
@@ -274,7 +280,9 @@ public sealed class SHA224 : IShaDigest, IDisposable
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
 
         // Clear sensitive data
         Array.Clear(_state, 0, _state.Length);
@@ -297,7 +305,7 @@ public sealed class SHA224 : IShaDigest, IDisposable
     /// <summary>
     /// Returns a string representation of the SHA-224 hash algorithm.
     /// </summary>
-    public override string ToString() => "SHA-224";
+    public override String ToString() => "SHA-224";
 
     #endregion Overrides
 }

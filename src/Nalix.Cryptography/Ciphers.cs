@@ -22,20 +22,26 @@ public static class Ciphers
     /// The encryption algorithm to use.
     /// </param>
     /// <returns>The encrypted data as <see cref="System.ReadOnlyMemory{Byte}"/>.</returns>
-    public static System.ReadOnlyMemory<byte> Encrypt(
-        System.ReadOnlyMemory<byte> data, byte[] key,
+    public static System.ReadOnlyMemory<System.Byte> Encrypt(
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key,
         SymmetricAlgorithmType algorithm)
     {
         if (key == null)
+        {
             throw new System.ArgumentNullException(
                 nameof(key), "Encryption key cannot be null. Please provide a valid key.");
+        }
 
         if (data.IsEmpty)
+        {
             throw new System.ArgumentException(
                 "Data cannot be empty. Please provide data to encrypt.", nameof(data));
+        }
 
         if (!System.Enum.IsDefined(algorithm))
+        {
             throw new CryptoException($"The specified encryption algorithm '{algorithm}' is not supported.");
+        }
 
         try
         {
@@ -43,12 +49,12 @@ public static class Ciphers
             {
                 case SymmetricAlgorithmType.ChaCha20Poly1305:
                     {
-                        System.Span<byte> nonce = SecureRandom.CreateNonce();
+                        System.Span<System.Byte> nonce = SecureRandom.CreateNonce();
 
                         ChaCha20Poly1305.Encrypt(key, nonce, data.Span, null,
-                            out byte[] ciphertext, out byte[] tag);
+                            out System.Byte[] ciphertext, out System.Byte[] tag);
 
-                        byte[] result = new byte[12 + ciphertext.Length + 16]; // 12 for nonce, 16 for tag
+                        System.Byte[] result = new System.Byte[12 + ciphertext.Length + 16]; // 12 for nonce, 16 for tag
                         nonce.CopyTo(result);
 
                         System.Array.Copy(ciphertext, 0, result, 12, ciphertext.Length);
@@ -59,30 +65,32 @@ public static class Ciphers
 
                 case SymmetricAlgorithmType.Salsa20:
                     {
-                        ulong counter = 0;
-                        System.Span<byte> nonce = new byte[8];
-                        byte[] ciphertext = new byte[data.Length];
+                        System.UInt64 counter = 0;
+                        System.Span<System.Byte> nonce = new System.Byte[8];
+                        System.Byte[] ciphertext = new System.Byte[data.Length];
 
-                        Salsa20.Encrypt(key, nonce, counter, data.Span, ciphertext);
+                        _ = Salsa20.Encrypt(key, nonce, counter, data.Span, ciphertext);
 
                         return ciphertext;
                     }
 
                 case SymmetricAlgorithmType.Speck:
                     {
-                        const int blockSize = 8;
-                        int originalLength = data.Length;
+                        const System.Int32 blockSize = 8;
+                        System.Int32 originalLength = data.Length;
                         if (originalLength == 0)
+                        {
                             throw new System.ArgumentException("Input data cannot be empty.");
+                        }
 
-                        int bufferSize = (originalLength + 7) & ~7; // Align to 8-byte block
-                        byte[] output = System.Buffers.ArrayPool<byte>.Shared.Rent(4 + bufferSize); // 4 bytes for length prefix
+                        System.Int32 bufferSize = (originalLength + 7) & ~7; // Align to 8-byte block
+                        System.Byte[] output = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(4 + bufferSize); // 4 bytes for length prefix
 
                         try
                         {
                             System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(
                                 System.MemoryExtensions.AsSpan(output, 0, 4), originalLength);
-                            System.Span<byte> workSpan = System.MemoryExtensions.AsSpan(output, 4, bufferSize);
+                            System.Span<System.Byte> workSpan = System.MemoryExtensions.AsSpan(output, 4, bufferSize);
 
                             data.Span.CopyTo(workSpan);
 
@@ -91,11 +99,11 @@ public static class Ciphers
                                 SecureRandom.Fill(workSpan[originalLength..bufferSize]);
                             }
 
-                            System.ReadOnlySpan<byte> fixedKey = BitwiseUtils.FixedSize(key);
+                            System.ReadOnlySpan<System.Byte> fixedKey = BitwiseUtils.FixedSize(key);
 
-                            for (int i = 0; i < bufferSize / blockSize; i++)
+                            for (System.Int32 i = 0; i < bufferSize / blockSize; i++)
                             {
-                                System.Span<byte> block = workSpan.Slice(i * blockSize, blockSize);
+                                System.Span<System.Byte> block = workSpan.Slice(i * blockSize, blockSize);
                                 Speck.Encrypt(block, fixedKey, block);
                             }
 
@@ -103,27 +111,29 @@ public static class Ciphers
                         }
                         finally
                         {
-                            System.Buffers.ArrayPool<byte>.Shared.Return(output);
+                            System.Buffers.ArrayPool<System.Byte>.Shared.Return(output);
                         }
                     }
 
                 case SymmetricAlgorithmType.TwofishECB:
                     {
-                        const int blockSize = 16;
-                        int originalLength = data.Length;
+                        const System.Int32 blockSize = 16;
+                        System.Int32 originalLength = data.Length;
 
                         if (originalLength == 0)
+                        {
                             throw new System.ArgumentException("Input data cannot be empty.", nameof(data));
+                        }
 
-                        int paddedLength = (originalLength + blockSize - 1) & ~(blockSize - 1); // align to 16 bytes
-                        byte[] output = System.Buffers.ArrayPool<byte>.Shared.Rent(4 + paddedLength); // 4 bytes for original length
+                        System.Int32 paddedLength = (originalLength + blockSize - 1) & ~(blockSize - 1); // align to 16 bytes
+                        System.Byte[] output = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(4 + paddedLength); // 4 bytes for original length
 
                         try
                         {
                             System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(
                                 System.MemoryExtensions.AsSpan(output, 0, 4), originalLength);
 
-                            System.Span<byte> workSpan = System.MemoryExtensions.AsSpan(output, 4, paddedLength);
+                            System.Span<System.Byte> workSpan = System.MemoryExtensions.AsSpan(output, 4, paddedLength);
                             data.Span.CopyTo(workSpan);
 
                             if (paddedLength > originalLength)
@@ -131,30 +141,32 @@ public static class Ciphers
                                 SecureRandom.Fill(workSpan[originalLength..paddedLength]);
                             }
 
-                            byte[] encrypted = Twofish.ECB.Encrypt(key, workSpan);
+                            System.Byte[] encrypted = Twofish.ECB.Encrypt(key, workSpan);
                             encrypted.CopyTo(output, 4);
 
                             return System.MemoryExtensions.AsMemory(output, 0, 4 + paddedLength);
                         }
                         finally
                         {
-                            System.Buffers.ArrayPool<byte>.Shared.Return(output);
+                            System.Buffers.ArrayPool<System.Byte>.Shared.Return(output);
                         }
                     }
 
                 case SymmetricAlgorithmType.TwofishCBC:
                     {
-                        const int blockSize = 16;
-                        int originalLength = data.Length;
+                        const System.Int32 blockSize = 16;
+                        System.Int32 originalLength = data.Length;
 
                         if (originalLength == 0)
+                        {
                             throw new System.ArgumentException("Input data cannot be empty.", nameof(data));
+                        }
 
-                        int paddedLength = (originalLength + blockSize - 1) & ~(blockSize - 1); // Align to 16 bytes
-                        System.Span<byte> iv = SecureRandom.CreateNonce(16); // 16 bytes IV
+                        System.Int32 paddedLength = (originalLength + blockSize - 1) & ~(blockSize - 1); // Align to 16 bytes
+                        System.Span<System.Byte> iv = SecureRandom.CreateNonce(16); // 16 bytes IV
 
                         // 4 bytes for original length + 16 bytes IV + padded content
-                        byte[] output = System.Buffers.ArrayPool<byte>.Shared.Rent(4 + 16 + paddedLength);
+                        System.Byte[] output = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(4 + 16 + paddedLength);
 
                         try
                         {
@@ -162,7 +174,7 @@ public static class Ciphers
                                 System.MemoryExtensions.AsSpan(output, 0, 4), originalLength); // original data length
                             iv.CopyTo(System.MemoryExtensions.AsSpan(output, 4, 16)); // write IV
 
-                            System.Span<byte> workSpan = System.MemoryExtensions.AsSpan(output, 4 + 16, paddedLength);
+                            System.Span<System.Byte> workSpan = System.MemoryExtensions.AsSpan(output, 4 + 16, paddedLength);
                             data.Span.CopyTo(workSpan);
 
                             if (paddedLength > originalLength)
@@ -170,27 +182,29 @@ public static class Ciphers
                                 SecureRandom.Fill(workSpan[originalLength..paddedLength]); // random padding
                             }
 
-                            byte[] encrypted = Twofish.CBC.Encrypt(key, iv, workSpan);
+                            System.Byte[] encrypted = Twofish.CBC.Encrypt(key, iv, workSpan);
                             encrypted.CopyTo(output, 4 + 16); // overwrite with encrypted data
 
                             return System.MemoryExtensions.AsMemory(output, 0, 4 + 16 + paddedLength);
                         }
                         finally
                         {
-                            System.Buffers.ArrayPool<byte>.Shared.Return(output);
+                            System.Buffers.ArrayPool<System.Byte>.Shared.Return(output);
                         }
                     }
 
                 case SymmetricAlgorithmType.XTEA:
                     {
-                        int originalLength = data.Length;
+                        System.Int32 originalLength = data.Length;
                         if (originalLength == 0)
+                        {
                             throw new System.ArgumentException("Input data cannot be empty.");
+                        }
 
-                        int bufferSize = (originalLength + 7) & ~7; // Align to 8-byte block
+                        System.Int32 bufferSize = (originalLength + 7) & ~7; // Align to 8-byte block
 
                         // Use ArrayPool to avoid frequent allocations for large data
-                        byte[] encrypted = System.Buffers.ArrayPool<byte>.Shared.Rent(4 + bufferSize);
+                        System.Byte[] encrypted = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(4 + bufferSize);
                         try
                         {
                             // WriteInt16 original length prefix
@@ -198,9 +212,9 @@ public static class Ciphers
                                 System.MemoryExtensions.AsSpan(encrypted, 0, 4), originalLength);
 
                             // Avoid unnecessary allocation for paddedInput
-                            System.ReadOnlySpan<byte> inputSpan = data.Span;
+                            System.ReadOnlySpan<System.Byte> inputSpan = data.Span;
                             // Use heap memory for padding to avoid stack overflow
-                            byte[] paddedInput = System.Buffers.ArrayPool<byte>.Shared.Rent(bufferSize);
+                            System.Byte[] paddedInput = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(bufferSize);
 
                             try
                             {
@@ -209,14 +223,14 @@ public static class Ciphers
                                 SecureRandom.Fill(
                                     System.MemoryExtensions.AsSpan(paddedInput, originalLength, bufferSize - originalLength));
 
-                                Xtea.Encrypt(
+                                _ = Xtea.Encrypt(
                                     System.MemoryExtensions.AsSpan(paddedInput, 0, bufferSize),
                                     BitwiseUtils.FixedSize(key),
                                     System.MemoryExtensions.AsSpan(encrypted, 4));
                             }
                             finally
                             {
-                                System.Buffers.ArrayPool<byte>.Shared.Return(paddedInput);
+                                System.Buffers.ArrayPool<System.Byte>.Shared.Return(paddedInput);
                             }
 
                             // Return only the required portion of encrypted data
@@ -224,7 +238,7 @@ public static class Ciphers
                         }
                         finally
                         {
-                            System.Buffers.ArrayPool<byte>.Shared.Return(encrypted);
+                            System.Buffers.ArrayPool<System.Byte>.Shared.Return(encrypted);
                         }
                     }
 
@@ -250,18 +264,24 @@ public static class Ciphers
     /// The encryption algorithm that was used.
     /// </param>
     /// <returns>The decrypted data as <see cref="System.ReadOnlyMemory{Byte}"/>.</returns>
-    public static System.ReadOnlyMemory<byte> Decrypt(
-        System.ReadOnlyMemory<byte> data, byte[] key,
+    public static System.ReadOnlyMemory<System.Byte> Decrypt(
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key,
         SymmetricAlgorithmType algorithm = SymmetricAlgorithmType.XTEA)
     {
         if (key == null)
+        {
             throw new System.ArgumentNullException(nameof(key), "Decryption key cannot be null. Please provide a valid key.");
+        }
 
         if (data.IsEmpty)
+        {
             throw new System.ArgumentException("Data cannot be empty. Please provide the encrypted data to decrypt.", nameof(data));
+        }
 
         if (!System.Enum.IsDefined(algorithm))
+        {
             throw new CryptoException($"The specified decryption algorithm '{algorithm}' is not supported.");
+        }
 
         try
         {
@@ -269,148 +289,168 @@ public static class Ciphers
             {
                 case SymmetricAlgorithmType.ChaCha20Poly1305:
                     {
-                        System.ReadOnlySpan<byte> input = data.Span;
+                        System.ReadOnlySpan<System.Byte> input = data.Span;
                         if (input.Length < 28) // Min size = 12 (nonce) + 16 (tag)
+                        {
                             throw new System.ArgumentException(
                                 "Invalid data length. Encrypted data must contain a nonce (12 bytes) and a tag (16 bytes).",
                                 nameof(data));
+                        }
 
-                        System.ReadOnlySpan<byte> nonce = input[..12];
-                        System.ReadOnlySpan<byte> tag = input.Slice(input.Length - 16, 16);
-                        System.ReadOnlySpan<byte> ciphertext = input[12..^16];
+                        System.ReadOnlySpan<System.Byte> nonce = input[..12];
+                        System.ReadOnlySpan<System.Byte> tag = input.Slice(input.Length - 16, 16);
+                        System.ReadOnlySpan<System.Byte> ciphertext = input[12..^16];
 
-                        if (!ChaCha20Poly1305.Decrypt(key, nonce, ciphertext, null, tag, out byte[] plaintext))
-                            throw new CryptoException(
-                                "Decryption failed. Security of the encrypted data has failed.");
-
-                        return plaintext;
+                        return !ChaCha20Poly1305.Decrypt(key, nonce, ciphertext, null, tag, out System.Byte[] plaintext)
+                            ? throw new CryptoException(
+                                "Decryption failed. Security of the encrypted data has failed.")
+                            : (System.ReadOnlyMemory<System.Byte>)plaintext;
                     }
 
                 case SymmetricAlgorithmType.Salsa20:
                     {
-                        ulong counter = 0;
-                        System.Span<byte> nonce = new byte[8];
-                        byte[] plaintext = new byte[data.Length];
+                        System.UInt64 counter = 0;
+                        System.Span<System.Byte> nonce = new System.Byte[8];
+                        System.Byte[] plaintext = new System.Byte[data.Length];
 
-                        Salsa20.Decrypt(key, nonce, counter, data.Span, plaintext);
+                        _ = Salsa20.Decrypt(key, nonce, counter, data.Span, plaintext);
 
                         return plaintext;
                     }
 
                 case SymmetricAlgorithmType.Speck:
                     {
-                        const int blockSize = 8;
+                        const System.Int32 blockSize = 8;
 
                         if (data.Length < 4)
+                        {
                             throw new System.ArgumentException("Input data too short to contain length prefix.");
+                        }
 
-                        System.ReadOnlySpan<byte> input = data.Span;
+                        System.ReadOnlySpan<System.Byte> input = data.Span;
 
-                        int originalLength = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(input[..4]);
+                        System.Int32 originalLength = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(input[..4]);
 
-                        int bufferSize = data.Length - 4;
+                        System.Int32 bufferSize = data.Length - 4;
                         if (originalLength < 0 || originalLength > bufferSize)
+                        {
                             throw new System.ArgumentException("Invalid length prefix.");
+                        }
 
                         if (bufferSize % blockSize != 0)
+                        {
                             throw new System.ArgumentException("Input data length is not aligned to block size.");
+                        }
 
-                        byte[] rented = System.Buffers.ArrayPool<byte>.Shared.Rent(originalLength);
-                        var output = new System.Span<byte>(rented, 0, originalLength);
+                        System.Byte[] rented = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(originalLength);
+                        var output = new System.Span<System.Byte>(rented, 0, originalLength);
 
                         try
                         {
                             // Slice phần mã hóa
-                            System.Span<byte> workSpan = new(rented, 0, bufferSize);
-                            System.ReadOnlySpan<byte> encrypted = input[4..];
+                            System.Span<System.Byte> workSpan = new(rented, 0, bufferSize);
+                            System.ReadOnlySpan<System.Byte> encrypted = input[4..];
                             encrypted.CopyTo(workSpan); // Copy vào buffer để giải mã in-place
 
                             // Key đã fixed size
-                            System.ReadOnlySpan<byte> fixedKey = BitwiseUtils.FixedSize(key);
+                            System.ReadOnlySpan<System.Byte> fixedKey = BitwiseUtils.FixedSize(key);
 
-                            for (int i = 0; i < bufferSize / blockSize; i++)
+                            for (System.Int32 i = 0; i < bufferSize / blockSize; i++)
                             {
-                                System.Span<byte> block = workSpan.Slice(i * blockSize, blockSize);
+                                System.Span<System.Byte> block = workSpan.Slice(i * blockSize, blockSize);
                                 Speck.Decrypt(block, fixedKey, block); // In-place decryption
                             }
 
-                            return new System.ReadOnlyMemory<byte>(rented, 0, originalLength);
+                            return new System.ReadOnlyMemory<System.Byte>(rented, 0, originalLength);
                         }
                         catch
                         {
-                            System.Buffers.ArrayPool<byte>.Shared.Return(rented);
+                            System.Buffers.ArrayPool<System.Byte>.Shared.Return(rented);
                             throw;
                         }
                     }
 
                 case SymmetricAlgorithmType.TwofishECB:
                     {
-                        const int blockSize = 16;
+                        const System.Int32 blockSize = 16;
 
                         if (data.Length < 4 || (data.Length - 4) % blockSize != 0)
+                        {
                             throw new System.ArgumentException("Invalid encrypted data format.", nameof(data));
+                        }
 
-                        int originalLength = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(data.Span[..4]);
+                        System.Int32 originalLength = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(data.Span[..4]);
 
                         if (originalLength < 0 || originalLength > data.Length - 4)
+                        {
                             throw new System.ArgumentOutOfRangeException(nameof(data), "Invalid original length.");
+                        }
 
-                        System.ReadOnlySpan<byte> encryptedSpan = data.Span[4..];
-                        byte[] decrypted = Twofish.ECB.Decrypt(key, encryptedSpan);
+                        System.ReadOnlySpan<System.Byte> encryptedSpan = data.Span[4..];
+                        System.Byte[] decrypted = Twofish.ECB.Decrypt(key, encryptedSpan);
 
                         return System.MemoryExtensions.AsMemory(decrypted, 0, originalLength); // remove padding
                     }
 
                 case SymmetricAlgorithmType.TwofishCBC:
                     {
-                        const int blockSize = 16;
+                        const System.Int32 blockSize = 16;
 
                         if (data.Length < 4 + 16)
+                        {
                             throw new System.ArgumentException("Encrypted data is too short.", nameof(data));
+                        }
 
-                        System.ReadOnlySpan<byte> input = data.Span;
+                        System.ReadOnlySpan<System.Byte> input = data.Span;
 
-                        int originalLength = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(input[..4]);
+                        System.Int32 originalLength = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(input[..4]);
                         if (originalLength < 0)
+                        {
                             throw new System.ArgumentException("Invalid original length found in encrypted data.", nameof(data));
+                        }
 
-                        System.ReadOnlySpan<byte> iv = input.Slice(4, 16);
-                        System.ReadOnlySpan<byte> encrypted = input[(4 + 16)..];
+                        System.ReadOnlySpan<System.Byte> iv = input.Slice(4, 16);
+                        System.ReadOnlySpan<System.Byte> encrypted = input[(4 + 16)..];
 
                         if (encrypted.Length % blockSize != 0)
+                        {
                             throw new System.ArgumentException("Encrypted data length is not aligned to block size.", nameof(data));
+                        }
 
-                        byte[] decrypted = Twofish.CBC.Decrypt(key, iv, encrypted);
+                        System.Byte[] decrypted = Twofish.CBC.Decrypt(key, iv, encrypted);
 
-                        if (originalLength > decrypted.Length)
-                            throw new CryptoException("Decrypted data is smaller than original length.");
-
-                        return System.MemoryExtensions.AsMemory(decrypted, 0, originalLength);
+                        return originalLength > decrypted.Length
+                            ? throw new CryptoException("Decrypted data is smaller than original length.")
+                            : (System.ReadOnlyMemory<System.Byte>)System.MemoryExtensions.AsMemory(decrypted, 0, originalLength);
                     }
 
                 case SymmetricAlgorithmType.XTEA:
                     {
                         if (data.Length < 4)
+                        {
                             throw new CryptoException("Invalid encrypted data format.");
+                        }
 
-                        int originalLength = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(data.Span[..4]);
-                        int encryptedLength = data.Length - 4;
+                        System.Int32 originalLength = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(data.Span[..4]);
+                        System.Int32 encryptedLength = data.Length - 4;
 
                         if (originalLength < 0 || originalLength > encryptedLength)
+                        {
                             throw new CryptoException("Corrupted length header.");
+                        }
 
-                        byte[] decrypted = System.Buffers.ArrayPool<byte>.Shared.Rent(encryptedLength);
+                        System.Byte[] decrypted = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(encryptedLength);
 
                         try
                         {
-                            Xtea.Decrypt(data.Span[4..], BitwiseUtils.FixedSize(key),
+                            _ = Xtea.Decrypt(data.Span[4..], BitwiseUtils.FixedSize(key),
                                 System.MemoryExtensions.AsSpan(decrypted, 0, encryptedLength));
 
                             return System.MemoryExtensions.AsMemory(decrypted, 0, originalLength); // Trim padding
                         }
                         finally
                         {
-                            System.Buffers.ArrayPool<byte>.Shared.Return(decrypted);
+                            System.Buffers.ArrayPool<System.Byte>.Shared.Return(decrypted);
                         }
                     }
 
@@ -437,10 +477,10 @@ public static class Ciphers
     /// </param>
     /// <param name="mode">The encryption mode to use. Default is <see cref="SymmetricAlgorithmType.XTEA"/>.</param>
     /// <returns><c>true</c> if encryption succeeded; otherwise, <c>false</c>.</returns>
-    public static bool TryEncrypt(
-        System.ReadOnlyMemory<byte> data, byte[] key,
+    public static System.Boolean TryEncrypt(
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out System.ReadOnlyMemory<byte> memory, SymmetricAlgorithmType mode)
+        out System.ReadOnlyMemory<System.Byte> memory, SymmetricAlgorithmType mode)
     {
         try
         {
@@ -464,10 +504,10 @@ public static class Ciphers
     /// </param>
     /// <param name="mode">The encryption mode to use. Default is <see cref="SymmetricAlgorithmType.XTEA"/>.</param>
     /// <returns><c>true</c> if encryption succeeded; otherwise, <c>false</c>.</returns>
-    public static bool TryDecrypt(
-        System.ReadOnlyMemory<byte> data, byte[] key,
+    public static System.Boolean TryDecrypt(
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out System.ReadOnlyMemory<byte> memory, SymmetricAlgorithmType mode)
+        out System.ReadOnlyMemory<System.Byte> memory, SymmetricAlgorithmType mode)
     {
         try
         {

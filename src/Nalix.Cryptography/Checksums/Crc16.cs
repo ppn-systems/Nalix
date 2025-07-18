@@ -54,15 +54,18 @@ public static class Crc16
         System.ArgumentNullException.ThrowIfNull(bytes);
 
         if (bytes.Length == 0)
+        {
             throw new System.ArgumentOutOfRangeException(nameof(bytes), "Byte array cannot be empty.");
+        }
 
         if (start < 0 || start >= bytes.Length)
+        {
             throw new System.ArgumentOutOfRangeException(nameof(start));
+        }
 
-        if (length < 0 || start + length > bytes.Length)
-            throw new System.ArgumentOutOfRangeException(nameof(length));
-
-        return Compute(System.MemoryExtensions.AsSpan(bytes, start, length));
+        return length < 0 || start + length > bytes.Length
+            ? throw new System.ArgumentOutOfRangeException(nameof(length))
+            : Compute(System.MemoryExtensions.AsSpan(bytes, start, length));
     }
 
     /// <summary>
@@ -74,11 +77,16 @@ public static class Crc16
     public static System.UInt16 Compute(System.ReadOnlySpan<System.Byte> bytes)
     {
         if (bytes.IsEmpty)
+        {
             throw new System.ArgumentException("Byte span cannot be empty", nameof(bytes));
+        }
 
-        if (Sse42.IsSupported && bytes.Length >= 8) return ComputeSse42(bytes);
-        if (Vector.IsHardwareAccelerated && bytes.Length >= 16) return ComputeSimd(bytes);
-        else return ComputeScalar(bytes);
+        if (Sse42.IsSupported && bytes.Length >= 8)
+        {
+            return ComputeSse42(bytes);
+        }
+
+        return Vector.IsHardwareAccelerated && bytes.Length >= 16 ? ComputeSimd(bytes) : ComputeScalar(bytes);
     }
 
     /// <summary>
@@ -91,7 +99,9 @@ public static class Crc16
     public static System.UInt16 Compute<T>(System.ReadOnlySpan<T> data) where T : unmanaged
     {
         if (data.IsEmpty)
+        {
             throw new System.ArgumentException("Data span cannot be empty", nameof(data));
+        }
 
         // Reinterpret the generic type as a byte span
         System.ReadOnlySpan<System.Byte> bytes = MemoryMarshal.AsBytes(data);
@@ -105,7 +115,7 @@ public static class Crc16
     /// <param name="expectedCrc">The expected CRC16 value</param>
     /// <returns>True if the CRC matches, otherwise false</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Verify(System.ReadOnlySpan<System.Byte> data, System.UInt16 expectedCrc)
+    public static System.Boolean Verify(System.ReadOnlySpan<System.Byte> data, System.UInt16 expectedCrc)
         => Compute(data) == expectedCrc;
 
     #endregion APIs
@@ -134,7 +144,7 @@ public static class Crc16
         return crc;
     }
 
-    private static System.UInt16 ComputeScalar(System.ReadOnlySpan<byte> bytes)
+    private static System.UInt16 ComputeScalar(System.ReadOnlySpan<System.Byte> bytes)
     {
         System.UInt16 crc = InitialValue;
 
@@ -231,7 +241,7 @@ public static class Crc16
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static System.UInt16 ProcessVector(System.UInt16 crc, Vector<System.Byte> vec)
     {
-        for (int i = 0; i < Vector<System.Byte>.Count; i++)
+        for (System.Int32 i = 0; i < Vector<System.Byte>.Count; i++)
         {
             crc = (System.UInt16)((crc >> 8) ^ Crc16LookupTable[(crc ^ vec[i]) & 0xFF]);
         }

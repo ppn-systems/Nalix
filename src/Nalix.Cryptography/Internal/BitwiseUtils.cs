@@ -95,10 +95,14 @@ internal static partial class BitwiseUtils
     public static unsafe System.UInt32 U8To32Little(System.Byte[] p, System.Int32 inputOffset)
     {
         if (p == null || p.Length < inputOffset + 4)
+        {
             throw new System.ArgumentOutOfRangeException(nameof(p), "Input array is too small.");
+        }
 
         fixed (System.Byte* ptr = &p[inputOffset])
+        {
             return System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt32>(ptr);
+        }
     }
 
     /// <summary>
@@ -112,10 +116,14 @@ internal static partial class BitwiseUtils
     public static unsafe System.UInt32 U8To32Little(System.ReadOnlySpan<System.Byte> data, System.Int32 offset)
     {
         if (data.Length < offset + 4)
+        {
             throw new System.ArgumentOutOfRangeException(nameof(data), "Input span is too small.");
+        }
 
         fixed (System.Byte* ptr = &System.Runtime.InteropServices.MemoryMarshal.GetReference(data))
+        {
             return System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt32>(ptr + offset);
+        }
     }
 
     /// <summary>
@@ -130,10 +138,14 @@ internal static partial class BitwiseUtils
     public static unsafe void ToBytes(System.Byte[] output, System.UInt32 input, System.Int32 outputOffset)
     {
         if (output == null || output.Length < outputOffset + 4)
+        {
             throw new System.ArgumentOutOfRangeException(nameof(output), "Output array is too small.");
+        }
 
         fixed (System.Byte* ptr = &output[outputOffset])
+        {
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ptr, input);
+        }
     }
 
     /// <summary>
@@ -150,10 +162,14 @@ internal static partial class BitwiseUtils
         System.UInt32 input, System.Int32 offset)
     {
         if (output.Length < offset + 4)
+        {
             throw new System.ArgumentOutOfRangeException(nameof(output), "Output span is too small.");
+        }
 
         fixed (System.Byte* ptr = &System.Runtime.InteropServices.MemoryMarshal.GetReference(output))
+        {
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ptr + offset, input);
+        }
     }
 
     #endregion Byte Conversion

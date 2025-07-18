@@ -15,14 +15,14 @@ public static class Twofish
     #region Constants
 
     // Block size in bytes (128 bits)
-    private const int BlockSize = 16;
+    private const Int32 BlockSize = 16;
 
     #endregion Constants
 
     #region Fields
 
     // MDS Matrix for diffusion
-    private static readonly byte[][] MDS = [
+    private static readonly Byte[][] MDS = [
         [0x01, 0xEF, 0x5B, 0x5B],
         [0x5B, 0xEF, 0xEF, 0x01],
         [0xEF, 0x5B, 0x01, 0xEF],
@@ -30,7 +30,7 @@ public static class Twofish
     ];
 
     // RS Matrix for the key schedule
-    private static readonly byte[][] RS = [
+    private static readonly Byte[][] RS = [
         [0x01, 0xA4, 0x55, 0x87, 0x5A, 0x58, 0xDB, 0x9E],
         [0xA4, 0x56, 0x82, 0xF3, 0x1E, 0xC6, 0x68, 0xE5],
         [0x02, 0xA1, 0xFC, 0xC1, 0x47, 0xAE, 0x3D, 0x19],
@@ -38,7 +38,7 @@ public static class Twofish
     ];
 
     // S-boxes
-    private static readonly byte[] Q0 = [
+    private static readonly Byte[] Q0 = [
         0xA9, 0x67, 0xB3, 0xE8, 0x04, 0xFD, 0xA3, 0x76,
         0x9A, 0x92, 0x80, 0x78, 0xE4, 0xDD, 0xD1, 0x38,
         0x0D, 0xC6, 0x35, 0x98, 0x18, 0xF7, 0xEC, 0x6C,
@@ -73,7 +73,7 @@ public static class Twofish
         0x6F, 0x9D, 0x36, 0x42, 0x4A, 0x5E, 0xC1, 0xE0
     ];
 
-    private static readonly byte[] Q1 = [
+    private static readonly Byte[] Q1 = [
         0x75, 0xF3, 0xC6, 0xF4, 0xDB, 0x7B, 0xFB, 0xC8,
         0x4A, 0xD3, 0xE6, 0x6B, 0x45, 0x7D, 0xE8, 0x4B,
         0xD6, 0x32, 0xD8, 0xFD, 0x37, 0x71, 0xF1, 0xE1,
@@ -125,12 +125,12 @@ public static class Twofish
         /// <param name="plaintext">Data to encrypt (must be a multiple of 16 bytes)</param>
         /// <returns>Encrypted data</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static byte[] Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext)
+        public static Byte[] Encrypt(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> plaintext)
         {
             AssertKeyData(key, plaintext);
 
-            byte[] ciphertext = new byte[plaintext.Length];
-            Encrypt(key, plaintext, ciphertext);
+            Byte[] ciphertext = new Byte[plaintext.Length];
+            _ = Encrypt(key, plaintext, ciphertext);
             return ciphertext;
         }
 
@@ -142,18 +142,20 @@ public static class Twofish
         /// <param name="ciphertext">Buffer to receive encrypted data</param>
         /// <returns>Number of bytes written</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> plaintext, Span<byte> ciphertext)
+        public static Int32 Encrypt(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> plaintext, Span<Byte> ciphertext)
         {
             AssertKeyData(key, plaintext);
 
             if (ciphertext.Length < plaintext.Length)
+            {
                 throw new ArgumentException("Output buffer is too small", nameof(ciphertext));
+            }
 
             // Key setup
             var keySchedule = GenerateKeySchedule(key);
 
             // Process each block
-            for (int i = 0; i < plaintext.Length; i += BlockSize)
+            for (Int32 i = 0; i < plaintext.Length; i += BlockSize)
             {
                 EncryptBlock(plaintext.Slice(i, BlockSize), ciphertext.Slice(i, BlockSize), keySchedule);
             }
@@ -168,12 +170,12 @@ public static class Twofish
         /// <param name="ciphertext">Data to decrypt (must be a multiple of 16 bytes)</param>
         /// <returns>Decrypted data</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static byte[] Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> ciphertext)
+        public static Byte[] Decrypt(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> ciphertext)
         {
             AssertKeyData(key, ciphertext);
 
-            byte[] plaintext = new byte[ciphertext.Length];
-            Decrypt(key, ciphertext, plaintext);
+            Byte[] plaintext = new Byte[ciphertext.Length];
+            _ = Decrypt(key, ciphertext, plaintext);
             return plaintext;
         }
 
@@ -185,18 +187,20 @@ public static class Twofish
         /// <param name="plaintext">Buffer to receive decrypted data</param>
         /// <returns>Number of bytes written</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> ciphertext, Span<byte> plaintext)
+        public static Int32 Decrypt(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> ciphertext, Span<Byte> plaintext)
         {
             AssertKeyData(key, ciphertext);
 
             if (plaintext.Length < ciphertext.Length)
+            {
                 throw new ArgumentException("Output buffer is too small", nameof(plaintext));
+            }
 
             // Key setup
             var keySchedule = GenerateKeySchedule(key);
 
             // Process each block
-            for (int i = 0; i < ciphertext.Length; i += BlockSize)
+            for (Int32 i = 0; i < ciphertext.Length; i += BlockSize)
             {
                 DecryptBlock(ciphertext.Slice(i, BlockSize), plaintext.Slice(i, BlockSize), keySchedule);
             }
@@ -218,14 +222,16 @@ public static class Twofish
         /// <param name="plaintext">Data to encrypt (must be a multiple of 16 bytes)</param>
         /// <returns>Encrypted data</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static byte[] Encrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> iv, ReadOnlySpan<byte> plaintext)
+        public static Byte[] Encrypt(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> iv, ReadOnlySpan<Byte> plaintext)
         {
             AssertKeyData(key, plaintext);
             if (iv.Length != BlockSize)
+            {
                 throw new ArgumentException($"IV must be {BlockSize} bytes", nameof(iv));
+            }
 
-            byte[] ciphertext = new byte[plaintext.Length];
-            Encrypt(key, iv, plaintext, ciphertext);
+            Byte[] ciphertext = new Byte[plaintext.Length];
+            _ = Encrypt(key, iv, plaintext, ciphertext);
             return ciphertext;
         }
 
@@ -238,34 +244,38 @@ public static class Twofish
         /// <param name="ciphertext">Buffer to receive encrypted data</param>
         /// <returns>Number of bytes written</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Encrypt(
-            ReadOnlySpan<byte> key, ReadOnlySpan<byte> iv,
-            ReadOnlySpan<byte> plaintext, Span<byte> ciphertext)
+        public static Int32 Encrypt(
+            ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> iv,
+            ReadOnlySpan<Byte> plaintext, Span<Byte> ciphertext)
         {
             AssertKeyData(key, plaintext);
             if (iv.Length != BlockSize)
+            {
                 throw new ArgumentException($"IV must be {BlockSize} bytes", nameof(iv));
+            }
 
             if (ciphertext.Length < plaintext.Length)
+            {
                 throw new ArgumentException("Output buffer is too small", nameof(ciphertext));
+            }
 
             // Key setup
             var keySchedule = GenerateKeySchedule(key);
 
             // Working buffers
-            Span<byte> previousBlock = stackalloc byte[BlockSize];
+            Span<Byte> previousBlock = stackalloc Byte[BlockSize];
             iv.CopyTo(previousBlock);
 
-            Span<byte> tempBlock = stackalloc byte[BlockSize];
+            Span<Byte> tempBlock = stackalloc Byte[BlockSize];
 
             // Process each block
-            for (int i = 0; i < plaintext.Length; i += BlockSize)
+            for (Int32 i = 0; i < plaintext.Length; i += BlockSize)
             {
                 // XOR plaintext with previous ciphertext block (or IV for first block)
-                ReadOnlySpan<byte> currentPlaintext = plaintext.Slice(i, BlockSize);
-                for (int j = 0; j < BlockSize; j++)
+                ReadOnlySpan<Byte> currentPlaintext = plaintext.Slice(i, BlockSize);
+                for (Int32 j = 0; j < BlockSize; j++)
                 {
-                    tempBlock[j] = (byte)(currentPlaintext[j] ^ previousBlock[j]);
+                    tempBlock[j] = (Byte)(currentPlaintext[j] ^ previousBlock[j]);
                 }
 
                 // Encrypt the block
@@ -286,17 +296,19 @@ public static class Twofish
         /// <param name="ciphertext">Data to decrypt (must be a multiple of 16 bytes)</param>
         /// <returns>Decrypted data</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static byte[] Decrypt(
-            ReadOnlySpan<byte> key,
-            ReadOnlySpan<byte> iv,
-            ReadOnlySpan<byte> ciphertext)
+        public static Byte[] Decrypt(
+            ReadOnlySpan<Byte> key,
+            ReadOnlySpan<Byte> iv,
+            ReadOnlySpan<Byte> ciphertext)
         {
             AssertKeyData(key, ciphertext);
             if (iv.Length != BlockSize)
+            {
                 throw new ArgumentException($"IV must be {BlockSize} bytes", nameof(iv));
+            }
 
-            byte[] plaintext = new byte[ciphertext.Length];
-            Decrypt(key, iv, ciphertext, plaintext);
+            Byte[] plaintext = new Byte[ciphertext.Length];
+            _ = Decrypt(key, iv, ciphertext, plaintext);
             return plaintext;
         }
 
@@ -309,40 +321,44 @@ public static class Twofish
         /// <param name="plaintext">Buffer to receive decrypted data</param>
         /// <returns>Number of bytes written</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Decrypt(
-            ReadOnlySpan<byte> key, ReadOnlySpan<byte> iv,
-            ReadOnlySpan<byte> ciphertext, Span<byte> plaintext)
+        public static Int32 Decrypt(
+            ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> iv,
+            ReadOnlySpan<Byte> ciphertext, Span<Byte> plaintext)
         {
             AssertKeyData(key, ciphertext);
             if (iv.Length != BlockSize)
+            {
                 throw new ArgumentException($"IV must be {BlockSize} bytes", nameof(iv));
+            }
 
             if (plaintext.Length < ciphertext.Length)
+            {
                 throw new ArgumentException("Output buffer is too small", nameof(plaintext));
+            }
 
             // Key setup
             var keySchedule = GenerateKeySchedule(key);
 
             // Working buffers
-            Span<byte> previousBlock = stackalloc byte[BlockSize];
+            Span<Byte> previousBlock = stackalloc Byte[BlockSize];
             iv.CopyTo(previousBlock);
 
-            Span<byte> tempBlock = stackalloc byte[BlockSize];
+            Span<Byte> tempBlock = stackalloc Byte[BlockSize];
 
             // Process each block
-            for (int i = 0; i < ciphertext.Length; i += BlockSize)
+            for (Int32 i = 0; i < ciphertext.Length; i += BlockSize)
             {
                 // Store current ciphertext block to use as next previous block
-                ReadOnlySpan<byte> currentCiphertext = ciphertext.Slice(i, BlockSize);
-                Span<byte> currentPlaintext = plaintext.Slice(i, BlockSize);
+                ReadOnlySpan<Byte> currentCiphertext = ciphertext.Slice(i, BlockSize);
+                Span<Byte> currentPlaintext = plaintext.Slice(i, BlockSize);
 
                 // Decrypt the block
                 DecryptBlock(currentCiphertext, tempBlock, keySchedule);
 
                 // XOR with previous ciphertext block (or IV for first block)
-                for (int j = 0; j < BlockSize; j++)
+                for (Int32 j = 0; j < BlockSize; j++)
                 {
-                    currentPlaintext[j] = (byte)(tempBlock[j] ^ previousBlock[j]);
+                    currentPlaintext[j] = (Byte)(tempBlock[j] ^ previousBlock[j]);
                 }
 
                 // Update previous block for next iteration
@@ -358,13 +374,17 @@ public static class Twofish
     #region Core Implementation
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AssertKeyData(ReadOnlySpan<byte> key, ReadOnlySpan<byte> data)
+    private static void AssertKeyData(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> data)
     {
-        if (key.Length != 16 && key.Length != 24 && key.Length != 32)
+        if (key.Length is not 16 and not 24 and not 32)
+        {
             throw new ArgumentException("Key must be 16, 24, or 32 bytes (128, 192, or 256 bits)", nameof(key));
+        }
 
         if (data.Length % BlockSize != 0)
+        {
             throw new ArgumentException($"Data length must be a multiple of {BlockSize} bytes", nameof(data));
+        }
     }
 
     /// <summary>
@@ -372,50 +392,50 @@ public static class Twofish
     /// </summary>
     private struct TwofishKey
     {
-        public uint[] ExpandedKey;   // Expanded key (40 32-bit words for rounds)
-        public uint[] SBoxKeys;      // S-box keys (up to 4 32-bit words)
+        public UInt32[] ExpandedKey;   // Expanded key (40 32-bit words for rounds)
+        public UInt32[] SBoxKeys;      // S-box keys (up to 4 32-bit words)
     }
 
     /// <summary>
     /// Generates the key schedule for Twofish encryption/decryption
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static TwofishKey GenerateKeySchedule(ReadOnlySpan<byte> key)
+    private static TwofishKey GenerateKeySchedule(ReadOnlySpan<Byte> key)
     {
         var result = new TwofishKey
         {
-            ExpandedKey = new uint[40],
-            SBoxKeys = new uint[key.Length / 8]
+            ExpandedKey = new UInt32[40],
+            SBoxKeys = new UInt32[key.Length / 8]
         };
 
-        int k = key.Length / 8;  // Key length in 64-bit words (2, 3, or 4)
-        uint[] Me = new uint[k];
-        uint[] Mo = new uint[k];
+        Int32 k = key.Length / 8;  // Key length in 64-bit words (2, 3, or 4)
+        UInt32[] Me = new UInt32[k];
+        UInt32[] Mo = new UInt32[k];
 
         // Calculate Mo and Me from the key
-        for (int i = 0; i < k; i++)
+        for (Int32 i = 0; i < k; i++)
         {
             Me[i] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(i * 8, 4));
-            Mo[i] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(i * 8 + 4, 4));
+            Mo[i] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice((i * 8) + 4, 4));
         }
 
         // Calculate the S-box keys
-        for (int i = 0; i < k; i++)
+        for (Int32 i = 0; i < k; i++)
         {
             result.SBoxKeys[k - 1 - i] = RS_MDS_Encode(Me[i], Mo[i]);
         }
 
         // Calculate the round subkeys
-        uint rho = 0x01010101;
-        uint[] A = new uint[20];
-        uint[] B = new uint[20];
+        UInt32 rho = 0x01010101;
+        UInt32[] A = new UInt32[20];
+        UInt32[] B = new UInt32[20];
 
-        for (int i = 0; i < 20; i++)
+        for (Int32 i = 0; i < 20; i++)
         {
-            A[i] = H((uint)(2 * i * rho), Me, k);
-            B[i] = BitwiseUtils.RotateLeft(H((uint)((2 * i + 1) * rho), Mo, k), 8);
+            A[i] = H((UInt32)(2 * i * rho), Me, k);
+            B[i] = BitwiseUtils.RotateLeft(H((UInt32)(((2 * i) + 1) * rho), Mo, k), 8);
             result.ExpandedKey[2 * i] = A[i] + B[i];
-            result.ExpandedKey[2 * i + 1] = BitwiseUtils.RotateLeft(A[i] + 2 * B[i], 9);
+            result.ExpandedKey[(2 * i) + 1] = BitwiseUtils.RotateLeft(A[i] + (2 * B[i]), 9);
         }
 
         return result;
@@ -425,11 +445,11 @@ public static class Twofish
     /// Encrypts a single 16-byte block
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void EncryptBlock(ReadOnlySpan<byte> plaintext, Span<byte> ciphertext, TwofishKey key)
+    private static void EncryptBlock(ReadOnlySpan<Byte> plaintext, Span<Byte> ciphertext, TwofishKey key)
     {
         // Extract four 32-bit words from plaintext
-        uint[] input = new uint[4];
-        for (int i = 0; i < 4; i++)
+        UInt32[] input = new UInt32[4];
+        for (Int32 i = 0; i < 4; i++)
         {
             input[i] = BinaryPrimitives.ReadUInt32LittleEndian(plaintext.Slice(i * 4, 4));
         }
@@ -441,13 +461,13 @@ public static class Twofish
         input[3] ^= key.ExpandedKey[3];
 
         // 16 rounds of encryption
-        uint t0, t1;
-        for (int round = 0; round < 16; round++)
+        UInt32 t0, t1;
+        for (Int32 round = 0; round < 16; round++)
         {
             t0 = G(input[0], key.SBoxKeys);
             t1 = G(BitwiseUtils.RotateLeft(input[1], 8), key.SBoxKeys);
-            input[2] = BitwiseUtils.RotateRight(input[2] ^ t0 + t1 + key.ExpandedKey[2 * round + 8], 1);
-            input[3] = BitwiseUtils.RotateLeft(input[3], 1) ^ t0 + 2 * t1 + key.ExpandedKey[2 * round + 9];
+            input[2] = BitwiseUtils.RotateRight(input[2] ^ (t0 + t1 + key.ExpandedKey[(2 * round) + 8]), 1);
+            input[3] = BitwiseUtils.RotateLeft(input[3], 1) ^ (t0 + (2 * t1) + key.ExpandedKey[(2 * round) + 9]);
 
             // Rotate for next round
             if (round < 15)
@@ -464,7 +484,7 @@ public static class Twofish
         input[3] ^= key.ExpandedKey[7];
 
         // WriteInt16 output
-        for (int i = 0; i < 4; i++)
+        for (Int32 i = 0; i < 4; i++)
         {
             BinaryPrimitives.WriteUInt32LittleEndian(ciphertext.Slice(i * 4, 4), input[i]);
         }
@@ -474,11 +494,11 @@ public static class Twofish
     /// Decrypts a single 16-byte block
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void DecryptBlock(ReadOnlySpan<byte> ciphertext, Span<byte> plaintext, TwofishKey key)
+    private static void DecryptBlock(ReadOnlySpan<Byte> ciphertext, Span<Byte> plaintext, TwofishKey key)
     {
         // Extract four 32-bit words from ciphertext
-        uint[] input = new uint[4];
-        for (int i = 0; i < 4; i++)
+        UInt32[] input = new UInt32[4];
+        for (Int32 i = 0; i < 4; i++)
         {
             input[i] = BinaryPrimitives.ReadUInt32LittleEndian(ciphertext.Slice(i * 4, 4));
         }
@@ -490,8 +510,8 @@ public static class Twofish
         input[3] ^= key.ExpandedKey[7];
 
         // 16 rounds of decryption (reverse of encryption)
-        uint t0, t1;
-        for (int round = 15; round >= 0; round--)
+        UInt32 t0, t1;
+        for (Int32 round = 15; round >= 0; round--)
         {
             // Rotate for this round (reverse of encryption)
             if (round < 15)
@@ -502,8 +522,8 @@ public static class Twofish
 
             t0 = G(input[0], key.SBoxKeys);
             t1 = G(BitwiseUtils.RotateLeft(input[1], 8), key.SBoxKeys);
-            input[2] = BitwiseUtils.RotateLeft(input[2], 1) ^ t0 + t1 + key.ExpandedKey[2 * round + 8];
-            input[3] = BitwiseUtils.RotateRight(input[3] ^ t0 + 2 * t1 + key.ExpandedKey[2 * round + 9], 1);
+            input[2] = BitwiseUtils.RotateLeft(input[2], 1) ^ (t0 + t1 + key.ExpandedKey[(2 * round) + 8]);
+            input[3] = BitwiseUtils.RotateRight(input[3] ^ (t0 + (2 * t1) + key.ExpandedKey[(2 * round) + 9]), 1);
         }
 
         // Input whitening (reverse)
@@ -513,7 +533,7 @@ public static class Twofish
         input[3] ^= key.ExpandedKey[3];
 
         // WriteInt16 output
-        for (int i = 0; i < 4; i++)
+        for (Int32 i = 0; i < 4; i++)
         {
             BinaryPrimitives.WriteUInt32LittleEndian(plaintext.Slice(i * 4, 4), input[i]);
         }
@@ -525,39 +545,39 @@ public static class Twofish
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
-    private static uint G(uint x, uint[] sBoxKeys)
+    private static UInt32 G(UInt32 x, UInt32[] sBoxKeys)
     {
         // Break input into four bytes and pass through S-boxes
-        byte[] result =
+        Byte[] result =
         [
-            Q01((byte)(x & 0xFF)),
-            Q00((byte)(x >> 8 & 0xFF)),
-            Q00((byte)(x >> 16 & 0xFF)),
-            Q01((byte)(x >> 24 & 0xFF)),
+            Q01((Byte)(x & 0xFF)),
+            Q00((Byte)((x >> 8) & 0xFF)),
+            Q00((Byte)((x >> 16) & 0xFF)),
+            Q01((Byte)((x >> 24) & 0xFF)),
         ];
 
         // MDS matrix multiplication
-        uint a = (uint)(result[0] ^ result[1] ^ result[2] ^ result[3]);
-        uint b = (uint)(result[0] ^ result[1]);
-        uint c = (uint)(result[2] ^ result[3]);
+        UInt32 a = (UInt32)(result[0] ^ result[1] ^ result[2] ^ result[3]);
+        UInt32 b = (UInt32)(result[0] ^ result[1]);
+        UInt32 c = (UInt32)(result[2] ^ result[3]);
 
-        return a << 24 | b << 16 | c << 8 | (uint)(result[0] ^ result[3]);
+        return (a << 24) | (b << 16) | (c << 8) | (UInt32)(result[0] ^ result[3]);
     }
 
     /// <summary>
     /// The H function for the key schedule
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint H(uint X, uint[] L, int k)
+    private static UInt32 H(UInt32 X, UInt32[] L, Int32 k)
     {
         // Input: X, a 32-bit input
         // L, key material
         // k, Number of 64-bit words in key
 
-        byte y0 = Q00((byte)(X & 0xFF));
-        byte y1 = Q01((byte)(X >> 8 & 0xFF));
-        byte y2 = Q00((byte)(X >> 16 & 0xFF));
-        byte y3 = Q01((byte)(X >> 24 & 0xFF));
+        Byte y0 = Q00((Byte)(X & 0xFF));
+        Byte y1 = Q01((Byte)((X >> 8) & 0xFF));
+        Byte y2 = Q00((Byte)((X >> 16) & 0xFF));
+        Byte y3 = Q01((Byte)((X >> 24) & 0xFF));
 
         // Apply the MDS matrix
         return MDS_Apply(y0, y1, y2, y3, L, k);
@@ -567,55 +587,55 @@ public static class Twofish
     /// MDS matrix application for the H function
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint MDS_Apply(byte y0, byte y1, byte y2, byte y3, uint[] L, int k)
+    private static UInt32 MDS_Apply(Byte y0, Byte y1, Byte y2, Byte y3, UInt32[] L, Int32 k)
     {
         // Apply the MDS matrix multiplication
-        uint z0 = 0, z1 = 0, z2 = 0, z3 = 0;
+        UInt32 z0 = 0, z1 = 0, z2 = 0, z3 = 0;
 
         // Mix based on key size
-        for (int i = 0; i < k; i++)
+        for (Int32 i = 0; i < k; i++)
         {
             z0 ^= L[i] & 0xFF;
-            z1 ^= L[i] >> 8 & 0xFF;
-            z2 ^= L[i] >> 16 & 0xFF;
-            z3 ^= L[i] >> 24 & 0xFF;
+            z1 ^= (L[i] >> 8) & 0xFF;
+            z2 ^= (L[i] >> 16) & 0xFF;
+            z3 ^= (L[i] >> 24) & 0xFF;
         }
 
         // Final S-box applications
-        y0 ^= (byte)z0;
-        y1 ^= (byte)z1;
-        y2 ^= (byte)z2;
-        y3 ^= (byte)z3;
+        y0 ^= (Byte)z0;
+        y1 ^= (Byte)z1;
+        y2 ^= (Byte)z2;
+        y3 ^= (Byte)z3;
 
         // Final MDS matrix multiply
         return MDS[0][y0 % MDS[0].Length] ^
-               (uint)MDS[1][y1 % MDS[1].Length] << 8 ^
-               (uint)MDS[2][y2 % MDS[2].Length] << 16 ^
-               (uint)MDS[3][y3 % MDS[3].Length] << 24;
+               ((UInt32)MDS[1][y1 % MDS[1].Length] << 8) ^
+               ((UInt32)MDS[2][y2 % MDS[2].Length] << 16) ^
+               ((UInt32)MDS[3][y3 % MDS[3].Length] << 24);
     }
 
     /// <summary>
     /// Reed-Solomon encoding combined with MDS matrix for the key schedule
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint RS_MDS_Encode(uint k0, uint k1)
+    private static UInt32 RS_MDS_Encode(UInt32 k0, UInt32 k1)
     {
-        uint result = 0;
+        UInt32 result = 0;
 
         // Apply the Reed-Solomon encoding
-        for (int i = 0; i < 4; i++)
+        for (Int32 i = 0; i < 4; i++)
         {
-            byte b0 = (byte)(k0 >> 8 * i);
-            byte b1 = (byte)(k1 >> 8 * i);
+            Byte b0 = (Byte)(k0 >> (8 * i));
+            Byte b1 = (Byte)(k1 >> (8 * i));
 
             // Reed-Solomon multiplication
-            byte r = 0;
-            for (int j = 0; j < 8; j++)
+            Byte r = 0;
+            for (Int32 j = 0; j < 8; j++)
             {
-                r ^= (byte)(RS[i][j] * ((j < 4 ? b0 : b1) & 0xFF));
+                r ^= (Byte)(RS[i][j] * ((j < 4 ? b0 : b1) & 0xFF));
             }
 
-            result |= (uint)r << 8 * i;
+            result |= (UInt32)r << (8 * i);
         }
 
         return result;
@@ -625,13 +645,13 @@ public static class Twofish
     /// Q0 S-box lookup function
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte Q00(byte x) => Q0[x];
+    private static Byte Q00(Byte x) => Q0[x];
 
     /// <summary>
     /// Q1 S-box lookup function
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte Q01(byte x) => Q1[x];
+    private static Byte Q01(Byte x) => Q1[x];
 
     #endregion Core Implementation
 }

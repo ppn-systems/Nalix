@@ -35,11 +35,16 @@ public static class Crc32
     public static System.UInt32 Compute(System.ReadOnlySpan<System.Byte> bytes)
     {
         if (bytes.IsEmpty)
+        {
             throw new System.ArgumentException("Byte span cannot be empty", nameof(bytes));
+        }
 
-        if (Sse42.IsSupported && bytes.Length >= 16) return ComputeSse42(bytes);
-        if (Vector.IsHardwareAccelerated && bytes.Length >= 32) return ComputeSimd(bytes);
-        return ComputeScalar(bytes);
+        if (Sse42.IsSupported && bytes.Length >= 16)
+        {
+            return ComputeSse42(bytes);
+        }
+
+        return Vector.IsHardwareAccelerated && bytes.Length >= 32 ? ComputeSimd(bytes) : ComputeScalar(bytes);
     }
 
     /// <summary>
@@ -48,10 +53,9 @@ public static class Crc32
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static System.UInt32 Compute(params System.Byte[] bytes)
     {
-        if (bytes == null || bytes.Length == 0)
-            throw new System.ArgumentException("Byte array cannot be null or empty", nameof(bytes));
-
-        return Compute(System.MemoryExtensions.AsSpan(bytes));
+        return bytes == null || bytes.Length == 0
+            ? throw new System.ArgumentException("Byte array cannot be null or empty", nameof(bytes))
+            : Compute(System.MemoryExtensions.AsSpan(bytes));
     }
 
     /// <summary>
@@ -65,16 +69,19 @@ public static class Crc32
         System.ArgumentOutOfRangeException.ThrowIfNegative(length);
 
         if (bytes.Length == 0)
+        {
             throw new System.ArgumentOutOfRangeException(nameof(bytes), "Byte array cannot be empty");
+        }
 
         if (start >= bytes.Length && length > 1)
+        {
             throw new System.ArgumentOutOfRangeException(nameof(start), "Start index is out of range");
+        }
 
         System.Int32 end = start + length;
-        if (end > bytes.Length)
-            throw new System.ArgumentOutOfRangeException(nameof(length), "Specified length exceeds buffer bounds");
-
-        return Compute(System.MemoryExtensions.AsSpan(bytes, start, length));
+        return end > bytes.Length
+            ? throw new System.ArgumentOutOfRangeException(nameof(length), "Specified length exceeds buffer bounds")
+            : Compute(System.MemoryExtensions.AsSpan(bytes, start, length));
     }
 
     /// <summary>
@@ -129,15 +136,21 @@ public static class Crc32
             System.Int32 aligned = bytes.Length - unaligned;
 
             for (System.Int32 i = 0; i < aligned; i += 8)
+            {
                 crc = ProcessOctet(crc, bytes.Slice(i, 8));
+            }
 
             for (System.Int32 i = aligned; i < bytes.Length; i++)
+            {
                 crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ bytes[i]];
+            }
         }
         else
         {
             for (System.Int32 i = 0; i < bytes.Length; i++)
+            {
                 crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ bytes[i]];
+            }
         }
 
         return ~crc;
@@ -159,12 +172,17 @@ public static class Crc32
             while (i + vectorSize <= length)
             {
                 for (System.Int32 j = 0; j < vectorSize; j++)
+                {
                     crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ ptr[i + j]];
+                }
+
                 i += vectorSize;
             }
 
             for (; i < length; i++)
+            {
                 crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ ptr[i]];
+            }
         }
 
         return ~crc;

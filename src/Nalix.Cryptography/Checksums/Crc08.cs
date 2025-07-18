@@ -37,12 +37,18 @@ public static class Crc08
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static System.Byte Compute(System.ReadOnlySpan<System.Byte> bytes)
     {
-        if (bytes.IsEmpty) throw new System.ArgumentException(
+        if (bytes.IsEmpty)
+        {
+            throw new System.ArgumentException(
             "Bytes span cannot be empty", nameof(bytes));
+        }
 
-        if (Sse42.IsSupported && bytes.Length >= 16) return ComputeSse42(bytes);
-        if (Vector.IsHardwareAccelerated && bytes.Length >= 32) return ComputeSimd(bytes);
-        else return ComputeScalar(bytes);
+        if (Sse42.IsSupported && bytes.Length >= 16)
+        {
+            return ComputeSse42(bytes);
+        }
+
+        return Vector.IsHardwareAccelerated && bytes.Length >= 32 ? ComputeSimd(bytes) : ComputeScalar(bytes);
     }
 
     /// <summary>
@@ -53,11 +59,10 @@ public static class Crc08
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static System.Byte Compute(params System.Byte[] bytes)
     {
-        if (bytes == null || bytes.Length == 0)
-            throw new System.ArgumentException(
-                "Bytes array cannot be null or empty", nameof(bytes));
-
-        return Compute(System.MemoryExtensions.AsSpan(bytes));
+        return bytes == null || bytes.Length == 0
+            ? throw new System.ArgumentException(
+                "Bytes array cannot be null or empty", nameof(bytes))
+            : Compute(System.MemoryExtensions.AsSpan(bytes));
     }
 
     /// <summary>
@@ -76,19 +81,22 @@ public static class Crc08
         System.ArgumentOutOfRangeException.ThrowIfNegative(length);
 
         if (bytes.Length == 0)
+        {
             throw new System.ArgumentOutOfRangeException(
                 nameof(bytes), "Bytes array cannot be empty");
+        }
 
         if (start >= bytes.Length && length > 1)
+        {
             throw new System.ArgumentOutOfRangeException(
                 nameof(start), "Start index is out of range");
+        }
 
         System.Int32 end = start + length;
-        if (end > bytes.Length)
-            throw new System.ArgumentOutOfRangeException(
-                nameof(length), "Specified length exceeds buffer bounds");
-
-        return Compute(System.MemoryExtensions.AsSpan(bytes, start, length));
+        return end > bytes.Length
+            ? throw new System.ArgumentOutOfRangeException(
+                nameof(length), "Specified length exceeds buffer bounds")
+            : Compute(System.MemoryExtensions.AsSpan(bytes, start, length));
     }
 
     /// <summary>
@@ -101,7 +109,9 @@ public static class Crc08
         System.Span<T> data) where T : unmanaged
     {
         if (data.IsEmpty)
+        {
             throw new System.ArgumentException("Data span cannot be empty", nameof(data));
+        }
 
         System.ReadOnlySpan<System.Byte> bytes;
         if (typeof(T) == typeof(System.Byte))
@@ -213,7 +223,10 @@ public static class Crc08
             i += vectorSize;
         }
 
-        for (; i < length; i++) crc = Crc8LookupTable[crc ^ bytes[i]];
+        for (; i < length; i++)
+        {
+            crc = Crc8LookupTable[crc ^ bytes[i]];
+        }
 
         return crc;
     }

@@ -13,7 +13,7 @@ public sealed class BlowfishCodec
 
     private readonly Blowfish _blowfish;
 
-    private static readonly uint[] SBox =
+    private static readonly System.UInt32[] SBox =
     [
         0x687F3584, 0x52A0E286, 0xB79C5305, 0xAA500737, 0x3E07841C, 0x7FDEAE5C, 0x8E7D44EC, 0x5716F2B8,
         0xB03ADA37, 0xF0500C0D, 0xF01C1F04, 0x0200B3FF, 0xAE0CF51A, 0x3CB574B2, 0x25837A58, 0xDC0921BD,
@@ -148,7 +148,7 @@ public sealed class BlowfishCodec
         0x63EF8CE2, 0x9A86EE22,
     ];
 
-    private static readonly byte[] Key = "Codec6666"u8.ToArray();
+    private static readonly System.Byte[] Key = "Codec6666"u8.ToArray();
 
     #endregion Fields
 
@@ -163,20 +163,20 @@ public sealed class BlowfishCodec
     /// Initializes the <see cref="BlowfishCodec"/> with a custom S-box and the default key.
     /// </summary>
     /// <param name="box">The S-box values for Blowfish.</param>
-    public BlowfishCodec(uint[] box) => _blowfish = new Blowfish(box, Key);
+    public BlowfishCodec(System.UInt32[] box) => _blowfish = new Blowfish(box, Key);
 
     /// <summary>
     /// Initializes the <see cref="BlowfishCodec"/> with the default S-box and a custom key.
     /// </summary>
     /// <param name="key">The encryption key.</param>
-    public BlowfishCodec(byte[] key) => _blowfish = new Blowfish(SBox, key);
+    public BlowfishCodec(System.Byte[] key) => _blowfish = new Blowfish(SBox, key);
 
     /// <summary>
     /// Initializes the <see cref="BlowfishCodec"/> with a custom S-box and a custom key.
     /// </summary>
     /// <param name="box">The S-box values for Blowfish.</param>
     /// <param name="key">The encryption key.</param>
-    public BlowfishCodec(uint[] box, byte[] key) => _blowfish = new Blowfish(box, key);
+    public BlowfishCodec(System.UInt32[] box, System.Byte[] key) => _blowfish = new Blowfish(box, key);
 
     #endregion Constructors
 
@@ -189,7 +189,7 @@ public sealed class BlowfishCodec
     /// <param name="offset">The starting position in the packet to begin decryption.</param>
     /// <param name="len">The Number of bytes to decrypt.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Decrypt(byte[] packet, int offset, int len)
+    public void Decrypt(System.Byte[] packet, System.Int32 offset, System.Int32 len)
         => _blowfish.DecryptBlock(packet, offset, len);
 
     /// <summary>
@@ -197,7 +197,7 @@ public sealed class BlowfishCodec
     /// </summary>
     /// <param name="packet">The byte array containing encrypted data.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Decrypt(byte[] packet)
+    public void Decrypt(System.Byte[] packet)
         => _blowfish.DecryptBlock(packet, 0, packet.Length);
 
     /// <summary>
@@ -207,7 +207,7 @@ public sealed class BlowfishCodec
     /// <param name="offset">The starting position in the packet to begin encryption.</param>
     /// <param name="len">The Number of bytes to encrypt.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Encrypt(byte[] packet, int offset, int len)
+    public void Encrypt(System.Byte[] packet, System.Int32 offset, System.Int32 len)
         => _blowfish.DecryptBlock(packet, offset, len);
 
     /// <summary>
@@ -215,7 +215,7 @@ public sealed class BlowfishCodec
     /// </summary>
     /// <param name="packet">The byte array containing plaintext data.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Encrypt(byte[] packet)
+    public void Encrypt(System.Byte[] packet)
         => _blowfish.DecryptBlock(packet, 0, packet.Length);
 
     #endregion Decrypt/Encrypt Methods
