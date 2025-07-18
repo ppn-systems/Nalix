@@ -10,10 +10,10 @@ public sealed class FileLogOptions
     #region Constants
 
     // Default values
-    private const int DefaultMaxFileSize = 10 * 1024 * 1024; // 10 MB
+    private const System.Int32 DefaultMaxFileSize = 10 * 1024 * 1024; // 10 MB
 
-    private const int DefaultMaxQueueSize = 4096;
-    private const bool DefaultAppendToFile = true;
+    private const System.Int32 DefaultMaxQueueSize = 4096;
+    private const System.Boolean DefaultAppendToFile = true;
 
     #endregion Constants
 
@@ -21,15 +21,15 @@ public sealed class FileLogOptions
 
     private static readonly System.TimeSpan DefaultFlushInterval = System.TimeSpan.FromSeconds(1);
 
-    private static readonly string DefaultBaseDirectory =
+    private static readonly System.String DefaultBaseDirectory =
         System.AppDomain.CurrentDomain.BaseDirectory.TrimEnd(System.IO.Path.DirectorySeparatorChar);
 
-    private static readonly string DefaultLogDirectory =
+    private static readonly System.String DefaultLogDirectory =
         System.IO.Path.Combine(DefaultBaseDirectory, "assets", "data", "logs");
 
-    private int _maxFileSize = DefaultMaxFileSize;
-    private int _maxQueueSize = DefaultMaxQueueSize;
-    private string _logFileName = $"log_{System.Environment.MachineName}_.log";
+    private System.Int32 _maxFileSize = DefaultMaxFileSize;
+    private System.Int32 _maxQueueSize = DefaultMaxQueueSize;
+    private System.String _logFileName = $"log_{System.Environment.MachineName}_.log";
 
     #endregion Fields
 
@@ -38,24 +38,26 @@ public sealed class FileLogOptions
     /// <summary>
     /// Specifies whether to append to existing log files or overwrite them.
     /// </summary>
-    public bool Append { get; set; } = DefaultAppendToFile;
+    public System.Boolean Append { get; set; } = DefaultAppendToFile;
 
     /// <summary>
     /// The maximum allowed file size for a log file in bytes.
     /// When this size is reached, a new log file will be created.
     /// </summary>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown when value is less than 1KB or greater than 2GB.</exception>
-    public int MaxFileSizeBytes
+    public System.Int32 MaxFileSizeBytes
     {
         get => _maxFileSize;
         set
         {
-            const int min = 1024; // 1 KB minimum
-            const int max = int.MaxValue; // 2 GB maximum
+            const System.Int32 min = 1024; // 1 KB minimum
+            const System.Int32 max = System.Int32.MaxValue; // 2 GB maximum
 
-            if (value < min || value > max)
+            if (value is < min or > max)
+            {
                 throw new System.ArgumentOutOfRangeException(
                     nameof(value), $"Value must be between {min} and {max} bytes");
+            }
 
             _maxFileSize = value;
         }
@@ -65,14 +67,16 @@ public sealed class FileLogOptions
     /// The maximum Number of entries that can be queued before blocking or discarding.
     /// </summary>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown when value is less than 1.</exception>
-    public int MaxQueueSize
+    public System.Int32 MaxQueueSize
     {
         get => _maxQueueSize;
         set
         {
             if (value < 1)
+            {
                 throw new System.ArgumentOutOfRangeException(
                     nameof(value), "Queue size must be at least 1");
+            }
 
             _maxQueueSize = value;
         }
@@ -84,10 +88,10 @@ public sealed class FileLogOptions
     /// <remarks>
     /// The actual filename may have additional information appended like date or sequence Number.
     /// </remarks>
-    public string LogFileName
+    public System.String LogFileName
     {
         get => _logFileName;
-        set => _logFileName = string.IsNullOrWhiteSpace(value)
+        set => _logFileName = System.String.IsNullOrWhiteSpace(value)
             ? $"log_{System.Environment.MachineName}_.log"
             : value;
     }
@@ -98,7 +102,7 @@ public sealed class FileLogOptions
     /// <remarks>
     /// If the directory doesn't exist, it will be created when logging starts.
     /// </remarks>
-    public string LogDirectory { get; set; } = DefaultLogDirectory;
+    public System.String LogDirectory { get; set; } = DefaultLogDirectory;
 
     /// <summary>
     /// Gets or sets the interval at which log entries are flushed to disk.
@@ -111,7 +115,7 @@ public sealed class FileLogOptions
     /// <summary>
     /// Gets or sets whether to include the date in log file names.
     /// </summary>
-    public bool IncludeDateInFileName { get; set; } = true;
+    public System.Boolean IncludeDateInFileName { get; set; } = true;
 
     /// <summary>
     /// A custom formatter for the log file name.
@@ -120,7 +124,7 @@ public sealed class FileLogOptions
     /// By providing a custom formatter, you can define your own criteria for generating log file names.
     /// This formatter is applied once when creating a new log file, not for every log entry.
     /// </remarks>
-    public System.Func<string, string>? FormatLogFileName { get; set; }
+    public System.Func<System.String, System.String>? FormatLogFileName { get; set; }
 
     /// <summary>
     /// A custom handler for file errors.
@@ -134,7 +138,7 @@ public sealed class FileLogOptions
     /// <summary>
     /// Gets or sets whether to use background thread for file operations.
     /// </summary>
-    public bool UseBackgroundThread { get; set; } = true;
+    public System.Boolean UseBackgroundThread { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the behavior when the queue is full.
@@ -143,7 +147,7 @@ public sealed class FileLogOptions
     /// When true, logging will block until queue space is available.
     /// When false, log entries will be discarded when the queue is full.
     /// </remarks>
-    public bool BlockWhenQueueFull { get; set; } = false;
+    public System.Boolean BlockWhenQueueFull { get; set; } = false;
 
     #endregion Properties
 
@@ -152,7 +156,7 @@ public sealed class FileLogOptions
     /// <summary>
     /// Gets full path to the current log file.
     /// </summary>
-    public string GetFullLogFilePath() => System.IO.Path.Combine(LogDirectory, LogFileName);
+    public System.String GetFullLogFilePath() => System.IO.Path.Combine(LogDirectory, LogFileName);
 
     #endregion Methods
 }

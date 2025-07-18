@@ -8,11 +8,11 @@ public sealed class ConsoleLogOptions
     /// <summary>
     /// Determines whether log messages should use color.
     /// </summary>
-    public bool EnableColors { get; init; } = true;
+    public System.Boolean EnableColors { get; init; } = true;
 
     /// <summary>
     /// Determines whether log messages should be written to standard error (stderr).
     /// Default is false (logs to stdout).
     /// </summary>
-    public bool UseStandardError { get; init; } = false;
+    public System.Boolean UseStandardError { get; init; } = false;
 }

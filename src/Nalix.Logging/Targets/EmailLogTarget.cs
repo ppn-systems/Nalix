@@ -17,7 +17,7 @@ public sealed class EmailLogTarget : ILoggerTarget, System.IDisposable
 
     private readonly System.Net.Mail.SmtpClient _smtpClient;
     private readonly EmailLogOptions _options;
-    private bool _disposed;
+    private System.Boolean _disposed;
 
     #endregion Fields
 
@@ -55,10 +55,10 @@ public sealed class EmailLogTarget : ILoggerTarget, System.IDisposable
     /// <exception cref="System.ArgumentNullException">Thrown if any required parameter is null or empty.</exception>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if port is out of the valid range (1-65535).</exception>
     public EmailLogTarget(
-        string smtpServer, int port,
-        string from, string to, string password,
+        System.String smtpServer, System.Int32 port,
+        System.String from, System.String to, System.String password,
         LogLevel minimumLevel = LogLevel.Error,
-        bool enableSsl = true, int timeout = 30000)
+        System.Boolean enableSsl = true, System.Int32 timeout = 30000)
         : this(new EmailLogOptions
         {
             SmtpServer = smtpServer,
@@ -89,7 +89,9 @@ public sealed class EmailLogTarget : ILoggerTarget, System.IDisposable
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(EmailLogTarget));
 
         if (entry.LogLevel < _options.MinimumLevel)
+        {
             return;
+        }
 
         using var mailMessage = CreateMailMessage(entry);
 
@@ -120,7 +122,10 @@ public sealed class EmailLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         _smtpClient?.Dispose();
         _disposed = true;
@@ -139,11 +144,11 @@ public sealed class EmailLogTarget : ILoggerTarget, System.IDisposable
     /// <returns>A formatted <see cref="System.Net.Mail.MailMessage"/> instance.</returns>
     private System.Net.Mail.MailMessage CreateMailMessage(LogEntry entry)
     {
-        string exceptionHtml = entry.Exception is not null
+        System.String exceptionHtml = entry.Exception is not null
                 ? $"<p><b>Exception:</b> <pre style='background:#f8f9fa; padding:10px;'>{entry.Exception}</pre></p>"
                 : "";
 
-        string htmlBody = string.Format(HtmlTemplate,
+        System.String htmlBody = System.String.Format(HtmlTemplate,
             entry.TimeStamp,
             GetLogLevelColor(entry.LogLevel),
             entry.LogLevel,
@@ -167,7 +172,7 @@ public sealed class EmailLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     /// <param name="level">The log level.</param>
     /// <returns>A hex color code associated with the log level.</returns>
-    private static string GetLogLevelColor(LogLevel level) => level switch
+    private static System.String GetLogLevelColor(LogLevel level) => level switch
     {
         LogLevel.Trace => "#6c757d",         // Gray
         LogLevel.Debug => "#007bff",         // Blue
@@ -178,7 +183,7 @@ public sealed class EmailLogTarget : ILoggerTarget, System.IDisposable
         _ => "#000000"                       // Black
     };
 
-    private const string HtmlTemplate = @"
+    private const System.String HtmlTemplate = @"
         <html>
         <body style='font-family: Arial, sans-serif; font-size: 14px;'>
             <h3 style='color: #333;'>Log Notification</h3>

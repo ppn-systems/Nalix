@@ -13,7 +13,7 @@ public sealed class BatchFileLogOptions
     /// <summary>
     /// Gets or sets the maximum number of log entries to store in the buffer before flushing.
     /// </summary>
-    public int MaxBufferSize { get; set; } = 100;
+    public System.Int32 MaxBufferSize { get; set; } = 100;
 
     /// <summary>
     /// Gets or sets the interval at which the buffer will be automatically flushed.

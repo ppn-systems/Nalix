@@ -10,10 +10,7 @@ public sealed class NLogOptions : System.IDisposable
     #region Fields
 
     private readonly ILogDistributor _publisher;
-    private int _disposed;
-
-    // Default values that can be customized
-    private LogLevel _minLevel = LogLevel.Trace;
+    private System.Int32 _disposed;
 
     #endregion Fields
 
@@ -27,36 +24,32 @@ public sealed class NLogOptions : System.IDisposable
     /// <summary>
     /// Gets or sets the minimum logging level. Messages below this level will be ignored.
     /// </summary>
-    public LogLevel MinLevel
-    {
-        get => _minLevel;
-        set => _minLevel = value;
-    }
+    public LogLevel MinLevel { get; set; } = LogLevel.Trace;
 
     /// <summary>
     /// Gets or sets whether to include machine name in log entries.
     /// </summary>
-    public bool IncludeMachineName { get; set; } = true;
+    public System.Boolean IncludeMachineName { get; set; } = true;
 
     /// <summary>
     /// Gets or sets whether to include process Number in log entries.
     /// </summary>
-    public bool IncludeProcessId { get; set; } = true;
+    public System.Boolean IncludeProcessId { get; set; } = true;
 
     /// <summary>
     /// Gets or sets whether to include timestamp in log entries.
     /// </summary>
-    public bool IncludeTimestamp { get; set; } = true;
+    public System.Boolean IncludeTimestamp { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the timestamp format for log entries.
     /// </summary>
-    public string TimestampFormat { get; set; } = "yyyy-MM-dd HH:mm:ss.fff";
+    public System.String TimestampFormat { get; set; } = "yyyy-MM-dd HH:mm:ss.fff";
 
     /// <summary>
     /// Gets or sets whether to use UTC time for timestamps.
     /// </summary>
-    public bool UseUtcTimestamp { get; set; } = true;
+    public System.Boolean UseUtcTimestamp { get; set; } = true;
 
     #endregion Properties
 
@@ -90,7 +83,7 @@ public sealed class NLogOptions : System.IDisposable
         System.ArgumentNullException.ThrowIfNull(target);
         this.ThrowIfDisposed();
 
-        _publisher.AddTarget(target);
+        _ = _publisher.AddTarget(target);
         return this;
     }
 
@@ -140,7 +133,9 @@ public sealed class NLogOptions : System.IDisposable
     {
         // Thread-safe disposal check
         if (System.Threading.Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
             return;
+        }
 
         try
         {

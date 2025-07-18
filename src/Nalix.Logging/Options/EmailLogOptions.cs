@@ -9,11 +9,11 @@ public sealed class EmailLogOptions
 {
     #region Fields
 
-    private int _port;
-    private string _to = null!;
-    private string _from = null!;
-    private string _password = null!;
-    private string _smtpServer = null!;
+    private System.Int32 _port;
+    private System.String _to = null!;
+    private System.String _from = null!;
+    private System.String _password = null!;
+    private System.String _smtpServer = null!;
 
     #endregion Fields
 
@@ -21,10 +21,10 @@ public sealed class EmailLogOptions
     /// Gets or sets the SMTP server address.
     /// </summary>
     /// <exception cref="System.ArgumentNullException">Thrown if the value is null or empty.</exception>
-    public string SmtpServer
+    public System.String SmtpServer
     {
         get => _smtpServer;
-        set => _smtpServer = string.IsNullOrWhiteSpace(value)
+        set => _smtpServer = System.String.IsNullOrWhiteSpace(value)
             ? throw new System.ArgumentNullException(nameof(SmtpServer), "SMTP server cannot be null or empty.")
             : value;
     }
@@ -33,7 +33,7 @@ public sealed class EmailLogOptions
     /// Gets or sets the SMTP server port.
     /// </summary>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if the value is not between 1 and 65535.</exception>
-    public int Port
+    public System.Int32 Port
     {
         get => _port;
         set => _port = value is < 1 or > 65535
@@ -45,10 +45,10 @@ public sealed class EmailLogOptions
     /// Gets or sets the sender's email address.
     /// </summary>
     /// <exception cref="System.ArgumentNullException">Thrown if the value is null or empty.</exception>
-    public string From
+    public System.String From
     {
         get => _from;
-        set => _from = string.IsNullOrWhiteSpace(value)
+        set => _from = System.String.IsNullOrWhiteSpace(value)
             ? throw new System.ArgumentNullException(nameof(From), "Sender email cannot be null or empty.")
             : value;
     }
@@ -57,10 +57,10 @@ public sealed class EmailLogOptions
     /// Gets or sets the recipient's email address.
     /// </summary>
     /// <exception cref="System.ArgumentNullException">Thrown if the value is null or empty.</exception>
-    public string To
+    public System.String To
     {
         get => _to;
-        set => _to = string.IsNullOrWhiteSpace(value)
+        set => _to = System.String.IsNullOrWhiteSpace(value)
             ? throw new System.ArgumentNullException(nameof(To), "Recipient email cannot be null or empty.")
             : value;
     }
@@ -69,10 +69,10 @@ public sealed class EmailLogOptions
     /// Gets or sets the password for authentication with the SMTP server.
     /// </summary>
     /// <exception cref="System.ArgumentNullException">Thrown if the value is null or empty.</exception>
-    public string Password
+    public System.String Password
     {
         get => _password;
-        set => _password = string.IsNullOrWhiteSpace(value)
+        set => _password = System.String.IsNullOrWhiteSpace(value)
             ? throw new System.ArgumentNullException(nameof(Password), "Password cannot be null or empty.")
             : value;
     }
@@ -87,11 +87,11 @@ public sealed class EmailLogOptions
     /// Gets or sets a value indicating whether SSL is enabled for the SMTP connection.
     /// Defaults to <c>true</c>.
     /// </summary>
-    public bool EnableSsl { get; set; } = true;
+    public System.Boolean EnableSsl { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the timeout for the SMTP operation in milliseconds.
     /// Defaults to 30,000 milliseconds (30 seconds).
     /// </summary>
-    public int Timeout { get; set; } = 30000;
+    public System.Int32 Timeout { get; set; } = 30000;
 }

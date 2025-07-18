@@ -14,11 +14,11 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     private readonly System.Collections.Concurrent.ConcurrentQueue<LogEntry> _queue = new();
     private readonly FileLogTarget _fileLoggingTarget;
     private readonly System.Threading.Timer _flushTimer;
-    private readonly int _maxBufferSize;
-    private readonly bool _autoFlush;
+    private readonly System.Int32 _maxBufferSize;
+    private readonly System.Boolean _autoFlush;
 
-    private int _count;
-    private volatile bool _disposed;
+    private System.Int32 _count;
+    private volatile System.Boolean _disposed;
 
     #endregion Fields
 
@@ -33,7 +33,7 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// <param name="autoFlush">Determines whether to automatically flush when the buffer is full.</param>
     public BatchFileLogTarget(
         FileLogTarget fileLoggingTarget, System.TimeSpan flushInterval,
-        int maxBufferSize = 100, bool autoFlush = true)
+        System.Int32 maxBufferSize = 100, System.Boolean autoFlush = true)
     {
         System.ArgumentNullException.ThrowIfNull(fileLoggingTarget);
         System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBufferSize);
@@ -76,10 +76,13 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// <param name="logMessage">The log entry to publish.</param>
     public void Publish(LogEntry logMessage)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         _queue.Enqueue(logMessage);
-        int currentCount = System.Threading.Interlocked.Increment(ref _count);
+        System.Int32 currentCount = System.Threading.Interlocked.Increment(ref _count);
 
         if (_autoFlush && currentCount >= _maxBufferSize)
         {
@@ -93,11 +96,17 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     public void Flush()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
-        while (_queue.TryDequeue(out LogEntry log)) _fileLoggingTarget.Publish(log);
+        while (_queue.TryDequeue(out LogEntry log))
+        {
+            _fileLoggingTarget.Publish(log);
+        }
 
-        System.Threading.Interlocked.Exchange(ref _count, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _count, 0);
     }
 
     #endregion Public Methods
@@ -126,7 +135,10 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         this.Flush();
 

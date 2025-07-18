@@ -42,10 +42,7 @@ public sealed class ConsoleLogTarget : ILoggerTarget
     /// </summary>
     /// <param name="options">The console logging options.</param>
     public ConsoleLogTarget(ConsoleLogOptions options)
-        : this(new LoggingFormatter(options.EnableColors))
-    {
-        _options = options;
-    }
+        : this(new LoggingFormatter(options.EnableColors)) => _options = options;
 
     #endregion Constructors
 
