@@ -41,8 +41,8 @@ public sealed partial class Connection : IConnection
             "Style", "IDE0290:UsePre primary constructor", Justification = "<Pending>")]
         public UdpTransport(Connection outer)
         {
-            _logger = outer._logger;
-            _endPoint = outer._endPoint;
+            this._logger = outer._logger;
+            this._endPoint = outer._endPoint;
         }
 
         #endregion Constructor
@@ -52,17 +52,17 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public bool Send(in IPacket packet)
+        public System.Boolean Send(in IPacket packet)
         {
             try
             {
                 if (packet is null)
                 {
-                    _logger?.Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
+                    this._logger?.Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
                     return false;
                 }
 
-                return Send(packet.Serialize().Span);
+                return this.Send(packet.Serialize().Span);
             }
             finally
             {
@@ -73,16 +73,20 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public bool Send(System.ReadOnlySpan<byte> message)
+        public System.Boolean Send(System.ReadOnlySpan<System.Byte> message)
         {
-            if (message.IsEmpty) return false;
-            if (_endPoint is null)
+            if (message.IsEmpty)
             {
-                _logger?.Warn($"[{nameof(Connection)}] Remote endpoint is null. Cannot send message.");
                 return false;
             }
 
-            int sentBytes = _socket.SendTo(message.ToArray(), _endPoint);
+            if (this._endPoint is null)
+            {
+                this._logger?.Warn($"[{nameof(Connection)}] Remote endpoint is null. Cannot send message.");
+                return false;
+            }
+
+            System.Int32 sentBytes = _socket.SendTo(message.ToArray(), this._endPoint);
             return sentBytes == message.Length;
         }
 
@@ -93,35 +97,39 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public async System.Threading.Tasks.Task<bool> SendAsync(
+        public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             IPacket packet,
             System.Threading.CancellationToken cancellationToken = default)
         {
             if (packet is null)
             {
-                _logger?.Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
+                this._logger?.Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
                 return false;
             }
 
-            return await SendAsync(packet.Serialize(), cancellationToken);
+            return await this.SendAsync(packet.Serialize(), cancellationToken);
         }
 
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public async System.Threading.Tasks.Task<bool> SendAsync(
-            System.ReadOnlyMemory<byte> message,
+        public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
+            System.ReadOnlyMemory<System.Byte> message,
             System.Threading.CancellationToken cancellationToken = default)
         {
-            if (message.IsEmpty) return false;
-            if (_endPoint is null)
+            if (message.IsEmpty)
             {
-                _logger?.Warn($"[{nameof(Connection)}] Remote endpoint is null. Cannot send message.");
                 return false;
             }
 
-            int sentBytes = await _socket.SendToAsync(
-                message.ToArray(), _endPoint, cancellationToken);
+            if (this._endPoint is null)
+            {
+                this._logger?.Warn($"[{nameof(Connection)}] Remote endpoint is null. Cannot send message.");
+                return false;
+            }
+
+            System.Int32 sentBytes = await _socket.SendToAsync(
+                message.ToArray(), this._endPoint, cancellationToken);
 
             return sentBytes == message.Length;
         }
@@ -143,12 +151,12 @@ public sealed partial class Connection : IConnection
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void BeginReceive(System.Threading.CancellationToken cancellationToken = default)
         {
-            System.ObjectDisposedException.ThrowIf(_outer._disposed, nameof(Connection));
+            System.ObjectDisposedException.ThrowIf(this._outer._disposed, nameof(Connection));
 
             using System.Threading.CancellationTokenSource linkedCts = System.Threading.CancellationTokenSource
-                .CreateLinkedTokenSource(cancellationToken, _outer._ctokens.Token);
+                .CreateLinkedTokenSource(cancellationToken, this._outer._ctokens.Token);
 
-            _outer._cstream.BeginReceive(linkedCts.Token);
+            this._outer._cstream.BeginReceive(linkedCts.Token);
         }
 
         #region Synchronous Methods
@@ -162,11 +170,11 @@ public sealed partial class Connection : IConnection
             {
                 if (packet is null)
                 {
-                    _outer._logger?.Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
+                    this._outer._logger?.Error($"[{nameof(Connection)}] Packet is null. Cannot send message.");
                     return false;
                 }
 
-                return Send(packet.Serialize().Span);
+                return this.Send(packet.Serialize().Span);
             }
             finally
             {
@@ -179,13 +187,13 @@ public sealed partial class Connection : IConnection
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public System.Boolean Send(System.ReadOnlySpan<System.Byte> message)
         {
-            if (_outer._cstream.Send(message))
+            if (this._outer._cstream.Send(message))
             {
-                _outer._onPostProcessEvent?.Invoke(this, new ConnectionEventArgs(_outer));
+                this._outer._onPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this._outer));
                 return true;
             }
 
-            _outer._logger?.Warn($"[{nameof(Connection)}] Failed to send message.");
+            this._outer._logger?.Warn($"[{nameof(Connection)}] Failed to send message.");
             return false;
         }
 
@@ -199,7 +207,7 @@ public sealed partial class Connection : IConnection
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             IPacket packet,
             System.Threading.CancellationToken cancellationToken = default)
-            => await SendAsync(packet.Serialize(), cancellationToken);
+            => await this.SendAsync(packet.Serialize(), cancellationToken);
 
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
@@ -208,13 +216,13 @@ public sealed partial class Connection : IConnection
             System.ReadOnlyMemory<System.Byte> message,
             System.Threading.CancellationToken cancellationToken = default)
         {
-            if (await _outer._cstream.SendAsync(message, cancellationToken))
+            if (await this._outer._cstream.SendAsync(message, cancellationToken))
             {
-                _outer._onPostProcessEvent?.Invoke(this, new ConnectionEventArgs(_outer));
+                this._outer._onPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this._outer));
                 return true;
             }
 
-            _outer._logger?.Warn($"[{nameof(Connection)}] Failed to send message asynchronously.");
+            this._outer._logger?.Warn($"[{nameof(Connection)}] Failed to send message asynchronously.");
             return false;
         }
 

@@ -12,10 +12,7 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
 {
     #region Fields
 
-    private TPacket _packet = default!;
-    private IConnection _connection = default!;
-    private PacketMetadata _descriptor;
-    private bool _isInitialized;
+    private System.Boolean _isInitialized;
 
     // Context state
     private readonly System.Collections.Generic.Dictionary<System.String, System.Object> _properties = [];
@@ -27,12 +24,9 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// <summary>
     /// Current packet being processed.
     /// </summary>
-    public TPacket Packet
-    {
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get => _packet;
-    }
+    public TPacket Packet { [System.Runtime.CompilerServices.MethodImpl(
+                                System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        get; private set; } = default!;
 
     /// <summary>
     /// Connection associated with packet.
@@ -40,9 +34,9 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     public IConnection Connection
     {
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get => _connection;
-    }
+                                        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        get; private set;
+    } = default!;
 
     /// <summary>
     /// Packet descriptor với attributes.
@@ -50,25 +44,23 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     public PacketMetadata Attributes
     {
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get => _descriptor;
+                                           System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        get; private set;
     }
 
     /// <summary>
     /// Properties dictionary để middleware có thể share data.
     /// </summary>
     public System.Collections.Generic.IDictionary<System.String, System.Object> Properties
-        => _properties;
+        => this._properties;
 
     #endregion Properties
 
     #region Constructor
 
-    static PacketContext()
-    {
+    static PacketContext() =>
         // Register pool for PacketContext<TPacket>
         ObjectPoolManager.Instance.Prealloc<PacketContext<TPacket>>(10);
-    }
 
     /// <summary>
     /// Default constructor cho pooling.
@@ -79,10 +71,7 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// <summary>
     /// Constructor với initial values.
     /// </summary>
-    public PacketContext(TPacket packet, IConnection connection)
-    {
-        Initialize(packet, connection, default);
-    }
+    public PacketContext(TPacket packet, IConnection connection) => this.Initialize(packet, connection, default);
 
     #endregion Constructor
 
@@ -95,10 +84,10 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal void Initialize(TPacket packet, IConnection connection, PacketMetadata descriptor)
     {
-        _packet = packet;
-        _connection = connection;
-        _descriptor = descriptor;
-        _isInitialized = true;
+        this.Packet = packet;
+        this.Connection = connection;
+        this.Attributes = descriptor;
+        this._isInitialized = true;
     }
 
     /// <summary>
@@ -108,51 +97,37 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal void Reset()
     {
-        _packet = default!;
-        _connection = default!;
-        _descriptor = default;
-        _isInitialized = false;
-        _properties.Clear();
+        this.Packet = default!;
+        this.Connection = default!;
+        this.Attributes = default;
+        this._isInitialized = false;
+        this._properties.Clear();
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal void SetPacket(TPacket packet)
-    {
-        _packet = packet;
-    }
+    internal void SetPacket(TPacket packet) => this.Packet = packet;
 
     /// <summary>
     /// Set property value.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void SetProperty<T>(System.String key, T value) where T : notnull
-    {
-        _properties[key] = value;
-    }
+    public void SetProperty<T>(System.String key, T value) where T : notnull => this._properties[key] = value;
 
     /// <summary>
     /// Get property value.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public T? GetProperty<T>(System.String key) where T : class
-    {
-        return _properties.TryGetValue(key, out var value) ? value as T : null;
-    }
+    public T? GetProperty<T>(System.String key) where T : class => this._properties.TryGetValue(key, out var value) ? value as T : null;
 
     /// <summary>
     /// Get value type property.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public T GetValueProperty<T>(System.String key, T defaultValue = default) where T : struct
-    {
-        if (_properties.TryGetValue(key, out var value) && value is T typedValue)
-            return typedValue;
-        return defaultValue;
-    }
+    public T GetValueProperty<T>(System.String key, T defaultValue = default) where T : struct => this._properties.TryGetValue(key, out var value) && value is T typedValue ? typedValue : defaultValue;
 
     #endregion Methods
 
@@ -163,7 +138,7 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// </summary>
     public void ResetForPool()
     {
-        if (_isInitialized)
+        if (this._isInitialized)
         {
             this.Reset();
         }
@@ -174,7 +149,7 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// </summary>
     public void Dispose()
     {
-        if (_isInitialized)
+        if (this._isInitialized)
         {
             this.Reset();
         }

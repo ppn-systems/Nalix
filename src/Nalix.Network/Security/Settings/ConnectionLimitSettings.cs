@@ -10,17 +10,17 @@ public readonly struct ConnectionLimitSettings
     /// <summary>
     /// Gets the maximum Number of connections allowed.
     /// </summary>
-    public int MaxConnections { get; }
+    public Int32 MaxConnections { get; }
 
     /// <summary>
     /// Gets the interval in milliseconds at which to perform cleanup operations.
     /// </summary>
-    public int CleanupIntervalMs { get; }
+    public Int32 CleanupIntervalMs { get; }
 
     /// <summary>
     /// Gets the threshold in milliseconds for determining inactivity.
     /// </summary>
-    public int InactivityThresholdMs { get; }
+    public Int32 InactivityThresholdMs { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionLimitSettings"/> struct.
@@ -29,23 +29,31 @@ public readonly struct ConnectionLimitSettings
     /// <param name="cleanupIntervalMs">The interval in milliseconds for cleanup.</param>
     /// <param name="inactivityThresholdMs">The inactivity threshold in milliseconds.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if any value is invalid.</exception>
-    public ConnectionLimitSettings(int maxConnections, int cleanupIntervalMs, int inactivityThresholdMs)
+    public ConnectionLimitSettings(Int32 maxConnections, Int32 cleanupIntervalMs, Int32 inactivityThresholdMs)
     {
         if (maxConnections < 1)
+        {
             throw new ArgumentOutOfRangeException(nameof(maxConnections), "MaxConnections must be at least 1.");
-        if (cleanupIntervalMs < 1000)
-            throw new ArgumentOutOfRangeException(nameof(cleanupIntervalMs), "CleanupIntervalMs must be at least 1000ms.");
-        if (inactivityThresholdMs < 1000)
-            throw new ArgumentOutOfRangeException(nameof(inactivityThresholdMs), "InactivityThresholdMs must be at least 1000ms.");
+        }
 
-        MaxConnections = maxConnections;
-        CleanupIntervalMs = cleanupIntervalMs;
-        InactivityThresholdMs = inactivityThresholdMs;
+        if (cleanupIntervalMs < 1000)
+        {
+            throw new ArgumentOutOfRangeException(nameof(cleanupIntervalMs), "CleanupIntervalMs must be at least 1000ms.");
+        }
+
+        if (inactivityThresholdMs < 1000)
+        {
+            throw new ArgumentOutOfRangeException(nameof(inactivityThresholdMs), "InactivityThresholdMs must be at least 1000ms.");
+        }
+
+        this.MaxConnections = maxConnections;
+        this.CleanupIntervalMs = cleanupIntervalMs;
+        this.InactivityThresholdMs = inactivityThresholdMs;
     }
 
     /// <summary>
     /// Returns a string representation of the settings.
     /// </summary>
-    public override string ToString() =>
-        $"Connections: {MaxConnections}, CleanupInterval: {CleanupIntervalMs}ms, InactivityThreshold: {InactivityThresholdMs}ms";
+    public override String ToString() =>
+        $"Connections: {this.MaxConnections}, CleanupInterval: {this.CleanupIntervalMs}ms, InactivityThreshold: {this.InactivityThresholdMs}ms";
 }

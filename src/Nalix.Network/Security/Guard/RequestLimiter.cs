@@ -24,9 +24,9 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     private readonly ILogger? _logger;
     private readonly System.Threading.Timer _cleanupTimer;
     private readonly RequestRateLimitOptions _config;
-    private readonly long _timeWindowTicks;
-    private readonly long _lockoutDurationTicks;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, RequestLimiterInfo> _ipData;
+    private readonly System.Int64 _timeWindowTicks;
+    private readonly System.Int64 _lockoutDurationTicks;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, RequestLimiterInfo> _ipData;
 
     // Async fields
     private readonly System.Threading.Channels.Channel<CleanupRequest> _cleanupChannel;
@@ -34,8 +34,8 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     private readonly System.Threading.Tasks.Task _cleanupTask;
     private readonly System.Threading.CancellationTokenSource _cancellationTokenSource;
 
-    private bool _disposed;
-    private int _cleanupRunning;
+    private System.Boolean _disposed;
+    private System.Int32 _cleanupRunning;
 
     #endregion Fields
 
@@ -51,17 +51,17 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// </exception>
     public RequestLimiter(RequestRateLimitOptions? config = null, ILogger? logger = null)
     {
-        _logger = logger;
-        _config = config ?? ConfigurationStore.Instance.Get<RequestRateLimitOptions>();
+        this._logger = logger;
+        this._config = config ?? ConfigurationStore.Instance.Get<RequestRateLimitOptions>();
 
-        ValidateConfiguration(_config);
+        ValidateConfiguration(this._config);
 
-        _ipData = new System.Collections.Concurrent.ConcurrentDictionary<string, RequestLimiterInfo>();
-        _timeWindowTicks = System.TimeSpan.FromMilliseconds(_config.TimeWindowInMilliseconds).Ticks;
-        _lockoutDurationTicks = System.TimeSpan.FromSeconds(_config.LockoutDurationSeconds).Ticks;
+        this._ipData = new System.Collections.Concurrent.ConcurrentDictionary<System.String, RequestLimiterInfo>();
+        this._timeWindowTicks = System.TimeSpan.FromMilliseconds(this._config.TimeWindowInMilliseconds).Ticks;
+        this._lockoutDurationTicks = System.TimeSpan.FromSeconds(this._config.LockoutDurationSeconds).Ticks;
 
         // Initialize async components
-        _cancellationTokenSource = new System.Threading.CancellationTokenSource();
+        this._cancellationTokenSource = new System.Threading.CancellationTokenSource();
 
         var channelOptions = new System.Threading.Channels.BoundedChannelOptions(1000)
         {
@@ -70,18 +70,18 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             SingleWriter = false
         };
 
-        _cleanupChannel = System.Threading.Channels.Channel.CreateBounded<CleanupRequest>(channelOptions);
-        _cleanupWriter = _cleanupChannel.Writer;
+        this._cleanupChannel = System.Threading.Channels.Channel.CreateBounded<CleanupRequest>(channelOptions);
+        this._cleanupWriter = this._cleanupChannel.Writer;
 
         // Start background cleanup task
-        _cleanupTask = ProcessCleanupRequestsAsync(_cancellationTokenSource.Token);
+        this._cleanupTask = this.ProcessCleanupRequestsAsync(this._cancellationTokenSource.Token);
 
         // Keep original timer as fallback
-        _cleanupTimer = new System.Threading.Timer(static s
+        this._cleanupTimer = new System.Threading.Timer(static s
             => ((RequestLimiter)s!).TriggerCleanupAsync(), this, System.TimeSpan.FromMinutes(1), System.TimeSpan.FromMinutes(1));
 
-        _logger?.Debug("RequestLimiter initialized with async support - maxRequests={0}, timeWindow={1}ms, lockout={2}s",
-            _config.MaxAllowedRequests, _config.TimeWindowInMilliseconds, _config.LockoutDurationSeconds);
+        this._logger?.Debug("RequestLimiter initialized with async support - maxRequests={0}, timeWindow={1}ms, lockout={2}s",
+            this._config.MaxAllowedRequests, this._config.TimeWindowInMilliseconds, this._config.LockoutDurationSeconds);
     }
 
     /// <summary>
@@ -107,10 +107,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Synchronous version - for backward compatibility
     /// </summary>
-    public bool CheckLimit([System.Diagnostics.CodeAnalysis.NotNull] string endPoint)
-    {
-        return CheckLimitAsync(endPoint).AsTask().GetAwaiter().GetResult();
-    }
+    public System.Boolean CheckLimit([System.Diagnostics.CodeAnalysis.NotNull] System.String endPoint) => this.CheckLimitAsync(endPoint).AsTask().GetAwaiter().GetResult();
 
     /// <summary>
     /// Asynchronously checks the number of requests from an IP address and determines whether further requests are allowed.
@@ -120,36 +117,38 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <returns>A task representing the async operation with result: true if request is accepted, false if rejected.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public async System.Threading.Tasks.ValueTask<bool> CheckLimitAsync(
+    public async System.Threading.Tasks.ValueTask<System.Boolean> CheckLimitAsync(
         [System.Diagnostics.CodeAnalysis.NotNull]
-        string endPoint,
+        System.String endPoint,
         System.Threading.CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(RequestLimiter));
+        System.ObjectDisposedException.ThrowIf(this._disposed, nameof(RequestLimiter));
 
-        if (string.IsNullOrWhiteSpace(endPoint))
+        if (System.String.IsNullOrWhiteSpace(endPoint))
+        {
             throw new InternalErrorException("EndPoint cannot be null or whitespace", nameof(endPoint));
+        }
 
         // Fast path - synchronous check
-        long current = System.Diagnostics.Stopwatch.GetTimestamp();
-        var data = _ipData.AddOrUpdate(
+        System.Int64 current = System.Diagnostics.Stopwatch.GetTimestamp();
+        var data = this._ipData.AddOrUpdate(
             endPoint,
             _ => new RequestLimiterInfo(current),
-            (_, existing) => existing.Process(current, _config.MaxAllowedRequests, _timeWindowTicks, _lockoutDurationTicks)
+            (_, existing) => existing.Process(current, this._config.MaxAllowedRequests, this._timeWindowTicks, this._lockoutDurationTicks)
         );
 
-        bool allowed = data.BlockedUntilTicks < current;
+        System.Boolean allowed = data.BlockedUntilTicks < current;
 
         // Async logging to avoid blocking
-        if (_logger is not null)
+        if (this._logger is not null)
         {
-            _ = System.Threading.Tasks.Task.Run(() => LogRequestResultAsync(endPoint, allowed, data.LastRequestTicks), cancellationToken);
+            _ = System.Threading.Tasks.Task.Run(() => this.LogRequestResultAsync(endPoint, allowed, data.LastRequestTicks), cancellationToken);
         }
 
         // Trigger async cleanup if needed
-        if (ShouldTriggerCleanup())
+        if (this.ShouldTriggerCleanup())
         {
-            await TriggerCleanupAsync(cancellationToken).ConfigureAwait(false);
+            await this.TriggerCleanupAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return allowed;
@@ -158,18 +157,18 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Bulk check for multiple endpoints - useful for batch processing
     /// </summary>
-    public async System.Threading.Tasks.Task<System.Collections.Generic.Dictionary<string, bool>> CheckLimitsAsync(
-        System.Collections.Generic.IEnumerable<string> endPoints,
+    public async System.Threading.Tasks.Task<System.Collections.Generic.Dictionary<System.String, System.Boolean>> CheckLimitsAsync(
+        System.Collections.Generic.IEnumerable<System.String> endPoints,
         System.Threading.CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(RequestLimiter));
+        System.ObjectDisposedException.ThrowIf(this._disposed, nameof(RequestLimiter));
 
-        var results = new System.Collections.Generic.Dictionary<string, bool>();
-        var tasks = new System.Collections.Generic.List<System.Threading.Tasks.Task<System.Collections.Generic.KeyValuePair<string, bool>>>();
+        var results = new System.Collections.Generic.Dictionary<System.String, System.Boolean>();
+        var tasks = new System.Collections.Generic.List<System.Threading.Tasks.Task<System.Collections.Generic.KeyValuePair<System.String, System.Boolean>>>();
 
         foreach (var endPoint in endPoints)
         {
-            var task = ProcessSingleEndPointAsync(endPoint, cancellationToken);
+            var task = this.ProcessSingleEndPointAsync(endPoint, cancellationToken);
             tasks.Add(task);
         }
 
@@ -188,23 +187,25 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// </summary>
     public async System.Threading.Tasks.Task<RequestLimiterStatistics> GetStatisticsAsync(System.Threading.CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(RequestLimiter));
+        System.ObjectDisposedException.ThrowIf(this._disposed, nameof(RequestLimiter));
 
         await System.Threading.Tasks.Task.Yield(); // Make it properly async
 
-        long current = System.Diagnostics.Stopwatch.GetTimestamp();
-        int totalTrackedIPs = _ipData.Count;
-        int blockedIPs = 0;
-        int activeRequests = 0;
+        System.Int64 current = System.Diagnostics.Stopwatch.GetTimestamp();
+        System.Int32 totalTrackedIPs = this._ipData.Count;
+        System.Int32 blockedIPs = 0;
+        System.Int32 activeRequests = 0;
 
         await System.Threading.Tasks.Task.Run(() =>
         {
-            foreach (var info in _ipData.Values)
+            foreach (var info in this._ipData.Values)
             {
                 if (info.BlockedUntilTicks >= current)
-                    System.Threading.Interlocked.Increment(ref blockedIPs);
+                {
+                    _ = System.Threading.Interlocked.Increment(ref blockedIPs);
+                }
 
-                System.Threading.Interlocked.Add(ref activeRequests, info.RequestCount);
+                _ = System.Threading.Interlocked.Add(ref activeRequests, info.RequestCount);
             }
         }, cancellationToken).ConfigureAwait(false);
 
@@ -213,7 +214,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             TotalTrackedIPs = totalTrackedIPs,
             BlockedIPs = blockedIPs,
             ActiveRequests = activeRequests,
-            Configuration = _config
+            Configuration = this._config
         };
     }
 
@@ -222,9 +223,9 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// </summary>
     public async System.Threading.Tasks.Task TriggerManualCleanupAsync(System.Threading.CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(RequestLimiter));
+        System.ObjectDisposedException.ThrowIf(this._disposed, nameof(RequestLimiter));
 
-        await TriggerCleanupAsync(cancellationToken).ConfigureAwait(false);
+        await this.TriggerCleanupAsync(cancellationToken).ConfigureAwait(false);
     }
 
     #endregion Public Methods
@@ -234,18 +235,18 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Processes a single endpoint asynchronously
     /// </summary>
-    private async System.Threading.Tasks.Task<System.Collections.Generic.KeyValuePair<string, bool>> ProcessSingleEndPointAsync(
-        string endPoint,
+    private async System.Threading.Tasks.Task<System.Collections.Generic.KeyValuePair<System.String, System.Boolean>> ProcessSingleEndPointAsync(
+        System.String endPoint,
         System.Threading.CancellationToken cancellationToken)
     {
-        var result = await CheckLimitAsync(endPoint, cancellationToken).ConfigureAwait(false);
-        return new System.Collections.Generic.KeyValuePair<string, bool>(endPoint, result);
+        var result = await this.CheckLimitAsync(endPoint, cancellationToken).ConfigureAwait(false);
+        return new System.Collections.Generic.KeyValuePair<System.String, System.Boolean>(endPoint, result);
     }
 
     /// <summary>
     /// Async logging to avoid blocking main thread
     /// </summary>
-    private async System.Threading.Tasks.Task LogRequestResultAsync(string endPoint, bool allowed, long lastRequestTicks)
+    private async System.Threading.Tasks.Task LogRequestResultAsync(System.String endPoint, System.Boolean allowed, System.Int64 lastRequestTicks)
     {
         try
         {
@@ -255,16 +256,16 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
 
             if (allowed)
             {
-                _logger?.Debug("Request from {0} allowed, elapsed: {1:g}", endPoint, elapsed);
+                this._logger?.Debug("Request from {0} allowed, elapsed: {1:g}", endPoint, elapsed);
             }
             else
             {
-                _logger?.Warn("Request from {0} blocked, elapsed: {1:g}", endPoint, elapsed);
+                this._logger?.Warn("Request from {0} blocked, elapsed: {1:g}", endPoint, elapsed);
             }
         }
         catch (System.Exception ex)
         {
-            _logger?.Error("Async logging failed: {0}", ex.Message);
+            this._logger?.Error("Async logging failed: {0}", ex.Message);
         }
     }
 
@@ -272,11 +273,9 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// Determines if cleanup should be triggered
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private bool ShouldTriggerCleanup()
-    {
+    private System.Boolean ShouldTriggerCleanup() =>
         // Trigger cleanup when we have too many tracked IPs
-        return _ipData.Count > _config.MaxAllowedRequests * 10;
-    }
+        this._ipData.Count > this._config.MaxAllowedRequests * 10;
 
     /// <summary>
     /// Triggers async cleanup
@@ -286,7 +285,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         try
         {
             var cleanupRequest = new CleanupRequest(System.Diagnostics.Stopwatch.GetTimestamp());
-            await _cleanupWriter.WriteAsync(cleanupRequest, cancellationToken).ConfigureAwait(false);
+            await this._cleanupWriter.WriteAsync(cleanupRequest, cancellationToken).ConfigureAwait(false);
         }
         catch (System.OperationCanceledException)
         {
@@ -294,28 +293,25 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         }
         catch (System.Exception ex)
         {
-            _logger?.Error("Failed to trigger async cleanup: {0}", ex.Message);
+            this._logger?.Error("Failed to trigger async cleanup: {0}", ex.Message);
         }
     }
 
     /// <summary>
     /// Timer callback for triggering async cleanup
     /// </summary>
-    private async void TriggerCleanupAsync()
-    {
-        await TriggerCleanupAsync(_cancellationTokenSource.Token);
-    }
+    private async void TriggerCleanupAsync() => await this.TriggerCleanupAsync(this._cancellationTokenSource.Token);
 
     /// <summary>
     /// Background task for processing cleanup requests
     /// </summary>
     private async System.Threading.Tasks.Task ProcessCleanupRequestsAsync(System.Threading.CancellationToken cancellationToken)
     {
-        await foreach (var request in _cleanupChannel.Reader.ReadAllAsync(cancellationToken))
+        await foreach (var request in this._cleanupChannel.Reader.ReadAllAsync(cancellationToken))
         {
             try
             {
-                await PerformCleanupAsync(request.Timestamp, cancellationToken).ConfigureAwait(false);
+                await this.PerformCleanupAsync(request.Timestamp, cancellationToken).ConfigureAwait(false);
             }
             catch (System.OperationCanceledException)
             {
@@ -323,7 +319,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             }
             catch (System.Exception ex)
             {
-                _logger?.Error("Async cleanup failed: {0}", ex.Message);
+                this._logger?.Error("Async cleanup failed: {0}", ex.Message);
             }
         }
     }
@@ -331,25 +327,27 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Performs the actual cleanup operation asynchronously
     /// </summary>
-    private async System.Threading.Tasks.Task PerformCleanupAsync(long currentTimestamp, System.Threading.CancellationToken cancellationToken)
+    private async System.Threading.Tasks.Task PerformCleanupAsync(System.Int64 currentTimestamp, System.Threading.CancellationToken cancellationToken)
     {
-        if (_disposed || System.Threading.Interlocked.Exchange(ref _cleanupRunning, 1) == 1)
+        if (this._disposed || System.Threading.Interlocked.Exchange(ref this._cleanupRunning, 1) == 1)
+        {
             return;
+        }
 
         try
         {
             await System.Threading.Tasks.Task.Yield(); // Ensure we're on background thread
 
-            var toRemove = new System.Collections.Generic.List<string>();
+            var toRemove = new System.Collections.Generic.List<System.String>();
             var processedCount = 0;
-            const int batchSize = 100;
+            const System.Int32 batchSize = 100;
 
-            foreach (var kvp in _ipData)
+            foreach (var kvp in this._ipData)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var (ip, info) = kvp;
-                info.Cleanup(currentTimestamp, _timeWindowTicks);
+                info.Cleanup(currentTimestamp, this._timeWindowTicks);
 
                 if (info.RequestCount == 0 && info.BlockedUntilTicks < currentTimestamp)
                 {
@@ -369,7 +367,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             var removedCount = 0;
             foreach (var key in toRemove)
             {
-                if (_ipData.TryRemove(key, out _))
+                if (this._ipData.TryRemove(key, out _))
                 {
                     removedCount++;
                 }
@@ -380,12 +378,12 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
                 }
             }
 
-            _logger?.Debug("Async cleanup processed {0} IPs, removed {1} inactive IPs",
+            this._logger?.Debug("Async cleanup processed {0} IPs, removed {1} inactive IPs",
                           processedCount, removedCount);
         }
         finally
         {
-            System.Threading.Interlocked.Exchange(ref _cleanupRunning, 0);
+            _ = System.Threading.Interlocked.Exchange(ref this._cleanupRunning, 0);
         }
     }
 
@@ -395,11 +393,19 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     private static void ValidateConfiguration(RequestRateLimitOptions config)
     {
         if (config.MaxAllowedRequests <= 0)
+        {
             throw new InternalErrorException("MaxAllowedRequests must be greater than 0");
+        }
+
         if (config.LockoutDurationSeconds <= 0)
+        {
             throw new InternalErrorException("LockoutDurationSeconds must be greater than 0");
+        }
+
         if (config.TimeWindowInMilliseconds <= 0)
+        {
             throw new InternalErrorException("TimeWindowInMilliseconds must be greater than 0");
+        }
     }
 
     /// <summary>
@@ -420,7 +426,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Request for cleanup operation
     /// </summary>
-    private readonly record struct CleanupRequest(long Timestamp);
+    private readonly record struct CleanupRequest(System.Int64 Timestamp);
 
     /// <summary>
     /// Represents statistics related to the request limiter system,
@@ -431,17 +437,17 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         /// <summary>
         /// Gets the total number of IP addresses currently being tracked.
         /// </summary>
-        public int TotalTrackedIPs { get; init; }
+        public System.Int32 TotalTrackedIPs { get; init; }
 
         /// <summary>
         /// Gets the number of IP addresses that are currently blocked due to rate limits.
         /// </summary>
-        public int BlockedIPs { get; init; }
+        public System.Int32 BlockedIPs { get; init; }
 
         /// <summary>
         /// Gets the number of active ongoing requests being handled at this moment.
         /// </summary>
-        public int ActiveRequests { get; init; }
+        public System.Int32 ActiveRequests { get; init; }
 
         /// <summary>
         /// Gets the configuration used for rate limiting evaluation.
@@ -455,40 +461,40 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     #region IDisposable & IAsyncDisposable
 
     /// <inheritdoc />
-    public void Dispose()
-    {
-        DisposeAsync().AsTask().GetAwaiter().GetResult();
-    }
+    public void Dispose() => this.DisposeAsync().AsTask().GetAwaiter().GetResult();
 
     /// <inheritdoc />
     public async System.Threading.Tasks.ValueTask DisposeAsync()
     {
-        if (_disposed) return;
+        if (this._disposed)
+        {
+            return;
+        }
 
-        _disposed = true;
+        this._disposed = true;
 
         // Cancel all operations
-        _cancellationTokenSource.Cancel();
+        this._cancellationTokenSource.Cancel();
 
         // Complete the cleanup channel
-        _cleanupWriter.Complete();
+        this._cleanupWriter.Complete();
 
         try
         {
             // Wait for cleanup task to complete
-            await _cleanupTask.WaitAsync(System.TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+            await this._cleanupTask.WaitAsync(System.TimeSpan.FromSeconds(5)).ConfigureAwait(false);
         }
         catch (System.TimeoutException)
         {
-            _logger?.Warn("Cleanup task did not complete within timeout");
+            this._logger?.Warn("Cleanup task did not complete within timeout");
         }
 
         // Dispose resources
-        _cleanupTimer.Dispose();
-        _cancellationTokenSource.Dispose();
-        _ipData.Clear();
+        this._cleanupTimer.Dispose();
+        this._cancellationTokenSource.Dispose();
+        this._ipData.Clear();
 
-        _logger?.Debug("RequestLimiter disposed asynchronously");
+        this._logger?.Debug("RequestLimiter disposed asynchronously");
     }
 
     #endregion IDisposable & IAsyncDisposable

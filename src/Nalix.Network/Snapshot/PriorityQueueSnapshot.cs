@@ -8,25 +8,25 @@ public record PriorityQueueSnapshot
     /// <summary>
     /// Gets the total number of packets that have been enqueued since the queue was created.
     /// </summary>
-    public int TotalEnqueued { get; init; }
+    public System.Int32 TotalEnqueued { get; init; }
 
     /// <summary>
     /// Gets the total number of packets that have been dequeued and processed.
     /// </summary>
-    public int TotalDequeued { get; init; }
+    public System.Int32 TotalDequeued { get; init; }
 
     /// <summary>
     /// Gets the current number of packets in the queue.
     /// </summary>
-    public int PendingPackets { get; init; }
+    public System.Int32 PendingPackets { get; init; }
 
     /// <summary>
     /// Gets the total number of packets that have expired and were removed from the queue without processing.
     /// </summary>
-    public int TotalExpiredPackets { get; init; }
+    public System.Int32 TotalExpiredPackets { get; init; }
 
     /// <summary>
     /// Gets the total number of packets that were rejected or identified as invalid upon enqueue.
     /// </summary>
-    public int TotalRejectedPackets { get; init; }
+    public System.Int32 TotalRejectedPackets { get; init; }
 }

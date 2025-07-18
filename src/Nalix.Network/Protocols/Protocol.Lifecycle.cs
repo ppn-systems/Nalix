@@ -18,8 +18,8 @@ public abstract partial class Protocol
     /// </summary>
     public virtual System.Boolean KeepConnectionOpen
     {
-        get => System.Threading.Interlocked.CompareExchange(ref _keepConnectionOpen, 0, 0) == 1;
-        protected set => System.Threading.Interlocked.Exchange(ref _keepConnectionOpen, value ? 1 : 0);
+        get => System.Threading.Interlocked.CompareExchange(ref this._keepConnectionOpen, 0, 0) == 1;
+        protected set => System.Threading.Interlocked.Exchange(ref this._keepConnectionOpen, value ? 1 : 0);
     }
 
     #endregion Properties
@@ -41,12 +41,14 @@ public abstract partial class Protocol
     /// <param name="disposing">True if called from Dispose, false if called from finalizer.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected virtual void Dispose(bool disposing)
+    protected virtual void Dispose(System.Boolean disposing)
     {
-        if (_isDisposed)
+        if (this._isDisposed)
+        {
             return;
+        }
 
-        _isDisposed = true;
+        this._isDisposed = true;
 
         // Optional: clean up managed resources if (disposing)
     }

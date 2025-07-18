@@ -11,22 +11,22 @@ public sealed class DispatchQueueOptions : ConfigurationLoader
     /// <summary>
     /// Maximum number of packets in the queue (0 = unlimited)
     /// </summary>
-    public int MaxCapacity { get; set; } = 0;
+    public System.Int32 MaxCapacity { get; set; } = 0;
 
     /// <summary>
     /// Collect detailed statistics
     /// </summary>
-    public bool EnableMetrics { get; set; } = false;
+    public System.Boolean EnableMetrics { get; set; } = false;
 
     /// <summary>
     /// Check packet validity when dequeuing
     /// </summary>
-    public bool EnableValidation { get; set; } = true;
+    public System.Boolean EnableValidation { get; set; } = true;
 
     /// <summary>
     /// Maximum time a packet is allowed to exist in the queue
     /// </summary>
-    public int TimeoutSeconds { get; set; } = 60;
+    public System.Int32 TimeoutSeconds { get; set; } = 60;
 
     /// <summary>
     /// Maximum time a packet is allowed to exist in the queue
@@ -37,10 +37,7 @@ public sealed class DispatchQueueOptions : ConfigurationLoader
     /// <summary>
     /// Initializes a new instance of the <see cref="DispatchQueueOptions"/> class with default values.
     /// </summary>
-    public DispatchQueueOptions()
-    {
-        this.Timeout = System.TimeSpan.FromSeconds(this.TimeoutSeconds);
-    }
+    public DispatchQueueOptions() => this.Timeout = System.TimeSpan.FromSeconds(this.TimeoutSeconds);
 
     /// <remarks>
     /// Initializes a new instance of <see cref="DispatchQueueOptions"/>.
@@ -50,8 +47,8 @@ public sealed class DispatchQueueOptions : ConfigurationLoader
     /// <param name="enableMetrics">Indicates whether detailed statistics should be collected.</param>
     /// <param name="timeout">Maximum time a packet is allowed to exist in the queue.</param>
     public DispatchQueueOptions(
-        int maxCapacity = 0, System.TimeSpan? timeout = null,
-        bool enableValidation = true, bool enableMetrics = false)
+        System.Int32 maxCapacity = 0, System.TimeSpan? timeout = null,
+        System.Boolean enableValidation = true, System.Boolean enableMetrics = false)
     {
         this.MaxCapacity = maxCapacity;
         this.EnableMetrics = enableMetrics;

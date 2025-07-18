@@ -19,10 +19,10 @@ public abstract partial class Listener : IListener, System.IDisposable
 {
     #region Constants
 
-    private const int SocketBacklog = 100;
-    private const int MaxSimultaneousAccepts = 32;
-    private const int AcceptDelay = 10; // Milliseconds
-    private const int MinWorkerThreads = 4;
+    private const System.Int32 SocketBacklog = 100;
+    private const System.Int32 MaxSimultaneousAccepts = 32;
+    private const System.Int32 AcceptDelay = 10; // Milliseconds
+    private const System.Int32 MinWorkerThreads = 4;
 
     #endregion Constants
 
@@ -42,8 +42,8 @@ public abstract partial class Listener : IListener, System.IDisposable
     private System.Threading.CancellationTokenSource? _cts;
     private System.Threading.CancellationToken _cancellationToken;
 
-    private volatile bool _isDisposed = false;
-    private volatile bool _isRunning = false;
+    private volatile System.Boolean _isDisposed = false;
+    private volatile System.Boolean _isRunning = false;
 
     #endregion Fields
 
@@ -52,19 +52,22 @@ public abstract partial class Listener : IListener, System.IDisposable
     /// <summary>
     /// Gets the current state of the listener.
     /// </summary>
-    public bool IsListening => _isRunning;
+    public System.Boolean IsListening => this._isRunning;
 
     /// <summary>
     /// Enables or disables the update loop for the listener.
     /// </summary>
-    public bool IsTimeSyncEnabled
+    public System.Boolean IsTimeSyncEnabled
     {
-        get => _timeSyncWorker.IsTimeSyncEnabled;
+        get => this._timeSyncWorker.IsTimeSyncEnabled;
         set
         {
-            if (_isRunning)
+            if (this._isRunning)
+            {
                 throw new System.InvalidOperationException("Cannot change IsTimeSyncEnabled while listening.");
-            _timeSyncWorker.IsTimeSyncEnabled = value;
+            }
+
+            this._timeSyncWorker.IsTimeSyncEnabled = value;
         }
     }
 
@@ -82,21 +85,21 @@ public abstract partial class Listener : IListener, System.IDisposable
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
     /// <param name="logger">The logger to log events and errors.</param>
-    protected Listener(ushort port, IProtocol protocol, IBufferPool bufferPool, ILogger logger)
+    protected Listener(System.UInt16 port, IProtocol protocol, IBufferPool bufferPool, ILogger logger)
     {
         System.ArgumentNullException.ThrowIfNull(logger, nameof(logger));
         System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
         System.ArgumentNullException.ThrowIfNull(bufferPool, nameof(bufferPool));
 
-        _port = port;
-        _logger = logger;
-        _protocol = protocol;
-        _bufferPool = bufferPool;
-        _connectionLimiter = new ConnectionLimiter(logger);
-        _lock = new System.Threading.SemaphoreSlim(1, 1);
+        this._port = port;
+        this._logger = logger;
+        this._protocol = protocol;
+        this._bufferPool = bufferPool;
+        this._connectionLimiter = new ConnectionLimiter(logger);
+        this._lock = new System.Threading.SemaphoreSlim(1, 1);
 
         // Create the optimal socket listener.
-        _listener = new System.Net.Sockets.Socket(
+        this._listener = new System.Net.Sockets.Socket(
             System.Net.Sockets.AddressFamily.InterNetwork,
             System.Net.Sockets.SocketType.Stream,
             System.Net.Sockets.ProtocolType.Tcp)
@@ -107,41 +110,41 @@ public abstract partial class Listener : IListener, System.IDisposable
         };
 
         // Increase the queue size on the socket listener.
-        _listener.SetSocketOption(
+        this._listener.SetSocketOption(
             System.Net.Sockets.SocketOptionLevel.Socket,
             System.Net.Sockets.SocketOptionName.ReceiveBuffer, Config.BufferSize);
 
-        _listener.SetSocketOption(
+        this._listener.SetSocketOption(
             System.Net.Sockets.SocketOptionLevel.Socket,
             System.Net.Sockets.SocketOptionName.ReuseAddress,
             Config.ReuseAddress ? SocketSettings.True : SocketSettings.False);
 
         System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, Config.Port);
-        _logger.Debug("[TCP] TCP socket bound to {0}", remote);
+        this._logger.Debug("[TCP] TCP socket bound to {0}", remote);
 
         // Bind and Listen
-        _listener.Bind(remote);
-        _listener.Listen(SocketBacklog);
+        this._listener.Bind(remote);
+        this._listener.Listen(SocketBacklog);
 
         // Optimized for _udpListener.IOControlCode on Windows
         if (Config.IsWindows)
         {
-            int parallelismLevel = System.Environment.ProcessorCount * MinWorkerThreads;
+            System.Int32 parallelismLevel = System.Environment.ProcessorCount * MinWorkerThreads;
             // Thread pool optimization for IOCP
-            System.Threading.ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
-            System.Threading.ThreadPool.SetMinThreads(System.Math.Max(workerThreads, parallelismLevel), completionPortThreads);
+            System.Threading.ThreadPool.GetMinThreads(out System.Int32 workerThreads, out System.Int32 completionPortThreads);
+            _ = System.Threading.ThreadPool.SetMinThreads(System.Math.Max(workerThreads, parallelismLevel), completionPortThreads);
 
             System.Threading.ThreadPool.GetMinThreads(out var afterWorker, out var afterIOCP);
-            _logger.Info("SetMinThreads: worker={0}, IOCP={1}", afterWorker, afterIOCP);
+            this._logger.Info("SetMinThreads: worker={0}, IOCP={1}", afterWorker, afterIOCP);
         }
 
-        _timeSyncWorker = new TimeSynchronizer(logger);
+        this._timeSyncWorker = new TimeSynchronizer(logger);
 
-        _timeSyncWorker.TimeSynchronized += SynchronizeTime;
+        this._timeSyncWorker.TimeSynchronized += this.SynchronizeTime;
 
-        ObjectPoolManager.Instance.Prealloc<PacketContext<PooledSocketAsyncContext>>(60);
-        ObjectPoolManager.Instance.Prealloc<PooledSocketAsyncEventArgs>(30);
-        ObjectPoolManager.Instance.Prealloc<PooledAcceptContext>(30);
+        _ = ObjectPoolManager.Instance.Prealloc<PacketContext<PooledSocketAsyncContext>>(60);
+        _ = ObjectPoolManager.Instance.Prealloc<PooledSocketAsyncEventArgs>(30);
+        _ = ObjectPoolManager.Instance.Prealloc<PooledAcceptContext>(30);
     }
 
     /// <summary>
@@ -167,7 +170,7 @@ public abstract partial class Listener : IListener, System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
-        Dispose(true);
+        this.Dispose(true);
         System.GC.SuppressFinalize(this);
     }
 
@@ -177,27 +180,30 @@ public abstract partial class Listener : IListener, System.IDisposable
     /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected virtual void Dispose(bool disposing)
+    protected virtual void Dispose(System.Boolean disposing)
     {
-        if (_isDisposed) return;
+        if (this._isDisposed)
+        {
+            return;
+        }
 
         if (disposing)
         {
-            _cts?.Cancel();
-            _cts?.Dispose();
+            this._cts?.Cancel();
+            this._cts?.Dispose();
 
             try
             {
-                _listener.Close();
-                _listener.Dispose();
+                this._listener.Close();
+                this._listener.Dispose();
             }
             catch { }
 
-            _lock.Dispose();
+            this._lock.Dispose();
         }
 
-        _isDisposed = true;
-        _logger.Info("Listener disposed");
+        this._isDisposed = true;
+        this._logger.Info("Listener disposed");
     }
 
     #endregion IDispose

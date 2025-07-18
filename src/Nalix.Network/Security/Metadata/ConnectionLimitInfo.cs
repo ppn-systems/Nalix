@@ -13,7 +13,7 @@ internal readonly record struct ConnectionLimitInfo
     /// <summary>
     /// The current Number of active connections.
     /// </summary>
-    public readonly int CurrentConnections { get; init; }
+    public readonly Int32 CurrentConnections { get; init; }
 
     /// <summary>
     /// When the most recent connection was established.
@@ -23,7 +23,7 @@ internal readonly record struct ConnectionLimitInfo
     /// <summary>
     /// The total Number of connections made today.
     /// </summary>
-    public readonly int TotalConnectionsToday { get; init; }
+    public readonly Int32 TotalConnectionsToday { get; init; }
 
     /// <summary>
     /// When the last cleanup operation was performed.
@@ -34,14 +34,14 @@ internal readonly record struct ConnectionLimitInfo
     /// Creates a new connection info record.
     /// </summary>
     public ConnectionLimitInfo(
-        int currentConnections,
+        Int32 currentConnections,
         DateTime lastConnectionTime,
-        int totalConnectionsToday,
+        Int32 totalConnectionsToday,
         DateTime lastCleanupTime)
     {
-        CurrentConnections = currentConnections;
-        LastConnectionTime = lastConnectionTime;
-        TotalConnectionsToday = totalConnectionsToday;
-        LastCleanupTime = lastCleanupTime;
+        this.CurrentConnections = currentConnections;
+        this.LastConnectionTime = lastConnectionTime;
+        this.TotalConnectionsToday = totalConnectionsToday;
+        this.LastCleanupTime = lastCleanupTime;
     }
 }

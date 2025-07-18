@@ -12,17 +12,17 @@ public readonly struct RequestLimitSettings
     /// <summary>
     /// Gets the maximum Number of requests allowed.
     /// </summary>
-    public int Requests { get; }
+    public Int32 Requests { get; }
 
     /// <summary>
     /// Gets the duration in seconds to lock out after exceeding the request limit.
     /// </summary>
-    public int LockoutDurationSec { get; }
+    public Int32 LockoutDurationSec { get; }
 
     /// <summary>
     /// Gets the time window in milliseconds for measuring the request rate.
     /// </summary>
-    public int TimeWindowMs { get; }
+    public Int32 TimeWindowMs { get; }
 
     #endregion Properties
 
@@ -37,21 +37,29 @@ public readonly struct RequestLimitSettings
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown if any parameter is out of valid range.
     /// </exception>
-    public RequestLimitSettings(int requests, int lockoutSeconds, int windowMilliseconds)
+    public RequestLimitSettings(Int32 requests, Int32 lockoutSeconds, Int32 windowMilliseconds)
     {
         if (requests < 1)
+        {
             throw new ArgumentOutOfRangeException(
                 nameof(requests), "Requests must be at least 1.");
+        }
+
         if (lockoutSeconds < 0)
+        {
             throw new ArgumentOutOfRangeException(
                 nameof(lockoutSeconds), "Lockout duration cannot be negative.");
+        }
+
         if (windowMilliseconds < 1)
+        {
             throw new ArgumentOutOfRangeException(
                 nameof(windowMilliseconds), "Time window must be at least 1 ms.");
+        }
 
-        Requests = requests;
-        LockoutDurationSec = lockoutSeconds;
-        TimeWindowMs = windowMilliseconds;
+        this.Requests = requests;
+        this.LockoutDurationSec = lockoutSeconds;
+        this.TimeWindowMs = windowMilliseconds;
     }
 
     #endregion Constructors
@@ -61,8 +69,8 @@ public readonly struct RequestLimitSettings
     /// <summary>
     /// Returns a string representation of the settings.
     /// </summary>
-    public override string ToString() =>
-        $"Requests: {Requests}, Lockout: {LockoutDurationSec}s, Window: {TimeWindowMs}ms";
+    public override String ToString() =>
+        $"Requests: {this.Requests}, Lockout: {this.LockoutDurationSec}s, Window: {this.TimeWindowMs}ms";
 
     #endregion Methods
 }

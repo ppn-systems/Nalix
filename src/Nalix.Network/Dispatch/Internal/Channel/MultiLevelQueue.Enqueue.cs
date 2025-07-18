@@ -1,7 +1,7 @@
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
 
-namespace Nalix.Network.Dispatch.Channel;
+namespace Nalix.Network.Dispatch.Internal.Channel;
 
 internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
 {
@@ -15,25 +15,29 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool Enqueue(TPacket packet)
+    public System.Boolean Enqueue(TPacket packet)
     {
         if (packet == null)
-            return false;
-
-        int priorityIndex = (int)packet.Priority;
-
-        if (_options.MaxCapacity > 0 &&
-            System.Threading.Volatile.Read(ref _totalCount) >= _options.MaxCapacity)
-            return false;
-
-        if (_priorityChannels[priorityIndex].Writer.TryWrite(packet))
         {
-            System.Threading.Interlocked.Increment(ref _totalCount);
-            System.Threading.Interlocked.Increment(ref _priorityCounts[priorityIndex]);
+            return false;
+        }
 
-            if (_options.EnableMetrics)
+        System.Int32 priorityIndex = (System.Int32)packet.Priority;
+
+        if (this._options.MaxCapacity > 0 &&
+            System.Threading.Volatile.Read(ref this._totalCount) >= this._options.MaxCapacity)
+        {
+            return false;
+        }
+
+        if (this._priorityChannels[priorityIndex].Writer.TryWrite(packet))
+        {
+            _ = System.Threading.Interlocked.Increment(ref this._totalCount);
+            _ = System.Threading.Interlocked.Increment(ref this._priorityCounts[priorityIndex]);
+
+            if (this._options.EnableMetrics)
             {
-                System.Threading.Interlocked.Increment(ref _enqueuedCounts![priorityIndex]);
+                _ = System.Threading.Interlocked.Increment(ref this._enqueuedCounts![priorityIndex]);
             }
 
             return true;
@@ -50,12 +54,17 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
     /// <returns>The total number of packets successfully enqueued.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public int Enqueue(System.Collections.Generic.IEnumerable<TPacket> packets)
+    public System.Int32 Enqueue(System.Collections.Generic.IEnumerable<TPacket> packets)
     {
-        int added = 0;
+        System.Int32 added = 0;
 
         foreach (TPacket packet in packets)
-            if (this.Enqueue(packet)) added++;
+        {
+            if (this.Enqueue(packet))
+            {
+                added++;
+            }
+        }
 
         return added;
     }
@@ -70,7 +79,7 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public TPacket? PeekFirst(PacketPriority priority)
-        => _priorityChannels[(int)priority].Reader.TryPeek(out TPacket? packet) ? packet : default;
+        => this._priorityChannels[(System.Int32)priority].Reader.TryPeek(out TPacket? packet) ? packet : default;
 
     /// <summary>
     /// Attempts to dequeue a packet from the specified priority queue.
@@ -83,17 +92,16 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool TryDequeue(
+    public System.Boolean TryDequeue(
         PacketPriority priority,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out TPacket? packet)
     {
         packet = default;
 
         // Check if priority is valid
-        if (priority < 0 || (int)priority >= _priorityCount)
-            throw new System.ArgumentOutOfRangeException(nameof(priority), "Invalid priority level.");
-
-        return _priorityChannels[(int)priority].Reader.TryRead(out packet);
+        return priority < 0 || (System.Int32)priority >= this._priorityCount
+            ? throw new System.ArgumentOutOfRangeException(nameof(priority), "Invalid priority level.")
+            : this._priorityChannels[(System.Int32)priority].Reader.TryRead(out packet);
     }
 
     /// <summary>
@@ -107,11 +115,15 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool TryEnqueue(TPacket packet, int retries = 3)
+    public System.Boolean TryEnqueue(TPacket packet, System.Int32 retries = 3)
     {
-        for (int i = 0; i <= retries; i++)
+        for (System.Int32 i = 0; i <= retries; i++)
         {
-            if (this.Enqueue(packet)) return true;
+            if (this.Enqueue(packet))
+            {
+                return true;
+            }
+
             System.Threading.Thread.SpinWait(20 * (i + 1)); // spin-based delay
         }
 
@@ -132,25 +144,29 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool TryRequeue(TPacket packet, PacketPriority? priority = null)
+    public System.Boolean TryRequeue(TPacket packet, PacketPriority? priority = null)
     {
-        int priorityIndex = (int)(priority ?? packet.Priority);
+        System.Int32 priorityIndex = (System.Int32)(priority ?? packet.Priority);
 
-        if (priorityIndex < 0 || priorityIndex >= _priorityChannels.Length)
-            throw new System.ArgumentOutOfRangeException(nameof(priority), "Invalid priority level.");
-
-        if (_options.MaxCapacity > 0 &&
-            System.Threading.Volatile.Read(ref _totalCount) >= _options.MaxCapacity)
-            return false;
-
-        if (_priorityChannels[priorityIndex].Writer.TryWrite(packet))
+        if (priorityIndex < 0 || priorityIndex >= this._priorityChannels.Length)
         {
-            System.Threading.Interlocked.Increment(ref _totalCount);
-            System.Threading.Interlocked.Increment(ref _priorityCounts[priorityIndex]);
+            throw new System.ArgumentOutOfRangeException(nameof(priority), "Invalid priority level.");
+        }
 
-            if (_options.EnableMetrics)
+        if (this._options.MaxCapacity > 0 &&
+            System.Threading.Volatile.Read(ref this._totalCount) >= this._options.MaxCapacity)
+        {
+            return false;
+        }
+
+        if (this._priorityChannels[priorityIndex].Writer.TryWrite(packet))
+        {
+            _ = System.Threading.Interlocked.Increment(ref this._totalCount);
+            _ = System.Threading.Interlocked.Increment(ref this._priorityCounts[priorityIndex]);
+
+            if (this._options.EnableMetrics)
             {
-                System.Threading.Interlocked.Increment(ref _enqueuedCounts![priorityIndex]);
+                _ = System.Threading.Interlocked.Increment(ref this._enqueuedCounts![priorityIndex]);
             }
 
             return true;
