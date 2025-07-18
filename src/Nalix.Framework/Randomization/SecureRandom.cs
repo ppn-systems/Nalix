@@ -48,15 +48,19 @@ public static class SecureRandom
     /// <exception cref="System.ArgumentException">Thrown if length is not positive or not a multiple of 8.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static byte[] CreateKey(int length = 32)
+    public static System.Byte[] CreateKey(System.Int32 length = 32)
     {
         if (length <= 0)
+        {
             throw new System.ArgumentException("Key length must be greater than zero.", nameof(length));
+        }
 
         if (length % 8 != 0)
+        {
             throw new System.ArgumentException("Key length must be a multiple of 8.", nameof(length));
+        }
 
-        byte[] key = new byte[length];
+        System.Byte[] key = new System.Byte[length];
         Fill(key);
         return key;
     }
@@ -69,10 +73,12 @@ public static class SecureRandom
     /// <exception cref="System.ArgumentException">Thrown if the length of <paramref name="output"/> is not a multiple of 8.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void CreateKey(System.Span<byte> output)
+    public static void CreateKey(System.Span<System.Byte> output)
     {
         if (output.Length % 8 != 0)
+        {
             throw new System.ArgumentException("Key length must be a multiple of 8.", nameof(output));
+        }
 
         Fill(output);
     }
@@ -83,13 +89,15 @@ public static class SecureRandom
     /// <returns>A cryptographically secure nonce.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static byte[] CreateNonce(int length = 12)
+    public static System.Byte[] CreateNonce(System.Int32 length = 12)
     {
         if (length <= 0)
+        {
             throw new System.ArgumentOutOfRangeException(
                 nameof(length), "Nonce length must be a positive integer.");
+        }
 
-        byte[] nonce = new byte[length];
+        System.Byte[] nonce = new System.Byte[length];
         Fill(nonce);
         return nonce;
     }
@@ -101,12 +109,14 @@ public static class SecureRandom
     /// <returns>A secure random IV.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static byte[] CreateIV(int length = 16)
+    public static System.Byte[] CreateIV(System.Int32 length = 16)
     {
         if (length <= 0)
+        {
             throw new System.ArgumentException("IV length must be greater than zero.", nameof(length));
+        }
 
-        byte[] iv = new byte[length];
+        System.Byte[] iv = new System.Byte[length];
         Fill(iv);
         return iv;
     }
@@ -118,14 +128,14 @@ public static class SecureRandom
     /// <returns>The key as a byte array.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe byte[] ConvertWordsToKey(System.ReadOnlySpan<uint> keyWords)
+    public static unsafe System.Byte[] ConvertWordsToKey(System.ReadOnlySpan<System.UInt32> keyWords)
     {
-        byte[] keyBytes = new byte[keyWords.Length * sizeof(uint)];
+        System.Byte[] keyBytes = new System.Byte[keyWords.Length * sizeof(System.UInt32)];
 
-        fixed (byte* bytesPtr = keyBytes)
-        fixed (uint* wordsPtr = keyWords)
+        fixed (System.Byte* bytesPtr = keyBytes)
+        fixed (System.UInt32* wordsPtr = keyWords)
         {
-            System.Buffer.MemoryCopy(wordsPtr, bytesPtr, keyBytes.Length, keyWords.Length * sizeof(uint));
+            System.Buffer.MemoryCopy(wordsPtr, bytesPtr, keyBytes.Length, keyWords.Length * sizeof(System.UInt32));
         }
 
         return keyBytes;
@@ -138,21 +148,23 @@ public static class SecureRandom
     /// <returns>The key as an array of uint values.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe uint[] ConvertKeyToWords(System.ReadOnlySpan<byte> keyBytes)
+    public static unsafe System.UInt32[] ConvertKeyToWords(System.ReadOnlySpan<System.Byte> keyBytes)
     {
-        if (keyBytes.Length % sizeof(uint) != 0)
-            throw new System.ArgumentException("Key length must be a multiple of 4 bytes.", nameof(keyBytes));
-
-        int keySizeInWords = keyBytes.Length / sizeof(uint);
-        uint[] keyWords = new uint[keySizeInWords];
-
-        fixed (byte* bytesPtr = keyBytes)
-        fixed (uint* wordsPtr = keyWords)
+        if (keyBytes.Length % sizeof(System.UInt32) != 0)
         {
-            uint* sourcePtr = (uint*)bytesPtr;
-            uint* destPtr = wordsPtr;
+            throw new System.ArgumentException("Key length must be a multiple of 4 bytes.", nameof(keyBytes));
+        }
 
-            for (int i = 0; i < keySizeInWords; i++)
+        System.Int32 keySizeInWords = keyBytes.Length / sizeof(System.UInt32);
+        System.UInt32[] keyWords = new System.UInt32[keySizeInWords];
+
+        fixed (System.Byte* bytesPtr = keyBytes)
+        fixed (System.UInt32* wordsPtr = keyWords)
+        {
+            System.UInt32* sourcePtr = (System.UInt32*)bytesPtr;
+            System.UInt32* destPtr = wordsPtr;
+
+            for (System.Int32 i = 0; i < keySizeInWords; i++)
             {
                 destPtr[i] = sourcePtr[i];
             }
@@ -167,30 +179,30 @@ public static class SecureRandom
     /// <param name="data">The span to fill with random bytes.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void Fill(System.Span<byte> data)
+    public static void Fill(System.Span<System.Byte> data)
     {
         EnsureSeeded();
-        ulong[] state = GetThreadLocalState();
+        System.UInt64[] state = GetThreadLocalState();
 
-        int i = 0;
+        System.Int32 i = 0;
 
         // Process 8-byte chunks efficiently
-        var ulongSpan = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, ulong>(data);
+        var ulongSpan = System.Runtime.InteropServices.MemoryMarshal.Cast<System.Byte, System.UInt64>(data);
 
-        for (int j = 0; j < ulongSpan.Length; j++)
+        for (System.Int32 j = 0; j < ulongSpan.Length; j++)
         {
             ulongSpan[j] = NextUInt64(state) ^ RotateLeft(state[1], 11) ^ (state[2] >> 7);
         }
 
         i = ulongSpan.Length * 8;
-        int remainingBytes = data.Length - i;
+        System.Int32 remainingBytes = data.Length - i;
 
         // Handle remaining bytes
         if (remainingBytes > 0)
         {
-            ulong masked = NextUInt64(state) ^ RotateLeft(state[1], 11) ^ (state[2] >> 7);
-            System.Span<byte> lastBytes = stackalloc byte[8];
-            System.BitConverter.TryWriteBytes(lastBytes, masked);
+            System.UInt64 masked = NextUInt64(state) ^ RotateLeft(state[1], 11) ^ (state[2] >> 7);
+            System.Span<System.Byte> lastBytes = stackalloc System.Byte[8];
+            _ = System.BitConverter.TryWriteBytes(lastBytes, masked);
             lastBytes[..remainingBytes].CopyTo(data[i..]);
         }
     }
@@ -203,15 +215,19 @@ public static class SecureRandom
     /// <exception cref="System.ArgumentException">Thrown if length is negative.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static byte[] GetBytes(int length)
+    public static System.Byte[] GetBytes(System.Int32 length)
     {
         if (length < 0)
+        {
             throw new System.ArgumentException("Length cannot be negative.", nameof(length));
+        }
 
         if (length == 0)
+        {
             return [];
+        }
 
-        byte[] bytes = new byte[length];
+        System.Byte[] bytes = new System.Byte[length];
         Fill(bytes);
         return bytes;
     }
@@ -224,24 +240,26 @@ public static class SecureRandom
     /// <returns>A random integer in the specified range.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int GetInt32(int min, int max)
+    public static System.Int32 GetInt32(System.Int32 min, System.Int32 max)
     {
         if (min >= max)
+        {
             throw new System.ArgumentException("Max must be greater than min");
+        }
 
         // Calculate range size, handling potential overflow
-        ulong range = (ulong)((long)max - min);
+        System.UInt64 range = (System.UInt64)((System.Int64)max - min);
 
         // Use rejection sampling to avoid modulo bias
-        ulong mask = (1UL << (System.Numerics.BitOperations.Log2((uint)range) + 1)) - 1;
-        ulong result;
+        System.UInt64 mask = (1UL << (System.Numerics.BitOperations.Log2((System.UInt32)range) + 1)) - 1;
+        System.UInt64 result;
 
         do
         {
             result = NextUInt64() & mask;
         } while (result >= range);
 
-        return (int)(result + (ulong)min);
+        return (System.Int32)(result + (System.UInt64)min);
     }
 
     /// <summary>
@@ -251,7 +269,7 @@ public static class SecureRandom
     /// <returns>A random integer in the specified range.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int GetInt32(int max) => GetInt32(0, max);
+    public static System.Int32 GetInt32(System.Int32 max) => GetInt32(0, max);
 
     /// <summary>
     /// Fills the given byte array with cryptographically strong random values.
@@ -259,7 +277,7 @@ public static class SecureRandom
     /// <param name="buffer">The buffer to fill with random bytes.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void NextBytes(byte[] buffer)
+    public static void NextBytes(System.Byte[] buffer)
     {
         System.ArgumentNullException.ThrowIfNull(buffer);
         Fill(buffer);
@@ -271,7 +289,7 @@ public static class SecureRandom
     /// <param name="buffer">The span to fill with random bytes.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void NextBytes(System.Span<byte> buffer) => Fill(buffer);
+    public static void NextBytes(System.Span<System.Byte> buffer) => Fill(buffer);
 
     /// <summary>
     /// Generates a cryptographically strong 32-bit random integer.
@@ -279,11 +297,11 @@ public static class SecureRandom
     /// <returns>A random 32-bit unsigned integer.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint NextUInt32()
+    public static System.UInt32 NextUInt32()
     {
         EnsureSeeded();
-        ulong[] state = GetThreadLocalState();
-        return (uint)(NextUInt64(state) >> 32);
+        System.UInt64[] state = GetThreadLocalState();
+        return (System.UInt32)(NextUInt64(state) >> 32);
     }
 
     /// <summary>
@@ -292,7 +310,7 @@ public static class SecureRandom
     /// <returns>A random 64-bit unsigned integer.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static ulong NextUInt64()
+    public static System.UInt64 NextUInt64()
     {
         EnsureSeeded();
         return NextUInt64(GetThreadLocalState());
@@ -304,11 +322,9 @@ public static class SecureRandom
     /// <returns>A random double with uniform distribution.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static double NextDouble()
-    {
+    public static System.Double NextDouble() =>
         // Use 53 bits (mantissa precision of double) for uniform distribution
-        return (NextUInt64() >> 11) * (1.0 / 9007199254740992.0);
-    }
+        (NextUInt64() >> 11) * (1.0 / 9007199254740992.0);
 
     /// <summary>
     /// Converts a 16-byte key into a 32-bit unsigned integer array (4 elements) for use with XTEA.
@@ -318,13 +334,15 @@ public static class SecureRandom
     /// <exception cref="System.ArgumentException">Thrown when the key length is not 16 bytes.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint[] ConvertKey(System.ReadOnlySpan<byte> key)
+    public static System.UInt32[] ConvertKey(System.ReadOnlySpan<System.Byte> key)
     {
         if (key.Length != 16)
+        {
             throw new System.ArgumentException("XTEA key must be 16 bytes.", nameof(key));
+        }
 
-        uint[] uintKey = new uint[4];
-        for (int i = 0; i < 4; i++)
+        System.UInt32[] uintKey = new System.UInt32[4];
+        for (System.Int32 i = 0; i < 4; i++)
         {
             uintKey[i] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(i * 4, 4));
         }
@@ -353,7 +371,7 @@ public static class SecureRandom
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static ulong RotateLeft(ulong value, int shift)
+    private static System.UInt64 RotateLeft(System.UInt64 value, System.Int32 shift)
         => (value << shift) | (value >> (64 - shift));
 
     /// <summary>
@@ -363,12 +381,18 @@ public static class SecureRandom
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void EnsureSeeded()
     {
-        long now = System.Environment.TickCount64;
-        if (_seeded && now - _lastReseedTicks < 60000) return; // 60s timeout
+        System.Int64 now = System.Environment.TickCount64;
+        if (_seeded && now - _lastReseedTicks < 60000)
+        {
+            return; // 60s timeout
+        }
 
         lock (SyncRoot)
         {
-            if (_seeded && now - _lastReseedTicks < 60000) return;
+            if (_seeded && now - _lastReseedTicks < 60000)
+            {
+                return;
+            }
 
             InitializeState();
             _seeded = true;
@@ -382,25 +406,27 @@ public static class SecureRandom
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static ulong[] GetThreadLocalState()
+    private static System.UInt64[] GetThreadLocalState()
     {
         if (_threadState != null)
+        {
             return _threadState;
+        }
 
-        ulong[] localState = new ulong[4];
+        System.UInt64[] localState = new System.UInt64[4];
 
         // Initialize thread-local state from global state plus thread-specific entropy
         lock (SyncRoot)
         {
-            localState[0] = State[0] ^ (ulong)System.Environment.CurrentManagedThreadId;
-            localState[1] = State[1] ^ (ulong)System.Environment.CurrentManagedThreadId;
-            localState[2] = State[2] ^ (ulong)System.DateTime.UtcNow.Ticks;
+            localState[0] = State[0] ^ (System.UInt64)System.Environment.CurrentManagedThreadId;
+            localState[1] = State[1] ^ (System.UInt64)System.Environment.CurrentManagedThreadId;
+            localState[2] = State[2] ^ (System.UInt64)System.DateTime.UtcNow.Ticks;
             localState[3] = State[3] ^ GetCpuCycles();
 
             // Mix the state
-            for (int i = 0; i < 20; i++)
+            for (System.Int32 i = 0; i < 20; i++)
             {
-                NextUInt64(localState);
+                _ = NextUInt64(localState);
             }
         }
 
@@ -416,35 +442,35 @@ public static class SecureRandom
     private static void InitializeState()
     {
         // Use multiple entropy sources for better security
-        byte[] seed = new byte[32];
+        System.Byte[] seed = new System.Byte[32];
 
         // Use high-precision time sources
-        ulong timestamp = (ulong)System.DateTime.UtcNow.Ticks;
-        System.BitConverter.TryWriteBytes(System.MemoryExtensions.AsSpan(seed, 0, 8), timestamp);
+        System.UInt64 timestamp = (System.UInt64)System.DateTime.UtcNow.Ticks;
+        _ = System.BitConverter.TryWriteBytes(System.MemoryExtensions.AsSpan(seed, 0, 8), timestamp);
 
         // Use Environment.TickCount64 for additional entropy
-        long tickCount = System.Environment.TickCount64;
-        System.BitConverter.TryWriteBytes(System.MemoryExtensions.AsSpan(seed, 8, 8), tickCount);
+        System.Int64 tickCount = System.Environment.TickCount64;
+        _ = System.BitConverter.TryWriteBytes(System.MemoryExtensions.AsSpan(seed, 8, 8), tickCount);
 
         // Use process and thread IDs
-        int processId = System.Environment.ProcessId;
-        System.BitConverter.TryWriteBytes(System.MemoryExtensions.AsSpan(seed, 16, 4), processId);
+        System.Int32 processId = System.Environment.ProcessId;
+        _ = System.BitConverter.TryWriteBytes(System.MemoryExtensions.AsSpan(seed, 16, 4), processId);
 
-        int threadId = System.Environment.CurrentManagedThreadId;
-        System.BitConverter.TryWriteBytes(System.MemoryExtensions.AsSpan(seed, 20, 4), threadId);
+        System.Int32 threadId = System.Environment.CurrentManagedThreadId;
+        _ = System.BitConverter.TryWriteBytes(System.MemoryExtensions.AsSpan(seed, 20, 4), threadId);
 
         // Hardware-specific information like CPU cycles
-        ulong cpuCycles = GetCpuCycles();
-        System.BitConverter.TryWriteBytes(System.MemoryExtensions.AsSpan(seed, 24, 8), cpuCycles);
+        System.UInt64 cpuCycles = GetCpuCycles();
+        _ = System.BitConverter.TryWriteBytes(System.MemoryExtensions.AsSpan(seed, 24, 8), cpuCycles);
 
         // Mix in additional entropy sources if available
-        for (int i = 0; i < seed.Length; i++)
+        for (System.Int32 i = 0; i < seed.Length; i++)
         {
-            byte val = seed[i];
-            val ^= (byte)(i * 137);
-            val = (byte)((val << 3) | (val >> 5)); // RotateLeft 3
-            val ^= (byte)(timestamp >> (i % 8 * 8));
-            val = (byte)(val * 31);
+            System.Byte val = seed[i];
+            val ^= (System.Byte)(i * 137);
+            val = (System.Byte)((val << 3) | (val >> 5)); // RotateLeft 3
+            val ^= (System.Byte)(timestamp >> (i % 8 * 8));
+            val = (System.Byte)(val * 31);
             seed[i] = val;
         }
 
@@ -455,9 +481,9 @@ public static class SecureRandom
         State[3] = System.BitConverter.ToUInt64(seed, 24);
 
         // Perform initial mixing
-        for (int i = 0; i < 20; i++)
+        for (System.Int32 i = 0; i < 20; i++)
         {
-            NextUInt64(State);
+            _ = NextUInt64(State);
         }
     }
 
@@ -466,29 +492,29 @@ public static class SecureRandom
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static ulong GetCpuCycles()
+    private static System.UInt64 GetCpuCycles()
     {
         try
         {
             // Use rdtsc if available via Stopwatch timing
-            long start = System.Diagnostics.Stopwatch.GetTimestamp();
+            System.Int64 start = System.Diagnostics.Stopwatch.GetTimestamp();
 
             // Perform some calculation to ensure timing differences
-            int sum = 0;
-            for (int i = 0; i < 100; i++)
+            System.Int32 sum = 0;
+            for (System.Int32 i = 0; i < 100; i++)
             {
                 sum += i * 7;
             }
 
-            long end = System.Diagnostics.Stopwatch.GetTimestamp();
+            System.Int64 end = System.Diagnostics.Stopwatch.GetTimestamp();
 
             // Combine timing and calculation result
-            return (ulong)((end - start) ^ sum);
+            return (System.UInt64)((end - start) ^ sum);
         }
         catch
         {
             // Fall back to Environment.TickCount if Stopwatch fails
-            return (ulong)(System.Environment.TickCount ^ System.GC.GetTotalMemory(false));
+            return (System.UInt64)(System.Environment.TickCount ^ System.GC.GetTotalMemory(false));
         }
     }
 
@@ -497,13 +523,13 @@ public static class SecureRandom
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void FillBlock(System.Span<byte> block, ulong[] state)
+    private static void FillBlock(System.Span<System.Byte> block, System.UInt64[] state)
     {
         // Generate four 64-bit values in sequence
-        System.BitConverter.TryWriteBytes(block[0..8], NextUInt64(state));
-        System.BitConverter.TryWriteBytes(block[8..16], NextUInt64(state));
-        System.BitConverter.TryWriteBytes(block[16..24], NextUInt64(state));
-        System.BitConverter.TryWriteBytes(block[24..32], NextUInt64(state));
+        _ = System.BitConverter.TryWriteBytes(block[0..8], NextUInt64(state));
+        _ = System.BitConverter.TryWriteBytes(block[8..16], NextUInt64(state));
+        _ = System.BitConverter.TryWriteBytes(block[16..24], NextUInt64(state));
+        _ = System.BitConverter.TryWriteBytes(block[24..32], NextUInt64(state));
     }
 
     /// <summary>
@@ -511,12 +537,12 @@ public static class SecureRandom
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static ulong NextUInt64(ulong[] state)
+    private static System.UInt64 NextUInt64(System.UInt64[] state)
     {
         // Xoshiro256++ algorithm
-        ulong result = RotateLeft(state[0] + state[3], 23) + state[0];
+        System.UInt64 result = RotateLeft(state[0] + state[3], 23) + state[0];
 
-        ulong t = state[1] << 17;
+        System.UInt64 t = state[1] << 17;
 
         state[2] ^= state[0];
         state[3] ^= state[1];
