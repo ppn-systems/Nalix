@@ -12,12 +12,12 @@ namespace Nalix.Graphics.Assets;
 /// Creates a new instance of the SfxLoader class.
 /// </remarks>
 /// <param name="assetRoot">Optional root path of the managed asset folder</param>
-public sealed class SfxLoader(string assetRoot = "") : AssetLoader<SoundBuffer>(AvailableFormats, assetRoot)
+public sealed class SfxLoader(String assetRoot = "") : AssetLoader<SoundBuffer>(AvailableFormats, assetRoot)
 {
     /// <summary>
     /// List of supported file endings for this SfxLoader
     /// </summary>
-    public static readonly IEnumerable<string> AvailableFormats =
+    public static readonly IEnumerable<String> AvailableFormats =
     [
             ".ogg", ".wav", ".flac", ".aiff", ".au", ".raw",
             ".paf", ".svx", ".nist", ".voc", ".ircam", ".w64",
@@ -33,16 +33,22 @@ public sealed class SfxLoader(string assetRoot = "") : AssetLoader<SoundBuffer>(
     /// <returns>The managed Sound</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public SoundBuffer Load(string name, Stream stream)
+    public SoundBuffer Load(String name, Stream stream)
     {
         ObjectDisposedException.ThrowIf(Disposed, nameof(SfxLoader));
         ArgumentNullException.ThrowIfNull(name);
 
         if (_Assets.TryGetValue(name, out SoundBuffer value))
+        {
             return value;
-        if (stream == null || !stream.CanRead) throw new ArgumentNullException(nameof(stream));
+        }
 
-        byte[] data = new byte[stream.Length];
+        if (stream == null || !stream.CanRead)
+        {
+            throw new ArgumentNullException(nameof(stream));
+        }
+
+        Byte[] data = new Byte[stream.Length];
         stream.ReadExactly(data);
         return Load(name, data);
     }
@@ -50,10 +56,12 @@ public sealed class SfxLoader(string assetRoot = "") : AssetLoader<SoundBuffer>(
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected override SoundBuffer CreateInstanceFromRawData(byte[] rawData)
+    protected override SoundBuffer CreateInstanceFromRawData(Byte[] rawData)
     {
         if (rawData == null || rawData.Length == 0)
+        {
             throw new ArgumentException("Raw data is null or empty.", nameof(rawData));
+        }
 
         using var memoryStream = new MemoryStream(rawData, writable: false);
         return new SoundBuffer(memoryStream);
@@ -62,11 +70,5 @@ public sealed class SfxLoader(string assetRoot = "") : AssetLoader<SoundBuffer>(
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected override SoundBuffer CreateInstanceFromPath(string path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-            throw new ArgumentException("Path is null or empty.", nameof(path));
-
-        return new SoundBuffer(path);
-    }
+    protected override SoundBuffer CreateInstanceFromPath(String path) => String.IsNullOrWhiteSpace(path) ? throw new ArgumentException("Path is null or empty.", nameof(path)) : new SoundBuffer(path);
 }

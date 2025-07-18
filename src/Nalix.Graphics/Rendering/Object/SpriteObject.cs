@@ -17,10 +17,7 @@ public abstract class SpriteObject : RenderObject
     /// <summary>
     /// Gets the global bounds of the Sprite.
     /// </summary>
-    public virtual FloatRect Bounds
-    {
-        get => Sprite.GetGlobalBounds();
-    }
+    public virtual FloatRect Bounds => Sprite.GetGlobalBounds();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SpriteObject"/> class with a texture, rectangle, position, scale, and rotation.
@@ -101,5 +98,5 @@ public abstract class SpriteObject : RenderObject
     /// <returns>The Sprite as a drawable object.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected override sealed Drawable GetDrawable() => Sprite;
+    protected sealed override Drawable GetDrawable() => Sprite;
 }

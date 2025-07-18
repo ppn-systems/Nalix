@@ -16,7 +16,7 @@ namespace Nalix.Graphics.Assets.Manager;
 /// Initializes a new instance of the <see cref="AssetManager"/> class.
 /// </remarks>
 /// <param name="root">The root directory for assets.</param>
-public sealed class AssetManager(string root = null!) : SingletonBase<AssetManager>, IDisposable
+public sealed class AssetManager(String root = null!) : SingletonBase<AssetManager>, IDisposable
 {
     /// <summary>
     /// Gets the sound effects loader instance.
@@ -41,7 +41,7 @@ public sealed class AssetManager(string root = null!) : SingletonBase<AssetManag
     /// <returns>ScreenSize <see cref="Texture"/> object.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Texture LoadTexture(string name, byte[] data = null) => TextureLoader.Load(name, data);
+    public Texture LoadTexture(String name, Byte[] data = null) => TextureLoader.Load(name, data);
 
     /// <summary>
     /// Load a texture from an ImageSharp image.
@@ -51,7 +51,7 @@ public sealed class AssetManager(string root = null!) : SingletonBase<AssetManag
     /// <returns>ScreenSize <see cref="Texture"/> object.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Texture LoadTexture(string name, Image<Rgba32> image) => TextureLoader.Load(name, image);
+    public Texture LoadTexture(String name, Image<Rgba32> image) => TextureLoader.Load(name, image);
 
     /// <summary>
     /// Load a font by name (from file or memory).
@@ -61,7 +61,7 @@ public sealed class AssetManager(string root = null!) : SingletonBase<AssetManag
     /// <returns>ScreenSize <see cref="Font"/> object.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Font LoadFont(string name, byte[] data = null) => FontLoader.Load(name, data);
+    public Font LoadFont(String name, Byte[] data = null) => FontLoader.Load(name, data);
 
     /// <summary>
     /// Load a sound buffer by name (from file or memory).
@@ -71,7 +71,7 @@ public sealed class AssetManager(string root = null!) : SingletonBase<AssetManag
     /// <returns>ScreenSize <see cref="SoundBuffer"/> object.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public SoundBuffer LoadSound(string name, byte[] data = null) => SfxLoader.Load(name, data);
+    public SoundBuffer LoadSound(String name, Byte[] data = null) => SfxLoader.Load(name, data);
 
     /// <summary>
     /// Load a sound buffer by name (from stream).
@@ -81,7 +81,7 @@ public sealed class AssetManager(string root = null!) : SingletonBase<AssetManag
     /// <returns>ScreenSize <see cref="SoundBuffer"/> object.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public SoundBuffer LoadSound(string name, Stream stream) => SfxLoader.Load(name, stream);
+    public SoundBuffer LoadSound(String name, Stream stream) => SfxLoader.Load(name, stream);
 
     /// <summary>
     /// Release all loaded assets.

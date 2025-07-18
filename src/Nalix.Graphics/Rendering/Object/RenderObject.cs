@@ -32,7 +32,10 @@ public abstract class RenderObject : SceneObject
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public virtual void Render(RenderTarget target)
     {
-        if (Visible) target.Draw(GetDrawable());
+        if (Visible)
+        {
+            target.Draw(GetDrawable());
+        }
     }
 
     /// <summary>
@@ -56,7 +59,7 @@ public abstract class RenderObject : SceneObject
     /// <param name="index">The Z-Index value.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void SetZIndex(int index) => _zIndex = index;
+    public void SetZIndex(System.Int32 index) => _zIndex = index;
 
     /// <summary>
     /// Compares two <see cref="RenderObject"/> instances based on their Z-Index.
@@ -73,9 +76,16 @@ public abstract class RenderObject : SceneObject
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 CompareByZIndex(RenderObject r1, RenderObject r2)
     {
-        if (r1 == null && r2 == null) return 0;
-        if (r1 == null) return -1;
-        if (r2 == null) return 1;
-        return r1._zIndex - r2._zIndex;
+        if (r1 == null && r2 == null)
+        {
+            return 0;
+        }
+
+        if (r1 == null)
+        {
+            return -1;
+        }
+
+        return r2 == null ? 1 : r1._zIndex - r2._zIndex;
     }
 }

@@ -13,7 +13,7 @@ public static class MusicManager
     #region Fields
 
     private static Music _current;
-    private static readonly Dictionary<string, Music> _musicCache = [];
+    private static readonly Dictionary<String, Music> _musicCache = [];
 
     #endregion Fields
 
@@ -22,12 +22,12 @@ public static class MusicManager
     /// <summary>
     /// Gets a value indicating whether music is currently playing.
     /// </summary>
-    public static bool IsPlaying => _current?.Status == SoundStatus.Playing;
+    public static Boolean IsPlaying => _current?.Status == SoundStatus.Playing;
 
     /// <summary>
     /// Gets a value indicating whether music is currently paused.
     /// </summary>
-    public static bool IsPaused => _current?.Status == SoundStatus.Paused;
+    public static Boolean IsPaused => _current?.Status == SoundStatus.Paused;
 
     #endregion Properties
 
@@ -38,12 +38,14 @@ public static class MusicManager
     /// </summary>
     /// <param name="filename">The path to the music file.</param>
     /// <exception cref="FileNotFoundException"></exception>
-    public static void Load(string filename)
+    public static void Load(String filename)
     {
         if (!_musicCache.ContainsKey(filename))
         {
             if (!File.Exists(filename))
+            {
                 throw new FileNotFoundException($"Music file not found: {filename}");
+            }
 
             var music = new Music(filename);
             _musicCache[filename] = music;
@@ -56,12 +58,14 @@ public static class MusicManager
     /// <param name="filename">The path to the music file.</param>
     /// <param name="loop">Determines whether the music should loop.</param>
     /// <exception cref="InvalidOperationException">If music not loaded yet.</exception>
-    public static void Play(string filename, bool loop = true)
+    public static void Play(String filename, Boolean loop = true)
     {
         Stop(); // Stop current before playing new
 
         if (!_musicCache.TryGetValue(filename, out Music music))
+        {
             throw new InvalidOperationException($"Music file not loaded: {filename}");
+        }
 
         _current = music;
         _current.Loop = loop;
@@ -82,7 +86,10 @@ public static class MusicManager
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Resume()
     {
-        if (_current?.Status == SoundStatus.Paused) _current.Play();
+        if (_current?.Status == SoundStatus.Paused)
+        {
+            _current.Play();
+        }
     }
 
     /// <summary>
@@ -100,10 +107,12 @@ public static class MusicManager
     /// Sets the volume of the currently playing music.
     /// </summary>
     /// <param name="volume">The volume level to set, ranging from 0.0 (silent) to 100.0 (full volume).</param>
-    public static void SetVolume(float volume)
+    public static void SetVolume(Single volume)
     {
         if (_current != null)
+        {
             _current.Volume = volume;
+        }
     }
 
     /// <summary>
@@ -112,7 +121,10 @@ public static class MusicManager
     public static void ClearCache()
     {
         foreach (Music music in _musicCache.Values)
+        {
             music.Dispose();
+        }
+
         _musicCache.Clear();
     }
 

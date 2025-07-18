@@ -19,22 +19,22 @@ public class TextBox : Drawable
     /// <summary>
     /// The actual content entered by the user.
     /// </summary>
-    protected string Content = "";  // Stores the entered text
+    protected System.String Content = "";  // Stores the entered text
 
     /// <summary>
     /// The placeholder text displayed when the TextBox is empty.
     /// </summary>
-    protected readonly string Paceholder;
+    protected readonly System.String Paceholder;
 
     /// <summary>
     /// Gets or sets whether the TextBox is focused (active) or not.
     /// </summary>
-    public bool IsFocused { get; set; }
+    public System.Boolean IsFocused { get; set; }
 
     /// <summary>
     /// Gets or sets whether the TextBox is visible or not.
     /// </summary>
-    public bool IsVisible { get; set; } = true;
+    public System.Boolean IsVisible { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the texture used for the background of the TextBox.
@@ -44,7 +44,7 @@ public class TextBox : Drawable
         set
         {
             _background.Texture = value;
-            _background.TextureRect = new IntRect(0, 0, (int)_background.Size.X, (int)_background.Size.Y);
+            _background.TextureRect = new IntRect(0, 0, (System.Int32)_background.Size.X, (System.Int32)_background.Size.Y);
         }
     }
 
@@ -55,7 +55,7 @@ public class TextBox : Drawable
     /// <param name="position">The position of the TextBox.</param>
     /// <param name="size">The size of the TextBox.</param>
     /// <param name="placeholder">The placeholder text to display when the TextBox is empty.</param>
-    public TextBox(Font font, Vector2f position, Vector2f size, string placeholder = "")
+    public TextBox(Font font, Vector2f position, Vector2f size, System.String placeholder = "")
     {
         _background = new RectangleShape(size)
         {
@@ -80,22 +80,24 @@ public class TextBox : Drawable
     public void HandleInput(Event e)
     {
         if (!IsFocused || e.Type != EventType.TextEntered)
+        {
             return;
+        }
 
-        uint c = e.Text.Unicode;
+        System.UInt32 c = e.Text.Unicode;
 
         // Backspace handling
         if (c == 8 && Content.Length > 0)
         {
             Content = Content[..^1];
         }
-        else if (c >= 32 && c <= 126) // Printable ASCII
+        else if (c is >= 32 and <= 126) // Printable ASCII
         {
-            Content += (char)c;
+            Content += (System.Char)c;
         }
 
         // Update the text content
-        Text.DisplayedString = string.IsNullOrEmpty(Content) ? Paceholder : Content;
+        Text.DisplayedString = System.String.IsNullOrEmpty(Content) ? Paceholder : Content;
     }
 
     /// <summary>
@@ -106,7 +108,9 @@ public class TextBox : Drawable
     public void Draw(RenderTarget target, RenderStates states)
     {
         if (!IsVisible)
+        {
             return;
+        }
 
         target.Draw(_background, states);
         target.Draw(Text, states);
@@ -117,7 +121,7 @@ public class TextBox : Drawable
     /// </summary>
     /// <param name="position">The position to check.</param>
     /// <returns><c>true</c> if the position is within the TextBox bounds, otherwise <c>false</c>.</returns>
-    public bool Contains(Vector2f position)
+    public System.Boolean Contains(Vector2f position)
         => _background.GetGlobalBounds().Contains(position);
 
     /// <summary>
@@ -142,5 +146,5 @@ public class TextBox : Drawable
     /// Checks if the content of the TextBox is empty.
     /// </summary>
     /// <returns><c>true</c> if the content is empty, otherwise <c>false</c>.</returns>
-    public bool IsEmpty() => string.IsNullOrEmpty(Content);
+    public System.Boolean IsEmpty() => System.String.IsNullOrEmpty(Content);
 }

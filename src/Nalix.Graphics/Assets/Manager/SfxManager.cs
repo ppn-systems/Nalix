@@ -15,12 +15,12 @@ namespace Nalix.Graphics.Assets.Manager;
 /// <param name="loader">Resolution <see cref="SfxLoader" /> instance to load the required sound effects</param>
 /// <param name="volume">Resolution function that returns the current volume.</param>
 /// <exception cref="ArgumentNullException">loader</exception>
-public class SfxManager(SfxLoader loader, Func<int> volume)
+public class SfxManager(SfxLoader loader, Func<Int32> volume)
 {
     private readonly SfxLoader _Loader = loader ?? throw new ArgumentNullException(nameof(loader));
 
     private readonly Dictionary<String, SoundManager> _SoundLibrary = [];
-    private readonly Func<int> _ReadVolume = volume;
+    private readonly Func<Int32> _ReadVolume = volume;
 
     /// <summary>
     /// Gets or sets the global listener position for spatial sounds.
@@ -35,13 +35,13 @@ public class SfxManager(SfxLoader loader, Func<int> volume)
     /// Gets or sets the initial volume drop-off start distance for spatial sounds.
     /// This defines the maximum distance a sound can still be heard at max volume.
     /// </summary>
-    public float VolumeDropoffStartDistance { get; set; } = 500;
+    public Single VolumeDropoffStartDistance { get; set; } = 500;
 
     /// <summary>
     /// Gets or sets the initial volume drop-off factor for spatial sounds.
     /// Defines how fast the volume drops beyond the <see cref="VolumeDropoffStartDistance"/>
     /// </summary>
-    public float VolumeDropoffFactor { get; set; } = 10;
+    public Single VolumeDropoffFactor { get; set; } = 10;
 
     /// <summary>
     /// Loads all compatible files from a folder into the sound library.
@@ -50,12 +50,16 @@ public class SfxManager(SfxLoader loader, Func<int> volume)
     /// <param name="parallelSounds">The amount of times each sound can be played in parallel.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void LoadFromDirectory(string root = null, int parallelSounds = 2)
+    public void LoadFromDirectory(String root = null, Int32 parallelSounds = 2)
     {
         ObjectDisposedException.ThrowIf(_Loader.Disposed, nameof(_Loader));
 
         var oldRoot = _Loader.RootFolder;
-        if (root != null) _Loader.RootFolder = root;
+        if (root != null)
+        {
+            _Loader.RootFolder = root;
+        }
+
         var sounds = _Loader.LoadAllFilesInDirectory();
         NLogixFx.Debug($"[SfxManager] Loaded {sounds.Length} sound files from '{_Loader.RootFolder}'");
         _Loader.RootFolder = oldRoot;
@@ -70,9 +74,12 @@ public class SfxManager(SfxLoader loader, Func<int> volume)
     /// <param name="parallelSounds">The amount of times each sound can be played in parallel.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void LoadFromFileList(IEnumerable<String> files, int parallelSounds)
+    public void LoadFromFileList(IEnumerable<String> files, Int32 parallelSounds)
     {
-        foreach (var file in files) AddToLibrary(file, parallelSounds);
+        foreach (var file in files)
+        {
+            AddToLibrary(file, parallelSounds);
+        }
     }
 
     /// <summary>
@@ -82,14 +89,14 @@ public class SfxManager(SfxLoader loader, Func<int> volume)
     /// <param name="parallelSounds">The amount of times this sound can be played in parallel.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void AddToLibrary(String name, int parallelSounds)
+    public void AddToLibrary(String name, Int32 parallelSounds)
     {
         ObjectDisposedException.ThrowIf(_Loader.Disposed, nameof(_Loader));
 
         if (_SoundLibrary.TryGetValue(name, out SoundManager sound))
         {
             // Replace SoundManager
-            _SoundLibrary.Remove(name);
+            _ = _SoundLibrary.Remove(name);
             sound.Dispose();
             AddToLibrary(name, parallelSounds);
         }
@@ -112,7 +119,7 @@ public class SfxManager(SfxLoader loader, Func<int> volume)
     /// <exception cref="ArgumentException">Thrown if no sound is found with the specified name.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Sound GetSound(String name, bool spatial = false)
+    public Sound GetSound(String name, Boolean spatial = false)
     {
         ObjectDisposedException.ThrowIf(_Loader.Disposed, nameof(_Loader));
 
@@ -148,11 +155,15 @@ public class SfxManager(SfxLoader loader, Func<int> volume)
 
         var sound = GetSound(name, position.HasValue);
         if (sound == null)
+        {
             return;
+        }
 
         // If position is specified, set it in 3D space
         if (position.HasValue)
+        {
             sound.Position = new Vector3f(position.Value.X, position.Value.Y, 0f); // Assuming z = 0 for 2D position.
+        }
 
         sound.Play();
     }

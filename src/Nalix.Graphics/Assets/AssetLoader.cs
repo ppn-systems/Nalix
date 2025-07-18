@@ -68,7 +68,10 @@ public abstract class AssetLoader<[
         System.ObjectDisposedException.ThrowIf(Disposed, nameof(AssetLoader<T>));
         System.ArgumentNullException.ThrowIfNull(name);
 
-        if (_Assets.TryGetValue(name, out T value)) return value;
+        if (_Assets.TryGetValue(name, out T value))
+        {
+            return value;
+        }
 
         System.String input = null;
         try
@@ -94,7 +97,10 @@ public abstract class AssetLoader<[
         catch (System.Exception ex)
         {
             $"[AssetLoader<{typeof(T).Name}>] Failed to load asset '{name}'. InputState: {input ?? "null"}. Error: {ex.Message}\n{ex}".Error();
-            if (Debug) throw;
+            if (Debug)
+            {
+                throw;
+            }
         }
 
         return null;
@@ -136,7 +142,10 @@ public abstract class AssetLoader<[
                     """.Error();
                 }
 
-                if (Debug) throw;
+                if (Debug)
+                {
+                    throw;
+                }
             }
         }
 
@@ -160,9 +169,9 @@ public abstract class AssetLoader<[
 
         $"""
         [AssetLoader] Could not find a matching file for asset '{name}'.
-        Tried extensions: {string.Join(", ", _FileEndings)}
+        Tried extensions: {System.String.Join(", ", _FileEndings)}
         Attempted paths:
-        {string.Join("\n", attemptedPaths)}
+        {System.String.Join("\n", attemptedPaths)}
         Root folder: {RootFolder}
         Fallback path used: {System.IO.Path.Combine(RootFolder, name)}
         """.Warn();
@@ -179,10 +188,13 @@ public abstract class AssetLoader<[
     public void Release(System.String name)
     {
         System.ObjectDisposedException.ThrowIf(Disposed, nameof(AssetLoader<T>));
-        if (!_Assets.TryGetValue(name, out T value)) return;
+        if (!_Assets.TryGetValue(name, out T value))
+        {
+            return;
+        }
 
         value.Dispose();
-        _Assets.Remove(name);
+        _ = _Assets.Remove(name);
     }
 
     /// <summary>
@@ -204,7 +216,11 @@ public abstract class AssetLoader<[
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual void Dispose(System.Boolean disposing)
     {
-        if (Disposed) return;
+        if (Disposed)
+        {
+            return;
+        }
+
         Disposed = true;
 
         foreach (var kvp in _Assets)
@@ -233,7 +249,7 @@ public abstract class AssetLoader<[
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected virtual T CreateInstanceFromRawData(byte[] rawData)
+    protected virtual T CreateInstanceFromRawData(System.Byte[] rawData)
         => throw new System.NotSupportedException(
             $"{typeof(T).Name} does not support loading from raw data. Override this method.");
 
@@ -242,16 +258,16 @@ public abstract class AssetLoader<[
     /// </summary>
     /// <param name="path">The full or relative file path to the asset.</param>
     /// <returns>
-    /// An instance of <typeparamref name="T"/> created using a constructor that accepts a single <see cref="string"/> argument.
+    /// An instance of <typeparamref name="T"/> created using a constructor that accepts a single <see cref="System.String"/> argument.
     /// </returns>
     /// <exception cref="System.MissingMethodException">
-    /// Thrown if <typeparamref name="T"/> does not have a public constructor accepting a <see cref="string"/> path.
+    /// Thrown if <typeparamref name="T"/> does not have a public constructor accepting a <see cref="System.String"/> path.
     /// </exception>
     /// <exception cref="System.Reflection.TargetInvocationException">
     /// Thrown if the constructor of <typeparamref name="T"/> throws an exception.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected virtual T CreateInstanceFromPath(string path)
+    protected virtual T CreateInstanceFromPath(System.String path)
         => (T)System.Activator.CreateInstance(typeof(T), [path]);
 }

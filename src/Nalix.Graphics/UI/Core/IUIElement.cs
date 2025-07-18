@@ -12,27 +12,27 @@ public interface IUIElement : Drawable
     /// <summary>
     /// Gets or sets the drawing priority (higher values are drawn on top).
     /// </summary>
-    int ZIndex { get; set; }
+    System.Int32 ZIndex { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the UI element is visible.
     /// </summary>
-    bool IsVisible { get; set; }
+    System.Boolean IsVisible { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the UI element is enabled and interactive.
     /// </summary>
-    bool IsEnabled { get; set; }
+    System.Boolean IsEnabled { get; set; }
 
     /// <summary>
     /// Gets a value indicating whether the mouse is currently over the element.
     /// </summary>
-    bool IsHovered { get; }
+    System.Boolean IsHovered { get; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the element currently has keyboard focus.
     /// </summary>
-    bool IsFocused { get; set; }
+    System.Boolean IsFocused { get; set; }
 
     /// <summary>
     /// Updates the UI element’s internal state based on the current mouse position.
@@ -58,7 +58,7 @@ public interface IUIElement : Drawable
     /// </summary>
     /// <param name="point">The point to test.</param>
     /// <returns><c>true</c> if the point is inside; otherwise, <c>false</c>.</returns>
-    bool HitTest(Vector2i point);
+    System.Boolean HitTest(Vector2i point);
 
     /// <summary>
     /// Called when the mouse first enters the element's bounds.

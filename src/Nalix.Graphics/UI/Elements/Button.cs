@@ -29,7 +29,7 @@ public sealed class Button : BaseUIElement
     /// <summary>
     /// Gets or sets the text displayed on the button.
     /// </summary>
-    public string Text
+    public String Text
     {
         get => _label.DisplayedString;
         set => _label.DisplayedString = value;
@@ -77,7 +77,7 @@ public sealed class Button : BaseUIElement
     /// <param name="text">The initial text displayed on the button.</param>
     /// <param name="position">The top-left position of the button.</param>
     /// <param name="size">The size of the button in pixels.</param>
-    public Button(Font font, string text, Vector2f position, Vector2f size)
+    public Button(Font font, String text, Vector2f position, Vector2f size)
     {
         _font = font;
 
@@ -104,10 +104,7 @@ public sealed class Button : BaseUIElement
     ///
     /// </summary>
     /// <param name="click"></param>
-    public void SetSounds(Sound click)
-    {
-        _clickSound = click;
-    }
+    public void SetSounds(Sound click) => _clickSound = click;
 
     /// <summary>
     /// Sets two textures for normal and hover states.
@@ -126,12 +123,19 @@ public sealed class Button : BaseUIElement
     /// <inheritdoc/>
     public override void Draw(RenderTarget target, RenderStates states)
     {
-        if (!IsVisible) return;
+        if (!IsVisible)
+        {
+            return;
+        }
 
         if (_hover != null)
+        {
             target.Draw(_sprite, states);
+        }
         else
+        {
             target.Draw(_background, states);
+        }
 
         target.Draw(_label, states);
     }
@@ -170,7 +174,9 @@ public sealed class Button : BaseUIElement
     protected override void OnClick(Mouse.Button button)
     {
         if (button != Mouse.Button.Left)
+        {
             return;
+        }
 
         // Play the click sound if available
         _clickSound?.Play();
@@ -185,24 +191,27 @@ public sealed class Button : BaseUIElement
         Vector2f size = _background.Size;
 
         // Set the character size first
-        _label.CharacterSize = (uint)(MathF.Min(size.X, size.Y) / 2);
+        _label.CharacterSize = (UInt32)(MathF.Min(size.X, size.Y) / 2);
 
         // Get the updated text bounds after setting the character size
         FloatRect textBounds = _label.GetLocalBounds();
 
         // Calculate the centered position
         _label.Position = new Vector2f(
-            basePos.X + (size.X - textBounds.Width) / 2f - textBounds.Left,
-            basePos.Y + (size.Y - textBounds.Height) / 2f - textBounds.Top - 2f
+            basePos.X + ((size.X - textBounds.Width) / 2f) - textBounds.Left,
+            basePos.Y + ((size.Y - textBounds.Height) / 2f) - textBounds.Top - 2f
         );
     }
 
     private void UpdateSpriteScale()
     {
-        if (_normal == null) return;
+        if (_normal == null)
+        {
+            return;
+        }
 
-        float scaleX = Size.X / _normal.Size.X;
-        float scaleY = Size.Y / _normal.Size.Y;
+        Single scaleX = Size.X / _normal.Size.X;
+        Single scaleY = Size.Y / _normal.Size.Y;
 
         _sprite.Scale = new Vector2f(scaleX, scaleY);
     }

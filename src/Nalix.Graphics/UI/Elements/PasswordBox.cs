@@ -14,10 +14,10 @@ namespace Nalix.Graphics.UI.Elements;
 /// <param name="position">The position of the PasswordBox.</param>
 /// <param name="size">The size of the PasswordBox.</param>
 /// <param name="placeholder">The placeholder text to display when the PasswordBox is empty.</param>
-public class PasswordBox(Font font, Vector2f position, Vector2f size, string placeholder = "")
+public class PasswordBox(Font font, Vector2f position, Vector2f size, System.String placeholder = "")
     : TextBox(font, position, size, placeholder)
 {
-    private readonly char _maskCharacter = '*'; // Character used to mask the password input
+    private readonly System.Char _maskCharacter = '*'; // Character used to mask the password input
 
     /// <summary>
     /// Handles the input events such as text entry or backspace.
@@ -27,22 +27,24 @@ public class PasswordBox(Font font, Vector2f position, Vector2f size, string pla
     public new void HandleInput(Event e)
     {
         if (!IsFocused || e.Type != EventType.TextEntered)
+        {
             return;
+        }
 
-        uint c = e.Text.Unicode;
+        System.UInt32 c = e.Text.Unicode;
 
         // Backspace handling
         if (c == 8 && Content.Length > 0)
         {
             Content = Content[..^1];
         }
-        else if (c >= 32 && c <= 126) // Printable ASCII
+        else if (c is >= 32 and <= 126) // Printable ASCII
         {
-            Content += (char)c;
+            Content += (System.Char)c;
         }
 
         // Mask the password input with asterisks
-        Text.DisplayedString = string.IsNullOrEmpty(Content) ? Paceholder : new string(_maskCharacter, Content.Length);
+        Text.DisplayedString = System.String.IsNullOrEmpty(Content) ? Paceholder : new System.String(_maskCharacter, Content.Length);
     }
 
     /// <summary>
@@ -53,7 +55,9 @@ public class PasswordBox(Font font, Vector2f position, Vector2f size, string pla
     public new void Draw(RenderTarget target, RenderStates states)
     {
         if (!IsVisible)
+        {
             return;
+        }
 
         base.Draw(target, states); // Draw the base (background and text)
     }

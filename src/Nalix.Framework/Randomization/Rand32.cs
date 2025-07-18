@@ -34,7 +34,7 @@ public sealed class Rand32(System.Int32 seed)
     /// <summary>
     /// Random Number generator instance.
     /// </summary>
-    private readonly SeededRandom _rand = new((uint)seed);
+    private readonly SeededRandom _rand = new((System.UInt32)seed);
 
     #endregion Fields
 
@@ -90,11 +90,15 @@ public sealed class Rand32(System.Int32 seed)
     public System.Int32 Next(System.Int32 max)
     {
         if (max <= 0)
+        {
             throw new System.ArgumentOutOfRangeException(nameof(max), "Max must be positive");
+        }
 
         // Fast path for power of 2
         if ((max & (max - 1)) == 0)
+        {
             return (System.Int32)(((_rand.Get() & RandMax) * max) >> 31);
+        }
 
         // Avoid modulo bias by rejecting values in the unfair region
         System.UInt32 threshold = (System.UInt32)((RandMax - (RandMax % max)) & RandMax);
@@ -120,14 +124,14 @@ public sealed class Rand32(System.Int32 seed)
     {
         if (min >= max)
         {
-            if (min == max)
-                return min;
-            throw new System.ArgumentOutOfRangeException(nameof(min), "Min must be less than max");
+            return min == max ? min : throw new System.ArgumentOutOfRangeException(nameof(min), "Min must be less than max");
         }
 
         System.Int64 range = (System.Int64)max - min;
         if (range <= System.Int32.MaxValue)
+        {
             return min + Next((System.Int32)range);
+        }
 
         // Handle large ranges that exceed int.MaxValue
         return min + (System.Int32)(NextDouble() * range);
@@ -196,9 +200,12 @@ public sealed class Rand32(System.Int32 seed)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean NextPct(System.Int32 pct)
     {
-        if (pct <= 0) return false;
-        if (pct >= 100) return true;
-        return Next(100) < pct;
+        if (pct <= 0)
+        {
+            return false;
+        }
+
+        return pct >= 100 || Next(100) < pct;
     }
 
     /// <summary>
@@ -210,9 +217,12 @@ public sealed class Rand32(System.Int32 seed)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean NextProbability(System.Double probability)
     {
-        if (probability <= 0.0) return false;
-        if (probability >= 1.0) return true;
-        return NextDouble() < probability;
+        if (probability <= 0.0)
+        {
+            return false;
+        }
+
+        return probability >= 1.0 || NextDouble() < probability;
     }
 
     /// <summary>
@@ -258,10 +268,9 @@ public sealed class Rand32(System.Int32 seed)
     /// <exception cref="System.ArgumentException">Thrown when the list is empty.</exception>
     public T Choose<T>(System.Collections.Generic.IList<T> list)
     {
-        if (list == null || list.Count == 0)
-            throw new System.ArgumentException("Cannot choose from an empty list", nameof(list));
-
-        return list[Next(list.Count)];
+        return list == null || list.Count == 0
+            ? throw new System.ArgumentException("Cannot choose from an empty list", nameof(list))
+            : list[Next(list.Count)];
     }
 
     /// <summary>
@@ -271,13 +280,7 @@ public sealed class Rand32(System.Int32 seed)
     /// <param name="span">The span to pick from.</param>
     /// <returns>A random item from the span.</returns>
     /// <exception cref="System.ArgumentException">Thrown when the span is empty.</exception>
-    public T Choose<T>(System.ReadOnlySpan<T> span)
-    {
-        if (span.IsEmpty)
-            throw new System.ArgumentException("Cannot choose from an empty span", nameof(span));
-
-        return span[Next(span.Length)];
-    }
+    public T Choose<T>(System.ReadOnlySpan<T> span) => span.IsEmpty ? throw new System.ArgumentException("Cannot choose from an empty span", nameof(span)) : span[Next(span.Length)];
 
     /// <summary>
     /// Fills the specified buffer with random bytes.
