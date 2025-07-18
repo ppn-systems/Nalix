@@ -1,4 +1,4 @@
-using Nalix.Common.Security.Enums;
+using Nalix.Common.Security.Types;
 using Nalix.Network.Security.Settings;
 using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;

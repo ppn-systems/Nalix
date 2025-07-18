@@ -22,6 +22,8 @@ public readonly partial struct Packet
 
     #region Fields
 
+    [SerializeIgnore]
+    private readonly System.Int32 _hash;
 
     [SerializeIgnore]
     private readonly ManagedBuffer _buffer;
