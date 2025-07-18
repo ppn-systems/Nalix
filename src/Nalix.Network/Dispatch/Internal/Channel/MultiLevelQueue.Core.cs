@@ -9,7 +9,7 @@ namespace Nalix.Network.Dispatch.Channel;
 /// A high-performance priority queue for network packets based on System.Threading.Channels.
 /// Supports multiple priority levels with highest priority processing first.
 /// </summary>
-public sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
+internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
 {
     #region Fields
 
@@ -21,18 +21,18 @@ public sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
 
     // Snapshot variables
 
-    private readonly int[]? _expiredCounts;
-    private readonly int[]? _rejectedCounts;
-    private readonly int[]? _enqueuedCounts;
-    private readonly int[]? _dequeuedCounts;
+    private readonly System.Int32[]? _expiredCounts;
+    private readonly System.Int32[]? _rejectedCounts;
+    private readonly System.Int32[]? _enqueuedCounts;
+    private readonly System.Int32[]? _dequeuedCounts;
 
     // Cache priority count to avoid repeated enum lookups
 
-    private int _totalCount;
-    private readonly int _priorityCount;
-    private readonly int[] _priorityCounts;
+    private System.Int32 _totalCount;
+    private readonly System.Int32 _priorityCount;
+    private readonly System.Int32[] _priorityCounts;
 
-    private int _lastSuccessfulPriority = -1;
+    private System.Int32 _lastSuccessfulPriority = -1;
 
     #endregion Fields
 
@@ -41,7 +41,7 @@ public sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
     /// <summary>
     /// Total number of packets in the queue
     /// </summary>
-    public int Count => System.Threading.Volatile.Read(ref _totalCount);
+    public System.Int32 Count => System.Threading.Volatile.Read(ref this._totalCount);
 
     #endregion Properties
 
@@ -52,16 +52,16 @@ public sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
     /// </summary>
     private MultiLevelQueue()
     {
-        _priorityCount = System.Enum.GetValues<PacketPriority>().Length;
-        _options ??= ConfigurationStore.Instance.Get<DispatchQueueOptions>();
-        _priorityChannels = new System.Threading.Channels.Channel<TPacket>[_priorityCount];
+        this._priorityCount = System.Enum.GetValues<PacketPriority>().Length;
+        this._options ??= ConfigurationStore.Instance.Get<DispatchQueueOptions>();
+        this._priorityChannels = new System.Threading.Channels.Channel<TPacket>[this._priorityCount];
 
-        _priorityCounts = new System.Int32[_priorityCount];
+        this._priorityCounts = new System.Int32[this._priorityCount];
 
         // Create channels for each priority level
-        for (System.Byte i = 0; i < _priorityCount; i++)
+        for (System.Byte i = 0; i < this._priorityCount; i++)
         {
-            _priorityChannels[i] = MultiLevelQueue<TPacket>.CreateChannel(_options.MaxCapacity);
+            this._priorityChannels[i] = MultiLevelQueue<TPacket>.CreateChannel(this._options.MaxCapacity);
         }
     }
 
@@ -71,16 +71,16 @@ public sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
     /// <param name="options">Configuration options for the packet queue</param>
     public MultiLevelQueue(DispatchQueueOptions options) : this()
     {
-        _options = options;
+        this._options = options;
 
         if (options.EnableMetrics)
         {
             // Initialize arrays based on priority count
-            _expiredCounts = new System.Int32[_priorityCount];
+            this._expiredCounts = new System.Int32[this._priorityCount];
 
-            _rejectedCounts = new System.Int32[_priorityCount];
-            _enqueuedCounts = new System.Int32[_priorityCount];
-            _dequeuedCounts = new System.Int32[_priorityCount];
+            this._rejectedCounts = new System.Int32[this._priorityCount];
+            this._enqueuedCounts = new System.Int32[this._priorityCount];
+            this._dequeuedCounts = new System.Int32[this._priorityCount];
         }
     }
 
@@ -88,7 +88,7 @@ public sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
 
     #region Private Methods
 
-    private static System.Threading.Channels.Channel<TPacket> CreateChannel(int capacity)
+    private static System.Threading.Channels.Channel<TPacket> CreateChannel(System.Int32 capacity)
     {
         return capacity > 0
             ? System.Threading.Channels.Channel.CreateBounded<TPacket>(

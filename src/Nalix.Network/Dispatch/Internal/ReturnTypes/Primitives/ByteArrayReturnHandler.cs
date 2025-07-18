@@ -1,10 +1,11 @@
 ﻿using Nalix.Network.Dispatch.Core;
+using Nalix.Network.Dispatch.Internal.ReturnTypes;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.ReturnHandlers;
+namespace Nalix.Network.Dispatch.Internal.ReturnTypes.Primitives;
 
 /// <inheritdoc/>
-public sealed class MemoryReturnHandler<TPacket> : IPacketReturnHandler<TPacket>
+internal sealed class ByteArrayReturnHandler<TPacket> : IReturnHandler<TPacket>
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -12,9 +13,9 @@ public sealed class MemoryReturnHandler<TPacket> : IPacketReturnHandler<TPacket>
         System.Object? result,
         PacketContext<TPacket> context)
     {
-        if (result is System.Memory<System.Byte> memory)
+        if (result is System.Byte[] data)
         {
-            await context.Connection.Tcp.SendAsync(memory);
+            _ = await context.Connection.Tcp.SendAsync(data);
         }
     }
 }
