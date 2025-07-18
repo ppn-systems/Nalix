@@ -17,10 +17,10 @@ public readonly struct EventId(System.Int32 id, System.String name = null) : Sys
     public static readonly EventId Empty = new(0);
 
     /// <summary>
-    /// Implicitly creates an EventId from the given <see cref="int"/>.
+    /// Implicitly creates an EventId from the given <see cref="System.Int32"/>.
     /// </summary>
-    /// <param name="i">The <see cref="int"/> to convert to an EventId.</param>
-    public static implicit operator EventId(int i) => new(i);
+    /// <param name="i">The <see cref="System.Int32"/> to convert to an EventId.</param>
+    public static implicit operator EventId(System.Int32 i) => new(i);
 
     /// <summary>
     /// Checks if two specified <see cref="EventId"/> instances have the same value. They are equal if they have the same Number.
@@ -60,15 +60,7 @@ public readonly struct EventId(System.Int32 id, System.String name = null) : Sys
 
     /// <inheritdoc />
     public override System.Boolean Equals(
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] System.Object obj)
-    {
-        if (obj is null)
-        {
-            return false;
-        }
-
-        return obj is EventId eventId && Equals(eventId);
-    }
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] System.Object obj) => obj is not null && obj is EventId eventId && Equals(eventId);
 
     /// <inheritdoc />
     public override System.Int32 GetHashCode() => Id;

@@ -97,5 +97,5 @@ public interface IRepository<T> : IRepositoryBase<T> where T : class
     /// Saves all changes made in the context.
     /// </summary>
     /// <returns>The Number of state entries written to the database.</returns>
-    int SaveChanges();
+    System.Int32 SaveChanges();
 }
