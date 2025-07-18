@@ -65,29 +65,29 @@ public sealed class ConnectionLimitOptions(ConnectionLimitSettings settings) : C
     /// This value is limited to a range of 1 to 10000, where 100 is the default value.
     /// The configuration defines how many connections a single IP address can maintain simultaneously.
     /// </remarks>
-    public int MaxConnectionsPerIpAddress { get; set; } = settings.MaxConnections;
+    public System.Int32 MaxConnectionsPerIpAddress { get; set; } = settings.MaxConnections;
 
     /// <summary>
     /// Gets or sets the interval in milliseconds between cleanup operations.
     /// </summary>
-    public int CleanupIntervalMs { get; set; } = settings.CleanupIntervalMs;
+    public System.Int32 CleanupIntervalMs { get; set; } = settings.CleanupIntervalMs;
 
     /// <summary>
     /// Gets or sets the threshold in milliseconds after which an inactive connection entry is considered stale.
     /// </summary>
-    public int InactivityThresholdMs { get; set; } = settings.InactivityThresholdMs;
+    public System.Int32 InactivityThresholdMs { get; set; } = settings.InactivityThresholdMs;
 
     /// <summary>
     /// Gets the cleanup interval as a TimeSpan.
     /// </summary>
     [ConfiguredIgnore]
-    public System.TimeSpan CleanupInterval => System.TimeSpan.FromMilliseconds(CleanupIntervalMs);
+    public System.TimeSpan CleanupInterval => System.TimeSpan.FromMilliseconds(this.CleanupIntervalMs);
 
     /// <summary>
     /// Gets the inactivity threshold as a TimeSpan.
     /// </summary>
     [ConfiguredIgnore]
-    public System.TimeSpan InactivityThreshold => System.TimeSpan.FromMilliseconds(InactivityThresholdMs);
+    public System.TimeSpan InactivityThreshold => System.TimeSpan.FromMilliseconds(this.InactivityThresholdMs);
 
     #endregion Properties
 

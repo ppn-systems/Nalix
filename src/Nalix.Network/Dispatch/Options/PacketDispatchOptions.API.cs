@@ -25,8 +25,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PacketDispatchOptions<TPacket> WithLogging(ILogger logger)
     {
-        _logger = logger;
-        _logger.Info("Logger instance successfully attached to PacketDispatch. Logging is now active.");
+        this._logger = logger;
+        this._logger.Info("Logger instance successfully attached to PacketDispatch. Logging is now active.");
 
         return this;
     }
@@ -51,8 +51,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithErrorHandling(
         System.Action<System.Exception, System.UInt16> errorHandler)
     {
-        _logger?.Info("Custom error handler has been set. All unhandled exceptions during packet processing will be routed.");
-        _errorHandler = errorHandler;
+        this._logger?.Info("Custom error handler has been set. All unhandled exceptions during packet processing will be routed.");
+        this._errorHandler = errorHandler;
 
         return this;
     }
@@ -76,7 +76,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithMiddleware(
         IPacketMiddleware<TPacket> middleware)
     {
-        _pipeline.UsePre(middleware);
+        _ = this._pipeline.UsePre(middleware);
         return this;
     }
 
@@ -98,7 +98,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithPostMiddleware(
         IPacketMiddleware<TPacket> middleware)
     {
-        _pipeline.UsePost(middleware);
+        _ = this._pipeline.UsePost(middleware);
         return this;
     }
 
@@ -176,21 +176,21 @@ public sealed partial class PacketDispatchOptions<TPacket>
             ?? throw new System.InvalidOperationException(
                 $"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
-        PacketAnalyzer<TController, TPacket> scanner = new(_logger);
+        PacketAnalyzer<TController, TPacket> scanner = new(this._logger);
         PacketHandlerDelegate<TPacket>[] handlerDescriptors = scanner.ScanController(factory);
 
         foreach (PacketHandlerDelegate<TPacket> descriptor in handlerDescriptors)
         {
-            if (_handlerCache.ContainsKey(descriptor.OpCode))
+            if (this._handlerCache.ContainsKey(descriptor.OpCode))
             {
                 throw new System.InvalidOperationException(
                     $"OpCode '{descriptor.OpCode}' has already been registered.");
             }
 
-            _handlerCache[descriptor.OpCode] = descriptor;
+            this._handlerCache[descriptor.OpCode] = descriptor;
         }
 
-        _logger?.Info("Registered {0} handlers for controller {1}",
+        this._logger?.Info("Registered {0} handlers for controller {1}",
             handlerDescriptors.Length, controllerType.Name);
 
         return this;
@@ -202,12 +202,12 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool TryResolveHandler(
+    public System.Boolean TryResolveHandler(
         System.UInt16 opCode,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
         out System.Func<TPacket, IConnection, System.Threading.Tasks.Task>? handler)
     {
-        if (_handlerCache.TryGetValue(opCode, out var descriptor))
+        if (this._handlerCache.TryGetValue(opCode, out var descriptor))
         {
             // Wrap descriptor execution trong legacy Task-based signature
             handler = async (packet, connection) =>
@@ -221,7 +221,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                     context.Initialize(packet, connection, descriptor.Attributes);
 
                     // Execute through new pipeline
-                    await ExecuteHandler(descriptor, context);
+                    await this.ExecuteHandler(descriptor, context);
                 }
                 finally
                 {
@@ -232,7 +232,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return true;
         }
 
-        _logger?.Warn("Handler not found for OpCode={0}", opCode);
+        this._logger?.Warn("Handler not found for OpCode={0}", opCode);
         handler = null;
         return false;
     }
@@ -243,15 +243,17 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool TryResolveHandlerDescriptor(
+    public System.Boolean TryResolveHandlerDescriptor(
         System.UInt16 opCode,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
         out PacketHandlerDelegate<TPacket> descriptor)
     {
-        if (_handlerCache.TryGetValue(opCode, out descriptor))
+        if (this._handlerCache.TryGetValue(opCode, out descriptor))
+        {
             return true;
+        }
 
-        _logger?.Warn("Handler not found for OpCode={0}", opCode);
+        this._logger?.Warn("Handler not found for OpCode={0}", opCode);
         return false;
     }
 }

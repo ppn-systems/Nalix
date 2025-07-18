@@ -9,28 +9,28 @@ public record ListenerSnapshot
     /// <summary>
     /// Gets the port on which the listener is accepting connections.
     /// </summary>
-    public int Port { get; init; }
+    public System.Int32 Port { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the listener is actively listening for incoming connections.
     /// </summary>
-    public bool IsListening { get; init; }
+    public System.Boolean IsListening { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the listener has been disposed.
     /// </summary>
-    public bool IsDisposed { get; init; }
+    public System.Boolean IsDisposed { get; init; }
 
     /// <summary>
     /// Gets the number of active connections currently being handled by the listener.
     /// </summary>
-    public required string Address { get; init; }
+    public required System.String Address { get; init; }
 
     /// <summary>
     /// Gets a string representation of the status of the listener's socket,
     /// including socket type, protocol type, address family, and other details.
     /// </summary>
-    public required string SocketInfo { get; init; }
+    public required System.String SocketInfo { get; init; }
 
     /// <summary>
     /// Retrieves detailed information about the listener socket's status, including
@@ -40,26 +40,28 @@ public record ListenerSnapshot
     /// <returns>A string representing the status of the socket.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static string GetSocketStatus(System.Net.Sockets.Socket socket)
+    public static System.String GetSocketStatus(System.Net.Sockets.Socket socket)
     {
         if (socket == null)
+        {
             return "_udpListener not initialized";
+        }
 
         System.Text.StringBuilder sb = new();
 
-        sb.AppendLine($"_udpListener Type: {socket.SocketType}");
-        sb.AppendLine($"Protocol Type: {socket.ProtocolType}");
-        sb.AppendLine($"Address Family: {socket.AddressFamily}");
-        sb.AppendLine($"Linger State Enabled: {socket.LingerState?.Enabled}");
-        sb.AppendLine($"Linger State Time: {socket.LingerState?.LingerTime} seconds");
+        _ = sb.AppendLine($"_udpListener Type: {socket.SocketType}");
+        _ = sb.AppendLine($"Protocol Type: {socket.ProtocolType}");
+        _ = sb.AppendLine($"Address Family: {socket.AddressFamily}");
+        _ = sb.AppendLine($"Linger State Enabled: {socket.LingerState?.Enabled}");
+        _ = sb.AppendLine($"Linger State Time: {socket.LingerState?.LingerTime} seconds");
 
         try
         {
-            sb.AppendLine($"Is Listening: {socket.IsBound}");
+            _ = sb.AppendLine($"Is Listening: {socket.IsBound}");
         }
         catch
         {
-            sb.AppendLine("Error fetching socket listening state");
+            _ = sb.AppendLine("Error fetching socket listening state");
         }
 
         return sb.ToString();
@@ -72,12 +74,11 @@ public record ListenerSnapshot
     /// <returns>A string representing the status of the socket.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static string GetIpAddress(System.Net.Sockets.Socket socket)
+    public static System.String GetIpAddress(System.Net.Sockets.Socket socket)
     {
-        if (socket == null)
-            return "_udpListener not initialized";
-
-        return (socket.LocalEndPoint as System.Net.IPEndPoint)?
+        return socket == null
+            ? "_udpListener not initialized"
+            : (socket.LocalEndPoint as System.Net.IPEndPoint)?
             .Address.ToString() ?? "IP not available";
     }
 
@@ -87,16 +88,16 @@ public record ListenerSnapshot
     /// <returns>A string that represents the current state of the listener snapshot.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override string ToString()
+    public override System.String ToString()
     {
         System.Text.StringBuilder sb = new();
 
-        sb.AppendLine($"Listener Snapshot:");
-        sb.AppendLine($"Port: {Port}");
-        sb.AppendLine($"Is Listening: {IsListening}");
-        sb.AppendLine($"Is Disposed: {IsDisposed}");
-        sb.AppendLine($"Listener _udpListener Status: {SocketInfo}");
-        sb.AppendLine($"Address: {Address}");
+        _ = sb.AppendLine($"Listener Snapshot:");
+        _ = sb.AppendLine($"Port: {this.Port}");
+        _ = sb.AppendLine($"Is Listening: {this.IsListening}");
+        _ = sb.AppendLine($"Is Disposed: {this.IsDisposed}");
+        _ = sb.AppendLine($"Listener _udpListener Status: {this.SocketInfo}");
+        _ = sb.AppendLine($"Address: {this.Address}");
 
         return sb.ToString();
     }

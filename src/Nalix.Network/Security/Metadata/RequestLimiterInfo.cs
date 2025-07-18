@@ -9,62 +9,66 @@ internal readonly struct RequestLimiterInfo
 {
     #region Fields
 
-    private readonly Queue<long> _requests;
+    private readonly Queue<System.Int64> _requests;
 
     #endregion Fields
 
     #region Properties
 
-    public long BlockedUntilTicks { get; }
-    public long LastRequestTicks { get; }
-    public int RequestCount => _requests.Count;
-    public IReadOnlyCollection<long> Requests => _requests;
+    public System.Int64 BlockedUntilTicks { get; }
+    public System.Int64 LastRequestTicks { get; }
+    public System.Int32 RequestCount => this._requests.Count;
+    public IReadOnlyCollection<System.Int64> Requests => this._requests;
 
     #endregion Properties
 
     #region Constructors
 
-    public RequestLimiterInfo(long firstRequest)
+    public RequestLimiterInfo(System.Int64 firstRequest)
     {
-        _requests = new Queue<long>(capacity: 8);
-        _requests.Enqueue(firstRequest);
-        BlockedUntilTicks = 0;
-        LastRequestTicks = firstRequest;
+        this._requests = new Queue<System.Int64>(capacity: 8);
+        this._requests.Enqueue(firstRequest);
+        this.BlockedUntilTicks = 0;
+        this.LastRequestTicks = firstRequest;
     }
 
     #endregion Constructors
 
     #region Public Methods
 
-    public RequestLimiterInfo Process(long now, int maxRequests, long windowTicks, long blockDurationTicks)
+    public RequestLimiterInfo Process(System.Int64 now, System.Int32 maxRequests, System.Int64 windowTicks, System.Int64 blockDurationTicks)
     {
-        while (_requests.Count > 0 && now - _requests.Peek() > windowTicks)
-            _requests.Dequeue();
-
-        if (_requests.Count >= maxRequests)
+        while (this._requests.Count > 0 && now - this._requests.Peek() > windowTicks)
         {
-            return new RequestLimiterInfo(_requests, now + blockDurationTicks, now);
+            _ = this._requests.Dequeue();
         }
 
-        _requests.Enqueue(now);
-        return new RequestLimiterInfo(_requests, 0, now);
+        if (this._requests.Count >= maxRequests)
+        {
+            return new RequestLimiterInfo(this._requests, now + blockDurationTicks, now);
+        }
+
+        this._requests.Enqueue(now);
+        return new RequestLimiterInfo(this._requests, 0, now);
     }
 
-    public void Cleanup(long now, long windowTicks)
+    public void Cleanup(System.Int64 now, System.Int64 windowTicks)
     {
-        while (_requests.Count > 0 && now - _requests.Peek() > windowTicks)
-            _requests.Dequeue();
+        while (this._requests.Count > 0 && now - this._requests.Peek() > windowTicks)
+        {
+            _ = this._requests.Dequeue();
+        }
     }
 
     #endregion Public Methods
 
     #region Private Methods
 
-    private RequestLimiterInfo(Queue<long> requests, long blockedUntilTicks, long lastRequestTicks)
+    private RequestLimiterInfo(Queue<System.Int64> requests, System.Int64 blockedUntilTicks, System.Int64 lastRequestTicks)
     {
-        _requests = requests;
-        BlockedUntilTicks = blockedUntilTicks;
-        LastRequestTicks = lastRequestTicks;
+        this._requests = requests;
+        this.BlockedUntilTicks = blockedUntilTicks;
+        this.LastRequestTicks = lastRequestTicks;
     }
 
     #endregion Private Methods

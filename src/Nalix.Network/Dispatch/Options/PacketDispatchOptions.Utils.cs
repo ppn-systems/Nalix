@@ -17,7 +17,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     private void ConfigureDefaultMiddleware()
     {
         // Pre-processing middleware
-        _pipeline
+        _ = this._pipeline
             .UsePre(new RateLimitMiddleware<TPacket>())
             .UsePre(new PermissionMiddleware<TPacket>())
             .UsePre(new DecompressMiddleware<TPacket>())
@@ -53,7 +53,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         }
         catch (System.Exception ex)
         {
-            await HandleExecutionException(descriptor, context, ex);
+            await this.HandleExecutionException(descriptor, context, ex);
         }
     }
 
@@ -67,18 +67,18 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         PacketContext<TPacket> context,
         System.Exception exception)
     {
-        _logger?.Error("Handler execution failed for OpCode={0}: {1}",
+        this._logger?.Error("Handler execution failed for OpCode={0}: {1}",
             descriptor.OpCode, exception.Message);
 
-        _errorHandler?.Invoke(exception, descriptor.OpCode);
+        this._errorHandler?.Invoke(exception, descriptor.OpCode);
 
         TPacket errorPacket = TPacket.Create(0, "Internal server error");
-        await context.Connection.Tcp.SendAsync(errorPacket.Serialize());
+        _ = await context.Connection.Tcp.SendAsync(errorPacket.Serialize());
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static T EnsureNotNull<T>(T value, string paramName) where T : class
+    private static T EnsureNotNull<T>(T value, System.String paramName) where T : class
         => value ?? throw new System.ArgumentNullException(paramName);
 
     #endregion Private Methods

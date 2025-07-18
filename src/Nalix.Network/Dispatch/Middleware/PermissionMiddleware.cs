@@ -25,7 +25,7 @@ public class PermissionMiddleware<TPacket> : IPacketMiddleware<TPacket>
         if (context.Attributes.Permission is not null &&
             context.Attributes.Permission.Level > context.Connection.Level)
         {
-            await context.Connection.Tcp.SendAsync(TPacket
+            _ = await context.Connection.Tcp.SendAsync(TPacket
                                         .Create(0, "Permission denied. You are not authorized to perform this action."));
 
             return;

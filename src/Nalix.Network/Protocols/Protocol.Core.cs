@@ -50,15 +50,17 @@ public abstract partial class Protocol : IProtocol
     public void PostProcessMessage(System.Object sender, IConnectEventArgs args)
     {
         System.ArgumentNullException.ThrowIfNull(args);
-        System.ObjectDisposedException.ThrowIf(_isDisposed, this);
-        System.Threading.Interlocked.Increment(ref _totalMessages);
+        System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
+        _ = System.Threading.Interlocked.Increment(ref this._totalMessages);
 
         try
         {
             this.OnPostProcess(args);
 
-            if (!KeepConnectionOpen)
+            if (!this.KeepConnectionOpen)
+            {
                 args.Connection.Disconnect();
+            }
         }
         catch (System.Exception ex)
         {

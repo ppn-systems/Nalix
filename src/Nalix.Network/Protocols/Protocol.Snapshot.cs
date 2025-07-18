@@ -7,8 +7,8 @@ public abstract partial class Protocol : ISnapshot<ProtocolSnapshot>
 {
     #region Fields
 
-    private ulong _totalErrors;
-    private ulong _totalMessages;
+    private System.UInt64 _totalErrors;
+    private System.UInt64 _totalMessages;
 
     #endregion Fields
 
@@ -17,12 +17,12 @@ public abstract partial class Protocol : ISnapshot<ProtocolSnapshot>
     /// <summary>
     /// Total number of errors encountered during message processing.
     /// </summary>
-    public ulong TotalErrors => System.Threading.Interlocked.Read(ref _totalErrors);
+    public System.UInt64 TotalErrors => System.Threading.Interlocked.Read(ref this._totalErrors);
 
     /// <summary>
     /// Total number of messages processed by this protocol.
     /// </summary>
-    public ulong TotalMessages => System.Threading.Interlocked.Read(ref _totalMessages);
+    public System.UInt64 TotalMessages => System.Threading.Interlocked.Read(ref this._totalMessages);
 
     #endregion Properties
 
@@ -38,8 +38,8 @@ public abstract partial class Protocol : ISnapshot<ProtocolSnapshot>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public virtual ProtocolSnapshot GetSnapshot() => new()
     {
-        IsListening = IsAccepting,
-        TotalMessages = System.Threading.Interlocked.Read(ref _totalMessages),
-        TotalErrors = System.Threading.Interlocked.Read(ref _totalErrors),
+        IsListening = this.IsAccepting,
+        TotalMessages = System.Threading.Interlocked.Read(ref this._totalMessages),
+        TotalErrors = System.Threading.Interlocked.Read(ref this._totalErrors),
     };
 }
