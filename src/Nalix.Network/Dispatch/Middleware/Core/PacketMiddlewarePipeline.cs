@@ -19,7 +19,7 @@ public class PacketMiddlewarePipeline<TPacket>
     /// <returns>The current pipeline instance for chaining.</returns>
     public PacketMiddlewarePipeline<TPacket> UsePre(IPacketMiddleware<TPacket> middleware)
     {
-        _pre.Add(middleware);
+        this._pre.Add(middleware);
         return this;
     }
 
@@ -30,7 +30,7 @@ public class PacketMiddlewarePipeline<TPacket>
     /// <returns>The current pipeline instance for chaining.</returns>
     public PacketMiddlewarePipeline<TPacket> UsePost(IPacketMiddleware<TPacket> middleware)
     {
-        _post.Add(middleware);
+        this._post.Add(middleware);
         return this;
     }
 
@@ -45,10 +45,10 @@ public class PacketMiddlewarePipeline<TPacket>
         PacketContext<TPacket> context,
         System.Func<System.Threading.Tasks.Task> handler)
     {
-        return ExecuteMiddlewareChain(_pre, context, async () =>
+        return ExecuteMiddlewareChain(this._pre, context, async () =>
         {
             await handler();
-            await ExecuteMiddlewareChain(_post, context, () => System.Threading.Tasks.Task.CompletedTask);
+            await ExecuteMiddlewareChain(this._post, context, () => System.Threading.Tasks.Task.CompletedTask);
         });
     }
 

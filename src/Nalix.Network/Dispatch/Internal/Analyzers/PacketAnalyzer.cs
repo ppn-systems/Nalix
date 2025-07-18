@@ -87,7 +87,7 @@ internal sealed class PacketAnalyzer<
     /// <param name="controllerType">The controller type.</param>
     /// <returns>A frozen dictionary of compiled handler delegates indexed by opcode.</returns>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Collections.Frozen.FrozenDictionary<ushort, CompiledHandler<TPacket>>
+    private static System.Collections.Frozen.FrozenDictionary<System.UInt16, CompiledHandler<TPacket>>
         GetOrCompileMethodAccessors(
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)]
@@ -100,15 +100,12 @@ internal sealed class PacketAnalyzer<
                 m => System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m) is not null
             ));
 
-        if (methodInfos.Length == 0)
+        return methodInfos.Length == 0
+            ? throw new System.InvalidOperationException(
+                $"Controller '{controllerType.Name}' does not define any methods with [PacketOpcode] attribute.")
+            : _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
         {
-            throw new System.InvalidOperationException(
-                $"Controller '{controllerType.Name}' does not define any methods with [PacketOpcode] attribute.");
-        }
-
-        return _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
-        {
-            var compiled = new System.Collections.Generic.Dictionary<ushort, CompiledHandler<TPacket>>(methods.Length);
+            var compiled = new System.Collections.Generic.Dictionary<System.UInt16, CompiledHandler<TPacket>>(methods.Length);
 
             foreach (var method in methods)
             {
@@ -162,11 +159,11 @@ internal sealed class PacketAnalyzer<
         System.Linq.Expressions.Expression body = method.ReturnType == typeof(void)
             ? System.Linq.Expressions.Expression.Block(
                 methodCall,
-                System.Linq.Expressions.Expression.Constant(null, typeof(object)))
-            : System.Linq.Expressions.Expression.Convert(methodCall, typeof(object));
+                System.Linq.Expressions.Expression.Constant(null, typeof(global::System.Object)))
+            : System.Linq.Expressions.Expression.Convert(methodCall, typeof(global::System.Object));
 
         var lambda = System.Linq.Expressions.Expression.Lambda<
-            System.Func<object, PacketContext<TPacket>, object?>>(
+            System.Func<System.Object, PacketContext<TPacket>, System.Object?>>(
             body, instanceParam, contextParam);
 
         var compiledDelegate = lambda.Compile();
@@ -180,9 +177,9 @@ internal sealed class PacketAnalyzer<
     /// Creates an async-compatible wrapper for a compiled delegate,
     /// handling Task, ValueTask, and their generic variants.
     /// </summary>
-    private static System.Func<object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<object?>>
+    private static System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object?>>
         CreateAsyncWrapper(
-        System.Func<object, PacketContext<TPacket>, object?> syncDelegate,
+        System.Func<System.Object, PacketContext<TPacket>, System.Object?> syncDelegate,
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]
         System.Type returnType)
@@ -230,9 +227,8 @@ internal sealed class PacketAnalyzer<
             };
         }
 
-        if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.ValueTask<>))
-        {
-            return async (instance, context) =>
+        return returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.ValueTask<>)
+            ? (async (instance, context) =>
             {
                 var result = syncDelegate(instance, context);
                 if (result is System.Threading.Tasks.ValueTask valueTask)
@@ -242,10 +238,8 @@ internal sealed class PacketAnalyzer<
                     return resultProperty?.GetValue(result);
                 }
                 return result;
-            };
-        }
-
-        return (instance, context) => System.Threading.Tasks.ValueTask.FromResult(syncDelegate(instance, context));
+            })
+            : ((instance, context) => System.Threading.Tasks.ValueTask.FromResult(syncDelegate(instance, context)));
     }
 
     /// <summary>
@@ -272,8 +266,5 @@ internal sealed class PacketAnalyzer<
     private static System.Reflection.PropertyInfo? GetResultProperty(
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]
-        System.Type type)
-    {
-        return type.GetProperty("Result");
-    }
+        System.Type type) => type.GetProperty("Result");
 }

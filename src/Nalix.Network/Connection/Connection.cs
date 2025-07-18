@@ -15,12 +15,8 @@ public sealed partial class Connection : IConnection
 {
     #region Fields
 
-    private readonly IIdentifier _id;
     private readonly ILogger? _logger;
-    private readonly IConnection.ITcp _tcp;
-    private readonly IConnection.IUdp _udp;
     private readonly System.Threading.Lock _lock;
-    private readonly System.Net.EndPoint _endPoint;
     private readonly System.Net.Sockets.Socket _socket;
     private readonly Transport.TransportStream _cstream;
     private readonly System.Threading.CancellationTokenSource _ctokens;
@@ -45,32 +41,32 @@ public sealed partial class Connection : IConnection
     /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="socket"/> is null.</exception>
     public Connection(System.Net.Sockets.Socket socket, IBufferPool bufferAllocator, ILogger? logger = null)
     {
-        _lock = new System.Threading.Lock();
-        _id = Identifier.NewId(IdentifierType.Session);
-        _ctokens = new System.Threading.CancellationTokenSource();
+        this._lock = new System.Threading.Lock();
+        this.Id = Identifier.NewId(IdentifierType.Session);
+        this._ctokens = new System.Threading.CancellationTokenSource();
 
-        _logger = logger;
-        _socket = socket ?? throw new System.ArgumentNullException(nameof(socket));
-        _endPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
+        this._logger = logger;
+        this._socket = socket ?? throw new System.ArgumentNullException(nameof(socket));
+        this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
 
-        _cstream = new Transport.TransportStream(socket, bufferAllocator, _logger)
+        this._cstream = new Transport.TransportStream(socket, bufferAllocator, this._logger)
         {
             Disconnected = () =>
             {
-                _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
+                this._onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
             }
         };
 
-        _cstream.SetPacketCached(() => _onProcessEvent?.Invoke(this, new ConnectionEventArgs(this)));
+        this._cstream.SetPacketCached(() => this._onProcessEvent?.Invoke(this, new ConnectionEventArgs(this)));
 
-        _disposed = false;
-        _encryptionKey = new System.Byte[32];
+        this._disposed = false;
+        this._encryptionKey = new System.Byte[32];
 
-        _tcp = new TcpTransport(this);
-        _udp = new UdpTransport(this);
+        this.Tcp = new TcpTransport(this);
+        this.Udp = new UdpTransport(this);
 
-        _logger?.Debug("[{0}] Connection created for {1}",
-            nameof(Connection), _socket.RemoteEndPoint?.ToString());
+        this._logger?.Debug("[{0}] Connection created for {1}",
+            nameof(Connection), this._socket.RemoteEndPoint?.ToString());
     }
 
     #endregion Constructor
@@ -78,43 +74,45 @@ public sealed partial class Connection : IConnection
     #region Properties
 
     /// <inheritdoc />
-    public IIdentifier Id => _id;
+    public IIdentifier Id { get; }
 
     /// <inheritdoc/>
-    public IConnection.ITcp Tcp => _tcp;
+    public IConnection.ITcp Tcp { get; }
 
     /// <inheritdoc/>
-    public IConnection.IUdp Udp => _udp;
+    public IConnection.IUdp Udp { get; }
 
     /// <inheritdoc />
-    public System.Net.EndPoint RemoteEndPoint => _endPoint;
+    public System.Net.EndPoint RemoteEndPoint { get; }
 
     /// <inheritdoc />
-    public System.Int64 UpTime => _cstream.UpTime;
+    public System.Int64 UpTime => this._cstream.UpTime;
 
     /// <inheritdoc />
-    public System.Int64 LastPingTime => _cstream.LastPingTime;
+    public System.Int64 LastPingTime => this._cstream.LastPingTime;
 
     /// <inheritdoc />
     public System.Byte[] EncryptionKey
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get => _encryptionKey;
+        get => this._encryptionKey;
         set
         {
             if (value is null || value.Length != 32)
-                throw new System.ArgumentException("EncryptionKey must be exactly 16 bytes.", nameof(value));
-
-            lock (_lock)
             {
-                _encryptionKey = value;
+                throw new System.ArgumentException("EncryptionKey must be exactly 16 bytes.", nameof(value));
+            }
+
+            lock (this._lock)
+            {
+                this._encryptionKey = value;
             }
         }
     }
 
     /// <inheritdoc />
-    public System.ReadOnlyMemory<System.Byte> IncomingPacket => _cstream.GetIncomingPackets();
+    public System.ReadOnlyMemory<System.Byte> IncomingPacket => this._cstream.GetIncomingPackets();
 
     /// <inheritdoc />
     public PermissionLevel Level { get; set; } = PermissionLevel.Guest;
@@ -129,22 +127,22 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     public event System.EventHandler<IConnectEventArgs>? OnCloseEvent
     {
-        add => _onCloseEvent += value;
-        remove => _onCloseEvent -= value;
+        add => this._onCloseEvent += value;
+        remove => this._onCloseEvent -= value;
     }
 
     /// <inheritdoc />
     public event System.EventHandler<IConnectEventArgs>? OnProcessEvent
     {
-        add => _onProcessEvent += value;
-        remove => _onProcessEvent -= value;
+        add => this._onProcessEvent += value;
+        remove => this._onProcessEvent -= value;
     }
 
     /// <inheritdoc />
     public event System.EventHandler<IConnectEventArgs>? OnPostProcessEvent
     {
-        add => _onPostProcessEvent += value;
-        remove => _onPostProcessEvent -= value;
+        add => this._onPostProcessEvent += value;
+        remove => this._onPostProcessEvent -= value;
     }
 
     #endregion Events
@@ -158,25 +156,30 @@ public sealed partial class Connection : IConnection
     {
         try
         {
-            if (!force && _socket.Connected &&
-               (!_socket.Poll(1000, System.Net.Sockets.SelectMode.SelectRead) || _socket.Available > 0))
+            if (!force && this._socket.Connected &&
+               (!this._socket.Poll(1000, System.Net.Sockets.SelectMode.SelectRead) || this._socket.Available > 0))
+            {
                 return;
+            }
 
-            if (_disposed) return;
+            if (this._disposed)
+            {
+                return;
+            }
 
-            _ctokens.Cancel();
-            _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
+            this._ctokens.Cancel();
+            this._onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
         }
         catch (System.Exception ex)
         {
-            _logger?.Error("[{0}] Close error: {1}", nameof(Connection), ex.Message);
+            this._logger?.Error("[{0}] Close error: {1}", nameof(Connection), ex.Message);
         }
     }
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Disconnect(System.String? reason = null) => Close(force: true);
+    public void Disconnect(System.String? reason = null) => this.Close(force: true);
 
     #endregion Methods
 
@@ -187,12 +190,14 @@ public sealed partial class Connection : IConnection
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
-        lock (_lock)
+        lock (this._lock)
         {
-            if (_disposed)
+            if (this._disposed)
+            {
                 return;
+            }
 
-            _disposed = true;
+            this._disposed = true;
         }
 
         try
@@ -201,13 +206,13 @@ public sealed partial class Connection : IConnection
         }
         catch (System.Exception ex)
         {
-            _logger?.Error("[{0}] Dispose error: {1}", nameof(Connection), ex.Message);
+            this._logger?.Error("[{0}] Dispose error: {1}", nameof(Connection), ex.Message);
         }
         finally
         {
-            _socket.Dispose();
-            _ctokens.Dispose();
-            _cstream.Dispose();
+            this._socket.Dispose();
+            this._ctokens.Dispose();
+            this._cstream.Dispose();
         }
 
         System.GC.SuppressFinalize(this);

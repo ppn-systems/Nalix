@@ -27,7 +27,7 @@ public class RateLimitMiddleware<TPacket> : IPacketMiddleware<TPacket>
     public RateLimitMiddleware()
     {
         RequestRateLimitOptions option = ConfigurationStore.Instance.Get<RequestRateLimitOptions>();
-        _limiter = new RequestLimiter(option);
+        this._limiter = new RequestLimiter(option);
     }
 
     /// <summary>
@@ -42,9 +42,9 @@ public class RateLimitMiddleware<TPacket> : IPacketMiddleware<TPacket>
         PacketContext<TPacket> context,
         System.Func<System.Threading.Tasks.Task> next)
     {
-        if (!_limiter.CheckLimit(context.Connection.RemoteEndPoint.ToString() ?? "unknown"))
+        if (!this._limiter.CheckLimit(context.Connection.RemoteEndPoint.ToString() ?? "unknown"))
         {
-            await context.Connection.Tcp.SendAsync(TPacket.Create(0, "You have been rate limited."));
+            _ = await context.Connection.Tcp.SendAsync(TPacket.Create(0, "You have been rate limited."));
             return;
         }
 

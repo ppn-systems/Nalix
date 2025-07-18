@@ -62,10 +62,7 @@ public readonly struct PacketHandlerDelegate<TPacket>(
     /// <returns>A task that completes with the handler’s result.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Threading.Tasks.ValueTask<System.Object?> ExecuteAsync(PacketContext<TPacket> context)
-    {
-        return CompiledInvoker(ControllerInstance, context);
-    }
+    public System.Threading.Tasks.ValueTask<System.Object?> ExecuteAsync(PacketContext<TPacket> context) => this.CompiledInvoker(this.ControllerInstance, context);
 
     /// <summary>
     /// <para>✅ <b>Extendable Logic</b>:</para>
@@ -100,10 +97,7 @@ public readonly struct PacketHandlerDelegate<TPacket>(
     /// <returns>True if the handler can be executed; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool CanExecute(PacketContext<TPacket> _)
-    {
-        return true;
-    }
+    public System.Boolean CanExecute(PacketContext<TPacket> _) => true;
 
     #endregion Methods
 }

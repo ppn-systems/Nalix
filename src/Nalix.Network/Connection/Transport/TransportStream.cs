@@ -34,12 +34,12 @@ internal class TransportStream : System.IDisposable
     /// <summary>
     /// Gets the last ping time in milliseconds.
     /// </summary>
-    public System.Int64 UpTime => _cache.Uptime;
+    public System.Int64 UpTime => this._cache.Uptime;
 
     /// <summary>
     /// Gets the last ping time in milliseconds.
     /// </summary>
-    public System.Int64 LastPingTime => _cache.LastPingTime;
+    public System.Int64 LastPingTime => this._cache.LastPingTime;
 
     #endregion Properties
 
@@ -53,13 +53,13 @@ internal class TransportStream : System.IDisposable
     /// <param name="logger">The logger (optional).</param>
     public TransportStream(System.Net.Sockets.Socket socket, IBufferPool bufferPool, ILogger? logger = null)
     {
-        _logger = logger;
-        _pool = bufferPool;
-        _buffer = _pool.Rent();
-        _cache = new TransportCache();
-        _socket = socket;
+        this._logger = logger;
+        this._pool = bufferPool;
+        this._buffer = this._pool.Rent();
+        this._cache = new TransportCache();
+        this._socket = socket;
 
-        _logger?.Debug("TransportStream created");
+        this._logger?.Debug("TransportStream created");
     }
 
     #endregion Constructor
@@ -72,18 +72,18 @@ internal class TransportStream : System.IDisposable
     /// <param name="cancellationToken">The cancellation token.</param>
     public void BeginReceive(System.Threading.CancellationToken cancellationToken = default)
     {
-        if (_disposed)
+        if (this._disposed)
         {
-            _logger?.Debug("[{0}] BeginReceive called on disposed", nameof(TransportStream));
+            this._logger?.Debug("[{0}] BeginReceive called on disposed", nameof(TransportStream));
             return;
         }
 
         try
         {
-            _logger?.Debug("[{0}] Starting asynchronous read operation", nameof(TransportStream));
+            this._logger?.Debug("[{0}] Starting asynchronous read operation", nameof(TransportStream));
 
             System.Net.Sockets.SocketAsyncEventArgs args = new();
-            args.SetBuffer(_buffer, 0, 2);
+            args.SetBuffer(this._buffer, 0, 2);
 
             args.Completed += (sender, args) =>
             {
@@ -92,41 +92,41 @@ internal class TransportStream : System.IDisposable
                 tcs.SetResult(args.BytesTransferred);
 
                 System.Threading.Tasks.Task<System.Int32> receiveTask = tcs.Task;
-                System.Threading.Tasks.Task.Run(async () =>
+                _ = System.Threading.Tasks.Task.Run(async () =>
                 {
                     try
                     {
-                        await OnReceiveCompleted(receiveTask, cancellationToken);
+                        await this.OnReceiveCompleted(receiveTask, cancellationToken);
                     }
                     catch (System.Net.Sockets.SocketException ex) when
                         (ex.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionReset)
                     {
-                        _logger?.Debug("[{0}] _udpListener reset", nameof(TransportStream));
-                        Disconnected?.Invoke();
+                        this._logger?.Debug("[{0}] _udpListener reset", nameof(TransportStream));
+                        this.Disconnected?.Invoke();
                     }
                     catch (System.Exception ex)
                     {
-                        _logger?.Error("[{0}] BeginReceive error: {1}",
+                        this._logger?.Error("[{0}] BeginReceive error: {1}",
                                       nameof(TransportStream), ex.Message);
                     }
                 }, cancellationToken);
             };
 
-            if (!_socket.ReceiveAsync(args))
+            if (!this._socket.ReceiveAsync(args))
             {
                 System.Threading.Tasks.TaskCompletionSource<System.Int32> tcs = new();
                 tcs.SetResult(args.BytesTransferred);
 
                 System.Threading.Tasks.Task<System.Int32> receiveTask = tcs.Task;
-                System.Threading.Tasks.Task.Run(async () =>
+                _ = System.Threading.Tasks.Task.Run(async () =>
                 {
-                    await OnReceiveCompleted(receiveTask, cancellationToken);
+                    await this.OnReceiveCompleted(receiveTask, cancellationToken);
                 }, cancellationToken);
             }
         }
         catch (System.Exception ex)
         {
-            _logger?.Error("[{0}] BeginReceive error: {1}", nameof(TransportStream), ex.Message);
+            this._logger?.Error("[{0}] BeginReceive error: {1}", nameof(TransportStream), ex.Message);
         }
     }
 
@@ -137,22 +137,25 @@ internal class TransportStream : System.IDisposable
     /// <returns>true if the data was sent successfully; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool Send(System.ReadOnlySpan<System.Byte> data)
+    public System.Boolean Send(System.ReadOnlySpan<System.Byte> data)
     {
         try
         {
-            if (data.IsEmpty) return false;
+            if (data.IsEmpty)
+            {
+                return false;
+            }
 
-            _logger?.Debug("[{0}] Sending data", nameof(TransportStream));
-            _socket.Send(data);
+            this._logger?.Debug("[{0}] Sending data", nameof(TransportStream));
+            _ = this._socket.Send(data);
 
             // Note: _cache only supports ReadOnlyMemory<byte>, so convert
-            _cache.PushOutgoing(data.ToArray());
+            this._cache.PushOutgoing(data.ToArray());
             return true;
         }
         catch (System.Exception ex)
         {
-            _logger?.Error("[{0}] Send error: {1}", nameof(TransportStream), ex);
+            this._logger?.Error("[{0}] Send error: {1}", nameof(TransportStream), ex);
             return false;
         }
     }
@@ -171,17 +174,20 @@ internal class TransportStream : System.IDisposable
     {
         try
         {
-            if (data.IsEmpty) return false;
+            if (data.IsEmpty)
+            {
+                return false;
+            }
 
-            _logger?.Debug("[{0}] Sending data async", nameof(TransportStream));
+            this._logger?.Debug("[{0}] Sending data async", nameof(TransportStream));
 
-            await _socket.SendAsync(data, System.Net.Sockets.SocketFlags.None, cancellationToken);
-            _cache.PushOutgoing(data);
+            _ = await this._socket.SendAsync(data, System.Net.Sockets.SocketFlags.None, cancellationToken);
+            this._cache.PushOutgoing(data);
             return true;
         }
         catch (System.Exception ex)
         {
-            _logger?.Error("[{0}] SendAsync error: {1}", nameof(TransportStream), ex.Message);
+            this._logger?.Error("[{0}] SendAsync error: {1}", nameof(TransportStream), ex.Message);
             return false;
         }
     }
@@ -193,8 +199,10 @@ internal class TransportStream : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.ReadOnlyMemory<System.Byte> GetIncomingPackets()
     {
-        if (_cache.Incoming.TryGetValue(out System.ReadOnlyMemory<System.Byte> data))
+        if (this._cache.Incoming.TryGetValue(out System.ReadOnlyMemory<System.Byte> data))
+        {
             return data;
+        }
 
         return System.ReadOnlyMemory<System.Byte>.Empty; // Avoid null
     }
@@ -205,7 +213,7 @@ internal class TransportStream : System.IDisposable
     /// <param name="handler">The callback method to register.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void SetPacketCached(System.Action handler) => _cache.PacketCached += handler;
+    public void SetPacketCached(System.Action handler) => this._cache.PacketCached += handler;
 
     /// <summary>
     /// Unregisters a previously registered callback from the packet cached event.
@@ -213,7 +221,7 @@ internal class TransportStream : System.IDisposable
     /// <param name="handler">The callback method to remove.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void RemovePacketCached(System.Action handler) => _cache.PacketCached -= handler;
+    public void RemovePacketCached(System.Action handler) => this._cache.PacketCached -= handler;
 
     #endregion Public Methods
 
@@ -228,38 +236,45 @@ internal class TransportStream : System.IDisposable
         System.Threading.Tasks.Task<System.Int32> task,
         System.Threading.CancellationToken cancellationToken)
     {
-        if (task.IsCanceled || _disposed) return;
+        if (task.IsCanceled || this._disposed)
+        {
+            return;
+        }
 
         try
         {
             System.Int32 totalBytesRead = await task;
             if (totalBytesRead == 0)
             {
-                _logger?.Debug("[{0}] Clients closed", nameof(TransportStream));
+                this._logger?.Debug("[{0}] Clients closed", nameof(TransportStream));
                 // Close the connection on the server when the client disconnects
-                Disconnected?.Invoke();
+                this.Disconnected?.Invoke();
                 return;
             }
 
-            if (totalBytesRead < 2) return;
+            if (totalBytesRead < 2)
+            {
+                return;
+            }
+
             System.Int32 offset = 0;
 
-            System.UInt16 size = _buffer.ToUInt16(ref offset);
-            _logger?.Debug("[{0}] Packet size: {1} bytes.", nameof(TransportStream), size);
+            System.UInt16 size = this._buffer.ToUInt16(ref offset);
+            this._logger?.Debug("[{0}] Packet size: {1} bytes.", nameof(TransportStream), size);
 
-            if (size > _pool.MaxBufferSize)
+            if (size > this._pool.MaxBufferSize)
             {
-                _logger?.Error("[{0}] Size {1} exceeds max {2} ",
-                                nameof(TransportStream), size, _pool.MaxBufferSize);
+                this._logger?.Error("[{0}] Size {1} exceeds max {2} ",
+                                nameof(TransportStream), size, this._pool.MaxBufferSize);
 
                 return;
             }
 
-            if (size > _buffer.Length)
+            if (size > this._buffer.Length)
             {
-                _logger?.Debug("[{0}] Renting larger buffer", nameof(TransportStream));
-                _pool.Return(_buffer);
-                _buffer = _pool.Rent(size);
+                this._logger?.Debug("[{0}] Renting larger buffer", nameof(TransportStream));
+                this._pool.Return(this._buffer);
+                this._buffer = this._pool.Rent(size);
             }
 
             while (totalBytesRead < size)
@@ -270,7 +285,7 @@ internal class TransportStream : System.IDisposable
 
                 try
                 {
-                    saea.SetBuffer(_buffer, totalBytesRead, size - totalBytesRead);
+                    saea.SetBuffer(this._buffer, totalBytesRead, size - totalBytesRead);
                     saea.Completed += (sender, args) =>
                     {
                         if (args.SocketError == System.Net.Sockets.SocketError.Success)
@@ -283,7 +298,7 @@ internal class TransportStream : System.IDisposable
                         }
                     };
 
-                    if (!_socket.ReceiveAsync(saea))
+                    if (!this._socket.ReceiveAsync(saea))
                     {
                         // Nếu hoàn thành đồng bộ, set kết quả thủ công
                         if (saea.SocketError == System.Net.Sockets.SocketError.Success)
@@ -292,7 +307,7 @@ internal class TransportStream : System.IDisposable
                         }
                         else
                         {
-                            tcs.SetException(new System.Net.Sockets.SocketException((int)saea.SocketError));
+                            tcs.SetException(new System.Net.Sockets.SocketException((System.Int32)saea.SocketError));
                         }
                     }
 
@@ -305,7 +320,7 @@ internal class TransportStream : System.IDisposable
 
                 if (bytesRead == 0)
                 {
-                    _logger?.Debug($"[{0}] Clients closed during read", nameof(TransportStream));
+                    this._logger?.Debug($"[{0}] Clients closed during read", nameof(TransportStream));
                     this.Disconnected?.Invoke();
 
                     return;
@@ -316,25 +331,25 @@ internal class TransportStream : System.IDisposable
 
             if (totalBytesRead == size)
             {
-                _logger?.Debug("[{0}] Packet received", nameof(TransportStream));
+                this._logger?.Debug("[{0}] Packet received", nameof(TransportStream));
 
-                _cache.LastPingTime = (long)Clock.UnixTime().TotalMilliseconds;
-                _cache.PushIncoming(System.MemoryExtensions.AsMemory(_buffer, 0, totalBytesRead));
+                this._cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
+                this._cache.PushIncoming(System.MemoryExtensions.AsMemory(this._buffer, 0, totalBytesRead));
             }
             else
             {
-                _logger?.Error("[{0}] Incomplete packet", nameof(TransportStream));
+                this._logger?.Error("[{0}] Incomplete packet", nameof(TransportStream));
             }
         }
         catch (System.Net.Sockets.SocketException ex) when
               (ex.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionReset)
         {
-            _logger?.Debug("[{0}] _udpListener reset", nameof(TransportStream));
-            Disconnected?.Invoke();
+            this._logger?.Debug("[{0}] _udpListener reset", nameof(TransportStream));
+            this.Disconnected?.Invoke();
         }
         catch (System.Exception ex)
         {
-            _logger?.Error(ex);
+            this._logger?.Error(ex);
         }
         finally
         {
@@ -348,31 +363,34 @@ internal class TransportStream : System.IDisposable
     /// <param name="disposing">If true, releases managed resources; otherwise, only releases unmanaged resources.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void Dispose(bool disposing)
+    private void Dispose(System.Boolean disposing)
     {
-        if (_disposed) return;
+        if (this._disposed)
+        {
+            return;
+        }
 
         if (disposing)
         {
-            _pool.Return(_buffer);
+            this._pool.Return(this._buffer);
 
             // Đóng socket thay vì đóng stream
             try
             {
-                _socket.Shutdown(System.Net.Sockets.SocketShutdown.Both);
+                this._socket.Shutdown(System.Net.Sockets.SocketShutdown.Both);
             }
             catch (System.Exception ex)
             {
-                _logger?.Debug("[{0}] Error shutting down socket: {1}", nameof(TransportStream), ex.Message);
+                this._logger?.Debug("[{0}] Error shutting down socket: {1}", nameof(TransportStream), ex.Message);
             }
 
-            _socket.Close();
+            this._socket.Close();
 
-            _cache.Dispose();
+            this._cache.Dispose();
         }
 
-        _disposed = true;
-        _logger?.Debug("TransportStream disposed");
+        this._disposed = true;
+        this._logger?.Debug("TransportStream disposed");
     }
 
     #endregion Private Methods
@@ -390,8 +408,8 @@ internal class TransportStream : System.IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override string ToString()
-        => $"TransportStream (Clients = {_socket.RemoteEndPoint}, " +
-           $"Disposed = {_disposed}, UpTime = {UpTime}ms, LastPing = {LastPingTime}ms)" +
-           $"IncomingCount = {_cache.Incoming.Count}, OutgoingCount = {_cache.Outgoing.Count} }}";
+    public override System.String ToString()
+        => $"TransportStream (Clients = {this._socket.RemoteEndPoint}, " +
+           $"Disposed = {this._disposed}, UpTime = {this.UpTime}ms, LastPing = {this.LastPingTime}ms)" +
+           $"IncomingCount = {this._cache.Incoming.Count}, OutgoingCount = {this._cache.Outgoing.Count} }}";
 }

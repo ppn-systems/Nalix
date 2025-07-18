@@ -14,13 +14,13 @@ public sealed class NetworkCacheSizeOptions : ConfigurationLoader
     /// Gets or sets the maximum Number of outgoing cache entries.
     /// The default value is 20.
     /// </summary>
-    public int Outgoing { get; set; } = 20;
+    public System.Int32 Outgoing { get; set; } = 20;
 
     /// <summary>
     /// Gets or sets the maximum Number of incoming cache entries.
     /// The default value is 40.
     /// </summary>
-    public int Incoming { get; set; } = 40;
+    public System.Int32 Incoming { get; set; } = 40;
 
     #endregion Properties
 }

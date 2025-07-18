@@ -6,7 +6,7 @@ public abstract partial class Protocol
 {
     #region Fields
 
-    private int _accepting;
+    private System.Int32 _accepting;
 
     #endregion Fields
 
@@ -15,10 +15,10 @@ public abstract partial class Protocol
     /// <summary>
     /// Indicates whether the protocol is currently accepting connections.
     /// </summary>
-    public bool IsAccepting
+    public System.Boolean IsAccepting
     {
-        get => System.Threading.Interlocked.CompareExchange(ref _accepting, 0, 0) == 1;
-        protected set => System.Threading.Interlocked.Exchange(ref _accepting, value ? 1 : 0);
+        get => System.Threading.Interlocked.CompareExchange(ref this._accepting, 0, 0) == 1;
+        protected set => System.Threading.Interlocked.Exchange(ref this._accepting, value ? 1 : 0);
     }
 
     #endregion Properties
@@ -32,7 +32,7 @@ public abstract partial class Protocol
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual void OnConnectionError(IConnection connection, System.Exception exception)
-        => System.Threading.Interlocked.Increment(ref _totalErrors);
+        => System.Threading.Interlocked.Increment(ref this._totalErrors);
 
     /// <summary>
     /// Validates the incoming connection before accepting it.
@@ -42,7 +42,7 @@ public abstract partial class Protocol
     /// <returns>True if the connection is valid, false otherwise.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected virtual bool ValidateConnection(IConnection connection) => true;
+    protected virtual System.Boolean ValidateConnection(IConnection connection) => true;
 
     /// <summary>
     /// Called when a connection is accepted. Starts receiving data by default.
@@ -59,13 +59,16 @@ public abstract partial class Protocol
         System.Threading.CancellationToken cancellationToken = default)
     {
         // Check if accepting connections is enabled
-        if (!this.IsAccepting) return;
+        if (!this.IsAccepting)
+        {
+            return;
+        }
 
         // CheckLimit cancellation
         cancellationToken.ThrowIfCancellationRequested();
 
         System.ArgumentNullException.ThrowIfNull(connection);
-        System.ObjectDisposedException.ThrowIf(_isDisposed, this);
+        System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
 
         try
         {
@@ -95,5 +98,5 @@ public abstract partial class Protocol
     /// </param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void SetConnectionAcceptance(bool isEnabled) => _accepting = isEnabled ? 1 : 0;
+    public void SetConnectionAcceptance(System.Boolean isEnabled) => this._accepting = isEnabled ? 1 : 0;
 }

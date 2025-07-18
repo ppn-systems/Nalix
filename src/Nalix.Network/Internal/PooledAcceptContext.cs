@@ -13,11 +13,11 @@ internal sealed class PooledAcceptContext : IPoolable
 
             if (e.SocketError == System.Net.Sockets.SocketError.Success)
             {
-                tcs.TrySetResult(e.AcceptSocket!);
+                _ = tcs.TrySetResult(e.AcceptSocket!);
             }
             else
             {
-                tcs.TrySetException(new System.Net.Sockets.SocketException((System.Int32)e.SocketError));
+                _ = tcs.TrySetException(new System.Net.Sockets.SocketException((System.Int32)e.SocketError));
             }
         };
 

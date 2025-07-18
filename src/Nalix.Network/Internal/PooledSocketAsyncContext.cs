@@ -20,10 +20,7 @@ internal class PooledSocketAsyncContext : System.Net.Sockets.SocketAsyncEventArg
             }
         };
 
-    public PooledSocketAsyncContext()
-    {
-        base.Completed += ReceiveCompletedHandler;
-    }
+    public PooledSocketAsyncContext() => base.Completed += ReceiveCompletedHandler;
 
     public void ResetForPool()
     {
