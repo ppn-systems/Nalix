@@ -22,17 +22,21 @@ public static partial class Directories
         System.IO.File.ReadAllText("/proc/1/cgroup").Contains("docker")));
 
     // For testing purposes, to override base path (nullable to resolve CS8618)
-    private static string _basePathOverride;
+    private static System.String _basePathOverride;
 
     // Lazy-initialized paths
     private static readonly System.Lazy<System.String> BasePathLazy = new(() =>
     {
         if (_basePathOverride != null)
+        {
             return _basePathOverride;
+        }
 
         // Handle Docker and Kubernetes environments by using /app as base path
         if (IsContainerLazy.Value && System.IO.Directory.Exists("/assets"))
+        {
             return "/assets";
+        }
 
         // Standard to the application's base directory
         return System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory
@@ -41,18 +45,12 @@ public static partial class Directories
 
     private static readonly System.Lazy<System.String> DataPathLazy = new(() =>
     {
-        string path;
+        System.String path = IsContainerLazy.Value &&
+            System.IO.Directory.Exists("/data")
+            ? "/data"
+            : System.IO.Path.Combine(BasePathLazy.Value, "data");
 
         // In container environments, prefer using a mounted volume if available
-        if (IsContainerLazy.Value &&
-            System.IO.Directory.Exists("/data"))
-        {
-            path = "/data";
-        }
-        else
-        {
-            path = System.IO.Path.Combine(BasePathLazy.Value, "data");
-        }
 
         EnsureDirectoryExists(path);
         return path;
@@ -60,18 +58,12 @@ public static partial class Directories
 
     private static readonly System.Lazy<System.String> LogsPathLazy = new(() =>
     {
-        string path;
+        System.String path = IsContainerLazy.Value &&
+            System.IO.Directory.Exists("/logs")
+            ? "/logs"
+            : System.IO.Path.Combine(DataPathLazy.Value, "logs");
 
         // In container environments, prefer using a mounted volume if available
-        if (IsContainerLazy.Value &&
-            System.IO.Directory.Exists("/logs"))
-        {
-            path = "/logs";
-        }
-        else
-        {
-            path = System.IO.Path.Combine(DataPathLazy.Value, "logs");
-        }
 
         EnsureDirectoryExists(path);
         return path;
@@ -79,41 +71,29 @@ public static partial class Directories
 
     private static readonly System.Lazy<System.String> TempPathLazy = new(() =>
     {
-        string path;
+        System.String path = IsContainerLazy.Value &&
+            System.IO.Directory.Exists("/tmp")
+            ? "/tmp"
+            : System.IO.Path.Combine(DataPathLazy.Value, "tmp");
 
         // In container environments, prefer using a mounted volume if available
-        if (IsContainerLazy.Value &&
-            System.IO.Directory.Exists("/tmp"))
-        {
-            path = "/tmp";
-        }
-        else
-        {
-            path = System.IO.Path.Combine(DataPathLazy.Value, "tmp");
-        }
 
         EnsureDirectoryExists(path);
 
         // Automatically clean up old files in the temp directory
-        CleanupDirectory(path, System.TimeSpan.FromDays(7));
+        _ = CleanupDirectory(path, System.TimeSpan.FromDays(7));
 
         return path;
     });
 
     private static readonly System.Lazy<System.String> ConfigPathLazy = new(() =>
     {
-        string path;
+        System.String path = IsContainerLazy.Value &&
+            System.IO.Directory.Exists("/config")
+            ? "/config"
+            : System.IO.Path.Combine(DataPathLazy.Value, "config");
 
         // In container environments, prefer using a mounted volume if available
-        if (IsContainerLazy.Value &&
-            System.IO.Directory.Exists("/config"))
-        {
-            path = "/config";
-        }
-        else
-        {
-            path = System.IO.Path.Combine(DataPathLazy.Value, "config");
-        }
 
         EnsureDirectoryExists(path);
         return path;
@@ -121,18 +101,12 @@ public static partial class Directories
 
     private static readonly System.Lazy<System.String> StoragePathLazy = new(() =>
     {
-        string path;
+        System.String path = IsContainerLazy.Value &&
+            System.IO.Directory.Exists("/storage")
+            ? "/storage"
+            : System.IO.Path.Combine(DataPathLazy.Value, "storage");
 
         // In container environments, prefer using a mounted volume if available
-        if (IsContainerLazy.Value &&
-            System.IO.Directory.Exists("/storage"))
-        {
-            path = "/storage";
-        }
-        else
-        {
-            path = System.IO.Path.Combine(DataPathLazy.Value, "storage");
-        }
 
         EnsureDirectoryExists(path);
         return path;
@@ -140,18 +114,12 @@ public static partial class Directories
 
     private static readonly System.Lazy<System.String> DatabasePathLazy = new(() =>
     {
-        string path;
+        System.String path = IsContainerLazy.Value &&
+            System.IO.Directory.Exists("/db")
+            ? "/db"
+            : System.IO.Path.Combine(DataPathLazy.Value, "db");
 
         // In container environments, prefer using a mounted volume if available
-        if (IsContainerLazy.Value &&
-            System.IO.Directory.Exists("/db"))
-        {
-            path = "/db";
-        }
-        else
-        {
-            path = System.IO.Path.Combine(DataPathLazy.Value, "db");
-        }
 
         EnsureDirectoryExists(path);
         return path;
@@ -159,21 +127,21 @@ public static partial class Directories
 
     private static readonly System.Lazy<System.String> CachesPathLazy = new(() =>
     {
-        string path = System.IO.Path.Combine(DataPathLazy.Value, "caches");
+        System.String path = System.IO.Path.Combine(DataPathLazy.Value, "caches");
         EnsureDirectoryExists(path);
         return path;
     });
 
     private static readonly System.Lazy<System.String> UploadsPathLazy = new(() =>
     {
-        string path = System.IO.Path.Combine(DataPathLazy.Value, "uploads");
+        System.String path = System.IO.Path.Combine(DataPathLazy.Value, "uploads");
         EnsureDirectoryExists(path);
         return path;
     });
 
     private static readonly System.Lazy<System.String> BackupsPathLazy = new(() =>
     {
-        string path = System.IO.Path.Combine(DataPathLazy.Value, "backups");
+        System.String path = System.IO.Path.Combine(DataPathLazy.Value, "backups");
         EnsureDirectoryExists(path);
         return path;
     });
@@ -185,58 +153,58 @@ public static partial class Directories
     /// <summary>
     /// The base directory of the application.
     /// </summary>
-    public static string BasePath => BasePathLazy.Value;
+    public static System.String BasePath => BasePathLazy.Value;
 
     /// <summary>
     /// Directory for storing log files.
     /// </summary>
-    public static string LogsPath => LogsPathLazy.Value;
+    public static System.String LogsPath => LogsPathLazy.Value;
 
     /// <summary>
     /// Directory for storing application data files.
     /// </summary>
-    public static string DataPath => DataPathLazy.Value;
+    public static System.String DataPath => DataPathLazy.Value;
 
     /// <summary>
     /// Directory for storing system configuration files.
     /// </summary>
-    public static string ConfigPath => ConfigPathLazy.Value;
+    public static System.String ConfigPath => ConfigPathLazy.Value;
 
     /// <summary>
     /// Directory for storing temporary files.
     /// These files may be automatically cleaned up periodically.
     /// </summary>
-    public static string TempPath => TempPathLazy.Value;
+    public static System.String TempPath => TempPathLazy.Value;
 
     /// <summary>
     /// Directory for storing persistent data.
     /// </summary>
-    public static string StoragePath => StoragePathLazy.Value;
+    public static System.String StoragePath => StoragePathLazy.Value;
 
     /// <summary>
     /// Directory for storing database files.
     /// </summary>
-    public static string DatabasePath => DatabasePathLazy.Value;
+    public static System.String DatabasePath => DatabasePathLazy.Value;
 
     /// <summary>
     /// Directory for storing cache files.
     /// </summary>
-    public static string CachesPath => CachesPathLazy.Value;
+    public static System.String CachesPath => CachesPathLazy.Value;
 
     /// <summary>
     /// Directory for storing uploaded files.
     /// </summary>
-    public static string UploadsPath => UploadsPathLazy.Value;
+    public static System.String UploadsPath => UploadsPathLazy.Value;
 
     /// <summary>
     /// Directory for storing backup files.
     /// </summary>
-    public static string BackupsPath => BackupsPathLazy.Value;
+    public static System.String BackupsPath => BackupsPathLazy.Value;
 
     /// <summary>
     /// Indicates if the application is running in a container environment.
     /// </summary>
-    public static bool IsContainer => IsContainerLazy.Value;
+    public static System.Boolean IsContainer => IsContainerLazy.Value;
 
     #endregion Properties
 
