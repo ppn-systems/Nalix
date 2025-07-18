@@ -145,7 +145,9 @@ public static class FormatterProvider
         }
 
         if (FormatterCache<T>.Formatter is not null)
+        {
             return FormatterCache<T>.Formatter;
+        }
 
         // Auto-register for enums
         formatter = TryCreateEnumFormatter<T>()
@@ -186,14 +188,19 @@ public static class FormatterProvider
         System.Type type = typeof(T);
 
         if (System.Nullable.GetUnderlyingType(typeof(T)) is not null)
+        {
             throw new System.InvalidOperationException($"Cannot call GetComplex<T>() on Nullable<T>: {typeof(T)}");
+        }
 
         if (type.IsValueType && !type.IsEnum)
         {
             formatter = ComplexTypeCache<T>.Struct;
-            if (formatter != null) return formatter;
+            if (formatter != null)
+            {
+                return formatter;
+            }
 
-            object? @struct = System.Activator.CreateInstance(typeof(StructFormatter<>)
+            System.Object? @struct = System.Activator.CreateInstance(typeof(StructFormatter<>)
                                               .MakeGenericType(type)) ??
                                               throw new System.InvalidOperationException(
                                                 $"Failed to create instance of StructFormatter<{type.Name}>.");
@@ -204,9 +211,12 @@ public static class FormatterProvider
         else if (type.IsClass)
         {
             formatter = ComplexTypeCache<T>.Class;
-            if (formatter != null) return formatter;
+            if (formatter != null)
+            {
+                return formatter;
+            }
 
-            object? @object = System.Activator.CreateInstance(typeof(ObjectFormatter<>)
+            System.Object? @object = System.Activator.CreateInstance(typeof(ObjectFormatter<>)
                                               .MakeGenericType(type)) ??
                                               throw new System.InvalidOperationException(
                                                   $"Failed to create instance of ObjectFormatter<{type.Name}>.");
@@ -228,23 +238,31 @@ public static class FormatterProvider
             Register(enumFormatter);
             return enumFormatter;
         }
-        else return null;
+        else
+        {
+            return null;
+        }
     }
 
     private static IFormatter<T>? TryCreateArrayFormatter<T>()
     {
         System.Type type = typeof(T);
-        if (!typeof(T).IsArray && !typeof(T).IsSZArray) return null;
+        if (!typeof(T).IsArray && !typeof(T).IsSZArray)
+        {
+            return null;
+        }
 
         System.Type elementType = type.GetElementType()!;
         System.Type formatterGeneric;
 
         if (elementType.IsEnum)
+        {
             formatterGeneric = typeof(EnumArrayFormatter<>);
-        else if (elementType.IsValueType && !elementType.IsEnum)
-            formatterGeneric = typeof(ArrayFormatter<>);
+        }
         else
-            formatterGeneric = typeof(ReferenceArrayFormatter<>);
+        {
+            formatterGeneric = elementType.IsValueType && !elementType.IsEnum ? typeof(ArrayFormatter<>) : typeof(ReferenceArrayFormatter<>);
+        }
 
         // T = int[] -> elementType = int -> formatterGeneric<int> = IFormatter<int[]>
         System.Type actualFormatterType = formatterGeneric.MakeGenericType(elementType);
@@ -257,7 +275,9 @@ public static class FormatterProvider
     {
         if (!typeof(T).IsGenericType ||
             typeof(T).GetGenericTypeDefinition() != typeof(System.Collections.Generic.List<>))
+        {
             return null;
+        }
 
         System.Type formatterType;
         System.Type elementType = typeof(T).GetGenericArguments()[0];
@@ -276,7 +296,10 @@ public static class FormatterProvider
         {
             formatterType = typeof(ReferenceListFormatter<>).MakeGenericType(elementType);
         }
-        else return null;
+        else
+        {
+            return null;
+        }
 
         return (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
     }

@@ -21,9 +21,14 @@ public static class BigIntegerExtensions
     {
         a += b;
         if (a >= mod)
+        {
             a -= mod;
+        }
         else if (a < 0)
+        {
             a += mod;
+        }
+
         return a;
     }
 
@@ -43,9 +48,14 @@ public static class BigIntegerExtensions
     {
         a -= b;
         if (a < 0)
+        {
             a += mod;
+        }
         else if (a >= mod)
+        {
             a -= mod;
+        }
+
         return a;
     }
 

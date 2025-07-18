@@ -57,9 +57,13 @@ public sealed class NullableFormatter<T> : IFormatter<T?> where T : struct
             .Get<System.Byte>()
             .Deserialize(ref reader);
 
-        if (hasValue == NoValueFlag) return null;
-        if (hasValue != HasValueFlag) throw new SerializationException("Invalid nullable data!");
+        if (hasValue == NoValueFlag)
+        {
+            return null;
+        }
 
-        return FormatterProvider.Get<T>().Deserialize(ref reader);
+        return hasValue != HasValueFlag
+            ? throw new SerializationException("Invalid nullable data!")
+            : (T?)FormatterProvider.Get<T>().Deserialize(ref reader);
     }
 }

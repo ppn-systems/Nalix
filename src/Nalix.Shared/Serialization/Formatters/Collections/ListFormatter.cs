@@ -27,7 +27,10 @@ public sealed class ListFormatter<T> : IFormatter<System.Collections.Generic.Lis
         FormatterProvider.Get<System.UInt16>()
                          .Serialize(ref writer, (System.UInt16)value.Count);
 
-        if (value.Count == 0) return;
+        if (value.Count == 0)
+        {
+            return;
+        }
 
         IFormatter<T> formatter = FormatterProvider.Get<T>();
         for (System.UInt16 i = 0; i < value.Count; i++)
@@ -48,8 +51,15 @@ public sealed class ListFormatter<T> : IFormatter<System.Collections.Generic.Lis
         System.UInt16 length = FormatterProvider.Get<System.UInt16>()
                                                 .Deserialize(ref reader);
 
-        if (length == SerializerBounds.Null) return null!;
-        if (length == 0) return [];
+        if (length == SerializerBounds.Null)
+        {
+            return null!;
+        }
+
+        if (length == 0)
+        {
+            return [];
+        }
 
         IFormatter<T> formatter = FormatterProvider.Get<T>();
         System.Collections.Generic.List<T> list = new(length);

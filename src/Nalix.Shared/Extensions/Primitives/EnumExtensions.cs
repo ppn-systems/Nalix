@@ -23,7 +23,9 @@ public static class EnumExtensions
         // Ensure that TEnum and TValue have the same size in memory
         if (System.Runtime.CompilerServices.Unsafe.SizeOf<TEnum>() !=
             System.Runtime.CompilerServices.Unsafe.SizeOf<TValue>())
+        {
             throw new System.ArgumentException("Size of TEnum and TValue must be the same.", nameof(@this));
+        }
 
         // Perform the conversion using Unsafe.As
         return System.Runtime.CompilerServices.Unsafe.As<TEnum, TValue>(ref @this);

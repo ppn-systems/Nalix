@@ -39,10 +39,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, System.IDisposable where
 
     #region Constructors
 
-    static ObjectFormatter()
-    {
-        _activitySource = new($"Nalix.Serialization.{typeof(T).Name}");
-    }
+    static ObjectFormatter() => _activitySource = new($"Nalix.Serialization.{typeof(T).Name}");
 
     /// <summary>
     /// Initializes a new instance of <see cref="ObjectFormatter{T}"/>.
@@ -88,7 +85,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, System.IDisposable where
 
         try
         {
-            for (int i = 0; i < _accessors.Length; i++)
+            for (System.Int32 i = 0; i < _accessors.Length; i++)
             {
                 _accessors[i].Serialize(ref writer, value);
             }
@@ -119,7 +116,7 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, System.IDisposable where
         {
             var obj = System.Activator.CreateInstance<T>();
 
-            for (int i = 0; i < _accessors.Length; i++)
+            for (System.Int32 i = 0; i < _accessors.Length; i++)
             {
                 _accessors[i].Deserialize(ref reader, obj);
             }
@@ -145,11 +142,14 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, System.IDisposable where
     private FieldAccessor<T>[] CreateAccessors()
     {
         System.ReadOnlySpan<FieldSchema> fields = FieldCache<T>.GetFields();
-        if (fields.Length is 0) return [];
+        if (fields.Length is 0)
+        {
+            return [];
+        }
 
         var accessors = new FieldAccessor<T>[fields.Length];
 
-        for (int i = 0; i < fields.Length; i++)
+        for (System.Int32 i = 0; i < fields.Length; i++)
         {
             try
             {
@@ -176,7 +176,10 @@ public sealed class ObjectFormatter<T> : IFormatter<T>, System.IDisposable where
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         _activitySource.Dispose();
         _disposed = true;

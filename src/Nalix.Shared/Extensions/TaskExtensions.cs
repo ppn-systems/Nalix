@@ -45,12 +45,12 @@ public static class TaskExtensions
     /// <param name="this">The <see cref="System.Threading.Tasks.Task" /> on which this method is called.</param>
     /// <param name="continueOnCapturedContext">If set to <see langword="true"/>,
     /// attempts to marshal the continuation back to the original context captured.
-    /// This parameter has the same effect as calling the <see cref="System.Threading.Tasks.Task.ConfigureAwait(bool)"/>
+    /// This parameter has the same effect as calling the <see cref="System.Threading.Tasks.Task.ConfigureAwait(System.Boolean)"/>
     /// method.</param>
     /// <exception cref="System.ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
     public static void Await(
         this System.Threading.Tasks.Task @this,
-        bool continueOnCapturedContext)
+        System.Boolean continueOnCapturedContext)
     {
         System.ArgumentNullException.ThrowIfNull(@this);
 

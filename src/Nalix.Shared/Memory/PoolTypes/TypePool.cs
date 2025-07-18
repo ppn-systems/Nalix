@@ -12,12 +12,11 @@ namespace Nalix.Shared.Memory.PoolTypes;
 /// Initializes a new instance of the <see cref="TypePool"/> class.
 /// </remarks>
 /// <param name="maxCapacity">The maximum capacity of this pool.</param>
-internal class TypePool(int maxCapacity)
+internal class TypePool(System.Int32 maxCapacity)
 {
     #region Fields
 
     private readonly ConcurrentStack<IPoolable> _objects = new();
-    private int _maxCapacity = maxCapacity > 0 ? maxCapacity : ObjectPool.DefaultMaxSize;
 
     #endregion Fields
 
@@ -26,12 +25,12 @@ internal class TypePool(int maxCapacity)
     /// <summary>
     /// Gets the Number of objects available in this pool.
     /// </summary>
-    public int AvailableCount => _objects.Count;
+    public System.Int32 AvailableCount => _objects.Count;
 
     /// <summary>
     /// Gets the maximum capacity of this pool.
     /// </summary>
-    public int MaxCapacity => _maxCapacity;
+    public System.Int32 MaxCapacity { get; private set; } = maxCapacity > 0 ? maxCapacity : ObjectPool.DefaultMaxSize;
 
     #endregion Properties
 
@@ -41,16 +40,21 @@ internal class TypePool(int maxCapacity)
     /// Sets the maximum capacity of this pool.
     /// </summary>
     /// <param name="maxCapacity">The maximum capacity of this pool.</param>
-    public void SetMaxCapacity(int maxCapacity)
+    public void SetMaxCapacity(System.Int32 maxCapacity)
     {
-        if (maxCapacity < 0) return;
+        if (maxCapacity < 0)
+        {
+            return;
+        }
 
-        int oldCapacity = _maxCapacity;
-        _maxCapacity = maxCapacity;
+        System.Int32 oldCapacity = MaxCapacity;
+        MaxCapacity = maxCapacity;
 
         // If the new capacity is less than the old one, trim the pool
         if (maxCapacity < oldCapacity)
-            this.Trim(100); // Trim to exactly the max capacity
+        {
+            _ = this.Trim(100); // Trim to exactly the max capacity
+        }
     }
 
     /// <summary>
@@ -59,10 +63,12 @@ internal class TypePool(int maxCapacity)
     /// <param name="obj">The object to add.</param>
     /// <returns>True if the object was added, false if the pool is full.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryPush(IPoolable obj)
+    public System.Boolean TryPush(IPoolable obj)
     {
-        if (_objects.Count >= _maxCapacity)
+        if (_objects.Count >= MaxCapacity)
+        {
             return false;
+        }
 
         _objects.Push(obj);
         return true;
@@ -74,15 +80,15 @@ internal class TypePool(int maxCapacity)
     /// <param name="obj">The object from the pool.</param>
     /// <returns>True if an object was retrieved, false if the pool is empty.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryPop(out IPoolable? obj) => _objects.TryPop(out obj);
+    public System.Boolean TryPop(out IPoolable? obj) => _objects.TryPop(out obj);
 
     /// <summary>
     /// Clears all objects from this pool.
     /// </summary>
     /// <returns>The Number of objects removed.</returns>
-    public int Clear()
+    public System.Int32 Clear()
     {
-        int count = _objects.Count;
+        System.Int32 count = _objects.Count;
         _objects.Clear();
         return count;
     }
@@ -92,7 +98,7 @@ internal class TypePool(int maxCapacity)
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
     /// <returns>The Number of objects removed.</returns>
-    public int Trim(int percentage)
+    public System.Int32 Trim(System.Int32 percentage)
     {
         if (percentage >= 100)
         {
@@ -107,8 +113,8 @@ internal class TypePool(int maxCapacity)
         }
 
         // Calculate the target size
-        int targetSize = _maxCapacity * percentage / 100;
-        int currentCount = _objects.Count;
+        System.Int32 targetSize = MaxCapacity * percentage / 100;
+        System.Int32 currentCount = _objects.Count;
 
         if (currentCount <= targetSize)
         {
@@ -117,10 +123,10 @@ internal class TypePool(int maxCapacity)
         }
 
         // Remove objects until we reach the target size
-        int toRemove = currentCount - targetSize;
-        int removed = 0;
+        System.Int32 toRemove = currentCount - targetSize;
+        System.Int32 removed = 0;
 
-        for (int i = 0; i < toRemove; i++)
+        for (System.Int32 i = 0; i < toRemove; i++)
         {
             if (_objects.TryPop(out _))
             {

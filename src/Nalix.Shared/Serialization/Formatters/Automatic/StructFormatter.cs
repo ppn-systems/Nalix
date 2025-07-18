@@ -36,7 +36,7 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
     /// <summary>
     /// Indicates whether the formatter has been disposed.
     /// </summary>
-    private bool _disposed;
+    private Boolean _disposed;
 
     #endregion Core Fields
 
@@ -84,7 +84,7 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
 
         try
         {
-            for (int i = 0; i < _accessors.Length; i++)
+            for (Int32 i = 0; i < _accessors.Length; i++)
             {
                 _accessors[i].Serialize(ref writer, value);
             }
@@ -114,7 +114,7 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
         {
             var obj = Activator.CreateInstance<T>();
 
-            for (int i = 0; i < _accessors.Length; i++)
+            for (Int32 i = 0; i < _accessors.Length; i++)
             {
                 _accessors[i].Deserialize(ref reader, obj);
             }
@@ -138,11 +138,14 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
     private FieldAccessor<T>[] CreateAccessors()
     {
         var fields = FieldCache<T>.GetFields();
-        if (fields.Length is 0) return [];
+        if (fields.Length is 0)
+        {
+            return [];
+        }
 
         var accessors = new FieldAccessor<T>[fields.Length];
 
-        for (int i = 0; i < fields.Length; i++)
+        for (Int32 i = 0; i < fields.Length; i++)
         {
             try
             {
@@ -167,7 +170,10 @@ public sealed class StructFormatter<T> : IFormatter<T>, IDisposable where T : st
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         _activitySource.Dispose();
         _disposed = true;

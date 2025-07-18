@@ -16,9 +16,9 @@ public static class LiteSerializer
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All;
 
     // Magic numbers cho special cases
-    private static readonly byte[] NullArrayMarker = [255, 255, 255, 255];
+    private static readonly System.Byte[] NullArrayMarker = [255, 255, 255, 255];
 
-    private static readonly byte[] EmptyArrayMarker = [0, 0, 0, 0];
+    private static readonly System.Byte[] EmptyArrayMarker = [0, 0, 0, 0];
 
     #endregion Constants
 
@@ -79,7 +79,10 @@ public static class LiteSerializer
 
             System.Array array = (System.Array)(System.Object)value;
             System.Int32 length = array.Length;
-            if (length is 0) return EmptyArrayMarker;
+            if (length is 0)
+            {
+                return EmptyArrayMarker;
+            }
 
             System.Int32 dataSize = size * length;
             System.Byte[] buffer = System.GC.AllocateUninitializedArray<System.Byte>(dataSize + 4);
@@ -99,7 +102,7 @@ public static class LiteSerializer
 
             System.Byte[] buffer = size > 0
                 ? System.GC.AllocateUninitializedArray<System.Byte>(size)
-                : new byte[512]; // small fallback
+                : new System.Byte[512]; // small fallback
 
             DataWriter writer = new(buffer);
 
@@ -147,7 +150,9 @@ public static class LiteSerializer
         {
             System.Int32 size = TypeMetadata.SizeOf<T>();
             if (buffer.Length < size)
+            {
                 throw new SerializationException($"Buffer too small. Required: {size}, Actual: {buffer.Length}");
+            }
 
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(buffer), value);
@@ -161,7 +166,9 @@ public static class LiteSerializer
         if (kind is TypeKind.FixedSizeSerializable)
         {
             if (buffer.Length < fixedSize)
+            {
                 throw new SerializationException($"Buffer too small. Required: {fixedSize}, Actual: {buffer.Length}");
+            }
 
             IFormatter<T> formatter = FormatterProvider.Get<T>();
             DataWriter writer = new(buffer);
@@ -191,10 +198,14 @@ public static class LiteSerializer
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Serialize<T>(in T value, System.Span<System.Byte> buffer)
     {
-        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
+        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out System.Int32 size);
         if (kind == TypeKind.FixedSizeSerializable)
         {
-            if (buffer.Length < size) throw new SerializationException("Buffer too small.");
+            if (buffer.Length < size)
+            {
+                throw new SerializationException("Buffer too small.");
+            }
+
             DataWriter writer = new(buffer.ToArray());
             FormatterProvider.Get<T>().Serialize(ref writer, value);
             return writer.WrittenCount;
@@ -220,10 +231,12 @@ public static class LiteSerializer
         System.ReadOnlySpan<System.Byte> buffer, ref T value)
     {
         if (buffer.IsEmpty)
+        {
             throw new System.ArgumentException(
                 $"Cannot deserialize type '{typeof(T)}' from an empty buffer.",
                 nameof(buffer)
             );
+        }
 
         if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
@@ -262,22 +275,26 @@ public static class LiteSerializer
             }
 
             if (buffer.Length < 4)
+            {
                 throw new SerializationException(
                     $"Buffer too small to contain array length prefix for type '{typeof(T)}'."
                 );
+            }
 
-            int length = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<int>(
+            System.Int32 length = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.Int32>(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer));
 
-            int dataSize = size * length;
+            System.Int32 dataSize = size * length;
             if (buffer.Length < dataSize + 4)
+            {
                 throw new SerializationException(
                     $"Insufficient buffer size for array data. Expected {dataSize + 4} bytes " +
                     $"(including length prefix), but got {buffer.Length} bytes."
                 );
+            }
 
             System.Array arr = System.Array.CreateInstance(elementType, length);
-            ref byte dest = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(arr);
+            ref System.Byte dest = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(arr);
 
             System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
                 ref dest,

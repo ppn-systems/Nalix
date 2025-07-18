@@ -52,7 +52,9 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
 
 #if DEBUG
         if (reader.BytesRemaining < size)
+        {
             throw new InvalidOperationException($"Buffer underrun while deserializing {typeof(T)}. Needed {size} bytes.");
+        }
 #endif
 
         value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(ref start);
