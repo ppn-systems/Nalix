@@ -47,7 +47,7 @@ public sealed class Localizer
     /// var localizer = new Localizer("localization.po");
     /// </code>
     /// </example>
-    public Localizer(string path) => _catalog = new PoFile(path);
+    public Localizer(System.String path) => _catalog = new PoFile(path);
 
     #endregion Constructor
 
@@ -69,7 +69,7 @@ public sealed class Localizer
     /// localizer.Load("localization.po");
     /// </code>
     /// </example>
-    public void Load(string path) => _catalog.LoadFromFile(path);
+    public void Load(System.String path) => _catalog.LoadFromFile(path);
 
     /// <summary>
     /// Retrieves the localized string for the specified message Number.
@@ -84,7 +84,7 @@ public sealed class Localizer
     /// string translated = localizer.Get("hello");
     /// </code>
     /// </example>
-    public string Get(string id) => _catalog.GetString(id);
+    public System.String Get(System.String id) => _catalog.GetString(id);
 
     /// <summary>
     /// Retrieves the localized string for a message within a specific context.
@@ -100,7 +100,7 @@ public sealed class Localizer
     /// string translated = localizer.GetParticular("menu", "File");
     /// </code>
     /// </example>
-    public string GetParticular(string context, string id)
+    public System.String GetParticular(System.String context, System.String id)
         => _catalog.GetParticularString(context, id);
 
     /// <summary>
@@ -119,7 +119,7 @@ public sealed class Localizer
     /// string translated = localizer.GetPlural("apple", "apples", 2);
     /// </code>
     /// </example>
-    public string GetPlural(string id, string idPlural, int n)
+    public System.String GetPlural(System.String id, System.String idPlural, System.Int32 n)
         => _catalog.GetPluralString(id, idPlural, n);
 
     /// <summary>
@@ -140,7 +140,7 @@ public sealed class Localizer
     /// string translated = localizer.GetParticularPlural("inventory", "item", "items", 3);
     /// </code>
     /// </example>
-    public string GetParticularPlural(string context, string id, string idPlural, int n)
+    public System.String GetParticularPlural(System.String context, System.String id, System.String idPlural, System.Int32 n)
         => _catalog.GetParticularPluralString(context, id, idPlural, n);
 
     #endregion Public API

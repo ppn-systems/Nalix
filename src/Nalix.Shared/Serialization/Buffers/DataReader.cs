@@ -10,19 +10,18 @@ public unsafe struct DataReader : System.IDisposable
 {
     private System.Byte* _ptr;
     private System.Int32 _length;
-    private System.Int32 _position;
     private System.Boolean _pinned;
     private System.Runtime.InteropServices.GCHandle _pin; // Used only when the source is a byte array
 
     /// <summary>
     /// Gets the number of bytes that have been consumed from the buffer.
     /// </summary>
-    public readonly System.Int32 BytesRead => _position;
+    public System.Int32 BytesRead { get; private set; }
 
     /// <summary>
     /// Gets the number of bytes remaining in the buffer.
     /// </summary>
-    public readonly System.Int32 BytesRemaining => _length - _position;
+    public readonly System.Int32 BytesRemaining => _length - BytesRead;
 
     /// <summary>
     /// Initializes a new instance of <see cref="DataReader"/> for a managed byte array.
@@ -39,7 +38,7 @@ public unsafe struct DataReader : System.IDisposable
 
         _ptr = (System.Byte*)_pin.AddrOfPinnedObject();
         _length = buffer.Length;
-        _position = 0;
+        BytesRead = 0;
         _pinned = true;
     }
 
@@ -53,7 +52,7 @@ public unsafe struct DataReader : System.IDisposable
     {
         _ptr = ptr;
         _length = length;
-        _position = 0;
+        BytesRead = 0;
         _pin = default;
         _pinned = false;
     }
@@ -73,7 +72,7 @@ public unsafe struct DataReader : System.IDisposable
         _ptr = (System.Byte*)_pin.AddrOfPinnedObject();
         _length = temp.Length;
         _pinned = true;
-        _position = 0;
+        BytesRead = 0;
     }
 
     /// <summary>
@@ -104,7 +103,7 @@ public unsafe struct DataReader : System.IDisposable
             _length = temp.Length;
             _pinned = true;
         }
-        _position = 0;
+        BytesRead = 0;
     }
 
     /// <summary>
@@ -117,11 +116,10 @@ public unsafe struct DataReader : System.IDisposable
     /// </exception>
     public readonly System.ReadOnlySpan<System.Byte> GetSpan(System.Int32 length)
     {
-        if (length > BytesRemaining)
-            throw new SerializationException(
-                $"Not enough data: requested {length} bytes, only {BytesRemaining} bytes remaining.");
-
-        return new System.ReadOnlySpan<System.Byte>(_ptr + _position, length);
+        return length > BytesRemaining
+            ? throw new SerializationException(
+                $"Not enough data: requested {length} bytes, only {BytesRemaining} bytes remaining.")
+            : new System.ReadOnlySpan<System.Byte>(_ptr + BytesRead, length);
     }
 
     /// <summary>
@@ -135,10 +133,12 @@ public unsafe struct DataReader : System.IDisposable
     public readonly ref System.Byte GetSpanReference(System.Int32 sizeHint)
     {
         if (sizeHint > BytesRemaining)
+        {
             throw new SerializationException(
                 $"Not enough data: requested {sizeHint} bytes, only {BytesRemaining} bytes remaining.");
+        }
 
-        return ref *(_ptr + _position);
+        return ref *(_ptr + BytesRead);
     }
 
     /// <summary>
@@ -153,10 +153,12 @@ public unsafe struct DataReader : System.IDisposable
     {
         System.ArgumentOutOfRangeException.ThrowIfNegative(count);
         if (count > BytesRemaining)
+        {
             throw new SerializationException(
                 $"Cannot advance {count} bytes, only {BytesRemaining} bytes remaining.");
+        }
 
-        _position += count;
+        BytesRead += count;
     }
 
     /// <summary>
@@ -164,10 +166,14 @@ public unsafe struct DataReader : System.IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_pinned) _pin.Free();
+        if (_pinned)
+        {
+            _pin.Free();
+        }
+
         _ptr = null;
         _length = 0;
-        _position = 0;
+        BytesRead = 0;
         _pinned = false;
     }
 }

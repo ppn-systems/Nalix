@@ -3,7 +3,7 @@ namespace Nalix.Shared.Serialization.Internal.Types;
 /// <summary>
 /// Represents the kind of type.
 /// </summary>
-internal enum TypeKind : byte
+internal enum TypeKind : System.Byte
 {
     /// <summary>
     /// No specific type assigned.

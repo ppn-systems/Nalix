@@ -31,14 +31,12 @@ public static class Singleton
 
     #region Constructor
 
-    static Singleton()
-    {
+    static Singleton() =>
         // Initialize the resolution cache
         // This is a no-op since ConditionalWeakTable doesn't require explicit initialization
         // but it's here for clarity and future extensibility.
 
         CacheLock = new(System.Threading.LockRecursionPolicy.NoRecursion);
-    }
 
     #endregion Constructor
 
@@ -68,7 +66,7 @@ public static class Singleton
         CacheLock.EnterWriteLock();
         try
         {
-            ResolutionCache.Remove(type);
+            _ = ResolutionCache.Remove(type);
         }
         finally
         {
@@ -77,7 +75,7 @@ public static class Singleton
 
         if (allowOverwrite)
         {
-            Services.AddOrUpdate(type, lazy, (_, _) => lazy);
+            _ = Services.AddOrUpdate(type, lazy, (_, _) => lazy);
         }
         else if (!Services.TryAdd(type, lazy))
         {
@@ -105,7 +103,7 @@ public static class Singleton
         CacheLock.EnterWriteLock();
         try
         {
-            ResolutionCache.Remove(interfaceType);
+            _ = ResolutionCache.Remove(interfaceType);
         }
         finally
         {
@@ -119,7 +117,7 @@ public static class Singleton
 
         if (factory != null)
         {
-            Factories.TryAdd(interfaceType, () => factory());
+            _ = Factories.TryAdd(interfaceType, () => factory());
         }
     }
 
@@ -140,7 +138,7 @@ public static class Singleton
         CacheLock.EnterReadLock();
         try
         {
-            if (ResolutionCache.TryGetValue(type, out object? cachedInstance))
+            if (ResolutionCache.TryGetValue(type, out System.Object? cachedInstance))
             {
                 return (TClass)cachedInstance;
             }
@@ -191,7 +189,7 @@ public static class Singleton
             System.Lazy<System.Object> lazyInstance = new(
                 () => factory(), System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
-            Services.TryAdd(type, lazyInstance);
+            _ = Services.TryAdd(type, lazyInstance);
             return (TClass)lazyInstance.Value;
         }
 
@@ -217,8 +215,8 @@ public static class Singleton
                         return instance;
                     }, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
-                    Services.TryAdd(implementationType, lazyInstance);
-                    Services.TryAdd(type, lazyInstance);
+                    _ = Services.TryAdd(implementationType, lazyInstance);
+                    _ = Services.TryAdd(type, lazyInstance);
                     return (TClass)lazyInstance.Value;
                 }
                 catch (System.Exception ex)
@@ -230,12 +228,7 @@ public static class Singleton
             return (TClass)lazyImpl.Value;
         }
 
-        if (!createIfNotExists)
-        {
-            return null;
-        }
-
-        throw new System.InvalidOperationException($"No registration found for type {type.Name}");
+        return !createIfNotExists ? null : throw new System.InvalidOperationException($"No registration found for type {type.Name}");
     }
 
     /// <summary>
@@ -267,16 +260,16 @@ public static class Singleton
         CacheLock.EnterWriteLock();
         try
         {
-            ResolutionCache.Remove(type);
+            _ = ResolutionCache.Remove(type);
         }
         finally
         {
             CacheLock.ExitWriteLock();
         }
 
-        Services.TryRemove(type, out _);
-        TypeMapping.TryRemove(type, out _);
-        Factories.TryRemove(type, out _);
+        _ = Services.TryRemove(type, out _);
+        _ = TypeMapping.TryRemove(type, out _);
+        _ = Factories.TryRemove(type, out _);
     }
 
     /// <summary>
@@ -291,7 +284,7 @@ public static class Singleton
             // ConditionalWeakTable doesn't have Dispose method, so we're recreating it
             foreach (System.Type key in GetAllCachedTypes())
             {
-                ResolutionCache.Remove(key);
+                _ = ResolutionCache.Remove(key);
             }
         }
         finally
@@ -337,7 +330,9 @@ public static class Singleton
     {
         // Ensure Dispose is only called once
         if (System.Threading.Interlocked.Exchange(ref _isDisposing, 1) == 1)
+        {
             return;
+        }
 
         // Collect disposable instances first to avoid modification during enumeration
         System.Collections.Generic.List<System.IDisposable> disposables = [];
@@ -368,7 +363,7 @@ public static class Singleton
         Clear();
 
         // Reset the disposing flag
-        System.Threading.Interlocked.Exchange(ref _isDisposing, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _isDisposing, 0);
     }
 
     #endregion Disposal

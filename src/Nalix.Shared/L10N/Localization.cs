@@ -41,7 +41,7 @@ public static class Localization
     /// string translated = Localization.Get("hello");
     /// </code>
     /// </example>
-    public static string Get(string id)
+    public static System.String Get(System.String id)
         => Localizer.Get(id);
 
     /// <summary>
@@ -57,7 +57,7 @@ public static class Localization
     /// string translated = Localization.GetParticular("menu", "File");
     /// </code>
     /// </example>
-    public static string GetParticular(string context, string id)
+    public static System.String GetParticular(System.String context, System.String id)
         => Localizer.GetParticular(context, id);
 
     /// <summary>
@@ -75,7 +75,7 @@ public static class Localization
     /// string translated = Localization.GetPlural("apple", "apples", 5);
     /// </code>
     /// </example>
-    public static string GetPlural(string id, string idPlural, int n)
+    public static System.String GetPlural(System.String id, System.String idPlural, System.Int32 n)
         => Localizer.GetPlural(id, idPlural, n);
 
     /// <summary>
@@ -94,7 +94,7 @@ public static class Localization
     /// string translated = Localization.GetParticularPlural("inventory", "item", "items", 3);
     /// </code>
     /// </example>
-    public static string GetParticularPlural(string context, string id, string idPlural, int n)
+    public static System.String GetParticularPlural(System.String context, System.String id, System.String idPlural, System.Int32 n)
         => Localizer.GetParticularPlural(context, id, idPlural, n);
 
     #endregion Public API

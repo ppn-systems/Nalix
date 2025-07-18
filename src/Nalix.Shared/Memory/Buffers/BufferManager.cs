@@ -14,11 +14,11 @@ public sealed class BufferManager : IDisposable
 {
     #region Fields
 
-    private readonly ConcurrentDictionary<int, BufferPoolShared> _pools = new();
-    private readonly ConcurrentDictionary<int, BufferCounters> _adjustmentCounters = new();
+    private readonly ConcurrentDictionary<Int32, BufferPoolShared> _pools = new();
+    private readonly ConcurrentDictionary<Int32, BufferCounters> _adjustmentCounters = new();
     private readonly ReaderWriterLockSlim _keysLock = new(LockRecursionPolicy.NoRecursion);
 
-    private int[] _sortedKeys = [];
+    private Int32[] _sortedKeys = [];
 
     #endregion Fields
 
@@ -43,32 +43,60 @@ public sealed class BufferManager : IDisposable
     /// </summary>
     private unsafe struct BufferCounters
     {
-        private fixed int _counters[2]; // [rent, return]
+        private fixed Int32 _counters[2]; // [rent, return]
 
-        public int RentCounter
+        public Int32 RentCounter
         {
-            get { fixed (int* ptr = _counters) return ptr[0]; }
-            set { fixed (int* ptr = _counters) ptr[0] = value; }
+            get
+            {
+                fixed (Int32* ptr = _counters)
+                {
+                    return ptr[0];
+                }
+            }
+            set
+            {
+                fixed (Int32* ptr = _counters)
+                {
+                    ptr[0] = value;
+                }
+            }
         }
 
-        public int ReturnCounter
+        public Int32 ReturnCounter
         {
-            get { fixed (int* ptr = _counters) return ptr[1]; }
-            set { fixed (int* ptr = _counters) ptr[1] = value; }
+            get
+            {
+                fixed (Int32* ptr = _counters)
+                {
+                    return ptr[1];
+                }
+            }
+            set
+            {
+                fixed (Int32* ptr = _counters)
+                {
+                    ptr[1] = value;
+                }
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int IncrementRent()
+        public Int32 IncrementRent()
         {
-            fixed (int* ptr = _counters)
+            fixed (Int32* ptr = _counters)
+            {
                 return Interlocked.Increment(ref ptr[0]);
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int IncrementReturn()
+        public Int32 IncrementReturn()
         {
-            fixed (int* ptr = _counters)
+            fixed (Int32* ptr = _counters)
+            {
                 return Interlocked.Increment(ref ptr[1]);
+            }
         }
     }
 
@@ -79,10 +107,12 @@ public sealed class BufferManager : IDisposable
     /// <summary>
     /// Creates a new buffer pool with a specified buffer size and initial capacity.
     /// </summary>
-    public void CreatePool(int bufferSize, int initialCapacity)
+    public void CreatePool(Int32 bufferSize, Int32 initialCapacity)
     {
         if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity)))
+        {
             this.UpdateSortedKeys();
+        }
     }
 
     /// <summary>
@@ -106,20 +136,26 @@ public sealed class BufferManager : IDisposable
     /// Rents a buffer that is at least the requested size with optimized lookup.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] RentBuffer(int size)
+    public Byte[] RentBuffer(Int32 size)
     {
-        int poolSize = FindSuitablePoolSize(size);
+        Int32 poolSize = FindSuitablePoolSize(size);
         if (poolSize == 0)
+        {
             throw new ArgumentException($"Requested buffer size ({size}) exceeds maximum available pool size.");
+        }
 
         if (!_pools.TryGetValue(poolSize, out var pool))
+        {
             throw new InvalidOperationException($"Pools for size {poolSize} is not available.");
+        }
 
-        byte[] buffer = pool.AcquireBuffer();
+        Byte[] buffer = pool.AcquireBuffer();
 
         // Check and trigger the event to increase capacity if needed
         if (AdjustCounter(poolSize, isRent: true))
+        {
             EventIncrease?.Invoke(pool);
+        }
 
         return buffer;
     }
@@ -128,18 +164,25 @@ public sealed class BufferManager : IDisposable
     /// Returns a buffer to the appropriate pool.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ReturnBuffer(byte[]? buffer)
+    public void ReturnBuffer(Byte[]? buffer)
     {
-        if (buffer == null) return;
+        if (buffer == null)
+        {
+            return;
+        }
 
         if (!_pools.TryGetValue(buffer.Length, out BufferPoolShared? pool))
+        {
             throw new ArgumentException($"Invalid buffer size: {buffer.Length}.");
+        }
 
         pool.ReleaseBuffer(buffer);
 
         // Check and trigger the event to shrink capacity if needed
         if (AdjustCounter(buffer.Length, isRent: false))
+        {
             EventShrink?.Invoke(pool);
+        }
     }
 
     #endregion Public Methods
@@ -150,12 +193,12 @@ public sealed class BufferManager : IDisposable
     /// Adjusts the rent and return counters with optimized logic.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool AdjustCounter(int poolSize, bool isRent)
+    private Boolean AdjustCounter(Int32 poolSize, Boolean isRent)
     {
         BufferCounters newCounters = default;
-        bool shouldTriggerEvent = false;
+        Boolean shouldTriggerEvent = false;
 
-        _adjustmentCounters.AddOrUpdate(
+        _ = _adjustmentCounters.AddOrUpdate(
             poolSize,
             // Add function - when key doesn't exist
             _ =>
@@ -201,18 +244,29 @@ public sealed class BufferManager : IDisposable
     /// Finds the most suitable pool size with optimized binary search.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe int FindSuitablePoolSize(int size)
+    private unsafe Int32 FindSuitablePoolSize(Int32 size)
     {
         _keysLock.EnterReadLock();
         try
         {
             var keys = _sortedKeys.AsSpan();
 
-            if (keys.Length == 0) return 0;
-            if (size <= keys[0]) return keys[0];
-            if (size > keys[^1]) return 0;
+            if (keys.Length == 0)
+            {
+                return 0;
+            }
 
-            int index = keys.BinarySearch(size);
+            if (size <= keys[0])
+            {
+                return keys[0];
+            }
+
+            if (size > keys[^1])
+            {
+                return 0;
+            }
+
+            Int32 index = keys.BinarySearch(size);
 
             return index >= 0
                 ? keys[index]
@@ -234,7 +288,7 @@ public sealed class BufferManager : IDisposable
     public void Dispose()
     {
         // Dispose all pools in parallel for faster cleanup on large systems
-        Parallel.ForEach(_pools.Values, pool =>
+        _ = Parallel.ForEach(_pools.Values, pool =>
         {
             pool.Dispose();
         });

@@ -20,8 +20,8 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     private readonly System.Threading.ReaderWriterLockSlim _configLock;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, ConfigurationLoader> _configContainerDict;
 
-    private int _isReloading;
-    private bool _directoryChecked;
+    private System.Int32 _isReloading;
+    private System.Boolean _directoryChecked;
 
     #endregion Fields
 
@@ -30,12 +30,12 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     /// <summary>
     /// Gets the path to the configuration file.
     /// </summary>
-    public string ConfigFilePath { get; }
+    public System.String ConfigFilePath { get; }
 
     /// <summary>
     /// Gets a value indicating whether the configuration file exists.
     /// </summary>
-    public bool ConfigFileExists => _iniFile.IsValueCreated && _iniFile.Value.ExistsFile;
+    public System.Boolean ConfigFileExists => _iniFile.IsValueCreated && _iniFile.Value.ExistsFile;
 
     /// <summary>
     /// Gets the last reload timestamp.
@@ -103,11 +103,13 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     /// Reloads all configuration containers from the INI file.
     /// </summary>
     /// <returns>True if the reload was successful; otherwise, false.</returns>
-    public bool ReloadAll()
+    public System.Boolean ReloadAll()
     {
         // Ensure only one reload happens at a time
         if (System.Threading.Interlocked.Exchange(ref _isReloading, 1) == 1)
+        {
             return false;
+        }
 
         try
         {
@@ -141,7 +143,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
         }
         finally
         {
-            System.Threading.Interlocked.Exchange(ref _isReloading, 0);
+            _ = System.Threading.Interlocked.Exchange(ref _isReloading, 0);
         }
     }
 
@@ -150,7 +152,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     /// </summary>
     /// <typeparam name="TClass">The configuration type to check.</typeparam>
     /// <returns>True if the configuration is loaded; otherwise, false.</returns>
-    public bool IsLoaded<TClass>() where TClass : ConfigurationLoader
+    public System.Boolean IsLoaded<TClass>() where TClass : ConfigurationLoader
         => _configContainerDict.ContainsKey(typeof(TClass));
 
     /// <summary>
@@ -158,7 +160,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     /// </summary>
     /// <typeparam name="TClass">The configuration type to remove.</typeparam>
     /// <returns>True if the configuration was removed; otherwise, false.</returns>
-    public bool Remove<TClass>() where TClass : ConfigurationLoader
+    public System.Boolean Remove<TClass>() where TClass : ConfigurationLoader
     {
         _configLock.EnterWriteLock();
         try
@@ -214,7 +216,7 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     /// Protected implementation of Dispose pattern.
     /// </summary>
     /// <param name="disposing">True to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
-    protected override void Dispose(bool disposing)
+    protected override void Dispose(System.Boolean disposing)
     {
         if (disposing)
         {
@@ -250,12 +252,12 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     {
         if (!_directoryChecked)
         {
-            string? directory = System.IO.Path.GetDirectoryName(ConfigFilePath);
-            if (!string.IsNullOrEmpty(directory) && !System.IO.Directory.Exists(directory))
+            System.String? directory = System.IO.Path.GetDirectoryName(ConfigFilePath);
+            if (!System.String.IsNullOrEmpty(directory) && !System.IO.Directory.Exists(directory))
             {
                 try
                 {
-                    System.IO.Directory.CreateDirectory(directory);
+                    _ = System.IO.Directory.CreateDirectory(directory);
                 }
                 catch (System.Exception ex)
                 {

@@ -15,10 +15,8 @@ public readonly struct MemoryPool<T> : IDisposable
 
     // Private fields
     private readonly T[] _array;
-
-    private readonly int _length;
     private readonly ArrayPool<T> _pool;
-    private readonly object _disposeTracker;
+    private readonly Object _disposeTracker;
 
     #endregion Fields
 
@@ -27,32 +25,32 @@ public readonly struct MemoryPool<T> : IDisposable
     /// <summary>
     /// Gets a <see cref="ReadOnlyMemory{T}"/> representing the memory of the pooled array.
     /// </summary>
-    public ReadOnlyMemory<T> Memory => new(_array, 0, _length);
+    public ReadOnlyMemory<T> Memory => new(_array, 0, Length);
 
     /// <summary>
     /// Gets a <see cref="Memory{T}"/> representing the writable memory of the pooled array.
     /// </summary>
-    public Memory<T> WritableMemory => new(_array, 0, _length);
+    public Memory<T> WritableMemory => new(_array, 0, Length);
 
     /// <summary>
     /// Gets a <see cref="Span{T}"/> representing the memory of the pooled array.
     /// </summary>
-    public Span<T> Span => new(_array, 0, _length);
+    public Span<T> Span => new(_array, 0, Length);
 
     /// <summary>
     /// Gets a <see cref="ReadOnlySpan{T}"/> representing the memory of the pooled array.
     /// </summary>
-    public ReadOnlySpan<T> ReadOnlySpan => new(_array, 0, _length);
+    public ReadOnlySpan<T> ReadOnlySpan => new(_array, 0, Length);
 
     /// <summary>
     /// Gets the length of the usable portion of the pooled array.
     /// </summary>
-    public int Length => _length;
+    public Int32 Length { get; }
 
     /// <summary>
     /// Gets the total capacity of the pooled array.
     /// </summary>
-    public int Capacity => _array.Length;
+    public Int32 Capacity => _array.Length;
 
     #endregion Properties
 
@@ -66,15 +64,17 @@ public readonly struct MemoryPool<T> : IDisposable
     /// <param name="pool">The array pool from which the array was rented.</param>
     /// <exception cref="ArgumentNullException">Thrown when array or pool is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when length is negative or greater than array length.</exception>
-    public MemoryPool(T[] array, int length, ArrayPool<T> pool)
+    public MemoryPool(T[] array, Int32 length, ArrayPool<T> pool)
     {
         _array = array ?? throw new ArgumentNullException(nameof(array));
         _pool = pool ?? throw new ArgumentNullException(nameof(pool));
 
         if (length < 0 || length > array.Length)
+        {
             throw new ArgumentOutOfRangeException(nameof(length), "Length must be between 0 and array length.");
+        }
 
-        _length = length;
+        Length = length;
         _disposeTracker = new DisposableTracker<T>(array, length, pool);
     }
 
@@ -90,10 +90,12 @@ public readonly struct MemoryPool<T> : IDisposable
     /// <returns>A new <see cref="MemoryPool{T}"/> instance.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when length is negative.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static MemoryPool<T> Rent(int length, bool exactLength = false)
+    public static MemoryPool<T> Rent(Int32 length, Boolean exactLength = false)
     {
         if (length < 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(length), "Length must be non-negative.");
+        }
 
         ArrayPool<T> pool = ArrayPool<T>.Shared;
         T[] array = pool.Rent(length);
@@ -113,11 +115,13 @@ public readonly struct MemoryPool<T> : IDisposable
     /// <exception cref="ArgumentOutOfRangeException">Thrown when length is negative.</exception>
     /// <exception cref="ArgumentNullException">Thrown when customPool is null.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static MemoryPool<T> Rent(int length, ArrayPool<T> customPool, bool exactLength = false)
+    public static MemoryPool<T> Rent(Int32 length, ArrayPool<T> customPool, Boolean exactLength = false)
     {
         ArgumentNullException.ThrowIfNull(customPool);
         if (length < 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(length), "Length must be non-negative.");
+        }
 
         T[] array = customPool.Rent(length);
 
@@ -132,15 +136,9 @@ public readonly struct MemoryPool<T> : IDisposable
     /// <param name="index">The index of the element to return.</param>
     /// <returns>The element at the specified index.</returns>
     /// <exception cref="IndexOutOfRangeException">Thrown when the index is out of range.</exception>
-    public T this[int index]
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            if ((uint)index >= (uint)_length)
-                throw new IndexOutOfRangeException();
-            return _array[index];
-        }
+    public T this[Int32 index]
+    { [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (UInt32)index >= (UInt32)Length ? throw new IndexOutOfRangeException() : _array[index];
     }
 
     /// <summary>

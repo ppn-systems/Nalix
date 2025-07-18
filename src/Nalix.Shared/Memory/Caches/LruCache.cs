@@ -21,7 +21,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
         public TKey Key { get; init; } = default!;
         public TValue? Value { get; set; }
         public DateTime LastAccessTime { get; set; }
-        public long AccessCount { get; set; }
+        public Int64 AccessCount { get; set; }
     }
 
     #endregion Nested Types
@@ -29,21 +29,20 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     #region Fields
 
     // Core data structures
-    private readonly int _capacity;
 
     private readonly ReaderWriterLockSlim _cacheLock = new(LockRecursionPolicy.NoRecursion);
     private readonly LinkedList<CacheItem> _usageOrder = new();
     private readonly Dictionary<TKey, LinkedListNode<CacheItem>> _cacheMap;
 
     // Caches statistics
-    private long _hits;
+    private Int64 _hits;
 
-    private long _misses;
-    private long _evictions;
-    private long _additions;
-    private long _updates;
+    private Int64 _misses;
+    private Int64 _evictions;
+    private Int64 _additions;
+    private Int64 _updates;
     private readonly Stopwatch _uptime = Stopwatch.StartNew();
-    private bool _isDisposed;
+    private Boolean _isDisposed;
 
     #endregion Fields
 
@@ -52,12 +51,12 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <summary>
     /// Gets the capacity of the cache.
     /// </summary>
-    public int Capacity => _capacity;
+    public Int32 Capacity { get; }
 
     /// <summary>
     /// Gets the current count of items in the cache.
     /// </summary>
-    public int Count
+    public Int32 Count
     {
         get
         {
@@ -76,46 +75,46 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <summary>
     /// Gets the Number of cache hits.
     /// </summary>
-    public long Hits => Interlocked.Read(ref _hits);
+    public Int64 Hits => Interlocked.Read(ref _hits);
 
     /// <summary>
     /// Gets the Number of cache misses.
     /// </summary>
-    public long Misses => Interlocked.Read(ref _misses);
+    public Int64 Misses => Interlocked.Read(ref _misses);
 
     /// <summary>
     /// Gets the hit ratio (hits / total accesses).
     /// </summary>
-    public double HitRatio
+    public Double HitRatio
     {
         get
         {
-            long hits = Hits;
-            long misses = Misses;
-            long total = hits + misses;
-            return total == 0 ? 0 : (double)hits / total;
+            Int64 hits = Hits;
+            Int64 misses = Misses;
+            Int64 total = hits + misses;
+            return total == 0 ? 0 : (Double)hits / total;
         }
     }
 
     /// <summary>
     /// Gets the Number of items evicted from the cache.
     /// </summary>
-    public long Evictions => Interlocked.Read(ref _evictions);
+    public Int64 Evictions => Interlocked.Read(ref _evictions);
 
     /// <summary>
     /// Gets the Number of items added to the cache.
     /// </summary>
-    public long Additions => Interlocked.Read(ref _additions);
+    public Int64 Additions => Interlocked.Read(ref _additions);
 
     /// <summary>
     /// Gets the Number of items updated in the cache.
     /// </summary>
-    public long Updates => Interlocked.Read(ref _updates);
+    public Int64 Updates => Interlocked.Read(ref _updates);
 
     /// <summary>
     /// Gets the uptime of the cache in milliseconds.
     /// </summary>
-    public long UptimeMs => _uptime.ElapsedMilliseconds;
+    public Int64 UptimeMs => _uptime.ElapsedMilliseconds;
 
     /// <summary>
     /// Returns an enumerable collection of the keys in the cache.
@@ -151,12 +150,14 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <param name="capacity">The maximum Number of items in the cache.</param>
     /// <param name="comparer">Optional custom equality comparer for keys.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when capacity is less than 1.</exception>
-    public LruCache(int capacity, IEqualityComparer<TKey>? comparer = null)
+    public LruCache(Int32 capacity, IEqualityComparer<TKey>? comparer = null)
     {
         if (capacity < 1)
+        {
             throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be at least 1.");
+        }
 
-        _capacity = capacity;
+        Capacity = capacity;
         _cacheMap = new Dictionary<TKey, LinkedListNode<CacheItem>>(capacity, comparer);
     }
 
@@ -173,7 +174,11 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(TKey key, TValue value)
     {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        if (key == null)
+        {
+            throw new ArgumentNullException(nameof(key));
+        }
+
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
         _cacheLock.EnterWriteLock();
@@ -188,19 +193,19 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
                 node.Value.AccessCount++;
                 _usageOrder.AddFirst(node);
 
-                Interlocked.Increment(ref _updates);
+                _ = Interlocked.Increment(ref _updates);
             }
             else
             {
                 // If the cache is full, evict the least recently used item
-                if (_cacheMap.Count >= _capacity)
+                if (_cacheMap.Count >= Capacity)
                 {
                     var lastNode = _usageOrder.Last;
                     if (lastNode != null)
                     {
                         _usageOrder.RemoveLast();
-                        _cacheMap.Remove(lastNode.Value.Key);
-                        Interlocked.Increment(ref _evictions);
+                        _ = _cacheMap.Remove(lastNode.Value.Key);
+                        _ = Interlocked.Increment(ref _evictions);
                     }
                 }
 
@@ -217,7 +222,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
                 _usageOrder.AddFirst(newNode);
                 _cacheMap[key] = newNode;
 
-                Interlocked.Increment(ref _additions);
+                _ = Interlocked.Increment(ref _additions);
             }
         }
         finally
@@ -236,7 +241,11 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TValue GetValue(TKey key)
     {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        if (key == null)
+        {
+            throw new ArgumentNullException(nameof(key));
+        }
+
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
         _cacheLock.EnterUpgradeableReadLock();
@@ -258,11 +267,11 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
                     _cacheLock.ExitWriteLock();
                 }
 
-                Interlocked.Increment(ref _hits);
+                _ = Interlocked.Increment(ref _hits);
                 return node.Value.Value!;
             }
 
-            Interlocked.Increment(ref _misses);
+            _ = Interlocked.Increment(ref _misses);
             throw new KeyNotFoundException("The key was not found in the cache.");
         }
         finally
@@ -279,9 +288,13 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <returns>true if the key was found in the cache; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when key is null.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetValue(TKey key, out TValue? value)
+    public Boolean TryGetValue(TKey key, out TValue? value)
     {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        if (key == null)
+        {
+            throw new ArgumentNullException(nameof(key));
+        }
+
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
         _cacheLock.EnterUpgradeableReadLock();
@@ -304,12 +317,12 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
                 }
 
                 value = node.Value.Value;
-                Interlocked.Increment(ref _hits);
+                _ = Interlocked.Increment(ref _hits);
                 return true;
             }
 
             value = default;
-            Interlocked.Increment(ref _misses);
+            _ = Interlocked.Increment(ref _misses);
             return false;
         }
         finally
@@ -325,9 +338,13 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <returns>true if the cache contains an element with the specified key; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when key is null.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool ContainsKey(TKey key)
+    public Boolean ContainsKey(TKey key)
     {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        if (key == null)
+        {
+            throw new ArgumentNullException(nameof(key));
+        }
+
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
         _cacheLock.EnterReadLock();
@@ -348,9 +365,13 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <returns>true if the element is successfully found and removed; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when key is null.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Remove(TKey key)
+    public Boolean Remove(TKey key)
     {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        if (key == null)
+        {
+            throw new ArgumentNullException(nameof(key));
+        }
+
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
         _cacheLock.EnterWriteLock();
@@ -376,9 +397,13 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <returns>A tuple containing (item exists, access count, last access time).</returns>
     /// <exception cref="ArgumentNullException">Thrown when key is null.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public (bool Exists, long AccessCount, DateTime LastAccessTime) GetItemInfo(TKey key)
+    public (Boolean Exists, Int64 AccessCount, DateTime LastAccessTime) GetItemInfo(TKey key)
     {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        if (key == null)
+        {
+            throw new ArgumentNullException(nameof(key));
+        }
+
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
         _cacheLock.EnterReadLock();
@@ -423,11 +448,11 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     {
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
-        Interlocked.Exchange(ref _hits, 0);
-        Interlocked.Exchange(ref _misses, 0);
-        Interlocked.Exchange(ref _evictions, 0);
-        Interlocked.Exchange(ref _additions, 0);
-        Interlocked.Exchange(ref _updates, 0);
+        _ = Interlocked.Exchange(ref _hits, 0);
+        _ = Interlocked.Exchange(ref _misses, 0);
+        _ = Interlocked.Exchange(ref _evictions, 0);
+        _ = Interlocked.Exchange(ref _additions, 0);
+        _ = Interlocked.Exchange(ref _updates, 0);
         _uptime.Restart();
     }
 
@@ -436,13 +461,13 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// </summary>
     /// <returns>A dictionary containing cache statistics.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Dictionary<string, object> GetStatistics()
+    public Dictionary<String, Object> GetStatistics()
     {
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
-        return new Dictionary<string, object>
+        return new Dictionary<String, Object>
         {
-            ["Capacity"] = _capacity,
+            ["Capacity"] = Capacity,
             ["Count"] = Count,
             ["Hits"] = Hits,
             ["Misses"] = Misses,
@@ -463,7 +488,10 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// </summary>
     public void Dispose()
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
 
         _isDisposed = true;
         _cacheLock.Dispose();

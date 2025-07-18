@@ -165,12 +165,12 @@ public sealed class InstanceManager : System.IDisposable
             }
 
             // Caches the constructor for future use
-            _constructorCache.TryAdd(type, constructor);
+            _ = _constructorCache.TryAdd(type, constructor);
         }
 
         // Create fast delegate for future invocations
         System.Func<System.Object[], System.Object> factory = CreateActivator(type, constructor);
-        _activatorCache.TryAdd(type, factory);
+        _ = _activatorCache.TryAdd(type, factory);
 
         // Create instance
         return factory(args);
@@ -238,7 +238,7 @@ public sealed class InstanceManager : System.IDisposable
             System.Threading.Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0,
             nameof(InstanceManager));
 
-        _instanceCache.TryGetValue(typeof(T), out System.Object? instance);
+        _ = _instanceCache.TryGetValue(typeof(T), out System.Object? instance);
         return instance as T;
     }
 
@@ -287,7 +287,9 @@ public sealed class InstanceManager : System.IDisposable
     public void Dispose()
     {
         if (System.Threading.Interlocked.Exchange(ref _isDisposed, 1) != 0)
+        {
             return;
+        }
 
         foreach (var disposable in _disposableInstances)
         {
@@ -327,7 +329,7 @@ public sealed class InstanceManager : System.IDisposable
 
         // Try to find an exact match
         System.Type[] argTypes = System.Linq.Enumerable.ToArray(
-            System.Linq.Enumerable.Select(args, a => a?.GetType() ?? typeof(object)));
+            System.Linq.Enumerable.Select(args, a => a?.GetType() ?? typeof(System.Object)));
 
         System.Reflection.ConstructorInfo? constructor = type.GetConstructor(argTypes);
 
