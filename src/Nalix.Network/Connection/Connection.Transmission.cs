@@ -42,7 +42,7 @@ public sealed partial class Connection : IConnection
         public UdpTransport(Connection outer)
         {
             this._logger = outer._logger;
-            this._endPoint = outer._endPoint;
+            this._endPoint = outer.RemoteEndPoint;
         }
 
         #endregion Constructor
