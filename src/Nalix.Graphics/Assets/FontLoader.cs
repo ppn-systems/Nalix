@@ -12,20 +12,22 @@ namespace Nalix.Graphics.Assets;
 /// Creates a new instance of the FontLoader class.
 /// </remarks>
 /// <param name="assetRoot">Optional root path of the managed asset folder</param>
-public sealed class FontLoader(string assetRoot = "") : AssetLoader<Font>(AvailableFormats, assetRoot)
+public sealed class FontLoader(String assetRoot = "") : AssetLoader<Font>(AvailableFormats, assetRoot)
 {
     /// <summary>
     /// List of supported file endings for this FontLoader
     /// </summary>
-    public static readonly IEnumerable<string> AvailableFormats = [".ttf", ".cff", ".fnt", ".ttf", ".otf", ".eot"];
+    public static readonly IEnumerable<String> AvailableFormats = [".ttf", ".cff", ".fnt", ".ttf", ".otf", ".eot"];
 
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected override Font CreateInstanceFromRawData(byte[] rawData)
+    protected override Font CreateInstanceFromRawData(Byte[] rawData)
     {
         if (rawData == null || rawData.Length == 0)
+        {
             throw new ArgumentException("Raw data is null or empty.", nameof(rawData));
+        }
 
         using var ms = new MemoryStream(rawData, writable: false);
         return new Font(ms);
@@ -34,11 +36,5 @@ public sealed class FontLoader(string assetRoot = "") : AssetLoader<Font>(Availa
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected override Font CreateInstanceFromPath(string path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-            throw new ArgumentException("Path is null or empty.", nameof(path));
-
-        return new Font(path);
-    }
+    protected override Font CreateInstanceFromPath(String path) => String.IsNullOrWhiteSpace(path) ? throw new ArgumentException("Path is null or empty.", nameof(path)) : new Font(path);
 }

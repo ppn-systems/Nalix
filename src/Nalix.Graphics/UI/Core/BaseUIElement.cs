@@ -9,36 +9,41 @@ namespace Nalix.Graphics.UI.Core;
 /// </summary>
 public abstract class BaseUIElement : IUIElement
 {
-    private bool _isHovered;
 
     /// <inheritdoc/>
-    public bool IsVisible { get; set; } = true;
+    public System.Boolean IsVisible { get; set; } = true;
 
     /// <inheritdoc/>
-    public bool IsEnabled { get; set; } = true;
+    public System.Boolean IsEnabled { get; set; } = true;
 
     /// <inheritdoc/>
-    public bool IsFocused { get; set; }
+    public System.Boolean IsFocused { get; set; }
 
     /// <inheritdoc/>
-    public int ZIndex { get; set; } = 0;
+    public System.Int32 ZIndex { get; set; } = 0;
 
     /// <inheritdoc/>
-    public bool IsHovered => _isHovered;
+    public System.Boolean IsHovered { get; private set; }
 
     /// <inheritdoc/>
     public void Update(Vector2i mousePosition)
     {
         if (!IsVisible || !IsEnabled)
+        {
             return;
+        }
 
-        bool wasHovered = _isHovered;
-        _isHovered = HitTest(mousePosition);
+        System.Boolean wasHovered = IsHovered;
+        IsHovered = HitTest(mousePosition);
 
-        if (_isHovered && !wasHovered)
+        if (IsHovered && !wasHovered)
+        {
             OnMouseEnter();
-        else if (!_isHovered && wasHovered)
+        }
+        else if (!IsHovered && wasHovered)
+        {
             OnMouseLeave();
+        }
     }
 
     /// <inheritdoc/>
@@ -60,7 +65,7 @@ public abstract class BaseUIElement : IUIElement
     public abstract FloatRect GetBounds();
 
     /// <inheritdoc/>
-    public virtual bool HitTest(Vector2i point)
+    public virtual System.Boolean HitTest(Vector2i point)
     {
         FloatRect bounds = GetBounds();
         return bounds.Contains(point.X, point.Y);

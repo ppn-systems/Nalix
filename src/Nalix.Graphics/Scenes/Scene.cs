@@ -10,12 +10,12 @@ namespace Nalix.Graphics.Scenes;
 /// Initializes a new instance of the <see cref="Scene"/> class with a specified name.
 /// </remarks>
 /// <param name="name">The name of the scene.</param>
-public abstract class Scene(string name)
+public abstract class Scene(System.String name)
 {
     /// <summary>
     /// Gets the name of the scene.
     /// </summary>
-    public readonly string Name = name;
+    public readonly System.String Name = name;
 
     private readonly System.Collections.Generic.List<SceneObject> _objects = [];
 

@@ -16,13 +16,13 @@ namespace Nalix.Graphics.Assets;
 /// <param name="assetRoot">Optional root path of the managed asset folder</param>
 /// <param name="repeat">Determines if loaded Textures should repeat when the texture rectangle exceeds its dimension</param>
 /// <param name="smoothing">Determines if a smoothing should be applied onto newly loaded Textures</param>
-public sealed class TextureLoader(string assetRoot = "", bool repeat = false, bool smoothing = false)
+public sealed class TextureLoader(String assetRoot = "", Boolean repeat = false, Boolean smoothing = false)
     : AssetLoader<Texture>(AvailableFormats, assetRoot)
 {
     /// <summary>
     /// List of supported file endings for this TextureLoader
     /// </summary>
-    public static readonly IEnumerable<string> AvailableFormats =
+    public static readonly IEnumerable<String> AvailableFormats =
     [
         ".bmp", ".png", ".tga", ".jpg",
         ".gif", ".psd", ".hdr", ".pic"
@@ -31,12 +31,12 @@ public sealed class TextureLoader(string assetRoot = "", bool repeat = false, bo
     /// <summary>
     /// Determines if loaded Textures should repeat when the texture rectangle exceeds its dimension.
     /// </summary>
-    public bool Repeat { get; set; } = repeat;
+    public Boolean Repeat { get; set; } = repeat;
 
     /// <summary>
     /// Determines if a smoothing should be applied onto newly loaded Textures.
     /// </summary>
-    public bool Smoothing { get; set; } = smoothing;
+    public Boolean Smoothing { get; set; } = smoothing;
 
     /// <summary>
     /// Loads or retrieves an already loaded instance of a Texture from a File or Raw Data Source
@@ -46,7 +46,7 @@ public sealed class TextureLoader(string assetRoot = "", bool repeat = false, bo
     /// <returns>The managed Texture</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override Texture Load(string name, byte[] rawData = null) => Load(name, Repeat, Smoothing, rawData);
+    public override Texture Load(String name, Byte[] rawData = null) => Load(name, Repeat, Smoothing, rawData);
 
     /// <summary>Loads or retrieves an already loaded instance of a Texture from a File or Raw Data Source</summary>
     /// <param name="name">Name of the Texture</param>
@@ -56,7 +56,7 @@ public sealed class TextureLoader(string assetRoot = "", bool repeat = false, bo
     /// <returns>The managed Texture</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Texture Load(string name, bool? repeat = null, bool? smoothing = null, byte[] rawData = null)
+    public Texture Load(String name, Boolean? repeat = null, Boolean? smoothing = null, Byte[] rawData = null)
     {
         Texture tex = base.Load(name, rawData);
         if (tex != null)
@@ -75,19 +75,23 @@ public sealed class TextureLoader(string assetRoot = "", bool repeat = false, bo
     /// <returns>The managed Texture</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Texture Load(string name, Image<Rgba32> image)
+    public Texture Load(String name, Image<Rgba32> image)
     {
         ObjectDisposedException.ThrowIf(Disposed, nameof(TextureLoader));
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(image);
 
         if (_Assets.TryGetValue(name, out Texture value))
+        {
             return value;
+        }
 
         if (image.Width > Texture.MaximumSize || image.Height > Texture.MaximumSize)
+        {
             throw new ArgumentException($"Image size exceeds capabilities of graphic adapter: {Texture.MaximumSize} pixels");
+        }
 
-        byte[] data;
+        Byte[] data;
         using (MemoryStream ms = new())
         {
             image.SaveAsPng(ms); // Save ImageSharp image as PNG
@@ -100,7 +104,7 @@ public sealed class TextureLoader(string assetRoot = "", bool repeat = false, bo
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected override Texture CreateInstanceFromRawData(byte[] rawData)
+    protected override Texture CreateInstanceFromRawData(Byte[] rawData)
     {
         using var ms = new MemoryStream(rawData);
         var texture = new Texture(ms); // Pass the MemoryStream to the constructor
@@ -110,7 +114,7 @@ public sealed class TextureLoader(string assetRoot = "", bool repeat = false, bo
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected override Texture CreateInstanceFromPath(string path)
+    protected override Texture CreateInstanceFromPath(String path)
     {
         using var fs = File.OpenRead(path);
         var texture = new Texture(fs); // Pass the FileStream to the constructor

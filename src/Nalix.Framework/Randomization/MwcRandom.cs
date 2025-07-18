@@ -40,7 +40,10 @@ public abstract class MwcRandom
         {
             seed = (System.UInt32)(System.DateTime.UtcNow.Ticks & 0xFFFFFFFF);
             // Ensure seed is never 0 even if ticks lower bits are 0
-            if (seed == 0) seed = 1;
+            if (seed == 0)
+            {
+                seed = 1;
+            }
         }
 
         SetSeed(seed);
@@ -54,11 +57,13 @@ public abstract class MwcRandom
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetSeed(System.UInt32 seed)
     {
-        _state = InitialCarry << 32 | seed;
+        _state = (InitialCarry << 32) | seed;
 
         // Warm up the generator to avoid initial patterns
-        for (int i = 0; i < 10; i++)
-            Get();
+        for (System.Int32 i = 0; i < 10; i++)
+        {
+            _ = Get();
+        }
     }
 
     /// <summary>
@@ -78,7 +83,7 @@ public abstract class MwcRandom
     public System.UInt32 Get()
     {
         // MWC algorithm: state = (multiplier * (state & 0xFFFFFFFF) + (state >> 32))
-        _state = Multiplier * (_state & 0xFFFFFFFF) + (_state >> 32);
+        _state = (Multiplier * (_state & 0xFFFFFFFF)) + (_state >> 32);
         return (System.UInt32)_state;
     }
 
@@ -92,14 +97,18 @@ public abstract class MwcRandom
     public System.UInt32 Get(System.UInt32 max)
     {
         if (max <= 1)
+        {
             return 0;
+        }
 
         // Fast path for power of 2
-        if ((max & max - 1) == 0)
-            return Get() & max - 1;
+        if ((max & (max - 1)) == 0)
+        {
+            return Get() & (max - 1);
+        }
 
         // Avoid modulo bias by rejecting values in the unfair region
-        System.UInt32 threshold = RandMax - RandMax % max;
+        System.UInt32 threshold = RandMax - (RandMax % max);
         System.UInt32 result;
         do
         {
@@ -117,13 +126,7 @@ public abstract class MwcRandom
     /// <returns>A random Number in the range [min, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.UInt32 Get(System.UInt32 min, System.UInt32 max)
-    {
-        if (min >= max)
-            return min;
-
-        return min + Get(max - min);
-    }
+    public System.UInt32 Get(System.UInt32 min, System.UInt32 max) => min >= max ? min : min + Get(max - min);
 
     /// <summary>
     /// Returns a 64-bit random Number.
@@ -136,7 +139,7 @@ public abstract class MwcRandom
         // Use each 32-bit generation individually for better statistical properties
         System.UInt64 hi = Get();
         System.UInt64 lo = Get();
-        return hi << 32 | lo;
+        return (hi << 32) | lo;
     }
 
     /// <summary>
@@ -145,11 +148,9 @@ public abstract class MwcRandom
     /// <returns>A random float.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected System.Single GetFloat()
-    {
+    protected System.Single GetFloat() =>
         // Use only 24 bits for floating point precision (mantissa size for float)
-        return (Get() >> 8) * (1.0f / 16777216.0f);
-    }
+        (Get() >> 8) * (1.0f / 16777216.0f);
 
     /// <summary>
     /// Returns a random double in the range [0.0, 1.0).
@@ -157,11 +158,9 @@ public abstract class MwcRandom
     /// <returns>A random double.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected System.Double GetDouble()
-    {
+    protected System.Double GetDouble() =>
         // Use all 53 bits of precision available in a double
-        return (Get64() >> 11) * (1.0 / 9007199254740992.0);
-    }
+        (Get64() >> 11) * (1.0 / 9007199254740992.0);
 
     /// <summary>
     /// Returns a string representation of the current generator state.
@@ -177,7 +176,7 @@ public abstract class MwcRandom
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected void NextBytes(System.Span<System.Byte> buffer)
     {
-        int i = 0;
+        System.Int32 i = 0;
 
         // Process 4 bytes at a time when possible
         while (i <= buffer.Length - 4)

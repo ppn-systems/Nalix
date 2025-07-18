@@ -10,20 +10,14 @@ namespace Nalix.Graphics.UI.Elements;
 public class CheckBox : Drawable
 {
     private readonly Text _label;              // The label next to the checkbox
-    private readonly string _labelText;        // The text to display in the label
+    private readonly System.String _labelText;        // The text to display in the label
     private readonly Sprite _checkedSprite;    // The Sprite for the checked state
     private readonly Sprite _uncheckedSprite;  // The Sprite for the unchecked state
-
-    private bool _isChecked;                   // Indicates if the checkbox is checked
 
     /// <summary>
     /// Gets or sets whether the CheckBox is checked.
     /// </summary>
-    public bool IsChecked
-    {
-        get => _isChecked;
-        set => _isChecked = value;
-    }
+    public System.Boolean IsChecked { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CheckBox"/> class.
@@ -36,7 +30,7 @@ public class CheckBox : Drawable
     /// <param name="checkedTexture">The texture for the checked state.</param>
     public CheckBox(
         Font font, Vector2f position,
-        Vector2f size, string labelText,
+        Vector2f size, System.String labelText,
         Texture uncheckedTexture, Texture checkedTexture)
     {
         // Initialize the sprites for both checked and unchecked states
@@ -75,7 +69,7 @@ public class CheckBox : Drawable
             _uncheckedSprite.GetGlobalBounds().Contains(e.MouseButton.X, e.MouseButton.Y))
         {
             // Toggle the checked state when clicked
-            _isChecked = !_isChecked;
+            IsChecked = !IsChecked;
         }
     }
 
@@ -87,7 +81,7 @@ public class CheckBox : Drawable
     public void Draw(RenderTarget target, RenderStates states)
     {
         // Draw the appropriate Sprite based on the checked state
-        if (_isChecked)
+        if (IsChecked)
         {
             // Draw checked Sprite
             target.Draw(_checkedSprite, states);
@@ -105,6 +99,6 @@ public class CheckBox : Drawable
     /// </summary>
     /// <param name="position">The position to check.</param>
     /// <returns><c>true</c> if the position is within the CheckBox bounds, otherwise <c>false</c>.</returns>
-    public bool Contains(Vector2f position)
+    public System.Boolean Contains(Vector2f position)
         => _uncheckedSprite.GetGlobalBounds().Contains(position);
 }

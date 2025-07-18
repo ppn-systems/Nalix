@@ -68,7 +68,10 @@ public sealed class SceneChangeInfo<T> : SceneObject
     public override void Update(System.Single deltaTime)
     {
         // Destroy this instance on the first frame after a new scene has been loaded
-        if (_sceneChanged) Destroy();
+        if (_sceneChanged)
+        {
+            Destroy();
+        }
     }
 
     /// <summary>
@@ -82,8 +85,11 @@ public sealed class SceneChangeInfo<T> : SceneObject
     public static T Catch(System.String name, T defaultValue)
     {
         SceneChangeInfo<T> info = SceneManager.FindByType<SceneChangeInfo<T>>();
-        if (info == null) return defaultValue;
-        if (info.Name != name) return defaultValue;
-        return info.Extract();
+        if (info == null)
+        {
+            return defaultValue;
+        }
+
+        return info.Name != name ? defaultValue : info.Extract();
     }
 }

@@ -52,7 +52,7 @@ public sealed class Label : BaseUIElement
     /// <summary>
     /// Gets or sets the displayed text in the label.
     /// </summary>
-    public string Text
+    public System.String Text
     {
         get => _text.DisplayedString;
         set
@@ -99,7 +99,7 @@ public sealed class Label : BaseUIElement
     /// <param name="text">The text to display in the label.</param>
     /// <param name="position">The position of the label.</param>
     /// <param name="size">The size of the label.</param>
-    public Label(Font font, string text, Vector2f position, Vector2f size)
+    public Label(Font font, System.String text, Vector2f position, Vector2f size)
     {
         _font = font;
         _position = position;
@@ -133,8 +133,8 @@ public sealed class Label : BaseUIElement
 
         if (backgroundTexture.Size.X > 0 && backgroundTexture.Size.Y > 0)
         {
-            float scaleX = _size.X / backgroundTexture.Size.X;
-            float scaleY = _size.Y / backgroundTexture.Size.Y;
+            System.Single scaleX = _size.X / backgroundTexture.Size.X;
+            System.Single scaleY = _size.Y / backgroundTexture.Size.Y;
             _backgroundSprite.Scale = new Vector2f(scaleX, scaleY);
         }
     }
@@ -143,13 +143,19 @@ public sealed class Label : BaseUIElement
     public override void Draw(RenderTarget target, RenderStates states)
     {
         if (!IsVisible)
+        {
             return;
+        }
 
         if (_backgroundSprite != null)
+        {
             target.Draw(_backgroundSprite, states);
+        }
 
         if (_iconSprite != null)
+        {
             target.Draw(_iconSprite, states);
+        }
 
         target.Draw(_text, states);
     }
@@ -184,7 +190,7 @@ public sealed class Label : BaseUIElement
 
         // Get text bounds
         FloatRect textBounds = _text.GetLocalBounds();
-        float spacing = 4f;
+        System.Single spacing = 4f;
 
         Vector2f iconSize = _iconSprite?.Position ?? new Vector2f(0, 0);
 
@@ -194,33 +200,35 @@ public sealed class Label : BaseUIElement
         switch (_iconPosition)
         {
             case IconPosition.Left:
-                iconPos = new Vector2f(_position.X, _position.Y + (_size.Y - iconSize.Y) / 2);
+                iconPos = new Vector2f(_position.X, _position.Y + ((_size.Y - iconSize.Y) / 2));
                 textPos = new Vector2f(iconPos.X + iconSize.X + spacing, _position.Y +
-                                      (_size.Y - textBounds.Height) / 2 - textBounds.Top);
+                                      ((_size.Y - textBounds.Height) / 2) - textBounds.Top);
                 break;
 
             case IconPosition.Right:
-                textPos = new Vector2f(_position.X, _position.Y + (_size.Y - textBounds.Height) / 2 - textBounds.Top);
+                textPos = new Vector2f(_position.X, _position.Y + ((_size.Y - textBounds.Height) / 2) - textBounds.Top);
                 iconPos = new Vector2f(textPos.X + textBounds.Width +
-                                       spacing, _position.Y + (_size.Y - iconSize.Y) / 2);
+                                       spacing, _position.Y + ((_size.Y - iconSize.Y) / 2));
                 break;
 
             case IconPosition.Top:
-                iconPos = new Vector2f(_position.X + (_size.X - iconSize.X) / 2, _position.Y);
-                textPos = new Vector2f(_position.X + (_size.X - textBounds.Width) / 2 - textBounds.Left,
+                iconPos = new Vector2f(_position.X + ((_size.X - iconSize.X) / 2), _position.Y);
+                textPos = new Vector2f(_position.X + ((_size.X - textBounds.Width) / 2) - textBounds.Left,
                                        iconPos.Y + iconSize.Y + spacing);
                 break;
 
             case IconPosition.Bottom:
-                textPos = new Vector2f(_position.X + (_size.X - textBounds.Width) / 2 - textBounds.Left,
+                textPos = new Vector2f(_position.X + ((_size.X - textBounds.Width) / 2) - textBounds.Left,
                                        _position.Y);
-                iconPos = new Vector2f(_position.X + (_size.X - iconSize.X) / 2,
+                iconPos = new Vector2f(_position.X + ((_size.X - iconSize.X) / 2),
                                        textPos.Y + textBounds.Height + spacing);
                 break;
         }
 
         if (_iconSprite != null)
+        {
             _iconSprite.Position = iconPos;
+        }
 
         _text.Position = textPos;
     }

@@ -43,7 +43,9 @@ public readonly struct AABB
     public AABB(Vector2 min, Vector2 max)
     {
         if (min.X > max.X || min.Y > max.Y)
+        {
             throw new ArgumentException("Min must be less than or equal to Max");
+        }
 
         Min = min;
         Max = max;
@@ -54,7 +56,7 @@ public readonly struct AABB
     /// </summary>
     /// <param name="other">The other AABB to check intersection with.</param>
     /// <returns><c>true</c> if the two boxes overlap; otherwise, <c>false</c>.</returns>
-    public bool Intersects(AABB other)
+    public Boolean Intersects(AABB other)
     {
         return !(other.Max.X < Min.X ||
                  other.Min.X > Max.X ||
@@ -67,7 +69,7 @@ public readonly struct AABB
     /// </summary>
     /// <param name="point">The point to test.</param>
     /// <returns><c>true</c> if the point lies within the AABB; otherwise, <c>false</c>.</returns>
-    public bool Contains(Vector2 point)
+    public Boolean Contains(Vector2 point)
     {
         return point.X >= Min.X && point.X <= Max.X &&
                point.Y >= Min.Y && point.Y <= Max.Y;
@@ -78,17 +80,11 @@ public readonly struct AABB
     /// </summary>
     /// <param name="amount">The amount to expand the AABB in each direction.</param>
     /// <returns>ScreenSize new, inflated AABB.</returns>
-    public AABB Inflate(float amount)
-    {
-        return new AABB(Min - new Vector2(amount), Max + new Vector2(amount));
-    }
+    public AABB Inflate(Single amount) => new(Min - new Vector2(amount), Max + new Vector2(amount));
 
     /// <summary>
     /// Returns a string that represents the current AABB.
     /// </summary>
     /// <returns>ScreenSize string in the format <c>AABB(Min: x, Max: y)</c>.</returns>
-    public override string ToString()
-    {
-        return $"AABB(Min: {Min}, Max: {Max})";
-    }
+    public override String ToString() => $"AABB(Min: {Min}, Max: {Max})";
 }

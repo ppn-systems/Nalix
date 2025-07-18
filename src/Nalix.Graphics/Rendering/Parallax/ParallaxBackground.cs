@@ -41,10 +41,12 @@ public class ParallaxBackground(Vector2u viewport)
             // Wrap offset to avoid overflow
             System.Single textureWidth = layer.Texture.Size.X;
             if (textureWidth > 0)
+            {
                 layer.Offset %= textureWidth;
+            }
 
             ref IntRect rect = ref layer.Rect;
-            rect.Left = (int)layer.Offset;
+            rect.Left = (System.Int32)layer.Offset;
             layer.Sprite.TextureRect = rect;
         }
     }
@@ -56,7 +58,10 @@ public class ParallaxBackground(Vector2u viewport)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Draw(RenderTarget target)
     {
-        foreach (Layer layer in _layers) target.Draw(layer.Sprite);
+        foreach (Layer layer in _layers)
+        {
+            target.Draw(layer.Sprite);
+        }
     }
 
     private class Layer

@@ -16,19 +16,16 @@ namespace Nalix.Graphics.Tools;
 /// <param name="iconWidth">The width of each icon.</param>
 /// <param name="iconHeight">The height of each icon.</param>
 /// <exception cref="ArgumentNullException">Thrown if texture is null.</exception>
-public class ImageCutter(Texture texture, int iconWidth, int iconHeight)
+public class ImageCutter(Texture texture, Int32 iconWidth, Int32 iconHeight)
 {
-    // The large texture containing multiple icons
-    private readonly Texture _texture = texture
-        ?? throw new ArgumentNullException(nameof(texture), "Texture cannot be null.");
-
-    private readonly int _iconWidth = iconWidth;    // Width of each icon
-    private readonly int _iconHeight = iconHeight;   // Height of each icon
+    private readonly Int32 _iconWidth = iconWidth;    // Width of each icon
+    private readonly Int32 _iconHeight = iconHeight;   // Height of each icon
 
     /// <summary>
     /// Gets the texture used for cutting icons.
     /// </summary>
-    public Texture Texture => _texture;
+    public Texture Texture { get; } = texture
+        ?? throw new ArgumentNullException(nameof(texture), "Texture cannot be null.");
 
     /// <summary>
     /// Cuts all icons from the large texture and returns them as an array of sprites.
@@ -39,7 +36,7 @@ public class ImageCutter(Texture texture, int iconWidth, int iconHeight)
     /// <remarks>
     /// This method uses asynchronous tasks to cut icons in parallel for better performance on large textures.
     /// </remarks>
-    public async Task<Sprite[]> CutAllIconsAsync(int iconsPerRow, int iconsPerColumn)
+    public async Task<Sprite[]> CutAllIconsAsync(Int32 iconsPerRow, Int32 iconsPerColumn)
     {
         var totalIcons = iconsPerRow * iconsPerColumn;
         var icons = new Sprite[totalIcons];
@@ -47,14 +44,14 @@ public class ImageCutter(Texture texture, int iconWidth, int iconHeight)
         var tasks = new List<Task>();
 
         // Asynchronously cut all icons using parallelization for performance
-        for (int row = 0; row < iconsPerColumn; row++)
+        for (Int32 row = 0; row < iconsPerColumn; row++)
         {
-            for (int col = 0; col < iconsPerRow; col++)
+            for (Int32 col = 0; col < iconsPerRow; col++)
             {
-                int x = col * _iconWidth;
-                int y = row * _iconHeight;
+                Int32 x = col * _iconWidth;
+                Int32 y = row * _iconHeight;
 
-                int index = row * iconsPerRow + col;
+                Int32 index = (row * iconsPerRow) + col;
                 tasks.Add(Task.Run(() =>
                 {
                     icons[index] = CreateIcon(x, y);
@@ -74,10 +71,10 @@ public class ImageCutter(Texture texture, int iconWidth, int iconHeight)
     /// <param name="index">The index of the icon in the grid.</param>
     /// <param name="iconsPerRow">The number of icons per row.</param>
     /// <returns>ScreenSize Sprite representing the icon at the specified index.</returns>
-    public Sprite CutIconAt(int index, int iconsPerRow)
+    public Sprite CutIconAt(Int32 index, Int32 iconsPerRow)
     {
-        int row = index / iconsPerRow;
-        int col = index % iconsPerRow;
+        Int32 row = index / iconsPerRow;
+        Int32 col = index % iconsPerRow;
         return CreateIcon(col * _iconWidth, row * _iconHeight);
     }
 
@@ -87,7 +84,7 @@ public class ImageCutter(Texture texture, int iconWidth, int iconHeight)
     /// <param name="column">The column of the icon.</param>
     /// <param name="row">The row of the icon.</param>
     /// <returns>An <see cref="IntRect"/> representing the icon's rectangle.</returns>
-    public IntRect GetRectAt(int column, int row)
+    public IntRect GetRectAt(Int32 column, Int32 row)
         => new(column * _iconWidth, row * _iconHeight, _iconWidth, _iconHeight);
 
     /// <summary>
@@ -96,10 +93,10 @@ public class ImageCutter(Texture texture, int iconWidth, int iconHeight)
     /// <param name="x">The x-coordinate of the top-left corner of the icon.</param>
     /// <param name="y">The y-coordinate of the top-left corner of the icon.</param>
     /// <returns>ScreenSize Sprite representing the icon at the given coordinates.</returns>
-    private Sprite CreateIcon(int x, int y)
+    private Sprite CreateIcon(Int32 x, Int32 y)
     {
         IntRect iconRect = new(x, y, _iconWidth, _iconHeight);
-        return new Sprite(_texture, iconRect);
+        return new Sprite(Texture, iconRect);
     }
 
     /// <summary>
@@ -108,7 +105,7 @@ public class ImageCutter(Texture texture, int iconWidth, int iconHeight)
     /// <param name="icon">The Sprite to be rotated.</param>
     /// <param name="angle">The angle of rotation in degrees.</param>
     /// <returns>The rotated Sprite.</returns>
-    public static Sprite RotateIcon(Sprite icon, float angle)
+    public static Sprite RotateIcon(Sprite icon, Single angle)
     {
         icon.Rotation = angle;
         return icon;
@@ -122,11 +119,8 @@ public class ImageCutter(Texture texture, int iconWidth, int iconHeight)
     /// <exception cref="ArgumentException">Thrown if the region exceeds the bounds of the texture.</exception>
     public Sprite CutCustomRegion(IntRect region)
     {
-        if (region.Left < 0 || region.Top < 0 || region.Left + region.Width > _texture.Size.X || region.Top + region.Height > _texture.Size.Y)
-        {
-            throw new ArgumentException("The region is out of bounds of the texture.");
-        }
-
-        return new Sprite(_texture, region);
+        return region.Left < 0 || region.Top < 0 || region.Left + region.Width > Texture.Size.X || region.Top + region.Height > Texture.Size.Y
+            ? throw new ArgumentException("The region is out of bounds of the texture.")
+            : new Sprite(Texture, region);
     }
 }

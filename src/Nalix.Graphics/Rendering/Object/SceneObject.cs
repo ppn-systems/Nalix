@@ -8,7 +8,7 @@ namespace Nalix.Graphics.Rendering.Object;
 /// </summary>
 public abstract class SceneObject
 {
-    private readonly System.Collections.Generic.HashSet<string> _tags = [];
+    private readonly System.Collections.Generic.HashSet<System.String> _tags = [];
 
     /// <summary>
     /// Indicates whether the object is paused.
@@ -83,7 +83,7 @@ public abstract class SceneObject
     /// <returns>True if the object has the tag; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool HasTag(System.String tag) => _tags.Contains(tag);
+    public System.Boolean HasTag(System.String tag) => _tags.Contains(tag);
 
     /// <summary>
     /// Pauses the object, preventing it from updating.

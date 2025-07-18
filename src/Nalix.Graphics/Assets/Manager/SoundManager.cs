@@ -14,12 +14,12 @@ public class SoundManager : IDisposable
     /// <summary>
     /// Gets the name of this <see cref="SoundManager"/>.
     /// </summary>
-    public string Name { get; }
+    public String Name { get; }
 
     /// <summary>
     /// Determines whether this <see cref="SoundManager"/> has been disposed.
     /// </summary>
-    public bool Disposed { get; private set; }
+    public Boolean Disposed { get; private set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SoundManager" /> class.
@@ -27,9 +27,13 @@ public class SoundManager : IDisposable
     /// <param name="name">The sounds name</param>
     /// <param name="soundBuffer">Sound buffer containing the audio data to play with the sound instance</param>
     /// <param name="parallelSounds">The maximum number of parallel playing sounds.</param>
-    public SoundManager(string name, SoundBuffer soundBuffer, int parallelSounds)
+    public SoundManager(String name, SoundBuffer soundBuffer, Int32 parallelSounds)
     {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException($"Invalid {nameof(name)}:{name}");
+        if (String.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException($"Invalid {nameof(name)}:{name}");
+        }
+
         Name = name;
         _Buffer = soundBuffer ?? throw new ArgumentNullException(nameof(soundBuffer));
         _Sounds = new Sound[Math.Clamp(parallelSounds, 1, 25)];
@@ -53,11 +57,19 @@ public class SoundManager : IDisposable
     {
         ObjectDisposedException.ThrowIf(Disposed, Name);
 
-        for (int i = 0; i < _Sounds.Length; i++)
+        for (Int32 i = 0; i < _Sounds.Length; i++)
         {
             var sound = _Sounds[i];
-            if (sound == null) _Sounds[i] = sound = new Sound(_Buffer);
-            if (sound.Status != SoundStatus.Stopped) continue;
+            if (sound == null)
+            {
+                _Sounds[i] = sound = new Sound(_Buffer);
+            }
+
+            if (sound.Status != SoundStatus.Stopped)
+            {
+                continue;
+            }
+
             return sound;
         }
         return null; // when all sounds are busy none shall be added
@@ -80,13 +92,13 @@ public class SoundManager : IDisposable
     /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected virtual void Dispose(bool disposing)
+    protected virtual void Dispose(Boolean disposing)
     {
         if (!Disposed)
         {
             if (disposing)
             {
-                for (int i = 0; i < _Sounds.Length; i++)
+                for (Int32 i = 0; i < _Sounds.Length; i++)
                 {
                     if (_Sounds[i] != null)
                     {
