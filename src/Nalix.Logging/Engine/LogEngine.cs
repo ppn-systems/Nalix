@@ -15,7 +15,7 @@ public abstract class LogEngine : System.IDisposable
     private readonly NLogOptions _logOptions;
     private readonly LogDistributor _distributor;
 
-    private int _isDisposed;
+    private System.Int32 _isDisposed;
 
     #endregion Fields
 
@@ -41,10 +41,10 @@ public abstract class LogEngine : System.IDisposable
         else
         {
             // Apply default configuration
-            _logOptions.ConfigureDefaults(cfg =>
+            _ = _logOptions.ConfigureDefaults(cfg =>
             {
-                cfg.AddTarget(new ConsoleLogTarget());
-                cfg.AddTarget(new FileLogTarget(_logOptions.FileOptions));
+                _ = cfg.AddTarget(new ConsoleLogTarget());
+                _ = cfg.AddTarget(new FileLogTarget(_logOptions.FileOptions));
                 return cfg;
             });
         }
@@ -90,10 +90,12 @@ public abstract class LogEngine : System.IDisposable
         System.String message, System.Exception? error = null)
     {
         if (_isDisposed != 0 || level < _minLevel)
+        {
             return;
+        }
 
         // Create and publish the log entry
-        _distributor.PublishAsync(new LogEntry(level, eventId, message, error));
+        _ = _distributor.PublishAsync(new LogEntry(level, eventId, message, error));
     }
 
     /// <summary>
@@ -111,7 +113,9 @@ public abstract class LogEngine : System.IDisposable
     {
         // Skip expensive string formatting if the log level is disabled
         if (_isDisposed != 0 || level < _minLevel)
+        {
             return;
+        }
 
         // Format the message only if we're going to use it
         CreateLogEntry(level, eventId, FormatMessage(format, args));
@@ -133,7 +137,9 @@ public abstract class LogEngine : System.IDisposable
     {
         // Thread-safe disposal check using Interlocked
         if (System.Threading.Interlocked.Exchange(ref _isDisposed, 1) != 0)
+        {
             return;
+        }
 
         if (disposing)
         {

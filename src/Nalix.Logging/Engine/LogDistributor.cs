@@ -59,13 +59,15 @@ public sealed class LogDistributor : ILogDistributor
     public void Publish(LogEntry? entry)
     {
         if (entry == null)
+        {
             throw new System.ArgumentNullException(nameof(entry));
+        }
 
         // Quick check for disposed state
         System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LogDistributor));
 
         // Increment the published entries counter
-        System.Threading.Interlocked.Increment(ref _entriesDistributor);
+        _ = System.Threading.Interlocked.Increment(ref _entriesDistributor);
 
         // Optimize for the common case of a single target
         if (_targets.Count == 1)
@@ -74,12 +76,12 @@ public sealed class LogDistributor : ILogDistributor
             try
             {
                 target.Publish(entry.Value);
-                System.Threading.Interlocked.Increment(ref _targetsProcessed);
+                _ = System.Threading.Interlocked.Increment(ref _targetsProcessed);
             }
             catch (System.Exception ex)
             {
                 // Count the error but continue operation
-                System.Threading.Interlocked.Increment(ref _publishErrorCount);
+                _ = System.Threading.Interlocked.Increment(ref _publishErrorCount);
                 HandleTargetError(target, ex, entry.Value);
             }
             return;
@@ -91,12 +93,12 @@ public sealed class LogDistributor : ILogDistributor
             try
             {
                 target.Publish(entry.Value);
-                System.Threading.Interlocked.Increment(ref _targetsProcessed);
+                _ = System.Threading.Interlocked.Increment(ref _targetsProcessed);
             }
             catch (System.Exception ex)
             {
                 // Count the error but continue with other targets
-                System.Threading.Interlocked.Increment(ref _publishErrorCount);
+                _ = System.Threading.Interlocked.Increment(ref _publishErrorCount);
                 HandleTargetError(target, ex, entry.Value);
             }
         }
@@ -112,7 +114,9 @@ public sealed class LogDistributor : ILogDistributor
     public System.Threading.Tasks.ValueTask PublishAsync(LogEntry? entry)
     {
         if (entry == null)
+        {
             throw new System.ArgumentNullException(nameof(entry));
+        }
 
         // Quick check for disposed state
         System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LogDistributor));
@@ -142,7 +146,7 @@ public sealed class LogDistributor : ILogDistributor
         System.ArgumentNullException.ThrowIfNull(target);
         System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LogDistributor));
 
-        _targets.TryAdd(target, DummyValue);
+        _ = _targets.TryAdd(target, DummyValue);
         return this;
     }
 
@@ -153,7 +157,7 @@ public sealed class LogDistributor : ILogDistributor
     /// <returns><c>true</c> if the target was successfully removed; otherwise, <c>false</c>.</returns>
     /// <exception cref="System.ArgumentNullException">Thrown if target is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    public bool RemoveTarget(ILoggerTarget target)
+    public System.Boolean RemoveTarget(ILoggerTarget target)
     {
         System.ArgumentNullException.ThrowIfNull(target);
         System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LogDistributor));
@@ -178,7 +182,9 @@ public sealed class LogDistributor : ILogDistributor
 
             // Check if target implements error handling
             if (target is ILoggerErrorHandler errorHandler)
+            {
                 errorHandler.HandleError(exception, entry);
+            }
         }
         catch
         {
@@ -193,7 +199,9 @@ public sealed class LogDistributor : ILogDistributor
     {
         // Thread-safe disposal check
         if (System.Threading.Interlocked.Exchange(ref _isDisposed, 1) != 0)
+        {
             return;
+        }
 
         try
         {
@@ -227,7 +235,7 @@ public sealed class LogDistributor : ILogDistributor
     /// Creates a diagnostic report about the publisher's state.
     /// </summary>
     /// <returns>A string containing diagnostic information.</returns>
-    public override string ToString()
+    public override System.String ToString()
         => $"[LogDistributor Stats - {System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + System.Environment.NewLine +
            $"- User: {System.Environment.UserName}" + System.Environment.NewLine +
            $"- Active Targets: {_targets.Count}" + System.Environment.NewLine +

@@ -10,10 +10,10 @@ internal static class LoggingLevelFormatter
     #region Constants
 
     // Constants for optimized memory layout
-    private const int MaxLogLevels = 8;
+    private const System.Int32 MaxLogLevels = 8;
 
-    private const int LogLevelLength = 4;
-    private const int LogLevelPaddedLength = 5; // 4 chars + null terminator
+    private const System.Int32 LogLevelLength = 4;
+    private const System.Int32 LogLevelPaddedLength = 5; // 4 chars + null terminator
 
     #endregion Constants
 
@@ -82,7 +82,7 @@ internal static class LoggingLevelFormatter
 
         // Get the pre-computed span for this log level
         return LogLevelChars.Slice(
-            (int)logLevel * LogLevelPaddedLength,
+            (System.Int32)logLevel * LogLevelPaddedLength,
             LogLevelLength
         );
     }
@@ -115,7 +115,7 @@ internal static class LoggingLevelFormatter
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Boolean IsValidLogLevel(LogLevel logLevel)
-        => (uint)logLevel < MaxLogLevels;
+        => (System.UInt32)logLevel < MaxLogLevels;
 
     /// <summary>
     /// Directly copies the log level text into a destination buffer.
@@ -131,7 +131,9 @@ internal static class LoggingLevelFormatter
         {
             System.String fallback = logLevel.ToString().ToUpperInvariant();
             if (fallback.Length > destination.Length)
+            {
                 return 0;
+            }
 
             System.MemoryExtensions.AsSpan(fallback).CopyTo(destination);
             return fallback.Length;
@@ -160,10 +162,11 @@ internal static class LoggingLevelFormatter
             // Truncate or pad to exactly 4 characters for consistency
             System.String fallback = logLevel.ToString().ToUpperInvariant();
             if (fallback.Length > 4)
+            {
                 return fallback[..4];
-            if (fallback.Length < 4)
-                return fallback.PadRight(4);
-            return fallback;
+            }
+
+            return fallback.Length < 4 ? fallback.PadRight(4) : fallback;
         }
 
         return CachedLogLevels[(System.Int32)logLevel];
@@ -182,12 +185,14 @@ internal static class LoggingLevelFormatter
         result = LogLevel.None;
 
         if (levelText.IsEmpty)
-            return (System.Boolean)(0 != 0);
+        {
+            return 0 != 0;
+        }
 
         // First check our cached short names for efficiency
         for (System.Int32 i = 0; i < MaxLogLevels; i++)
         {
-            System.ReadOnlySpan<char> candidate =
+            System.ReadOnlySpan<System.Char> candidate =
                 LogLevelChars.Slice(i * LogLevelPaddedLength, LogLevelLength);
 
             if (System.MemoryExtensions.Equals(
@@ -196,17 +201,17 @@ internal static class LoggingLevelFormatter
                 System.StringComparison.OrdinalIgnoreCase))
             {
                 result = (LogLevel)i;
-                return (System.Boolean)(1 == 1);
+                return 1 == 1;
             }
         }
 
-        System.ReadOnlySpan<char> meta1 = System.MemoryExtensions.AsSpan("META");
-        System.ReadOnlySpan<char> meta2 = System.MemoryExtensions.AsSpan("METADATA");
+        System.ReadOnlySpan<System.Char> meta1 = System.MemoryExtensions.AsSpan("META");
+        System.ReadOnlySpan<System.Char> meta2 = System.MemoryExtensions.AsSpan("METADATA");
         if (System.MemoryExtensions.Equals(levelText, meta1, System.StringComparison.OrdinalIgnoreCase) ||
             System.MemoryExtensions.Equals(levelText, meta2, System.StringComparison.OrdinalIgnoreCase))
         {
             result = LogLevel.Meta;
-            return (System.Boolean)(1 == 1);
+            return 1 == 1;
         }
 
         if (System.MemoryExtensions.Equals(levelText,
@@ -217,7 +222,7 @@ internal static class LoggingLevelFormatter
             System.StringComparison.OrdinalIgnoreCase))
         {
             result = LogLevel.Trace;
-            return (System.Boolean)(1 == 1);
+            return 1 == 1;
         }
 
         if (System.MemoryExtensions.Equals(levelText,
@@ -228,7 +233,7 @@ internal static class LoggingLevelFormatter
             System.StringComparison.OrdinalIgnoreCase))
         {
             result = LogLevel.Debug;
-            return (System.Boolean)(1 == 1);
+            return 1 == 1;
         }
 
         if (System.MemoryExtensions.Equals(levelText,
@@ -239,7 +244,7 @@ internal static class LoggingLevelFormatter
             System.StringComparison.OrdinalIgnoreCase))
         {
             result = LogLevel.Information;
-            return (System.Boolean)(1 == 1);
+            return 1 == 1;
         }
 
         if (System.MemoryExtensions.Equals(levelText,
@@ -250,7 +255,7 @@ internal static class LoggingLevelFormatter
             System.StringComparison.OrdinalIgnoreCase))
         {
             result = LogLevel.Warning;
-            return (System.Boolean)(1 == 1);
+            return 1 == 1;
         }
 
         if (System.MemoryExtensions.Equals(levelText,
@@ -264,7 +269,7 @@ internal static class LoggingLevelFormatter
             System.StringComparison.OrdinalIgnoreCase))
         {
             result = LogLevel.Error;
-            return (System.Boolean)(1 == 1);
+            return 1 == 1;
         }
 
         if (System.MemoryExtensions.Equals(levelText,
@@ -278,7 +283,7 @@ internal static class LoggingLevelFormatter
             System.StringComparison.OrdinalIgnoreCase))
         {
             result = LogLevel.Critical;
-            return (System.Boolean)(1 == 1);
+            return 1 == 1;
         }
 
         if (System.MemoryExtensions.Equals(levelText,
@@ -289,7 +294,7 @@ internal static class LoggingLevelFormatter
             System.StringComparison.OrdinalIgnoreCase))
         {
             result = LogLevel.None;
-            return (System.Boolean)(1 == 1);
+            return 1 == 1;
         }
 
         // Try numeric parsing as fallback
@@ -298,9 +303,9 @@ internal static class LoggingLevelFormatter
             numericLevel >= 0 && numericLevel < MaxLogLevels)
         {
             result = (LogLevel)numericLevel;
-            return (System.Boolean)(1 == 1);
+            return 1 == 1;
         }
 
-        return (System.Boolean)(0 != 0);
+        return 0 != 0;
     }
 }

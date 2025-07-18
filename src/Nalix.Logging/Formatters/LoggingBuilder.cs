@@ -49,8 +49,8 @@ internal static class LoggingBuilder
         System.Boolean colors = false, System.String? customTimestampFormat = null)
     {
         // Estimate buffer size to minimize reallocations
-        int initialLength = builder.Length;
-        int estimatedLength = CalculateEstimatedLength(message, eventId, exception, colors);
+        System.Int32 initialLength = builder.Length;
+        System.Int32 estimatedLength = CalculateEstimatedLength(message, eventId, exception, colors);
 
         // Ensure the builder has enough capacity
         EnsureCapacity(builder, estimatedLength + initialLength + 9);
@@ -109,9 +109,12 @@ internal static class LoggingBuilder
     private static void AppendNumber(
         System.Text.StringBuilder builder, System.Boolean colors)
     {
-        if (!colors) return;
+        if (!colors)
+        {
+            return;
+        }
 
-        builder.Append(LoggingConstants.LogBracketOpen)
+        _ = builder.Append(LoggingConstants.LogBracketOpen)
                .Append(System.Threading.Interlocked.Increment(ref LogCounter).ToString("D6"))
                .Append(LoggingConstants.LogBracketClose)
                .Append(LoggingConstants.LogSpaceSeparator);
@@ -129,23 +132,27 @@ internal static class LoggingBuilder
         System.String timestampFormat = format ?? "yyyy-MM-dd HH:mm:ss.fff";
 
         // Allocate buffer on the stack for datetime formatting
-        System.Span<char> dateBuffer = stackalloc System.Char[timestampFormat.Length + 10];
+        System.Span<System.Char> dateBuffer = stackalloc System.Char[timestampFormat.Length + 10];
 
         // Format timestamp directly into stack-allocated buffer
         if (timeStamp.TryFormat(dateBuffer, out System.Int32 charsWritten, timestampFormat))
         {
-            builder.Append(LoggingConstants.LogBracketOpen);
+            _ = builder.Append(LoggingConstants.LogBracketOpen);
 
             if (colors)
-                builder.Append(ColorAnsi.Blue);
+            {
+                _ = builder.Append(ColorAnsi.Blue);
+            }
 
             // Append directly from the span to avoid string allocation
-            builder.Append(dateBuffer[..charsWritten]);
+            _ = builder.Append(dateBuffer[..charsWritten]);
 
             if (colors)
-                builder.Append(ColorAnsi.White);
+            {
+                _ = builder.Append(ColorAnsi.White);
+            }
 
-            builder.Append(LoggingConstants.LogBracketClose);
+            _ = builder.Append(LoggingConstants.LogBracketClose);
         }
     }
 
@@ -158,20 +165,24 @@ internal static class LoggingBuilder
         System.Text.StringBuilder builder,
         LogLevel logLevel, System.Boolean colors)
     {
-        builder.Append(LoggingConstants.LogSpaceSeparator)
+        _ = builder.Append(LoggingConstants.LogSpaceSeparator)
                .Append(LoggingConstants.LogBracketOpen);
 
         if (colors)
-            builder.Append(ColorAnsi.GetColorCode(logLevel));
+        {
+            _ = builder.Append(ColorAnsi.GetColorCode(logLevel));
+        }
 
         // Use span-based API for log level text to avoid string allocation
         System.ReadOnlySpan<System.Char> levelText = LoggingLevelFormatter.GetShortLogLevel(logLevel);
-        builder.Append(levelText);
+        _ = builder.Append(levelText);
 
         if (colors)
-            builder.Append(ColorAnsi.White);
+        {
+            _ = builder.Append(ColorAnsi.White);
+        }
 
-        builder.Append(LoggingConstants.LogBracketClose);
+        _ = builder.Append(LoggingConstants.LogBracketClose);
     }
 
     /// <summary>
@@ -184,28 +195,35 @@ internal static class LoggingBuilder
         in EventId eventId, System.Boolean colors)
     {
         // Skip if it's the empty event Number
-        if (eventId.Id == 0) return;
+        if (eventId.Id == 0)
+        {
+            return;
+        }
 
-        builder.Append(LoggingConstants.LogSpaceSeparator)
+        _ = builder.Append(LoggingConstants.LogSpaceSeparator)
                .Append(LoggingConstants.LogBracketOpen);
 
         if (colors && eventId.Name != null)
-            builder.Append(ColorAnsi.Blue);
+        {
+            _ = builder.Append(ColorAnsi.Blue);
+        }
 
         // Append Number
-        builder.Append(eventId.Id);
+        _ = builder.Append(eventId.Id);
 
         // Append name if present
         if (eventId.Name != null)
         {
-            builder.Append(':')
+            _ = builder.Append(':')
                    .Append(eventId.Name);
         }
 
         if (colors && eventId.Name != null)
-            builder.Append(ColorAnsi.White);
+        {
+            _ = builder.Append(ColorAnsi.White);
+        }
 
-        builder.Append(LoggingConstants.LogBracketClose);
+        _ = builder.Append(LoggingConstants.LogBracketClose);
     }
 
     /// <summary>
@@ -217,18 +235,22 @@ internal static class LoggingBuilder
         System.Text.StringBuilder builder,
         System.String message, System.Boolean colors)
     {
-        builder.Append(LoggingConstants.LogSpaceSeparator);
+        _ = builder.Append(LoggingConstants.LogSpaceSeparator);
 
         // Use span-based append for standard separators
-        builder.Append(DashWithSpaces);
+        _ = builder.Append(DashWithSpaces);
 
         if (colors)
-            builder.Append(ColorAnsi.DarkGray);
+        {
+            _ = builder.Append(ColorAnsi.DarkGray);
+        }
 
-        builder.Append(message);
+        _ = builder.Append(message);
 
         if (colors)
-            builder.Append(ColorAnsi.White);
+        {
+            _ = builder.Append(ColorAnsi.White);
+        }
     }
 
     /// <summary>
@@ -240,20 +262,27 @@ internal static class LoggingBuilder
         System.Text.StringBuilder builder,
         System.Exception? exception, System.Boolean colors)
     {
-        if (exception == null) return;
+        if (exception == null)
+        {
+            return;
+        }
 
-        builder.Append(LoggingConstants.LogSpaceSeparator);
-        builder.Append(DashWithSpaces);
-        builder.AppendLine();
+        _ = builder.Append(LoggingConstants.LogSpaceSeparator);
+        _ = builder.Append(DashWithSpaces);
+        _ = builder.AppendLine();
 
         if (colors)
-            builder.Append(ColorAnsi.Red);
+        {
+            _ = builder.Append(ColorAnsi.Red);
+        }
 
         // For complex exceptions, build a structured representation
         FormatExceptionDetails(builder, exception);
 
         if (colors)
-            builder.Append(ColorAnsi.White);
+        {
+            _ = builder.Append(ColorAnsi.White);
+        }
     }
 
     /// <summary>
@@ -268,24 +297,27 @@ internal static class LoggingBuilder
         // Indent based on level for inner exceptions
         if (level > 0)
         {
-            builder.Append(' ', level * 2)
+            _ = builder.Append(' ', level * 2)
                    .Append("> ");
         }
 
         // Append exception type and message
-        builder.Append(exception.GetType().Name)
+        _ = builder.Append(exception.GetType().Name)
                .Append(": ")
                .AppendLine(exception.Message);
 
         // Add stack trace with indentation
-        if (!string.IsNullOrEmpty(exception.StackTrace))
+        if (!System.String.IsNullOrEmpty(exception.StackTrace))
         {
-            string[] stackFrames = exception.StackTrace.Split('\n');
-            foreach (string frame in stackFrames)
+            System.String[] stackFrames = exception.StackTrace.Split('\n');
+            foreach (System.String frame in stackFrames)
             {
-                if (string.IsNullOrWhiteSpace(frame)) continue;
+                if (System.String.IsNullOrWhiteSpace(frame))
+                {
+                    continue;
+                }
 
-                builder.Append(' ', (level + 1) * 2)
+                _ = builder.Append(' ', (level + 1) * 2)
                        .AppendLine(frame.TrimStart());
             }
         }
@@ -293,7 +325,7 @@ internal static class LoggingBuilder
         // Handle inner exceptions recursively
         if (exception.InnerException != null)
         {
-            builder.AppendLine()
+            _ = builder.AppendLine()
                    .Append(' ', level * 2)
                    .AppendLine("Caused by: ");
 
@@ -306,9 +338,12 @@ internal static class LoggingBuilder
         {
             for (System.Int32 i = 0; i < aggregateException.InnerExceptions.Count; i++)
             {
-                if (i == 0) continue; // Skip first one as it's already handled as InnerException
+                if (i == 0)
+                {
+                    continue; // Skip first one as it's already handled as InnerException
+                }
 
-                builder.AppendLine()
+                _ = builder.AppendLine()
                        .Append(' ', level * 2)
                        .Append("Contains ")
                        .Append(i + 1)
@@ -338,7 +373,9 @@ internal static class LoggingBuilder
         {
             length += 5; // Brackets, space, and typical Number length
             if (eventId.Name != null)
+            {
                 length += eventId.Name.Length + 1; // +1 for colon
+            }
         }
 
         // Add exception length if present
@@ -349,12 +386,16 @@ internal static class LoggingBuilder
 
             // Add some space for stack trace (rough estimate)
             if (exception.StackTrace != null)
+            {
                 length += System.Math.Min(exception.StackTrace.Length, 500);
+            }
         }
 
         // Add space for color codes if used
         if (colors)
+        {
             length += 30; // Approximate length of all color codes
+        }
 
         return length;
     }
@@ -375,7 +416,7 @@ internal static class LoggingBuilder
                 System.Math.Max(requiredCapacity, builder.Capacity * 2),
                 builder.Capacity + 4096); // Cap growth at 4KB per resize
 
-            builder.EnsureCapacity(newCapacity);
+            _ = builder.EnsureCapacity(newCapacity);
         }
     }
 

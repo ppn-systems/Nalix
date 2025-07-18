@@ -52,7 +52,9 @@ internal sealed class FileWriter : System.IDisposable
     internal void UseNewLogFile(System.String newLogFileName)
     {
         if (System.String.IsNullOrEmpty(newLogFileName))
+        {
             throw new System.ArgumentException("New log file name cannot be empty", nameof(newLogFileName));
+        }
 
         lock (_fileLock)
         {
@@ -67,10 +69,12 @@ internal sealed class FileWriter : System.IDisposable
     /// </summary>
     /// <param name="message">The message to write.</param>
     /// <param name="flush">Whether to flush after writing.</param>
-    internal void WriteMessage(System.String message, bool flush)
+    internal void WriteMessage(System.String message, System.Boolean flush)
     {
         if (System.String.IsNullOrEmpty(message))
+        {
             return;
+        }
 
         lock (_fileLock)
         {
@@ -81,11 +85,13 @@ internal sealed class FileWriter : System.IDisposable
 
                 // If still null after attempted recovery, give up on this message
                 if (_logFileWriter == null || _logFileStream == null)
+                {
                     return;
+                }
             }
 
             // Estimate message size (approximate for performance)
-            int messageSize = (message.Length * sizeof(System.Char)) +
+            System.Int32 messageSize = (message.Length * sizeof(System.Char)) +
                 (System.Environment.NewLine.Length * sizeof(System.Char));
 
             // Check if adding this message would exceed the file size limit
@@ -95,7 +101,9 @@ internal sealed class FileWriter : System.IDisposable
 
                 // If file creation failed, give up on this message
                 if (_logFileWriter == null || _logFileStream == null)
+                {
                     return;
+                }
             }
 
             // Write the message
@@ -156,7 +164,9 @@ internal sealed class FileWriter : System.IDisposable
     public void Dispose()
     {
         if (_isDisposed)
+        {
             return;
+        }
 
         _isDisposed = true;
         Close();
@@ -176,7 +186,7 @@ internal sealed class FileWriter : System.IDisposable
             System.String directory = _provider.Options.LogDirectory;
             if (!System.IO.Directory.Exists(directory))
             {
-                System.IO.Directory.CreateDirectory(directory);
+                _ = System.IO.Directory.CreateDirectory(directory);
             }
         }
         catch (System.Exception ex)
@@ -188,7 +198,7 @@ internal sealed class FileWriter : System.IDisposable
             try
             {
                 System.String tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "assets", "logs");
-                System.IO.Directory.CreateDirectory(tempPath);
+                _ = System.IO.Directory.CreateDirectory(tempPath);
                 _provider.Options.LogDirectory = tempPath;
             }
             catch
@@ -235,7 +245,7 @@ internal sealed class FileWriter : System.IDisposable
         System.String fullPath = System.IO.Path.Combine(logDirectory, fileName);
 
         // Ensure file name uniqueness by adding counter if file exists
-        int uniqueCounter = 0;
+        System.Int32 uniqueCounter = 0;
         while (System.IO.File.Exists(fullPath))
         {
             uniqueCounter++;
@@ -314,12 +324,12 @@ internal sealed class FileWriter : System.IDisposable
             if (!append || _currentFileSize == 0)
             {
                 System.Text.StringBuilder headerBuilder = new();
-                headerBuilder.AppendLine("-----------------------------------------------------");
-                headerBuilder.AppendLine($"Log Files Created: {System.DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
-                headerBuilder.AppendLine($"User: {System.Environment.UserName}");
-                headerBuilder.AppendLine($"Machine: {System.Environment.MachineName}");
-                headerBuilder.AppendLine($"OS: {System.Environment.OSVersion}");
-                headerBuilder.AppendLine("-----------------------------------------------------");
+                _ = headerBuilder.AppendLine("-----------------------------------------------------");
+                _ = headerBuilder.AppendLine($"Log Files Created: {System.DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
+                _ = headerBuilder.AppendLine($"User: {System.Environment.UserName}");
+                _ = headerBuilder.AppendLine($"Machine: {System.Environment.MachineName}");
+                _ = headerBuilder.AppendLine($"OS: {System.Environment.OSVersion}");
+                _ = headerBuilder.AppendLine("-----------------------------------------------------");
 
                 _logFileWriter.WriteLine(headerBuilder.ToString());
                 _logFileWriter.Flush();
