@@ -22,31 +22,39 @@ public readonly partial struct Packet
     {
         System.Text.StringBuilder sb = new();
 
-        sb.AppendLine($"Packet [{OpCode}]:");
-        sb.AppendLine($"  Type: {Type}");
-        sb.AppendLine($"  Flags: {Flags}");
-        sb.AppendLine($"  Number: 0x{Number:X4}");
-        sb.AppendLine($"  Priority: {Priority}");
-        sb.AppendLine($"  Timestamp: {Timestamp}");
-        sb.AppendLine($"  Checksum: 0x{Checksum:X8} (Valid: {IsValid()})");
-        sb.AppendLine($"  Payload: {Payload.Length} bytes");
+        _ = sb.AppendLine($"Packet [{OpCode}]:");
+        _ = sb.AppendLine($"  Type: {Type}");
+        _ = sb.AppendLine($"  Flags: {Flags}");
+        _ = sb.AppendLine($"  Number: 0x{Number:X4}");
+        _ = sb.AppendLine($"  Priority: {Priority}");
+        _ = sb.AppendLine($"  Timestamp: {Timestamp}");
+        _ = sb.AppendLine($"  Checksum: 0x{Checksum:X8} (Valid: {IsValid()})");
+        _ = sb.AppendLine($"  Payload: {Payload.Length} bytes");
 
         if (Payload.Length > 0)
         {
-            sb.Append("  Data: ");
+            _ = sb.Append("  Data: ");
 
             if (Payload.Length <= 32)
+            {
                 for (System.Int32 i = 0; i < Payload.Length; i++)
-                    sb.Append($"{Payload.Span[i]:X2} ");
+                {
+                    _ = sb.Append($"{Payload.Span[i]:X2} ");
+                }
+            }
             else
             {
                 for (System.Int32 i = 0; i < 16; i++)
-                    sb.Append($"{Payload.Span[i]:X2} ");
+                {
+                    _ = sb.Append($"{Payload.Span[i]:X2} ");
+                }
 
-                sb.Append("... ");
+                _ = sb.Append("... ");
 
                 for (System.Int32 i = Payload.Length - 16; i < Payload.Length; i++)
-                    sb.Append($"{Payload.Span[i]:X2} ");
+                {
+                    _ = sb.Append($"{Payload.Span[i]:X2} ");
+                }
             }
         }
 

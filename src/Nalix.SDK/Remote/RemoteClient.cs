@@ -52,7 +52,7 @@ public class RemoteClient<TPacket> : SingletonBase<RemoteClient<TPacket>>, Syste
     /// <summary>
     /// Gets a value indicating whether the client is connected to the server.
     /// </summary>
-    public bool IsConnected => _client?.Connected == true && _stream != null;
+    public System.Boolean IsConnected => _client?.Connected == true && _stream != null;
 
     #endregion Properties
 

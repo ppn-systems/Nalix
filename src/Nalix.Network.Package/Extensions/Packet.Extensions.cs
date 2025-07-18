@@ -41,7 +41,7 @@ public static class PacketExtensions
     public static IPacket Deserialize(this System.ReadOnlySpan<System.Byte> data)
     {
         IPacket? packet = default;
-        LiteSerializer.Deserialize(data, ref packet);
+        _ = LiteSerializer.Deserialize(data, ref packet);
         return packet ?? throw new System.InvalidOperationException("Deserialization resulted in a null packet.");
     }
 
@@ -55,7 +55,7 @@ public static class PacketExtensions
     public static IPacket Deserialize(this System.ReadOnlyMemory<System.Byte> data)
     {
         IPacket? packet = default;
-        LiteSerializer.Deserialize(data.Span, ref packet);
+        _ = LiteSerializer.Deserialize(data.Span, ref packet);
         return packet ?? throw new System.InvalidOperationException("Deserialization resulted in a null packet.");
     }
 
@@ -69,7 +69,7 @@ public static class PacketExtensions
     public static IPacket Deserialize(this System.Byte[] data)
     {
         IPacket? packet = default;
-        LiteSerializer.Deserialize(data, ref packet);
+        _ = LiteSerializer.Deserialize(data, ref packet);
         return packet ?? throw new System.InvalidOperationException("Deserialization resulted in a null packet.");
     }
 
@@ -91,7 +91,7 @@ public static class PacketExtensions
         System.Int32 totalSize = PacketSize.Header + payloadLength;
 
         // Validate before attempting to serialize
-        if (payloadLength > ushort.MaxValue || destination.Length < totalSize)
+        if (payloadLength > System.UInt16.MaxValue || destination.Length < totalSize)
         {
             bytesWritten = 0;
             return false;
@@ -130,7 +130,9 @@ public static class PacketExtensions
 
         // Check if at least the header is present
         if (source.Length < PacketSize.Header)
+        {
             return false;
+        }
 
         // Read packet length from first 2 bytes (ushort)
         System.UInt16 length = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt16>(
@@ -138,12 +140,14 @@ public static class PacketExtensions
 
         // Validate length is within expected range
         if (length < PacketSize.Header || length > source.Length)
+        {
             return false;
+        }
 
         // Safe deserialize without throwing
         try
         {
-            int bytesRead = LiteSerializer.Deserialize(source[..length], ref packet);
+            System.Int32 bytesRead = LiteSerializer.Deserialize(source[..length], ref packet);
             return bytesRead == length;
         }
         catch
