@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Nalix.Cryptography.Checksums;
@@ -13,49 +12,55 @@ public static class Xor256
     /// Computes the XOR checksum over a byte span.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte Compute(ReadOnlySpan<byte> data)
+    public static System.Byte Compute(System.ReadOnlySpan<System.Byte> data)
     {
         if (data.IsEmpty)
-            throw new ArgumentException("Data cannot be empty", nameof(data));
+        {
+            throw new System.ArgumentException("Data cannot be empty", nameof(data));
+        }
 
-        byte xor = 0;
+        System.Byte xor = 0;
 
         unsafe
         {
-            ref byte src = ref MemoryMarshal.GetReference(data);
-            int length = data.Length;
+            ref System.Byte src = ref MemoryMarshal.GetReference(data);
+            System.Int32 length = data.Length;
 
-            int i = 0;
+            System.Int32 i = 0;
 
             // Process 8 bytes at a time
-            if (length >= sizeof(ulong))
+            if (length >= sizeof(System.UInt64))
             {
-                fixed (byte* p = &src)
+                fixed (System.Byte* p = &src)
                 {
-                    ulong* ptr = (ulong*)p;
-                    int ulongCount = length / sizeof(ulong);
+                    System.UInt64* ptr = (System.UInt64*)p;
+                    System.Int32 ulongCount = length / sizeof(System.UInt64);
 
-                    ulong accum = 0;
-                    for (int j = 0; j < ulongCount; j++)
+                    System.UInt64 accum = 0;
+                    for (System.Int32 j = 0; j < ulongCount; j++)
+                    {
                         accum ^= ptr[j];
+                    }
 
                     // Fold ulong into byte
-                    xor ^= (byte)(accum & 0xFF);
-                    xor ^= (byte)((accum >> 8) & 0xFF);
-                    xor ^= (byte)((accum >> 16) & 0xFF);
-                    xor ^= (byte)((accum >> 24) & 0xFF);
-                    xor ^= (byte)((accum >> 32) & 0xFF);
-                    xor ^= (byte)((accum >> 40) & 0xFF);
-                    xor ^= (byte)((accum >> 48) & 0xFF);
-                    xor ^= (byte)((accum >> 56) & 0xFF);
+                    xor ^= (System.Byte)(accum & 0xFF);
+                    xor ^= (System.Byte)((accum >> 8) & 0xFF);
+                    xor ^= (System.Byte)((accum >> 16) & 0xFF);
+                    xor ^= (System.Byte)((accum >> 24) & 0xFF);
+                    xor ^= (System.Byte)((accum >> 32) & 0xFF);
+                    xor ^= (System.Byte)((accum >> 40) & 0xFF);
+                    xor ^= (System.Byte)((accum >> 48) & 0xFF);
+                    xor ^= (System.Byte)((accum >> 56) & 0xFF);
 
-                    i = ulongCount * sizeof(ulong);
+                    i = ulongCount * sizeof(System.UInt64);
                 }
             }
 
             // Process remaining bytes
             for (; i < length; i++)
+            {
                 xor ^= Unsafe.Add(ref src, i);
+            }
         }
 
         return xor;
@@ -65,23 +70,23 @@ public static class Xor256
     /// Computes the XOR checksum from a byte array.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte Compute(params byte[] data)
+    public static System.Byte Compute(params System.Byte[] data)
     {
-        ArgumentNullException.ThrowIfNull(data);
-        return Compute(data.AsSpan());
+        System.ArgumentNullException.ThrowIfNull(data);
+        return Compute(System.MemoryExtensions.AsSpan(data));
     }
 
     /// <summary>
     /// Computes XOR checksum over any unmanaged data.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte Compute<T>(ReadOnlySpan<T> data) where T : unmanaged
+    public static System.Byte Compute<T>(System.ReadOnlySpan<T> data) where T : unmanaged
         => Compute(MemoryMarshal.AsBytes(data));
 
     /// <summary>
     /// Verifies that the computed XOR matches the expected checksum.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Verify(ReadOnlySpan<byte> data, byte expectedXor)
+    public static System.Boolean Verify(System.ReadOnlySpan<System.Byte> data, System.Byte expectedXor)
         => Compute(data) == expectedXor;
 }

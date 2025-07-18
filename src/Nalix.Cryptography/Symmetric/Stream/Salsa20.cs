@@ -27,12 +27,12 @@ public static class Salsa20
     /// <param name="plaintext">The data to encrypt.</param>
     /// <returns>Encrypted bytes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Encrypt(
-        ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce,
-        ulong counter, ReadOnlySpan<byte> plaintext)
+    public static Byte[] Encrypt(
+        ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> nonce,
+        UInt64 counter, ReadOnlySpan<Byte> plaintext)
     {
         ValidateParameters(key, nonce);
-        byte[] ciphertext = new byte[plaintext.Length];
+        Byte[] ciphertext = new Byte[plaintext.Length];
         ProcessData(key, nonce, counter, plaintext, ciphertext);
         return ciphertext;
     }
@@ -47,13 +47,15 @@ public static class Salsa20
     /// <param name="ciphertext">Buffer to receive the encrypted data.</param>
     /// <returns>Number of bytes written.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Encrypt(
-        ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, ulong counter,
-        ReadOnlySpan<byte> plaintext, Span<byte> ciphertext)
+    public static Int32 Encrypt(
+        ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> nonce, UInt64 counter,
+        ReadOnlySpan<Byte> plaintext, Span<Byte> ciphertext)
     {
         ValidateParameters(key, nonce);
         if (ciphertext.Length < plaintext.Length)
+        {
             throw new ArgumentException("Output buffer is too small", nameof(ciphertext));
+        }
 
         ProcessData(key, nonce, counter, plaintext, ciphertext);
         return plaintext.Length;
@@ -69,8 +71,8 @@ public static class Salsa20
     /// <returns>Decrypted bytes.</returns>
     // Salsa20 decryption is identical to encryption since it's just XOR with the keystream
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce,
-        ulong counter, ReadOnlySpan<byte> ciphertext) => Encrypt(key, nonce, counter, ciphertext);
+    public static Byte[] Decrypt(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> nonce,
+        UInt64 counter, ReadOnlySpan<Byte> ciphertext) => Encrypt(key, nonce, counter, ciphertext);
 
     /// <summary>
     /// Decrypts ciphertext using Salsa20 stream cipher, writing the output to the provided buffer.
@@ -83,8 +85,8 @@ public static class Salsa20
     /// <returns>Number of bytes written.</returns>
     // Salsa20 decryption is identical to encryption since it's just XOR with the keystream
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Decrypt(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, ulong counter,
-        ReadOnlySpan<byte> ciphertext, Span<byte> plaintext) => Encrypt(key, nonce, counter, ciphertext, plaintext);
+    public static Int32 Decrypt(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> nonce, UInt64 counter,
+        ReadOnlySpan<Byte> ciphertext, Span<Byte> plaintext) => Encrypt(key, nonce, counter, ciphertext, plaintext);
 
     #endregion Encryption/Decryption Methods
 
@@ -98,28 +100,30 @@ public static class Salsa20
     /// <param name="passphrase">The passphrase to convert.</param>
     /// <returns>A 32-byte key derived from the passphrase.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] DeriveKeyFromPassphrase(string passphrase)
+    public static Byte[] DeriveKeyFromPassphrase(String passphrase)
     {
-        if (string.IsNullOrEmpty(passphrase))
+        if (String.IsNullOrEmpty(passphrase))
+        {
             throw new ArgumentException("Passphrase cannot be null or empty", nameof(passphrase));
+        }
 
         // Simple hash function to derive a key (NOT secure for real use!)
-        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(passphrase);
-        byte[] key = new byte[32];
+        Byte[] bytes = System.Text.Encoding.UTF8.GetBytes(passphrase);
+        Byte[] key = new Byte[32];
 
         // Simple stretching algorithm (NOT secure for real applications!)
-        for (int i = 0; i < 1000; i++)
+        for (Int32 i = 0; i < 1000; i++)
         {
-            for (int j = 0; j < bytes.Length; j++)
+            for (Int32 j = 0; j < bytes.Length; j++)
             {
-                key[j % 32] ^= (byte)(bytes[j] + i);
-                key[(j + 1) % 32] = (byte)((key[(j + 1) % 32] + bytes[j]) & 0xFF);
+                key[j % 32] ^= (Byte)(bytes[j] + i);
+                key[(j + 1) % 32] = (Byte)((key[(j + 1) % 32] + bytes[j]) & 0xFF);
             }
 
             // Mix further
-            for (int j = 0; j < 32; j++)
+            for (Int32 j = 0; j < 32; j++)
             {
-                key[j] = (byte)((key[j] + key[(j + 1) % 32]) & 0xFF);
+                key[j] = (Byte)((key[j] + key[(j + 1) % 32]) & 0xFF);
             }
         }
 
@@ -131,35 +135,40 @@ public static class Salsa20
     // ----------------------------
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ValidateParameters(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce)
+    private static void ValidateParameters(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> nonce)
     {
         if (key.Length != 32)
+        {
             throw new ArgumentException("Key must be 32 bytes (256 bits)", nameof(key));
+        }
+
         if (nonce.Length != 8)
+        {
             throw new ArgumentException("Nonce must be 8 bytes (64 bits)", nameof(nonce));
+        }
     }
 
     /// <summary>
     /// Main function to process data (encrypt or decrypt)
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ProcessData(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, ulong counter,
-                                   ReadOnlySpan<byte> input, Span<byte> output)
+    private static void ProcessData(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> nonce, UInt64 counter,
+                                   ReadOnlySpan<Byte> input, Span<Byte> output)
     {
-        int blockCount = (input.Length + 63) / 64;
-        Span<byte> keystream = stackalloc byte[64];
+        Int32 blockCount = (input.Length + 63) / 64;
+        Span<Byte> keystream = stackalloc Byte[64];
 
-        for (int i = 0; i < blockCount; i++)
+        for (Int32 i = 0; i < blockCount; i++)
         {
-            ulong blockCounter = counter + (ulong)i;
+            UInt64 blockCounter = counter + (UInt64)i;
             GenerateSalsaBlock(key, nonce, blockCounter, keystream);
 
-            int offset = i * 64;
-            int bytesToProcess = Math.Min(64, input.Length - offset);
+            Int32 offset = i * 64;
+            Int32 bytesToProcess = Math.Min(64, input.Length - offset);
 
-            for (int j = 0; j < bytesToProcess; j++)
+            for (Int32 j = 0; j < bytesToProcess; j++)
             {
-                output[offset + j] = (byte)(input[offset + j] ^ keystream[j]);
+                output[offset + j] = (Byte)(input[offset + j] ^ keystream[j]);
             }
         }
     }
@@ -168,10 +177,10 @@ public static class Salsa20
     /// Generates a 64-byte Salsa20 keystream block
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void GenerateSalsaBlock(ReadOnlySpan<byte> key, ReadOnlySpan<byte> nonce, ulong counter, Span<byte> output)
+    private static void GenerateSalsaBlock(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> nonce, UInt64 counter, Span<Byte> output)
     {
         // Initialize the state with constants, key, counter, and nonce
-        Span<uint> state = stackalloc uint[16];
+        Span<UInt32> state = stackalloc UInt32[16];
 
         // Performance "expand 32-byte k"
         state[0] = 0x61707865; // "expa"
@@ -192,19 +201,19 @@ public static class Salsa20
         state[14] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(28, 4));
 
         // Counter (64 bits split into two 32-bit words)
-        state[8] = (uint)(counter & 0xFFFFFFFF);
-        state[9] = (uint)(counter >> 32);
+        state[8] = (UInt32)(counter & 0xFFFFFFFF);
+        state[9] = (UInt32)(counter >> 32);
 
         // Nonce (64 bits split into two 32-bit words)
         state[6] = BinaryPrimitives.ReadUInt32LittleEndian(nonce[..4]);
         state[7] = BinaryPrimitives.ReadUInt32LittleEndian(nonce.Slice(4, 4));
 
         // Create a working copy of the state
-        Span<uint> workingState = stackalloc uint[16];
+        Span<UInt32> workingState = stackalloc UInt32[16];
         state.CopyTo(workingState);
 
         // Apply the Salsa20 core function (20 rounds)
-        for (int i = 0; i < 10; i++)
+        for (Int32 i = 0; i < 10; i++)
         {
             // Column rounds
             QuarterRound(ref workingState[0], ref workingState[4], ref workingState[8], ref workingState[12]);
@@ -220,15 +229,15 @@ public static class Salsa20
         }
 
         // Add the original state to the worked state and serialize to output
-        for (int i = 0; i < 16; i++)
+        for (Int32 i = 0; i < 16; i++)
         {
-            uint result = workingState[i] + state[i];
+            UInt32 result = workingState[i] + state[i];
             BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(i * 4, 4), result);
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void QuarterRound(ref uint a, ref uint b, ref uint c, ref uint d)
+    private static void QuarterRound(ref UInt32 a, ref UInt32 b, ref UInt32 c, ref UInt32 d)
     {
         b ^= BitwiseUtils.RotateLeft(a + d, 7);
         c ^= BitwiseUtils.RotateLeft(b + a, 9);
