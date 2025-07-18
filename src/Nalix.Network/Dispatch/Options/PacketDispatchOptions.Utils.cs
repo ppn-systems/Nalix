@@ -1,7 +1,7 @@
 ﻿using Nalix.Common.Package;
 using Nalix.Network.Dispatch.Core;
+using Nalix.Network.Dispatch.Internal.ReturnTypes;
 using Nalix.Network.Dispatch.Middleware;
-using Nalix.Network.Dispatch.ReturnHandlers;
 
 namespace Nalix.Network.Dispatch.Options;
 public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket,
@@ -48,7 +48,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
             System.Object? result = await descriptor.ExecuteAsync(context);
 
             // Handle return value
-            IPacketReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.GetHandler(descriptor.ReturnType);
+            IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.GetHandler(descriptor.ReturnType);
             await returnHandler.HandleAsync(result, context);
         }
         catch (System.Exception ex)
