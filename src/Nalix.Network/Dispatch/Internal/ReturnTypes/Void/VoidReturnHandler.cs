@@ -1,17 +1,14 @@
 ﻿using Nalix.Network.Dispatch.Core;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.ReturnHandlers;
+namespace Nalix.Network.Dispatch.Internal.ReturnTypes.Void;
 
 /// <inheritdoc/>
-public sealed class VoidReturnHandler<TPacket> : IPacketReturnHandler<TPacket>
+internal sealed class VoidReturnHandler<TPacket> : IReturnHandler<TPacket>
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public System.Threading.Tasks.ValueTask HandleAsync(
         System.Object? result,
-        PacketContext<TPacket> context)
-    {
-        return System.Threading.Tasks.ValueTask.CompletedTask;
-    }
+        PacketContext<TPacket> context) => System.Threading.Tasks.ValueTask.CompletedTask;
 }

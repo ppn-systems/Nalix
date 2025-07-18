@@ -1,11 +1,12 @@
 ﻿using Nalix.Network.Dispatch.Core;
+using Nalix.Network.Dispatch.Internal.ReturnTypes;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.ReturnHandlers;
+namespace Nalix.Network.Dispatch.Internal.ReturnTypes.Task;
 
 /// <inheritdoc/>
-public sealed class ValueTaskReturnHandler<TPacket, TResult>(IPacketReturnHandler<TPacket> innerHandler)
-    : IPacketReturnHandler<TPacket>
+internal sealed class TaskReturnHandler<TPacket, TResult>(IReturnHandler<TPacket> innerHandler)
+    : IReturnHandler<TPacket>
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -13,11 +14,11 @@ public sealed class ValueTaskReturnHandler<TPacket, TResult>(IPacketReturnHandle
         System.Object? result,
         PacketContext<TPacket> context)
     {
-        if (result is System.Threading.Tasks.ValueTask<TResult> valueTask)
+        if (result is System.Threading.Tasks.Task<TResult> task)
         {
             try
             {
-                var taskResult = await valueTask;
+                var taskResult = await task;
                 await innerHandler.HandleAsync(taskResult, context);
             }
             catch (System.Exception ex)

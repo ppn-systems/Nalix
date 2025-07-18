@@ -2,7 +2,7 @@
 using Nalix.Common.Package;
 using Nalix.Network.Configurations;
 using Nalix.Network.Dispatch.Core;
-using Nalix.Network.Dispatch.Middleware;
+using Nalix.Network.Dispatch.Middleware.Core;
 using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Dispatch.Options;
