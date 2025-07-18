@@ -1,5 +1,4 @@
 ﻿using Nalix.Network.Dispatch.Core;
-using Nalix.Network.Dispatch.Internal.ReturnTypes;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Dispatch.Internal.ReturnTypes.Primitives;
