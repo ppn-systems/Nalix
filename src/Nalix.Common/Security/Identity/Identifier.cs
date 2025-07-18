@@ -45,5 +45,5 @@ public interface IIdentifier : System.IEquatable<IIdentifier>
     /// <param name="destination">The destination span.</param>
     /// <param name="bytesWritten">The Number of bytes written.</param>
     /// <returns>True if successful; false if the destination is too small.</returns>
-    System.Boolean TryWriteBytes(System.Span<byte> destination, out System.Int32 bytesWritten);
+    System.Boolean TryWriteBytes(System.Span<System.Byte> destination, out System.Int32 bytesWritten);
 }

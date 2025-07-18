@@ -14,15 +14,17 @@ public static partial class Directories
     /// <param name="callerMemberName">The method or property name of the caller.</param>
     /// <param name="callerFilePath">The path of the source file that contains the caller.</param>
     /// <param name="callerLineNumber">The line Number in the source file at which the method is called.</param>
-    private static void EnsureDirectoryExists(string path,
-        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
+    private static void EnsureDirectoryExists(System.String path,
+        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
     {
-        if (string.IsNullOrWhiteSpace(path))
+        if (System.String.IsNullOrWhiteSpace(path))
+        {
             throw new System.ArgumentNullException(nameof(path));
+        }
 
-        bool created = false;
+        System.Boolean created = false;
 
         // First try with read lock to avoid contention
         DirectoryLock.EnterReadLock();
@@ -45,13 +47,13 @@ public static partial class Directories
             // Check again in case another thread created it while we were waiting
             if (!System.IO.Directory.Exists(path))
             {
-                System.IO.Directory.CreateDirectory(path);
+                _ = System.IO.Directory.CreateDirectory(path);
                 created = true;
             }
         }
         catch (System.Exception ex)
         {
-            string errorMessage = $"Failed to create directory: {path}. Error: {ex.Message} " +
+            System.String errorMessage = $"Failed to create directory: {path}. Error: {ex.Message} " +
                                   $"(Called from {callerMemberName} at " +
                                   $"{System.IO.Path.GetFileName(callerFilePath)}:{callerLineNumber})";
 

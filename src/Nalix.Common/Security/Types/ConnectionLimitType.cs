@@ -1,4 +1,4 @@
-namespace Nalix.Common.Security.Enums;
+namespace Nalix.Common.Security.Types;
 
 /// <summary>
 /// Represents different levels of connection limits that can be applied for managing simultaneous connections.
