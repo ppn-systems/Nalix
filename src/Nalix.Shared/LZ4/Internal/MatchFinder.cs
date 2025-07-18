@@ -36,7 +36,7 @@ internal static unsafe class MatchFinder
         /// Determines if the match is valid.
         /// A match is considered valid if its length meets the minimum match length.
         /// </summary>
-        public bool Found => Length >= LZ4Constants.MinMatchLength;
+        public System.Boolean Found => Length >= LZ4Constants.MinMatchLength;
     }
 
     /// <summary>
@@ -61,7 +61,9 @@ internal static unsafe class MatchFinder
     {
         // Ensure there are enough bytes to find a match
         if (currentInputPtr + LZ4Constants.MinMatchLength > inputLimit)
+        {
             return default; // No match possible
+        }
 
         // Read the current 4-byte sequence and compute its hash
         System.UInt32 currentSequence = MemOps.ReadUnaligned<System.UInt32>(currentInputPtr);
@@ -94,7 +96,7 @@ internal static unsafe class MatchFinder
         System.Int32 offset = (System.Int32)(currentInputPtr - matchCandidatePtr);
 
         // Ensure the offset is within the valid range
-        System.Diagnostics.Debug.Assert(offset > 0 && offset <= LZ4Constants.MaxOffset);
+        System.Diagnostics.Debug.Assert(offset is > 0 and <= LZ4Constants.MaxOffset);
 
         return new Match(offset, matchLength);
     }

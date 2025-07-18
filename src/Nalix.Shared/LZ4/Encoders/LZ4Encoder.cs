@@ -36,7 +36,10 @@ public static unsafe class LZ4Encoder
         System.Span<System.Byte> output,
         System.Int32* hashTable)
     {
-        if (input.IsEmpty || output.IsEmpty) return -1; // Token empty input/output
+        if (input.IsEmpty || output.IsEmpty)
+        {
+            return -1; // Token empty input/output
+        }
 
         // Pin the input and output spans to fixed memory addresses
         fixed (System.Byte* inputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(input))
@@ -78,7 +81,10 @@ public static unsafe class LZ4Encoder
         System.Byte* matchFindInputLimit = inputEnd - LZ4Constants.LastLiteralSize - LZ4Constants.MinMatchLength;
 
         // Validate output buffer size
-        if (outputLength < Header.Size + 1) return -1;
+        if (outputLength < Header.Size + 1)
+        {
+            return -1;
+        }
 
         // Main compression loop
         while (inputPtr < matchFindInputLimit)
@@ -158,7 +164,10 @@ public static unsafe class LZ4Encoder
             sizeof(System.UInt16) +
             matchHeaderLength;
 
-        if (outputPtr + requiredSpace > outputEnd) return false;
+        if (outputPtr + requiredSpace > outputEnd)
+        {
+            return false;
+        }
 
         // WriteInt16 the token
         System.Byte matchToken = (System.Byte)
@@ -203,7 +212,10 @@ public static unsafe class LZ4Encoder
         System.Byte* literalStartPtr,
         System.Int32 literalLength)
     {
-        if (literalLength == 0) return true;
+        if (literalLength == 0)
+        {
+            return true;
+        }
 
         System.Int32 tokenLength = 1;
         System.Int32 literalHeaderLength =
@@ -212,7 +224,10 @@ public static unsafe class LZ4Encoder
 
         System.Int32 requiredSpace = tokenLength + literalHeaderLength + literalLength;
 
-        if (outputPtr + requiredSpace > outputEnd) return false;
+        if (outputPtr + requiredSpace > outputEnd)
+        {
+            return false;
+        }
 
         System.Byte literalToken = (System.Byte)System.Math.Min(literalLength, LZ4Constants.TokenLiteralMask);
         System.Byte token = (System.Byte)(literalToken << 4); // Match part is 0

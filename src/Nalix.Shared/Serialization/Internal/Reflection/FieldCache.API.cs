@@ -44,12 +44,9 @@ internal static partial class FieldCache<T>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static FieldSchema GetField(System.String fieldName)
     {
-        if (_fieldIndex.TryGetValue(fieldName, out System.Int32 index))
-        {
-            return _metadata[index];
-        }
-
-        throw new System.ArgumentException($"Field '{fieldName}' not found in {typeof(T).Name}");
+        return _fieldIndex.TryGetValue(fieldName, out System.Int32 index)
+            ? _metadata[index]
+            : throw new System.ArgumentException($"Field '{fieldName}' not found in {typeof(T).Name}");
     }
 
     /// <summary>
@@ -59,7 +56,7 @@ internal static partial class FieldCache<T>
     /// <returns><c>true</c> if the field exists; otherwise, <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool HasField(System.String fieldName) => _fieldIndex.ContainsKey(fieldName);
+    public static System.Boolean HasField(System.String fieldName) => _fieldIndex.ContainsKey(fieldName);
 
     /// <summary>
     /// Gets the type of the specified field by its name.

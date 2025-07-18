@@ -14,11 +14,11 @@ public partial class PoFile
 {
     #region Fields
 
-    private readonly Dictionary<string, string> _metadata = [];
-    private readonly Dictionary<string, string> _translations = [];
-    private readonly Dictionary<string, string[]> _pluralTranslations = [];
+    private readonly Dictionary<String, String> _metadata = [];
+    private readonly Dictionary<String, String> _translations = [];
+    private readonly Dictionary<String, String[]> _pluralTranslations = [];
 
-    private Func<int, int> _pluralRule = n => n == 1 ? 0 : 1; // Standard rule (English)
+    private Func<Int32, Int32> _pluralRule = n => n == 1 ? 0 : 1; // Standard rule (English)
 
     #endregion Fields
 
@@ -35,7 +35,7 @@ public partial class PoFile
     /// </summary>
     /// <param name="path">The file path to the PO file.</param>
     /// <exception cref="FileNotFoundException">Thrown if the specified file does not exist.</exception>
-    public PoFile(string path) => LoadFromFile(path);
+    public PoFile(String path) => LoadFromFile(path);
 
     #endregion Constructor
 
@@ -46,10 +46,12 @@ public partial class PoFile
     /// </summary>
     /// <param name="path">The file path to the PO file.</param>
     /// <exception cref="FileNotFoundException">Thrown if the file does not exist.</exception>
-    public void LoadFromFile(string path)
+    public void LoadFromFile(String path)
     {
         if (!File.Exists(path))
+        {
             throw new FileNotFoundException($"File not found: {path}");
+        }
 
         using var reader = new StreamReader(path, Encoding.UTF8);
         Parse(reader);
@@ -63,15 +65,18 @@ public partial class PoFile
         "Style", "IDE0059:Unnecessary assignment of a value", Justification = "<Pending>")]
     private void Parse(TextReader reader)
     {
-        string? line;
-        string msgid = "", msgidPlural = "", msgstr = "";
-        List<string> msgstrPlural = [];
-        bool isPlural = false;
+        String? line;
+        String msgid = "", msgidPlural = "", msgstr = "";
+        List<String> msgstrPlural = [];
+        Boolean isPlural = false;
 
         while ((line = reader.ReadLine()) != null)
         {
-            string trimmed = line.Trim();
-            if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#')) continue; // Skip comments
+            String trimmed = line.Trim();
+            if (String.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#'))
+            {
+                continue; // Skip comments
+            }
 
             if (trimmed.StartsWith("msgid "))
             {
@@ -87,7 +92,7 @@ public partial class PoFile
             }
             else if (trimmed.StartsWith("msgstr["))
             {
-                int index = ExtractPluralIndex(trimmed);
+                Int32 index = ExtractPluralIndex(trimmed);
                 EnsurePluralListSize(msgstrPlural, index);
                 msgstrPlural[index] = ExtractQuotedValue(trimmed);
             }
@@ -97,13 +102,13 @@ public partial class PoFile
             }
             else if (trimmed.StartsWith('\"')) // Multiline string continuation
             {
-                string extracted = ExtractQuotedValue(trimmed);
+                String extracted = ExtractQuotedValue(trimmed);
 
                 if (isPlural && msgstrPlural.Count > 0)
                 {
                     msgstrPlural[^1] += extracted;
                 }
-                else if (!string.IsNullOrEmpty(msgstr))
+                else if (!String.IsNullOrEmpty(msgstr))
                 {
                     msgstr += extracted;
                 }
@@ -113,11 +118,11 @@ public partial class PoFile
                 }
             }
 
-            if (!string.IsNullOrEmpty(msgid) && !string.IsNullOrEmpty(msgstr))
+            if (!String.IsNullOrEmpty(msgid) && !String.IsNullOrEmpty(msgstr))
             {
                 _translations[msgid] = msgstr;
             }
-            else if (!string.IsNullOrEmpty(msgid) && msgstrPlural.Count > 0)
+            else if (!String.IsNullOrEmpty(msgid) && msgstrPlural.Count > 0)
             {
                 _pluralTranslations[msgid] = [.. msgstrPlural];
             }
@@ -135,8 +140,8 @@ public partial class PoFile
     /// </summary>
     /// <param name="id">The original text to translate.</param>
     /// <returns>The translated string if available, otherwise returns the original text.</returns>
-    public string GetString(string id)
-        => _translations.TryGetValue(id, out string? value) ? value : id;
+    public String GetString(String id)
+        => _translations.TryGetValue(id, out String? value) ? value : id;
 
     /// <summary>
     /// Gets the pluralized translation for a given Number.
@@ -145,13 +150,15 @@ public partial class PoFile
     /// <param name="idPlural">Plural form of the string.</param>
     /// <param name="n">The Number to determine the plural form.</param>
     /// <returns>The correctly pluralized translation if available, otherwise returns the best available fallback.</returns>
-    public string GetPluralString(string id, string idPlural, int n)
+    public String GetPluralString(String id, String idPlural, Int32 n)
     {
-        if (_pluralTranslations.TryGetValue(id, out string[]? plurals))
+        if (_pluralTranslations.TryGetValue(id, out String[]? plurals))
         {
-            int index = _pluralRule(n);
+            Int32 index = _pluralRule(n);
             if (index >= 0 && index < plurals.Length)
+            {
                 return FormatPlaceholders(plurals[index], n);
+            }
         }
         return n == 1 ? id : idPlural;
     }
@@ -162,10 +169,10 @@ public partial class PoFile
     /// <param name="context">Context to distinguish similar translations.</param>
     /// <param name="id">The original text to translate.</param>
     /// <returns>The translated string if found, otherwise returns the original text.</returns>
-    public string GetParticularString(string context, string id)
+    public String GetParticularString(String context, String id)
     {
-        string key = $"{context}\u0004{id}"; // PO uses \u0004 to separate context
-        return _translations.TryGetValue(key, out string? value) ? value : id;
+        String key = $"{context}\u0004{id}"; // PO uses \u0004 to separate context
+        return _translations.TryGetValue(key, out String? value) ? value : id;
     }
 
     /// <summary>
@@ -176,16 +183,18 @@ public partial class PoFile
     /// <param name="idPlural">Plural form of the string.</param>
     /// <param name="n">The Number to determine the plural form.</param>
     /// <returns>The correctly pluralized translation if available, otherwise returns the best available fallback.</returns>
-    public string GetParticularPluralString(string context, string id, string idPlural, int n)
+    public String GetParticularPluralString(String context, String id, String idPlural, Int32 n)
     {
-        string key = $"{context}\u0004{id}"; // PO uses \u0004 to separate context
+        String key = $"{context}\u0004{id}"; // PO uses \u0004 to separate context
 
-        if (_pluralTranslations.TryGetValue(key, out string[]? plurals))
+        if (_pluralTranslations.TryGetValue(key, out String[]? plurals))
         {
-            int index = _pluralRule(n);
+            Int32 index = _pluralRule(n);
 
             if (index >= 0 && index < plurals.Length)
+            {
                 return FormatPlaceholders(plurals[index], n);
+            }
         }
 
         return n == 1 ? id : idPlural;
@@ -196,8 +205,8 @@ public partial class PoFile
     /// </summary>
     /// <param name="key">The metadata key.</param>
     /// <returns>The metadata value if found, otherwise <c>null</c>.</returns>
-    public string? GetMetadata(string key)
-        => _metadata.TryGetValue(key, out string? value) ? value : null;
+    public String? GetMetadata(String key)
+        => _metadata.TryGetValue(key, out String? value) ? value : null;
 
     #endregion Public API
 
@@ -205,19 +214,13 @@ public partial class PoFile
 
     // Add this helper method to format strings consistently
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string FormatPlaceholders(string format, int n)
-    {
-        if (string.IsNullOrEmpty(format))
-            return format;
-
-        return format.Replace("%d", n.ToString());
-    }
+    private static String FormatPlaceholders(String format, Int32 n) => String.IsNullOrEmpty(format) ? format : format.Replace("%d", n.ToString());
 
     /// <summary>
     /// Extracts quoted value from a line.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string ExtractQuotedValue(string line)
+    private static String ExtractQuotedValue(String line)
     {
         Match match = ExtractQuotedText().Match(line);
         return match.Success ? match.Groups[1].Value : "";
@@ -227,46 +230,53 @@ public partial class PoFile
     /// Extracts plural index from msgstr[N].
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int ExtractPluralIndex(string line)
+    private static Int32 ExtractPluralIndex(String line)
     {
         Match match = ExtractPluralIndex().Match(line);
-        return match.Success ? int.Parse(match.Groups[1].Value) : 0;
+        return match.Success ? Int32.Parse(match.Groups[1].Value) : 0;
     }
 
     /// <summary>
     /// Ensures the plural list has enough size.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void EnsurePluralListSize(List<string> list, int index)
+    private static void EnsurePluralListSize(List<String> list, Int32 index)
     {
-        while (list.Count <= index) list.Add("");
+        while (list.Count <= index)
+        {
+            list.Add("");
+        }
     }
 
     /// <summary>
     /// Parses metadata from the PO file.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ParseMetadata(string metadata)
+    private void ParseMetadata(String metadata)
     {
-        foreach (string line in metadata.Split("\\n"))
+        foreach (String line in metadata.Split("\\n"))
         {
-            string[] parts = line.Split(':', 2);
+            String[] parts = line.Split(':', 2);
             if (parts.Length == 2)
+            {
                 _metadata[parts[0].Trim()] = parts[1].Trim();
+            }
         }
 
         // Set plural rule if available
-        if (_metadata.TryGetValue("Plural-Forms", out string? pluralForms))
+        if (_metadata.TryGetValue("Plural-Forms", out String? pluralForms))
+        {
             _pluralRule = ParsePluralRule(pluralForms);
+        }
     }
 
     /// <summary>
     /// Parses the plural rule from PO file metadata.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Func<int, int> ParsePluralRule(string rule)
+    private static Func<Int32, Int32> ParsePluralRule(String rule)
     {
-        Dictionary<string, Func<int, int>> rules = new()
+        Dictionary<String, Func<Int32, Int32>> rules = new()
         {
             { "nplurals=1; plural=0;", n => 0 },                     // Japanese, Chinese, Vietnam
             { "nplurals=2; plural=(n != 1);", n => n == 1 ? 0 : 1 }, // English, Spanish, Italian
@@ -274,7 +284,12 @@ public partial class PoFile
         };
 
         foreach (var kvp in rules)
-            if (rule.Contains(kvp.Key)) return kvp.Value;
+        {
+            if (rule.Contains(kvp.Key))
+            {
+                return kvp.Value;
+            }
+        }
 
         return n => n == 1 ? 0 : 1;
     }

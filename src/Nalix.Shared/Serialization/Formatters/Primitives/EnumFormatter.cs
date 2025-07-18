@@ -16,7 +16,9 @@ public sealed class EnumFormatter<T> : IFormatter<T>
     static EnumFormatter()
     {
         if (!typeof(T).IsEnum)
+        {
             throw new System.InvalidOperationException($"Type {typeof(T)} is not an enum.");
+        }
 
         UnderlyingTypeCode = System.Type
             .GetTypeCode(System.Enum

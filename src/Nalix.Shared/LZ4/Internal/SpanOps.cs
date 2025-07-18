@@ -17,7 +17,10 @@ internal static unsafe class SpanOps
     {
         // Use unsigned arithmetic for efficient check: (uint)start + (uint)count > (uint)length
         if ((System.UInt32)start > (System.UInt32)length ||
-            (System.UInt32)count > (System.UInt32)(length - start)) ThrowOutOfRange();
+            (System.UInt32)count > (System.UInt32)(length - start))
+        {
+            ThrowOutOfRange();
+        }
     }
 
     /// <summary>
@@ -54,7 +57,7 @@ internal static unsafe class SpanOps
     {
         value = 0;
         System.Int32 bytesRead = 0;
-        byte currentByte;
+        System.Byte currentByte;
 
         while (src < srcEnd)
         {
@@ -63,7 +66,10 @@ internal static unsafe class SpanOps
             value += currentByte;
             bytesRead++;
 
-            if (currentByte < 255) return bytesRead;
+            if (currentByte < 255)
+            {
+                return bytesRead;
+            }
         }
 
         value = -1; // Error: reached end without termination

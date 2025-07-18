@@ -21,11 +21,7 @@ public readonly struct LZ4Decoder
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Decode(
         System.ReadOnlySpan<System.Byte> input,
-        System.Span<System.Byte> output)
-    {
-        if (!DecodeInternal(input, output, out System.Int32 written)) return -1;
-        return written;
-    }
+        System.Span<System.Byte> output) => !DecodeInternal(input, output, out System.Int32 written) ? -1 : written;
 
     /// <summary>
     /// Decompresses the provided compressed data into a newly allocated output buffer.
@@ -45,11 +41,15 @@ public readonly struct LZ4Decoder
         bytesWritten = 0;
 
         if (input.Length < Header.Size)
+        {
             return false;
+        }
 
         Header header = MemOps.ReadUnaligned<Header>(input);
         if (header.OriginalLength < 0 || header.CompressedLength != input.Length)
+        {
             return false;
+        }
 
         if (header.OriginalLength == 0)
         {
@@ -71,14 +71,20 @@ public readonly struct LZ4Decoder
         bytesWritten = 0;
 
         if (input.Length < Header.Size)
+        {
             return false;
+        }
 
         Header header = MemOps.ReadUnaligned<Header>(input);
         if (header.OriginalLength != output.Length || header.OriginalLength < 0)
+        {
             return false;
+        }
 
         if (header.OriginalLength == 0)
+        {
             return true;
+        }
 
         fixed (System.Byte* inputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(input))
         fixed (System.Byte* outputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(output))
@@ -90,7 +96,11 @@ public readonly struct LZ4Decoder
 
             while (inputPtr < inputEnd)
             {
-                if (inputPtr >= inputEnd) return false;
+                if (inputPtr >= inputEnd)
+                {
+                    return false;
+                }
+
                 System.Byte token = *inputPtr++;
 
                 System.Int32 literalLength = (token >> 4) & LZ4Constants.TokenLiteralMask;
@@ -99,7 +109,9 @@ public readonly struct LZ4Decoder
                 {
                     System.Int32 bytesRead = SpanOps.ReadVarInt(ref inputPtr, inputEnd, out System.Int32 extraLength);
                     if (bytesRead == -1 || extraLength < 0)
+                    {
                         return false;
+                    }
 
                     literalLength += extraLength;
                 }
@@ -107,7 +119,9 @@ public readonly struct LZ4Decoder
                 if (literalLength > 0)
                 {
                     if (inputPtr + literalLength > inputEnd || outputPtr + literalLength > outputEnd)
+                    {
                         return false;
+                    }
 
                     MemOps.Copy(inputPtr, outputPtr, literalLength);
                     inputPtr += literalLength;
@@ -115,22 +129,30 @@ public readonly struct LZ4Decoder
                 }
 
                 if (inputPtr >= inputEnd || outputPtr >= outputEnd)
+                {
                     break;
+                }
 
                 if (inputPtr + sizeof(System.UInt16) > inputEnd)
+                {
                     return false;
+                }
 
                 System.Int32 offset = MemOps.ReadUnaligned<System.UInt16>(inputPtr);
                 inputPtr += sizeof(System.UInt16);
                 if (offset == 0 || offset > (outputPtr - outputBase))
+                {
                     return false;
+                }
 
                 System.Int32 matchLength = token & LZ4Constants.TokenMatchMask;
                 if (matchLength == LZ4Constants.TokenMatchMask)
                 {
                     System.Int32 bytesRead = SpanOps.ReadVarInt(ref inputPtr, inputEnd, out System.Int32 extraLength);
                     if (bytesRead == -1 || extraLength < 0)
+                    {
                         return false;
+                    }
 
                     matchLength += extraLength;
                 }
@@ -138,14 +160,18 @@ public readonly struct LZ4Decoder
 
                 System.Byte* matchSourcePtr = outputPtr - offset;
                 if (outputPtr + matchLength > outputEnd)
+                {
                     return false;
+                }
 
                 MemOps.Copy(matchSourcePtr, outputPtr, matchLength);
                 outputPtr += matchLength;
             }
 
             if (outputPtr != outputEnd || inputPtr != inputEnd)
+            {
                 return false;
+            }
 
             bytesWritten = header.OriginalLength;
             return true;

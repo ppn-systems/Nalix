@@ -35,7 +35,7 @@ public sealed class ReferenceListFormatter<T> : IFormatter<System.Collections.Ge
         FormatterProvider.Get<System.UInt16>()
                          .Serialize(ref writer, count);
 
-        for (int i = 0; i < count; i++)
+        for (System.Int32 i = 0; i < count; i++)
         {
             _elementFormatter.Serialize(ref writer, value[i]);
         }
@@ -56,10 +56,20 @@ public sealed class ReferenceListFormatter<T> : IFormatter<System.Collections.Ge
         System.UInt16 count = FormatterProvider.Get<System.UInt16>()
                                         .Deserialize(ref reader);
 
-        if (count == 0) return [];
-        if (count == SerializerBounds.Null) return null!;
+        if (count == 0)
+        {
+            return [];
+        }
+
+        if (count == SerializerBounds.Null)
+        {
+            return null!;
+        }
+
         if (count > SerializerBounds.MaxArray)
+        {
             throw new SerializationException($"Reference list length out of range.");
+        }
 
         System.Collections.Generic.List<T> list = new(count);
         for (System.UInt16 i = 0; i < count; i++)

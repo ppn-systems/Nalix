@@ -12,7 +12,7 @@ public sealed class MultiLocalizer
     #region Fields
 
     private Localizer _defaultLocalizer = new();
-    private readonly System.Collections.Generic.Dictionary<string, Localizer> _localizers = [];
+    private readonly System.Collections.Generic.Dictionary<System.String, Localizer> _localizers = [];
 
     #endregion Fields
 
@@ -36,15 +36,19 @@ public sealed class MultiLocalizer
     /// multiLocalizer.Load("fr", "localization_fr.po");
     /// </code>
     /// </example>
-    public void Load(string languageName, string path)
+    public void Load(System.String languageName, System.String path)
     {
         languageName = languageName.ToLower();
 
         if (!System.IO.File.Exists(path))
+        {
             throw new System.IO.FileNotFoundException($"File not found: {path}");
+        }
 
         lock (_localizers)
+        {
             _localizers[languageName] = new Localizer(path);
+        }
     }
 
     /// <summary>
@@ -59,12 +63,14 @@ public sealed class MultiLocalizer
     /// bool exists = multiLocalizer.Contains("fr");
     /// </code>
     /// </example>
-    public bool Contains(string languageName)
+    public System.Boolean Contains(System.String languageName)
     {
         languageName = languageName.ToLower();
 
         lock (_localizers)
+        {
             return _localizers.ContainsKey(languageName);
+        }
     }
 
     /// <summary>
@@ -80,16 +86,13 @@ public sealed class MultiLocalizer
     /// Localizer localizer = multiLocalizer.Get("fr");
     /// </code>
     /// </example>
-    public Localizer Get(string languageName)
+    public Localizer Get(System.String languageName)
     {
         languageName = languageName.ToLower();
 
         lock (_localizers)
         {
-            if (!_localizers.TryGetValue(languageName, out var localizer))
-                return _defaultLocalizer;
-
-            return localizer;
+            return !_localizers.TryGetValue(languageName, out var localizer) ? _defaultLocalizer : localizer;
         }
     }
 
@@ -110,7 +113,7 @@ public sealed class MultiLocalizer
     /// }
     /// </code>
     /// </example>
-    public bool TryGet(string languageName, out Localizer localizer)
+    public System.Boolean TryGet(System.String languageName, out Localizer localizer)
     {
         languageName = languageName.ToLower();
 
@@ -138,10 +141,12 @@ public sealed class MultiLocalizer
     /// string[] languages = multiLocalizer.GetLanguages();
     /// </code>
     /// </example>
-    public string[] GetLanguages()
+    public System.String[] GetLanguages()
     {
         lock (_localizers)
+        {
             return [.. _localizers.Keys];
+        }
     }
 
     /// <summary>
@@ -156,14 +161,16 @@ public sealed class MultiLocalizer
     /// multiLocalizer.SetDefault("fr");
     /// </code>
     /// </example>
-    public void SetDefault(string languageName)
+    public void SetDefault(System.String languageName)
     {
-        string loweredName = languageName.ToLower();
+        System.String loweredName = languageName.ToLower();
 
         lock (_localizers)
         {
             if (!_localizers.TryGetValue(loweredName, out var localizer))
+            {
                 throw new System.ArgumentException($"No localizer for language {languageName} found.");
+            }
 
             _defaultLocalizer = localizer;
         }
@@ -181,7 +188,9 @@ public sealed class MultiLocalizer
     public Localizer GetDefault()
     {
         lock (_localizers)
+        {
             return _defaultLocalizer;
+        }
     }
 
     #endregion Public Methods

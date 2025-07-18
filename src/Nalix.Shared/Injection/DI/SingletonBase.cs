@@ -57,7 +57,9 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     {
         // Ensure Dispose can only be called once
         if (System.Threading.Interlocked.Exchange(ref _disposeSignaled, 1) != 0)
+        {
             return;
+        }
 
         Dispose(true);
         System.GC.SuppressFinalize(this);
@@ -73,7 +75,9 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     protected virtual void Dispose(System.Boolean disposeManaged)
     {
         if (_isDisposed)
+        {
             return;
+        }
 
         if (disposeManaged)
         {

@@ -23,7 +23,10 @@ internal static unsafe class LiteralWriter
         System.Byte* literalStartPtr,
         System.Int32 length)
     {
-        if (length <= 0) return; // Skip if there is nothing to write
+        if (length <= 0)
+        {
+            return; // Skip if there is nothing to write
+        }
 
         // Copy the data from source pointer to destination pointer
         MemOps.Copy(literalStartPtr, destPtr, length);
@@ -47,7 +50,10 @@ internal static unsafe class LiteralWriter
         ref System.Byte* destPtr,
         System.ReadOnlySpan<System.Byte> literals)
     {
-        if (literals.IsEmpty) return; // Skip if there is nothing to write
+        if (literals.IsEmpty)
+        {
+            return; // Skip if there is nothing to write
+        }
 
         // Copy the data from the span to the destination pointer
         MemOps.Copy(literals, destPtr);

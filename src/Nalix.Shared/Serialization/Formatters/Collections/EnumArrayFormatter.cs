@@ -15,8 +15,10 @@ public sealed class EnumArrayFormatter<T> : IFormatter<T[]> where T : struct, Sy
     {
         _elementSize = System.Runtime.InteropServices.Marshal.SizeOf(System.Enum.GetUnderlyingType(typeof(T)));
 
-        if (_elementSize == 0 || _elementSize > 8)
+        if (_elementSize is 0 or > 8)
+        {
             throw new SerializationException($"Unsupported enum underlying type size: {_elementSize}");
+        }
     }
 
     /// <summary>
@@ -41,7 +43,10 @@ public sealed class EnumArrayFormatter<T> : IFormatter<T[]> where T : struct, Sy
         FormatterProvider.Get<System.UInt16>()
                          .Serialize(ref writer, (System.UInt16)value.Length);
 
-        if (value.Length == 0) return;
+        if (value.Length == 0)
+        {
+            return;
+        }
 
         System.Int32 totalBytes = value.Length * _elementSize;
         writer.Expand(totalBytes);
@@ -72,17 +77,29 @@ public sealed class EnumArrayFormatter<T> : IFormatter<T[]> where T : struct, Sy
         System.UInt16 length = FormatterProvider.Get<System.UInt16>()
                                                 .Deserialize(ref reader);
 
-        if (length == 0) return [];
-        if (length == SerializerBounds.Null) return null!;
-        if (length > SerializerBounds.MaxArray)
-            throw new SerializationException("Array length out of range");
+        if (length == 0)
+        {
+            return [];
+        }
 
-        int totalBytes = length * _elementSize;
+        if (length == SerializerBounds.Null)
+        {
+            return null!;
+        }
+
+        if (length > SerializerBounds.MaxArray)
+        {
+            throw new SerializationException("Array length out of range");
+        }
+
+        System.Int32 totalBytes = length * _elementSize;
 
 #if DEBUG
         if (reader.BytesRemaining < totalBytes)
+        {
             throw new SerializationException(
                 $"Buffer underrun when reading array of {typeof(T)}. Needed {totalBytes} bytes.");
+        }
 #endif
 
         T[] result = new T[length];
