@@ -93,15 +93,17 @@ public readonly partial struct Packet : IPacket, System.IDisposable
 
     #region Private Methods
 
-    private static System.ReadOnlyMemory<byte> CopyToMemory(System.ReadOnlySpan<byte> span)
+    private static System.ReadOnlyMemory<System.Byte> CopyToMemory(System.ReadOnlySpan<System.Byte> span)
     {
         if (span.Length == 0)
-            return System.ReadOnlyMemory<byte>.Empty;
+        {
+            return System.ReadOnlyMemory<System.Byte>.Empty;
+        }
 
         // Tối ưu: chỉ alloc khi cần
-        byte[] buffer = new byte[span.Length];
+        System.Byte[] buffer = new System.Byte[span.Length];
         span.CopyTo(buffer);
-        return new System.ReadOnlyMemory<byte>(buffer);
+        return new System.ReadOnlyMemory<System.Byte>(buffer);
     }
 
     #endregion Private Methods

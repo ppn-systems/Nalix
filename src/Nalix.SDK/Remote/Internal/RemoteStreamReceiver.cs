@@ -35,17 +35,17 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
         }
 
         // Read 2-byte size header using stackalloc
-        System.Span<byte> header = stackalloc byte[2];
+        System.Span<System.Byte> header = stackalloc System.Byte[2];
         _stream.ReadExactly(header);
 
         // Unsafe fast conversion to ushort (big-endian)
-        ushort length;
+        System.UInt16 length;
         unsafe
         {
-            fixed (byte* headerPtr = header)
+            fixed (System.Byte* headerPtr = header)
             {
                 // Direct memory access for big-endian conversion
-                length = (ushort)((headerPtr[0] << 8) | headerPtr[1]);
+                length = (System.UInt16)((headerPtr[0] << 8) | headerPtr[1]);
             }
         }
 
@@ -57,13 +57,13 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
         // Use stackalloc for small packets (<= 512 bytes) with unsafe optimization
         if (length <= PacketConstants.StackAllocLimit)
         {
-            System.Span<byte> sbuffer = stackalloc byte[length];
+            System.Span<System.Byte> sbuffer = stackalloc System.Byte[length];
 
             // Unsafe fast copy of header
             unsafe
             {
-                fixed (byte* bufferPtr = sbuffer)
-                fixed (byte* headerPtr = header)
+                fixed (System.Byte* bufferPtr = sbuffer)
+                fixed (System.Byte* headerPtr = header)
                 {
                     // Direct memory copy - fastest possible
                     System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
@@ -76,14 +76,14 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
         }
 
         // Rent buffer for larger packets
-        byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length);
+        System.Byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length);
         try
         {
             // Unsafe fast copy of header to rented buffer
             unsafe
             {
-                fixed (byte* bufferPtr = buffer)
-                fixed (byte* headerPtr = header)
+                fixed (System.Byte* bufferPtr = buffer)
+                fixed (System.Byte* headerPtr = header)
                 {
                     System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
                         bufferPtr, headerPtr, 2);
@@ -122,16 +122,16 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
         }
 
         // Read 2-byte size header
-        byte[] header = new byte[2];
+        System.Byte[] header = new System.Byte[2];
         await _stream.ReadExactlyAsync(header, cancellationToken).ConfigureAwait(false);
 
         // Unsafe fast conversion to ushort (big-endian)
-        ushort length;
+        System.UInt16 length;
         unsafe
         {
-            fixed (byte* headerPtr = header)
+            fixed (System.Byte* headerPtr = header)
             {
-                length = (ushort)((headerPtr[0] << 8) | headerPtr[1]);
+                length = (System.UInt16)((headerPtr[0] << 8) | headerPtr[1]);
             }
         }
 
@@ -143,13 +143,13 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
         // For small packets, use array with unsafe optimization
         if (length <= PacketConstants.StackAllocLimit)
         {
-            byte[] sbuffer = new byte[length];
+            System.Byte[] sbuffer = new System.Byte[length];
 
             // Unsafe fast copy of header
             unsafe
             {
-                fixed (byte* bufferPtr = sbuffer)
-                fixed (byte* headerPtr = header)
+                fixed (System.Byte* bufferPtr = sbuffer)
+                fixed (System.Byte* headerPtr = header)
                 {
                     System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
                         bufferPtr, headerPtr, 2);
@@ -164,14 +164,14 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
         }
 
         // Rent buffer for larger packets
-        byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length);
+        System.Byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length);
         try
         {
             // Unsafe fast copy of header to rented buffer
             unsafe
             {
-                fixed (byte* bufferPtr = buffer)
-                fixed (byte* headerPtr = header)
+                fixed (System.Byte* bufferPtr = buffer)
+                fixed (System.Byte* headerPtr = header)
                 {
                     System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
                         bufferPtr, headerPtr, 2);
@@ -207,38 +207,38 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
     public unsafe TPacket ReceiveUnsafe()
     {
         // Direct stackalloc without bounds checking
-        byte* headerPtr = stackalloc byte[2];
+        System.Byte* headerPtr = stackalloc System.Byte[2];
 
         // Read header directly into unsafe memory
-        System.Span<byte> headerSpan = new(headerPtr, 2);
+        System.Span<System.Byte> headerSpan = new(headerPtr, 2);
         _stream.ReadExactly(headerSpan);
 
         // Ultra-fast big-endian conversion
-        ushort length = (ushort)((headerPtr[0] << 8) | headerPtr[1]);
+        System.UInt16 length = (System.UInt16)((headerPtr[0] << 8) | headerPtr[1]);
 
         if (length <= PacketConstants.StackAllocLimit)
         {
             // Stack allocation for small packets
-            byte* bufferPtr = stackalloc byte[length];
+            System.Byte* bufferPtr = stackalloc System.Byte[length];
 
             // Direct memory copy - no bounds checking
             System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
                 bufferPtr, headerPtr, 2);
 
             // Read remaining data
-            System.Span<byte> remainingSpan = new(bufferPtr + 2, length - 2);
+            System.Span<System.Byte> remainingSpan = new(bufferPtr + 2, length - 2);
             _stream.ReadExactly(remainingSpan);
 
             // Create span from unsafe pointer
-            System.Span<byte> packetSpan = new(bufferPtr, length);
+            System.Span<System.Byte> packetSpan = new(bufferPtr, length);
             return TPacket.Deserialize(packetSpan);
         }
 
         // For larger packets, still use ArrayPool but with unsafe optimizations
-        byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length);
+        System.Byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length);
         try
         {
-            fixed (byte* bufferPtr = buffer)
+            fixed (System.Byte* bufferPtr = buffer)
             {
                 // Ultra-fast header copy
                 System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(

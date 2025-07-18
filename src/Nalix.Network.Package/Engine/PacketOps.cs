@@ -20,12 +20,14 @@ public static class PacketOps
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static unsafe IPacket Clone(in IPacket packet)
     {
-        int length = packet.Payload.Length;
+        System.Int32 length = packet.Payload.Length;
         System.Byte[] copy = new System.Byte[length];
 
         if (length == 0)
+        {
             return new Packet(packet.OpCode, packet.Number, packet.Checksum, packet.Timestamp,
                               packet.Type, packet.Flags, packet.Priority, copy);
+        }
 
         fixed (System.Byte* srcPtr = packet.Payload.Span)
         fixed (System.Byte* dstPtr = copy)
@@ -44,7 +46,7 @@ public static class PacketOps
     /// <returns>True if the IPacket is valid, otherwise false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsValidSize(in IPacket packet)
+    public static System.Boolean IsValidSize(in IPacket packet)
         => packet.Payload.Length <= PacketConstants.PacketSizeLimit &&
            packet.Payload.Length + PacketSize.Header <= PacketConstants.PacketSizeLimit;
 
@@ -55,7 +57,7 @@ public static class PacketOps
     /// <returns>Returns true if the packet's checksum matches the computed checksum; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsValidChecksum(System.Byte[] packet)
+    public static System.Boolean IsValidChecksum(System.Byte[] packet)
         => System.BitConverter.ToUInt32(packet, PacketOffset.Checksum)
         == Crc32.Compute(packet[PacketOffset.Payload..]);
 }

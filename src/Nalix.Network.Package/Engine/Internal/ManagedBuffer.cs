@@ -8,26 +8,23 @@ namespace Nalix.Network.Package.Engine.Internal;
 /// Managed buffer with ultra-optimized memory handling
 /// </summary>
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal readonly struct ManagedBuffer(ReadOnlyMemory<byte> memory, PoolHandle? handle) : IDisposable
+internal readonly struct ManagedBuffer(ReadOnlyMemory<Byte> memory, PoolHandle? handle) : IDisposable
 {
-    public readonly ReadOnlyMemory<byte> Memory = memory;
+    public readonly ReadOnlyMemory<Byte> Memory = memory;
     public readonly PoolHandle? Handle = handle;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Dispose()
-    {
-        Handle?.Dispose();
-    }
+    public void Dispose() => Handle?.Dispose();
 }
 
 /// <summary>
 /// Pool handle using direct memory addresses for maximum performance
 /// </summary>
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal sealed class PoolHandle(nint address) : IDisposable
+internal sealed class PoolHandle(IntPtr address) : IDisposable
 {
-    public readonly nint Address = address;
-    private int _disposed;
+    public readonly IntPtr Address = address;
+    private Int32 _disposed;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
@@ -43,9 +40,9 @@ internal sealed class PoolHandle(nint address) : IDisposable
 /// Tracked memory entry using weak references for automatic cleanup
 /// </summary>
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal readonly struct TrackedMemory(byte[] array, long lastAccessTime, WeakReference<byte[]> weakRef)
+internal readonly struct TrackedMemory(Byte[] array, Int64 lastAccessTime, WeakReference<Byte[]> weakRef)
 {
-    public readonly byte[] Array = array;
-    public readonly long LastAccessTime = lastAccessTime;
-    public readonly WeakReference<byte[]> WeakRef = weakRef;
+    public readonly Byte[] Array = array;
+    public readonly Int64 LastAccessTime = lastAccessTime;
+    public readonly WeakReference<Byte[]> WeakRef = weakRef;
 }

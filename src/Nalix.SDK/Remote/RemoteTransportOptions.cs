@@ -39,8 +39,10 @@ public sealed class RemoteTransportOptions : ConfigurationLoader
         set
         {
             if (value is null || value.Length != 32)
+            {
                 throw new System.ArgumentException(
                     "EncryptionKey must be exactly 32 bytes.", nameof(value));
+            }
 
             _key = value;
         }

@@ -14,29 +14,28 @@ namespace Nalix.Network.Package.Engine.Internal;
 /// </summary>
 internal static unsafe class MemoryVault
 {
-    private static readonly ConcurrentDictionary<nint, TrackedMemory> _trackedMemory = new();
+    private static readonly ConcurrentDictionary<IntPtr, TrackedMemory> _trackedMemory = new();
     private static readonly Timer _cleanupTimer;
     private static readonly Lock _lockObject = new();
 
-    private const int CleanupIntervalMs = 15000;  // 15 seconds - more aggressive
-    private const int UnusedThresholdMs = 45000;  // 45 seconds - shorter threshold
+    private const Int32 CleanupIntervalMs = 15000;  // 15 seconds - more aggressive
+    private const Int32 UnusedThresholdMs = 45000;  // 45 seconds - shorter threshold
 
-    static MemoryVault()
-    {
-        _cleanupTimer = new Timer(static _ => CleanupUnusedMemory(), null, CleanupIntervalMs, CleanupIntervalMs);
-    }
+    static MemoryVault() => _cleanupTimer = new Timer(static _ => CleanupUnusedMemory(), null, CleanupIntervalMs, CleanupIntervalMs);
 
     /// <summary>
     /// Allocates memory using the most aggressive unsafe optimizations
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    internal static ManagedBuffer Allocate(ReadOnlySpan<byte> payload)
+    internal static ManagedBuffer Allocate(ReadOnlySpan<Byte> payload)
     {
         var length = payload.Length;
 
         // Ultra-fast empty check
         if (length == 0)
-            return new ManagedBuffer(ReadOnlyMemory<byte>.Empty, null);
+        {
+            return new ManagedBuffer(ReadOnlyMemory<Byte>.Empty, null);
+        }
 
         // Stack allocation for tiny payloads - direct stackalloc
         if (length <= PacketConstants.StackAllocLimit)
@@ -55,28 +54,28 @@ internal static unsafe class MemoryVault
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static ManagedBuffer AllocateStack(ReadOnlySpan<byte> payload)
+    private static ManagedBuffer AllocateStack(ReadOnlySpan<Byte> payload)
     {
-        var array = GC.AllocateUninitializedArray<byte>(payload.Length, pinned: false);
+        var array = GC.AllocateUninitializedArray<Byte>(payload.Length, pinned: false);
 
-        fixed (byte* dest = array)
-        fixed (byte* src = payload)
+        fixed (Byte* dest = array)
+        fixed (Byte* src = payload)
         {
             // Ultra-fast memory copy using CPU intrinsics when possible
-            Unsafe.CopyBlockUnaligned(dest, src, (uint)payload.Length);
+            Unsafe.CopyBlockUnaligned(dest, src, (UInt32)payload.Length);
         }
 
         return new ManagedBuffer(array, null);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static ManagedBuffer AllocateHeap(ReadOnlySpan<byte> payload)
+    private static ManagedBuffer AllocateHeap(ReadOnlySpan<Byte> payload)
     {
         // Pinned allocation for better performance
-        var array = GC.AllocateUninitializedArray<byte>(payload.Length, pinned: true);
+        var array = GC.AllocateUninitializedArray<Byte>(payload.Length, pinned: true);
 
-        fixed (byte* dest = array)
-        fixed (byte* src = payload)
+        fixed (Byte* dest = array)
+        fixed (Byte* src = payload)
         {
             // Direct memory copy using vectorized operations when possible
             var remaining = payload.Length;
@@ -94,33 +93,35 @@ internal static unsafe class MemoryVault
 
             // Copy remaining bytes
             if (remaining > 0)
-                Unsafe.CopyBlockUnaligned(destPtr, srcPtr, (uint)remaining);
+            {
+                Unsafe.CopyBlockUnaligned(destPtr, srcPtr, (UInt32)remaining);
+            }
         }
 
         return new ManagedBuffer(array, null);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static ManagedBuffer AllocatePooled(ReadOnlySpan<byte> payload)
+    private static ManagedBuffer AllocatePooled(ReadOnlySpan<Byte> payload)
     {
-        var pooledArray = ArrayPool<byte>.Shared.Rent(payload.Length);
+        var pooledArray = ArrayPool<Byte>.Shared.Rent(payload.Length);
         var actualLength = payload.Length;
 
         // Ultra-fast unsafe copy
-        fixed (byte* dest = pooledArray)
-        fixed (byte* src = payload)
+        fixed (Byte* dest = pooledArray)
+        fixed (Byte* src = payload)
         {
             // Use the most aggressive memory copy available
             Buffer.MemoryCopy(src, dest, pooledArray.Length, actualLength);
         }
 
         // Create weak reference for tracking
-        var weakRef = new WeakReference<byte[]>(pooledArray);
-        var handle = new PoolHandle((nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(pooledArray.AsSpan())));
+        var weakRef = new WeakReference<Byte[]>(pooledArray);
+        var handle = new PoolHandle((IntPtr)Unsafe.AsPointer(ref MemoryMarshal.GetReference(pooledArray.AsSpan())));
 
         // Track for cleanup
         var entry = new TrackedMemory(pooledArray, Environment.TickCount64, weakRef);
-        _trackedMemory.TryAdd(handle.Address, entry);
+        _ = _trackedMemory.TryAdd(handle.Address, entry);
 
         return new ManagedBuffer(pooledArray.AsMemory(0, actualLength), handle);
     }
@@ -139,7 +140,7 @@ internal static unsafe class MemoryVault
                 {
                     // Clear sensitive data before returning to pool
                     array.AsSpan().Clear();
-                    ArrayPool<byte>.Shared.Return(array, clearArray: false);
+                    ArrayPool<Byte>.Shared.Return(array, clearArray: false);
                 }
             }
             catch
@@ -156,7 +157,7 @@ internal static unsafe class MemoryVault
     private static void CleanupUnusedMemory()
     {
         var currentTime = Environment.TickCount64;
-        var toRemove = new List<nint>();
+        var toRemove = new List<IntPtr>();
 
         // Use lock-free enumeration where possible
         foreach (var kvp in _trackedMemory)
@@ -184,7 +185,7 @@ internal static unsafe class MemoryVault
                         {
                             // Zero out memory before returning
                             array.AsSpan().Clear();
-                            ArrayPool<byte>.Shared.Return(array, clearArray: false);
+                            ArrayPool<Byte>.Shared.Return(array, clearArray: false);
                         }
                         catch
                         {
@@ -211,7 +212,7 @@ internal static unsafe class MemoryVault
                 try
                 {
                     array.AsSpan().Clear();
-                    ArrayPool<byte>.Shared.Return(array, clearArray: false);
+                    ArrayPool<Byte>.Shared.Return(array, clearArray: false);
                 }
                 catch { }
             }

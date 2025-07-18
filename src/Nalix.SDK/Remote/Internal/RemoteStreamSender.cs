@@ -20,7 +20,7 @@ internal sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStre
     /// Checks if the network stream is healthy and writable.
     /// </summary>
     /// <returns><c>true</c> if the stream is writable; otherwise, <c>false</c>.</returns>
-    public bool IsStreamHealthy => _stream != null && _stream.CanWrite;
+    public System.Boolean IsStreamHealthy => _stream != null && _stream.CanWrite;
 
     /// <summary>
     /// Asynchronously sends a packet over the network stream.
@@ -50,11 +50,13 @@ internal sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStre
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.Task SendAsync(
-        System.ReadOnlyMemory<byte> bytes,
+        System.ReadOnlyMemory<System.Byte> bytes,
         System.Threading.CancellationToken cancellationToken = default)
     {
         if (!_stream.CanWrite)
+        {
             throw new System.InvalidOperationException("The network stream is not writable.");
+        }
 
         await _stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
         await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
@@ -81,10 +83,12 @@ internal sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStre
     /// <exception cref="System.IO.IOException">Thrown when an error occurs while writing to the stream.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Send(System.ReadOnlySpan<byte> bytes)
+    public void Send(System.ReadOnlySpan<System.Byte> bytes)
     {
         if (!_stream.CanWrite)
+        {
             throw new System.InvalidOperationException("The network stream is not writable.");
+        }
 
         _stream.Write(bytes);
         _stream.Flush();
