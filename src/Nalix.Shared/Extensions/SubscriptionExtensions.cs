@@ -14,19 +14,19 @@ public static class SubscriptionExtensions
     /// Subscribes to the <see cref="IReliableClient.PacketReceived"/> and <see cref="IReliableClient.Disconnected"/> events.
     /// Returns an <see cref="System.IDisposable"/> that unsubscribes when disposed.
     /// </summary>
-    /// <param name="client">The reliable client to subscribe to.</param>
+    /// <param name="this">The reliable client to subscribe to.</param>
     /// <param name="onPacket">The action to invoke when a packet is received.</param>
     /// <param name="onDisconnected">The action to invoke when the client is disconnected.</param>
     /// <returns>An <see cref="System.IDisposable"/> that unsubscribes the handlers when disposed.</returns>
     public static System.IDisposable SubscribeTemp(
-        this IReliableClient client,
+        this IReliableClient @this,
         System.Action<IPacket> onPacket,
         System.Action<System.Exception> onDisconnected)
     {
-        client.PacketReceived += onPacket;
-        client.Disconnected += onDisconnected;
+        @this.PacketReceived += onPacket;
+        @this.Disconnected += onDisconnected;
 
-        return new Unsubscriber(client, onPacket, onDisconnected);
+        return new Unsubscriber(@this, onPacket, onDisconnected);
     }
 
     /// <summary>

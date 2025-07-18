@@ -16,12 +16,12 @@ public static class ReportExtensions
     /// <summary>
     /// Saves the generated report of the manager to a file inside LogsDirectory/reports.
     /// </summary>
-    /// <param name="reportable">The reportable manager.</param>
+    /// <param name="this">The reportable manager.</param>
     /// <param name="prefix">Optional filename prefix, e.g. "buffer" or "object".</param>
     /// <returns>The full path of the saved report file.</returns>
-    public static System.String SaveReportToFile(this IReportable reportable, System.String prefix = "report")
+    public static System.String SaveReportToFile(this IReportable @this, System.String prefix = "report")
     {
-        System.String report = reportable.GenerateReport();
+        System.String report = @this.GenerateReport();
 
         _ = System.IO.Directory.CreateDirectory(ReportDir);
 
@@ -31,7 +31,7 @@ public static class ReportExtensions
         System.IO.File.WriteAllText(filePath, report);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{reportable.GetType().Name}] report saved: {filePath}");
+                                .Info($"[{@this.GetType().Name}] report saved: {filePath}");
 
         return filePath;
     }

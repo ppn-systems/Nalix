@@ -56,8 +56,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
                 sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                 flags: ControlFlags.IS_TRANSIENT,
                 arg0: context.Attributes.OpCode.OpCode,
-                arg1: (System.UInt32)d.RetryAfterMs, arg2: d.Credit
-            ).ConfigureAwait(false);
+                arg1: (System.UInt32)d.RetryAfterMs, arg2: d.Credit).ConfigureAwait(false);
 
             return;
         }
