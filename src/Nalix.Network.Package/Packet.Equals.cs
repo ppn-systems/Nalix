@@ -91,7 +91,9 @@ public readonly partial struct Packet : System.IEquatable<Packet>
     public System.Boolean Equals(IPacket? other)
     {
         if (other is null)
+        {
             return false;
+        }
 
         // Quick field comparison first
         if (Type != other.Type ||
@@ -106,10 +108,9 @@ public readonly partial struct Packet : System.IEquatable<Packet>
         System.ReadOnlySpan<System.Byte> span1 = Payload.Span;
         System.ReadOnlySpan<System.Byte> span2 = other.Payload.Span;
 
-        if (span1.Length < 32)
-            return System.MemoryExtensions.SequenceEqual(span1, span2);
-
-        return System.MemoryExtensions.SequenceEqual(span1[..16], span2[..16]) &&
+        return span1.Length < 32
+            ? System.MemoryExtensions.SequenceEqual(span1, span2)
+            : System.MemoryExtensions.SequenceEqual(span1[..16], span2[..16]) &&
             System.MemoryExtensions.SequenceEqual(span1[^16..], span2[^16..]);
     }
 
