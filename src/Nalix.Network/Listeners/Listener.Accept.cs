@@ -276,10 +276,17 @@ public abstract partial class Listener
         {
             try
             {
+                if (!socket.Connected || socket.Handle.ToInt64() == -1)
+                {
+                    this._logger.Warn("[TCP] Socket is invalid or disconnected");
+                    SafeCloseSocket(socket);
+                    return;
+                }
+
                 if (!this._connectionLimiter.IsConnectionAllowed(
                     ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
                 {
-                    socket.Close();
+                    SafeCloseSocket(socket);
                     return;
                 }
 
@@ -290,6 +297,16 @@ public abstract partial class Listener
                 // Process the connection
                 _ = System.Threading.ThreadPool.UnsafeQueueUserWorkItem(
                     ProcessConnectionCallback, (this, connection));
+            }
+            catch (System.ObjectDisposedException)
+            {
+                this._logger.Warn("[TCP] Socket was disposed during accept");
+
+                SafeCloseSocket(socket);
+                if (e is PooledSocketAsyncEventArgs pooled && pooled.Context != null)
+                {
+                    ObjectPoolManager.Instance.Return<PooledAcceptContext>(pooled.Context);
+                }
             }
             catch (System.Exception ex)
             {
@@ -305,6 +322,18 @@ public abstract partial class Listener
             {
                 ObjectPoolManager.Instance.Return<PooledAcceptContext>(pooled.Context!); // 💥 TH AcceptSocket == null
             }
+        }
+    }
+
+    private void SafeCloseSocket(System.Net.Sockets.Socket socket)
+    {
+        try
+        {
+            socket?.Close();
+        }
+        catch (System.Exception ex)
+        {
+            this._logger.Debug("[TCP] Error closing socket: {0}", ex.Message);
         }
     }
 }
