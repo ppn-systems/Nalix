@@ -5,27 +5,27 @@
 		<IsPackable>true</IsPackable>
 		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
+		
+		<Version>2.1.7</Version>
+		<PackageVersion>2.1.7</PackageVersion>
 
-		<Version>1.7.0</Version>
-		<PackageVersion>1.7.0</PackageVersion>
-
-    <Description>
+		<Description>
 Nalix.Logging is a flexible and high-performance logging library for .NET. It provides core logging infrastructure, customizable formatters, multiple logging targets, and internal utilities for efficient log processing. Designed for developers who need structured and extensible logging capabilities in high-performance applications.
-    </Description>
+		</Description>
 
-    <PackageReleaseNotes>
-      - Initial release of Nalix.Logging.
-      - Features include:
-      • Core logging system for structured and efficient logging.
-      • Customizable formatters for flexible log output.
-      • Multiple logging targets for different output destinations.
-      • Internal utilities to optimize log processing.
-      • Extension support for seamless integration into existing .NET applications.
-    </PackageReleaseNotes>
+		<PackageReleaseNotes>
+		  - Initial release of Nalix.Logging.
+		  - Features include:
+		  • Core logging system for structured and efficient logging.
+		  • Customizable formatters for flexible log output.
+		  • Multiple logging targets for different output destinations.
+		  • Internal utilities to optimize log processing.
+		  • Extension support for seamless integration into existing .NET applications.
+		</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />
-  <Import Project="..\Package.Build.props" />
+	<Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
 		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />

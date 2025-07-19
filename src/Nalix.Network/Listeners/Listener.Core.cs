@@ -141,11 +141,11 @@ public abstract partial class Listener : IListener, System.IDisposable
 
         this._timeSyncWorker.TimeSynchronized += this.SynchronizeTime;
 
-        _ = ObjectPoolManager.Instance.Prealloc<PooledSocketAsyncEventArgs>(30);
+        _ = ObjectPoolManager.Instance.Prealloc<PooledSocketAsyncEventArgs>(60);
         _ = ObjectPoolManager.Instance.Prealloc<PooledAcceptContext>(30);
 
-        _ = ObjectPoolManager.Instance.SetMaxCapacity<PooledAcceptContext>(64);
-        _ = ObjectPoolManager.Instance.SetMaxCapacity<PooledSocketAsyncEventArgs>(Config.MaxConcurrentConnections);
+        _ = ObjectPoolManager.Instance.SetMaxCapacity<PooledAcceptContext>(1024);
+        _ = ObjectPoolManager.Instance.SetMaxCapacity<PooledSocketAsyncEventArgs>(1024);
     }
 
     /// <summary>

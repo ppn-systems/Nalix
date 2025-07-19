@@ -5,26 +5,26 @@
 		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
 
-		<Version>1.7.0</Version>
-		<PackageVersion>1.7.0</PackageVersion>
+		<Version>2.1.7</Version>
+		<PackageVersion>2.1.7</PackageVersion>
 
-    <Description>
+        <Description>
 Nalix.Common is a foundational .NET library that provides essential utilities for logging, memory management, cryptography, security, exception handling, and system operations. It serves as a core dependency for the Nalix ecosystem, offering reusable and high-performance components to enhance application development.
-    </Description>
+        </Description>
 
-    <PackageReleaseNotes>
-      - Initial release of Nalix.Common.
-      - Features include:
-      • Cryptography and security utilities for secure data handling.
-      • Robust logging and exception management for debugging.
-      • Efficient memory management utilities.
-      • System utilities for low-level operations.
-      • Repository and connection management for structured data handling.
-    </PackageReleaseNotes>
+        <PackageReleaseNotes>
+          - Initial release of Nalix.Common.
+          - Features include:
+          • Cryptography and security utilities for secure data handling.
+          • Robust logging and exception management for debugging.
+          • Efficient memory management utilities.
+          • System utilities for low-level operations.
+          • Repository and connection management for structured data handling.
+        </PackageReleaseNotes>
 	
-</PropertyGroup>
+    </PropertyGroup>
 
-	<Import Project="..\Nalix.Build.props" />
-  <Import Project="..\Package.Build.props" />
+    <Import Project="..\Nalix.Build.props" />
+    <Import Project="..\Package.Build.props" />
 
 </Project>

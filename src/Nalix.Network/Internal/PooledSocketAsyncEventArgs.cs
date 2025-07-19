@@ -12,7 +12,11 @@ internal sealed class PooledSocketAsyncEventArgs : System.Net.Sockets.SocketAsyn
     /// </summary>
     public void ResetForPool()
     {
-        // Reset SocketAsyncEventArgs
+        // Remove all event handlers from Completed event
+        // You cannot assign null directly; instead, unsubscribe known handlers if needed.
+        // If you subscribe only one handler, you can do:
+        // this.Completed -= YourHandler;
+        // Otherwise, skip this line or manage handlers elsewhere.
 
         base.UserToken = null;
         base.AcceptSocket = null;

@@ -7,32 +7,32 @@
 		<OutputType>Library</OutputType>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-		<Version>1.7.0</Version>
-		<PackageVersion>1.7.0</PackageVersion>
+		<Version>2.1.7</Version>
+		<PackageVersion>2.1.7</PackageVersion>
 
-    <Description>
+        <Description>
 Nalix.Network.Package is a lightweight .NET library for structured packet-based communication. It provides utilities for packet serialization, metadata handling, extensions, and helper functions to streamline network message processing. Designed for developers who require efficient and scalable packet management in networking applications.
-    </Description>
+        </Description>
 
-    <PackageReleaseNotes>
-      - Initial release of Nalix.Network.Package.
-      - Features include:
-      • Packet serialization and deserialization utilities.
-      • Metadata handling for structured network messages.
-      • Helper functions for efficient packet management.
-      • Extensions to enhance networking capabilities.
-      • Lightweight and high-performance architecture.
-    </PackageReleaseNotes>
+        <PackageReleaseNotes>
+          - Initial release of Nalix.Network.Package.
+          - Features include:
+          • Packet serialization and deserialization utilities.
+          • Metadata handling for structured network messages.
+          • Helper functions for efficient packet management.
+          • Extensions to enhance networking capabilities.
+          • Lightweight and high-performance architecture.
+        </PackageReleaseNotes>
 	
-</PropertyGroup>
+    </PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />
-  <Import Project="..\Package.Build.props" />
+    <Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
-    <ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
-    <ProjectReference Include="..\Nalix.Shared\Nalix.Shared.csproj" />
-    <ProjectReference Include="..\Nalix.Cryptography\Nalix.Cryptography.csproj" />
+        <ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
+        <ProjectReference Include="..\Nalix.Shared\Nalix.Shared.csproj" />
+        <ProjectReference Include="..\Nalix.Cryptography\Nalix.Cryptography.csproj" />
 	</ItemGroup>
 
 </Project>
