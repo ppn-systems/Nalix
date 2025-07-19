@@ -34,11 +34,16 @@ public abstract partial class Listener
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private IConnection InitializeConnection(System.Net.Sockets.Socket socket)
+    private IConnection InitializeConnection(System.Net.Sockets.Socket socket, PooledAcceptContext context)
     {
         ConfigureHighPerformanceSocket(socket);
 
         IConnection connection = new Connection.Connection(socket, this._bufferPool, this._logger);
+
+        connection.OnCloseEvent += (_, _) =>
+        {
+            ObjectPoolManager.Instance.Return<PooledAcceptContext>(context);
+        };
 
         connection.EnforceLimiterOnClose(this._connectionLimiter);
         connection.OnCloseEvent += this.HandleConnectionClose;
@@ -57,7 +62,13 @@ public abstract partial class Listener
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void HandleConnectionClose(System.Object? sender, IConnectEventArgs args)
     {
+        if (args?.Connection == null)
+        {
+            return;
+        }
+
         this._logger.Debug("[TCP] Closing {0}", args.Connection.RemoteEndPoint);
+
         // De-subscribe to prevent memory leaks
         args.Connection.OnCloseEvent -= this.HandleConnectionClose;
         args.Connection.OnProcessEvent -= this._protocol.ProcessMessage!;
@@ -95,7 +106,10 @@ public abstract partial class Listener
     {
         this._cancellationToken = cancellationToken;
 
-        System.Net.Sockets.SocketAsyncEventArgs args = ObjectPoolManager.Instance.Get<PooledSocketAsyncEventArgs>();
+        PooledAcceptContext context = ObjectPoolManager.Instance.Get<PooledAcceptContext>();
+        PooledSocketAsyncEventArgs args = ObjectPoolManager.Instance.Get<PooledSocketAsyncEventArgs>();
+
+        args.Context = context;
         args.Completed += this.OnSyncAcceptCompleted;
 
         this.AcceptNext(args);
@@ -168,7 +182,7 @@ public abstract partial class Listener
 
                 return context.Args.SocketError != System.Net.Sockets.SocketError.Success
                     ? throw new System.Net.Sockets.SocketException((System.Int32)context.Args.SocketError)
-                    : InitializeConnection(socket);
+                    : InitializeConnection(socket, context);
             }
 
             // Wait async accept:
@@ -181,11 +195,13 @@ public abstract partial class Listener
                 throw new System.OperationCanceledException();
             }
 
-            return InitializeConnection(socket);
+            return InitializeConnection(socket, context);
         }
-        finally
+        catch
         {
+            // Don't forget to return to pool in case of failure
             ObjectPoolManager.Instance.Return<PooledAcceptContext>(context);
+            throw;
         }
     }
 
@@ -204,8 +220,14 @@ public abstract partial class Listener
             ObjectPoolManager.Instance.Return((PooledSocketAsyncEventArgs)e);
         }
 
+        PooledAcceptContext context = ObjectPoolManager.Instance.Get<PooledAcceptContext>();
         PooledSocketAsyncEventArgs newArgs = ObjectPoolManager.Instance.Get<PooledSocketAsyncEventArgs>();
+
+        newArgs.Context = context;
+        context.Args = newArgs;
+
         newArgs.Completed += this.OnSyncAcceptCompleted;
+
         this.AcceptNext(newArgs);
     }
 
@@ -230,12 +252,10 @@ public abstract partial class Listener
                 ex.SocketErrorCode is System.Net.Sockets.SocketError.Interrupted or
                 System.Net.Sockets.SocketError.ConnectionAborted)
             {
-                // _udpListener was closed or interrupted
                 break;
             }
             catch (System.ObjectDisposedException)
             {
-                // _udpListener was disposed
                 break;
             }
             catch (System.Exception ex) when (!this._cancellationToken.IsCancellationRequested)
@@ -264,7 +284,8 @@ public abstract partial class Listener
                 }
 
                 // Create and process connection similar to async version
-                IConnection connection = this.InitializeConnection(socket);
+                PooledAcceptContext context = ((PooledSocketAsyncEventArgs)e).Context!;
+                IConnection connection = this.InitializeConnection(socket, context);
 
                 // Process the connection
                 _ = System.Threading.ThreadPool.UnsafeQueueUserWorkItem(
@@ -274,11 +295,16 @@ public abstract partial class Listener
             {
                 this._logger.Error("[TCP] Process accept error: {0}", ex.Message);
                 try { socket.Close(); } catch { }
+                ObjectPoolManager.Instance.Return<PooledAcceptContext>(((PooledSocketAsyncEventArgs)e).Context!);
             }
         }
         else
         {
             this._logger.Warn("[TCP] Accept failed: {0}", e.SocketError);
+            if (e is PooledSocketAsyncEventArgs pooled)
+            {
+                ObjectPoolManager.Instance.Return<PooledAcceptContext>(pooled.Context!); // 💥 TH AcceptSocket == null
+            }
         }
     }
 }
