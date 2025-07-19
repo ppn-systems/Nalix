@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Abstractions;
 using Nalix.Common.Logging;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Random;
@@ -15,6 +16,7 @@ public partial class TaskManager
     #endregion Types
 
     #region Internal Cleanup
+
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -92,8 +94,8 @@ public partial class TaskManager
         }
 
         // Interval in Stopwatch ticks
-        System.Int64 freq = System.Diagnostics.Stopwatch.Frequency;
         System.Int64 step = s.IntervalTicks;
+        System.Int64 freq = System.Diagnostics.Stopwatch.Frequency;
         System.Int64 next = System.Diagnostics.Stopwatch.GetTimestamp() + step;
 
         // Local helpers for fast delay
@@ -241,8 +243,9 @@ public partial class TaskManager
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Int32 CountRunningWorkers()
+
     {
-        System.Int32 n = 0; foreach (var kv in _workers)
+        System.Int32 n = 0; foreach (System.Collections.Generic.KeyValuePair<ISnowflake, WorkerState> kv in _workers)
         {
             if (kv.Value.IsRunning)
             {
@@ -270,7 +273,7 @@ public partial class TaskManager
             catch { }
 
             System.Boolean hasSameGroup = false;
-            foreach (var other in _workers.Values)
+            foreach (WorkerState other in _workers.Values)
             {
                 if (System.String.Equals(other.Group, st.Group, System.StringComparison.Ordinal))
                 {
