@@ -39,7 +39,7 @@ public sealed class SocketSettings : ConfigurationLoader
     public System.UInt16 Port
     {
         get => this._port;
-        private set
+        set
         {
             if (value is <= System.UInt16.MinValue or > System.UInt16.MaxValue)
             {

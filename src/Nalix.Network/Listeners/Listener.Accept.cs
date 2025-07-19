@@ -3,6 +3,7 @@ using Nalix.Network.Connection;
 using Nalix.Network.Internal;
 using Nalix.Shared.Memory.Pooling;
 using System.Net;
+using System.Net.Sockets;
 
 namespace Nalix.Network.Listeners;
 
@@ -26,14 +27,9 @@ public abstract partial class Listener
         System.Net.Sockets.SocketAsyncEventArgs> AsyncAcceptCompleted = static (s, e) =>
         {
             var tcs = (System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>)e.UserToken!;
-            if (e.SocketError == System.Net.Sockets.SocketError.Success)
-            {
-                _ = tcs.TrySetResult(e.AcceptSocket!);
-            }
-            else
-            {
-                _ = tcs.TrySetException(new System.Net.Sockets.SocketException((System.Int32)e.SocketError));
-            }
+            _ = e.SocketError == System.Net.Sockets.SocketError.Success
+                ? tcs.TrySetResult(e.AcceptSocket!)
+                : tcs.TrySetException(new System.Net.Sockets.SocketException((System.Int32)e.SocketError));
         };
 
     #endregion Fields
@@ -165,22 +161,20 @@ public abstract partial class Listener
             {
                 socket = state.Args.AcceptSocket!;
 
-                if (!this._connectionLimiter.IsConnectionAllowed(
-                   ((IPEndPoint)socket.RemoteEndPoint!).Address.ToString()))
+                if (!this._connectionLimiter.IsConnectionAllowed(((IPEndPoint)socket.RemoteEndPoint!).Address))
                 {
                     socket.Close();
                     throw new System.OperationCanceledException();
                 }
 
-                return state.Args.SocketError == System.Net.Sockets.SocketError.Success
-                    ? this.InitializeConnection(state.Args.AcceptSocket!)
-                    : throw new System.Net.Sockets.SocketException((System.Int32)state.Args.SocketError);
+                return state.Args.AcceptSocket is null || state.Args.SocketError != SocketError.Success
+                    ? throw new SocketException((System.Int32)state.Args.SocketError)
+                    : InitializeConnection(state.Args.AcceptSocket);
             }
 
             socket = await state.Tcs.Task.ConfigureAwait(false);
 
-            if (!this._connectionLimiter.IsConnectionAllowed(
-                   ((IPEndPoint)socket.RemoteEndPoint!).Address.ToString()))
+            if (!this._connectionLimiter.IsConnectionAllowed(((IPEndPoint)socket.RemoteEndPoint!).Address))
             {
                 socket.Close();
                 throw new System.OperationCanceledException();
@@ -261,8 +255,7 @@ public abstract partial class Listener
         {
             try
             {
-                if (!this._connectionLimiter.IsConnectionAllowed(
-                   ((IPEndPoint)socket.RemoteEndPoint!).Address.ToString()))
+                if (!this._connectionLimiter.IsConnectionAllowed(((IPEndPoint)socket.RemoteEndPoint!).Address))
                 {
                     socket.Close();
                     return;

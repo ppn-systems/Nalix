@@ -9,10 +9,10 @@ namespace Nalix.SDK.Remote;
 /// Represents a network client that connects to a remote server using Reliable.
 /// </summary>
 /// <remarks>
-/// The <see cref="RemoteClient{TPacket}"/> class is a singleton that manages the connection,
+/// The <see cref="RemoteStreamClient{TPacket}"/> class is a singleton that manages the connection,
 /// network stream, and client disposal. It supports both synchronous and asynchronous connection.
 /// </remarks>
-public class RemoteClient<TPacket> : SingletonBase<RemoteClient<TPacket>>, System.IDisposable
+public class RemoteStreamClient<TPacket> : SingletonBase<RemoteStreamClient<TPacket>>, System.IDisposable
     where TPacket : IPacket, IPacketFactory<TPacket>, IPacketDeserializer<TPacket>
 {
     #region Fields
@@ -59,9 +59,9 @@ public class RemoteClient<TPacket> : SingletonBase<RemoteClient<TPacket>>, Syste
     #region Constructor
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RemoteClient{TPacket}"/> class.
+    /// Initializes a new instance of the <see cref="RemoteStreamClient{TPacket}"/> class.
     /// </summary>
-    private RemoteClient()
+    private RemoteStreamClient()
     {
         this.Context = ConfigurationStore.Instance.Get<RemoteTransportOptions>();
 
@@ -138,7 +138,7 @@ public class RemoteClient<TPacket> : SingletonBase<RemoteClient<TPacket>>, Syste
     public void Close() => this.Dispose();
 
     /// <summary>
-    /// Releases the resources used by the <see cref="RemoteClient{TPacket}"/> instance.
+    /// Releases the resources used by the <see cref="RemoteStreamClient{TPacket}"/> instance.
     /// </summary>
     public new void Dispose()
     {
