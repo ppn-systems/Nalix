@@ -2,8 +2,6 @@
 using Nalix.Network.Connection;
 using Nalix.Network.Internal;
 using Nalix.Shared.Memory.Pooling;
-using System.Net;
-using System.Net.Sockets;
 
 namespace Nalix.Network.Listeners;
 
@@ -149,42 +147,45 @@ public abstract partial class Listener
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     private async System.Threading.Tasks.ValueTask<IConnection> CreateConnectionAsync(
-        System.Threading.CancellationToken cancellationToken)
+    System.Threading.CancellationToken cancellationToken)
     {
-        PooledAcceptContext state = ObjectPoolManager.Instance.Get<PooledAcceptContext>();
+        PooledAcceptContext context = ObjectPoolManager.Instance.Get<PooledAcceptContext>();
 
         try
         {
             System.Net.Sockets.Socket socket;
 
-            if (!this._listener.AcceptAsync(state.Args))
+            if (!this._listener.AcceptAsync(context.Args))
             {
-                socket = state.Args.AcceptSocket!;
+                socket = context.Args.AcceptSocket!;
 
-                if (!this._connectionLimiter.IsConnectionAllowed(((IPEndPoint)socket.RemoteEndPoint!).Address))
+                if (!this._connectionLimiter.IsConnectionAllowed(
+                    ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
                 {
                     socket.Close();
                     throw new System.OperationCanceledException();
                 }
 
-                return state.Args.AcceptSocket is null || state.Args.SocketError != SocketError.Success
-                    ? throw new SocketException((System.Int32)state.Args.SocketError)
-                    : InitializeConnection(state.Args.AcceptSocket);
+                return context.Args.SocketError != System.Net.Sockets.SocketError.Success
+                    ? throw new System.Net.Sockets.SocketException((System.Int32)context.Args.SocketError)
+                    : InitializeConnection(socket);
             }
 
-            socket = await state.Tcs.Task.ConfigureAwait(false);
+            // Wait async accept:
+            socket = await context.PrepareAsync().ConfigureAwait(false);
 
-            if (!this._connectionLimiter.IsConnectionAllowed(((IPEndPoint)socket.RemoteEndPoint!).Address))
+            if (!this._connectionLimiter.IsConnectionAllowed(
+                ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
             {
                 socket.Close();
                 throw new System.OperationCanceledException();
             }
 
-            return this.InitializeConnection(socket);
+            return InitializeConnection(socket);
         }
         finally
         {
-            ObjectPoolManager.Instance.Return(state);
+            ObjectPoolManager.Instance.Return<PooledAcceptContext>(context);
         }
     }
 
@@ -255,7 +256,8 @@ public abstract partial class Listener
         {
             try
             {
-                if (!this._connectionLimiter.IsConnectionAllowed(((IPEndPoint)socket.RemoteEndPoint!).Address))
+                if (!this._connectionLimiter.IsConnectionAllowed(
+                    ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
                 {
                     socket.Close();
                     return;

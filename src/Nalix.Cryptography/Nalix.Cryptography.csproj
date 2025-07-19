@@ -15,14 +15,14 @@ Nalix.Cryptography is a high-performance .NET library providing secure and effic
         </Description>
 
         <PackageReleaseNotes>
-          - Initial release of Nalix.Cryptography.
-          - Features include:
-          • Symmetric and asymmetric encryption for secure data exchange.
-          • Authenticated encryption (AEAD) for data confidentiality and integrity.
-          • Hashing algorithms for secure data fingerprinting.
-          • Message authentication codes (MAC) for verifying message integrity.
-          • Integrity and padding utilities for secure data formatting.
-          • Security enhancements to strengthen cryptographic implementations.
+            - Initial release of Nalix.Cryptography.
+            - Features include:
+            • Symmetric and asymmetric encryption for secure data exchange.
+            • Authenticated encryption (AEAD) for data confidentiality and integrity.
+            • Hashing algorithms for secure data fingerprinting.
+            • Message authentication codes (MAC) for verifying message integrity.
+            • Integrity and padding utilities for secure data formatting.
+            • Security enhancements to strengthen cryptographic implementations.
         </PackageReleaseNotes>
 	
     </PropertyGroup>
