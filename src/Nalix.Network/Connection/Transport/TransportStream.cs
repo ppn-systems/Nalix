@@ -380,8 +380,8 @@ internal class TransportStream : System.IDisposable
             while (totalBytesRead < size)
             {
                 System.Int32 bytesRead;
-                var tcs = new System.Threading.Tasks.TaskCompletionSource<System.Int32>();
-                var saea = ObjectPoolManager.Instance.Get<PooledSocketAsyncContext>();
+                System.Threading.Tasks.TaskCompletionSource<System.Int32> tcs = new();
+                PooledSocketAsyncContext saea = ObjectPoolManager.Instance.Get<PooledSocketAsyncContext>();
 
                 try
                 {
@@ -404,7 +404,7 @@ internal class TransportStream : System.IDisposable
                 }
                 finally
                 {
-                    ObjectPoolManager.Instance.Return(saea);
+                    ObjectPoolManager.Instance.Return<PooledSocketAsyncContext>(saea);
                 }
 
                 if (bytesRead == 0)
