@@ -35,7 +35,7 @@ public sealed class ConnectionLimiter : IDisposable
     private readonly Timer _cleanupTimer;
     private readonly SemaphoreSlim _cleanupLock;
     private readonly ConnectionLimitOptions _config;
-    private readonly ConcurrentDictionary<String, ConnectionLimitInfo> _connectionInfo;
+    private readonly ConcurrentDictionary<System.Net.IPAddress, ConnectionLimitInfo> _connectionInfo;
 
     // Cache frequently accessed configuration values
     private readonly Int32 _maxConnectionsPerIp;
@@ -70,8 +70,7 @@ public sealed class ConnectionLimiter : IDisposable
         this._inactivityThreshold = this._config.InactivityThreshold;
 
         // Initialize with case-insensitive string comparer for IP addresses
-        this._connectionInfo = new ConcurrentDictionary<String, ConnectionLimitInfo>(
-            StringComparer.OrdinalIgnoreCase);
+        this._connectionInfo = new ConcurrentDictionary<System.Net.IPAddress, ConnectionLimitInfo>();
         this._cleanupLock = new SemaphoreSlim(1, 1);
 
         // RunAsync cleanup timer with configured interval
@@ -121,13 +120,13 @@ public sealed class ConnectionLimiter : IDisposable
     /// <returns><c>true</c> if the connection is allowed; otherwise, <c>false</c>.</returns>
     /// <exception cref="ArgumentException">Thrown if endpoint is null or empty.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Boolean IsConnectionAllowed([NotNull] String endPoint)
+    public Boolean IsConnectionAllowed([NotNull] System.Net.IPAddress endPoint)
     {
         ObjectDisposedException.ThrowIf(this._disposed, this);
 
-        if (String.IsNullOrWhiteSpace(endPoint))
+        if (endPoint is null)
         {
-            throw new ArgumentException("EndPoint cannot be null or whitespace", nameof(endPoint));
+            throw new ArgumentException("EndPoint cannot be null", nameof(endPoint));
         }
 
         DateTime now = DateTime.UtcNow;
@@ -176,13 +175,13 @@ public sealed class ConnectionLimiter : IDisposable
     /// <returns>True if successfully marked as closed.</returns>
     /// <exception cref="ArgumentException">Thrown if endpoint is null or empty.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Boolean ConnectionClosed([NotNull] String endPoint)
+    public Boolean ConnectionClosed([NotNull] System.Net.IPAddress endPoint)
     {
         ObjectDisposedException.ThrowIf(this._disposed, this);
 
-        if (String.IsNullOrWhiteSpace(endPoint))
+        if (endPoint is null)
         {
-            throw new ArgumentException("EndPoint cannot be null or whitespace", nameof(endPoint));
+            throw new ArgumentException("EndPoint cannot be null", nameof(endPoint));
         }
 
         // Fast path if entry doesn't exist
@@ -212,13 +211,13 @@ public sealed class ConnectionLimiter : IDisposable
     /// <exception cref="ArgumentException">Thrown if endpoint is null or empty.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public (Int32 CurrentConnections, Int32 TotalToday, DateTime LastConnection) GetConnectionInfo(
-        [NotNull] String endPoint)
+        [NotNull] System.Net.IPAddress endPoint)
     {
         ObjectDisposedException.ThrowIf(this._disposed, this);
 
-        if (String.IsNullOrWhiteSpace(endPoint))
+        if (endPoint is null)
         {
-            throw new ArgumentException("EndPoint cannot be null or whitespace", nameof(endPoint));
+            throw new ArgumentException("EndPoint cannot be null", nameof(endPoint));
         }
 
         if (this._connectionInfo.TryGetValue(endPoint, out var stats))
@@ -236,13 +235,12 @@ public sealed class ConnectionLimiter : IDisposable
     /// </summary>
     /// <returns>Dictionary of IP addresses and their statistics.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Dictionary<String, (Int32 Current, Int32 Total)> GetAllConnections()
+    public Dictionary<System.Net.IPAddress, (Int32 Current, Int32 Total)> GetAllConnections()
     {
         ObjectDisposedException.ThrowIf(this._disposed, this);
 
         // Pre-allocate dictionary with capacity to avoid resizing
-        var result = new Dictionary<String, (Int32 Current, Int32 Total)>(
-            this._connectionInfo.Count, StringComparer.OrdinalIgnoreCase);
+        var result = new Dictionary<System.Net.IPAddress, (Int32 Current, Int32 Total)>(this._connectionInfo.Count);
 
         foreach (var kvp in this._connectionInfo)
         {
@@ -312,7 +310,7 @@ public sealed class ConnectionLimiter : IDisposable
             DateTime now = DateTime.UtcNow;
             DateTime cutoffTime = now.Subtract(this._inactivityThreshold);
 
-            List<String>? keysToRemove = null;
+            List<System.Net.IPAddress>? keysToRemove = null;
             Int32 processedCount = 0;
 
             // Process connections in batches for better performance
@@ -329,7 +327,9 @@ public sealed class ConnectionLimiter : IDisposable
                 // Remove only if there are no active connections and it's been inactive
                 if (info.CurrentConnections <= 0 && info.LastConnectionTime < cutoffTime)
                 {
-                    keysToRemove ??= new List<String>(Math.Min(EstimatedCollectionCapacity, this._connectionInfo.Count));
+                    keysToRemove ??= new List<System.Net.IPAddress>(
+                        Math.Min(EstimatedCollectionCapacity, this._connectionInfo.Count));
+
                     keysToRemove.Add(key);
 
                     this._logger?.Trace("Removed stale {0}", key);
@@ -341,7 +341,7 @@ public sealed class ConnectionLimiter : IDisposable
             // Remove entries in batch
             if (keysToRemove != null)
             {
-                foreach (String key in keysToRemove)
+                foreach (System.Net.IPAddress key in keysToRemove)
                 {
                     _ = this._connectionInfo.TryRemove(key, out _);
                 }

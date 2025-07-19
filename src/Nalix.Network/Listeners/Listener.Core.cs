@@ -30,7 +30,7 @@ public abstract partial class Listener : IListener, System.IDisposable
     internal static readonly SocketSettings Config;
 
     private readonly ILogger _logger;
-    private readonly System.Int32 _port;
+    private readonly System.UInt16 _port;
     private readonly IProtocol _protocol;
     private readonly IBufferPool _bufferPool;
     private readonly TimeSynchronizer _timeSyncWorker;
@@ -118,7 +118,7 @@ public abstract partial class Listener : IListener, System.IDisposable
             System.Net.Sockets.SocketOptionName.ReuseAddress,
             Config.ReuseAddress ? SocketSettings.True : SocketSettings.False);
 
-        System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, Config.Port);
+        System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, this._port);
         this._logger.Debug("[TCP] TCP socket bound to {0}", remote);
 
         // Bind and Listen
@@ -131,7 +131,9 @@ public abstract partial class Listener : IListener, System.IDisposable
             System.Int32 parallelismLevel = System.Environment.ProcessorCount * MinWorkerThreads;
             // Thread pool optimization for IOCP
             System.Threading.ThreadPool.GetMinThreads(out System.Int32 workerThreads, out System.Int32 completionPortThreads);
-            _ = System.Threading.ThreadPool.SetMinThreads(System.Math.Max(workerThreads, parallelismLevel), completionPortThreads);
+            _ = System.Threading.ThreadPool.SetMinThreads(
+                 System.Math.Max(workerThreads, parallelismLevel),
+                 System.Math.Max(completionPortThreads, parallelismLevel));
 
             System.Threading.ThreadPool.GetMinThreads(out var afterWorker, out var afterIOCP);
             this._logger.Info("SetMinThreads: worker={0}, IOCP={1}", afterWorker, afterIOCP);
@@ -146,6 +148,8 @@ public abstract partial class Listener : IListener, System.IDisposable
 
         _ = ObjectPoolManager.Instance.SetMaxCapacity<PooledAcceptContext>(1024);
         _ = ObjectPoolManager.Instance.SetMaxCapacity<PooledSocketAsyncEventArgs>(1024);
+
+        Config.Port = this._port;
     }
 
     /// <summary>
@@ -178,7 +182,9 @@ public abstract partial class Listener : IListener, System.IDisposable
     /// <summary>
     /// Disposes the resources used by the listener.
     /// </summary>
-    /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
+    /// <param name="disposing">
+    /// true to release both managed and unmanaged resources; false to release only unmanaged resources.
+    /// </param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual void Dispose(System.Boolean disposing)
