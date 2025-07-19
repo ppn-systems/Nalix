@@ -7,27 +7,27 @@
 		<OutputType>Library</OutputType>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-		<Version>1.7.0</Version>
-		<PackageVersion>1.7.0</PackageVersion>
+		<Version>2.1.7</Version>
+		<PackageVersion>2.1.7</PackageVersion>
 
-    <Description>
+        <Description>
 Nalix.Shared is a .NET library that provides shared utilities and configurations across Notio components. It includes dependency injection, localization (L10N), memory management, time utilities, and configuration handling to ensure consistency and reusability across multiple projects.
-    </Description>
+        </Description>
 
-    <PackageReleaseNotes>
-      - Initial release of Nalix.Shared.
-      - Features include:
-      • Configuration management for shared settings.
-      • Dependency injection (DI) utilities for modular applications.
-      • Localization (L10N) support for multi-language projects.
-      • Memory utilities for efficient resource handling.
-      • Time-related utilities for date and time management.
-    </PackageReleaseNotes>
+        <PackageReleaseNotes>
+			- Initial release of Nalix.Shared.
+			- Features include:
+			• Configuration management for shared settings.
+			• Dependency injection (DI) utilities for modular applications.
+			• Localization (L10N) support for multi-language projects.
+			• Memory utilities for efficient resource handling.
+			• Time-related utilities for date and time management.
+        </PackageReleaseNotes>
   
-</PropertyGroup>
+    </PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />
-  <Import Project="..\Package.Build.props" />
+    <Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
         <ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />

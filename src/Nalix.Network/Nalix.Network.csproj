@@ -5,29 +5,28 @@
 		<IsPackable>true</IsPackable>
 		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
-
-		<Version>1.7.0</Version>
-		<PackageVersion>1.7.0</PackageVersion>
-    
-    <Description>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		
+		<Version>2.1.7</Version>
+		<PackageVersion>2.1.7</PackageVersion>
+		
+		<Description>
 Nalix.Network is a high-performance .NET library for network communication. It provides essential components for connection management, protocol handling, transport layers, and event-driven network listeners. Designed for developers building scalable and efficient networking applications.
-    </Description>
+		</Description>
 
-    <PackageReleaseNotes>
-      - Initial release of Nalix.Network.
-      - Features include:
-      • Connection management for reliable client-server communication.
-      • Custom protocol handling for flexible network interactions.
-      • Event-driven listeners for efficient request processing.
-      • Transport layer abstractions for optimized data transmission.
-      • Scalable architecture for high-performance networking applications.
-    </PackageReleaseNotes>
-
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<PackageReleaseNotes>
+		  - Initial release of Nalix.Network.
+		  - Features include:
+		  • Connection management for reliable client-server communication.
+		  • Custom protocol handling for flexible network interactions.
+		  • Event-driven listeners for efficient request processing.
+		  • Transport layer abstractions for optimized data transmission.
+		  • Scalable architecture for high-performance networking applications.
+		</PackageReleaseNotes>
 	</PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />
-  <Import Project="..\Package.Build.props" />
+	<Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
 		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />

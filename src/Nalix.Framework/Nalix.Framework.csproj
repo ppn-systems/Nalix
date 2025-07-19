@@ -6,6 +6,9 @@
 		<IsTrimmable>false</IsTrimmable>
 		<OutputType>Library</OutputType>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+		<Version>2.1.7</Version>
+		<PackageVersion>2.1.7</PackageVersion>
 	</PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />

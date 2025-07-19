@@ -65,7 +65,7 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     {
         // Register pool for PacketContext<TPacket>
         _ = ObjectPoolManager.Instance.Prealloc<PacketContext<TPacket>>(64);
-        _ = ObjectPoolManager.Instance.SetMaxCapacity<PacketContext<TPacket>>(1000);
+        _ = ObjectPoolManager.Instance.SetMaxCapacity<PacketContext<TPacket>>(1024);
     }
 
 
