@@ -1,7 +1,6 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Logging;
 using Nalix.Network.Configurations;
-using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Internal;
 using Nalix.Network.Protocols;
 using Nalix.Network.Security.Guard;
@@ -142,9 +141,11 @@ public abstract partial class Listener : IListener, System.IDisposable
 
         this._timeSyncWorker.TimeSynchronized += this.SynchronizeTime;
 
-        _ = ObjectPoolManager.Instance.Prealloc<PacketContext<PooledSocketAsyncContext>>(60);
         _ = ObjectPoolManager.Instance.Prealloc<PooledSocketAsyncEventArgs>(30);
         _ = ObjectPoolManager.Instance.Prealloc<PooledAcceptContext>(30);
+
+        _ = ObjectPoolManager.Instance.SetMaxCapacity<PooledAcceptContext>(64);
+        _ = ObjectPoolManager.Instance.SetMaxCapacity<PooledSocketAsyncEventArgs>(Config.MaxConcurrentConnections);
     }
 
     /// <summary>
