@@ -15,13 +15,13 @@ Nalix.Network is a high-performance .NET library for network communication. It p
 		</Description>
 
 		<PackageReleaseNotes>
-		  - Initial release of Nalix.Network.
-		  - Features include:
-		  • Connection management for reliable client-server communication.
-		  • Custom protocol handling for flexible network interactions.
-		  • Event-driven listeners for efficient request processing.
-		  • Transport layer abstractions for optimized data transmission.
-		  • Scalable architecture for high-performance networking applications.
+			- Initial release of Nalix.Network.
+			- Features include:
+			• Connection management for reliable client-server communication.
+			• Custom protocol handling for flexible network interactions.
+			• Event-driven listeners for efficient request processing.
+			• Transport layer abstractions for optimized data transmission.
+			• Scalable architecture for high-performance networking applications.
 		</PackageReleaseNotes>
 	</PropertyGroup>
 

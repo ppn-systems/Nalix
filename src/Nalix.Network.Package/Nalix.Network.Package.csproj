@@ -15,13 +15,13 @@ Nalix.Network.Package is a lightweight .NET library for structured packet-based 
         </Description>
 
         <PackageReleaseNotes>
-          - Initial release of Nalix.Network.Package.
-          - Features include:
-          • Packet serialization and deserialization utilities.
-          • Metadata handling for structured network messages.
-          • Helper functions for efficient packet management.
-          • Extensions to enhance networking capabilities.
-          • Lightweight and high-performance architecture.
+			- Initial release of Nalix.Network.Package.
+			- Features include:
+			• Packet serialization and deserialization utilities.
+			• Metadata handling for structured network messages.
+			• Helper functions for efficient packet management.
+			• Extensions to enhance networking capabilities.
+			• Lightweight and high-performance architecture.
         </PackageReleaseNotes>
 	
     </PropertyGroup>
