@@ -11,14 +11,9 @@ internal sealed class PooledAcceptContext : IPoolable
             System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket> tcs =
                 (System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>)e.UserToken!;
 
-            if (e.SocketError == System.Net.Sockets.SocketError.Success)
-            {
-                _ = tcs.TrySetResult(e.AcceptSocket!);
-            }
-            else
-            {
-                _ = tcs.TrySetException(new System.Net.Sockets.SocketException((System.Int32)e.SocketError));
-            }
+            _ = e.SocketError == System.Net.Sockets.SocketError.Success
+                ? tcs.TrySetResult(e.AcceptSocket!)
+                : tcs.TrySetException(new System.Net.Sockets.SocketException((System.Int32)e.SocketError));
         };
 
     public System.Net.Sockets.SocketAsyncEventArgs Args;

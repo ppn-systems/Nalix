@@ -6,7 +6,7 @@ namespace Nalix.Shared.LZ4.Encoders;
 /// Provides methods for compressing data using the LZ4 greedy compression algorithm.
 /// This encoder is designed to achieve high performance and efficient compression.
 /// </summary>
-public static unsafe class LZ4Encoder
+public static unsafe class LZ4BlockCompressor
 {
     /// <summary>
     /// Calculates the maximum compressed length for a given input size.

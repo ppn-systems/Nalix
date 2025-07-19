@@ -1,3 +1,4 @@
+using Nalix.Shared.LZ4.Encoders;
 using Nalix.Shared.LZ4.Engine;
 
 namespace Nalix.Shared.LZ4;
@@ -6,7 +7,7 @@ namespace Nalix.Shared.LZ4;
 /// Provides high-performance methods for compressing and decompressing data using the Nalix LZ4 algorithm.
 /// This class is static-like and designed for zero-allocation workflows.
 /// </summary>
-public class LZ4Codec
+public static class LZ4Codec
 {
     /// <summary>
     /// Compresses the input data into the specified output buffer.
@@ -31,6 +32,20 @@ public class LZ4Codec
         => LZ4Encoder.Encode(System.MemoryExtensions.AsSpan(input), System.MemoryExtensions.AsSpan(output));
 
     /// <summary>
+    /// Compresses the input byte array into the specified output byte array.
+    /// </summary>
+    /// <param name="input">The input byte array to compress.</param>
+    /// <returns>The number of bytes written to the output array.</returns>
+    public static System.Byte[] Encode(System.ReadOnlySpan<System.Byte> input)
+    {
+        System.Int32 maxOutputSize = LZ4BlockCompressor.GetMaxLength(input.Length);
+        System.Byte[] buffer = new System.Byte[maxOutputSize];
+        System.Int32 written = Encode(input, buffer);
+
+        return written < 0 ? throw new System.InvalidOperationException("Compression failed.") : buffer[..written];
+    }
+
+    /// <summary>
     /// Decompresses the input compressed data into the specified output buffer.
     /// </summary>
     /// <param name="input">The compressed input data, including header information.</param>
@@ -38,7 +53,9 @@ public class LZ4Codec
     /// <returns>The number of bytes written to the output buffer, or -1 if decompression fails.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 Decode(System.ReadOnlySpan<System.Byte> input, System.Span<System.Byte> output)
+    public static System.Int32 Decode(
+        System.ReadOnlySpan<System.Byte> input,
+        System.Span<System.Byte> output)
         => LZ4Decoder.Decode(input, output);
 
     /// <summary>
