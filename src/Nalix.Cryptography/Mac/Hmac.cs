@@ -17,17 +17,17 @@ public sealed class Hmac : System.IDisposable
 {
     #region Constants
 
-    private const System.Int32 Sha1BlockSize = 64;
-    private const System.Int32 Sha1HashSize = 20;
+    private const System.Byte Sha1BlockSize = 64;
+    private const System.Byte Sha1HashSize = 20;
 
-    private const System.Int32 Sha224BlockSize = 64;
-    private const System.Int32 Sha224HashSize = 28;
+    private const System.Byte Sha224BlockSize = 64;
+    private const System.Byte Sha224HashSize = 28;
 
-    private const System.Int32 Sha256BlockSize = 64;
-    private const System.Int32 Sha256HashSize = 32;
+    private const System.Byte Sha256BlockSize = 64;
+    private const System.Byte Sha256HashSize = 32;
 
-    private const System.Int32 Sha384BlockSize = 128;
-    private const System.Int32 Sha384HashSize = 48;
+    private const System.Byte Sha384BlockSize = 128;
+    private const System.Byte Sha384HashSize = 48;
 
     private const System.Byte OuterPadValue = 0x5C;
     private const System.Byte InnerPadValue = 0x36;
@@ -54,7 +54,9 @@ public sealed class Hmac : System.IDisposable
     /// <param name="algorithm">The hash algorithm to use.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when the key is null.</exception>
     /// <exception cref="System.ArgumentException">Thrown when the key is empty.</exception>
-    public Hmac(System.ReadOnlySpan<System.Byte> key, HashAlgorithmType algorithm = HashAlgorithmType.Sha256)
+    public Hmac(
+        System.ReadOnlySpan<System.Byte> key,
+        HashAlgorithmType algorithm = HashAlgorithmType.Sha256)
     {
         if (key.IsEmpty)
         {
@@ -138,7 +140,9 @@ public sealed class Hmac : System.IDisposable
     /// This method uses time-constant comparison to prevent timing attacks (tấn công thời gian).
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public System.Boolean VerifyHash(System.ReadOnlySpan<System.Byte> data, System.ReadOnlySpan<System.Byte> expectedHmac)
+    public System.Boolean VerifyHash(
+        System.ReadOnlySpan<System.Byte> data,
+        System.ReadOnlySpan<System.Byte> expectedHmac)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -211,7 +215,9 @@ public sealed class Hmac : System.IDisposable
         "Usage", "CA2208:Instantiate argument exceptions correctly", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    private System.Byte[] ComputeInnerHash(System.Byte[] innerKeyPad, System.ReadOnlySpan<System.Byte> data)
+    private System.Byte[] ComputeInnerHash(
+        System.Byte[] innerKeyPad,
+        System.ReadOnlySpan<System.Byte> data)
     {
         switch (_algorithm)
         {
@@ -260,7 +266,9 @@ public sealed class Hmac : System.IDisposable
         "Usage", "CA2208:Instantiate argument exceptions correctly", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    private System.Byte[] ComputeOuterHash(System.Byte[] outerKeyPad, System.Byte[] innerHash)
+    private System.Byte[] ComputeOuterHash(
+        System.Byte[] outerKeyPad,
+        System.Byte[] innerHash)
     {
         switch (_algorithm)
         {
