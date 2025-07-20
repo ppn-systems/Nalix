@@ -155,6 +155,12 @@ public abstract partial class Listener
         {
             System.Net.Sockets.Socket socket;
 
+            if (this._listener == null)
+            {
+                ObjectPoolManager.Instance.Return<PooledAcceptContext>(context);
+                throw new System.InvalidOperationException("Listener socket is not initialized.");
+            }
+
             if (!this._listener.AcceptAsync(context.Args))
             {
                 socket = context.Args.AcceptSocket!;

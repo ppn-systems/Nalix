@@ -20,7 +20,9 @@ public abstract partial class Listener : ISnapshot<ListenerSnapshot>
             Port = Config.Port,
             IsDisposed = this._isDisposed,
             IsListening = this.IsListening,
-            Address = ListenerSnapshot.GetIpAddress(this._listener),
-            SocketInfo = ListenerSnapshot.GetSocketStatus(this._listener)
+            Address = ListenerSnapshot.GetIpAddress(this._listener
+                ?? throw new System.InvalidOperationException("Listener socket is not initialized.")),
+            SocketInfo = ListenerSnapshot.GetSocketStatus(this._listener
+                ?? throw new System.InvalidOperationException("Listener socket is not initialized."))
         };
 }
