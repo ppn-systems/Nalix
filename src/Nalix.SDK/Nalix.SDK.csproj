@@ -4,6 +4,7 @@
 		<IsPackable>true</IsPackable>
 		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
+		<Deterministic>true</Deterministic>
 
 		<Version>2.1.7</Version>
 		<PackageVersion>2.1.7</PackageVersion>
