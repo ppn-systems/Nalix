@@ -1,6 +1,5 @@
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Time;
-using System.Net.Sockets;
 
 namespace Nalix.Network.Listeners;
 
@@ -40,7 +39,7 @@ public abstract partial class Listener
             {
                 try
                 {
-                    this._listener?.Close();
+                    this._listener.Shutdown(System.Net.Sockets.SocketShutdown.Both);
                 }
                 catch { }
             });
@@ -57,7 +56,8 @@ public abstract partial class Listener
 
                 for (System.Int32 i = 0; i < Config.MaxParallel; i++)
                 {
-                    System.Threading.Tasks.Task acceptTask = this.AcceptConnectionsAsync(linkedToken)
+                    System.Threading.Tasks.Task acceptTask = this
+                        .AcceptConnectionsAsync(linkedToken)
                         .ContinueWith(t =>
                         {
                             if (t.IsFaulted && !linkedToken.IsCancellationRequested)
@@ -69,7 +69,8 @@ public abstract partial class Listener
                     tasks.Add(acceptTask);
                 }
 
-                await System.Threading.Tasks.Task.WhenAll(tasks).ConfigureAwait(false);
+                await System.Threading.Tasks.Task.WhenAll(tasks)
+                                                 .ConfigureAwait(false);
             }
             finally
             {
@@ -99,7 +100,7 @@ public abstract partial class Listener
 
                     if (this._listener != null)
                     {
-                        this._listener.Close();
+                        this._listener.Shutdown(System.Net.Sockets.SocketShutdown.Both);
                         await System.Threading.Tasks.Task.Delay(200, cancellationToken)
                                                          .ConfigureAwait(false);
                     }
@@ -131,7 +132,7 @@ public abstract partial class Listener
             // Close the socket listener to deactivate the accept
             if (this._isRunning)
             {
-                this._listener.Shutdown(SocketShutdown.Both);
+                this._listener.Shutdown(System.Net.Sockets.SocketShutdown.Both);
                 this._logger.Info($"[TCP] Listener on {Config.Port} stopped");
             }
         }
