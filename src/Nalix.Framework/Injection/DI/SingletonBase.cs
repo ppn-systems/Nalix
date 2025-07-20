@@ -16,10 +16,10 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
 
     // Lazy with full publication safety.
     private static readonly System.Lazy<T> s_instance =
-        new(valueFactory: CreateInstanceInternal, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
+        new(valueFactory: CREATE_INSTANCE_INTERNAL, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
     // Compiled .ctor delegate (private/protected allowed) – built once per closed generic.
-    private static readonly System.Func<T> s_ctor = CreateCtor();
+    private static readonly System.Func<T> s_ctor = CREATE_CONSTRUCTORS();
 
     // 0 = not disposed, 1 = disposed
     private System.Int32 _disposed;
@@ -98,7 +98,7 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static T CreateInstanceInternal()
+    private static T CREATE_INSTANCE_INTERNAL()
     {
         try
         {
@@ -118,7 +118,7 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Func<T> CreateCtor()
+    private static System.Func<T> CREATE_CONSTRUCTORS()
     {
         const System.Reflection.BindingFlags Flags =
             System.Reflection.BindingFlags.Instance |

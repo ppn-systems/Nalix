@@ -22,7 +22,7 @@ namespace Nalix.Framework.Random.Core;
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Diagnostics.DebuggerDisplay("OsRandom (NOT CSPRNG)")]
-public static class OsRandom
+internal static class OsRandom
 {
     #region Fields
 

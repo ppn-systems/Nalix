@@ -9,7 +9,7 @@ public abstract partial class TcpListenerBase
 {
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void Initialize()
     {
         if (Config.EnableIPv6)
