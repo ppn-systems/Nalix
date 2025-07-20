@@ -5,6 +5,7 @@
 		<IsPackable>true</IsPackable>
 		<IsTrimmable>false</IsTrimmable>
 		<OutputType>Library</OutputType>
+		<Deterministic>true</Deterministic>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<Version>2.1.7</Version>

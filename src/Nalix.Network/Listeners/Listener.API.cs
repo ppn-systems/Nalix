@@ -33,6 +33,8 @@ public abstract partial class Listener
 
             this._cts?.Dispose();
             this._cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            this._cancellationToken = this._cts.Token;
+
             System.Threading.CancellationToken linkedToken = this._cts.Token;
 
             using var registration = linkedToken.Register(() =>
