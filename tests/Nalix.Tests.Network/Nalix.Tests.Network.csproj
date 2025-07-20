@@ -18,15 +18,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Nalix">
-      <HintPath>..\..\build\bin\Debug\net9.0\Nalix.dll</HintPath>
-    </Reference>
     <Reference Include="Nalix.Common">
       <HintPath>..\..\build\bin\Debug\net9.0\Nalix.Common.dll</HintPath>
     </Reference>
-    <Reference Include="Nalix.Common">
-      <HintPath>..\..\build\bin\Debug\net9.0\Nalix.Common.dll</HintPath>
-    </Reference>
+	  <Reference Include="Nalix.Framework">
+		  <HintPath>..\..\build\bin\Debug\net9.0\Nalix.Framework.dll</HintPath>
+	  </Reference>
     <Reference Include="Nalix.Network">
       <HintPath>..\..\build\bin\Debug\net9.0\Nalix.Network.dll</HintPath>
     </Reference>
@@ -36,6 +33,9 @@
 	<Reference Include="Nalix.Shared">
 		<HintPath>..\..\build\bin\Debug\net9.0\Nalix.Shared.dll</HintPath>
 	</Reference>
+	  <Reference Include="Nalix.Logging">
+		  <HintPath>..\..\build\bin\Debug\net9.0\Nalix.Logging.dll</HintPath>
+	  </Reference>
   </ItemGroup>
 
 </Project>
