@@ -11,7 +11,7 @@ public abstract partial class Listener
     /// </summary>
     /// <param name="cancellationToken">A <see cref="System.Threading.CancellationToken"/> to cancel the listening process.</param>
     public async System.Threading.Tasks.Task StartListeningAsync(
-    System.Threading.CancellationToken cancellationToken = default)
+        System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
 
@@ -49,10 +49,10 @@ public abstract partial class Listener
             {
                 this._logger.Info("[TCP] {0} listening on port {1}", this._protocol, Config.Port);
 
-                var tasks = new System.Collections.Generic.List<System.Threading.Tasks.Task>
-                    {
-                        this._timeSyncWorker.RunAsync(linkedToken)
-                    };
+                System.Collections.Generic.List<System.Threading.Tasks.Task> tasks =
+                [
+                    this._timeSyncWorker.RunAsync(linkedToken)
+                ];
 
                 for (System.Int32 i = 0; i < Config.MaxParallel; i++)
                 {
@@ -89,7 +89,30 @@ public abstract partial class Listener
         }
         finally
         {
-            await this.ShutdownAsync().ConfigureAwait(false);
+            if (this._isRunning)
+            {
+                try
+                {
+                    this._isRunning = false;
+                    this._cts?.Cancel();
+
+                    if (this._listener != null)
+                    {
+                        this._listener.Close();
+                        await System.Threading.Tasks.Task.Delay(200, cancellationToken)
+                                                         .ConfigureAwait(false);
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    this._logger.Error("[TCP] Error during shutdown: {0}", ex.Message);
+                }
+                finally
+                {
+                    this._cts?.Dispose();
+                    this._cts = null;
+                }
+            }
         }
     }
 
@@ -125,34 +148,4 @@ public abstract partial class Listener
     /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
     public virtual void SynchronizeTime(System.Int64 milliseconds)
     { }
-
-    private async System.Threading.Tasks.Task ShutdownAsync()
-    {
-        if (!this._isRunning)
-        {
-            return;
-        }
-
-        try
-        {
-            this._isRunning = false;
-            this._cts?.Cancel();
-
-            if (this._listener != null)
-            {
-                this._listener.Close();
-                await System.Threading.Tasks.Task.Delay(200).ConfigureAwait(false);
-            }
-        }
-        catch (System.Exception ex)
-        {
-            this._logger.Error("[TCP] Error during shutdown: {0}", ex.Message);
-        }
-        finally
-        {
-            this._cts?.Dispose();
-            this._cts = null;
-        }
-    }
-
 }
