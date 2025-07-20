@@ -35,10 +35,11 @@ public abstract partial class Listener : IListener, System.IDisposable
     private readonly IBufferPool _bufferPool;
     private readonly TimeSynchronizer _timeSyncWorker;
     private readonly System.Threading.Lock _socketLock;
-    private readonly System.Net.Sockets.Socket _listener;
+
     private readonly System.Threading.SemaphoreSlim _lock;
     private readonly ConnectionLimiter _connectionLimiter;
 
+    private System.Net.Sockets.Socket? _listener;
     private System.Threading.CancellationTokenSource? _cts;
     private System.Threading.CancellationToken _cancellationToken;
 
@@ -100,33 +101,7 @@ public abstract partial class Listener : IListener, System.IDisposable
         this._socketLock = new();
         this._lock = new System.Threading.SemaphoreSlim(1, 1);
 
-        // Create the optimal socket listener.
-        this._listener = new System.Net.Sockets.Socket(
-            System.Net.Sockets.AddressFamily.InterNetwork,
-            System.Net.Sockets.SocketType.Stream,
-            System.Net.Sockets.ProtocolType.Tcp)
-        {
-            ExclusiveAddressUse = !Config.ReuseAddress,
-            // No need for LingerState if not close soon
-            LingerState = new System.Net.Sockets.LingerOption(true, SocketSettings.False)
-        };
 
-        // Increase the queue size on the socket listener.
-        this._listener.SetSocketOption(
-            System.Net.Sockets.SocketOptionLevel.Socket,
-            System.Net.Sockets.SocketOptionName.ReceiveBuffer, Config.BufferSize);
-
-        this._listener.SetSocketOption(
-            System.Net.Sockets.SocketOptionLevel.Socket,
-            System.Net.Sockets.SocketOptionName.ReuseAddress,
-            Config.ReuseAddress ? SocketSettings.True : SocketSettings.False);
-
-        System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, this._port);
-        this._logger.Debug("[TCP] TCP socket bound to {0}", remote);
-
-        // Bind and Listen
-        this._listener.Bind(remote);
-        this._listener.Listen(SocketBacklog);
 
         // Optimized for _udpListener.IOControlCode on Windows
         if (Config.IsWindows)
@@ -204,8 +179,8 @@ public abstract partial class Listener : IListener, System.IDisposable
 
             try
             {
-                this._listener.Close();
-                this._listener.Dispose();
+                this._listener?.Close();
+                this._listener?.Dispose();
             }
             catch { }
 
@@ -217,4 +192,35 @@ public abstract partial class Listener : IListener, System.IDisposable
     }
 
     #endregion IDispose
+
+    private void CreateSocketListener()
+    {
+        // Create the optimal socket listener.
+        this._listener = new System.Net.Sockets.Socket(
+            System.Net.Sockets.AddressFamily.InterNetwork,
+            System.Net.Sockets.SocketType.Stream,
+            System.Net.Sockets.ProtocolType.Tcp)
+        {
+            ExclusiveAddressUse = !Config.ReuseAddress,
+            // No need for LingerState if not close soon
+            LingerState = new System.Net.Sockets.LingerOption(true, SocketSettings.False)
+        };
+
+        // Increase the queue size on the socket listener.
+        this._listener.SetSocketOption(
+            System.Net.Sockets.SocketOptionLevel.Socket,
+            System.Net.Sockets.SocketOptionName.ReceiveBuffer, Config.BufferSize);
+
+        this._listener.SetSocketOption(
+            System.Net.Sockets.SocketOptionLevel.Socket,
+            System.Net.Sockets.SocketOptionName.ReuseAddress,
+            Config.ReuseAddress ? SocketSettings.True : SocketSettings.False);
+
+        System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, this._port);
+        this._logger.Debug("[TCP] TCP socket bound to {0}", remote);
+
+        // Bind and Listen
+        this._listener.Bind(remote);
+        this._listener.Listen(SocketBacklog);
+    }
 }
