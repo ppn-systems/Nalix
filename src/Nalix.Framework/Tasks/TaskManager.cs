@@ -634,24 +634,54 @@ public sealed partial class TaskManager : ITaskManager
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public System.String GenerateReport()
     {
-        System.Text.StringBuilder sb = new(1024);
+        System.Text.StringBuilder sb = new(2048);
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TaskManager:");
         _ = sb.AppendLine($"Recurring: {_recurring.Count} | Workers: {_workers.Count} (running={COUNT_RUNNING_WORKERS()})");
         _ = sb.AppendLine();
 
         // ========== CPU Monitoring Section ==========
         _ = sb.AppendLine("---------------------------------------------------------------------");
-        _ = sb.AppendLine("CPU Monitoring");
-        _ = sb.AppendLine($"Dynamic Adjustment Enabled : {_options.DynamicAdjustmentEnabled}");
-        _ = sb.AppendLine($"Current Concurrency Limit  : {_currentConcurrencyLimit}/{_options.MaxWorkers}");
-        _ = sb.AppendLine($"High CPU Threshold         : {_options.ThresholdHighCpu:F1}%");
-        _ = sb.AppendLine($"Low CPU Threshold          : {_options.ThresholdLowCpu:F1}%");
-        _ = sb.AppendLine($"Observing Interval         : {_options.ObservingInterval.TotalSeconds:F1}s");
+        _ = sb.AppendLine("CPU Monitoring:");
+        _ = sb.AppendLine($"Dynamic Adjustment Enabled       : {_options.DynamicAdjustmentEnabled}");
+        _ = sb.AppendLine($"Current Concurrency Limit         : {_currentConcurrencyLimit}/{_options.MaxWorkers}");
+        _ = sb.AppendLine($"High CPU Threshold                : {_options.ThresholdHighCpu:F1}%");
+        _ = sb.AppendLine($"Low CPU Threshold                 : {_options.ThresholdLowCpu:F1}%");
+        _ = sb.AppendLine($"Observing Interval                : {_options.ObservingInterval.TotalSeconds:F1}s");
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine();
 
+        // ========== Memory Monitoring usage ==========
+        try
+        {
+            System.Diagnostics.Process proc = System.Diagnostics.Process.GetCurrentProcess();
+            proc.Refresh();
+
+            System.Int64 workingSetMB = proc.WorkingSet64 / (1024 * 1024);
+            System.Int64 privateMB = proc.PrivateMemorySize64 / (1024 * 1024);
+            System.Int64 virtualMB = proc.VirtualMemorySize64 / (1024 * 1024);
+
+            _ = sb.AppendLine("---------------------------------------------------------------------");
+            _ = sb.AppendLine($"Memory Usage:");
+            _ = sb.AppendLine($"Working Set                       : {workingSetMB,6:N0} MB");
+            _ = sb.AppendLine($"Private Bytes                     : {privateMB,6:N0} MB");
+            _ = sb.AppendLine($"Virtual Memory                    : {virtualMB,6:N0} MB");
+            _ = sb.AppendLine("---------------------------------------------------------------------");
+            _ = sb.AppendLine();
+
+            _ = sb.AppendLine("Process Health:");
+            _ = sb.AppendLine("---------------------------------------------------------------------");
+            _ = sb.AppendLine($"Threads                           : {proc.Threads.Count} (running: {proc.Threads.Cast<System.Diagnostics.ProcessThread>().Count(t => t.ThreadState == System.Diagnostics.ThreadState.Running)})");
+            _ = sb.AppendLine($"Handles                           : {proc.HandleCount:N0}");
+            _ = sb.AppendLine($"GC Collections                    : Gen0={System.GC.CollectionCount(0):N0} | Gen1={System.GC.CollectionCount(1):N0} | Gen2={System.GC.CollectionCount(2):N0}");
+            _ = sb.AppendLine($"Managed Heap                      : {System.GC.GetTotalMemory(false) / 1048576:N0} MB");
+            _ = sb.AppendLine($"Uptime                            : {(System.DateTimeOffset.UtcNow - proc.StartTime.ToUniversalTime()).TotalDays:F1} days ({proc.StartTime:yyyy-MM-dd HH:mm:ss} UTC)");
+            _ = sb.AppendLine("---------------------------------------------------------------------");
+            _ = sb.AppendLine();
+        }
+        catch { /* best effort, ignore any exceptions from diagnostics */ }
+
         _ = sb.AppendLine("---------------------------------------------------------------------");
-        _ = sb.AppendLine("Monitoring Statistics");
+        _ = sb.AppendLine("Monitoring Statistics:");
         _ = sb.AppendLine($"Worker Execution Count            : {_workerExecutionCount}");
         _ = sb.AppendLine($"Average Worker Execution Time     : {AverageWorkerExecutionTime:F2} ms");
         _ = sb.AppendLine($"Worker Error Count                : {WorkerErrorCount}");
