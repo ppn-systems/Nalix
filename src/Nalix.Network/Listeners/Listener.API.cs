@@ -1,5 +1,6 @@
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Time;
+using System.Net.Sockets;
 
 namespace Nalix.Network.Listeners;
 
@@ -130,7 +131,7 @@ public abstract partial class Listener
             // Close the socket listener to deactivate the accept
             if (this._isRunning)
             {
-                this._listener.Close();
+                this._listener.Shutdown(SocketShutdown.Both);
                 this._logger.Info($"[TCP] Listener on {Config.Port} stopped");
             }
         }

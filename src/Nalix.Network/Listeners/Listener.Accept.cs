@@ -172,7 +172,8 @@ public abstract partial class Listener
             }
 
             // Wait async accept:
-            socket = await context.PrepareAsync().ConfigureAwait(false);
+            socket = await context.PrepareAsync()
+                                  .ConfigureAwait(false);
 
             if (!this._connectionLimiter.IsConnectionAllowed(
                 ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
@@ -221,18 +222,25 @@ public abstract partial class Listener
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void AcceptNext(System.Net.Sockets.SocketAsyncEventArgs args)
     {
-        while (!this._cancellationToken.IsCancellationRequested)
+        while (!this._cancellationToken.IsCancellationRequested && this._listener?.IsBound == true)
         {
             try
             {
-                // Try accepting the connection asynchronously
-                if (this._listener.AcceptAsync(args))
+                if (this._listener.IsBound)
+                {
+                    // Try accepting the connection asynchronously
+                    if (this._listener.AcceptAsync(args))
+                    {
+                        break;
+                    }
+
+                    // If the connection has been received synchronously, process it immediately.
+                    this.HandleAccept(args);
+                }
+                else
                 {
                     break;
                 }
-
-                // If the connection has been received synchronously, process it immediately.
-                this.HandleAccept(args);
             }
             catch (System.Net.Sockets.SocketException ex) when (
                 ex.SocketErrorCode is System.Net.Sockets.SocketError.Interrupted or
@@ -313,6 +321,12 @@ public abstract partial class Listener
 
     private void SafeCloseSocket(System.Net.Sockets.Socket socket)
     {
+        try
+        {
+            socket?.Shutdown(System.Net.Sockets.SocketShutdown.Both);
+        }
+        catch { }
+
         try
         {
             socket?.Close();
