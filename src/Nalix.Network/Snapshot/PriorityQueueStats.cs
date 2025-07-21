@@ -3,7 +3,7 @@ namespace Nalix.Network.Snapshot;
 /// <summary>
 /// Represents statistical information about the state and usage of a priority packet queue.
 /// </summary>
-public record PriorityQueueSnapshot
+public record PriorityQueueStats
 {
     /// <summary>
     /// Gets the total number of packets that have been enqueued since the queue was created.
