@@ -5,7 +5,7 @@ namespace Nalix.Network.Snapshot;
 /// <summary>
 /// Provides detailed statistics and performance metrics for a priority-based packet queue.
 /// </summary>
-public record PacketSnapshot
+public record PacketStats
 {
     /// <summary>
     /// Gets the total number of packets currently in the queue across all priority levels.
@@ -20,5 +20,5 @@ public record PacketSnapshot
     /// <summary>
     /// Gets the per-priority level statistics, grouped by <see cref="PacketPriority"/>.
     /// </summary>
-    public System.Collections.Generic.Dictionary<PacketPriority, PriorityQueueSnapshot> PerPriorityStats { get; init; } = [];
+    public System.Collections.Generic.Dictionary<PacketPriority, PriorityQueueStats> PerPriorityStats { get; init; } = [];
 }

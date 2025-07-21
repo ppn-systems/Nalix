@@ -3,7 +3,7 @@ namespace Nalix.Network.Snapshot;
 /// <summary>
 /// Represents immutable statistics for a network protocol.
 /// </summary>
-public record ProtocolSnapshot
+public record ProtocolStats
 {
     /// <summary>
     /// Gets a value indicating whether the protocol is currently accepting connections.

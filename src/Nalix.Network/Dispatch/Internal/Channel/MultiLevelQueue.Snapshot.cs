@@ -5,7 +5,7 @@ using Nalix.Network.Snapshot;
 
 namespace Nalix.Network.Dispatch.Internal.Channel;
 
-internal sealed partial class MultiLevelQueue<TPacket> : ISnapshot<PacketSnapshot> where TPacket : IPacket
+internal sealed partial class MultiLevelQueue<TPacket> : ISnapshot<PacketStats> where TPacket : IPacket
 {
     #region Properties
 
@@ -72,7 +72,7 @@ internal sealed partial class MultiLevelQueue<TPacket> : ISnapshot<PacketSnapsho
     /// packet counts by priority level, average processing time, and uptime.
     /// </summary>
     /// <returns>
-    /// A <see cref="PacketSnapshot"/> object containing the current queue statistics:
+    /// A <see cref="PacketStats"/> object containing the current queue statistics:
     /// - TotalPendingPackets: Total number of packets currently in the queue.
     /// - PerPriorityStats: A dictionary containing the count of packets for each priority level.
     /// - AvgProcessingTimeMs: The average time (in milliseconds) taken to process a packet.
@@ -85,20 +85,20 @@ internal sealed partial class MultiLevelQueue<TPacket> : ISnapshot<PacketSnapsho
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public PacketSnapshot GetSnapshot()
+    public PacketStats GetSnapshot()
     {
         if (!this._options.EnableMetrics)
         {
-            return new PacketSnapshot();
+            return new PacketStats();
         }
 
-        System.Collections.Generic.Dictionary<PacketPriority, PriorityQueueSnapshot> stats = [];
+        System.Collections.Generic.Dictionary<PacketPriority, PriorityQueueStats> stats = [];
 
         this.CollectStatisticsInternal(stats);
 
         System.Single avgProcessingMs = 0;
 
-        return new PacketSnapshot
+        return new PacketStats
         {
             TotalPendingPackets = this.Count,
             PerPriorityStats = stats,
@@ -129,12 +129,12 @@ internal sealed partial class MultiLevelQueue<TPacket> : ISnapshot<PacketSnapsho
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void CollectStatisticsInternal(
-        System.Collections.Generic.Dictionary<PacketPriority, PriorityQueueSnapshot> stats)
+        System.Collections.Generic.Dictionary<PacketPriority, PriorityQueueStats> stats)
     {
         for (System.Int32 i = 0; i < this._priorityCount; i++)
         {
             stats[(PacketPriority)i] = this._options.EnableMetrics
-                ? new PriorityQueueSnapshot
+                ? new PriorityQueueStats
                 {
                     PendingPackets = System.Threading.Volatile.Read(ref this._priorityCounts[i]),
                     TotalEnqueued = this._enqueuedCounts![i],
@@ -142,7 +142,7 @@ internal sealed partial class MultiLevelQueue<TPacket> : ISnapshot<PacketSnapsho
                     TotalExpiredPackets = this._expiredCounts![i],
                     TotalRejectedPackets = this._rejectedCounts![i]
                 }
-                : new PriorityQueueSnapshot
+                : new PriorityQueueStats
                 {
                     PendingPackets = System.Threading.Volatile.Read(ref this._priorityCounts[i]),
                     TotalEnqueued = 0,
