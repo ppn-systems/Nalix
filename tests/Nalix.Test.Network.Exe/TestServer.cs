@@ -6,17 +6,17 @@ using Nalix.Framework.Identity;
 using Nalix.Logging;
 using Nalix.Network.Connection;
 using Nalix.Network.Dispatch.Core;
-using Nalix.Network.Listeners;
+using Nalix.Network.Listeners.Tcp;
 using Nalix.Network.Package;
 using Nalix.Network.Protocols;
 using System;
 using System.Threading;
 
-namespace Nalix.Tests.Network.Server;
+namespace Nalix.Test.Network.Exe;
 /// <summary>
 /// Lớp `ServerListener` quản lý việc lắng nghe các kết nối mạng.
 /// </summary>
-public sealed class ServerListener : Listener
+public sealed class ServerListener : TcpListenerBase
 {
     /// <summary>
     /// Được kế thừa từ `Listener`, lớp này cung cấp cơ chế cập nhật thời gian cho các sự kiện mạng.
@@ -31,7 +31,7 @@ public sealed class ServerListener : Listener
     /// Cập nhật thời gian hệ thống dựa trên số mili-giây đã trôi qua.
     /// </summary>
     /// <param name="milliseconds">Số mili-giây cần cập nhật.</param>
-    public override void SynchronizeTime(System.Int64 milliseconds)
+    public override void SynchronizeTime(Int64 milliseconds)
     {
     }
 }
