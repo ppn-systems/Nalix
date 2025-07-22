@@ -1,5 +1,5 @@
 using Nalix.Cryptography.Hashing;
-using Nalix.Shared.Extensions.Maths;
+using Nalix.Shared.Extensions;
 
 namespace Nalix.Cryptography.Asymmetric;
 
