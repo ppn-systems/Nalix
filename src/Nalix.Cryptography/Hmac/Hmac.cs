@@ -3,7 +3,7 @@ using Nalix.Cryptography.Hashing;
 using Nalix.Cryptography.Internal;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Cryptography.Mac;
+namespace Nalix.Cryptography.Hmac;
 
 /// <summary>
 /// Provides implementations of Hash-based Message Authentication Codes (HMAC).

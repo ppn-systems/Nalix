@@ -5,6 +5,7 @@ using Nalix.Common.Security.Cryptography;
 using Nalix.Common.Security.Identity;
 using Nalix.Common.Security.Types;
 using Nalix.Framework.Identity;
+using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Connection;
 
@@ -41,32 +42,32 @@ public sealed partial class Connection : IConnection
     /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="socket"/> is null.</exception>
     public Connection(System.Net.Sockets.Socket socket, IBufferPool bufferAllocator, ILogger? logger = null)
     {
-        this._lock = new System.Threading.Lock();
-        this.Id = Identifier.NewId(IdentifierType.Session);
-        this._ctokens = new System.Threading.CancellationTokenSource();
+        _lock = new System.Threading.Lock();
+        _ctokens = new System.Threading.CancellationTokenSource();
 
-        this._logger = logger;
-        this._socket = socket ?? throw new System.ArgumentNullException(nameof(socket));
-        this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
+        _logger = logger;
+        _socket = socket ?? throw new System.ArgumentNullException(nameof(socket));
 
-        this._cstream = new Transport.TransportStream(socket, bufferAllocator, this._logger)
+
+        _cstream = new Transport.TransportStream(socket, bufferAllocator, _logger)
         {
             Disconnected = () =>
             {
-                this._onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
+                _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
             }
         };
 
-        this._cstream.SetPacketCached(() => this._onProcessEvent?.Invoke(this, new ConnectionEventArgs(this)));
+        _cstream.SetPacketCached(() => _onProcessEvent?.Invoke(this, new ConnectionEventArgs(this)));
+        _disposed = false;
+        _encryptionKey = new System.Byte[32];
 
-        this._disposed = false;
-
-        this._encryptionKey = new System.Byte[32];
-
+        this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
+        this.Id = Identifier.NewId(IdentifierType.Session);
+        this.Udp = ObjectPoolManager.Instance.Get<UdpTransport>();
+        this.Udp.Initialize(this);
         this.Tcp = new TcpTransport(this);
-        this.Udp = new UdpTransport(this);
 
-        this._logger?.Debug("[{0}] Connection created for {1}",
+        _logger?.Debug("[{0}] Connection created for {1}",
             nameof(Connection), this._socket.RemoteEndPoint?.ToString());
     }
 
@@ -151,6 +152,9 @@ public sealed partial class Connection : IConnection
     #region Methods
 
     /// <inheritdoc />
+    internal void InjectIncoming(System.Byte[] bytes) => _cstream.InjectIncoming(bytes);
+
+    /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Close(System.Boolean force = false)
@@ -158,7 +162,8 @@ public sealed partial class Connection : IConnection
         try
         {
             if (!force && this._socket.Connected &&
-               (!this._socket.Poll(1000, System.Net.Sockets.SelectMode.SelectRead) || this._socket.Available > 0))
+               (!this._socket.Poll(1000, System.Net.Sockets.SelectMode.SelectRead) ||
+                 this._socket.Available > 0))
             {
                 return;
             }
@@ -204,6 +209,8 @@ public sealed partial class Connection : IConnection
         try
         {
             this.Disconnect();
+
+            ObjectPoolManager.Instance.Return<UdpTransport>((UdpTransport)this.Udp);
         }
         catch (System.Exception ex)
         {

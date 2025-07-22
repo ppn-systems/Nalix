@@ -1,4 +1,4 @@
-namespace Nalix.Network.Snapshot;
+namespace Nalix.Network.Observability;
 
 /// <summary>
 /// Represents statistical information about the state and usage of a priority packet queue.

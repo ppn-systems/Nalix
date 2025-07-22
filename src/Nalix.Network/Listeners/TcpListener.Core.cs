@@ -2,19 +2,16 @@ using Nalix.Common.Caching;
 using Nalix.Common.Logging;
 using Nalix.Network.Configurations;
 using Nalix.Network.Internal;
+using Nalix.Network.Listeners.Core;
 using Nalix.Network.Protocols;
 using Nalix.Network.Security.Guard;
+using Nalix.Network.Timing;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Listeners;
 
-/// <summary>
-/// An abstract base class for network listeners.
-/// This class manages the process of accepting incoming network connections
-/// and handling the associated protocol processing.
-/// </summary>
-public abstract partial class Listener : IListener, System.IDisposable
+public abstract partial class TcpListenerBase : IListener, System.IDisposable
 {
     #region Constants
 
@@ -33,7 +30,6 @@ public abstract partial class Listener : IListener, System.IDisposable
     private readonly System.UInt16 _port;
     private readonly IProtocol _protocol;
     private readonly IBufferPool _bufferPool;
-    private readonly TimeSynchronizer _timeSyncWorker;
     private readonly System.Threading.Lock _socketLock;
 
     private readonly System.Threading.SemaphoreSlim _lock;
@@ -60,7 +56,7 @@ public abstract partial class Listener : IListener, System.IDisposable
     /// </summary>
     public System.Boolean IsTimeSyncEnabled
     {
-        get => this._timeSyncWorker.IsTimeSyncEnabled;
+        get => TimeSynchronizer.Instance.IsTimeSyncEnabled;
         set
         {
             if (this._isRunning)
@@ -68,7 +64,7 @@ public abstract partial class Listener : IListener, System.IDisposable
                 throw new System.InvalidOperationException("Cannot change IsTimeSyncEnabled while listening.");
             }
 
-            this._timeSyncWorker.IsTimeSyncEnabled = value;
+            TimeSynchronizer.Instance.IsTimeSyncEnabled = value;
         }
     }
 
@@ -76,17 +72,17 @@ public abstract partial class Listener : IListener, System.IDisposable
 
     #region Constructors
 
-    static Listener() => Config = ConfigurationStore.Instance.Get<SocketSettings>();
+    static TcpListenerBase() => Config = ConfigurationStore.Instance.Get<SocketSettings>();
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Listener"/> class using the port defined in the configuration,
+    /// Initializes a new instance of the <see cref="TcpListenerBase"/> class using the port defined in the configuration,
     /// and the specified protocol, buffer pool, and logger.
     /// </summary>
     /// <param name="port">Gets or sets the port number for the network connection.</param>
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
     /// <param name="logger">The logger to log events and errors.</param>
-    protected Listener(System.UInt16 port, IProtocol protocol, IBufferPool bufferPool, ILogger logger)
+    protected TcpListenerBase(System.UInt16 port, IProtocol protocol, IBufferPool bufferPool, ILogger logger)
     {
         System.ArgumentNullException.ThrowIfNull(logger, nameof(logger));
         System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
@@ -117,9 +113,9 @@ public abstract partial class Listener : IListener, System.IDisposable
             this._logger.Info("SetMinThreads: worker={0}, IOCP={1}", afterWorker, afterIOCP);
         }
 
-        this._timeSyncWorker = new TimeSynchronizer(logger);
+        TimeSynchronizer.Instance.ConfigureLogger(logger);
 
-        this._timeSyncWorker.TimeSynchronized += this.SynchronizeTime;
+        TimeSynchronizer.Instance.TimeSynchronized += this.SynchronizeTime;
 
         _ = ObjectPoolManager.Instance.Prealloc<PooledSocketAsyncEventArgs>(60);
         _ = ObjectPoolManager.Instance.Prealloc<PooledAcceptContext>(30);
@@ -131,13 +127,13 @@ public abstract partial class Listener : IListener, System.IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Listener"/> class using the port defined in the configuration,
+    /// Initializes a new instance of the <see cref="TcpListenerBase"/> class using the port defined in the configuration,
     /// and the specified protocol, buffer pool, and logger.
     /// </summary>
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
     /// <param name="logger">The logger to log events and errors.</param>
-    protected Listener(IProtocol protocol, IBufferPool bufferPool, ILogger logger)
+    protected TcpListenerBase(IProtocol protocol, IBufferPool bufferPool, ILogger logger)
         : this(Config.Port, protocol, bufferPool, logger)
     {
     }
@@ -181,6 +177,8 @@ public abstract partial class Listener : IListener, System.IDisposable
             {
                 this._listener?.Close();
                 this._listener?.Dispose();
+
+                TimeSynchronizer.Instance.TimeSynchronized -= this.SynchronizeTime;
             }
             catch { }
 
@@ -188,7 +186,7 @@ public abstract partial class Listener : IListener, System.IDisposable
         }
 
         this._isDisposed = true;
-        this._logger.Info("Listener disposed");
+        this._logger.Info("TcpListenerBase disposed");
     }
 
     #endregion IDispose

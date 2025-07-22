@@ -19,7 +19,7 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
     private System.Threading.SpinLock _capacityLock = new(false);
     private readonly System.Threading.Channels.Channel<TPacket>[] _priorityChannels;
 
-    // Snapshot variables
+    // Observability variables
 
     private readonly System.Int32[]? _expiredCounts;
     private readonly System.Int32[]? _rejectedCounts;

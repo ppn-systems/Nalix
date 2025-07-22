@@ -1,6 +1,6 @@
 namespace Nalix.Network.Listeners;
 
-public abstract partial class Listener
+public abstract partial class TcpListenerBase
 {
     /// <summary>
     /// Configures the socket for high-performance operation by setting buffer sizes, timeouts, and keep-alive options.

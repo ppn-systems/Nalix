@@ -20,16 +20,16 @@ internal class PooledSocketAsyncContext : System.Net.Sockets.SocketAsyncEventArg
             }
         };
 
-    public PooledSocketAsyncContext() => base.Completed += ReceiveCompletedHandler;
+    public PooledSocketAsyncContext() => Completed += ReceiveCompletedHandler;
 
     public void ResetForPool()
     {
-        base.UserToken = null;
+        UserToken = null;
 
         // Optional: Clear buffer if you use SetBuffer()
-        base.SetBuffer(null, 0, 0);
+        SetBuffer(null, 0, 0);
 
         // Optional: Reset other states like remote endpoint if needed
-        base.RemoteEndPoint = null;
+        RemoteEndPoint = null;
     }
 }

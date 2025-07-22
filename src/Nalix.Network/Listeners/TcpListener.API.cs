@@ -1,9 +1,15 @@
 ﻿using Nalix.Common.Exceptions;
 using Nalix.Framework.Time;
+using Nalix.Network.Timing;
 
 namespace Nalix.Network.Listeners;
 
-public abstract partial class Listener
+/// <summary>
+/// An abstract base class for network listeners.
+/// This class manages the process of accepting incoming network connections
+/// and handling the associated protocol processing.
+/// </summary>
+public abstract partial class TcpListenerBase
 {
     /// <summary>
     /// Starts listening for incoming connections and processes them using the specified protocol.
@@ -60,7 +66,7 @@ public abstract partial class Listener
 
                 System.Collections.Generic.List<System.Threading.Tasks.Task> tasks =
                 [
-                    this._timeSyncWorker.RunAsync(linkedToken)
+                    TimeSynchronizer.Instance.StartTickLoopAsync(linkedToken)
                 ];
 
                 for (System.Int32 i = 0; i < Config.MaxParallel; i++)
@@ -88,7 +94,7 @@ public abstract partial class Listener
         }
         catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            this._logger.Info("[TCP] Listener on {0} stopped by cancellation", Config.Port);
+            this._logger.Info("[TCP] TcpListenerBase on {0} stopped by cancellation", Config.Port);
         }
         catch (System.Net.Sockets.SocketException ex)
         {
@@ -113,6 +119,8 @@ public abstract partial class Listener
                         await System.Threading.Tasks.Task.Delay(200, cancellationToken)
                                                          .ConfigureAwait(false);
                     }
+
+                    TimeSynchronizer.Instance.StopTicking();
                 }
                 catch (System.Exception ex)
                 {
@@ -142,7 +150,7 @@ public abstract partial class Listener
             if (this._isRunning)
             {
                 this._listener?.Close();
-                this._logger.Info($"[TCP] Listener on {Config.Port} stopped");
+                this._logger.Info($"[TCP] TcpListenerBase on {Config.Port} stopped");
             }
         }
         catch (System.Exception ex)
