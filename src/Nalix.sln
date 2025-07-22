@@ -15,8 +15,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Network.Package", "Na
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Shared", "Nalix.Shared\Nalix.Shared.csproj", "{7BA61F59-C06D-4728-B5B3-A8CE05BAA090}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Graphics", "Nalix.Graphics\Nalix.Graphics.csproj", "{55A6DBC7-A2D5-4ED8-A314-3BAAB32BEBFB}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.SDK", "Nalix.SDK\Nalix.SDK.csproj", "{49B4D3DF-AD9A-439D-A464-13BE86045384}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Framework", "Nalix.Framework\Nalix.Framework.csproj", "{ADC7C8BE-0BE0-4EF6-B429-0E217857A387}"
@@ -51,10 +49,6 @@ Global
 		{7BA61F59-C06D-4728-B5B3-A8CE05BAA090}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7BA61F59-C06D-4728-B5B3-A8CE05BAA090}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7BA61F59-C06D-4728-B5B3-A8CE05BAA090}.Release|Any CPU.Build.0 = Release|Any CPU
-		{55A6DBC7-A2D5-4ED8-A314-3BAAB32BEBFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{55A6DBC7-A2D5-4ED8-A314-3BAAB32BEBFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{55A6DBC7-A2D5-4ED8-A314-3BAAB32BEBFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{55A6DBC7-A2D5-4ED8-A314-3BAAB32BEBFB}.Release|Any CPU.Build.0 = Release|Any CPU
 		{49B4D3DF-AD9A-439D-A464-13BE86045384}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{49B4D3DF-AD9A-439D-A464-13BE86045384}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{49B4D3DF-AD9A-439D-A464-13BE86045384}.Release|Any CPU.ActiveCfg = Release|Any CPU
