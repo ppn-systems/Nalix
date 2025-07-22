@@ -1,9 +1,9 @@
-namespace Nalix.Shared.Extensions.Maths;
+namespace Nalix.Shared.Extensions;
 
 /// <summary>
 /// Provides extension methods for BigInteger operations with modular arithmetic.
 /// </summary>
-public static class BigIntegerExtensions
+public static class BigIntExtensions
 {
     /// <summary>
     /// Adds two BigInteger values with modulo operation.

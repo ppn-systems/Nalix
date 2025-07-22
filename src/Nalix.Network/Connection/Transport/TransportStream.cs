@@ -1,6 +1,5 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Logging;
-using Nalix.Extensions.IO;
 using Nalix.Framework.Time;
 using Nalix.Network.Internal;
 using Nalix.Shared.Memory.Pooling;
@@ -279,7 +278,8 @@ internal class TransportStream : System.IDisposable
             }
 
             System.Int32 offset = 0;
-            System.UInt16 size = this._buffer.ToUInt16(ref offset);
+            System.UInt16 size = System.BitConverter.ToUInt16(this._buffer, offset);
+            offset += sizeof(System.UInt16);
             this._logger?.Debug("[{0}] Packet size: {1} bytes.", nameof(TransportStream), size);
 
             if (size > this._pool.MaxBufferSize)

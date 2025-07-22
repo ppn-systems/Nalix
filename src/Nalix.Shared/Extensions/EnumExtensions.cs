@@ -1,4 +1,4 @@
-namespace Nalix.Shared.Extensions.Primitives;
+namespace Nalix.Shared.Extensions;
 
 /// <summary>
 /// Provides extension methods for working with <see cref="System.Enum"/> types.
