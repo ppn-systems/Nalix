@@ -1,6 +1,6 @@
 using Nalix.Framework.Time;
 
-namespace Nalix.Network.Listeners;
+namespace Nalix.Network.Listeners.Core;
 
 /// <summary>
 /// Interface for network listener classes.

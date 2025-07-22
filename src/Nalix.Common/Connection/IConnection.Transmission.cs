@@ -99,6 +99,10 @@ public partial interface IConnection
     /// </remarks>
     interface IUdp : ITransport
     {
-        // (Additional UDP-specific members can be added here if needed)
+        /// <summary>
+        /// Initializes the UDP transport with the specified outer <see cref="IConnection"/>.
+        /// </summary>
+        /// <param name="outer">The outer <see cref="IConnection"/> instance to associate with this UDP transport.</param>
+        void Initialize(IConnection outer);
     }
 }

@@ -19,10 +19,10 @@ internal sealed class PooledSocketAsyncEventArgs : System.Net.Sockets.SocketAsyn
     {
         // Unsubscribe event handlers if needed here (e.g. this.Completed -= SomeHandler)
 
-        base.UserToken = null;
-        base.AcceptSocket = null;
-        base.SetBuffer(null, 0, 0);
-        base.RemoteEndPoint = null;
+        UserToken = null;
+        AcceptSocket = null;
+        SetBuffer(null, 0, 0);
+        RemoteEndPoint = null;
 
         this.Context = null; // 🧽 Very important
     }

@@ -211,6 +211,25 @@ internal class TransportStream : System.IDisposable
     }
 
     /// <summary>
+    /// Injects raw packet bytes into the incoming cache manually.
+    /// </summary>
+    /// <param name="data">The raw byte data to inject.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void InjectIncoming(System.Byte[] data)
+    {
+        if (data.Length == 0 || this._disposed)
+        {
+            return;
+        }
+
+        this._cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
+        this._cache.PushIncoming(new System.ReadOnlyMemory<System.Byte>(data));
+        this._logger?.Debug($"[{nameof(TransportStream)}] Injected {data.Length} bytes into incoming cache.");
+    }
+
+
+    /// <summary>
     /// Registers a callback to be invoked when a packet is cached.
     /// </summary>
     /// <param name="handler">The callback method to register.</param>
@@ -244,106 +263,6 @@ internal class TransportStream : System.IDisposable
             return;
         }
 
-        //try
-        //{
-        //    System.Int32 totalBytesRead = await task;
-        //    if (totalBytesRead == 0)
-        //    {
-        //        this._logger?.Debug("[{0}] Clients closed", nameof(TransportStream));
-        //        // Close the connection on the server when the client disconnects
-        //        this.Disconnected?.Invoke();
-        //        return;
-        //    }
-
-        //    if (totalBytesRead < 2)
-        //    {
-        //        return;
-        //    }
-
-        //    System.Int32 offset = 0;
-
-        //    System.UInt16 size = this._buffer.ToUInt16(ref offset);
-        //    this._logger?.Debug("[{0}] Packet size: {1} bytes.", nameof(TransportStream), size);
-
-        //    if (size > this._pool.MaxBufferSize)
-        //    {
-        //        this._logger?.Error("[{0}] Size {1} exceeds max {2} ",
-        //                        nameof(TransportStream), size, this._pool.MaxBufferSize);
-
-        //        return;
-        //    }
-
-        //    if (size > this._buffer.Length)
-        //    {
-        //        this._logger?.Debug("[{0}] Renting larger buffer", nameof(TransportStream));
-        //        this._pool.Return(this._buffer);
-        //        this._buffer = this._pool.Rent(size);
-        //    }
-
-        //    while (totalBytesRead < size)
-        //    {
-        //        System.Int32 bytesRead;
-        //        System.Threading.Tasks.TaskCompletionSource<System.Int32> tcs = new();
-        //        PooledSocketAsyncEventArgs saea = ObjectPoolManager.Instance.Get<PooledSocketAsyncEventArgs>();
-
-        //        try
-        //        {
-        //            saea.SetBuffer(this._buffer, totalBytesRead, size - totalBytesRead);
-        //            saea.Completed += (sender, args) =>
-        //            {
-        //                if (args.SocketError == System.Net.Sockets.SocketError.Success)
-        //                {
-        //                    tcs.SetResult(args.BytesTransferred);
-        //                }
-        //                else
-        //                {
-        //                    tcs.SetException(new System.Net.Sockets.SocketException((System.Int32)args.SocketError));
-        //                }
-        //            };
-
-        //            if (!this._socket.ReceiveAsync(saea))
-        //            {
-        //                // Nếu hoàn thành đồng bộ, set kết quả thủ công
-        //                if (saea.SocketError == System.Net.Sockets.SocketError.Success)
-        //                {
-        //                    tcs.SetResult(saea.BytesTransferred);
-        //                }
-        //                else
-        //                {
-        //                    tcs.SetException(new System.Net.Sockets.SocketException((System.Int32)saea.SocketError));
-        //                }
-        //            }
-
-        //            bytesRead = await tcs.Task;
-        //        }
-        //        finally
-        //        {
-        //            ObjectPoolManager.Instance.Return(saea);
-        //        }
-
-        //        if (bytesRead == 0)
-        //        {
-        //            this._logger?.Debug($"[{0}] Clients closed during read", nameof(TransportStream));
-        //            this.Disconnected?.Invoke();
-
-        //            return;
-        //        }
-
-        //        totalBytesRead += bytesRead;
-        //    }
-
-        //    if (totalBytesRead == size)
-        //    {
-        //        this._logger?.Debug("[{0}] Packet received", nameof(TransportStream));
-
-        //        this._cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
-        //        this._cache.PushIncoming(System.MemoryExtensions.AsMemory(this._buffer, 0, totalBytesRead));
-        //    }
-        //    else
-        //    {
-        //        this._logger?.Error("[{0}] Incomplete packet", nameof(TransportStream));
-        //    }
-        //}
         try
         {
             System.Int32 totalBytesRead = await task;

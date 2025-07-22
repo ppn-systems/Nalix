@@ -1,7 +1,7 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Package;
 using Nalix.Common.Package.Enums;
-using Nalix.Network.Snapshot;
+using Nalix.Network.Observability;
 
 namespace Nalix.Network.Dispatch.Internal.Channel;
 

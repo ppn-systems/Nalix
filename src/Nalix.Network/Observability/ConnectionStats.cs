@@ -1,4 +1,4 @@
-namespace Nalix.Network.Connection;
+namespace Nalix.Network.Observability;
 
 /// <summary>
 /// Connection statistics for monitoring

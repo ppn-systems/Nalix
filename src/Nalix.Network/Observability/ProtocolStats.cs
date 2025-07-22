@@ -1,4 +1,4 @@
-namespace Nalix.Network.Snapshot;
+namespace Nalix.Network.Observability;
 
 /// <summary>
 /// Represents immutable statistics for a network protocol.
