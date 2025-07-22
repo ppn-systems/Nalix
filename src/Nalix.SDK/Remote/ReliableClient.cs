@@ -184,7 +184,7 @@ public sealed class ReliableClient : IReliableClient
                         catch (System.Exception ex)
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Error($"Network receive loop error: {ex.Message}");
+                                                    .Error($"[SDK.ReliableClient.GM] Network receive loop error: {ex.Message}");
 
                             if (packet != null)
                             {
@@ -208,7 +208,7 @@ public sealed class ReliableClient : IReliableClient
                 {
                     Tag = "tcp",
                     OnFailed = (st, ex) => InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                                   .Warn($"Worker failed: {ex.Message}")
+                                                                   .Warn($"[SDK.ReliableClient.GM] Worker failed: {ex.Message}")
                 });
 
             _workerId[0] = woker.Id;
@@ -400,7 +400,7 @@ public sealed class ReliableClient : IReliableClient
 
         foreach (System.Action h in d.GetInvocationList().Cast<System.Action>())
         {
-            try { h(); } catch (System.Exception ex) { log?.Warn($"Subscriber threw: {ex}"); }
+            try { h(); } catch (System.Exception ex) { log?.Warn($"[SDK.ReliableClient] Subscriber threw: {ex}"); }
         }
     }
 
@@ -414,7 +414,7 @@ public sealed class ReliableClient : IReliableClient
         foreach (System.Action<T> h in d.GetInvocationList().Cast<System.Action<T>>())
         {
             try { h(arg); }
-            catch (System.Exception ex) { log?.Warn($"Subscriber threw: {ex}"); }
+            catch (System.Exception ex) { log?.Warn($"[SDK.ReliableClient] Subscriber threw: {ex}"); }
         }
     }
 

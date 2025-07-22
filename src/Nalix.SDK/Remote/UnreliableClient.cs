@@ -84,7 +84,7 @@ public sealed class UnreliableClient
             catch (System.Exception ex)
             {
                 // Optional logging
-                System.Diagnostics.Debug.WriteLine($"UDP Receive ERROR: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[SDK.UnreliableClient] UDP Receive ERROR: {ex.Message}");
             }
         }
     }
