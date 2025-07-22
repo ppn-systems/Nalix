@@ -16,16 +16,18 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
     private readonly System.Int32 _mask;
     private readonly DispatchChannel<TPacket>[] _shards;
 
+    private System.Int32 _pullIndex;
+
     #endregion Fields
 
     #region Properties
 
     /// <inheritdoc/>
-    public System.Int32 TotalPackets
+    public System.Int64 TotalPackets
     {
         get
         {
-            System.Int32 total = 0;
+            System.Int64 total = 0;
             for (System.Int32 i = 0; i < _shards.Length; i++)
             {
                 total += _shards[i].TotalPackets;
@@ -68,9 +70,11 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease lease)
     {
         // Simple round-robin or random over shards
+        System.Int32 start = System.Threading.Interlocked.Increment(ref _pullIndex) & _mask;
+
         for (System.Int32 i = 0; i < _shards.Length; i++)
         {
-            if (_shards[i].Pull(out connection, out lease))
+            if (_shards[(start + i) & _mask].Pull(out connection, out lease))
             {
                 return true;
             }
