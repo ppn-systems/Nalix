@@ -3,7 +3,7 @@ using Nalix.Common.Security.Identity;
 using Nalix.Framework.Identity;
 using Nalix.Network.Connection;
 
-namespace Nalix.Network.Listeners;
+namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
 {
@@ -21,7 +21,13 @@ public abstract partial class UdpListenerBase
                     .ReceiveAsync(cancellationToken)
                     .ConfigureAwait(false);
 
-                _ = System.Threading.ThreadPool.UnsafeQueueUserWorkItem(ProcessDatagramCallback, result);
+                _ = System.Threading.ThreadPool.UnsafeQueueUserWorkItem(
+                    static state =>
+                    {
+                        CallbackState s = (CallbackState)state!;
+                        s.Listener.ProcessDatagram(s.Result);
+                    },
+                    new CallbackState { Listener = this, Result = result });
             }
             catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -35,17 +41,23 @@ public abstract partial class UdpListenerBase
         }
     }
 
-    private static readonly System.Threading.WaitCallback ProcessDatagramCallback = static state =>
+    private void ProcessDatagram(System.Net.Sockets.UdpReceiveResult result)
     {
-        if (state is System.Net.Sockets.UdpReceiveResult result)
+        if (!this.IsAuthenticated(result))
         {
-            IIdentifier identifier = Identifier.FromByteArray(result.Buffer[^7..]);
-            IConnection? connection = ConnectionHub.Instance.GetConnection(identifier);
-            ((Connection.Connection?)connection)?.InjectIncoming(result.Buffer);
+            this._logger.Warn($"[UDP] Unauthenticated packet from {result.RemoteEndPoint}");
+            return;
         }
-        else
-        {
-            throw new System.NotImplementedException();
-        }
-    };
+
+        IIdentifier identifier = Identifier.FromByteArray(result.Buffer[^7..]);
+        IConnection? connection = ConnectionHub.Instance.GetConnection(identifier);
+        ((Connection.Connection?)connection)?.InjectIncoming(result.Buffer);
+    }
+
+    private struct CallbackState
+    {
+        public required UdpListenerBase Listener;
+        public required System.Net.Sockets.UdpReceiveResult Result;
+    }
 }
+

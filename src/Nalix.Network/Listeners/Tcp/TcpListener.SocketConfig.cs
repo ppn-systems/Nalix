@@ -1,4 +1,4 @@
-namespace Nalix.Network.Listeners;
+namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
 {
