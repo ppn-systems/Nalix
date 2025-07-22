@@ -3,7 +3,7 @@ using Nalix.Network.Connection;
 using Nalix.Network.Internal;
 using Nalix.Shared.Memory.Pooling;
 
-namespace Nalix.Network.Listeners;
+namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
 {

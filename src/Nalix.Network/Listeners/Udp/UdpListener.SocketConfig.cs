@@ -1,15 +1,15 @@
-﻿namespace Nalix.Network.Listeners;
+﻿namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
 {
     private void InitializeUdpClient()
     {
-        this._udpClient = new System.Net.Sockets.UdpClient(Config.Port)
+        _udpClient = new System.Net.Sockets.UdpClient(Config.Port)
         {
             Client = { ExclusiveAddressUse = !Config.ReuseAddress }
         };
 
-        ConfigureHighPerformanceSocket(this._udpClient.Client);
+        ConfigureHighPerformanceSocket(_udpClient.Client);
         this._logger.Debug("[UDP] UDP client bound to port {0}", Config.Port);
     }
 

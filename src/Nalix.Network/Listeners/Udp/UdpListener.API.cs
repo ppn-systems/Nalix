@@ -2,7 +2,7 @@
 using Nalix.Framework.Time;
 using Nalix.Network.Listeners.Core;
 
-namespace Nalix.Network.Listeners;
+namespace Nalix.Network.Listeners.Udp;
 
 /// <summary>
 /// Provides a base implementation for a UDP network listener, supporting asynchronous listening,
@@ -130,4 +130,11 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
     public virtual void SynchronizeTime(System.Int64 milliseconds)
     {
     }
+
+    /// <summary>
+    /// Determines whether the incoming packet is authenticated.
+    /// Default returns true (i.e., trusted). Override in derived class.
+    /// </summary>
+    protected virtual System.Boolean IsAuthenticated(in System.Net.Sockets.UdpReceiveResult result)
+        => true;
 }

@@ -9,8 +9,6 @@
 		<Version>2.3.0</Version>
 		<PackageVersion>2.3.0</PackageVersion>
 
-        <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
-
         <PackageReleaseNotes>
             - Initial release of Nalix.Graphics library.
             - Includes Parallax rendering system.

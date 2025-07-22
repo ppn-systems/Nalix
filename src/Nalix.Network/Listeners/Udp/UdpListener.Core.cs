@@ -5,7 +5,7 @@ using Nalix.Network.Protocols;
 using Nalix.Network.Timing;
 using Nalix.Shared.Configuration;
 
-namespace Nalix.Network.Listeners;
+namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
 {
