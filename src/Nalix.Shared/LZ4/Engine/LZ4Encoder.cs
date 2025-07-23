@@ -5,6 +5,7 @@ namespace Nalix.Shared.LZ4.Engine;
 /// <summary>
 /// Provides functionality to compress data using the LZ4 algorithm, optimized for zero-allocation and high efficiency.
 /// </summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal readonly struct LZ4Encoder
 {
     /// <summary>

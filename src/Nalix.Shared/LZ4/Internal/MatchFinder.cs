@@ -6,6 +6,7 @@ namespace Nalix.Shared.LZ4.Internal;
 /// Provides functionality for finding matches in input data using a hash table.
 /// Optimized for high performance in LZ4 compression.
 /// </summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal static unsafe class MatchFinder
 {
     private const System.Int32 HashTableBits = 16; // 64k entries
