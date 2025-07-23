@@ -109,7 +109,7 @@ public sealed class ChaCha20 : IDisposable
     /// <remarks>Since this is symmetric operation, it doesn't really matter if you use Encrypt or Decrypt method</remarks>
     /// <param name="output">Output byte array, must have enough bytes</param>
     /// <param name="input">Input byte array</param>
-    /// <param name="numBytes">ProtocolType of bytes to encrypt</param>
+    /// <param name="numBytes">TransportProtocol of bytes to encrypt</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EncryptBytes(Byte[] output, Byte[] input, Int32 numBytes, SimdMode simdMode = SimdMode.AutoDetect)
@@ -119,7 +119,7 @@ public sealed class ChaCha20 : IDisposable
 
         if (numBytes < 0 || numBytes > input.Length)
         {
-            throw new ArgumentOutOfRangeException(nameof(numBytes), "The ProtocolType of bytes to read must be between [0..input.Length]");
+            throw new ArgumentOutOfRangeException(nameof(numBytes), "The TransportProtocol of bytes to read must be between [0..input.Length]");
         }
 
         if (output.Length < numBytes)
@@ -204,7 +204,7 @@ public sealed class ChaCha20 : IDisposable
     /// </summary>
     /// <remarks>Since this is symmetric operation, it doesn't really matter if you use Encrypt or Decrypt method</remarks>
     /// <param name="input">Input byte array</param>
-    /// <param name="numBytes">ProtocolType of bytes to encrypt</param>
+    /// <param name="numBytes">TransportProtocol of bytes to encrypt</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     /// <returns>Byte array that contains encrypted bytes</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -215,7 +215,7 @@ public sealed class ChaCha20 : IDisposable
         if (numBytes < 0 || numBytes > input.Length)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(numBytes), "The ProtocolType of bytes to read must be between [0..input.Length]");
+                nameof(numBytes), "The TransportProtocol of bytes to read must be between [0..input.Length]");
         }
 
         if (simdMode == SimdMode.AutoDetect)
@@ -284,7 +284,7 @@ public sealed class ChaCha20 : IDisposable
     /// <remarks>Since this is symmetric operation, it doesn't really matter if you use Encrypt or Decrypt method</remarks>
     /// <param name="output">Output byte array</param>
     /// <param name="input">Input byte array</param>
-    /// <param name="numBytes">ProtocolType of bytes to decrypt</param>
+    /// <param name="numBytes">TransportProtocol of bytes to decrypt</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DecryptBytes(Byte[] output, Byte[] input, Int32 numBytes, SimdMode simdMode = SimdMode.AutoDetect)
@@ -294,7 +294,7 @@ public sealed class ChaCha20 : IDisposable
 
         if (numBytes < 0 || numBytes > input.Length)
         {
-            throw new ArgumentOutOfRangeException(nameof(numBytes), "The ProtocolType of bytes to read must be between [0..input.Length]");
+            throw new ArgumentOutOfRangeException(nameof(numBytes), "The TransportProtocol of bytes to read must be between [0..input.Length]");
         }
 
         if (output.Length < numBytes)
@@ -380,7 +380,7 @@ public sealed class ChaCha20 : IDisposable
     /// </summary>
     /// <remarks>Since this is symmetric operation, it doesn't really matter if you use Encrypt or Decrypt method</remarks>
     /// <param name="input">Input byte array</param>
-    /// <param name="numBytes">ProtocolType of bytes to encrypt</param>
+    /// <param name="numBytes">TransportProtocol of bytes to encrypt</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     /// <returns>Byte array that contains decrypted bytes</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -391,7 +391,7 @@ public sealed class ChaCha20 : IDisposable
         if (numBytes < 0 || numBytes > input.Length)
         {
             throw new ArgumentOutOfRangeException(nameof(numBytes),
-                "The ProtocolType of bytes to read must be between [0..input.Length]");
+                "The TransportProtocol of bytes to read must be between [0..input.Length]");
         }
 
         if (simdMode == SimdMode.AutoDetect)
@@ -566,7 +566,7 @@ public sealed class ChaCha20 : IDisposable
     }
 
     /// <summary>
-    /// Encrypt or decrypt an arbitrary-length byte array (input), writing the resulting byte array to the output buffer. The ProtocolType of bytes to read from the input buffer is determined by numBytes.
+    /// Encrypt or decrypt an arbitrary-length byte array (input), writing the resulting byte array to the output buffer. The TransportProtocol of bytes to read from the input buffer is determined by numBytes.
     /// </summary>
     /// <param name="output">Output byte array</param>
     /// <param name="input">Input byte array</param>
@@ -704,10 +704,10 @@ public sealed class ChaCha20 : IDisposable
     /// See <a href="https://tools.ietf.org/html/rfc7539#page-4">ChaCha20 Spec Sections 2.1 - 2.2</a>.
     /// </remarks>
     /// <param name="x">A ChaCha state (vector). Must contain 16 elements.</param>
-    /// <param name="a">Index of the first ProtocolType</param>
-    /// <param name="b">Index of the second ProtocolType</param>
-    /// <param name="c">Index of the third ProtocolType</param>
-    /// <param name="d">Index of the fourth ProtocolType</param>
+    /// <param name="a">Index of the first TransportProtocol</param>
+    /// <param name="b">Index of the second TransportProtocol</param>
+    /// <param name="c">Index of the third TransportProtocol</param>
+    /// <param name="d">Index of the fourth TransportProtocol</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void QuarterRound(UInt32[] x, UInt32 a, UInt32 b, UInt32 c, UInt32 d)
     {

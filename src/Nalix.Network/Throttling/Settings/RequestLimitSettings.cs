@@ -3,14 +3,14 @@ using System;
 namespace Nalix.Network.Throttling.Settings;
 
 /// <summary>
-/// Represents settings for rate limiting, including the ProtocolType of requests, lockout duration, and time window.
+/// Represents settings for rate limiting, including the TransportProtocol of requests, lockout duration, and time window.
 /// </summary>
 public readonly struct RequestLimitSettings
 {
     #region Properties
 
     /// <summary>
-    /// Gets the maximum ProtocolType of requests allowed.
+    /// Gets the maximum TransportProtocol of requests allowed.
     /// </summary>
     public Int32 Requests { get; }
 
@@ -31,7 +31,7 @@ public readonly struct RequestLimitSettings
     /// <summary>
     /// Initializes a new instance of the <see cref="RequestLimitSettings"/> struct.
     /// </summary>
-    /// <param name="requests">The maximum ProtocolType of requests allowed.</param>
+    /// <param name="requests">The maximum TransportProtocol of requests allowed.</param>
     /// <param name="lockoutSeconds">The duration in seconds to lock out after exceeding the request limit.</param>
     /// <param name="windowMilliseconds">The time window in milliseconds for measuring the request rate.</param>
     /// <exception cref="ArgumentOutOfRangeException">

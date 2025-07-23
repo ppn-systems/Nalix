@@ -13,13 +13,10 @@ namespace Nalix.Network.Dispatch.Internal.ReturnTypes;
 /// </summary>
 /// <typeparam name="TPacket">
 /// The packet type used for handling communication. Must implement
-/// IPacket, IPacketFactory, IPacketEncryptor, and IPacketCompressor.
+/// IPacket, IPacketTransformer, IPacketTransformer, and IPacketTransformer.
 /// </typeparam>
 internal static class ReturnTypeHandlerFactory<TPacket>
-    where TPacket : IPacket,
-                   IPacketFactory<TPacket>,
-                   IPacketEncryptor<TPacket>,
-                   IPacketCompressor<TPacket>
+    where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     /// <summary>
     /// Cached handlers để tránh recreation.

@@ -187,7 +187,7 @@ public sealed class BlowfishCodec
     /// </summary>
     /// <param name="packet">The byte array containing encrypted data.</param>
     /// <param name="offset">The starting position in the packet to begin decryption.</param>
-    /// <param name="len">The ProtocolType of bytes to decrypt.</param>
+    /// <param name="len">The TransportProtocol of bytes to decrypt.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Decrypt(System.Byte[] packet, System.Int32 offset, System.Int32 len)
         => _blowfish.DecryptBlock(packet, offset, len);
@@ -205,7 +205,7 @@ public sealed class BlowfishCodec
     /// </summary>
     /// <param name="packet">The byte array containing plaintext data.</param>
     /// <param name="offset">The starting position in the packet to begin encryption.</param>
-    /// <param name="len">The ProtocolType of bytes to encrypt.</param>
+    /// <param name="len">The TransportProtocol of bytes to encrypt.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Encrypt(System.Byte[] packet, System.Int32 offset, System.Int32 len)
         => _blowfish.DecryptBlock(packet, offset, len);

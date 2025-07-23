@@ -41,7 +41,7 @@ public sealed class InstanceManager : System.IDisposable
     #region Properties
 
     /// <summary>
-    /// Checks if this application (including version ProtocolType) is the only instance currently running.
+    /// Checks if this application (including version TransportProtocol) is the only instance currently running.
     /// </summary>
     public static System.Boolean IsTheOnlyInstance
     {
@@ -73,7 +73,7 @@ public sealed class InstanceManager : System.IDisposable
     }
 
     /// <summary>
-    /// Gets the ProtocolType of cached instances.
+    /// Gets the TransportProtocol of cached instances.
     /// </summary>
     public System.Int32 CachedInstanceCount => _instanceCache.Count;
 

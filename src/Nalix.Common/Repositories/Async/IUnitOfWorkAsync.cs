@@ -10,7 +10,7 @@ public interface IUnitOfWorkAsync : IRepositoryProviderAsync, ITransactionAsync,
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>
-    /// A task representing the asynchronous operation, returning the ProtocolType of affected database records.
+    /// A task representing the asynchronous operation, returning the TransportProtocol of affected database records.
     /// </returns>
     System.Threading.Tasks.Task<System.Int32> SaveChangesAsync(
         System.Threading.CancellationToken cancellationToken = default);

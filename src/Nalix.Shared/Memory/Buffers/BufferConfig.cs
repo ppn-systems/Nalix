@@ -8,7 +8,7 @@ namespace Nalix.Shared.Memory.Buffers;
 public sealed class BufferConfig : ConfigurationLoader
 {
     /// <summary>
-    /// The total ProtocolType of buffers to create.
+    /// The total TransportProtocol of buffers to create.
     /// </summary>
     public System.Int32 TotalBuffers { get; set; } = 100;
 
@@ -60,7 +60,7 @@ public sealed class BufferConfig : ConfigurationLoader
     public System.Boolean EnableQueueCompaction { get; set; } = false;
 
     /// <summary>
-    /// The ProtocolType of buffer request/release operations between auto-tuning cycles
+    /// The TransportProtocol of buffer request/release operations between auto-tuning cycles
     /// </summary>
     public System.Int32 AutoTuneOperationThreshold { get; set; } = 10000;
 

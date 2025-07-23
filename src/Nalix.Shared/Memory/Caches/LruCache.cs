@@ -73,12 +73,12 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     }
 
     /// <summary>
-    /// Gets the ProtocolType of cache hits.
+    /// Gets the TransportProtocol of cache hits.
     /// </summary>
     public Int64 Hits => Interlocked.Read(ref _hits);
 
     /// <summary>
-    /// Gets the ProtocolType of cache misses.
+    /// Gets the TransportProtocol of cache misses.
     /// </summary>
     public Int64 Misses => Interlocked.Read(ref _misses);
 
@@ -97,17 +97,17 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     }
 
     /// <summary>
-    /// Gets the ProtocolType of items evicted from the cache.
+    /// Gets the TransportProtocol of items evicted from the cache.
     /// </summary>
     public Int64 Evictions => Interlocked.Read(ref _evictions);
 
     /// <summary>
-    /// Gets the ProtocolType of items added to the cache.
+    /// Gets the TransportProtocol of items added to the cache.
     /// </summary>
     public Int64 Additions => Interlocked.Read(ref _additions);
 
     /// <summary>
-    /// Gets the ProtocolType of items updated in the cache.
+    /// Gets the TransportProtocol of items updated in the cache.
     /// </summary>
     public Int64 Updates => Interlocked.Read(ref _updates);
 
@@ -147,7 +147,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <summary>
     /// Initializes a new instance of the <see cref="LruCache{TKey, TValue}"/> class.
     /// </summary>
-    /// <param name="capacity">The maximum ProtocolType of items in the cache.</param>
+    /// <param name="capacity">The maximum TransportProtocol of items in the cache.</param>
     /// <param name="comparer">Optional custom equality comparer for keys.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when capacity is less than 1.</exception>
     public LruCache(Int32 capacity, IEqualityComparer<TKey>? comparer = null)

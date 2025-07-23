@@ -4,10 +4,7 @@ using Nalix.Network.Dispatch.Internal.ReturnTypes;
 using Nalix.Network.Dispatch.Middleware;
 
 namespace Nalix.Network.Dispatch.Options;
-public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket,
-    IPacketFactory<TPacket>,
-    IPacketEncryptor<TPacket>,
-    IPacketCompressor<TPacket>
+public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     #region Private Methods
 
@@ -72,8 +69,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
         this._errorHandler?.Invoke(exception, descriptor.OpCode);
 
-        TPacket errorPacket = TPacket.Create(0, "Internal server error");
-        _ = await context.Connection.Tcp.SendAsync(errorPacket.Serialize());
+        _ = await context.Connection.Tcp.SendAsync(TPacket.Create(0, 0));
     }
 
     [System.Runtime.CompilerServices.MethodImpl(

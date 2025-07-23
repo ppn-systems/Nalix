@@ -102,10 +102,9 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
     {
         System.Int32 cleared = 0;
         var reader = this._priorityChannels[index].Reader;
-
-        while (reader.TryRead(out TPacket? packet))
+        while (reader.TryRead(out _))
         {
-            packet.Dispose();
+            //packet.Dispose();
             cleared++;
         }
 
@@ -130,9 +129,9 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
 
             while (reader.TryRead(out TPacket? packet))
             {
-                if (packet.IsExpired(this._options.Timeout))
+                if (packet.IsExpired((System.Int64)this._options.Timeout.TotalMilliseconds))
                 {
-                    packet.Dispose();
+                    //packet.Dispose();
                     totalExpired++;
 
                     if (this._options.EnableMetrics)
@@ -200,9 +199,9 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
         System.Threading.Channels.ChannelReader<TPacket> reader)
     {
         System.Int32 count = 0;
-        while (reader.TryRead(out TPacket? packet))
+        while (reader.TryRead(out _))
         {
-            packet.Dispose();
+            //packet.Dispose();
             count++;
         }
 

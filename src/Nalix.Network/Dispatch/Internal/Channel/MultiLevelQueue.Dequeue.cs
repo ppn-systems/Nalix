@@ -218,7 +218,8 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
                 _ = System.Threading.Interlocked.Decrement(ref this._totalCount);
 
                 System.Boolean isValid = !this._options.EnableValidation || temp.IsValid();
-                System.Boolean isExpired = this._options.Timeout != System.TimeSpan.Zero && temp.IsExpired(this._options.Timeout);
+                System.Boolean isExpired = this._options.Timeout != System.TimeSpan.Zero &&
+                    temp.IsExpired((System.Int64)this._options.Timeout.TotalMilliseconds);
 
                 if (!isValid)
                 {
@@ -228,7 +229,8 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
                     }
 
                     rejected = temp; // Assign the invalid packet
-                    temp.Dispose();
+                    //temp.Dispose();
+                    //ObjectPoolManager.Instance.Return<TPacket>(temp);
                     return false; // Exit with the invalid packet
                 }
 
@@ -240,7 +242,7 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
                     }
 
                     rejected = temp; // Assign the expired packet
-                    temp.Dispose();
+                    //temp.Dispose();
                     return false; // Exit with the expired packet
                 }
 

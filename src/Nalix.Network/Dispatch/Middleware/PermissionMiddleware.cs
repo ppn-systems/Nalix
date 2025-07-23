@@ -10,7 +10,7 @@ namespace Nalix.Network.Dispatch.Middleware;
 /// </summary>
 /// <typeparam name="TPacket">The packet type being processed.</typeparam>
 public class PermissionMiddleware<TPacket> : IPacketMiddleware<TPacket>
-    where TPacket : IPacket, IPacketFactory<TPacket>
+    where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     /// <summary>
     /// Invokes the permission check logic. If the connection's permission level is

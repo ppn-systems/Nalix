@@ -8,7 +8,7 @@ namespace Nalix.Shared.Memory.Buffers;
 public readonly record struct BufferPoolSnapshot : System.IEquatable<BufferPoolSnapshot>
 {
     /// <summary>
-    /// ProtocolType of misses
+    /// TransportProtocol of misses
     /// </summary>
     public required System.Int32 Misses { get; init; }
 
@@ -18,12 +18,12 @@ public readonly record struct BufferPoolSnapshot : System.IEquatable<BufferPoolS
     public required System.Int32 BufferSize { get; init; }
 
     /// <summary>
-    /// ProtocolType of free buffers
+    /// TransportProtocol of free buffers
     /// </summary>
     public required System.Int32 FreeBuffers { get; init; }
 
     /// <summary>
-    /// Total ProtocolType of buffers
+    /// Total TransportProtocol of buffers
     /// </summary>
     public required System.Int32 TotalBuffers { get; init; }
 

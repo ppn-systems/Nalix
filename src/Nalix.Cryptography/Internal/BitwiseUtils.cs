@@ -10,10 +10,10 @@ internal static partial class BitwiseUtils
     #region Bit Rotations
 
     /// <summary>
-    /// Rotate a 32-bit word right by the specified ProtocolType of bits using hardware intrinsics when available.
+    /// Rotate a 32-bit word right by the specified TransportProtocol of bits using hardware intrinsics when available.
     /// </summary>
     /// <param name="value">The value to rotate.</param>
-    /// <param name="bits">The ProtocolType of positions to rotate.</param>
+    /// <param name="bits">The TransportProtocol of positions to rotate.</param>
     /// <returns>The rotated value.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -24,7 +24,7 @@ internal static partial class BitwiseUtils
     /// Performs a left bitwise rotation on a 32-bit unsigned integer using hardware intrinsics when available.
     /// </summary>
     /// <param name="value">The value to rotate.</param>
-    /// <param name="bits">The ProtocolType of positions to rotate.</param>
+    /// <param name="bits">The TransportProtocol of positions to rotate.</param>
     /// <returns>The rotated value.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
