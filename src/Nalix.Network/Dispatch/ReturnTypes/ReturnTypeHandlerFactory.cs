@@ -1,5 +1,9 @@
 ﻿using Nalix.Common.Packets;
+using Nalix.Network.Dispatch.ReturnTypes.Memory;
+using Nalix.Network.Dispatch.ReturnTypes.Packet;
+using Nalix.Network.Dispatch.ReturnTypes.Primitives;
 using Nalix.Network.Dispatch.ReturnTypes.Task;
+using Nalix.Network.Dispatch.ReturnTypes.Void;
 
 namespace Nalix.Network.Dispatch.ReturnTypes;
 
