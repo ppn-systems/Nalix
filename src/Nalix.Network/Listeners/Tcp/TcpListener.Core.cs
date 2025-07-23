@@ -4,7 +4,7 @@ using Nalix.Network.Configurations;
 using Nalix.Network.Internal;
 using Nalix.Network.Listeners.Core;
 using Nalix.Network.Protocols;
-using Nalix.Network.Security.Guard;
+using Nalix.Network.Throttling;
 using Nalix.Network.Timing;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Pooling;

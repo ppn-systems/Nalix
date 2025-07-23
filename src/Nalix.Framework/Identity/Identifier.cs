@@ -96,7 +96,7 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     /// <returns>A new <see cref="Identifier"/> instance.</returns>
     /// <example>
     /// <code>
-    /// var id = Identifier.NewId(12345, 1001, IdentifierType.User);
+    /// var id = Identifier.Generate(12345, 1001, IdentifierType.User);
     /// Console.WriteLine(id.ToBase36String()); // Outputs Base36 representation
     /// </code>
     /// </example>
@@ -113,7 +113,7 @@ public readonly struct Identifier : IIdentifier, System.IEquatable<Identifier>
     /// <returns>A new <see cref="Identifier"/> instance.</returns>
     /// <example>
     /// <code>
-    /// var id = Identifier.NewId(IdentifierType.System);
+    /// var id = Identifier.Generate(IdentifierType.System);
     /// Console.WriteLine(id.ToBase36String()); // Outputs Base36 representation
     /// </code>
     /// </example>
