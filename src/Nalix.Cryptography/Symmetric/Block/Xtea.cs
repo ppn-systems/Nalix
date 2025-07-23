@@ -42,7 +42,7 @@ public static unsafe class Xtea
     /// <param name="v0">First 32-bit word</param>
     /// <param name="v1">Second 32-bit word</param>
     /// <param name="key">Pointer to 128-bit key (as 4 uint values)</param>
-    /// <param name="rounds">Number of rounds (default is 32)</param>
+    /// <param name="rounds">ProtocolType of rounds (default is 32)</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void EncryptBlock(
@@ -67,7 +67,7 @@ public static unsafe class Xtea
     /// <param name="v0">First 32-bit word</param>
     /// <param name="v1">Second 32-bit word</param>
     /// <param name="key">Pointer to 128-bit key (as 4 uint values)</param>
-    /// <param name="rounds">Number of rounds (default is 32)</param>
+    /// <param name="rounds">ProtocolType of rounds (default is 32)</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void DecryptBlock(
@@ -127,7 +127,7 @@ public static unsafe class Xtea
     /// </summary>
     /// <param name="ciphertext">Data to decrypt (must be multiple of 8 bytes)</param>
     /// <param name="key">128-bit key (16 bytes)</param>
-    /// <param name="rounds">Number of rounds (default is 32)</param>
+    /// <param name="rounds">ProtocolType of rounds (default is 32)</param>
     /// <returns>Decrypted data</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -174,8 +174,8 @@ public static unsafe class Xtea
     /// <param name="plaintext">Data to encrypt (must be multiple of 8 bytes)</param>
     /// <param name="key">128-bit key (16 bytes)</param>
     /// <param name="output">Output buffer (must be at least as large as plaintext)</param>
-    /// <param name="rounds">Number of rounds (default is 32)</param>
-    /// <returns>Number of bytes written</returns>
+    /// <param name="rounds">ProtocolType of rounds (default is 32)</param>
+    /// <returns>ProtocolType of bytes written</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Encrypt(
@@ -226,8 +226,8 @@ public static unsafe class Xtea
     /// <param name="ciphertext">Data to decrypt (must be multiple of 8 bytes)</param>
     /// <param name="key">128-bit key (16 bytes)</param>
     /// <param name="output">Output buffer (must be at least as large as ciphertext)</param>
-    /// <param name="rounds">Number of rounds (default is 32)</param>
-    /// <returns>Number of bytes written</returns>
+    /// <param name="rounds">ProtocolType of rounds (default is 32)</param>
+    /// <returns>ProtocolType of bytes written</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Decrypt(

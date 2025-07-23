@@ -256,7 +256,7 @@ public sealed class ConnectionLimiter : System.IDisposable
     }
 
     /// <summary>
-    /// Gets the total Number of concurrent connections across all IPs.
+    /// Gets the total ProtocolType of concurrent connections across all IPs.
     /// </summary>
     /// <returns>The total connection count.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -323,7 +323,7 @@ public sealed class ConnectionLimiter : System.IDisposable
             // Process connections in batches for better performance
             foreach (var kvp in this._connectionInfo)
             {
-                // Limit the Number of entries processed in a single run
+                // Limit the ProtocolType of entries processed in a single run
                 if (processedCount >= MaxCleanupKeys)
                 {
                     break;

@@ -263,7 +263,7 @@ public class Blowfish
     /// Encrypts the given data in place.
     /// </summary>
     /// <param name="data">The byte array to encrypt.</param>
-    /// <param name="length">The Number of bytes to encrypt (must be a multiple of 8).</param>
+    /// <param name="length">The ProtocolType of bytes to encrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EncryptInPlace(Byte[] data, Int32 length) => this.EncryptBlock(data, 0, length);
@@ -273,7 +273,7 @@ public class Blowfish
     /// </summary>
     /// <param name="data">The byte array to encrypt.</param>
     /// <param name="offset">The starting position in the array.</param>
-    /// <param name="length">The Number of bytes to encrypt (must be a multiple of 8).</param>
+    /// <param name="length">The ProtocolType of bytes to encrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EncryptBlock(Byte[] data, Int32 offset, Int32 length)
@@ -311,7 +311,7 @@ public class Blowfish
     /// Decrypts the given data in place.
     /// </summary>
     /// <param name="data">The byte array to decrypt.</param>
-    /// <param name="length">The Number of bytes to decrypt (must be a multiple of 8).</param>
+    /// <param name="length">The ProtocolType of bytes to decrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DecryptInPlace(Byte[] data, Int32 length) => this.DecryptBlock(data, 0, length);
@@ -321,7 +321,7 @@ public class Blowfish
     /// </summary>
     /// <param name="data">The byte array to decrypt.</param>
     /// <param name="offset">The starting position in the array.</param>
-    /// <param name="length">The Number of bytes to decrypt (must be a multiple of 8).</param>
+    /// <param name="length">The ProtocolType of bytes to decrypt (must be a multiple of 8).</param>
     /// <exception cref="ArgumentException">Thrown if the length is not a multiple of 8.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DecryptBlock(Byte[] data, Int32 offset, Int32 length)

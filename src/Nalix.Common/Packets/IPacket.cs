@@ -1,9 +1,11 @@
-namespace Nalix.Common.Package;
+using Nalix.Common.Packets.Enums;
+
+namespace Nalix.Common.Packets;
 
 /// <summary>
 /// Defines the contract for a network packet.
 /// </summary>
-/// [Length (2 bytes)][OpCode  (2 bytes)][Number (1 byte)][Checksum (4 bytes)][Timestamp (8 bytes)]
+/// [Length (2 bytes)][OpCode  (2 bytes)][ProtocolType (1 byte)][Checksum (4 bytes)][Timestamp (8 bytes)]
 /// [OpCode   (2 bytes)][Type (1 byte)][Flags  (1 byte)][Priority  (1 byte)][Payload            ]
 public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
 {
@@ -22,7 +24,7 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// <summary>
     /// Gets the sequence number of the packet.
     /// </summary>
-    System.Byte Number { get; }
+    System.Byte ProtocolType { get; }
 
     /// <summary>
     /// Gets the checksum of the packet.
@@ -37,17 +39,17 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// <summary>
     /// Gets the packet type.
     /// </summary>
-    Enums.PacketType Type { get; }
+    PacketType Type { get; }
 
     /// <summary>
     /// Gets or sets the packet flags.
     /// </summary>
-    Enums.PacketFlags Flags { get; }
+    PacketFlags Flags { get; }
 
     /// <summary>
     /// Gets the packet priority.
     /// </summary>
-    Enums.PacketPriority Priority { get; }
+    PacketPriority Priority { get; }
 
     /// <summary>
     /// Gets the payload of the packet.
@@ -61,12 +63,12 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// <summary>
     /// Gets a value indicating whether the packet is encrypted.
     /// </summary>
-    System.Boolean IsEncrypted => (Flags & Enums.PacketFlags.Encrypted) != 0;
+    System.Boolean IsEncrypted => (Flags & PacketFlags.Encrypted) != 0;
 
     /// <summary>
     /// Gets a value indicating whether the packet is compressed.
     /// </summary>
-    System.Boolean IsCompression => (Flags & Enums.PacketFlags.Compressed) != 0;
+    System.Boolean IsCompression => (Flags & PacketFlags.Compressed) != 0;
 
     /// <summary>
     /// Computes a unique hash value for the packet using its key metadata.
@@ -74,7 +76,7 @@ public interface IPacket : System.IEquatable<IPacket>, System.IDisposable
     /// <returns>
     /// A 64-bit unsigned integer representing the packet's hash, composed of:
     /// <list type="bullet">
-    /// <item><description><c>Number</c> (8 bits)</description></item>
+    /// <item><description><c>ProtocolType</c> (8 bits)</description></item>
     /// <item><description><c>OpCode</c> (16 bits)</description></item>
     /// <item><description><c>Type</c> (8 bits)</description></item>
     /// <item><description><c>OpCode</c> (8 bits)</description></item>

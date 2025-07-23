@@ -325,10 +325,10 @@ public sealed class SHA256 : IShaDigest, IDisposable
     /// </summary>
     /// <param name="inputBuffer">The input buffer containing data.</param>
     /// <param name="inputOffset">The offset in the input buffer where data begins.</param>
-    /// <param name="inputCount">The Number of bytes to process.</param>
+    /// <param name="inputCount">The ProtocolType of bytes to process.</param>
     /// <param name="outputBuffer">The buffer to copy input data into (can be null).</param>
     /// <param name="outputOffset">The offset in the output buffer.</param>
-    /// <returns>The Number of bytes processed.</returns>
+    /// <returns>The ProtocolType of bytes processed.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="inputBuffer"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown if <paramref name="inputOffset"/> or <paramref name="inputCount"/> are invalid.
@@ -365,7 +365,7 @@ public sealed class SHA256 : IShaDigest, IDisposable
     /// </summary>
     /// <param name="inputBuffer">The input buffer containing data.</param>
     /// <param name="inputOffset">The offset in the input buffer where data begins.</param>
-    /// <param name="inputCount">The Number of bytes to process.</param>
+    /// <param name="inputCount">The ProtocolType of bytes to process.</param>
     /// <returns>A copy of the final processed block.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="inputBuffer"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">

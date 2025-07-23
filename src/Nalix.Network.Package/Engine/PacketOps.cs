@@ -1,6 +1,6 @@
 using Nalix.Common.Constants;
-using Nalix.Common.Package;
-using Nalix.Common.Package.Metadata;
+using Nalix.Common.Packets;
+using Nalix.Common.Packets.Metadata;
 using Nalix.Cryptography.Checksums;
 
 namespace Nalix.Network.Package.Engine;
@@ -25,7 +25,7 @@ public static class PacketOps
 
         if (length == 0)
         {
-            return new Packet(packet.OpCode, packet.Number, packet.Checksum, packet.Timestamp,
+            return new Packet(packet.OpCode, packet.ProtocolType, packet.Checksum, packet.Timestamp,
                               packet.Type, packet.Flags, packet.Priority, copy);
         }
 
@@ -35,7 +35,7 @@ public static class PacketOps
             System.Buffer.MemoryCopy(srcPtr, dstPtr, length, length);
         }
 
-        return new Packet(packet.OpCode, packet.Number, packet.Checksum, packet.Timestamp,
+        return new Packet(packet.OpCode, packet.ProtocolType, packet.Checksum, packet.Timestamp,
                           packet.Type, packet.Flags, packet.Priority, copy);
     }
 

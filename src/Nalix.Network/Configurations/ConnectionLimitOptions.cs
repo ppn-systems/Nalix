@@ -6,8 +6,8 @@ using Nalix.Shared.Configuration.Binding;
 namespace Nalix.Network.Configurations;
 
 /// <summary>
-/// Configuration for limiting the Number of concurrent connections per IP address.
-/// This configuration helps manage and control the Number of simultaneous connections from each IP.
+/// Configuration for limiting the ProtocolType of concurrent connections per IP address.
+/// This configuration helps manage and control the ProtocolType of simultaneous connections from each IP.
 /// </summary>
 /// <remarks>
 /// Initializes a new instance of the <see cref="ConnectionLimitOptions"/> class with the specified connection limit settings.
@@ -59,7 +59,7 @@ public sealed class ConnectionLimitOptions(ConnectionLimitSettings settings) : C
     #region Properties
 
     /// <summary>
-    /// Gets or sets the maximum Number of connections allowed per IP address.
+    /// Gets or sets the maximum ProtocolType of connections allowed per IP address.
     /// </summary>
     /// <remarks>
     /// This value is limited to a range of 1 to 10000, where 100 is the default value.

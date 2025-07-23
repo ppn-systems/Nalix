@@ -1,4 +1,4 @@
-﻿using Nalix.Common.Package.Attributes;
+﻿using Nalix.Common.Packets.Attributes;
 
 namespace Nalix.Network.Dispatch.Core;
 

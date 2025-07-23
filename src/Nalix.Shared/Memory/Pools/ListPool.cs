@@ -15,7 +15,7 @@ namespace Nalix.Shared.Memory.Pools;
 /// <remarks>
 /// Initializes a new instance of the <see cref="ListPool{T}"/> class.
 /// </remarks>
-/// <param name="maxPoolSize">The maximum Number of lists to keep in the pool.</param>
+/// <param name="maxPoolSize">The maximum ProtocolType of lists to keep in the pool.</param>
 /// <param name="initialCapacity">The initial capacity of new lists.</param>
 public sealed class ListPool<T>(Int32 maxPoolSize, Int32 initialCapacity)
 {
@@ -60,32 +60,32 @@ public sealed class ListPool<T>(Int32 maxPoolSize, Int32 initialCapacity)
     public static ListPool<T> Instance { get; } = new();
 
     /// <summary>
-    /// Gets the Number of lists currently available in the pool.
+    /// Gets the ProtocolType of lists currently available in the pool.
     /// </summary>
     public Int32 AvailableCount => _listBag.Count;
 
     /// <summary>
-    /// Gets the total Number of lists created by this pool.
+    /// Gets the total ProtocolType of lists created by this pool.
     /// </summary>
     public Int64 CreatedCount => Interlocked.Read(ref _created);
 
     /// <summary>
-    /// Gets the Number of lists currently rented from the pool.
+    /// Gets the ProtocolType of lists currently rented from the pool.
     /// </summary>
     public Int64 RentedCount => Interlocked.Read(ref _rented) - Interlocked.Read(ref _returned);
 
     /// <summary>
-    /// Gets the total Number of rent operations performed.
+    /// Gets the total ProtocolType of rent operations performed.
     /// </summary>
     public Int64 TotalRentOperations => Interlocked.Read(ref _rented);
 
     /// <summary>
-    /// Gets the total Number of return operations performed.
+    /// Gets the total ProtocolType of return operations performed.
     /// </summary>
     public Int64 TotalReturnOperations => Interlocked.Read(ref _returned);
 
     /// <summary>
-    /// Gets the Number of lists that have been trimmed from the pool.
+    /// Gets the ProtocolType of lists that have been trimmed from the pool.
     /// </summary>
     public Int64 TrimmedCount => Interlocked.Read(ref _trimmed);
 
@@ -176,7 +176,7 @@ public sealed class ListPool<T>(Int32 maxPoolSize, Int32 initialCapacity)
     /// <summary>
     /// Creates and initializes multiple lists in the pool.
     /// </summary>
-    /// <param name="count">The Number of lists to preallocate.</param>
+    /// <param name="count">The ProtocolType of lists to preallocate.</param>
     /// <param name="capacity">The capacity for each preallocated list.</param>
     public void Prealloc(Int32 count, Int32 capacity = 0)
     {
@@ -206,8 +206,8 @@ public sealed class ListPool<T>(Int32 maxPoolSize, Int32 initialCapacity)
     /// <summary>
     /// Trims the pool to a specified size.
     /// </summary>
-    /// <param name="maximumSize">The maximum Number of lists to keep in the pool.</param>
-    /// <returns>The Number of lists removed from the pool.</returns>
+    /// <param name="maximumSize">The maximum ProtocolType of lists to keep in the pool.</param>
+    /// <returns>The ProtocolType of lists removed from the pool.</returns>
     public Int32 Trim(Int32 maximumSize = 0)
     {
         Int32 targetSize = maximumSize > 0 ? maximumSize : _maxPoolSize / 2;
@@ -230,7 +230,7 @@ public sealed class ListPool<T>(Int32 maxPoolSize, Int32 initialCapacity)
     /// <summary>
     /// Clears all lists from the pool.
     /// </summary>
-    /// <returns>The Number of lists removed from the pool.</returns>
+    /// <returns>The ProtocolType of lists removed from the pool.</returns>
     public Int32 Clear()
     {
         Int32 count = _listBag.Count;

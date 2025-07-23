@@ -1,5 +1,5 @@
 using Nalix.Common.Exceptions;
-using Nalix.Common.Package;
+using Nalix.Common.Packets;
 using Nalix.Shared.Serialization;
 
 namespace Nalix.Network.Package;

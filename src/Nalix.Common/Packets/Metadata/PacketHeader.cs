@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace Nalix.Common.Package.Metadata;
+namespace Nalix.Common.Packets.Metadata;
 
 /// <summary>
 /// Represents the header structure of a packet, containing metadata such as the packet type, flags, priority, command, timestamp, and checksum.
@@ -14,7 +14,7 @@ namespace Nalix.Common.Package.Metadata;
 public readonly struct PacketHeader(in IPacket packet)
 {
     /// <summary>
-    /// Gets the total length of the packet header, including length, id, type, flags, priority, command, timestamp, checksum and payload.
+    /// Gets the total length of the packet header.
     /// </summary>
     public readonly System.UInt16 Length = packet.Length;
 
@@ -26,7 +26,7 @@ public readonly struct PacketHeader(in IPacket packet)
     /// <summary>
     /// Gets the unique identifier for the packet instance.
     /// </summary>
-    public readonly System.Byte Number = packet.Number;
+    public readonly System.Byte ProtocolType = packet.ProtocolType;
 
     /// <summary>
     /// Gets the checksum of the packet, computed based on the payload. Used for integrity validation.
