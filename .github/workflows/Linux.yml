@@ -20,10 +20,12 @@ jobs:
     with:
       os: ubuntu-latest
       project:  |
+        src/Nalix.SDK/Nalix.SDK.csproj
         src/Nalix.Common/Nalix.Common.csproj
         src/Nalix.Shared/Nalix.Shared.csproj
         src/Nalix.Logging/Nalix.Logging.csproj
         src/Nalix.Network/Nalix.Network.csproj
+        src/Nalix.Framework/Nalix.Framework.csproj
         src/Nalix.Cryptography/Nalix.Cryptography.csproj
       test: tests/Nalix.Tests.sln
       deploy: false
