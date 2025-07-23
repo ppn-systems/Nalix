@@ -6,7 +6,8 @@ namespace Nalix.Shared.LZ4.Engine;
 /// <summary>
 /// Provides decompression functionality for the LZ4 format.
 /// </summary>
-public readonly struct LZ4Decoder
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+internal readonly struct LZ4Decoder
 {
     /// <summary>
     /// Decompresses the provided compressed data into the specified output buffer.

@@ -37,7 +37,7 @@ public interface IIdentifier : System.IEquatable<IIdentifier>
     /// Converts the identifier to a byte array.
     /// </summary>
     /// <returns>A byte array representing this identifier.</returns>
-    System.Byte[] ToByteArray();
+    System.Byte[] Serialize();
 
     /// <summary>
     /// Tries to write the identifier to a span of bytes.
@@ -45,5 +45,5 @@ public interface IIdentifier : System.IEquatable<IIdentifier>
     /// <param name="destination">The destination span.</param>
     /// <param name="bytesWritten">The Number of bytes written.</param>
     /// <returns>True if successful; false if the destination is too small.</returns>
-    System.Boolean TryWriteBytes(System.Span<System.Byte> destination, out System.Int32 bytesWritten);
+    System.Boolean TrySerialize(System.Span<System.Byte> destination, out System.Int32 bytesWritten);
 }
