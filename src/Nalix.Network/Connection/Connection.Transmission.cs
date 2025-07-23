@@ -88,7 +88,8 @@ public sealed partial class Connection : IConnection
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             IPacket packet,
-            System.Threading.CancellationToken cancellationToken = default) => packet is not null && await this.SendAsync(packet.Serialize(), cancellationToken);
+            System.Threading.CancellationToken cancellationToken = default)
+            => packet is not null && await this.SendAsync(packet.Serialize(), cancellationToken);
 
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(

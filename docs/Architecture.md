@@ -7,6 +7,7 @@ Nalix is a comprehensive .NET ecosystem built following Domain-Driven Design (DD
 ## Core Principles
 
 ### Design Philosophy
+
 - **Performance First**: Optimized for high-throughput, low-latency scenarios
 - **Security by Design**: Built-in cryptographic protection and secure defaults
 - **Modular Architecture**: Clean separation of concerns with minimal coupling
@@ -14,6 +15,7 @@ Nalix is a comprehensive .NET ecosystem built following Domain-Driven Design (DD
 - **Developer Experience**: Intuitive APIs with comprehensive documentation
 
 ### Architectural Patterns
+
 - **Domain-Driven Design (DDD)**: Clear domain boundaries and ubiquitous language
 - **SOLID Principles**: Single responsibility, open/closed, Liskov substitution, interface segregation, dependency inversion
 - **Command Query Responsibility Segregation (CQRS)**: Separate read and write operations
@@ -24,20 +26,11 @@ Nalix is a comprehensive .NET ecosystem built following Domain-Driven Design (DD
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                                Client Applications                                   │
-│   ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
-│   │   Web Apps      │  │  Desktop Apps   │  │   Game Clients  │  │  Mobile Apps    │ │
-│   │ (Blazor/React)  │  │   (WPF/MAUI)    │  │   (Unity/UE)    │  │  (Xamarin/.NET) │ │
-│   └─────────────────┘  └─────────────────┘  └─────────────────┘  └─────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────────────┘
-                                          │
-                                          ▼
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                                 Nalix.Graphics                                       │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
-│  │  Game Engine     │  │   UI Framework   │  │  Rendering       │  │  Physics     │ │
-│  │  (Scene Mgmt)    │  │  (Components)    │  │  (2D/Parallax)   │  │  (2D Sim)    │ │
-│  └──────────────────┘  └──────────────────┘  └──────────────────┘  └──────────────┘ │
+│                                Client Applications                                  │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
+│  │   Web Apps      │  │  Desktop Apps   │  │   Game Clients  │  │  Mobile Apps    │ │
+│  │ (Blazor/React)  │  │   (WPF/MAUI)    │  │   (Unity/UE)    │  │  (Xamarin/.NET) │ │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘  └─────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────────────┘
                                           │
                                           ▼
@@ -50,19 +43,6 @@ Nalix is a comprehensive .NET ecosystem built following Domain-Driven Design (DD
 │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
 │  │   Dispatch       │  │    Transport     │  │   Packet Mgmt    │  │  Monitoring  │ │
 │  │  (Routing/QoS)   │  │  (Buffers/Cache) │  │ (Serialization)  │  │ (Stats/Logs) │ │
-│  └──────────────────┘  └──────────────────┘  └──────────────────┘  └──────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────────────┘
-                                          │
-                                          ▼
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                            Nalix.Network.Package                                    │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
-│  │   Packet Core    │  │   Serialization  │  │   Compression    │  │  Encryption  │ │
-│  │  (Struct/Meta)   │  │   (Binary/JSON)  │  │    (LZ4/Zstd)    │  │ (ChaCha20)   │ │
-│  └──────────────────┘  └──────────────────┘  └──────────────────┘  └──────────────┘ │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
-│  │   Validation     │  │   Diagnostics    │  │   Factory        │  │  Extensions  │ │
-│  │ (Security/Size)  │  │  (Inspection)    │  │  (Creation)      │  │  (Helpers)   │ │
 │  └──────────────────┘  └──────────────────┘  └──────────────────┘  └──────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────────────┘
                                           │
@@ -84,7 +64,7 @@ Nalix is a comprehensive .NET ecosystem built following Domain-Driven Design (DD
 │                              Nalix.Cryptography                                     │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
 │  │      AEAD        │  │    Symmetric     │  │   Asymmetric     │  │   Hashing    │ │
-│  │ (ChaCha20Poly)   │  │ (ChaCha20/XTEA)  │  │ (X25519/Ed25519) │  │(SHA-2/SHA-3)│ │
+│  │ (ChaCha20Poly)   │  │ (ChaCha20/XTEA)  │  │ (X25519/Ed25519) │  │(SHA-2/SHA-3) │ │
 │  └──────────────────┘  └──────────────────┘  └──────────────────┘  └──────────────┘ │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
 │  │      MAC         │  │    Checksums     │  │    Security      │  │   Padding    │ │
@@ -101,7 +81,7 @@ Nalix is a comprehensive .NET ecosystem built following Domain-Driven Design (DD
 │  └──────────────────┘  └──────────────────┘  └──────────────────┘  └──────────────┘ │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
 │  │   Performance    │  │   Configuration  │  │   Integration    │  │   Security   │ │
-│  │ (Metrics/Stats)  │  │ (Options/DI)     │  │  (ASP.NET/DI)    │  │(Audit/Anon) │ │
+│  │ (Metrics/Stats)  │  │ (Options/DI)     │  │  (ASP.NET/DI)    │  │(Audit/Anon)  │ │
 │  └──────────────────┘  └──────────────────┘  └──────────────────┘  └──────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────────────┘
                                           │
@@ -120,20 +100,7 @@ Nalix is a comprehensive .NET ecosystem built following Domain-Driven Design (DD
                                           │
                                           ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                                    Nalix                                            │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
-│  │   Assemblies     │  │  Randomization   │  │   Identifiers    │  │   Interop    │ │
-│  │(Load/Inspect/DI) │  │(Secure/Fast/Alg) │  │(Base32/58/64/36) │  │(Platform/OS) │ │
-│  └──────────────────┘  └──────────────────┘  └──────────────────┘  └──────────────┘ │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
-│  │   Extensions     │  │       I/O        │  │   Threading      │  │ Diagnostics  │ │
-│  │(.NET Enhance)    │  │(Files/Streams)   │  │(Concurrency)     │  │(Perf/Debug)  │ │
-│  └──────────────────┘  └──────────────────┘  └──────────────────┘  └──────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────────────┘
-                                          │
-                                          ▼
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                           External Dependencies                                      │
+│                           External Dependencies                                     │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
 │  │   .NET Runtime   │  │      SFML        │  │   ImageSharp     │  │ System.Text  │ │
 │  │   (.NET 9.0)     │  │   (Graphics)     │  │  (Processing)    │  │    (JSON)    │ │

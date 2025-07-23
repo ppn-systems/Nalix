@@ -1,4 +1,3 @@
-
 using Nalix.Common.Caching;
 using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Packets.Enums;
