@@ -1,7 +1,8 @@
 ﻿using Nalix.Network.Dispatch.Core;
+using Nalix.Network.Dispatch.ReturnTypes;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Network.Dispatch.Internal.ReturnTypes.Task;
+namespace Nalix.Network.Dispatch.ReturnTypes.Task;
 
 /// <inheritdoc/>
 internal sealed class TaskReturnHandler<TPacket, TResult>(IReturnHandler<TPacket> innerHandler)

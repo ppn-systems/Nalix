@@ -1,7 +1,6 @@
 ﻿using Nalix.Common.Packets;
 using Nalix.Network.Dispatch.Core;
-using Nalix.Network.Dispatch.Internal.ReturnTypes;
-using System;
+using Nalix.Network.Dispatch.ReturnTypes;
 
 namespace Nalix.Network.Dispatch.Options;
 public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket, IPacketTransformer<TPacket>
@@ -14,39 +13,43 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         PacketHandlerDelegate<TPacket> descriptor,
         PacketContext<TPacket> context)
     {
-        // Validation check
-        //if (!descriptor.CanExecute(context))
-        //{
-        //}
-
         try
         {
-            // Execute compiled handler
-            System.Object? result = await descriptor.ExecuteAsync(context);
+            System.Int32 timeout = descriptor.Attributes.Timeout?.TimeoutMilliseconds ?? 0;
+            System.Threading.Tasks.ValueTask<System.Object?> execTask = descriptor.ExecuteAsync(context);
 
-            // Handle return value
-            IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.GetHandler(descriptor.ReturnType);
-            await returnHandler.HandleAsync(result, context);
+            if (timeout > 0)
+            {
+                var execTaskAsTask = execTask.AsTask(); // Convert ValueTask to Task once
+                var completed = await System.Threading.Tasks.Task.WhenAny(
+                    execTaskAsTask, System.Threading.Tasks.Task.Delay(timeout));
+
+                if (completed != execTaskAsTask)
+                {
+                    _ = await context.Connection.Tcp.SendAsync(
+                        TPacket.Create(0, $"Request timeout ({timeout}ms)"));
+                    return;
+                }
+
+                // Await the execTaskAsTask only once
+                System.Object? result = await execTaskAsTask;
+
+                IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.GetHandler(descriptor.ReturnType);
+                await returnHandler.HandleAsync(result, context);
+            }
+            else
+            {
+                // Await the ValueTask only once
+                System.Object? result = await execTask;
+
+                IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.GetHandler(descriptor.ReturnType);
+                await returnHandler.HandleAsync(result, context);
+            }
         }
         catch (System.Exception ex)
         {
             await this.HandleExecutionException(descriptor, context, ex);
         }
-    }
-
-    /// <summary>
-    /// Handle timeout exception.
-    /// </summary>
-    private async System.Threading.Tasks.ValueTask HandleTimeout(
-        PacketHandlerDelegate<TPacket> descriptor,
-        PacketContext<TPacket> context)
-    {
-        this._logger?.Warn("Handler timeout for OpCode={0}", descriptor.OpCode);
-
-        this._errorHandler?.Invoke(new TimeoutException("Handler timeout"), descriptor.OpCode);
-
-        _ = await context.Connection.Tcp.SendAsync(
-            TPacket.Create(0, "Request timed out"));
     }
 
     /// <summary>

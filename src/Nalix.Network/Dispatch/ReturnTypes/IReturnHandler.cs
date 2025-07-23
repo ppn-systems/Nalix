@@ -1,6 +1,6 @@
 ﻿using Nalix.Network.Dispatch.Core;
 
-namespace Nalix.Network.Dispatch.Internal.ReturnTypes;
+namespace Nalix.Network.Dispatch.ReturnTypes;
 
 /// <summary>
 /// Defines a handler interface for processing method return values of packet-handling methods

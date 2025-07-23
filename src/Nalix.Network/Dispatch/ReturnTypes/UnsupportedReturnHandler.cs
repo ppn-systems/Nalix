@@ -1,6 +1,6 @@
 ﻿using Nalix.Network.Dispatch.Core;
 
-namespace Nalix.Network.Dispatch.Internal.ReturnTypes;
+namespace Nalix.Network.Dispatch.ReturnTypes;
 
 /// <inheritdoc/>
 internal sealed class UnsupportedReturnHandler<TPacket>(System.Type returnType) : IReturnHandler<TPacket>

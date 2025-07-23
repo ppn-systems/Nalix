@@ -15,6 +15,7 @@ namespace Nalix.Network.Dispatch.Middleware.Pre;
 /// <typeparam name="TPacket">
 /// The packet type, which must implement both <see cref="IPacket"/> and <see cref="IPacketTransformer{TPacket}"/>.
 /// </typeparam>
+[PacketMiddleware(MiddlewareStage.Pre, order: 0, name: "RateLimit")]
 public class RateLimitMiddleware<TPacket> : IPacketMiddleware<TPacket>
     where TPacket : IPacket, IPacketTransformer<TPacket>
 {
