@@ -7,10 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Test.Cryptography", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Tests.Shared", "Nalix.Tests.Shared\Nalix.Tests.Shared.csproj", "{287268AF-2EE2-4224-996A-95B05C14DEB8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Tests.Network", "Nalix.Tests.Network\Nalix.Tests.Network.csproj", "{D5480087-95A5-47B9-905D-B9F7FE2B7212}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Test.Network.Exe", "Nalix.Test.Network.Exe\Nalix.Test.Network.Exe.csproj", "{B5D76095-A785-4FBE-A6D4-0DB9F8D44DD4}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,14 +21,6 @@ Global
 		{287268AF-2EE2-4224-996A-95B05C14DEB8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{287268AF-2EE2-4224-996A-95B05C14DEB8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{287268AF-2EE2-4224-996A-95B05C14DEB8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D5480087-95A5-47B9-905D-B9F7FE2B7212}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D5480087-95A5-47B9-905D-B9F7FE2B7212}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D5480087-95A5-47B9-905D-B9F7FE2B7212}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D5480087-95A5-47B9-905D-B9F7FE2B7212}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B5D76095-A785-4FBE-A6D4-0DB9F8D44DD4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B5D76095-A785-4FBE-A6D4-0DB9F8D44DD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B5D76095-A785-4FBE-A6D4-0DB9F8D44DD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B5D76095-A785-4FBE-A6D4-0DB9F8D44DD4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
