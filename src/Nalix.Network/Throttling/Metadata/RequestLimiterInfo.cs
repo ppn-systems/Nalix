@@ -1,6 +1,4 @@
-using System.Collections.Generic;
-
-namespace Nalix.Network.Security.Metadata;
+namespace Nalix.Network.Throttling.Metadata;
 
 /// <summary>
 /// Represents the data of a request, including the history of request timestamps and optional block expiration time.
@@ -9,7 +7,7 @@ internal readonly struct RequestLimiterInfo
 {
     #region Fields
 
-    private readonly Queue<System.Int64> _requests;
+    private readonly System.Collections.Generic.Queue<System.Int64> _requests;
 
     #endregion Fields
 
@@ -18,7 +16,7 @@ internal readonly struct RequestLimiterInfo
     public System.Int64 BlockedUntilTicks { get; }
     public System.Int64 LastRequestTicks { get; }
     public System.Int32 RequestCount => this._requests.Count;
-    public IReadOnlyCollection<System.Int64> Requests => this._requests;
+    public System.Collections.Generic.IReadOnlyCollection<System.Int64> Requests => this._requests;
 
     #endregion Properties
 
@@ -26,7 +24,7 @@ internal readonly struct RequestLimiterInfo
 
     public RequestLimiterInfo(System.Int64 firstRequest)
     {
-        this._requests = new Queue<System.Int64>(capacity: 8);
+        this._requests = new System.Collections.Generic.Queue<System.Int64>(capacity: 8);
         this._requests.Enqueue(firstRequest);
         this.BlockedUntilTicks = 0;
         this.LastRequestTicks = firstRequest;
@@ -64,7 +62,9 @@ internal readonly struct RequestLimiterInfo
 
     #region Private Methods
 
-    private RequestLimiterInfo(Queue<System.Int64> requests, System.Int64 blockedUntilTicks, System.Int64 lastRequestTicks)
+    private RequestLimiterInfo(
+        System.Collections.Generic.Queue<System.Int64> requests,
+        System.Int64 blockedUntilTicks, System.Int64 lastRequestTicks)
     {
         this._requests = requests;
         this.BlockedUntilTicks = blockedUntilTicks;

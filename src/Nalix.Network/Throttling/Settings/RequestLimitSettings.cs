@@ -1,6 +1,6 @@
 using System;
 
-namespace Nalix.Network.Security.Settings;
+namespace Nalix.Network.Throttling.Settings;
 
 /// <summary>
 /// Represents settings for rate limiting, including the Number of requests, lockout duration, and time window.

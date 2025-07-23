@@ -1,10 +1,10 @@
 using Nalix.Common.Exceptions;
 using Nalix.Common.Logging;
 using Nalix.Network.Configurations;
-using Nalix.Network.Security.Metadata;
+using Nalix.Network.Throttling.Metadata;
 using Nalix.Shared.Configuration;
 
-namespace Nalix.Network.Security.Guard;
+namespace Nalix.Network.Throttling;
 
 /// <summary>
 /// A class responsible for rate-limiting requests from IP addresses to prevent abuse or excessive requests.
