@@ -40,7 +40,7 @@ public static partial class LiteSerializer
 
             return value == null
                 ? throw new SerializationException(
-                    $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
+                    $"Serialize of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
                 : lease;
         }
 
@@ -58,7 +58,7 @@ public static partial class LiteSerializer
 
                 return value == null
                     ? throw new SerializationException(
-                        $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
+                        $"Serialize of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
                     : lz;
             }
 
@@ -98,6 +98,7 @@ public static partial class LiteSerializer
         System.Int32 capacity = (kind is TypeKind.FixedSizeSerializable && sizeHint > 0) ? sizeHint : 512;
 
         // Retry loop: if capacity is insufficient, double and retry once or twice.
+        // DataWriter should only be disposed in finally to prevent double-dispose.
         for (System.Int32 attempt = 0; attempt < 3; attempt++)
         {
             BufferLease lease = BufferLease.Rent(capacity, zeroOnDispose);
@@ -105,19 +106,13 @@ public static partial class LiteSerializer
             try
             {
                 formatter.Serialize(ref writer, value);
-                // If DataWriter succeeds within span bounds:
                 lease.CommitLength(writer.WrittenCount);
-
-                return value == null
-                    ? throw new SerializationException(
-                        $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
-                    : lease;
+                return value == null ? throw new SerializationException($"Serialize of non-nullable unmanaged type '{typeof(T)}' resulted in null value.") : lease;
             }
-            catch (System.Exception ex) when (ex is SerializationException or System.IndexOutOfRangeException or System.ArgumentOutOfRangeException)
+            catch (System.Exception ex) when (
+                ex is SerializationException or System.IndexOutOfRangeException or System.ArgumentOutOfRangeException)
             {
-                // capacity too small or formatter overflowed the writer; grow and retry
-                writer.Dispose();
-                lease.Dispose();
+                lease.Dispose(); // Chỉ Dispose lease ở đây
                 capacity = checked(System.Math.Max(capacity * 2, writer.WrittenCount > 0 ? writer.WrittenCount : capacity * 2));
                 continue;
             }
@@ -138,7 +133,7 @@ public static partial class LiteSerializer
 
                 return value == null
                     ? throw new SerializationException(
-                        $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
+                        $"Serialize of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
                     : probe;
             }
             finally
@@ -182,7 +177,7 @@ public static partial class LiteSerializer
 
             return value == null
                 ? throw new SerializationException(
-                    $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
+                    $"Serialize of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
                 : size;
         }
 
@@ -203,7 +198,7 @@ public static partial class LiteSerializer
 
                 return value == null
                     ? throw new SerializationException(
-                        $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
+                        $"Serialize of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
                     : 4;
             }
 
@@ -257,7 +252,7 @@ public static partial class LiteSerializer
 
             return value == null
                 ? throw new SerializationException(
-                    $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
+                    $"Serialize of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
                 : writer.WrittenCount;
         }
         finally
