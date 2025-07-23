@@ -1,4 +1,4 @@
-namespace Nalix.Common.Package.Enums;
+namespace Nalix.Common.Packets.Enums;
 
 /// <summary>
 /// IPacket flags indicating different states of a packet.

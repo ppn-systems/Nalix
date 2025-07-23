@@ -1,4 +1,4 @@
-namespace Nalix.Common.Package;
+namespace Nalix.Common.Packets;
 
 /// <summary>
 /// Provides a contract for deserializing a packet of type <typeparamref name="TPacket"/> from a span of bytes.

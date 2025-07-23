@@ -1,6 +1,6 @@
 using Nalix.Common.Exceptions;
-using Nalix.Common.Package;
-using Nalix.Common.Package.Metadata;
+using Nalix.Common.Packets;
+using Nalix.Common.Packets.Metadata;
 using Nalix.Network.Package.Engine;
 using Nalix.Shared.Serialization;
 
@@ -78,7 +78,7 @@ public static class PacketExtensions
     /// </summary>
     /// <param name="packet">The packet to serialize.</param>
     /// <param name="destination">The destination span where the serialized data will be stored.</param>
-    /// <param name="bytesWritten">Outputs the Number of bytes written to the destination span.</param>
+    /// <param name="bytesWritten">Outputs the ProtocolType of bytes written to the destination span.</param>
     /// <returns>True if serialization was successful; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

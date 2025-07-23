@@ -1,4 +1,4 @@
-using Nalix.Common.Package;
+using Nalix.Common.Packets;
 
 namespace Nalix.Network.Package;
 

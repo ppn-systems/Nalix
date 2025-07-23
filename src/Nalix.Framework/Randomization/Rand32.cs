@@ -7,7 +7,7 @@ namespace Nalix.Framework.Randomization;
 /// This class wraps a low-level random number generator (SeededRandom)
 /// and exposes a familiar interface similar to <see cref="System.Random"/>.
 /// </remarks>
-/// <param name="seed">The seed to initialize the random Number generator.</param>
+/// <param name="seed">The seed to initialize the random ProtocolType generator.</param>
 public sealed class Rand32(System.Int32 seed)
 {
     #region Constants
@@ -27,12 +27,12 @@ public sealed class Rand32(System.Int32 seed)
     #region Fields
 
     /// <summary>
-    /// Current seed value for the random Number generator.
+    /// Current seed value for the random ProtocolType generator.
     /// </summary>
     private System.Int32 _seed = seed;
 
     /// <summary>
-    /// Random Number generator instance.
+    /// Random ProtocolType generator instance.
     /// </summary>
     private readonly SeededRandom _rand = new((System.UInt32)seed);
 
@@ -52,7 +52,7 @@ public sealed class Rand32(System.Int32 seed)
     #region APIs
 
     /// <summary>
-    /// Resets the seed for the random Number generator.
+    /// Resets the seed for the random ProtocolType generator.
     /// </summary>
     /// <param name="seed">The new seed value.</param>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -138,7 +138,7 @@ public sealed class Rand32(System.Int32 seed)
     }
 
     /// <summary>
-    /// Generates a random floating-point Number in the range [0.0f, 1.0f].
+    /// Generates a random floating-point ProtocolType in the range [0.0f, 1.0f].
     /// </summary>
     /// <returns>A random float.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -146,7 +146,7 @@ public sealed class Rand32(System.Int32 seed)
     public System.Single NextFloat() => _rand.GetFloat();
 
     /// <summary>
-    /// Generates a random floating-point Number in the range [0.0f, max).
+    /// Generates a random floating-point ProtocolType in the range [0.0f, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random float.</returns>
@@ -155,7 +155,7 @@ public sealed class Rand32(System.Int32 seed)
     public System.Single NextFloat(System.Single max) => NextFloat() * max;
 
     /// <summary>
-    /// Generates a random floating-point Number in the range [min, max).
+    /// Generates a random floating-point ProtocolType in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
@@ -165,7 +165,7 @@ public sealed class Rand32(System.Int32 seed)
     public System.Single NextFloat(System.Single min, System.Single max) => min + (NextFloat() * (max - min));
 
     /// <summary>
-    /// Generates a random double-precision floating-point Number in the range [0.0, 1.0].
+    /// Generates a random double-precision floating-point ProtocolType in the range [0.0, 1.0].
     /// </summary>
     /// <returns>A random double.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -173,7 +173,7 @@ public sealed class Rand32(System.Int32 seed)
     public System.Double NextDouble() => _rand.GetDouble();
 
     /// <summary>
-    /// Generates a random double-precision floating-point Number in the range [0.0, max).
+    /// Generates a random double-precision floating-point ProtocolType in the range [0.0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random double.</returns>
@@ -182,7 +182,7 @@ public sealed class Rand32(System.Int32 seed)
     public System.Double NextDouble(System.Double max) => NextDouble() * max;
 
     /// <summary>
-    /// Generates a random double-precision floating-point Number in the range [min, max).
+    /// Generates a random double-precision floating-point ProtocolType in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
@@ -198,15 +198,7 @@ public sealed class Rand32(System.Int32 seed)
     /// <returns>True if the random check passed based on the specified percentage.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean NextPct(System.Int32 pct)
-    {
-        if (pct <= 0)
-        {
-            return false;
-        }
-
-        return pct >= 100 || Next(100) < pct;
-    }
+    public System.Boolean NextPct(System.Int32 pct) => pct > 0 && (pct >= 100 || Next(100) < pct);
 
     /// <summary>
     /// Performs a random check with a given probability.
@@ -215,15 +207,7 @@ public sealed class Rand32(System.Int32 seed)
     /// <returns>True if the random check passed based on the specified probability.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean NextProbability(System.Double probability)
-    {
-        if (probability <= 0.0)
-        {
-            return false;
-        }
-
-        return probability >= 1.0 || NextDouble() < probability;
-    }
+    public System.Boolean NextProbability(System.Double probability) => probability > 0.0 && (probability >= 1.0 || NextDouble() < probability);
 
     /// <summary>
     /// Randomly shuffles a list using the Fisher-Yates algorithm.
@@ -291,7 +275,7 @@ public sealed class Rand32(System.Int32 seed)
     public void NextBytes(System.Span<System.Byte> buffer) => _rand.NextBytes(buffer);
 
     /// <summary>
-    /// Returns a string representation of the random Number generator state.
+    /// Returns a string representation of the random ProtocolType generator state.
     /// </summary>
     /// <returns>A string representation of the RNG.</returns>
     public override System.String ToString() => $"Rand32[Seed={_seed}]";

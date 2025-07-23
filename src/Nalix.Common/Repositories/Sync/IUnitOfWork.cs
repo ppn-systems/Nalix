@@ -8,6 +8,6 @@ public interface IUnitOfWorkSync : IRepositoryProvider, ITransaction, System.IDi
     /// <summary>
     /// Saves all changes made in the current transaction.
     /// </summary>
-    /// <returns>The Number of affected database records.</returns>
+    /// <returns>The ProtocolType of affected database records.</returns>
     System.Int32 SaveChanges();
 }

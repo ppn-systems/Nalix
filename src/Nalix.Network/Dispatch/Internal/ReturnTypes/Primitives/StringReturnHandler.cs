@@ -1,11 +1,12 @@
-﻿using Nalix.Network.Dispatch.Core;
+﻿using Nalix.Common.Packets;
+using Nalix.Network.Dispatch.Core;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Dispatch.Internal.ReturnTypes.Primitives;
 
 /// <inheritdoc/>
 internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket>
-    where TPacket : Common.Package.IPacket, Common.Package.IPacketFactory<TPacket>
+    where TPacket : IPacket, IPacketFactory<TPacket>
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -1,4 +1,4 @@
-﻿using Nalix.Common.Package;
+﻿using Nalix.Common.Packets;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Core;
 

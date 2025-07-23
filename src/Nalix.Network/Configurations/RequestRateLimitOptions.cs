@@ -7,7 +7,7 @@ namespace Nalix.Network.Configurations;
 
 /// <summary>
 /// Represents the configuration settings for rate limiting in the firewall.
-/// This configuration defines the maximum Number of requests allowed, the lockout duration after exceeding limits,
+/// This configuration defines the maximum ProtocolType of requests allowed, the lockout duration after exceeding limits,
 /// and the time window for counting requests.
 /// </summary>
 /// <remarks>
@@ -41,7 +41,7 @@ public sealed class RequestRateLimitOptions(RequestLimitSettings settings) : Con
     /// <summary>
     /// Initializes a new instance of the <see cref="RequestRateLimitOptions"/> class with the specified rate limit settings.
     /// </summary>
-    /// <param name="requests">The maximum Number of requests allowed.</param>
+    /// <param name="requests">The maximum ProtocolType of requests allowed.</param>
     /// <param name="lockoutSeconds">The duration in seconds to lock out after exceeding the request limit.</param>
     /// <param name="windowMilliseconds">The time window in milliseconds for measuring the request rate.</param>
     public RequestRateLimitOptions(System.Int32 requests, System.Int32 lockoutSeconds, System.Int32 windowMilliseconds)
@@ -73,7 +73,7 @@ public sealed class RequestRateLimitOptions(RequestLimitSettings settings) : Con
     /// <summary>
     /// Gets or sets the maximum allowed requests per time window.
     /// </summary>
-    /// <value>The maximum Number of requests allowed in a given time window.</value>
+    /// <value>The maximum ProtocolType of requests allowed in a given time window.</value>
     /// <remarks>Value must be between 1 and 1000 requests per window.</remarks>
     public System.Int32 MaxAllowedRequests { get; set; } = settings.Requests;
 

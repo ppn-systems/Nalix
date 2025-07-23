@@ -1,4 +1,4 @@
-namespace Nalix.Common.Package.Enums;
+namespace Nalix.Common.Packets.Enums;
 
 /// <summary>
 /// Represents different types of payloads used in network packets.
@@ -86,7 +86,7 @@ public enum PacketType : System.Byte
     Html = 0x0F,
 
     /// <summary>
-    /// Structured data: Protocol Buffers.
+    /// Structured data: ProtocolType Buffers.
     /// </summary>
     Protobuf = 0x10,
 

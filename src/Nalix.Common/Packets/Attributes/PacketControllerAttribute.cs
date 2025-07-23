@@ -1,4 +1,4 @@
-namespace Nalix.Common.Package.Attributes;
+namespace Nalix.Common.Packets.Attributes;
 
 /// <summary>
 /// Marks a class as a packet controller responsible for handling packet commands.

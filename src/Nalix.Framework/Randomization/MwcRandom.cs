@@ -1,7 +1,7 @@
 namespace Nalix.Framework.Randomization;
 
 /// <summary>
-/// A high-performance implementation of the Multiply-with-carry (MWC) random Number generator algorithm.
+/// A high-performance implementation of the Multiply-with-carry (MWC) random ProtocolType generator algorithm.
 /// </summary>
 /// <remarks>
 /// This implementation uses a 64-bit state value to produce 32-bit random numbers.
@@ -32,7 +32,7 @@ public abstract class MwcRandom
     /// <summary>
     /// Initializes a MwcRandom instance with a given seed value.
     /// </summary>
-    /// <param name="seed">The seed value to initialize the random Number generator. If 0, uses the current time.</param>
+    /// <param name="seed">The seed value to initialize the random ProtocolType generator. If 0, uses the current time.</param>
     protected MwcRandom(System.UInt32 seed)
     {
         // If seed is 0, use current time ticks as a seed
@@ -50,7 +50,7 @@ public abstract class MwcRandom
     }
 
     /// <summary>
-    /// Sets the seed value for the random Number generator.
+    /// Sets the seed value for the random ProtocolType generator.
     /// </summary>
     /// <param name="seed">The new seed value.</param>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -75,9 +75,9 @@ public abstract class MwcRandom
     public System.UInt32 GetSeed() => (System.UInt32)_state;
 
     /// <summary>
-    /// Returns a random Number in the range [0, RandMax].
+    /// Returns a random ProtocolType in the range [0, RandMax].
     /// </summary>
-    /// <returns>A random Number as a uint.</returns>
+    /// <returns>A random ProtocolType as a uint.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.UInt32 Get()
@@ -88,10 +88,10 @@ public abstract class MwcRandom
     }
 
     /// <summary>
-    /// Returns a random Number in the range [0, max).
+    /// Returns a random ProtocolType in the range [0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random Number in the range [0, max).</returns>
+    /// <returns>A random ProtocolType in the range [0, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.UInt32 Get(System.UInt32 max)
@@ -119,19 +119,19 @@ public abstract class MwcRandom
     }
 
     /// <summary>
-    /// Returns a random Number in the range [min, max).
+    /// Returns a random ProtocolType in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random Number in the range [min, max).</returns>
+    /// <returns>A random ProtocolType in the range [min, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.UInt32 Get(System.UInt32 min, System.UInt32 max) => min >= max ? min : min + Get(max - min);
 
     /// <summary>
-    /// Returns a 64-bit random Number.
+    /// Returns a 64-bit random ProtocolType.
     /// </summary>
-    /// <returns>A random Number as a ulong.</returns>
+    /// <returns>A random ProtocolType as a ulong.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected System.UInt64 Get64()

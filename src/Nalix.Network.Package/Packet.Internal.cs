@@ -1,5 +1,5 @@
-using Nalix.Common.Package.Enums;
-using Nalix.Common.Package.Metadata;
+using Nalix.Common.Packets.Enums;
+using Nalix.Common.Packets.Metadata;
 using Nalix.Cryptography.Checksums;
 using Nalix.Framework.Time;
 using Nalix.Network.Package.Engine.Internal;
@@ -87,7 +87,7 @@ public readonly partial struct Packet
         Payload = _buffer.Memory;
         Checksum = checksum == 0 ? Crc32.Compute(Payload.Span) : checksum;
         Timestamp = timestamp == 0 ? Clock.UnixMillisecondsNow() : timestamp;
-        Number = number == 0 ? (System.Byte)(Timestamp % System.Byte.MaxValue) : number;
+        ProtocolType = number == 0 ? (System.Byte)(Timestamp % System.Byte.MaxValue) : number;
 
         _hash = GetHashCode();
     }

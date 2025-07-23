@@ -31,12 +31,12 @@ public sealed class BufferPoolShared : IDisposable
     #region Properties
 
     /// <summary>
-    /// The total Number of buffers in the pool.
+    /// The total ProtocolType of buffers in the pool.
     /// </summary>
     public Int32 TotalBuffers => Volatile.Read(ref _totalBuffers);
 
     /// <summary>
-    /// The Number of free buffers in the pool.
+    /// The ProtocolType of free buffers in the pool.
     /// </summary>
     public Int32 FreeBuffers => _freeBuffers.Count;
 

@@ -1,4 +1,4 @@
-namespace Nalix.Common.Package.Attributes;
+namespace Nalix.Common.Packets.Attributes;
 
 /// <summary>
 /// Custom attribute to specify a packet identifier for a class.

@@ -1,4 +1,4 @@
-namespace Nalix.Common.Package.Enums;
+namespace Nalix.Common.Packets.Enums;
 
 /// <summary>
 /// Defines the priority levels of a packet.

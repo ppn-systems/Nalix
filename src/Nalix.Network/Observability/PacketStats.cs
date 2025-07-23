@@ -1,4 +1,4 @@
-using Nalix.Common.Package.Enums;
+using Nalix.Common.Packets.Enums;
 
 namespace Nalix.Network.Observability;
 

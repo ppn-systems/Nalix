@@ -6,7 +6,7 @@ namespace Nalix.Framework.Randomization;
 /// <remarks>
 /// Initializes a new instance of the <see cref="SeededRandom"/> class with a specified seed.
 /// </remarks>
-/// <param name="seed">The seed value to initialize the random Number generator.</param>
+/// <param name="seed">The seed value to initialize the random ProtocolType generator.</param>
 public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
 {
     /// <summary>
@@ -204,39 +204,39 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     }
 
     /// <summary>
-    /// Returns a random floating-point Number in the range [0, max).
+    /// Returns a random floating-point ProtocolType in the range [0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random floating-point Number in the range [0, max).</returns>
+    /// <returns>A random floating-point ProtocolType in the range [0, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Single Get(System.Single max) => max <= 0 ? 0 : GetFloat() * max;
 
     /// <summary>
-    /// Returns a random double-precision floating-point Number in the range [0, max).
+    /// Returns a random double-precision floating-point ProtocolType in the range [0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random double-precision floating-point Number in the range [0, max).</returns>
+    /// <returns>A random double-precision floating-point ProtocolType in the range [0, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Double Get(System.Double max) => max <= 0 ? 0 : GetDouble() * max;
 
     /// <summary>
-    /// Returns a random floating-point Number in the range [min, max).
+    /// Returns a random floating-point ProtocolType in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random floating-point Number in the range [min, max).</returns>
+    /// <returns>A random floating-point ProtocolType in the range [min, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Single Get(System.Single min, System.Single max) => min >= max ? min : min + (GetFloat() * (max - min));
 
     /// <summary>
-    /// Returns a random double-precision floating-point Number in the range [min, max).
+    /// Returns a random double-precision floating-point ProtocolType in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random double-precision floating-point Number in the range [min, max).</returns>
+    /// <returns>A random double-precision floating-point ProtocolType in the range [min, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Double Get(System.Double min, System.Double max) => min >= max ? min : min + (GetDouble() * (max - min));
@@ -259,7 +259,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     }
 
     /// <summary>
-    /// Returns a random floating-point Number in the range [0.0, 1.0).
+    /// Returns a random floating-point ProtocolType in the range [0.0, 1.0).
     /// </summary>
     /// <remarks>
     /// This implementation ensures uniform distribution across the entire range
@@ -272,7 +272,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     public new System.Single GetFloat() => (Get() >> 8) * (1.0f / 16777216.0f);
 
     /// <summary>
-    /// Returns a random double-precision floating-point Number in the range [0.0, 1.0).
+    /// Returns a random double-precision floating-point ProtocolType in the range [0.0, 1.0).
     /// </summary>
     /// <remarks>
     /// This implementation ensures uniform distribution across the entire range

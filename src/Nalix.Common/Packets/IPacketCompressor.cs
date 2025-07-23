@@ -1,4 +1,4 @@
-namespace Nalix.Common.Package;
+namespace Nalix.Common.Packets;
 
 /// <summary>
 /// Provides a contract for compressing and decompressing a packet of type <typeparamref name="TPacket"/>.

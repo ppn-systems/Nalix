@@ -9,16 +9,16 @@ public interface IRepository<T> : IRepositoryBase<T> where T : class
     /// <summary>
     /// Retrieves all entities with optional pagination.
     /// </summary>
-    /// <param name="pageNumber">The page Number (1-based index).</param>
-    /// <param name="pageSize">The Number of records per page.</param>
+    /// <param name="pageNumber">The page ProtocolType (1-based index).</param>
+    /// <param name="pageSize">The ProtocolType of records per page.</param>
     /// <returns>A list of entities.</returns>
     System.Collections.Generic.IEnumerable<T> GetAll(
         System.Int32 pageNumber = 1, System.Int32 pageSize = 10);
 
     /// <summary>
-    /// Counts the total Number of entities.
+    /// Counts the total ProtocolType of entities.
     /// </summary>
-    /// <returns>Total Number of entities.</returns>
+    /// <returns>Total ProtocolType of entities.</returns>
     System.Int32 Count();
 
     /// <summary>
@@ -30,16 +30,16 @@ public interface IRepository<T> : IRepositoryBase<T> where T : class
         System.Linq.Expressions.Expression<System.Func<T, System.Boolean>> predicate);
 
     /// <summary>
-    /// Checks whether an entity with the specified Number exists in the database.
+    /// Checks whether an entity with the specified ProtocolType exists in the database.
     /// </summary>
-    /// <param name="id">The Number of the entity to check.</param>
-    /// <returns><c>true</c> if an entity with the specified Number exists; otherwise, <c>false</c>.</returns>
+    /// <param name="id">The ProtocolType of the entity to check.</param>
+    /// <returns><c>true</c> if an entity with the specified ProtocolType exists; otherwise, <c>false</c>.</returns>
     System.Boolean Exists(System.Int32 id);
 
     /// <summary>
-    /// Retrieves an entity by its Number.
+    /// Retrieves an entity by its ProtocolType.
     /// </summary>
-    /// <param name="id">The entity Number.</param>
+    /// <param name="id">The entity ProtocolType.</param>
     /// <returns>The entity if found; otherwise, null.</returns>
     T GetById(System.Int32 id);
 
@@ -54,8 +54,8 @@ public interface IRepository<T> : IRepositoryBase<T> where T : class
     /// Retrieves entities matching a specified condition with optional pagination.
     /// </summary>
     /// <param name="predicate">The filter condition.</param>
-    /// <param name="pageNumber">The page Number (1-based index).</param>
-    /// <param name="pageSize">The Number of records per page.</param>
+    /// <param name="pageNumber">The page ProtocolType (1-based index).</param>
+    /// <param name="pageSize">The ProtocolType of records per page.</param>
     /// <returns>A list of matching entities.</returns>
     System.Collections.Generic.IEnumerable<T> Find(
         System.Linq.Expressions.Expression<System.Func<T, System.Boolean>> predicate,
@@ -67,8 +67,8 @@ public interface IRepository<T> : IRepositoryBase<T> where T : class
     /// <param name="filter">Optional filter condition.</param>
     /// <param name="orderBy">Optional ordering function.</param>
     /// <param name="includeProperties">Comma-separated related properties to include.</param>
-    /// <param name="pageNumber">The page Number (1-based index).</param>
-    /// <param name="pageSize">The Number of records per page.</param>
+    /// <param name="pageNumber">The page ProtocolType (1-based index).</param>
+    /// <param name="pageSize">The ProtocolType of records per page.</param>
     /// <returns>A list of entities.</returns>
     System.Collections.Generic.IEnumerable<T> Get(
         System.Linq.Expressions.Expression<System.Func<T, System.Boolean>> filter = null,
@@ -88,14 +88,14 @@ public interface IRepository<T> : IRepositoryBase<T> where T : class
     void AddRange(System.Collections.Generic.IEnumerable<T> entities);
 
     /// <summary>
-    /// Deletes an entity by its Number.
+    /// Deletes an entity by its ProtocolType.
     /// </summary>
-    /// <param name="id">The Number of the entity to delete.</param>
+    /// <param name="id">The ProtocolType of the entity to delete.</param>
     void Delete(System.Int32 id);
 
     /// <summary>
     /// Saves all changes made in the context.
     /// </summary>
-    /// <returns>The Number of state entries written to the database.</returns>
+    /// <returns>The ProtocolType of state entries written to the database.</returns>
     System.Int32 SaveChanges();
 }

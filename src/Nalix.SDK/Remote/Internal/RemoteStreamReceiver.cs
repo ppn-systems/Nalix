@@ -1,5 +1,5 @@
 using Nalix.Common.Constants;
-using Nalix.Common.Package;
+using Nalix.Common.Packets;
 
 namespace Nalix.SDK.Remote.Internal;
 

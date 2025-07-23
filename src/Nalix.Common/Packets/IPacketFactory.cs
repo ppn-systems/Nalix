@@ -1,6 +1,6 @@
-using Nalix.Common.Package.Enums;
+using Nalix.Common.Packets.Enums;
 
-namespace Nalix.Common.Package;
+namespace Nalix.Common.Packets;
 
 /// <summary>
 /// Factory interface for creating packet instances.

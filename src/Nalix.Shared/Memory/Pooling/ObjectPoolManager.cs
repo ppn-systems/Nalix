@@ -45,17 +45,17 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     }
 
     /// <summary>
-    /// Gets the total Number of pools currently managed.
+    /// Gets the total ProtocolType of pools currently managed.
     /// </summary>
     public Int32 PoolCount => _poolDict.Count;
 
     /// <summary>
-    /// Gets the total Number of get operations performed.
+    /// Gets the total ProtocolType of get operations performed.
     /// </summary>
     public Int64 TotalGetOperations => Interlocked.Read(ref _totalGetOperations);
 
     /// <summary>
-    /// Gets the total Number of return operations performed.
+    /// Gets the total ProtocolType of return operations performed.
     /// </summary>
     public Int64 TotalReturnOperations => Interlocked.Read(ref _totalReturnOperations);
 
@@ -124,8 +124,8 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// Creates and adds multiple new instances of <typeparamref name="T"/> to the pool.
     /// </summary>
     /// <typeparam name="T">The type of objects to preallocate.</typeparam>
-    /// <param name="count">The Number of instances to preallocate.</param>
-    /// <returns>The Number of instances successfully preallocated.</returns>
+    /// <param name="count">The ProtocolType of instances to preallocate.</param>
+    /// <returns>The ProtocolType of instances successfully preallocated.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when count is less than or equal to zero.</exception>
     public Int32 Prealloc<T>(Int32 count) where T : IPoolable, new()
     {
@@ -186,7 +186,7 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// Clears all objects from a specific type's pool.
     /// </summary>
     /// <typeparam name="T">The type to clear from the pool.</typeparam>
-    /// <returns>The Number of objects removed.</returns>
+    /// <returns>The ProtocolType of objects removed.</returns>
     public Int32 ClearPool<T>() where T : IPoolable
     {
         Type type = typeof(T);
@@ -196,7 +196,7 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// <summary>
     /// Clears all objects from all pools.
     /// </summary>
-    /// <returns>The total Number of objects removed.</returns>
+    /// <returns>The total ProtocolType of objects removed.</returns>
     public Int32 ClearAllPools()
     {
         Int32 totalRemoved = 0;
@@ -213,7 +213,7 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// Trims all pools to their target sizes.
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
-    /// <returns>The total Number of objects removed.</returns>
+    /// <returns>The total ProtocolType of objects removed.</returns>
     public Int32 TrimAllPools(Int32 percentage = 50)
     {
         Int32 totalRemoved = 0;

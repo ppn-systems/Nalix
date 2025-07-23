@@ -23,7 +23,7 @@ public sealed class Srp6(String username, Byte[] salt, Byte[] verifier) : ISrp6
     #region Properties
 
     /// <summary>
-    /// Large prime Number N.
+    /// Large prime ProtocolType N.
     /// </summary>
     public static readonly BigInteger N = new([
         0xE3, 0x06, 0xEB, 0xC0, 0x2F, 0x1D, 0xC6, 0x9F, 0x5B, 0x43, 0x76, 0x83, 0xFE, 0x38, 0x51, 0xFD,
