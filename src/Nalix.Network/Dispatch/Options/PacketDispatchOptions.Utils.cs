@@ -1,31 +1,12 @@
 ﻿using Nalix.Common.Packets;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Internal.ReturnTypes;
-using Nalix.Network.Dispatch.Middleware;
+using System;
 
 namespace Nalix.Network.Dispatch.Options;
 public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     #region Private Methods
-
-    /// <summary>
-    /// Configure default middleware pipeline.
-    /// </summary>
-    private void ConfigureDefaultMiddleware()
-    {
-        // Pre-processing middleware
-        _ = this._pipeline
-            .UsePre(new RateLimitMiddleware<TPacket>())
-            .UsePre(new PermissionMiddleware<TPacket>())
-            .UsePre(new PacketTransformMiddleware<TPacket>());
-        //.UsePre(new ValidationMiddleware<TPacket>());
-
-        // Post-processing middleware
-        //_pipeline
-        //    .UsePost(new CompressionMiddleware<TPacket>())
-        //    .UsePost(new EncryptionMiddleware<TPacket>())
-        //    .UsePost(new LoggingMiddleware<TPacket>(_logger));
-    }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -51,6 +32,21 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         {
             await this.HandleExecutionException(descriptor, context, ex);
         }
+    }
+
+    /// <summary>
+    /// Handle timeout exception.
+    /// </summary>
+    private async System.Threading.Tasks.ValueTask HandleTimeout(
+        PacketHandlerDelegate<TPacket> descriptor,
+        PacketContext<TPacket> context)
+    {
+        this._logger?.Warn("Handler timeout for OpCode={0}", descriptor.OpCode);
+
+        this._errorHandler?.Invoke(new TimeoutException("Handler timeout"), descriptor.OpCode);
+
+        _ = await context.Connection.Tcp.SendAsync(
+            TPacket.Create(0, "Request timed out"));
     }
 
     /// <summary>

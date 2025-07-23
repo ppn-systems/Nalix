@@ -73,7 +73,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public PacketDispatchOptions<TPacket> WithMiddleware(
+    public PacketDispatchOptions<TPacket> WithPreMiddleware(
         IPacketMiddleware<TPacket> middleware)
     {
         _ = this._pipeline.UsePre(middleware);
