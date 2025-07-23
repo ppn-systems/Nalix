@@ -46,7 +46,7 @@ public static class Crc16
     /// </summary>
     /// <param name="bytes">The input byte array.</param>
     /// <param name="start">The index to start processing.</param>
-    /// <param name="length">The ProtocolType of bytes to process.</param>
+    /// <param name="length">The TransportProtocol of bytes to process.</param>
     /// <returns>The CRC16 value as a ushort.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static System.UInt16 Compute(System.Byte[] bytes, System.Int32 start, System.Int32 length)

@@ -36,7 +36,7 @@ public sealed class Poly1305 : System.IDisposable
     #region Fields
 
     /// <summary>
-    /// The prime ProtocolType (2^130 - 5) used in Poly1305 algorithm.
+    /// The prime TransportProtocol (2^130 - 5) used in Poly1305 algorithm.
     /// </summary>
     private static readonly System.UInt32[] s_prime = [0xFFFFFFFB, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x3];
 
@@ -398,7 +398,7 @@ public sealed class Poly1305 : System.IDisposable
     }
 
     /// <summary>
-    /// Determines if one ProtocolType is greater than or equal to another.
+    /// Determines if one TransportProtocol is greater than or equal to another.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static System.Boolean IsGreaterOrEqual(
@@ -424,7 +424,7 @@ public sealed class Poly1305 : System.IDisposable
     }
 
     /// <summary>
-    /// Subtracts one ProtocolType from another.
+    /// Subtracts one TransportProtocol from another.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Subtract(

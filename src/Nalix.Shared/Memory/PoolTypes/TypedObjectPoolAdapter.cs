@@ -65,7 +65,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// <summary>
     /// Gets multiple objects from the pool.
     /// </summary>
-    /// <param name="count">The ProtocolType of objects to get.</param>
+    /// <param name="count">The TransportProtocol of objects to get.</param>
     /// <returns>A list containing the requested objects.</returns>
     public List<T> GetMultiple(Int32 count)
     {
@@ -77,7 +77,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// Trims this type's pool to a target size.
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
-    /// <returns>The ProtocolType of objects removed.</returns>
+    /// <returns>The TransportProtocol of objects removed.</returns>
     public Int32 Trim(Int32 percentage = 50)
     {
         if (percentage < 0)
@@ -97,7 +97,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// Returns multiple objects to the pool.
     /// </summary>
     /// <param name="objects">The objects to return.</param>
-    /// <returns>The ProtocolType of objects successfully returned to the pool.</returns>
+    /// <returns>The TransportProtocol of objects successfully returned to the pool.</returns>
     public Int32 ReturnMultiple(IEnumerable<T> objects)
     {
         ArgumentNullException.ThrowIfNull(objects);
@@ -110,14 +110,14 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// <summary>
     /// Clears this type's pool.
     /// </summary>
-    /// <returns>The ProtocolType of objects removed.</returns>
+    /// <returns>The TransportProtocol of objects removed.</returns>
     public Int32 Clear() => _pool.ClearType<T>();
 
     /// <summary>
     /// Preallocates objects in the pool.
     /// </summary>
-    /// <param name="count">The ProtocolType of objects to preallocate.</param>
-    /// <returns>The ProtocolType of objects successfully preallocated.</returns>
+    /// <param name="count">The TransportProtocol of objects to preallocate.</param>
+    /// <returns>The TransportProtocol of objects successfully preallocated.</returns>
     public Int32 Prealloc(Int32 count) => _pool.Prealloc<T>(count);
 
     /// <summary>

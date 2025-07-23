@@ -13,12 +13,9 @@ namespace Nalix.Network.Dispatch.Internal.Analyzers;
 /// <typeparam name="TPacket">The packet type handled by this controller.</typeparam>
 internal sealed class PacketAnalyzer<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>(ILogger? logger = null)
-    where TController : class
-    where TPacket : IPacket,
-                   IPacketFactory<TPacket>,
-                   IPacketEncryptor<TPacket>,
-                   IPacketCompressor<TPacket>
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>(
+    ILogger? logger = null)
+    where TController : class where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     #region Fields
 
@@ -199,9 +196,8 @@ internal sealed class PacketAnalyzer<
             };
         }
 
-        if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.Task<>))
-        {
-            return async (instance, context) =>
+        return returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.Task<>)
+            ? (async (instance, context) =>
             {
                 var result = syncDelegate(instance, context);
                 if (result is System.Threading.Tasks.Task task)
@@ -211,12 +207,9 @@ internal sealed class PacketAnalyzer<
                     return resultProperty?.GetValue(task);
                 }
                 return result;
-            };
-        }
-
-        if (returnType == typeof(System.Threading.Tasks.ValueTask))
-        {
-            return async (instance, context) =>
+            })
+            : returnType == typeof(System.Threading.Tasks.ValueTask)
+            ? (async (instance, context) =>
             {
                 var result = syncDelegate(instance, context);
                 if (result is System.Threading.Tasks.ValueTask valueTask)
@@ -225,10 +218,8 @@ internal sealed class PacketAnalyzer<
                     return null;
                 }
                 return result;
-            };
-        }
-
-        return returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.ValueTask<>)
+            })
+            : returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.ValueTask<>)
             ? (async (instance, context) =>
             {
                 var result = syncDelegate(instance, context);

@@ -11,9 +11,9 @@ namespace Nalix.Network.Dispatch;
 /// </summary>
 /// <typeparam name="TPacket">
 /// The raw type implementing <see cref="IPacket"/>,
-/// <see cref="IPacketEncryptor{TPacket}"/>,
-/// <see cref="IPacketCompressor{TPacket}"/>,
-/// <see cref="IPacketDeserializer{TPacket}"/>.
+/// <see cref="IPacketTransformer{TPacket}"/>,
+/// <see cref="IPacketTransformer{TPacket}"/>,
+/// <see cref="IPacketTransformer{TPacket}"/>.
 /// </typeparam>
 /// <remarks>
 /// <para>
@@ -37,11 +37,7 @@ namespace Nalix.Network.Dispatch;
 /// </code>
 /// </example>
 public sealed class PacketDispatchChannel<TPacket>
-    : PacketDispatchCore<TPacket>, IPacketDispatch<TPacket> where TPacket : IPacket,
-    IPacketFactory<TPacket>,
-    IPacketEncryptor<TPacket>,
-    IPacketCompressor<TPacket>,
-    IPacketDeserializer<TPacket>
+    : PacketDispatchCore<TPacket>, IPacketDispatch<TPacket> where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     #region Fields
 

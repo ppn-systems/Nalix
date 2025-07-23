@@ -11,13 +11,13 @@ public sealed class NetworkCacheSizeOptions : ConfigurationLoader
     #region Properties
 
     /// <summary>
-    /// Gets or sets the maximum ProtocolType of outgoing cache entries.
+    /// Gets or sets the maximum TransportProtocol of outgoing cache entries.
     /// The default value is 20.
     /// </summary>
     public System.Int32 Outgoing { get; set; } = 20;
 
     /// <summary>
-    /// Gets or sets the maximum ProtocolType of incoming cache entries.
+    /// Gets or sets the maximum TransportProtocol of incoming cache entries.
     /// The default value is 40.
     /// </summary>
     public System.Int32 Incoming { get; set; } = 40;

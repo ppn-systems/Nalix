@@ -9,11 +9,11 @@ namespace Nalix.Network.Dispatch.Middleware;
 /// If decryption fails, an error packet is sent back to the client and further processing is aborted.
 /// </summary>
 /// <typeparam name="TPacket">
-/// The type of packet, which must implement <see cref="IPacket"/>, <see cref="IPacketEncryptor{TPacket}"/>,
-/// and <see cref="IPacketFactory{TPacket}"/> interfaces.
+/// The type of packet, which must implement <see cref="IPacket"/>, <see cref="IPacketTransformer{TPacket}"/>,
+/// and <see cref="IPacketTransformer{TPacket}"/> interfaces.
 /// </typeparam>
 public class DecryptionMiddleware<TPacket> : IPacketMiddleware<TPacket>
-    where TPacket : IPacket, IPacketEncryptor<TPacket>, IPacketFactory<TPacket>
+    where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     /// <summary>
     /// Attempts to decrypt the packet using the connection's encryption key and algorithm.
@@ -25,24 +25,22 @@ public class DecryptionMiddleware<TPacket> : IPacketMiddleware<TPacket>
     /// <returns>A task representing the asynchronous operation.</returns>
     public async System.Threading.Tasks.Task InvokeAsync(
         PacketContext<TPacket> context,
-        System.Func<System.Threading.Tasks.Task> next)
-    {
-        if (context.Packet.IsEncrypted)
-        {
-            try
-            {
-                context.SetPacket(TPacket.Decrypt(
-                    context.Packet,
-                    context.Connection.EncryptionKey,
-                    context.Connection.Encryption));
-            }
-            catch (System.Exception)
-            {
-                _ = await context.Connection.Tcp.SendAsync(TPacket.Create(0, "Failed to process packet."));
-                return;
-            }
-        }
+        System.Func<System.Threading.Tasks.Task> next) =>
+        //if (context.Packet.IsEncrypted)
+        //{
+        //    try
+        //    {
+        //        context.SetPacket(TPacket.Decrypt(
+        //            context.Packet,
+        //            context.Connection.EncryptionKey,
+        //            context.Connection.Encryption));
+        //    }
+        //    catch (System.Exception)
+        //    {
+        //        _ = await context.Connection.Tcp.SendAsync(TPacket.Create(0, "Failed to process packet."));
+        //        return;
+        //    }
+        //}
 
         await next();
-    }
 }

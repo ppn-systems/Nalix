@@ -13,7 +13,7 @@ public static partial class Directories
     /// <param name="path">The path of the directory to check or create.</param>
     /// <param name="callerMemberName">The method or property name of the caller.</param>
     /// <param name="callerFilePath">The path of the source file that contains the caller.</param>
-    /// <param name="callerLineNumber">The line ProtocolType in the source file at which the method is called.</param>
+    /// <param name="callerLineNumber">The line TransportProtocol in the source file at which the method is called.</param>
     private static void EnsureDirectoryExists(System.String path,
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",

@@ -73,7 +73,7 @@ internal sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStre
     public void Send(TPacket packet)
     {
         System.ArgumentNullException.ThrowIfNull(packet);
-        Send(packet.Serialize().Span);
+        Send(packet.Serialize());
     }
 
     /// <summary>

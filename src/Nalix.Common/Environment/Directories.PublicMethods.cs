@@ -150,7 +150,7 @@ public static partial class Directories
     /// <param name="directoryPath">The directory to clean.</param>
     /// <param name="maxAge">The maximum age of files to keep.</param>
     /// <param name="searchPattern">The search pattern for files to consider.</param>
-    /// <returns>The ProtocolType of files deleted.</returns>
+    /// <returns>The TransportProtocol of files deleted.</returns>
     public static System.Int32 CleanupDirectory(System.String directoryPath, System.TimeSpan maxAge, System.String searchPattern = "*")
     {
         if (System.String.IsNullOrWhiteSpace(directoryPath))
