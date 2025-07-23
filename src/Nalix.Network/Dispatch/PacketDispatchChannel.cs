@@ -10,10 +10,7 @@ namespace Nalix.Network.Dispatch;
 /// with dependency injection (DI) support and flexible raw handling via reflection-based routing.
 /// </summary>
 /// <typeparam name="TPacket">
-/// The raw type implementing <see cref="IPacket"/>,
-/// <see cref="IPacketTransformer{TPacket}"/>,
-/// <see cref="IPacketTransformer{TPacket}"/>,
-/// <see cref="IPacketTransformer{TPacket}"/>.
+/// The raw type implementing <see cref="IPacket"/>, <see cref="IPacketTransformer{TPacket}"/>
 /// </typeparam>
 /// <remarks>
 /// <para>
@@ -37,7 +34,8 @@ namespace Nalix.Network.Dispatch;
 /// </code>
 /// </example>
 public sealed class PacketDispatchChannel<TPacket>
-    : PacketDispatchCore<TPacket>, IPacketDispatch<TPacket> where TPacket : IPacket, IPacketTransformer<TPacket>
+    : PacketDispatchCore<TPacket>, IPacketDispatch<TPacket> where TPacket
+    : IPacket, IPacketTransformer<TPacket>
 {
     #region Fields
 

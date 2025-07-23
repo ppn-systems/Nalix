@@ -2,7 +2,7 @@
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Core;
 
-namespace Nalix.Network.Dispatch.Middleware;
+namespace Nalix.Network.Dispatch.Middleware.Pre;
 
 /// <summary>
 /// Middleware that checks the permission level of the current connection

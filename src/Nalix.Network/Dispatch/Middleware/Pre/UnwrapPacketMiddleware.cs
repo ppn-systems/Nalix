@@ -4,9 +4,9 @@ using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Core;
 using Nalix.Shared.Extensions;
 
-namespace Nalix.Network.Dispatch.Middleware;
+namespace Nalix.Network.Dispatch.Middleware.Pre;
 
-internal class PacketTransformMiddleware<TPacket> : IPacketMiddleware<TPacket>
+internal class UnwrapPacketMiddleware<TPacket> : IPacketMiddleware<TPacket>
     where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     public async System.Threading.Tasks.Task InvokeAsync(
@@ -19,12 +19,12 @@ internal class PacketTransformMiddleware<TPacket> : IPacketMiddleware<TPacket>
 
             if (context.Packet.Flags.HasFlag<PacketFlags>(PacketFlags.Encrypted))
             {
-                current = TPacket.Decrypt(context.Packet, context.Connection.EncryptionKey, context.Connection.Encryption);
+                current = TPacket.Decrypt(current, context.Connection.EncryptionKey, context.Connection.Encryption);
             }
 
             if (context.Packet.Flags.HasFlag<PacketFlags>(PacketFlags.Compressed))
             {
-                current = TPacket.Decompress(context.Packet);
+                current = TPacket.Decompress(current);
             }
 
             if (!ReferenceEquals(current, context.Packet))
