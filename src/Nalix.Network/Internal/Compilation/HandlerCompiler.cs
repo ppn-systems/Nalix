@@ -134,13 +134,11 @@ internal sealed class HandlerCompiler<
         if (methodInfos.Length == 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(HandlerCompiler<,>)}] " +
-                                          $"no-method controller={controllerType.Name}");
+                                    .Debug($"[NW.{nameof(HandlerCompiler<,>)}] no-method controller={controllerType.Name}");
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(HandlerCompiler<,>)}] " +
-                                       $"compile count={methodInfos.Length} controller={controllerType.Name}");
+                                .Debug($"[NW.{nameof(HandlerCompiler<,>)}] compile count={methodInfos.Length} controller={controllerType.Name}");
 
         return _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
         {
@@ -154,8 +152,8 @@ internal sealed class HandlerCompiler<
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[{nameof(HandlerCompiler<,>)}] dup-opcode " +
-                                                  $"{__(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
+                                            .Warn($"[NW.{nameof(HandlerCompiler<,>)}] dup-opcode " +
+                                                  $"{X00(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
 
                     continue;
                 }
@@ -166,14 +164,14 @@ internal sealed class HandlerCompiler<
                     compiled[opcodeAttr.OpCode] = compiledMethod;
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[{nameof(HandlerCompiler<,>)}] compiled " +
-                                                   $"{__(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
+                                            .Trace($"[NW.{nameof(HandlerCompiler<,>)}] compiled " +
+                                                   $"{X00(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
                 }
                 catch (System.Exception ex)
                 {
-                    System.String ___ = __(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
+                    System.String ___ = X00(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(HandlerCompiler<,>)}] " +
+                                            .Error($"[NW.{nameof(HandlerCompiler<,>)}] " +
                                                    $"failed-compile {___} ex={ex.GetType().Name}", ex);
                 }
             }
@@ -423,7 +421,7 @@ internal sealed class HandlerCompiler<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.String __(System.String controller, System.UInt16 opcode,
+    private static System.String X00(System.String controller, System.UInt16 opcode,
         System.Reflection.MethodInfo method = null, System.Type returnType = null)
     {
         System.String op = $"opcode=0x{opcode:X4}";

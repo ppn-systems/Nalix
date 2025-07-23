@@ -210,7 +210,7 @@ public static class PolicyRateLimiter
         else
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(PolicyRateLimiter)}] created policy-limiter " +
+                                    .Info($"[NW.{nameof(PolicyRateLimiter)}] created policy-limiter " +
                                           $"rps={policy.Rps} burst={policy.Burst} total={s_limiters.Count}");
         }
         actual.Touch();

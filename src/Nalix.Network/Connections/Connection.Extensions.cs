@@ -70,7 +70,7 @@ public static class ConnectionExtensions
                 catch (System.Exception ex)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(ConnectionExtensions)}] directive-send-failed type={controlType} " +
+                                            .Error($"[NW.{nameof(ConnectionExtensions)}] directive-send-failed type={controlType} " +
                                                    $"reason={reason} action={action} seq={sequenceId} msg={ex.Message}");
                 }
                 finally

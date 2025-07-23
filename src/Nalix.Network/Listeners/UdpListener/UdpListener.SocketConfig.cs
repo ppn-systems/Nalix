@@ -20,8 +20,7 @@ public abstract partial class UdpListenerBase
         ConfigureHighPerformanceSocket(_udpClient.Client);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(UdpListenerBase)}] init-ok port={_port} " +
-                                       $"reuse={Config.ReuseAddress} buf={Config.BufferSize}");
+                                .Debug($"[NW.{nameof(UdpListenerBase)}] init-ok port={_port} reuse={Config.ReuseAddress} buf={Config.BufferSize}");
     }
 
     [System.Diagnostics.DebuggerStepThrough]

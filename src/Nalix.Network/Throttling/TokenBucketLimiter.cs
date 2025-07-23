@@ -147,7 +147,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         );
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(TokenBucketLimiter)}] init cap={_opt.CapacityTokens} " +
+                                .Debug($"[NW.{nameof(TokenBucketLimiter)}] init cap={_opt.CapacityTokens} " +
                                        $"refill={_opt.RefillTokensPerSecond}/s scale={_opt.TokenScale} " +
                                        $"shards={_opt.ShardCount} stale_s={_opt.StaleEntrySeconds} " +
                                        $"cleanup_s={_opt.CleanupIntervalSeconds} hardlock_s={_opt.HardLockoutSeconds}");
@@ -204,7 +204,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         if (isNew)
         {
-            _logger?.Debug($"[{nameof(TokenBucketLimiter)}] new-endpoint ep={key.Address}");
+            _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}] new-endpoint ep={key.Address}");
         }
 
         lock (state.Gate)
@@ -215,7 +215,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             if (state.HardBlockedUntilSw > now)
             {
                 System.Int32 retryMsHard = ComputeMs(now, state.HardBlockedUntilSw);
-                _logger?.Trace($"[{nameof(TokenBucketLimiter)}] hard-blocked ep={key.Address} retry_ms={retryMsHard}");
+                _logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}] hard-blocked ep={key.Address} retry_ms={retryMsHard}");
 
                 return new LimitDecision
                 {
@@ -237,7 +237,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
                 if (credit <= 1)
                 {
-                    _logger?.Trace($"[{nameof(TokenBucketLimiter)}] allow ep={key.Address} credit={credit}");
+                    _logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}] allow ep={key.Address} credit={credit}");
                 }
 
                 return new LimitDecision
@@ -582,13 +582,13 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             if (removed > 0)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[{nameof(TokenBucketLimiter)}] Cleanup visited={visited} removed={removed}");
+                                        .Debug($"[NW.{nameof(TokenBucketLimiter)}] Cleanup visited={visited} removed={removed}");
             }
         }
         catch (System.Exception ex) when (ex is not System.ObjectDisposedException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(TokenBucketLimiter)}] cleanup-error msg={ex.Message}");
+                                    .Error($"[NW.{nameof(TokenBucketLimiter)}] cleanup-error msg={ex.Message}");
         }
     }
 
@@ -614,7 +614,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         await System.Threading.Tasks.Task.Yield();
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(TokenBucketLimiter)}] disposed");
+                                .Debug($"[NW.{nameof(TokenBucketLimiter)}] disposed");
     }
 
     #endregion IDisposable & IAsyncDisposable
