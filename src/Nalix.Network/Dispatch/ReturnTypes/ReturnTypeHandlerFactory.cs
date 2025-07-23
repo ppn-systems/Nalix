@@ -1,11 +1,7 @@
 ﻿using Nalix.Common.Packets;
-using Nalix.Network.Dispatch.Internal.ReturnTypes.Memory;
-using Nalix.Network.Dispatch.Internal.ReturnTypes.Packet;
-using Nalix.Network.Dispatch.Internal.ReturnTypes.Primitives;
-using Nalix.Network.Dispatch.Internal.ReturnTypes.Task;
-using Nalix.Network.Dispatch.Internal.ReturnTypes.Void;
+using Nalix.Network.Dispatch.ReturnTypes.Task;
 
-namespace Nalix.Network.Dispatch.Internal.ReturnTypes;
+namespace Nalix.Network.Dispatch.ReturnTypes;
 
 /// <summary>
 /// A zero-allocation factory responsible for returning the appropriate 
