@@ -39,11 +39,4 @@ public interface IDispatchChannel<TPacket> where TPacket : IPacket
     /// <param name="hash">The hash value associated with the packet, used for identification or routing.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="connection"/> is null.</exception>
     void Register(IConnection connection, Int32 hash);
-
-    /// <summary>
-    /// Handles the cleanup or state update when a connection is closed.
-    /// </summary>
-    /// <param name="connection">The connection that has been closed.</param>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="connection"/> is null.</exception>
-    void Close(IConnection connection);
 }
