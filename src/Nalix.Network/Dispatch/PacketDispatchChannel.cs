@@ -1,7 +1,7 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Packets;
+using Nalix.Network.Dispatch.Channel;
 using Nalix.Network.Dispatch.Core;
-using Nalix.Network.Dispatch.Internal.Channel;
 
 namespace Nalix.Network.Dispatch;
 
@@ -40,18 +40,7 @@ public sealed class PacketDispatchChannel<TPacket>
     #region Fields
 
     // Queue for storing raw handling tasks
-    private readonly MultiLevelQueue<TPacket> _dispatchQueue;
-
-    // Reverse mapping: IConnection -> set of all associated raw keys
-    private readonly System.Collections.Generic.Dictionary<
-        IConnection, System.Collections.Generic.HashSet<System.Int32>> _reverseMap = [];
-
-    // Forward mapping: raw key -> connection
-    private readonly System.Collections.Generic.Dictionary<System.Int32, IConnection> _packetMap = [];
-
-    // Locks for thread safety
-    private readonly System.Threading.Lock _lock;
-
+    private readonly IDispatchChannel<TPacket> _dispatch;
     private readonly System.Threading.SemaphoreSlim _semaphore;
 
     // Processing state
@@ -66,16 +55,7 @@ public sealed class PacketDispatchChannel<TPacket>
     /// <summary>
     /// Current number of packets in the queue
     /// </summary>
-    public System.Int32 QueueCount
-    {
-        get
-        {
-            lock (this._lock)
-            {
-                return this._dispatchQueue.Count;
-            }
-        }
-    }
+    public System.Int32 QueueCount => _dispatch.Count;
 
     #endregion Properties
 
@@ -91,10 +71,9 @@ public sealed class PacketDispatchChannel<TPacket>
     {
         this._isProcessing = false;
 
-        this._lock = new System.Threading.Lock();
         this._semaphore = new System.Threading.SemaphoreSlim(0);
         this._ctokens = new System.Threading.CancellationTokenSource();
-        this._dispatchQueue = new MultiLevelQueue<TPacket>(this.Options.QueueOptions);
+        this._dispatch = new DispatchChannel<TPacket>(logger: null);
 
         // Add any additional initialization here if needed
         base.Logger?.Debug("[Dispatch] Initialized with custom options");
@@ -203,30 +182,7 @@ public sealed class PacketDispatchChannel<TPacket>
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void HandlePacketAsync(TPacket packet, IConnection connection)
-    {
-        lock (this._lock)
-        {
-            _ = this._dispatchQueue.Enqueue(packet);
-
-            this._packetMap[packet.Hash] = connection;
-
-            if (!this._reverseMap.TryGetValue(connection,
-                out System.Collections.Generic.HashSet<System.Int32>? set))
-            {
-                set = [];
-
-                // Create reverse mapping entry
-                this._reverseMap[connection] = set;
-
-                // Register event only once
-                connection.OnCloseEvent += this.OnConnectionClosed;
-            }
-
-            _ = set.Add(packet.Hash);
-        }
-        _ = this._semaphore.Release();
-    }
+    public void HandlePacketAsync(TPacket packet, IConnection connection) => this._dispatch.Add(packet, connection);
 
     #endregion Public Methods
 
@@ -247,23 +203,10 @@ public sealed class PacketDispatchChannel<TPacket>
                 await this._semaphore.WaitAsync(this._ctokens.Token);
 
                 // Dequeue and process raw
-                TPacket packet;
-                IConnection? connection;
-
-                lock (this._lock)
+                if (!_dispatch.TryGet(out TPacket packet, out IConnection connection))
                 {
-                    if (this._dispatchQueue.Count == 0)
-                    {
-                        continue;
-                    }
-
-                    packet = this._dispatchQueue.Dequeue();
-
-                    if (!this._packetMap.TryGetValue(packet.Hash, out connection))
-                    {
-                        base.Logger?.Warn("[Dispatch] No connection found for raw.");
-                        continue;
-                    }
+                    base.Logger?.Warn("[Dispatch] Failed to dequeue packet from dispatch channel.");
+                    continue;
                 }
 
                 await base.ExecutePacketHandlerAsync(packet, connection);
@@ -281,34 +224,6 @@ public sealed class PacketDispatchChannel<TPacket>
         {
             this._isProcessing = false;
         }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void OnConnectionClosed(System.Object? sender, IConnectEventArgs e)
-    {
-        if (sender is not IConnection connection)
-        {
-            return;
-        }
-
-        lock (this._lock)
-        {
-            if (this._reverseMap.TryGetValue(connection,
-                out System.Collections.Generic.HashSet<System.Int32>? keys))
-            {
-                foreach (System.Int32 key in keys)
-                {
-                    _ = this._packetMap.Remove(key);
-                }
-
-                _ = this._reverseMap.Remove(connection);
-            }
-
-            connection.OnCloseEvent -= this.OnConnectionClosed;
-        }
-
-        base.Logger?.Info($"[Dispatch] Auto-removed keys for closed connection {connection.RemoteEndPoint}");
     }
 
     #endregion Private Methods
