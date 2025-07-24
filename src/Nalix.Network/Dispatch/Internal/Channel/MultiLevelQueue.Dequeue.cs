@@ -1,11 +1,19 @@
 ﻿using Nalix.Common.Packets;
 using Nalix.Common.Packets.Enums;
+using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Memory.Pools;
 
 namespace Nalix.Network.Dispatch.Internal.Channel;
 
 internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
 {
+
+    /// <summary>
+    /// Lấy một packet từ pool.
+    /// </summary>
+    /// <returns>Packet mới từ pool.</returns>
+    private TPacket GetFromPool() => ObjectPoolManager.Instance.Get<TPacket>();
+
     /// <summary>
     /// Retrieves and removes the next available packet from the queue, following priority order.
     /// </summary>
@@ -216,35 +224,6 @@ internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
             {
                 _ = System.Threading.Interlocked.Decrement(ref this._priorityCounts[i]);
                 _ = System.Threading.Interlocked.Decrement(ref this._totalCount);
-
-                System.Boolean isValid = !this._options.EnableValidation || temp.IsValid();
-                System.Boolean isExpired = this._options.Timeout != System.TimeSpan.Zero &&
-                    temp.IsExpired((System.Int64)this._options.Timeout.TotalMilliseconds);
-
-                if (!isValid)
-                {
-                    if (this._options.EnableMetrics)
-                    {
-                        _ = System.Threading.Interlocked.Increment(ref this._rejectedCounts![i]);
-                    }
-
-                    rejected = temp; // Assign the invalid packet
-                    //temp.Dispose();
-                    //ObjectPoolManager.Instance.Return<TPacket>(temp);
-                    return false; // Exit with the invalid packet
-                }
-
-                if (isExpired)
-                {
-                    if (this._options.EnableMetrics)
-                    {
-                        _ = System.Threading.Interlocked.Increment(ref this._expiredCounts![i]);
-                    }
-
-                    rejected = temp; // Assign the expired packet
-                    //temp.Dispose();
-                    return false; // Exit with the expired packet
-                }
 
                 if (this._options.EnableMetrics)
                 {

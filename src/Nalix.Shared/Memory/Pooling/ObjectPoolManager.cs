@@ -249,7 +249,10 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
     /// <param name="cancellationToken">A token to cancel the background trimming.</param>
     /// <returns>A task representing the background trimming operation.</returns>
-    public Task ScheduleRegularTrimming(TimeSpan interval, Int32 percentage = 50, CancellationToken cancellationToken = default)
+    public Task ScheduleRegularTrimming(
+        TimeSpan interval,
+        Int32 percentage = 50,
+        CancellationToken cancellationToken = default)
     {
         return Task.Run(async () =>
         {
