@@ -1,19 +1,11 @@
 ﻿using Nalix.Common.Packets;
 using Nalix.Common.Packets.Enums;
-using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Memory.Pools;
 
 namespace Nalix.Network.Dispatch.Internal.Channel;
 
 internal sealed partial class MultiLevelQueue<TPacket> where TPacket : IPacket
 {
-
-    /// <summary>
-    /// Lấy một packet từ pool.
-    /// </summary>
-    /// <returns>Packet mới từ pool.</returns>
-    private TPacket GetFromPool() => ObjectPoolManager.Instance.Get<TPacket>();
-
     /// <summary>
     /// Retrieves and removes the next available packet from the queue, following priority order.
     /// </summary>
