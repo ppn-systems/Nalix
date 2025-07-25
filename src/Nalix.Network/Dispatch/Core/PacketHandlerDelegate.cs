@@ -71,7 +71,7 @@ public readonly struct PacketHandlerDelegate<TPacket>(
     /// <list type="bullet">
     /// <item><description><b>Permission Checks</b>: Ensure the user has sufficient access level.</description></item>
     /// <item><description><b>Rate Limiting</b>: Enforce request intervals to prevent abuse.</description></item>
-    /// <item><description><b>Custom Filters</b>: Add any domain-specific condition (e.g., session validity).</description></item>
+    /// <item><description><b>Custom Filters</b>: Push any domain-specific condition (e.g., session validity).</description></item>
     /// </list>
     ///
     /// <para>🔧 <b>How to Extend</b>:</para>
