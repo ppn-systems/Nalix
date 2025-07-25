@@ -40,7 +40,12 @@ public sealed class PacketDispatchChannel<TPacket>
     #region Fields
 
     // Queue for storing raw handling tasks
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance",
+        "CA1859:Use concrete types when possible for improved performance", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality",
+        "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     private readonly IDispatchChannel<TPacket> _dispatch;
+
     private readonly System.Threading.SemaphoreSlim _semaphore;
 
     // Processing state
@@ -49,15 +54,6 @@ public sealed class PacketDispatchChannel<TPacket>
     private readonly System.Threading.CancellationTokenSource _ctokens = new();
 
     #endregion Fields
-
-    #region Properties
-
-    /// <summary>
-    /// Current number of packets in the queue
-    /// </summary>
-    public System.Int32 QueueCount => _dispatch.Count;
-
-    #endregion Properties
 
     #region Constructors
 
@@ -75,7 +71,7 @@ public sealed class PacketDispatchChannel<TPacket>
         this._ctokens = new System.Threading.CancellationTokenSource();
         this._dispatch = new DispatchChannel<TPacket>(logger: null);
 
-        // Add any additional initialization here if needed
+        // Push any additional initialization here if needed
         base.Logger?.Debug("[Dispatch] Initialized with custom options");
     }
 
@@ -99,7 +95,7 @@ public sealed class PacketDispatchChannel<TPacket>
         this._isProcessing = true;
 
         base.Logger?.Info("[Dispatch] Dispatch loop starting...");
-        _ = System.Threading.Tasks.Task.Run(this.RunQueueLoopAsync);
+        _ = System.Threading.Tasks.Task.Run(this.RunDispatchLoopAsync);
     }
 
     /// <summary>
@@ -182,7 +178,15 @@ public sealed class PacketDispatchChannel<TPacket>
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void HandlePacketAsync(TPacket packet, IConnection connection) => this._dispatch.Add(packet, connection);
+    public void HandlePacketAsync(TPacket packet, IConnection connection)
+    {
+        this._dispatch.Push(packet, connection);
+
+        if (_dispatch.TotalPackets > 0)
+        {
+            _ = _semaphore.Release();
+        }
+    }
 
     #endregion Public Methods
 
@@ -193,23 +197,23 @@ public sealed class PacketDispatchChannel<TPacket>
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private async System.Threading.Tasks.Task RunQueueLoopAsync()
+    private async System.Threading.Tasks.Task RunDispatchLoopAsync()
     {
         try
         {
             while (this._isProcessing && !this._ctokens.Token.IsCancellationRequested)
             {
                 // Wait for packets to be available
-                await this._semaphore.WaitAsync(this._ctokens.Token);
+                await this._semaphore.WaitAsync(this._ctokens.Token).ConfigureAwait(false);
 
                 // Dequeue and process raw
-                if (!_dispatch.TryGet(out TPacket packet, out IConnection connection))
+                if (!_dispatch.Pull(out TPacket packet, out IConnection connection))
                 {
                     base.Logger?.Warn("[Dispatch] Failed to dequeue packet from dispatch channel.");
                     continue;
                 }
 
-                await base.ExecutePacketHandlerAsync(packet, connection);
+                await base.ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false);
             }
         }
         catch (System.OperationCanceledException)

@@ -94,7 +94,7 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
             _ = this._usernameToId.TryRemove(oldUsername, out _);
         }
 
-        // Add new associations
+        // Push new associations
         this._usernames[id] = username;
         this._usernameToId[username] = id;
 
