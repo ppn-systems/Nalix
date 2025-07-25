@@ -75,11 +75,6 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     public PacketContext()
     { }
 
-    /// <summary>
-    /// Constructor với initial values.
-    /// </summary>
-    public PacketContext(TPacket packet, IConnection connection) => this.Initialize(packet, connection, default);
-
     #endregion Constructor
 
     #region Methods

@@ -28,7 +28,6 @@ namespace Nalix.Network.Dispatch;
 /// var dispatcher = new PacketDispatchChannel`Packet`(opts => {
 ///     opts.WithHandler(...);
 /// });
-/// dispatcher.StartTickLoopAsync();
 /// ...
 /// dispatcher.HandlePacket(data, connection);
 /// </code>
@@ -39,19 +38,15 @@ public sealed class PacketDispatchChannel<TPacket>
 {
     #region Fields
 
-    // Queue for storing raw handling tasks
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance",
-        "CA1859:Use concrete types when possible for improved performance", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality",
-        "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    private System.Boolean _running;
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "<Pending>")]
     private readonly IDispatchChannel<TPacket> _dispatch;
-
-    private readonly System.Threading.SemaphoreSlim _semaphore;
-
-    // Processing state
-    private System.Boolean _isProcessing;
-
-    private readonly System.Threading.CancellationTokenSource _ctokens = new();
+    private readonly System.Threading.SemaphoreSlim _semaphore = new(0);
+    private readonly System.Threading.CancellationTokenSource _cts = new();
 
     #endregion Fields
 
@@ -65,14 +60,13 @@ public sealed class PacketDispatchChannel<TPacket>
     public PacketDispatchChannel(System.Action<Options.PacketDispatchOptions<TPacket>> options)
         : base(options)
     {
-        this._isProcessing = false;
-
-        this._semaphore = new System.Threading.SemaphoreSlim(0);
-        this._ctokens = new System.Threading.CancellationTokenSource();
-        this._dispatch = new DispatchChannel<TPacket>(logger: null);
+        _running = false;
+        _dispatch = new DispatchChannel<TPacket>(logger: null);
 
         // Push any additional initialization here if needed
+#if DEBUG
         base.Logger?.Debug("[Dispatch] Initialized with custom options");
+#endif
     }
 
     #endregion Constructors
@@ -86,13 +80,15 @@ public sealed class PacketDispatchChannel<TPacket>
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Start()
     {
-        if (this._isProcessing)
+        if (_running)
         {
+#if DEBUG
             base.Logger?.Debug("[Dispatch] StartTickLoopAsync() called but dispatcher is already running.");
+#endif
             return;
         }
 
-        this._isProcessing = true;
+        _running = true;
 
         base.Logger?.Info("[Dispatch] Dispatch loop starting...");
         _ = System.Threading.Tasks.Task.Run(this.RunDispatchLoopAsync);
@@ -105,19 +101,21 @@ public sealed class PacketDispatchChannel<TPacket>
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Stop()
     {
-        if (!this._isProcessing)
+        if (!_running)
         {
             return;
         }
 
-        this._isProcessing = false;
+        _running = false;
 
         try
         {
-            if (!this._ctokens.IsCancellationRequested)
+            if (!this._cts.IsCancellationRequested)
             {
-                this._ctokens.Cancel();
-                base.Logger?.Info("[Dispatch] Dispatch loop stopped gracefully.");
+                this._cts.Cancel();
+#if DEBUG
+                base.Logger?.Trace("[Dispatch] Dispatch loop stopped gracefully.");
+#endif
             }
         }
         catch (System.ObjectDisposedException)
@@ -137,7 +135,7 @@ public sealed class PacketDispatchChannel<TPacket>
     {
         if (raw == null)
         {
-            base.Logger?.Error($"[Dispatch] Null byte[] received from {connection.RemoteEndPoint}. Packet dropped.");
+            base.Logger?.Warn($"[Dispatch] Null byte[] received from {connection.RemoteEndPoint}. Packet dropped.");
             return;
         }
 
@@ -151,7 +149,7 @@ public sealed class PacketDispatchChannel<TPacket>
     {
         if (raw == null)
         {
-            base.Logger?.Error(
+            base.Logger?.Warn(
                 $"[Dispatch] Null ReadOnlyMemory<byte> received from {connection.RemoteEndPoint}. Packet dropped.");
             return;
         }
@@ -166,7 +164,7 @@ public sealed class PacketDispatchChannel<TPacket>
     {
         if (raw.IsEmpty)
         {
-            base.Logger?.Error(
+            base.Logger?.Warn(
                 $"[Dispatch] Empty ReadOnlySpan<byte> received from {connection.RemoteEndPoint}. Packet dropped.");
             return;
         }
@@ -201,10 +199,10 @@ public sealed class PacketDispatchChannel<TPacket>
     {
         try
         {
-            while (this._isProcessing && !this._ctokens.Token.IsCancellationRequested)
+            while (_running && !_cts.Token.IsCancellationRequested)
             {
                 // Wait for packets to be available
-                await this._semaphore.WaitAsync(this._ctokens.Token).ConfigureAwait(false);
+                await this._semaphore.WaitAsync(this._cts.Token).ConfigureAwait(false);
 
                 // Dequeue and process raw
                 if (!_dispatch.Pull(out TPacket packet, out IConnection connection))
@@ -226,7 +224,7 @@ public sealed class PacketDispatchChannel<TPacket>
         }
         finally
         {
-            this._isProcessing = false;
+            _running = false;
         }
     }
 
@@ -240,7 +238,7 @@ public sealed class PacketDispatchChannel<TPacket>
     public void Dispose()
     {
         this.Stop();
-        this._ctokens.Dispose();
+        this._cts.Dispose();
         this._semaphore.Dispose();
     }
 

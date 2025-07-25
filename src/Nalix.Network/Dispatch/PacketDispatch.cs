@@ -28,7 +28,7 @@ public sealed class PacketDispatch<TPacket>(System.Action<PacketDispatchOptions<
     {
         if (raw == null)
         {
-            base.Logger?.Error($"[Dispatch] Null System.Byte[] received from {connection.RemoteEndPoint}. Packet dropped.");
+            base.Logger?.Warn($"[Dispatch] Null System.Byte[] received from {connection.RemoteEndPoint}. Packet dropped.");
             return;
         }
 
@@ -44,7 +44,7 @@ public sealed class PacketDispatch<TPacket>(System.Action<PacketDispatchOptions<
     {
         if (raw == null)
         {
-            base.Logger?.Error(
+            base.Logger?.Warn(
                 "[{0}] Null ReadOnlyMemory<byte> received from {1}. Packet dropped.",
                 nameof(PacketDispatch<TPacket>), connection.RemoteEndPoint);
 
