@@ -7,6 +7,7 @@ using Nalix.Common.Logging;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
+using Nalix.Network.Connections;
 using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Throttling;
@@ -68,7 +69,7 @@ public abstract partial class TcpListenerBase
 
         try
         {
-            IConnection connection = new Connections.Connection(socket);
+            IConnection connection = new Connection(socket);
 
             connection.OnCloseEvent += this.HandleConnectionClose;
 
@@ -144,8 +145,8 @@ public abstract partial class TcpListenerBase
 
                     // Process the connection
                     _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-                        name: NetTaskCatalog.TcpProcessWorker(_port, connection.ID.ToString()),
-                        group: NetTaskCatalog.TcpProcessGroup(_port),
+                        name: NetTaskNames.TcpProcessWorker(_port, connection.ID.ToString()),
+                        group: NetTaskNames.TcpProcessGroup(_port),
                         work: async (_, _) =>
                         {
                             ProcessConnection(connection);
@@ -155,7 +156,7 @@ public abstract partial class TcpListenerBase
                         {
                             RetainFor = System.TimeSpan.Zero,
                             IdType = SnowflakeType.System,
-                            Tag = NetTaskCatalog.Segments.Net
+                            Tag = NetTaskNames.Segments.Net
                         }
                     );
 
@@ -340,8 +341,8 @@ public abstract partial class TcpListenerBase
                                                    .ConfigureAwait(false);
 
                 _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-                    name: NetTaskCatalog.TcpProcessWorker(_port, connection.ID.ToString()),
-                    group: NetTaskCatalog.TcpProcessGroup(_port),
+                    name: NetTaskNames.TcpProcessWorker(_port, connection.ID.ToString()),
+                    group: NetTaskNames.TcpProcessGroup(_port),
                     work: async (_, _) =>
                     {
                         ProcessConnection(connection);
@@ -351,7 +352,7 @@ public abstract partial class TcpListenerBase
                     {
                         RetainFor = System.TimeSpan.Zero,
                         IdType = SnowflakeType.System,
-                        Tag = NetTaskCatalog.Segments.Net
+                        Tag = NetTaskNames.Segments.Net
                     }
                 );
 
