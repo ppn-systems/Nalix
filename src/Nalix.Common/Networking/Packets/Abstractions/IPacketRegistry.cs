@@ -27,32 +27,55 @@ namespace Nalix.Common.Networking.Packets.Abstractions;
 public interface IPacketRegistry
 {
     /// <summary>
-    /// Attempts to deserialize a packet by reading the magic number from the provided raw buffer.
+    /// Gets the number of deserializers registered in this catalog.
+    /// </summary>
+    System.Int32 DeserializerCount { get; }
+
+    /// <summary>
+    /// Gets the number of transformers registered in this catalog.
+    /// </summary>
+    System.Int32 TransformerCount { get; }
+
+    /// <summary>
+    /// Returns <see langword="true"/> if a deserializer is registered for
+    /// <paramref name="magic"/>.
+    /// </summary>
+    System.Boolean IsKnownMagic(System.UInt32 magic);
+
+    /// <summary>
+    /// Returns <see langword="true"/> if a deserializer is registered for the packet type
+    /// <typeparamref name="TPacket"/>, resolved via its FNV-1a magic number.
+    /// </summary>
+    System.Boolean IsRegistered<TPacket>() where TPacket : IPacket;
+
+    /// <summary>
+    /// Attempts to deserialize a packet by reading the magic number from the provided
+    /// raw buffer and dispatching to the registered deserializer.
     /// </summary>
     /// <param name="raw">
-    /// The raw byte span that contains the serialized packet, beginning with a recognized magic number.
+    /// The raw byte span. The first four bytes are interpreted as a little-endian
+    /// 32-bit magic number. Must be at least <see cref="PacketConstants.HeaderSize"/> bytes.
     /// </param>
     /// <param name="packet">
-    /// When this method returns <see langword="true"/>, contains the deserialized <see cref="IPacket"/> instance;
-    /// otherwise, contains <see langword="null"/>.
+    /// When this method returns <see langword="true"/>, the deserialized
+    /// <see cref="IPacket"/>; otherwise <see langword="null"/>.
     /// </param>
     /// <returns>
-    /// <see langword="true"/> if a matching deserializer is found and deserialization succeeds; otherwise, <see langword="false"/>.
+    /// <see langword="true"/> on success; <see langword="false"/> when the buffer is
+    /// too short or no deserializer is registered for the magic number found.
     /// </returns>
     System.Boolean TryDeserialize(System.ReadOnlySpan<System.Byte> raw, out IPacket packet);
 
     /// <summary>
-    /// Attempts to get a packet deserializer associated with the specified magic number.
+    /// Attempts to get the <see cref="PacketDeserializer"/> associated with the specified magic number.
     /// </summary>
-    /// <param name="magic">
-    /// The 32-bit magic number that identifies a packet format.
-    /// </param>
+    /// <param name="magic">The 32-bit magic number.</param>
     /// <param name="deserializer">
-    /// When this method returns <see langword="true"/>, contains the <see cref="PacketDeserializer"/> for the magic number;
-    /// otherwise, contains <see langword="null"/>.
+    /// When this method returns <see langword="true"/>, the matching delegate;
+    /// otherwise <see langword="null"/>.
     /// </param>
     /// <returns>
-    /// <see langword="true"/> if a deserializer is registered for the given magic number; otherwise, <see langword="false"/>.
+    /// <see langword="true"/> if a deserializer is registered; otherwise <see langword="false"/>.
     /// </returns>
     System.Boolean TryGetDeserializer(System.UInt32 magic, out PacketDeserializer deserializer);
 
