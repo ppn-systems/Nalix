@@ -26,7 +26,7 @@ internal sealed class PropertyMetadata
     public System.Reflection.PropertyInfo Property { get; }
 
     /// <summary>
-    /// Pre-computed fixed byte-size of this property.
+    /// Pre-computed fixed byte-size of this property on the wire.
     /// Zero when <see cref="IsDynamic"/> is <see langword="true"/>.
     /// </summary>
     public System.UInt16 FixedSize { get; }
@@ -40,15 +40,23 @@ internal sealed class PropertyMetadata
 
     /// <summary>
     /// <see langword="true"/> when the property type is <see cref="System.String"/>.
-    /// Used by <c>ComputeDynamicLength</c> to call
-    /// <see cref="System.Text.Encoding.UTF8"/> byte-count instead of char-count.
     /// </summary>
     public System.Boolean IsString { get; }
+
+    /// <summary>
+    /// <see langword="true"/> when the property type is <see cref="System.Byte"/>[].
+    /// </summary>
+    public System.Boolean IsByteArray { get; }
 
     /// <summary>
     /// Cached result of <see cref="System.Reflection.PropertyInfo.CanWrite"/>.
     /// </summary>
     public System.Boolean IsWritable { get; }
+
+    /// <summary>
+    /// <see langword="true"/> when this property has a public getter.
+    /// </summary>
+    public System.Boolean IsReadable { get; }
 
     /// <summary>
     /// Pre-computed default value used by <c>ResetForPool</c>.
@@ -65,8 +73,8 @@ internal sealed class PropertyMetadata
 
     #region Private Fields
 
-    // Compiled open-instance delegates — avoids boxing overhead of PropertyInfo.GetValue/SetValue.
-    // "Open-instance" means the first argument is the target object.
+    // True compiled open-instance delegates via Expression Trees.
+    // No MethodInfo.Invoke — no argument array allocation, no boxing round-trip.
     private readonly System.Func<System.Object, System.Object?>? _getter;
     private readonly System.Action<System.Object, System.Object?>? _setter;
 
@@ -87,31 +95,67 @@ internal sealed class PropertyMetadata
     {
         System.ArgumentNullException.ThrowIfNull(prop);
 
+        // Guard: DeclaringType must be known to build open-instance delegates.
+        if (prop.DeclaringType is null)
+        {
+            throw new System.ArgumentException(
+                $"Property '{prop.Name}' has no declaring type.", nameof(prop));
+        }
+
         Property = prop;
         IsWritable = prop.CanWrite;
+        IsReadable = prop.CanRead;
         IsString = prop.PropertyType == typeof(System.String);
-        IsDynamic = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeDynamicSizeAttribute>(prop) is not null;
+        IsByteArray = prop.PropertyType == typeof(System.Byte[]);
+        IsDynamic = System.Reflection.CustomAttributeExtensions
+                           .GetCustomAttribute<SerializeDynamicSizeAttribute>(prop) is not null;
 
         DefaultValue = ComputeDefaultValue(prop.PropertyType);
         FixedSize = IsDynamic ? (System.UInt16)0 : ComputeFixedSize(prop.PropertyType);
 
-        // Compile open-instance delegates once.
-        // CreateDelegate with a null first argument creates an open delegate where
-        // the first parameter becomes the target instance.
-        // Getter thực sự compiled:
-        var param = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
-        var cast = System.Linq.Expressions.Expression.Convert(param, prop.DeclaringType!);
-        var access = System.Linq.Expressions.Expression.Property(cast, prop);
-        var convert = System.Linq.Expressions.Expression.Convert(access, typeof(System.Object));
-        _getter = System.Linq.Expressions.Expression.Lambda<System.Func<System.Object, System.Object?>>(convert, param).Compile();
+        // ── Getter delegate ──────────────────────────────────────────────────────
+        // (T instance) => (object)instance.Prop
+        // Compiled once; avoids MethodInfo.Invoke overhead and argument-array alloc.
+        if (prop.CanRead && prop.GetMethod is not null)
+        {
+            var instanceParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
+            var castInstance = System.Linq.Expressions.Expression.Convert(instanceParam, prop.DeclaringType);
+            var propAccess = System.Linq.Expressions.Expression.Property(castInstance, prop);
+            var boxResult = System.Linq.Expressions.Expression.Convert(propAccess, typeof(System.Object));
 
-        // Setter thực sự compiled:
-        var objParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
-        var valParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "value");
-        var castObj = System.Linq.Expressions.Expression.Convert(objParam, prop.DeclaringType!);
-        var castVal = System.Linq.Expressions.Expression.Convert(valParam, prop.PropertyType);
-        var assign = System.Linq.Expressions.Expression.Assign(System.Linq.Expressions.Expression.Property(castObj, prop), castVal);
-        _setter = System.Linq.Expressions.Expression.Lambda<System.Action<System.Object, System.Object?>>(assign, objParam, valParam).Compile();
+            _getter = System.Linq.Expressions.Expression
+                          .Lambda<System.Func<System.Object, System.Object?>>(boxResult, instanceParam)
+                          .Compile();
+        }
+
+        // ── Setter delegate ──────────────────────────────────────────────────────
+        // (T instance, object value) => instance.Prop = (TProp)value
+        // Null-safe: if value is null and property is a non-nullable value type,
+        // Expression.Convert will throw at compile time — caught here at startup.
+        if (prop.CanWrite && prop.SetMethod is not null)
+        {
+            try
+            {
+                var instanceParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
+                var valueParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "value");
+                var castInstance = System.Linq.Expressions.Expression.Convert(instanceParam, prop.DeclaringType);
+                var castValue = System.Linq.Expressions.Expression.Convert(valueParam, prop.PropertyType);
+                var propAccess = System.Linq.Expressions.Expression.Property(castInstance, prop);
+                var assignExpr = System.Linq.Expressions.Expression.Assign(propAccess, castValue);
+
+                _setter = System.Linq.Expressions.Expression
+                              .Lambda<System.Action<System.Object, System.Object?>>(assignExpr, instanceParam, valueParam)
+                              .Compile();
+            }
+            catch (System.Exception ex)
+            {
+                // Fail fast at startup — better than a silent NullReferenceException at runtime.
+                throw new System.InvalidOperationException(
+                    $"Failed to compile setter delegate for property '{prop.DeclaringType.Name}.{prop.Name}' " +
+                    $"(type: {prop.PropertyType.Name}). " +
+                    $"Ensure the property type is compatible with its default value.", ex);
+            }
+        }
     }
 
     #endregion Constructor
@@ -120,24 +164,38 @@ internal sealed class PropertyMetadata
 
     /// <summary>
     /// Gets the value of this property from <paramref name="instance"/>
-    /// using a pre-compiled delegate instead of <see cref="System.Reflection.PropertyInfo.GetValue(System.Object)"/>.
+    /// using a compiled delegate. Returns <see langword="null"/> if no getter is available.
     /// </summary>
-    /// <param name="instance">The packet object to read from.</param>
-    /// <returns>The current property value, or <see langword="null"/> if no getter exists.</returns>
+    /// <param name="instance">The packet object to read from. Must not be <see langword="null"/>.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Object? GetValue(System.Object instance) => _getter?.Invoke(instance);
+    public System.Object? GetValue(System.Object instance)
+    {
+        System.ArgumentNullException.ThrowIfNull(instance);
+        return _getter?.Invoke(instance);
+    }
 
     /// <summary>
     /// Sets the value of this property on <paramref name="instance"/>
-    /// using a pre-compiled delegate instead of <see cref="System.Reflection.PropertyInfo.SetValue(System.Object, System.Object)"/>.
-    /// No-op when the property is read-only.
+    /// using a compiled delegate. No-op when the property is read-only.
     /// </summary>
-    /// <param name="instance">The packet object to write to.</param>
-    /// <param name="value">The value to assign.</param>
+    /// <param name="instance">The packet object to write to. Must not be <see langword="null"/>.</param>
+    /// <param name="value">The value to assign. Must be compatible with the property type.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void SetValue(System.Object instance, System.Object? value) => _setter?.Invoke(instance, value);
+    public void SetValue(System.Object instance, System.Object? value)
+    {
+        System.ArgumentNullException.ThrowIfNull(instance);
+        _setter?.Invoke(instance, value);
+    }
+
+    /// <summary>
+    /// Returns a human-readable description for debugging purposes.
+    /// </summary>
+    public override System.String ToString() =>
+        $"{Property.DeclaringType?.Name}.{Property.Name} " +
+        $"[{Property.PropertyType.Name}] " +
+        $"FixedSize={FixedSize} IsDynamic={IsDynamic} IsWritable={IsWritable}";
 
     #endregion Public Methods
 
@@ -147,26 +205,39 @@ internal sealed class PropertyMetadata
     /// Returns the wire byte-size for a fixed-width <paramref name="type"/>,
     /// or zero for unsupported / dynamic types.
     /// Enum underlying types are resolved recursively.
+    /// Missing from previous version: SByte, Char, DateTime, Guid, TimeSpan, DateTimeOffset.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.UInt16 ComputeFixedSize(System.Type type) =>
         System.Type.GetTypeCode(type) switch
         {
             System.TypeCode.Byte => 1,
+            System.TypeCode.SByte => 1,
             System.TypeCode.Boolean => 1,
+            System.TypeCode.Char => 2,
             System.TypeCode.Int16 => 2,
             System.TypeCode.UInt16 => 2,
             System.TypeCode.Int32 => 4,
             System.TypeCode.UInt32 => 4,
+            System.TypeCode.Single => 4,
             System.TypeCode.Int64 => 8,
             System.TypeCode.UInt64 => 8,
-            System.TypeCode.Single => 4,
             System.TypeCode.Double => 8,
             System.TypeCode.Decimal => 16,
-            _ => type.IsEnum
-                    ? ComputeFixedSize(System.Enum.GetUnderlyingType(type))
-                    : (System.UInt16)0
+
+            // DateTime / DateTimeOffset / TimeSpan / Guid have no TypeCode entry —
+            // check by type identity before falling back to enum recursion.
+            System.TypeCode.Object when type == typeof(System.Guid) => 16,
+            System.TypeCode.Object when type == typeof(System.DateTime) => 8,
+            System.TypeCode.Object when type == typeof(System.DateTimeOffset) => 10,
+            System.TypeCode.Object when type == typeof(System.TimeSpan) => 8,
+            System.TypeCode.Object when type == typeof(System.TimeOnly) => 8,
+            System.TypeCode.Object when type == typeof(System.DateOnly) => 4,
+
+            // Recursively resolve enum underlying type.
+            _ when type.IsEnum => ComputeFixedSize(System.Enum.GetUnderlyingType(type)),
+
+            // Unknown / reference / dynamic — caller must handle as IsDynamic.
+            _ => 0
         };
 
     /// <summary>
@@ -175,9 +246,17 @@ internal sealed class PropertyMetadata
     /// </summary>
     private static System.Object? ComputeDefaultValue(System.Type type)
     {
-        return type == typeof(System.Byte[])
-            ? System.Array.Empty<System.Byte>()
-            : type == typeof(System.String) ? System.String.Empty : type.IsValueType ? System.Activator.CreateInstance(type) : null;
+        if (type == typeof(System.Byte[]))
+        {
+            return System.Array.Empty<System.Byte>();
+        }
+
+        if (type == typeof(System.String))
+        {
+            return System.String.Empty;
+        }
+
+        return type.IsValueType ? System.Activator.CreateInstance(type) : null;
     }
 
     #endregion Private Static Helpers
