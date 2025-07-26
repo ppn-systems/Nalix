@@ -161,7 +161,7 @@ public sealed class SHA1 : IShaDigest, IDisposable
         // Calculate message length in bits
         UInt64 bitLength = _totalBytesProcessed * 8;
 
-        // Add padding as in ComputeHash method
+        // Push padding as in ComputeHash method
         Span<Byte> paddingBuffer = stackalloc Byte[128]; // Max 2 blocks needed
         Int32 paddingBufferPos = 0;
 
@@ -172,7 +172,7 @@ public sealed class SHA1 : IShaDigest, IDisposable
             paddingBufferPos = _bufferIndex;
         }
 
-        // Add the '1' bit
+        // Push the '1' bit
         paddingBuffer[paddingBufferPos++] = 0x80;
 
         // Determine if we need one or two blocks
@@ -278,7 +278,7 @@ public sealed class SHA1 : IShaDigest, IDisposable
             data[^remainingBytes..].CopyTo(finalBlock);
         }
 
-        // Add the '1' bit
+        // Push the '1' bit
         finalBlock[remainingBytes] = 0x80;
 
         // Determine if we need one or two blocks

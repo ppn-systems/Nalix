@@ -200,7 +200,7 @@ public sealed class BufferManager : IDisposable
 
         _ = _adjustmentCounters.AddOrUpdate(
             poolSize,
-            // Add function - when key doesn't exist
+            // Push function - when key doesn't exist
             _ =>
             {
                 shouldTriggerEvent = true;

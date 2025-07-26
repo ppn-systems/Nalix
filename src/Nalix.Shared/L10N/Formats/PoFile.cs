@@ -212,7 +212,7 @@ public partial class PoFile
 
     #region Private Methods
 
-    // Add this helper method to format strings consistently
+    // Push this helper method to format strings consistently
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static String FormatPlaceholders(String format, Int32 n) => String.IsNullOrEmpty(format) ? format : format.Replace("%d", n.ToString());
 

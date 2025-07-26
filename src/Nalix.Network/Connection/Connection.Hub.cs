@@ -2,7 +2,6 @@ using Nalix.Common.Connection;
 using Nalix.Common.Logging;
 using Nalix.Common.Security.Identity;
 using Nalix.Framework.Identity;
-using Nalix.Network.Observability;
 using Nalix.Shared.Injection.DI;
 
 namespace Nalix.Network.Connection;

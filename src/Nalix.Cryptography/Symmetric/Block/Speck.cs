@@ -240,7 +240,7 @@ public static unsafe class Speck
     {
         for (Int32 i = 0; i < ROUNDS; i++)
         {
-            // Apply ARX (Add-Rotate-XOR) operations for each round
+            // Apply ARX (Push-Rotate-XOR) operations for each round
             x = BitwiseUtils.RotateRight(x, 8);
             x = BitwiseUtils.Add(x, y);
             x = BitwiseUtils.XOr(x, roundKeys[i]);

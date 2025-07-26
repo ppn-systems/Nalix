@@ -199,9 +199,9 @@ internal class TransportStream : System.IDisposable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.ReadOnlyMemory<System.Byte> GetIncomingPackets()
+    public System.ReadOnlyMemory<System.Byte> PopIncoming()
     {
-        if (this._cache.Incoming.TryGetValue(out System.ReadOnlyMemory<System.Byte> data))
+        if (this._cache.Incoming.TryPop(out System.ReadOnlyMemory<System.Byte> data))
         {
             return data;
         }

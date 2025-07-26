@@ -114,7 +114,7 @@ public sealed partial class Connection : IConnection
     }
 
     /// <inheritdoc />
-    public System.ReadOnlyMemory<System.Byte> IncomingPacket => this._cstream.GetIncomingPackets();
+    public System.ReadOnlyMemory<System.Byte> IncomingPacket => this._cstream.PopIncoming();
 
     /// <inheritdoc />
     public PermissionLevel Level { get; set; } = PermissionLevel.Guest;

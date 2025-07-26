@@ -308,7 +308,7 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
 
         Int32 excessBuffers = poolInfo.FreeBuffers - targetBuffers;
 
-        // Add safety margin based on pool size to avoid frequent resizing
+        // Push safety margin based on pool size to avoid frequent resizing
         // Square root scaling for safety margin
         Int32 safetyMargin = (Int32)Math.Min(20, Math.Sqrt(minimumBuffers));
 
