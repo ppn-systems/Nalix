@@ -1,3 +1,5 @@
+using Nalix.Network.Configurations;
+
 namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
@@ -51,5 +53,36 @@ public abstract partial class TcpListenerBase
                 _ = socket.IOControl(System.Net.Sockets.IOControlCode.KeepAliveValues, keepAlive.ToArray(), null);
             }
         }
+    }
+
+    private void InitializeTcpListenerSocket()
+    {
+        // Create the optimal socket listener.
+        this._listener = new System.Net.Sockets.Socket(
+            System.Net.Sockets.AddressFamily.InterNetwork,
+            System.Net.Sockets.SocketType.Stream,
+            System.Net.Sockets.ProtocolType.Tcp)
+        {
+            ExclusiveAddressUse = !Config.ReuseAddress,
+            // No need for LingerState if not close soon
+            LingerState = new System.Net.Sockets.LingerOption(true, SocketSettings.False)
+        };
+
+        // Increase the queue size on the socket listener.
+        this._listener.SetSocketOption(
+            System.Net.Sockets.SocketOptionLevel.Socket,
+            System.Net.Sockets.SocketOptionName.ReceiveBuffer, Config.BufferSize);
+
+        this._listener.SetSocketOption(
+            System.Net.Sockets.SocketOptionLevel.Socket,
+            System.Net.Sockets.SocketOptionName.ReuseAddress,
+            Config.ReuseAddress ? SocketSettings.True : SocketSettings.False);
+
+        System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, this._port);
+        this._logger.Debug("[TCP] TCP socket bound to {0}", remote);
+
+        // Bind and Listen
+        this._listener.Bind(remote);
+        this._listener.Listen(SocketBacklog);
     }
 }

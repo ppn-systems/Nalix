@@ -103,7 +103,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// <param name="item">The element to add to the cache.</param>
     /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Add(T item)
+    public void Push(T item)
     {
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
 
@@ -121,7 +121,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// <exception cref="ArgumentNullException">Thrown when the items collection is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddRange(IEnumerable<T> items)
+    public void Push(IEnumerable<T> items)
     {
         ArgumentNullException.ThrowIfNull(items);
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
@@ -142,67 +142,17 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     }
 
     /// <summary>
-    /// Trims excess items if the cache exceeds its capacity.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void TrimExcess()
-    {
-        // Fast path if we know we're within capacity
-        if (Count <= Capacity)
-        {
-            return;
-        }
-
-        // We need to trim elements
-        _cacheLock.EnterWriteLock();
-        try
-        {
-            Int32 excessCount = Count - Capacity;
-            if (excessCount <= 0)
-            {
-                return;
-            }
-
-            Int32 removed = 0;
-            for (Int32 i = 0; i < excessCount; i++)
-            {
-                if (_queue.TryDequeue(out _))
-                {
-                    removed++;
-                }
-                else
-                {
-                    // Queue is unexpectedly empty
-                    break;
-                }
-            }
-
-            // Update stats
-            if (removed > 0)
-            {
-                _ = Interlocked.Add(ref _currentSize, -removed);
-                _ = Interlocked.Add(ref _removals, removed);
-                _ = Interlocked.Increment(ref _trimOperations);
-            }
-        }
-        finally
-        {
-            _cacheLock.ExitWriteLock();
-        }
-    }
-
-    /// <summary>
     /// Removes and returns the oldest element from the cache.
     /// </summary>
     /// <returns>The oldest element in the cache.</returns>
     /// <exception cref="InvalidOperationException">Thrown when the cache is empty.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public T GetValue()
+    public T Pop()
     {
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
 
-        return !TryGetValue(out T? result) ? throw new InvalidOperationException("FifoCache is empty.") : result!;
+        return !TryPop(out T? result) ? throw new InvalidOperationException("FifoCache is empty.") : result!;
     }
 
     /// <summary>
@@ -212,7 +162,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// <returns><c>true</c> if the oldest element was removed and returned successfully; otherwise, <c>false</c>.</returns>
     /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Boolean TryGetValue(out T? value)
+    public Boolean TryPop(out T? value)
     {
         ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
 
@@ -247,7 +197,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// <exception cref="ArgumentException">Thrown when the count is less than or equal to zero.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public List<T> GetBatch(Int32 count)
+    public List<T> PopBatch(Int32 count)
     {
         if (count <= 0)
         {
@@ -261,7 +211,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
 
         for (Int32 i = 0; i < count; i++)
         {
-            if (TryGetValue(out T? item) && item is not null)
+            if (TryPop(out T? item) && item is not null)
             {
                 result.Add(item);
                 retrieved++;
@@ -370,6 +320,60 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     #endregion Public Methods
+
+    #region Private Methods
+
+    /// <summary>
+    /// Trims excess items if the cache exceeds its capacity.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void TrimExcess()
+    {
+        // Fast path if we know we're within capacity
+        if (Count <= Capacity)
+        {
+            return;
+        }
+
+        // We need to trim elements
+        _cacheLock.EnterWriteLock();
+        try
+        {
+            Int32 excessCount = Count - Capacity;
+            if (excessCount <= 0)
+            {
+                return;
+            }
+
+            Int32 removed = 0;
+            for (Int32 i = 0; i < excessCount; i++)
+            {
+                if (_queue.TryDequeue(out _))
+                {
+                    removed++;
+                }
+                else
+                {
+                    // Queue is unexpectedly empty
+                    break;
+                }
+            }
+
+            // Update stats
+            if (removed > 0)
+            {
+                _ = Interlocked.Add(ref _currentSize, -removed);
+                _ = Interlocked.Add(ref _removals, removed);
+                _ = Interlocked.Increment(ref _trimOperations);
+            }
+        }
+        finally
+        {
+            _cacheLock.ExitWriteLock();
+        }
+    }
+
+    #endregion Private Methods
 
     #region IDisposable
 

@@ -228,7 +228,7 @@ public static class Salsa20
             QuarterRound(ref workingState[15], ref workingState[12], ref workingState[13], ref workingState[14]);
         }
 
-        // Add the original state to the worked state and serialize to output
+        // Push the original state to the worked state and serialize to output
         for (Int32 i = 0; i < 16; i++)
         {
             UInt32 result = workingState[i] + state[i];

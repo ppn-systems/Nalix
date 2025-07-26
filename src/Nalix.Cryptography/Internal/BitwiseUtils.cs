@@ -59,7 +59,7 @@ internal static partial class BitwiseUtils
     public static System.UInt32 Add(System.UInt32 v, System.UInt32 w) => unchecked(v + w);
 
     /// <summary>
-    /// Add 1 to the input parameter using unchecked integer addition. The ChaCha spec defines certain operations to use 32-bit unsigned integer addition modulo 2^32.
+    /// Push 1 to the input parameter using unchecked integer addition. The ChaCha spec defines certain operations to use 32-bit unsigned integer addition modulo 2^32.
     /// </summary>
     /// <remarks>
     /// See <a href="https://tools.ietf.org/html/rfc7539#page-4">ChaCha20 Spec Section 2.1</a>.

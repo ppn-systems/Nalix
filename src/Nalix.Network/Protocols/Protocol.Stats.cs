@@ -1,4 +1,4 @@
-namespace Nalix.Network.Observability;
+namespace Nalix.Network.Protocols;
 
 /// <summary>
 /// Represents immutable statistics for a network protocol.

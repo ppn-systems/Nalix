@@ -209,7 +209,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
                     }
                 }
 
-                // Add new item
+                // Push new item
                 CacheItem newItem = new()
                 {
                     Key = key,

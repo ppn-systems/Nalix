@@ -8,8 +8,8 @@
 		<Deterministic>true</Deterministic>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-		<Version>2.3.0</Version>
-		<PackageVersion>2.3.0</PackageVersion>
+		<Version>2.5.7</Version>
+		<PackageVersion>2.5.7</PackageVersion>
 	</PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />

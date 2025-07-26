@@ -73,7 +73,7 @@ internal sealed class TransportCache : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void PushIncoming(System.ReadOnlyMemory<System.Byte> data)
     {
-        this.Incoming.Add(data);
+        this.Incoming.Push(data);
         PacketCached?.Invoke();
     }
 

@@ -173,7 +173,7 @@ public sealed class SHA224 : IShaDigest, IDisposable
             Span<Byte> finalBlock = new Byte[padLength + 8];
             finalBlock[0] = 0x80; // Leading 1 bit
 
-            // Add message length as big-endian 64-bit integer
+            // Push message length as big-endian 64-bit integer
             BinaryPrimitives.WriteUInt64BigEndian(finalBlock[padLength..], bits);
 
             // Process the final block(s)
