@@ -1,4 +1,4 @@
-namespace Nalix.Common.Constants;
+namespace Nalix.Common.Packets;
 
 /// <summary>
 /// Represents default values and constants for packet configurations.

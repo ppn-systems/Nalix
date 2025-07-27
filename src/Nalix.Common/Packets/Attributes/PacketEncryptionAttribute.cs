@@ -9,7 +9,7 @@ namespace Nalix.Common.Packets.Attributes;
 /// This attribute can be applied to methods to specify if they should use encryption or not.
 /// By default, it assumes encryption is enabled.
 /// </remarks>
-[System.AttributeUsage(System.AttributeTargets.Method)]
+[System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
 public class PacketEncryptionAttribute : System.Attribute
 {
     /// <summary>

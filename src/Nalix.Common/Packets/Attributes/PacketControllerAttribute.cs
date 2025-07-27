@@ -10,7 +10,7 @@ namespace Nalix.Common.Packets.Attributes;
 /// <param name="name">The name of the packet controller. Defaults to "Unknown" if not provided.</param>
 /// <param name="isActive">Indicates whether the controller is active. Defaults to true.</param>
 /// <param name="version">The version of the packet controller. Defaults to "1.0".</param>
-[System.AttributeUsage(System.AttributeTargets.Class)]
+[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 public sealed class PacketControllerAttribute(
     System.String name = "Unknown",
     System.Boolean isActive = true,

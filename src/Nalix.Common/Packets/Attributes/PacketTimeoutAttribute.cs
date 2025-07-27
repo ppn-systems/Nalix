@@ -13,7 +13,7 @@ namespace Nalix.Common.Packets.Attributes;
 /// Initializes a new instance of the <see cref="PacketTimeoutAttribute"/> class.
 /// </remarks>
 /// <param name="timeoutMilliseconds">The timeout duration in milliseconds.</param>
-[System.AttributeUsage(System.AttributeTargets.Method)]
+[System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
 public class PacketTimeoutAttribute(System.Int32 timeoutMilliseconds) : System.Attribute
 {
     /// <summary>
