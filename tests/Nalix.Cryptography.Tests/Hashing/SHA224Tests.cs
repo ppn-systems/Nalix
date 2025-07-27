@@ -2,21 +2,21 @@ using Nalix.Cryptography.Hashing;
 using System;
 using Xunit;
 
-namespace Nalix.Test.Cryptography.Hashing;
+namespace Nalix.Cryptography.Tests.Hashing;
 
-public class SHA256Tests
+public class SHA224Tests
 {
     [Fact]
     public void ComputeHash_ValidInput_ShouldReturnCorrectHash()
     {
         // Arrange
         byte[] input = System.Text.Encoding.UTF8.GetBytes("Hello, World!");
-        byte[] expectedHash = Convert.FromHexString("DFFD6021BB2BD5B0AF676290809EC3A53191DD81C7F70A4B28688A362182986F");
+        byte[] expectedHash = Convert.FromHexString("72A23DFA411BA6FDE01DBFABF3B00A709C93EBF273DC29E2D8B261FF");
 
-        using SHA256 sha256 = new();
+        using SHA224 sha224 = new();
 
         // Act
-        byte[] actualHash = sha256.ComputeHash(input);
+        byte[] actualHash = sha224.ComputeHash(input);
 
         // Assert
         Assert.Equal(expectedHash, actualHash);
@@ -27,10 +27,10 @@ public class SHA256Tests
     {
         // Arrange
         byte[] input = System.Text.Encoding.UTF8.GetBytes("Hello, World!");
-        byte[] expectedHash = Convert.FromHexString("DFFD6021BB2BD5B0AF676290809EC3A53191DD81C7F70A4B28688A362182986F");
+        byte[] expectedHash = Convert.FromHexString("72A23DFA411BA6FDE01DBFABF3B00A709C93EBF273DC29E2D8B261FF");
 
         // Act
-        byte[] actualHash = SHA256.HashData(input);
+        byte[] actualHash = SHA224.HashData(input);
 
         // Assert
         Assert.Equal(expectedHash, actualHash);
@@ -41,12 +41,12 @@ public class SHA256Tests
     {
         // Arrange
         byte[] input = [];
-        byte[] expectedHash = Convert.FromHexString("DFFD6021BB2BD5B0AF676290809EC3A53191DD81C7F70A4B28688A362182986F");
+        byte[] expectedHash = Convert.FromHexString("72A23DFA411BA6FDE01DBFABF3B00A709C93EBF273DC29E2D8B261FF");
 
-        using SHA256 sha256 = new();
+        using SHA224 sha224 = new();
 
         // Act
-        byte[] actualHash = sha256.ComputeHash(input);
+        byte[] actualHash = sha224.ComputeHash(input);
 
         // Assert
         Assert.False(expectedHash.Equals(actualHash));
@@ -57,12 +57,12 @@ public class SHA256Tests
     {
         // Arrange
         byte[] input = System.Text.Encoding.UTF8.GetBytes("Hello, World!");
-        using SHA256 sha256 = new();
+        using SHA224 sha224 = new();
 
         // Act
-        sha256.Update(input);
-        byte[] firstHash = sha256.FinalizeHash();
-        byte[] secondHash = sha256.FinalizeHash();
+        sha224.Update(input);
+        byte[] firstHash = sha224.FinalizeHash();
+        byte[] secondHash = sha224.FinalizeHash();
 
         // Assert
         Assert.Equal(firstHash, secondHash);
@@ -74,14 +74,14 @@ public class SHA256Tests
         // Arrange
         byte[] part1 = System.Text.Encoding.UTF8.GetBytes("Hello, ");
         byte[] part2 = System.Text.Encoding.UTF8.GetBytes("World!");
-        byte[] expectedHash = Convert.FromHexString("DFFD6021BB2BD5B0AF676290809EC3A53191DD81C7F70A4B28688A362182986F");
+        byte[] expectedHash = Convert.FromHexString("72A23DFA411BA6FDE01DBFABF3B00A709C93EBF273DC29E2D8B261FF");
 
-        using SHA256 sha256 = new();
+        using SHA224 sha224 = new();
 
         // Act
-        sha256.Update(part1);
-        sha256.Update(part2);
-        byte[] actualHash = sha256.FinalizeHash();
+        sha224.Update(part1);
+        sha224.Update(part2);
+        byte[] actualHash = sha224.FinalizeHash();
 
         // Assert
         Assert.Equal(expectedHash, actualHash);
@@ -91,25 +91,25 @@ public class SHA256Tests
     public void Dispose_ShouldClearSensitiveData()
     {
         // Arrange
-        SHA256 sha256 = new();
+        SHA224 sha224 = new();
         byte[] input = System.Text.Encoding.UTF8.GetBytes("Hello, World!");
 
         // Act
-        sha256.Update(input);
-        sha256.Dispose();
+        sha224.Update(input);
+        sha224.Dispose();
 
         // Assert
-        Assert.Throws<ObjectDisposedException>(() => sha256.ComputeHash(input));
+        Assert.Throws<ObjectDisposedException>(() => sha224.ComputeHash(input));
     }
 
     [Fact]
     public void ComputeHash_DisposedInstance_ShouldThrowException()
     {
         // Arrange
-        SHA256 sha256 = new();
-        sha256.Dispose();
+        SHA224 sha224 = new();
+        sha224.Dispose();
 
         // Act & Assert
-        Assert.Throws<ObjectDisposedException>(() => sha256.ComputeHash([1, 2, 3]));
+        Assert.Throws<ObjectDisposedException>(() => sha224.ComputeHash([1, 2, 3]));
     }
 }

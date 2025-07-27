@@ -5,7 +5,7 @@ using System;
 using System.Text;
 using Xunit;
 
-namespace Nalix.Test.Cryptography;
+namespace Nalix.Cryptography.Tests;
 
 public class CiphersTests
 {

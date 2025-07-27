@@ -2,7 +2,7 @@ using Nalix.Cryptography.Symmetric.Block;
 using System;
 using Xunit;
 
-namespace Nalix.Test.Cryptography.Symmetric;
+namespace Nalix.Cryptography.Tests.Symmetric;
 
 public class TwofishTests
 {

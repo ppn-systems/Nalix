@@ -3,7 +3,7 @@ using Nalix.Cryptography.Asymmetric;
 using System.Numerics;
 using Xunit;
 
-namespace Nalix.Test.Cryptography.Symmetric;
+namespace Nalix.Cryptography.Tests.Symmetric;
 
 public class Srp6Tests
 {

@@ -3,7 +3,7 @@ using System;
 using System.Text;
 using Xunit;
 
-namespace Nalix.Test.Cryptography.Asymmetric;
+namespace Nalix.Cryptography.Tests.Asymmetric;
 
 public class Ed25519Tests
 {

@@ -2,7 +2,7 @@ using Nalix.Cryptography.Hashing;
 using System;
 using Xunit;
 
-namespace Nalix.Test.Cryptography.Hashing;
+namespace Nalix.Cryptography.Tests.Hashing;
 
 public class SHA1Tests
 {

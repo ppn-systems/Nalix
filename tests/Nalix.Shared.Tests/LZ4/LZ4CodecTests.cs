@@ -4,7 +4,7 @@ using System;
 using System.Text;
 using Xunit;
 
-namespace Nalix.Tests.Shared.LZ4;
+namespace Nalix.Shared.Tests.LZ4;
 
 public class LZ4CodecTests
 {

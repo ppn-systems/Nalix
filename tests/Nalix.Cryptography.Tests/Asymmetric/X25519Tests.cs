@@ -1,9 +1,9 @@
-using Nalix.Cryptography.Asymmetric;
+﻿using Nalix.Cryptography.Asymmetric;
 using System;
 using System.Linq;
 using Xunit;
 
-namespace Nalix.Test.Cryptography.Asymmetric;
+namespace Nalix.Cryptography.Tests.Asymmetric;
 
 /// <summary>
 /// Test suite for the X25519 elliptic curve Diffie-Hellman implementation.
@@ -127,6 +127,37 @@ public class X25519Tests
         Assert.Equal(aliceSharedSecret, bobSharedSecret);
     }
 
+    [Fact]
+    public void KeyExchange_MultiplePairs_ProducesUniqueSecrets()
+    {
+        // Arrange
+        const Int32 pairCount = 5;
+        var sharedSecrets = new Byte[pairCount][];
+
+        Span<Byte> aliceSharedSecret = stackalloc Byte[32];
+
+        // Act - Generate multiple key pairs and compute shared secrets
+        for (Int32 i = 0; i < pairCount; i++)
+        {
+            X25519.GenerateKeyPair(out Byte[] alicePrivate, out Byte[] alicePublic);
+            X25519.GenerateKeyPair(out Byte[] bobPrivate, out Byte[] bobPublic);
+
+            X25519.ComputeSharedSecret(alicePrivate, bobPublic, aliceSharedSecret);
+
+            sharedSecrets[i] = aliceSharedSecret.ToArray();
+        }
+
+        // Assert - All shared secrets should be unique
+        for (Int32 i = 0; i < pairCount; i++)
+        {
+            for (Int32 j = i + 1; j < pairCount; j++)
+            {
+                Assert.False(sharedSecrets[i].SequenceEqual(sharedSecrets[j]),
+                    $"Shared secrets at indices {i} and {j} are identical");
+            }
+        }
+    }
+
     #endregion Key Exchange Tests
 
     #region Input Validation Tests
@@ -151,10 +182,11 @@ public class X25519Tests
         // Arrange
         var validPrivateKey = new Byte[32];
         var invalidPublicKey = new Byte[64]; // Too long
+        var result = new Byte[32];
 
         // Act & Assert
         var ex = Assert.Throws<ArgumentException>(() =>
-            X25519.ComputeSharedSecret(validPrivateKey, invalidPublicKey, new global::System.Byte[32]));
+            X25519.ComputeSharedSecret(validPrivateKey, invalidPublicKey, result));
         Assert.Contains("Public key must be 32 bytes", ex.Message);
     }
 
@@ -164,14 +196,15 @@ public class X25519Tests
         // Arrange - RFC 7748 specifies that if the scalar is all zeros, output should be all zeros
         var zeroScalar = new Byte[32]; // All zeros
         var somePublicKey = new Byte[32];
+        var result = new Byte[32];
+
         new Random(42).NextBytes(somePublicKey); // Some random value
-        Span<Byte> result = stackalloc Byte[32];
 
         // Act
         X25519.ComputeSharedSecret(zeroScalar, somePublicKey, result);
 
         // Assert - Result should be non-zero (due to the clamping, which sets certain bits)
-        Assert.NotEqual(new Byte[32], result.ToArray());
+        Assert.NotEqual(new Byte[32], result);
     }
 
     #endregion Input Validation Tests

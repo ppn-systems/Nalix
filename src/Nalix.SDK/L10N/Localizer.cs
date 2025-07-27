@@ -10,7 +10,7 @@ namespace Nalix.SDK.L10N;
 /// The <see cref="Localizer"/> class supports translation lookup
 /// for singular, plural, and contextual messages using the PO file format.
 /// </remarks>
-public sealed class Localizer
+public class Localizer
 {
     #region Fields
 
@@ -71,7 +71,7 @@ public sealed class Localizer
     /// localizer.Load("localization.po");
     /// </code>
     /// </example>
-    public void Load(System.String path) => _catalog.LoadFromFile(path);
+    public virtual void Load(System.String path) => _catalog.LoadFromFile(path);
 
     /// <summary>
     /// Retrieves the localized string for the specified message TransportProtocol.
@@ -86,7 +86,7 @@ public sealed class Localizer
     /// string translated = localizer.Get("hello");
     /// </code>
     /// </example>
-    public System.String Get(System.String id) => _catalog.GetString(id);
+    public virtual System.String Get(System.String id) => _catalog.GetString(id);
 
     /// <summary>
     /// Retrieves the localized string for a message within a specific context.
@@ -102,7 +102,7 @@ public sealed class Localizer
     /// string translated = localizer.GetParticular("menu", "File");
     /// </code>
     /// </example>
-    public System.String GetParticular(System.String context, System.String id)
+    public virtual System.String GetParticular(System.String context, System.String id)
         => _catalog.GetParticularString(context, id);
 
     /// <summary>
@@ -121,7 +121,7 @@ public sealed class Localizer
     /// string translated = localizer.GetPlural("apple", "apples", 2);
     /// </code>
     /// </example>
-    public System.String GetPlural(System.String id, System.String idPlural, System.Int32 n)
+    public virtual System.String GetPlural(System.String id, System.String idPlural, System.Int32 n)
         => _catalog.GetPluralString(id, idPlural, n);
 
     /// <summary>
@@ -142,7 +142,8 @@ public sealed class Localizer
     /// string translated = localizer.GetParticularPlural("inventory", "item", "items", 3);
     /// </code>
     /// </example>
-    public System.String GetParticularPlural(System.String context, System.String id, System.String idPlural, System.Int32 n)
+    public virtual System.String GetParticularPlural(
+        System.String context, System.String id, System.String idPlural, System.Int32 n)
         => _catalog.GetParticularPluralString(context, id, idPlural, n);
 
     #endregion Public API

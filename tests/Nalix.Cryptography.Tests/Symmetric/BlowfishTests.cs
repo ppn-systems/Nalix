@@ -3,7 +3,7 @@ using System;
 using System.Text;
 using Xunit;
 
-namespace Nalix.Test.Cryptography.Symmetric;
+namespace Nalix.Cryptography.Tests.Symmetric;
 
 public class BlowfishTests
 {

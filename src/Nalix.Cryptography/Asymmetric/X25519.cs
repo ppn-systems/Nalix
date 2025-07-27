@@ -71,7 +71,7 @@ public static unsafe class X25519
         z3[0] = 1;
 
         System.UInt32 swap = 0;
-        for (System.Byte pos = 254; pos >= 0; --pos)
+        for (System.Int16 pos = 254; pos >= 0; --pos)
         {
             System.UInt32 b = (System.UInt32)(scalar[pos / 8] >> (pos & 7)) & 1;
             swap ^= b;

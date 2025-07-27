@@ -2,7 +2,7 @@ using Nalix.Cryptography.Aead;
 using System;
 using Xunit;
 
-namespace Nalix.Test.Cryptography.Aead;
+namespace Nalix.Cryptography.Tests.Aead;
 
 public class ChaCha20Poly1305Tests
 {

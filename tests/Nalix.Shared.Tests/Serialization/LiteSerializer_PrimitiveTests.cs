@@ -1,7 +1,7 @@
 using Nalix.Shared.Serialization;
 using Xunit;
 
-namespace Nalix.Tests.Shared.Serialization;
+namespace Nalix.Shared.Tests.Serialization;
 
 public class LiteSerializer_PrimitiveTests
 {

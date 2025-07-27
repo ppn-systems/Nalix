@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35806.99
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Test.Cryptography", "Nalix.Tests.Cryptography\Nalix.Test.Cryptography.csproj", "{59276987-FA6E-4635-BCEA-DB358BEE41EC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Cryptography.Tests", "Nalix.Cryptography.Tests\Nalix.Cryptography.Tests.csproj", "{59276987-FA6E-4635-BCEA-DB358BEE41EC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Tests.Shared", "Nalix.Tests.Shared\Nalix.Tests.Shared.csproj", "{287268AF-2EE2-4224-996A-95B05C14DEB8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Shared.Tests", "Nalix.Shared.Tests\Nalix.Shared.Tests.csproj", "{287268AF-2EE2-4224-996A-95B05C14DEB8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.SDK.Tests", "Nalix.SDK.Tests\Nalix.SDK.Tests.csproj", "{04D08520-D003-44C9-8C9C-3C740EDB6BB3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{287268AF-2EE2-4224-996A-95B05C14DEB8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{287268AF-2EE2-4224-996A-95B05C14DEB8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{287268AF-2EE2-4224-996A-95B05C14DEB8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{04D08520-D003-44C9-8C9C-3C740EDB6BB3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{04D08520-D003-44C9-8C9C-3C740EDB6BB3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{04D08520-D003-44C9-8C9C-3C740EDB6BB3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{04D08520-D003-44C9-8C9C-3C740EDB6BB3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
