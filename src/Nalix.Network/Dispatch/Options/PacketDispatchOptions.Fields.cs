@@ -1,9 +1,7 @@
 ﻿using Nalix.Common.Logging;
 using Nalix.Common.Packets;
-using Nalix.Network.Configurations;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Core;
-using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -48,11 +46,6 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// Gets the logger instance used for logging within the packet dispatch options.
     /// </summary>
     public ILogger? Logger { get; private set; }
-
-    /// <summary>
-    /// Gets the dispatch queue options.
-    /// </summary>
-    public readonly DispatchQueueOptions QueueOptions = ConfigurationStore.Instance.Get<DispatchQueueOptions>();
 
     #endregion Properties
 }

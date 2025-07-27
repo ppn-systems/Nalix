@@ -6,7 +6,7 @@ namespace Nalix.Network.Configurations;
 /// Represents the configuration settings for caching in the network layer.
 /// This class defines the limits for outgoing and incoming cache sizes.
 /// </summary>
-public sealed class NetworkCacheSizeOptions : ConfigurationLoader
+public sealed class CacheSizeOptions : ConfigurationLoader
 {
     #region Properties
 
