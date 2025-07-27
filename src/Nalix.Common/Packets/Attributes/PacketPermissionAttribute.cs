@@ -8,7 +8,7 @@ namespace Nalix.Common.Packets.Attributes;
 /// that only users with the required authority level can execute the command.
 /// </summary>
 
-[System.AttributeUsage(System.AttributeTargets.Method)]
+[System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
 public sealed class PacketPermissionAttribute : System.Attribute
 {
     /// <summary>

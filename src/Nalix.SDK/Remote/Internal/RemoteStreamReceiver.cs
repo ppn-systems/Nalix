@@ -1,4 +1,3 @@
-using Nalix.Common.Constants;
 using Nalix.Common.Packets;
 
 namespace Nalix.SDK.Remote.Internal;
