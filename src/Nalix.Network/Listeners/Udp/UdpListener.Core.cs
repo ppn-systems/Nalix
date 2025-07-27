@@ -17,7 +17,7 @@ public abstract partial class UdpListenerBase
 
     #region Fields
 
-    internal static readonly SocketSettings Config;
+    internal static readonly SocketOptions Config;
 
     private readonly ILogger _logger;
     private readonly System.UInt16 _port;
@@ -64,7 +64,7 @@ public abstract partial class UdpListenerBase
 
     #region Constructors
 
-    static UdpListenerBase() => Config = ConfigurationStore.Instance.Get<SocketSettings>();
+    static UdpListenerBase() => Config = ConfigurationStore.Instance.Get<SocketOptions>();
 
 
     /// <summary>

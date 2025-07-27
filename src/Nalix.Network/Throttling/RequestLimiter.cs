@@ -23,7 +23,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
 
     private readonly ILogger? _logger;
     private readonly System.Threading.Timer _cleanupTimer;
-    private readonly RequestRateLimitOptions _config;
+    private readonly RateLimitOptions _config;
     private readonly System.Int64 _timeWindowTicks;
     private readonly System.Int64 _lockoutDurationTicks;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, RequestLimiterInfo> _ipData;
@@ -49,10 +49,10 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <exception cref="InternalErrorException">
     /// Thrown when the configuration contains invalid rate-limiting settings.
     /// </exception>
-    public RequestLimiter(RequestRateLimitOptions? config = null, ILogger? logger = null)
+    public RequestLimiter(RateLimitOptions? config = null, ILogger? logger = null)
     {
         this._logger = logger;
-        this._config = config ?? ConfigurationStore.Instance.Get<RequestRateLimitOptions>();
+        this._config = config ?? ConfigurationStore.Instance.Get<RateLimitOptions>();
 
         ValidateConfiguration(this._config);
 
@@ -88,14 +88,14 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// Initializes with default configuration and logger.
     /// </summary>
     public RequestLimiter(ILogger? logger = null)
-        : this((RequestRateLimitOptions?)null, logger)
+        : this((RateLimitOptions?)null, logger)
     {
     }
 
     /// <summary>
     /// Initializes with custom configuration via action callback.
     /// </summary>
-    public RequestLimiter(System.Action<RequestRateLimitOptions>? configure = null, ILogger? logger = null)
+    public RequestLimiter(System.Action<RateLimitOptions>? configure = null, ILogger? logger = null)
         : this(CreateConfiguredConfig(configure), logger)
     {
     }
@@ -390,7 +390,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Validates the configuration parameters
     /// </summary>
-    private static void ValidateConfiguration(RequestRateLimitOptions config)
+    private static void ValidateConfiguration(RateLimitOptions config)
     {
         if (config.MaxAllowedRequests <= 0)
         {
@@ -412,9 +412,9 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// Creates a configured connection configuration.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static RequestRateLimitOptions CreateConfiguredConfig(System.Action<RequestRateLimitOptions>? configure)
+    private static RateLimitOptions CreateConfiguredConfig(System.Action<RateLimitOptions>? configure)
     {
-        var config = ConfigurationStore.Instance.Get<RequestRateLimitOptions>();
+        var config = ConfigurationStore.Instance.Get<RateLimitOptions>();
         configure?.Invoke(config);
         return config;
     }
@@ -452,7 +452,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         /// <summary>
         /// Gets the configuration used for rate limiting evaluation.
         /// </summary>
-        public RequestRateLimitOptions Configuration { get; init; }
+        public RateLimitOptions Configuration { get; init; }
     }
 
 
