@@ -1,4 +1,4 @@
-namespace Nalix.Shared.L10N;
+namespace Nalix.SDK.L10N;
 
 /// <summary>
 /// Manages multiple language-specific localizers for string translation.
