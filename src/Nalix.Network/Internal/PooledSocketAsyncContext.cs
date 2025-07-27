@@ -36,7 +36,7 @@ internal class PooledSocketAsyncContext : System.Net.Sockets.SocketAsyncEventArg
     /// Initializes a new instance of the <see cref="PooledSocketAsyncContext"/> class.
     /// Registers the static receive completion handler.
     /// </summary>
-    public PooledSocketAsyncContext() => Completed += ReceiveCompletedHandler;
+    public PooledSocketAsyncContext() => base.Completed += ReceiveCompletedHandler;
 
     /// <summary>
     /// Resets the internal state of this instance for reuse by the object pool.
@@ -44,12 +44,12 @@ internal class PooledSocketAsyncContext : System.Net.Sockets.SocketAsyncEventArg
     /// </summary>
     public void ResetForPool()
     {
-        UserToken = null;
+        base.UserToken = null;
 
         // Optional: Clear buffer if you use SetBuffer()
-        SetBuffer(null, 0, 0);
+        base.SetBuffer(null, 0, 0);
 
         // Optional: Reset other states like remote endpoint if needed
-        RemoteEndPoint = null;
+        base.RemoteEndPoint = null;
     }
 }
