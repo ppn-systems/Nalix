@@ -7,7 +7,7 @@ namespace Nalix.SDK.L10N;
 /// This class allows loading multiple localization files (PO files)
 /// for different languages and retrieving translations based on the specified language.
 /// </remarks>
-public sealed class MultiLocalizer
+public class MultiLocalizer
 {
     #region Fields
 
