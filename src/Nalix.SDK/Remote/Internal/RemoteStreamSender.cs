@@ -10,6 +10,8 @@ namespace Nalix.SDK.Remote.Internal;
 /// </remarks>
 /// <param name="stream">The <see cref="System.Net.Sockets.NetworkStream"/> used for sending data.</param>
 /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
+[System.ComponentModel.EditorBrowsable(
+    System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStream stream)
     where TPacket : IPacket
 {

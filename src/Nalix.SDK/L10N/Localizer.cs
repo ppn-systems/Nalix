@@ -1,4 +1,6 @@
-namespace Nalix.Shared.L10N;
+using Nalix.SDK.L10N.Formats;
+
+namespace Nalix.SDK.L10N;
 
 /// <summary>
 /// Provides localization support using PO (Portable Object) files.
