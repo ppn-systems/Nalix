@@ -2,12 +2,6 @@
 
 using Nalix.Common.Environment;
 using Nalix.Logging.Options;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Channels;
-using System.Threading.Tasks;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
@@ -17,7 +11,7 @@ using System.Threading.Tasks;
 namespace Nalix.Logging.Internal.File;
 
 /// <summary>
-/// High-throughput file logger provider using <see cref="Channel{T}"/> + batching.
+/// High-throughput file logger provider using <see cref="System.Threading.Channels.Channel{T}"/> + batching.
 /// Drop-in alternative to <c>FileLoggerProvider</c> optimized for low contention and fewer syscalls.
 /// </summary>
 /// <remarks>
@@ -26,18 +20,18 @@ namespace Nalix.Logging.Internal.File;
 /// - Batching: flush by item count or elapsed time, whichever comes first.
 /// - Adaptive flush interval can be toggled via constructor parameters.
 /// </remarks>
-[DebuggerDisplay("Queued={QueuedEntryCount}, Written={TotalEntriesWritten}, Dropped={EntriesDroppedCount}")]
+[System.Diagnostics.DebuggerDisplay("Queued={QueuedEntryCount}, Written={TotalEntriesWritten}, Dropped={EntriesDroppedCount}")]
 internal sealed class ChannelFileLoggerProvider : System.IDisposable
 {
     #region Fields
 
-    private readonly Channel<System.String> _channel;
-    private readonly ChannelWriter<System.String> _writer;
-    private readonly ChannelReader<System.String> _reader;
+    private readonly System.Threading.Channels.Channel<System.String> _channel;
+    private readonly System.Threading.Channels.ChannelWriter<System.String> _writer;
+    private readonly System.Threading.Channels.ChannelReader<System.String> _reader;
 
     private readonly ChannelFileWriter _fileWriter;
-    private readonly CancellationTokenSource _cts = new();
-    private readonly Task _consumerTask;
+    private readonly System.Threading.CancellationTokenSource _cts = new();
+    private readonly System.Threading.Tasks.Task _consumerTask;
 
     private readonly System.Int32 _maxQueueSize;
     private readonly System.Boolean _blockWhenFull;
@@ -82,22 +76,23 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
         _adaptiveFlush = adaptiveFlush;
 
         // Bounded channel, single consumer, many producers
-        var channelOptions = new BoundedChannelOptions(_maxQueueSize)
+        System.Threading.Channels.BoundedChannelOptions channelOptions = new(_maxQueueSize)
         {
             SingleReader = true,
             SingleWriter = false,
-            FullMode = _blockWhenFull ? BoundedChannelFullMode.Wait : BoundedChannelFullMode.DropNewest
+            FullMode = _blockWhenFull ? System.Threading.Channels.BoundedChannelFullMode.Wait : System.Threading.Channels.BoundedChannelFullMode.DropNewest
         };
-        _channel = Channel.CreateBounded<System.String>(channelOptions);
+        _channel = System.Threading.Channels.Channel.CreateBounded<System.String>(channelOptions);
         _writer = _channel.Writer;
         _reader = _channel.Reader;
 
         _fileWriter = new ChannelFileWriter(this);
-        _consumerTask = Task.Factory.StartNew(
-            ConsumeLoopAsync,
-            CancellationToken.None,
-            TaskCreationOptions.LongRunning,
-            TaskScheduler.Default).Unwrap();
+        _consumerTask = System.Threading.Tasks.TaskExtensions.Unwrap(
+            System.Threading.Tasks.Task.Factory.StartNew(
+                ConsumeLoopAsync,
+                System.Threading.CancellationToken.None,
+                System.Threading.Tasks.TaskCreationOptions.LongRunning,
+                System.Threading.Tasks.TaskScheduler.Default));
     }
 
     #endregion
@@ -112,23 +107,25 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
     /// <summary>
     /// Approximate number of entries waiting to be written.
     /// </summary>
-    public System.Int32 QueuedEntryCount => System.Math.Max(0, Volatile.Read(ref _queued));
+    public System.Int32 QueuedEntryCount => System.Math.Max(0, System.Threading.Volatile.Read(ref _queued));
 
     /// <summary>
     /// Total entries written (since start).
     /// </summary>
-    public System.Int64 TotalEntriesWritten => Interlocked.Read(ref _totalEntriesWritten);
+    public System.Int64 TotalEntriesWritten => System.Threading.Interlocked.Read(ref _totalEntriesWritten);
 
     /// <summary>
     /// Entries dropped due to capacity (when non-blocking).
     /// </summary>
-    public System.Int64 EntriesDroppedCount => Interlocked.Read(ref _entriesDroppedCount);
+    public System.Int64 EntriesDroppedCount => System.Threading.Interlocked.Read(ref _entriesDroppedCount);
 
     /// <summary>
     /// Enqueue a formatted log message.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    internal void WriteEntry(System.String message)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    internal void Enqueue(System.String message)
     {
         if (_disposed || System.String.IsNullOrEmpty(message))
         {
@@ -140,18 +137,18 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
             try
             {
                 _ = _writer.WriteAsync(message, _cts.Token).AsTask().ConfigureAwait(false);
-                _ = Interlocked.Increment(ref _queued);
+                _ = System.Threading.Interlocked.Increment(ref _queued);
             }
             catch
             {
                 // swallow: don't throw from logger
-                _ = Interlocked.Increment(ref _entriesDroppedCount);
+                _ = System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
             }
         }
         else
         {
-            _ = _writer.TryWrite(message) ? Interlocked.Increment(ref _queued)
-                                          : Interlocked.Increment(ref _entriesDroppedCount);
+            _ = _writer.TryWrite(message) ? System.Threading.Interlocked.Increment(ref _queued)
+                                          : System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
         }
     }
 
@@ -159,12 +156,12 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
     /// <summary>
     /// Force a flush of current buffers to disk.
     /// </summary>
-    public void FlushQueue() => _fileWriter.Flush();
+    public void Flush() => _fileWriter.Flush();
 
     /// <summary>
     /// Diagnostic snapshot.
     /// </summary>
-    public System.String GetDiagnosticInfo()
+    public System.String GetDiagnostics()
     {
         return $"ChannelFileLoggerProvider [UTC: {System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]"
              + System.Environment.NewLine + $"- USER: {System.Environment.UserName}"
@@ -178,10 +175,10 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
 
     #region Consumer Loop
 
-    private async Task ConsumeLoopAsync()
+    private async System.Threading.Tasks.Task ConsumeLoopAsync()
     {
-        var batch = new List<System.String>(_batchSize);
-        var sw = new Stopwatch();
+        System.Collections.Generic.List<System.String> batch = new(_batchSize);
+        System.Diagnostics.Stopwatch sw = new();
         sw.Start();
         System.TimeSpan currentDelay = _maxBatchDelay;
 
@@ -193,7 +190,7 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
                 if (_reader.TryRead(out var first))
                 {
                     batch.Add(first);
-                    _ = Interlocked.Decrement(ref _queued);
+                    _ = System.Threading.Interlocked.Decrement(ref _queued);
                 }
                 else
                 {
@@ -213,19 +210,19 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
                     if (_reader.TryRead(out var item))
                     {
                         batch.Add(item);
-                        _ = Interlocked.Decrement(ref _queued);
+                        _ = System.Threading.Interlocked.Decrement(ref _queued);
                     }
                     else
                     {
                         // No data right now, small delay to yield
-                        await Task.Yield();
+                        await System.Threading.Tasks.Task.Yield();
                         break;
                     }
                 }
 
                 // Write batch
-                _fileWriter.WriteBatch(batch);
-                _ = Interlocked.Add(ref _totalEntriesWritten, batch.Count);
+                _fileWriter.AppendBatch(batch);
+                _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, batch.Count);
                 batch.Clear();
 
                 // Adaptive delay: if we consistently fill the batch, shrink delay to reduce latency;
@@ -247,7 +244,7 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
         }
         catch (System.Exception ex)
         {
-            Debug.WriteLine($"Channel consumer error: {ex}");
+            System.Diagnostics.Debug.WriteLine($"Channel consumer error: {ex}");
         }
         finally
         {
@@ -257,15 +254,15 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
                 batch.Add(msg);
                 if (batch.Count >= _batchSize)
                 {
-                    _fileWriter.WriteBatch(batch);
-                    _ = Interlocked.Add(ref _totalEntriesWritten, batch.Count);
+                    _fileWriter.AppendBatch(batch);
+                    _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, batch.Count);
                     batch.Clear();
                 }
             }
             if (batch.Count > 0)
             {
-                _fileWriter.WriteBatch(batch);
-                _ = Interlocked.Add(ref _totalEntriesWritten, batch.Count);
+                _fileWriter.AppendBatch(batch);
+                _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, batch.Count);
                 batch.Clear();
             }
         }
@@ -304,7 +301,7 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
         }
         catch (System.Exception ex)
         {
-            Debug.WriteLine($"Dispose error: {ex}");
+            System.Diagnostics.Debug.WriteLine($"Dispose error: {ex}");
         }
         System.GC.SuppressFinalize(this);
     }
