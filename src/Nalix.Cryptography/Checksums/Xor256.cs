@@ -1,7 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
-namespace Nalix.Cryptography.Checksums;
+﻿namespace Nalix.Cryptography.Checksums;
 
 /// <summary>
 /// Provides a highly optimized XOR checksum implementation using unsafe memory operations.
@@ -11,7 +8,8 @@ public static class Xor256
     /// <summary>
     /// Computes the XOR checksum over a byte span.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte Compute(System.ReadOnlySpan<System.Byte> data)
     {
         if (data.IsEmpty)
@@ -23,7 +21,7 @@ public static class Xor256
 
         unsafe
         {
-            ref System.Byte src = ref MemoryMarshal.GetReference(data);
+            ref System.Byte src = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(data);
             System.Int32 length = data.Length;
 
             System.Int32 i = 0;
@@ -59,7 +57,7 @@ public static class Xor256
             // Process remaining bytes
             for (; i < length; i++)
             {
-                xor ^= Unsafe.Add(ref src, i);
+                xor ^= System.Runtime.CompilerServices.Unsafe.Add(ref src, i);
             }
         }
 
@@ -69,7 +67,8 @@ public static class Xor256
     /// <summary>
     /// Computes the XOR checksum from a byte array.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte Compute(params System.Byte[] data)
     {
         System.ArgumentNullException.ThrowIfNull(data);
@@ -79,14 +78,16 @@ public static class Xor256
     /// <summary>
     /// Computes XOR checksum over any unmanaged data.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte Compute<T>(System.ReadOnlySpan<T> data) where T : unmanaged
-        => Compute(MemoryMarshal.AsBytes(data));
+        => Compute(System.Runtime.InteropServices.MemoryMarshal.AsBytes(data));
 
     /// <summary>
     /// Verifies that the computed XOR matches the expected checksum.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean Verify(System.ReadOnlySpan<System.Byte> data, System.Byte expectedXor)
         => Compute(data) == expectedXor;
 }
