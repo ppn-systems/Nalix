@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Cryptography.Padding;
@@ -17,18 +16,18 @@ public static class PKCS7
     /// <param name="blockSize">The block size to pad to.</param>
     /// <returns>A new byte array with PKCS7 padding applied.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Byte[] Pad(ReadOnlySpan<Byte> data, Int32 blockSize)
+    public static System.Byte[] Pad(System.ReadOnlySpan<System.Byte> data, System.Int32 blockSize)
     {
-        if (blockSize is <= 0 or > Byte.MaxValue)
+        if (blockSize is <= 0 or > System.Byte.MaxValue)
         {
-            throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
+            throw new System.ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
         }
 
-        Int32 size = blockSize - (data.Length % blockSize);
-        Byte[] dataP = new Byte[data.Length + size];
+        System.Int32 size = blockSize - (data.Length % blockSize);
+        System.Byte[] dataP = new System.Byte[data.Length + size];
         data.CopyTo(dataP);
 
-        dataP.AsSpan(data.Length).Fill((Byte)size);
+        System.MemoryExtensions.AsSpan(dataP, data.Length).Fill((System.Byte)size);
 
         return dataP;
     }
@@ -43,23 +42,25 @@ public static class PKCS7
     /// <param name="data">The input span to unpad.</param>
     /// <param name="blockSize">The block size to unpad from.</param>
     /// <returns>A new byte array with PKCS7 padding removed.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Byte[] Unpad(ReadOnlySpan<Byte> data, Int32 blockSize)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Byte[] Unpad(
+        System.ReadOnlySpan<System.Byte> data, System.Int32 blockSize)
     {
         if (data.Length == 0 || data.Length % blockSize != 0)
         {
-            throw new ArgumentException("The data length is invalid for PKCS7 padding.", nameof(data));
+            throw new System.ArgumentException("The data length is invalid for PKCS7 padding.", nameof(data));
         }
 
-        if (blockSize is <= 0 or > Byte.MaxValue)
+        if (blockSize is <= 0 or > System.Byte.MaxValue)
         {
-            throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
+            throw new System.ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 255.");
         }
 
-        Int32 size = data[^1];
+        System.Int32 size = data[^1];
 
         return size <= 0 || size > blockSize || !HasValidPadding(data, size)
-            ? throw new InvalidOperationException("Invalid padding.")
+            ? throw new System.InvalidOperationException("Invalid padding.")
             : data[..^size].ToArray();
     }
 
@@ -74,9 +75,9 @@ public static class PKCS7
     /// <param name="paddingSize">The expected padding size.</param>
     /// <returns>True if the padding is valid, otherwise false.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Boolean HasValidPadding(ReadOnlySpan<Byte> data, Int32 paddingSize) =>
+    private static System.Boolean HasValidPadding(System.ReadOnlySpan<System.Byte> data, System.Int32 paddingSize) =>
         paddingSize > 0 && paddingSize <= data.Length &&
-        !(data[^paddingSize..].IndexOfAnyExcept((Byte)paddingSize) >= 0);
+        System.MemoryExtensions.IndexOfAnyExcept(data[^paddingSize..], (System.Byte)paddingSize) == -1;
 
     #endregion Private Methods
 }

@@ -1,4 +1,4 @@
-using Nalix.Cryptography.Mac;
+using Nalix.Cryptography.Hmac;
 using Nalix.Cryptography.Symmetric.Stream;
 
 namespace Nalix.Cryptography.Aead;

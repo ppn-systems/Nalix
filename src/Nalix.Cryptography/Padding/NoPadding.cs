@@ -1,6 +1,3 @@
-using System;
-using System.Runtime.CompilerServices;
-
 namespace Nalix.Cryptography.Padding;
 
 /// <summary>
@@ -18,25 +15,27 @@ public static class NoPadding
     /// <param name="data">The input byte array to verify.</param>
     /// <param name="blockSize">The block size to align to.</param>
     /// <returns>The original data if already aligned.</returns>
-    /// <exception cref="ArgumentException">Thrown when data is not already aligned to the block size.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Byte[] Pad(Byte[] data, Int32 blockSize)
+    /// <exception cref="System.ArgumentException">Thrown when data is not already aligned to the block size.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Byte[] Pad(System.Byte[] data, System.Int32 blockSize)
     {
-        ArgumentNullException.ThrowIfNull(data);
+        System.ArgumentNullException.ThrowIfNull(data);
         if (blockSize <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be positive.");
+            throw new System.ArgumentOutOfRangeException(nameof(blockSize), "Block size must be positive.");
         }
 
         // Verify the data is already aligned to the block size
         if (data.Length % blockSize != 0)
         {
-            throw new ArgumentException($"Data length ({data.Length}) is not a multiple of the block size ({blockSize}).", nameof(data));
+            throw new System.ArgumentException(
+                $"Data length ({data.Length}) is not a multiple of the block size ({blockSize}).", nameof(data));
         }
 
         // Return a copy of the input data
-        Byte[] result = new Byte[data.Length];
-        Buffer.BlockCopy(data, 0, result, 0, data.Length);
+        System.Byte[] result = new System.Byte[data.Length];
+        System.Buffer.BlockCopy(data, 0, result, 0, data.Length);
         return result;
     }
 
@@ -47,23 +46,26 @@ public static class NoPadding
     /// <param name="data">The input span to verify.</param>
     /// <param name="blockSize">The block size to align to.</param>
     /// <returns>The original data if already aligned.</returns>
-    /// <exception cref="ArgumentException">Thrown when data is not already aligned to the block size.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Byte[] Pad(ReadOnlySpan<Byte> data, Int32 blockSize)
+    /// <exception cref="System.ArgumentException">Thrown when data is not already aligned to the block size.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Byte[] Pad(
+        System.ReadOnlySpan<System.Byte> data, System.Int32 blockSize)
     {
         if (blockSize <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be positive.");
+            throw new System.ArgumentOutOfRangeException(nameof(blockSize), "Block size must be positive.");
         }
 
         // Verify the data is already aligned to the block size
         if (data.Length % blockSize != 0)
         {
-            throw new ArgumentException($"Data length ({data.Length}) is not a multiple of the block size ({blockSize}).", nameof(data));
+            throw new System.ArgumentException(
+                $"Data length ({data.Length}) is not a multiple of the block size ({blockSize}).", nameof(data));
         }
 
         // Return a copy of the input data
-        Byte[] result = new Byte[data.Length];
+        System.Byte[] result = new System.Byte[data.Length];
         data.CopyTo(result);
         return result;
     }
@@ -78,24 +80,26 @@ public static class NoPadding
     /// <param name="data">The input byte array.</param>
     /// <param name="blockSize">The block size (used for validation only).</param>
     /// <returns>A copy of the original data.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Byte[] Unpad(Byte[] data, Int32 blockSize)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Byte[] Unpad(System.Byte[] data, System.Int32 blockSize)
     {
-        ArgumentNullException.ThrowIfNull(data);
+        System.ArgumentNullException.ThrowIfNull(data);
         if (blockSize <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be positive.");
+            throw new System.ArgumentOutOfRangeException(nameof(blockSize), "Block size must be positive.");
         }
 
         // Verify the data is already aligned to the block size
         if (data.Length % blockSize != 0)
         {
-            throw new ArgumentException($"Data length ({data.Length}) is not a multiple of the block size ({blockSize}).", nameof(data));
+            throw new System.ArgumentException(
+                $"Data length ({data.Length}) is not a multiple of the block size ({blockSize}).", nameof(data));
         }
 
         // Return a copy of the input data
-        Byte[] result = new Byte[data.Length];
-        Buffer.BlockCopy(data, 0, result, 0, data.Length);
+        System.Byte[] result = new System.Byte[data.Length];
+        System.Buffer.BlockCopy(data, 0, result, 0, data.Length);
         return result;
     }
 
@@ -105,22 +109,25 @@ public static class NoPadding
     /// <param name="data">The input span.</param>
     /// <param name="blockSize">The block size (used for validation only).</param>
     /// <returns>A copy of the original data.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Byte[] Unpad(ReadOnlySpan<Byte> data, Int32 blockSize)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Byte[] Unpad(
+        System.ReadOnlySpan<System.Byte> data, System.Int32 blockSize)
     {
         if (blockSize <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be positive.");
+            throw new System.ArgumentOutOfRangeException(nameof(blockSize), "Block size must be positive.");
         }
 
         // Verify the data is already aligned to the block size
         if (data.Length % blockSize != 0)
         {
-            throw new ArgumentException($"Data length ({data.Length}) is not a multiple of the block size ({blockSize}).", nameof(data));
+            throw new System.ArgumentException(
+                $"Data length ({data.Length}) is not a multiple of the block size ({blockSize}).", nameof(data));
         }
 
         // Return a copy of the input data
-        Byte[] result = new Byte[data.Length];
+        System.Byte[] result = new System.Byte[data.Length];
         data.CopyTo(result);
         return result;
     }
