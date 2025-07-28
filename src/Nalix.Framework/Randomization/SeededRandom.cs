@@ -229,7 +229,8 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <returns>A random floating-point TransportProtocol in the range [min, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Single Get(System.Single min, System.Single max) => min >= max ? min : min + (GetFloat() * (max - min));
+    public System.Single Get(System.Single min, System.Single max)
+        => min >= max ? min : min + (GetFloat() * (max - min));
 
     /// <summary>
     /// Returns a random double-precision floating-point TransportProtocol in the range [min, max).
@@ -239,7 +240,8 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <returns>A random double-precision floating-point TransportProtocol in the range [min, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Double Get(System.Double min, System.Double max) => min >= max ? min : min + (GetDouble() * (max - min));
+    public System.Double Get(System.Double min, System.Double max)
+        => min >= max ? min : min + (GetDouble() * (max - min));
 
     /// <summary>
     /// Returns a random boolean with the specified probability of being true.
@@ -248,15 +250,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <returns>A random boolean.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean GetBool(System.Double probability = 0.5)
-    {
-        if (probability <= 0.0)
-        {
-            return false;
-        }
-
-        return probability >= 1.0 || GetDouble() < probability;
-    }
+    public System.Boolean GetBool(System.Double probability = 0.5) => probability > 0.0 && (probability >= 1.0 || GetDouble() < probability);
 
     /// <summary>
     /// Returns a random floating-point TransportProtocol in the range [0.0, 1.0).
