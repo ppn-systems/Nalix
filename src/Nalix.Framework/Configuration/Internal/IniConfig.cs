@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 #if DEBUG
+
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Tests.")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
@@ -26,7 +27,6 @@ internal sealed class IniConfig
     private const System.Char SectionEnd = ']';
     private const System.Char KeyValueSeparator = '=';
     private const System.Char CommentChar = ';';
-    private const System.Char CacheKeySeparator = ':';
 
     // Standard buffer sizes
     private const System.Int32 DefaultBufferSize = 4096;
@@ -48,6 +48,12 @@ internal sealed class IniConfig
 
     // Track if the file has been modified
     private System.Boolean _isDirty;
+
+    // Stores comments to be written above sections and keys.
+    // Key format: "section" for section-level comments,
+    //             "section:key" for property-level comments.
+    // Values are never loaded from file — only populated by WriteComment().
+    private readonly System.Collections.Generic.Dictionary<System.String, System.String> _comments;
 
     private System.DateTime _lastFileReadTime;
 
@@ -111,6 +117,7 @@ internal sealed class IniConfig
         // Use case-insensitive keys for sections and keys
         _iniData = new(System.StringComparer.OrdinalIgnoreCase);
         _valueCache = new(System.StringComparer.OrdinalIgnoreCase);
+        _comments = new(System.StringComparer.OrdinalIgnoreCase);
         _fileLock = new(System.Threading.LockRecursionPolicy.NoRecursion);
 
         // Load the file if it exists
@@ -217,6 +224,77 @@ internal sealed class IniConfig
             _fileLock.ExitUpgradeableReadLock();
         }
     }
+
+    /// <summary>
+    /// Writes a comment to the INI file above a section header or a key-value pair.
+    /// The comment is only recorded when the target does not yet exist in the file,
+    /// matching the behaviour of <see cref="WriteValue"/>.
+    /// </summary>
+    /// <param name="section">The section the comment belongs to.</param>
+    /// <param name="key">
+    /// The key the comment belongs to, or <c>null</c> / empty to attach the comment
+    /// to the <c>[Section]</c> header itself.
+    /// </param>
+    /// <param name="comment">
+    /// The comment text. Multi-line comments are supported via embedded <c>\n</c>.
+    /// Pass <c>null</c> or whitespace to skip writing (method becomes a no-op).
+    /// </param>
+    /// <remarks>
+    /// Comments are stored in memory and flushed to disk on the next <see cref="WriteFile"/> call.
+    /// They are never read back from disk — re-running the application re-registers them from attributes.
+    /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public void WriteComment(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        System.String? key,
+        System.String? comment)
+    {
+        // Silently skip when no comment text is provided — callers do not need to null-check
+        if (System.String.IsNullOrWhiteSpace(comment))
+        {
+            return;
+        }
+
+        System.ArgumentNullException.ThrowIfNull(section, nameof(section));
+
+        // Build the lookup key: "Section" for section-level, "Section:Key" for property-level
+        System.String commentKey = System.String.IsNullOrEmpty(key)
+            ? section
+            : CreateCacheKey(section, key);
+
+        _fileLock.EnterUpgradeableReadLock();
+        try
+        {
+            CheckFileChanges();
+
+            // Only register the comment when the target does not yet exist in the file.
+            // This mirrors WriteValue's guard — comment and value are always in sync.
+            System.Boolean targetExists = !System.String.IsNullOrEmpty(key)
+                && _iniData.TryGetValue(section,
+                       out System.Collections.Generic.Dictionary<System.String, System.String>? sd)
+                && sd.TryGetValue(key, out System.String? existing)
+                && !System.String.IsNullOrEmpty(existing);
+
+            if (!targetExists && !_comments.ContainsKey(commentKey))
+            {
+                _fileLock.EnterWriteLock();
+                try
+                {
+                    _comments[commentKey] = comment;
+                }
+                finally
+                {
+                    _fileLock.ExitWriteLock();
+                }
+            }
+        }
+        finally
+        {
+            _fileLock.ExitUpgradeableReadLock();
+        }
+    }
+
 
     /// <summary>
     /// Gets the value for the specified key in the specified section as a string.
@@ -914,7 +992,7 @@ internal sealed class IniConfig
     private static System.String CreateCacheKey(
         System.String section,
         System.String key,
-        System.String? typeSuffix = null) => typeSuffix == null ? System.String.Concat(section, ":", key) : System.String.Concat(section, ":", key, ":", typeSuffix);
+        System.String? typeSuffix = null) => typeSuffix == null ? $"{section}:{key}" : $"{section}:{key}:{typeSuffix}";
 
     /// <summary>
     /// Formats a value for storage in the INI file.
@@ -1086,6 +1164,40 @@ internal sealed class IniConfig
     }
 
     /// <summary>
+    /// Writes the stored comment for <paramref name="commentKey"/> to <paramref name="writer"/>,
+    /// emitting one <c>; line</c> per newline segment. Does nothing when no comment is registered.
+    /// Must only be called from inside a write lock (i.e. from <see cref="WriteFile"/>).
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
+    private void WriteInlineComment(
+        System.IO.StreamWriter writer,
+        System.String section,
+        System.String commentKey)
+    {
+        if (!_comments.TryGetValue(commentKey, out System.String? comment))
+        {
+            return;
+        }
+
+        // Support multi-line comments embedded via \n in the attribute string
+        System.ReadOnlySpan<System.Char> remaining = System.MemoryExtensions.AsSpan(comment);
+        while (!remaining.IsEmpty)
+        {
+            System.Int32 nl = System.MemoryExtensions.IndexOf(remaining, '\n');
+            System.ReadOnlySpan<System.Char> segment = nl < 0 ? remaining : remaining[..nl];
+
+            writer.Write(CommentChar);
+            writer.Write(' ');
+            writer.WriteLine(System.MemoryExtensions.Trim(segment).ToString());
+
+            remaining = nl < 0 ? System.ReadOnlySpan<System.Char>.Empty : remaining[(nl + 1)..];
+        }
+    }
+
+    /// <summary>
     /// Checks if the file has been modified externally and reloads if necessary.
     /// </summary>
     [System.Diagnostics.StackTraceHidden]
@@ -1178,6 +1290,9 @@ internal sealed class IniConfig
                 {
                     if (section.Key != System.String.Empty)
                     {
+                        // Write section-level comment (keyed by section name only)
+                        WriteInlineComment(writer, section.Key, commentKey: section.Key);
+
                         writer.Write(SectionStart);
                         writer.Write(section.Key);
                         writer.WriteLine(SectionEnd);
@@ -1185,6 +1300,9 @@ internal sealed class IniConfig
 
                     foreach (var keyValue in section.Value)
                     {
+                        // Write property-level comment (keyed by "Section:Key")
+                        WriteInlineComment(writer, section.Key, commentKey: CreateCacheKey(section.Key, keyValue.Key));
+
                         writer.Write(keyValue.Key);
                         writer.Write(KeyValueSeparator);
                         writer.WriteLine(keyValue.Value);

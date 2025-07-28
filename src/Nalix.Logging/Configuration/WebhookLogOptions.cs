@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation.  All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics.Enums;
@@ -11,12 +11,13 @@ namespace Nalix.Logging.Configuration;
 /// Configuration options for the Discord webhook logger.
 /// </summary>
 [System.Diagnostics.DebuggerDisplay("WebhookUrl={_webhookUrl,nq}, BatchSize={BatchSize}")]
+[IniComment("Discord webhook logger configuration — controls batching, retries, formatting, and filtering")]
 public sealed class WebhookLogOptions : ConfigurationLoader
 {
     #region Constants
 
     private const System.Int32 MinBatchSize = 1;
-    private const System.Int32 MaxBatchSize = 10; // Discord rate limit consideration
+    private const System.Int32 MaxBatchSize = 10;
     private const System.Int32 DefaultBatchSize = 10;
     private const System.Int32 DefaultRetryCount = 3;
     private const System.Int32 DefaultMaxQueueSize = 1000;
@@ -39,13 +40,8 @@ public sealed class WebhookLogOptions : ConfigurationLoader
     #region Properties
 
     /// <summary>
-    /// Gets or sets the Discord webhook URL.
+    /// Gets or sets the Discord webhook URLs.
     /// </summary>
-    /// <remarks>
-    /// This is required.  You can create a webhook in Discord server settings under Integrations.
-    /// Format: https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
-    /// </remarks>
-    /// <exception cref="System.ArgumentException">Thrown when value is null, empty, or not a valid URL.</exception>
     [ConfiguredIgnore]
     public System.Collections.Generic.List<System.String> WebhookUrls
     {
@@ -57,7 +53,6 @@ public sealed class WebhookLogOptions : ConfigurationLoader
                 throw new System.ArgumentException("WebhookUrls must contain at least one URL.", nameof(value));
             }
 
-            // Validate all URLs
             foreach (var url in value)
             {
                 if (System.String.IsNullOrWhiteSpace(url))
@@ -80,32 +75,26 @@ public sealed class WebhookLogOptions : ConfigurationLoader
     /// <summary>
     /// Gets or sets the load balancing strategy for multiple webhooks.
     /// </summary>
+    [IniComment("Dispatch strategy when multiple webhook URLs are configured (e.g. RoundRobin, Broadcast)")]
     public WebhookDispatchMode DispatchMode { get; set; } = WebhookDispatchMode.RoundRobin;
 
     /// <summary>
     /// Gets or sets the username displayed for log messages in Discord.
     /// </summary>
-    /// <remarks>
-    /// If not set, Discord will use the webhook's default username.
-    /// </remarks>
+    [IniComment("Display name shown in Discord for log messages (empty = webhook default)")]
     public System.String Username { get; set; } = "NLogx";
 
     /// <summary>
     /// Gets or sets the avatar URL displayed for log messages in Discord.
     /// </summary>
-    /// <remarks>
-    /// If not set, Discord will use the webhook's default avatar.
-    /// </remarks>
+    [IniComment("Avatar image URL for the webhook bot (empty = webhook default)")]
     public System.String AvatarUrl { get; set; } = System.String.Empty;
 
     /// <summary>
     /// Gets or sets the maximum number of log entries to batch before sending to Discord.
     /// </summary>
-    /// <remarks>
-    /// Discord has rate limits, so batching helps prevent hitting those limits.
-    /// Maximum value is 10 to stay within Discord's embed limits per message.
-    /// </remarks>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown when value is less than 1 or greater than 10.</exception>
+    [IniComment("Log entries to accumulate per Discord message (1–10, Discord embed limit)")]
     public System.Int32 BatchSize
     {
         get => _batchSize;
@@ -124,10 +113,8 @@ public sealed class WebhookLogOptions : ConfigurationLoader
     /// <summary>
     /// Gets or sets the maximum number of log entries that can be queued.
     /// </summary>
-    /// <remarks>
-    /// When the queue is full, behavior depends on <see cref="BlockWhenQueueFull"/>.
-    /// </remarks>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown when value is less than 1.</exception>
+    [IniComment("Maximum queued log entries before blocking or discarding (minimum 1)")]
     public System.Int32 MaxQueueSize
     {
         get => _maxQueueSize;
@@ -135,8 +122,7 @@ public sealed class WebhookLogOptions : ConfigurationLoader
         {
             if (value < 1)
             {
-                throw new System.ArgumentOutOfRangeException(
-                    nameof(value), "MaxQueueSize must be at least 1.");
+                throw new System.ArgumentOutOfRangeException(nameof(value), "MaxQueueSize must be at least 1.");
             }
 
             _maxQueueSize = value;
@@ -146,20 +132,20 @@ public sealed class WebhookLogOptions : ConfigurationLoader
     /// <summary>
     /// Gets or sets the delay between batch sends.
     /// </summary>
-    /// <remarks>
-    /// Logs will be sent either when <see cref="BatchSize"/> is reached or this delay elapses.
-    /// </remarks>
+    [IniComment("Max wait time before flushing a partial batch (e.g. 00:00:02 = 2 seconds)")]
     public System.TimeSpan BatchDelay { get; set; } = DefaultBatchDelay;
 
     /// <summary>
     /// Gets or sets the HTTP request timeout for webhook calls.
     /// </summary>
+    [IniComment("HTTP request timeout per webhook call (e.g. 00:00:30 = 30 seconds)")]
     public System.TimeSpan HttpTimeout { get; set; } = DefaultHttpTimeout;
 
     /// <summary>
     /// Gets or sets the number of retry attempts for failed webhook calls.
     /// </summary>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown when value is less than 0.</exception>
+    [IniComment("Number of retry attempts on webhook failure (0 = no retries)")]
     public System.Int32 RetryCount
     {
         get => _retryCount;
@@ -167,8 +153,7 @@ public sealed class WebhookLogOptions : ConfigurationLoader
         {
             if (value < 0)
             {
-                throw new System.ArgumentOutOfRangeException(
-                    nameof(value), "RetryCount cannot be negative.");
+                throw new System.ArgumentOutOfRangeException(nameof(value), "RetryCount cannot be negative.");
             }
 
             _retryCount = value;
@@ -178,52 +163,42 @@ public sealed class WebhookLogOptions : ConfigurationLoader
     /// <summary>
     /// Gets or sets the delay between retry attempts.
     /// </summary>
+    [IniComment("Delay between retry attempts (e.g. 00:00:01 = 1 second)")]
     public System.TimeSpan RetryDelay { get; set; } = DefaultRetryDelay;
 
     /// <summary>
     /// Gets or sets a value indicating whether to use Discord embeds for log formatting.
     /// </summary>
-    /// <remarks>
-    /// When true, logs are sent as rich embeds with colors and fields.
-    /// When false, logs are sent as plain text messages.
-    /// </remarks>
+    [IniComment("Send logs as rich Discord embeds with colors (false = plain text)")]
     public System.Boolean UseEmbeds { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a value indicating whether to block when the queue is full.
     /// </summary>
-    /// <remarks>
-    /// When true, logging will block until queue space is available.
-    /// When false, log entries will be discarded when the queue is full.
-    /// </remarks>
+    [IniComment("Block the caller when the queue is full (false = discard entries instead)")]
     public System.Boolean BlockWhenQueueFull { get; set; } = false;
 
     /// <summary>
     /// Gets or sets the minimum log level to send to Discord.
     /// </summary>
-    /// <remarks>
-    /// Logs below this level will be filtered out.  This helps reduce noise in Discord.
-    /// Default is Warning to avoid spamming Discord with debug/info messages.
-    /// </remarks>
+    [IniComment("Minimum log level forwarded to Discord (e.g. Warning — suppresses Debug and Info noise)")]
     public LogLevel MinimumLevel { get; set; } = LogLevel.Warning;
 
     /// <summary>
     /// Gets or sets a value indicating whether to include stack traces in error logs.
     /// </summary>
+    [IniComment("Attach stack traces to error and fatal log entries")]
     public System.Boolean IncludeStackTrace { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a value indicating whether to include timestamp in log messages.
     /// </summary>
+    [IniComment("Include a timestamp in each Discord log message")]
     public System.Boolean IncludeTimestamp { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a custom error handler for webhook failures.
     /// </summary>
-    /// <remarks>
-    /// This handler will be called when all retry attempts have failed.
-    /// Use this to implement fallback logging or alerting mechanisms.
-    /// </remarks>
     [ConfiguredIgnore]
     public System.Action<System.Exception, System.String>? OnWebhookError { get; set; }
 

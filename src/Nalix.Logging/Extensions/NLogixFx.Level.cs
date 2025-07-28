@@ -306,7 +306,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Critical, message, source, extendedData,
+            LogLevel.Fatal, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     /// <summary>
@@ -328,7 +328,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Critical, message, source?.FullName, extendedData,
+            LogLevel.Fatal, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     /// <summary>
@@ -350,7 +350,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Critical, message, source, extendedData,
+            LogLevel.Fatal, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     #endregion Fatal Methods

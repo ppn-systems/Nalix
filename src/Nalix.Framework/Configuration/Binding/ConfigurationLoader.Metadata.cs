@@ -19,6 +19,7 @@ public partial class ConfigurationLoader
     private static ConfigurationMetadata CreateConfigurationMetadata(System.Type type)
     {
         System.Collections.Generic.List<PropertyMetadata> bindableProperties = [];
+        System.String? sectionComment = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<IniCommentAttribute>(type)?.Comment;
 
         foreach (System.Reflection.PropertyInfo property in type.GetProperties(
                  System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
@@ -35,11 +36,14 @@ public partial class ConfigurationLoader
                 continue;
             }
 
+            System.String? propComment = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<IniCommentAttribute>(property, inherit: true)?.Comment;
+
             // Create the property metadata
             PropertyMetadata propertyMetadata = new()
             {
-                PropertyInfo = property,
                 Name = property.Name,
+                Comment = propComment,
+                PropertyInfo = property,
                 PropertyType = property.PropertyType,
                 TypeCode = System.Type.GetTypeCode(property.PropertyType)
             };
@@ -50,6 +54,7 @@ public partial class ConfigurationLoader
         return new ConfigurationMetadata
         {
             ConfigurationType = type,
+            SectionComment = sectionComment,
             BindableProperties = [.. bindableProperties]
         };
     }

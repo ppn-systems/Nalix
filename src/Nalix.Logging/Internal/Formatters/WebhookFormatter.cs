@@ -134,7 +134,7 @@ internal sealed class WebhookFormatter
         LogLevel.Information => 0x2ecc71,
         LogLevel.Warning => 0xf1c40f,
         LogLevel.Error => 0xe74c3c,
-        LogLevel.Critical => 0x8e44ad,
+        LogLevel.Fatal => 0x8e44ad,
         _ => 0x7f8c8d
     };
 
@@ -146,7 +146,7 @@ internal sealed class WebhookFormatter
         LogLevel.Information => "ℹ️",
         LogLevel.Warning => "⚠️",
         LogLevel.Error => "❌",
-        LogLevel.Critical => "🔥",
+        LogLevel.Fatal => "🔥",
         _ => "📝"
     };
 }
