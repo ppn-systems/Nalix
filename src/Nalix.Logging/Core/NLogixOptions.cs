@@ -80,6 +80,27 @@ public sealed class NLogixOptions : System.IDisposable
     }
 
     /// <summary>
+    /// Sets the configuration options for file logging.
+    /// </summary>
+    /// <param name="configure">Action that configures the <see cref="FileLogOptions"/>.</param>
+    /// <returns>The current <see cref="NLogixOptions"/> instance for method chaining.</returns>
+    /// <exception cref="System.ArgumentNullException">Thrown if configure is null.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public NLogixOptions ConfigureFileOptions(System.Action<FileLogOptions> configure)
+    {
+        System.ArgumentNullException.ThrowIfNull(configure);
+        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
+                                      .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
+
+        // Apply the configuration to the FileLogOptions instance
+        configure(FileOptions);
+        return this;
+    }
+
+    /// <summary>
     /// Adds a logging target to receive log entries.
     /// </summary>
     /// <param name="target">The <see cref="ILoggerTarget"/> to add.</param>
@@ -89,12 +110,13 @@ public sealed class NLogixOptions : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public NLogixOptions AddTarget(ILoggerTarget target)
+    public NLogixOptions RegisterTarget(ILoggerTarget target)
     {
         System.ArgumentNullException.ThrowIfNull(target);
-        this.ThrowIfDisposed();
+        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
+                                      .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
 
-        _ = _publisher.AddTarget(target);
+        _ = _publisher.RegisterTarget(target);
         return this;
     }
 
@@ -107,44 +129,14 @@ public sealed class NLogixOptions : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public NLogixOptions SetMinLevel(LogLevel level)
+    public NLogixOptions SetMinimumLevel(LogLevel level)
     {
-        this.ThrowIfDisposed();
+        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
+                                      .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
 
         MinLevel = level;
         return this;
     }
-
-    /// <summary>
-    /// Sets the configuration options for file logging.
-    /// </summary>
-    /// <param name="configure">Action that configures the <see cref="FileLogOptions"/>.</param>
-    /// <returns>The current <see cref="NLogixOptions"/> instance for method chaining.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown if configure is null.</exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public NLogixOptions SetFileOptions(System.Action<FileLogOptions> configure)
-    {
-        System.ArgumentNullException.ThrowIfNull(configure);
-        this.ThrowIfDisposed();
-
-        // Apply the configuration to the FileLogOptions instance
-        configure(FileOptions);
-        return this;
-    }
-
-    /// <summary>
-    /// Checks whether this instance is disposed and throws an exception if it is.
-    /// </summary>
-    /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void ThrowIfDisposed()
-        => System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
-                                         .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
 
     /// <summary>
     /// Releases resources used by this instance.

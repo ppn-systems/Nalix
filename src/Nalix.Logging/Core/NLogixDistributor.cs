@@ -1,8 +1,5 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-
 using Nalix.Common.Logging;
 
 namespace Nalix.Logging.Core;
@@ -25,31 +22,31 @@ public sealed class NLogixDistributor : ILogDistributor
     // Track disposed state in a thread-safe way
     private System.Int32 _isDisposed;
 
-    private System.Int64 _entriesDistributor;
-    private System.Int64 _targetsProcessed;
-    private System.Int64 _publishErrorCount;
+    private System.Int64 _totalEntriesPublished;
+    private System.Int64 _totalTargetInvocations;
+    private System.Int64 _totalPublishErrors;
 
     #endregion Fields
 
     #region Properties
 
     /// <summary>
+    /// Gets the ProtocolType of errors that occurred during publish operations.
+    /// </summary>
+    public System.Int64 TotalPublishErrors
+        => System.Threading.Interlocked.Read(ref _totalPublishErrors);
+
+    /// <summary>
     /// Gets the total ProtocolType of log entries that have been published.
     /// </summary>
-    public System.Int64 EntriesDistributor
-        => System.Threading.Interlocked.Read(ref _entriesDistributor);
+    public System.Int64 TotalEntriesPublished
+        => System.Threading.Interlocked.Read(ref _totalEntriesPublished);
 
     /// <summary>
     /// Gets the total ProtocolType of target publish operations performed.
     /// </summary>
-    public System.Int64 TargetsProcessed
-        => System.Threading.Interlocked.Read(ref _targetsProcessed);
-
-    /// <summary>
-    /// Gets the ProtocolType of errors that occurred during publish operations.
-    /// </summary>
-    public System.Int64 PublishErrorCount
-        => System.Threading.Interlocked.Read(ref _publishErrorCount);
+    public System.Int64 TotalTargetInvocations
+        => System.Threading.Interlocked.Read(ref _totalTargetInvocations);
 
     #endregion Properties
 
@@ -75,7 +72,7 @@ public sealed class NLogixDistributor : ILogDistributor
         System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
 
         // Increment the published entries counter
-        _ = System.Threading.Interlocked.Increment(ref _entriesDistributor);
+        _ = System.Threading.Interlocked.Increment(ref _totalEntriesPublished);
 
         // Optimize for the common case of a single target
         if (_targets.Count == 1)
@@ -84,12 +81,12 @@ public sealed class NLogixDistributor : ILogDistributor
             try
             {
                 target.Publish(entry.Value);
-                _ = System.Threading.Interlocked.Increment(ref _targetsProcessed);
+                _ = System.Threading.Interlocked.Increment(ref _totalTargetInvocations);
             }
             catch (System.Exception ex)
             {
                 // Count the error but continue operation
-                _ = System.Threading.Interlocked.Increment(ref _publishErrorCount);
+                _ = System.Threading.Interlocked.Increment(ref _totalPublishErrors);
                 HandleTargetError(target, ex, entry.Value);
             }
             return;
@@ -101,12 +98,12 @@ public sealed class NLogixDistributor : ILogDistributor
             try
             {
                 target.Publish(entry.Value);
-                _ = System.Threading.Interlocked.Increment(ref _targetsProcessed);
+                _ = System.Threading.Interlocked.Increment(ref _totalTargetInvocations);
             }
             catch (System.Exception ex)
             {
                 // Count the error but continue with other targets
-                _ = System.Threading.Interlocked.Increment(ref _publishErrorCount);
+                _ = System.Threading.Interlocked.Increment(ref _totalPublishErrors);
                 HandleTargetError(target, ex, entry.Value);
             }
         }
@@ -152,7 +149,7 @@ public sealed class NLogixDistributor : ILogDistributor
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public ILogDistributor AddTarget([System.Diagnostics.CodeAnalysis.NotNull] ILoggerTarget target)
+    public ILogDistributor RegisterTarget([System.Diagnostics.CodeAnalysis.NotNull] ILoggerTarget target)
     {
         System.ArgumentNullException.ThrowIfNull(target);
         System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
@@ -171,7 +168,7 @@ public sealed class NLogixDistributor : ILogDistributor
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean RemoveTarget([System.Diagnostics.CodeAnalysis.NotNull] ILoggerTarget target)
+    public System.Boolean UnregisterTarget([System.Diagnostics.CodeAnalysis.NotNull] ILoggerTarget target)
     {
         System.ArgumentNullException.ThrowIfNull(target);
         System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
@@ -259,9 +256,9 @@ public sealed class NLogixDistributor : ILogDistributor
         => $"[NLogixDistributor Stats - {System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + System.Environment.NewLine +
            $"- USER: {System.Environment.UserName}" + System.Environment.NewLine +
            $"- Active Targets: {_targets.Count}" + System.Environment.NewLine +
-           $"- Entries Published: {EntriesDistributor:N0}" + System.Environment.NewLine +
-           $"- Target Operations: {TargetsProcessed:N0}" + System.Environment.NewLine +
-           $"- Errors: {PublishErrorCount:N0}" + System.Environment.NewLine +
+           $"- Entries Published: {TotalEntriesPublished:N0}" + System.Environment.NewLine +
+           $"- Target Operations: {TotalTargetInvocations:N0}" + System.Environment.NewLine +
+           $"- Errors: {TotalPublishErrors:N0}" + System.Environment.NewLine +
            $"- Disposed: {_isDisposed != 0}" + System.Environment.NewLine;
 
     #endregion Public Methods

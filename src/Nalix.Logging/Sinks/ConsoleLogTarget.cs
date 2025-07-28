@@ -55,7 +55,7 @@ public sealed class ConsoleLogTarget : ILoggerTarget
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Publish(LogEntry logMessage)
     {
-        System.String formatted = _loggerFormatter.FormatLog(logMessage);
+        System.String formatted = _loggerFormatter.Format(logMessage);
 
         using (TransientConsoleScope.Shared())
         {
