@@ -93,12 +93,29 @@ internal class FieldElement
     /// Directly overwrites elements in field with given array
     /// </summary>
     /// <param name="src"></param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetElementsDirect(System.Int32[] src)
     {
-        for (System.Int32 i = 0; i < 10; i++)
+        // Security: Validate input
+        System.ArgumentNullException.ThrowIfNull(src);
+
+        if (src.Length < 10)
         {
-            _elements[i] = src[i];
+            throw new System.ArgumentException("Source array must have at least 10 elements", nameof(src));
         }
+
+        // Efficiency: Unrolled for maximum performance
+        _elements[0] = src[0];
+        _elements[1] = src[1];
+        _elements[2] = src[2];
+        _elements[3] = src[3];
+        _elements[4] = src[4];
+        _elements[5] = src[5];
+        _elements[6] = src[6];
+        _elements[7] = src[7];
+        _elements[8] = src[8];
+        _elements[9] = src[9];
     }
 
     /// <summary>
@@ -131,6 +148,8 @@ internal class FieldElement
     /// so floor(2^(-255)(h + 19 2^(-25) h9 + 2^(-1))) = q.
     /// </remarks>
     /// <returns></returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] ToBytes()
     {
         var carry = new System.Int32[10];
@@ -256,6 +275,8 @@ internal class FieldElement
     /// With tighter constraints on inputs can squeeze carries into int32.
     /// </remarks>
     /// <returns></returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public FieldElement Multiply(FieldElement g)
     {
         System.Int32 f0 = _elements[0];
@@ -497,6 +518,8 @@ internal class FieldElement
     /// Calculates f*f. Can overlap h with f.
     /// </summary>
     /// <returns></returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public FieldElement Square()
     {
         System.Int32 f0 = _elements[0];
@@ -658,6 +681,8 @@ internal class FieldElement
     /// |h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
     /// </remarks>
     /// <returns></returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public FieldElement Mul121666()
     {
         System.Int64 h0 = (System.Int64)_elements[0] * 121666;
@@ -724,86 +749,107 @@ internal class FieldElement
     /// </summary>
     /// 
     /// <returns></returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public FieldElement Invert()
     {
         FieldElement t0, t1, t2, t3;
-        System.Int32 i;
 
+        // Initial square
         t0 = Square();
-        for (i = 1; i < 1; i++) // why is this a thing?
-        {
-            t0 = t0.Square();
-        }
 
+        // 2 squares: t1 = t0^4
         t1 = t0.Square();
-        for (i = 1; i < 2; i++)
-        {
-            t1 = t1.Square();
-        }
+        t1 = t1.Square();
 
+        // Multiply operations
         t1 = Multiply(t1);
         t0 = t0.Multiply(t1);
+
+        // Single square
         t2 = t0.Square();
-        for (i = 1; i < 1; i++)
-        { // what the fuck
-            t2 = t2.Square();
-        }
 
         t1 = t1.Multiply(t2);
+
+        // 5 squares: unrolled
         t2 = t1.Square();
-        for (i = 1; i < 5; i++)
-        {
-            t2 = t2.Square();
-        }
+        t2 = t2.Square(); // i=1
+        t2 = t2.Square(); // i=2  
+        t2 = t2.Square(); // i=3
+        t2 = t2.Square(); // i=4
 
         t1 = t2.Multiply(t1);
+
+        // 10 squares: unrolled
         t2 = t1.Square();
-        for (i = 1; i < 10; i++)
-        {
-            t2 = t2.Square();
-        }
+        t2 = t2.Square(); // i=1
+        t2 = t2.Square(); // i=2
+        t2 = t2.Square(); // i=3
+        t2 = t2.Square(); // i=4
+        t2 = t2.Square(); // i=5
+        t2 = t2.Square(); // i=6
+        t2 = t2.Square(); // i=7
+        t2 = t2.Square(); // i=8
+        t2 = t2.Square(); // i=9
 
         t2 = t2.Multiply(t1);
+
+        // 20 squares: keep loop (too many to unroll efficiently)
         t3 = t2.Square();
-        for (i = 1; i < 20; i++)
+        for (System.Int32 i = 1; i < 20; i++)
         {
             t3 = t3.Square();
         }
 
         t2 = t3.Multiply(t2);
+
+        // 10 squares: unrolled
         t2 = t2.Square();
-        for (i = 1; i < 10; i++)
-        {
-            t2 = t2.Square();
-        }
+        t2 = t2.Square(); // i=1
+        t2 = t2.Square(); // i=2
+        t2 = t2.Square(); // i=3
+        t2 = t2.Square(); // i=4
+        t2 = t2.Square(); // i=5
+        t2 = t2.Square(); // i=6
+        t2 = t2.Square(); // i=7
+        t2 = t2.Square(); // i=8
+        t2 = t2.Square(); // i=9
 
         t1 = t2.Multiply(t1);
+
+        // 50 squares: keep loop
         t2 = t1.Square();
-        for (i = 1; i < 50; i++)
+        for (System.Int32 i = 1; i < 50; i++)
         {
             t2 = t2.Square();
         }
 
         t2 = t2.Multiply(t1);
+
+        // 100 squares: keep loop
         t3 = t2.Square();
-        for (i = 1; i < 100; i++)
+        for (System.Int32 i = 1; i < 100; i++)
         {
             t3 = t3.Square();
         }
 
         t2 = t3.Multiply(t2);
+
+        // 50 squares: keep loop
         t2 = t2.Square();
-        for (i = 1; i < 50; i++)
+        for (System.Int32 i = 1; i < 50; i++)
         {
             t2 = t2.Square();
         }
 
         t1 = t2.Multiply(t1);
+
+        // 5 squares: unrolled
         t1 = t1.Square();
-        for (i = 1; i < 5; i++)
-        {
-            t1 = t1.Square();
-        }
+        t1 = t1.Square(); // i=1
+        t1 = t1.Square(); // i=2
+        t1 = t1.Square(); // i=3
+        t1 = t1.Square(); // i=4
 
         return t1.Multiply(t0);
     }
@@ -821,35 +867,52 @@ internal class FieldElement
     /// <summary>
     /// Sets all values of field to zero except that Element[0] = 1
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void One()
     {
-        for (System.Int32 i = 1; i < 10; i++)
-        {
-            _elements[i] = 0;
-        }
-
-        _elements[0] = 1;
+        // Modern approach with Span
+        System.MemoryExtensions.AsSpan(_elements).Clear(); // Zero out all
+        _elements[0] = 1;                                  // Set identity
     }
 
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static FieldElement operator +(FieldElement f1, FieldElement f2)
     {
-        var res = new FieldElement();
-        for (System.Int32 i = 0; i < 10; i++)
-        {
-            res[i] = f1[i] + f2[i];
-        }
+        FieldElement res = new();
+
+        res[0] = f1[0] + f2[0];
+        res[1] = f1[1] + f2[1];
+        res[2] = f1[2] + f2[2];
+        res[3] = f1[3] + f2[3];
+        res[4] = f1[4] + f2[4];
+        res[5] = f1[5] + f2[5];
+        res[6] = f1[6] + f2[6];
+        res[7] = f1[7] + f2[7];
+        res[8] = f1[8] + f2[8];
+        res[9] = f1[9] + f2[9];
 
         return res;
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static FieldElement operator -(FieldElement f1, FieldElement f2)
     {
-        var res = new FieldElement();
-        for (System.Int32 i = 0; i < 10; i++)
-        {
-            res[i] = f1[i] - f2[i];
-        }
+        FieldElement res = new();
 
+        res[0] = f1[0] - f2[0];
+        res[1] = f1[1] - f2[1];
+        res[2] = f1[2] - f2[2];
+        res[3] = f1[3] - f2[3];
+        res[4] = f1[4] - f2[4];
+        res[5] = f1[5] - f2[5];
+        res[6] = f1[6] - f2[6];
+        res[7] = f1[7] - f2[7];
+        res[8] = f1[8] - f2[8];
+        res[9] = f1[9] - f2[9];
         return res;
     }
 
@@ -859,14 +922,20 @@ internal class FieldElement
     /// <param name="f">f</param>
     /// <param name="g">g</param>
     /// <param name="b"></param>
-    public static void CSwap(ref FieldElement f, ref FieldElement g, System.Int32 b)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static unsafe void CSwap(ref FieldElement f, ref FieldElement g, System.Int32 b)
     {
         b = -b;
-        for (System.Int32 i = 0; i < 10; i++)
+        fixed (System.Int32* fPtr = f._elements)
+        fixed (System.Int32* gPtr = g._elements)
         {
-            System.Int32 t = b & (f[i] ^ g[i]);
-            f[i] ^= t;
-            g[i] ^= t;
+            for (System.Int32 i = 0; i < 10; i++)
+            {
+                System.Int32 t = b & (fPtr[i] ^ gPtr[i]);
+                fPtr[i] ^= t;
+                gPtr[i] ^= t;
+            }
         }
     }
     /// <summary>
@@ -874,12 +943,20 @@ internal class FieldElement
     /// </summary>
     /// <param name="dst">Where the src must be copied to</param>
     /// <param name="src">What to copy</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Copy(ref FieldElement dst, FieldElement src)
     {
-        for (System.Int32 i = 0; i < 10; i++)
-        {
-            dst[i] = src[i];
-        }
+        dst[0] = src[0];
+        dst[1] = src[1];
+        dst[2] = src[2];
+        dst[3] = src[3];
+        dst[4] = src[4];
+        dst[5] = src[5];
+        dst[6] = src[6];
+        dst[7] = src[7];
+        dst[8] = src[8];
+        dst[9] = src[9];
     }
 
     /// <summary>
@@ -887,16 +964,14 @@ internal class FieldElement
     /// </summary>
     /// <param name="bytes">Input</param>
     /// <returns></returns>
-    private static System.Int64 Load3(System.Byte[] bytes)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe System.Int64 Load3(System.Byte[] bytes)
     {
-        System.Int64 r = bytes[0];
-#pragma warning disable CS0675 // Bitwise-or operator used on a sign-extended operand
-        r |= bytes[1] << 8;
-#pragma warning restore CS0675 // Bitwise-or operator used on a sign-extended operand
-#pragma warning disable CS0675 // Bitwise-or operator used on a sign-extended operand
-        r |= bytes[2] << 16;
-#pragma warning restore CS0675 // Bitwise-or operator used on a sign-extended operand
-        return r;
+        fixed (System.Byte* ptr = bytes)
+        {
+            return ptr[0] | (ptr[1] << 8) | (ptr[2] << 16);
+        }
     }
 
     /// <summary>
@@ -904,9 +979,16 @@ internal class FieldElement
     /// </summary>
     /// <param name="bytes"></param>
     /// <returns></returns>
-    private static System.Int64 Load4(System.Byte[] bytes) =>
-        // notice this is acted like an UINT NOT LONG
-        bytes[0] | ((System.UInt32)bytes[1] << 8) | ((System.UInt32)bytes[2] << 16) | ((System.UInt32)bytes[3] << 24);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe System.Int64 Load4(System.Byte[] bytes)
+    {
+        fixed (System.Byte* ptr = bytes)
+        {
+            return *(System.UInt32*)ptr;
+        }
+    }
+
     /// <summary>
     /// Generates a slice of array
     /// </summary>
@@ -915,6 +997,8 @@ internal class FieldElement
     /// <param name="index">The start index</param>
     /// <param name="length">The length of sub array</param>
     /// <returns></returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static T[] SubArray<T>(T[] data, System.Int32 index, System.Int32 length)
     {
         T[] result = new T[length];
