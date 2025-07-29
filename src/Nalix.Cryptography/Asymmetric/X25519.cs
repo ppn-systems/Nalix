@@ -1,380 +1,209 @@
+ï»¿using Nalix.Cryptography.Internal;
 using Nalix.Framework.Randomization;
 
 namespace Nalix.Cryptography.Asymmetric;
 
 /// <summary>
-/// Provides an implementation of the X25519 elliptic curve Diffie–Hellman key exchange.
-/// Includes utilities for key generation, scalar multiplication, and shared secret computation.
-/// Optimized with aggressive inlining and low-level stack-allocated buffers.
+/// Provides methods for generating and using X25519 key pairs for elliptic curve cryptography based on Curve25519.
 /// </summary>
-public static unsafe class X25519
+public static class X25519
 {
-    #region Constants
-
-    private const System.Byte ScalarSize = 32;
-    private const System.Byte PointSize = 32;
-    private const System.Byte FieldElementSize = 32;
-
-    #endregion Constants
-
-    #region APIs
-
     /// <summary>
-    /// Applies clamping to a scalar to conform with X25519 security requirements.
+    /// Represents an X25519 key pair consisting of a private key and a public key.
     /// </summary>
-    /// <param name="scalar">A 32-byte buffer representing the scalar.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void ClampScalar(System.Span<System.Byte> scalar)
+    public struct X25519KeyPair
     {
-        if (scalar.Length != ScalarSize)
-        {
-            throw new System.ArgumentException("Scalar must be 32 bytes");
-        }
+        /// <summary>
+        /// The private key as a byte array of length 32.
+        /// </summary>
+        public System.Byte[] PrivateKey;
 
-        scalar[0] &= 248;
-        scalar[31] &= 127;
-        scalar[31] |= 64;
+        /// <summary>
+        /// The public key as a byte array of length 32.
+        /// </summary>
+        public System.Byte[] PublicKey;
     }
 
     /// <summary>
-    /// Performs scalar multiplication between a private scalar and a public base point.
+    /// Generates a new X25519 key pair with a random private key and its corresponding public key.
     /// </summary>
-    /// <param name="scalar">The clamped private scalar.</param>
-    /// <param name="basePoint">The public base point (usually 0x09 followed by zeroes).</param>
-    /// <param name="result">The resulting public key or shared secret.</param>
-    public static void ScalarMult(
-        System.ReadOnlySpan<System.Byte> scalar,
-        System.ReadOnlySpan<System.Byte> basePoint,
-        System.Span<System.Byte> result)
+    /// <returns>An <see cref="X25519KeyPair"/> containing the generated private key and public key.</returns>
+    /// <remarks>
+    /// The private key is generated using a secure random number generator and modified according to the X25519 specification
+    /// (see <see href="https://cr.yp.to/ecdh.html"/>). The public key is computed using scalar multiplication with the Curve25519 basepoint.
+    /// </remarks>
+    public static X25519KeyPair GenerateKeyPair()
     {
-        if (scalar.Length != ScalarSize || basePoint.Length != PointSize || result.Length != PointSize)
+        // at first generate the private key
+        X25519KeyPair key = new()
         {
-            throw new System.ArgumentException("Invalid input sizes");
-        }
+            PrivateKey = new System.Byte[32]
+        };
 
-        System.Span<System.UInt32> x1 = stackalloc System.UInt32[10];
-        System.Span<System.UInt32> x2 = stackalloc System.UInt32[10];
-        System.Span<System.UInt32> z2 = stackalloc System.UInt32[10];
-        System.Span<System.UInt32> x3 = stackalloc System.UInt32[10];
-        System.Span<System.UInt32> z3 = stackalloc System.UInt32[10];
-        System.Span<System.UInt32> tmp0 = stackalloc System.UInt32[10];
-        System.Span<System.UInt32> tmp1 = stackalloc System.UInt32[10];
+        SecureRandom.Fill(key.PrivateKey);
 
-        // Unpack base point
-        Unpack25519(x1, basePoint);
+        // as defined in https://cr.yp.to/ecdh.html do these operation to finalize the private key
+        key.PrivateKey[0] &= 248;
+        key.PrivateKey[31] &= 127;
+        key.PrivateKey[31] |= 64;
+        // compute the public key
+        key.PublicKey = Curve25519.ScalarMultiplication(key.PrivateKey, Curve25519.Basepoint);
+        return key;
+    }
 
-        // Initialize
-        x2[0] = 1;
-        // With the following code
-        x1.CopyTo(x3);
-        z3[0] = 1;
-
-        System.UInt32 swap = 0;
-        for (System.Int16 pos = 254; pos >= 0; --pos)
+    /// <summary>
+    /// Generates an X25519 key pair from a provided private key.
+    /// </summary>
+    /// <param name="privateKey">A byte array of length 32 representing the private key.</param>
+    /// <returns>An <see cref="X25519KeyPair"/> containing the provided private key and its corresponding public key.</returns>
+    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="privateKey"/> is <c>null</c>.</exception>
+    /// <exception cref="System.ArgumentException">Thrown when <paramref name="privateKey"/> is not 32 bytes in length.</exception>
+    /// <remarks>
+    /// The public key is computed using scalar multiplication of the provided private key with the Curve25519 basepoint.
+    /// </remarks>
+    public static X25519KeyPair GenerateKeyFromPrivateKey(System.Byte[] privateKey)
+    {
+        X25519KeyPair key = new()
         {
-            System.UInt32 b = (System.UInt32)(scalar[pos / 8] >> (pos & 7)) & 1;
+            PrivateKey = privateKey
+        };
+        key.PublicKey = Curve25519.ScalarMultiplication(key.PrivateKey, Curve25519.Basepoint);
+        return key;
+    }
+
+    /// <summary>
+    /// Computes a shared secret using the X25519 key agreement protocol.
+    /// </summary>
+    /// <param name="myPrivateKey">A byte array of length 32 representing the local private key.</param>
+    /// <param name="otherPublicKey">A byte array of length 32 representing the remote public key.</param>
+    /// <returns>A byte array of length 32 containing the shared secret.</returns>
+    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="myPrivateKey"/> or <paramref name="otherPublicKey"/> is <c>null</c>.</exception>
+    /// <exception cref="System.ArgumentException">Thrown when <paramref name="myPrivateKey"/> or <paramref name="otherPublicKey"/> is not 32 bytes in length.</exception>
+    /// <remarks>
+    /// The shared secret is computed by performing scalar multiplication of the local private key with the remote public key
+    /// using the Curve25519 algorithm.
+    /// </remarks>
+    public static System.Byte[] Agreement(System.Byte[] myPrivateKey, System.Byte[] otherPublicKey) =>
+        Curve25519.ScalarMultiplication(myPrivateKey, otherPublicKey);
+}
+
+internal static class Curve25519
+{
+    /// <summary>
+    /// The base point that is x = 9
+    /// </summary>
+    public static readonly System.Byte[] Basepoint =
+    [
+        9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    ];
+
+    /// <summary>
+    /// An inner function to calculate scalar * point
+    /// </summary>
+    /// <param name="input"></param>
+    /// <param name="baseIn"></param>
+    /// <returns></returns>
+    private static System.Byte[] ScalarMult(System.Byte[] input, System.Byte[] baseIn)
+    {
+        var e = new System.Byte[32];
+
+        System.Array.Copy(input, e, 32); //copy(e[:], input[:])
+        e[0] &= 248;
+        e[31] &= 127;
+        e[31] |= 64;
+
+        FieldElement x1, x2, z2, x3, z3, tmp0, tmp1;
+        z2 = new FieldElement();
+        // feFromBytes(&x1, base)
+        x1 = new FieldElement(baseIn); //SECOND NUMBER
+        //feOne(&x2)
+        x2 = new FieldElement();
+        x2.One();
+        //feCopy(&x3, &x1)
+        x3 = new FieldElement();
+        FieldElement.Copy(ref x3, x1);
+        //feOne(&z3)
+        z3 = new FieldElement();
+        z3.One();
+
+        System.Int32 swap = 0;
+        for (System.Int32 pos = 254; pos >= 0; pos--)
+        {
+            System.Byte b = System.Convert.ToByte(e[pos / 8] >> (pos & 7));
+            b &= 1;
             swap ^= b;
-            CSwap(x2, x3, swap);
-            CSwap(z2, z3, swap);
+            FieldElement.CSwap(ref x2, ref x3, swap);
+            FieldElement.CSwap(ref z2, ref z3, swap);
             swap = b;
 
-            // Montgomery ladder step
-            Add(tmp0, x2, z2);
-            Sub(tmp1, x2, z2);
-            Add(x2, x3, z3);
-            Sub(z2, x3, z3);
-            Mult(z3, tmp0, z2);
-            Mult(z2, tmp1, x2);
-            Add(tmp0, z3, z2);
-            Sub(tmp1, z3, z2);
-            Square(x3, tmp0);
-            Square(z2, tmp1);
-            Mult(z3, z2, x1);
-            Square(tmp0, tmp1);
-            Mult(z2, tmp0, tmp1);
-            Square(tmp1, tmp0);
-            Mult(tmp0, z2, tmp1);
-            Mult(z2, tmp0, tmp1);
-            Square(tmp1, tmp0);
-            Mult(tmp0, z2, tmp1);
+            tmp0 = x3 - z3; //feSub(&tmp0, &x3, &z3)
+            tmp1 = x2 - z2; //feSub(&tmp1, &x2, &z2)
+            x2 += z2; //feAdd(&x2, &x2, &z2)
+            z2 = x3 + z3; //feAdd(&z2, &x3, &z3)
+            z3 = tmp0.Multiply(x2);
+            z2 = z2.Multiply(tmp1);
+            tmp0 = tmp1.Square();
+            tmp1 = x2.Square();
+            x3 = z3 + z2; //feAdd(&x3, &z3, &z2)
+            z2 = z3 - z2; //feSub(&z2, &z3, &z2)
+            x2 = tmp1.Multiply(tmp0);
+            tmp1 -= tmp0;//feSub(&tmp1, &tmp1, &tmp0)
+            z2 = z2.Square();
+            z3 = tmp1.Mul121666();
+            x3 = x3.Square();
+            tmp0 += z3; //feAdd(&tmp0, &tmp0, &z3)
+            z3 = x1.Multiply(z2);
+            z2 = tmp1.Multiply(tmp0);
         }
 
-        CSwap(x2, x3, swap);
-        CSwap(z2, z3, swap);
+        FieldElement.CSwap(ref x2, ref x3, swap);
+        FieldElement.CSwap(ref z2, ref z3, swap);
 
-        // Invert z2
-        Invert(z2, z2);
-        Mult(x2, x2, z2);
-
-        // Pack result
-        Pack25519(result, x2);
+        z2 = z2.Invert();
+        x2 = x2.Multiply(z2);
+        return x2.ToBytes();
     }
-
     /// <summary>
-    /// Generates a new private/public key pair for X25519 key exchange.
+    /// X25519 returns the result of the scalar multiplication (scalar * point),
+    /// according to RFC 7748, Section 5. scalar, point and the return value are
+    /// slices of 32 bytes.
+    ///
+    /// If point is Basepoint (but not if it's a different slice with the same
+    /// contents) a precomputed implementation might be used for performance.
     /// </summary>
-    /// <param name="privateKey">Output buffer containing the generated private key.</param>
-    /// <param name="publicKey">Output buffer containing the corresponding public key.</param>
-    public static void GenerateKeyPair(out System.Byte[] privateKey, out System.Byte[] publicKey)
+    /// <returns></returns>
+    public static System.Byte[] ScalarMultiplication(System.Byte[] scalar, System.Byte[] point)
     {
-        privateKey = new System.Byte[ScalarSize];
-        publicKey = new System.Byte[PointSize];
+        if (scalar.Length != 32)
+        {
+            throw new System.ArgumentException("Length of scalar must be 32", nameof(scalar));
+        }
 
-        SecureRandom.NextBytes(privateKey);
+        if (point.Length != 32)
+        {
+            throw new System.ArgumentException("Length of point must be 32", nameof(point));
+        }
 
-        ClampScalar(privateKey);
+        System.Byte[] zero = new System.Byte[32];
+        System.Byte[] result = ScalarMult(scalar, point);
+        // here I tried to make something like subtle.ConstantTimeCompare
+        if (result.Length != zero.Length)
+        {
+            throw new System.Exception("This should not happen. Because result is always 32 bytes");
+        }
 
-        System.ReadOnlySpan<System.Byte> basePoint =
-        [
-            9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-        ];
+        System.Byte v = 0;
+        for (System.Int32 i = 0; i < result.Length; i++)
+        {
+            v = (System.Byte)(v | (zero[i] ^ result[i]));
+        }
 
-        ScalarMult(privateKey, basePoint, publicKey);
+        return (System.Int32)(((System.UInt32)(v ^ 0) - 1) >> 31) == 1
+            ? throw new System.Exception("bad input point: low order point")
+            : result;
     }
-
-    /// <summary>
-    /// Computes a shared secret using a private key and a peer's public key.
-    /// </summary>
-    /// <param name="privateKey">Your private key.</param>
-    /// <param name="peerPublicKey">The public key of your peer.</param>
-    /// <param name="result">The computed shared secret.</param>
-    public static void ComputeSharedSecret(
-        System.ReadOnlySpan<System.Byte> privateKey,
-        System.ReadOnlySpan<System.Byte> peerPublicKey,
-        System.Span<System.Byte> result)
-    {
-        if (privateKey.Length != ScalarSize || peerPublicKey.Length != PointSize || result.Length != PointSize)
-        {
-            throw new System.ArgumentException("Invalid input sizes");
-        }
-
-        ScalarMult(privateKey, peerPublicKey, result);
-    }
-
-    #endregion APIs
-
-    #region Private Methods
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void Unpack25519(
-        System.Span<System.UInt32> output,
-        System.ReadOnlySpan<System.Byte> input)
-    {
-        fixed (System.Byte* inp = input)
-        fixed (System.UInt32* outp = output)
-        {
-            for (System.Byte i = 0; i < 10; i++)
-            {
-                outp[i] = 0;
-            }
-
-            for (System.Byte i = 0; i < 32; i++)
-            {
-                outp[i >> 2] |= (System.UInt32)inp[i] << ((i & 3) << 3);
-            }
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void Pack25519(
-        System.Span<System.Byte> output,
-        System.ReadOnlySpan<System.UInt32> input)
-    {
-        System.Span<System.UInt32> temp = stackalloc System.UInt32[10];
-        input.CopyTo(temp);
-
-        Carry(temp);
-        Carry(temp);
-        Carry(temp);
-
-        fixed (System.Byte* outp = output)
-        fixed (System.UInt32* inp = temp)
-        {
-            for (System.Byte i = 0; i < 32; i++)
-            {
-                outp[i] = (System.Byte)(inp[i >> 2] >> ((i & 3) << 3));
-            }
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void Carry(System.Span<System.UInt32> h)
-    {
-        System.UInt32 c;
-        for (System.Byte i = 0; i < 10; i++)
-        {
-            c = h[i] >> 26;
-            h[i] -= c << 26;
-            h[(i + 1) % 10] += c * (i == 9 ? 19u : 1u);
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void Add(
-        System.Span<System.UInt32> h,
-        System.ReadOnlySpan<System.UInt32> f,
-        System.ReadOnlySpan<System.UInt32> g)
-    {
-        for (System.Byte i = 0; i < 10; i++)
-        {
-            h[i] = f[i] + g[i];
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void Sub(
-        System.Span<System.UInt32> h,
-        System.ReadOnlySpan<System.UInt32> f,
-        System.ReadOnlySpan<System.UInt32> g)
-    {
-        for (System.Byte i = 0; i < 10; i++)
-        {
-            h[i] = f[i] + 0x3ffffed + (0x1ffffff << 1) - g[i];
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void Mult(
-        System.Span<System.UInt32> h,
-        System.ReadOnlySpan<System.UInt32> f,
-        System.ReadOnlySpan<System.UInt32> g)
-    {
-        System.Span<System.Int64> temp = stackalloc System.Int64[19];
-
-        for (System.Byte i = 0; i < 10; i++)
-        {
-            for (System.Byte j = 0; j < 10; j++)
-            {
-                temp[i + j] += (System.Int64)f[i] * g[j];
-            }
-        }
-
-        for (System.Byte i = 0; i < 19; i++)
-        {
-            if (i >= 10)
-            {
-                temp[i - 10] += 19 * temp[i];
-            }
-        }
-
-        for (System.Byte i = 0; i < 10; i++)
-        {
-            h[i] = (System.UInt32)temp[i];
-        }
-
-        Carry(h);
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void Square(
-        System.Span<System.UInt32> h,
-        System.ReadOnlySpan<System.UInt32> f) => Mult(h, f, f);
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void CSwap(
-        System.Span<System.UInt32> a,
-        System.Span<System.UInt32> b,
-        System.UInt32 swap)
-    {
-        System.UInt32 mask = 0u - swap;
-        for (System.Byte i = 0; i < 10; i++)
-        {
-            System.UInt32 t = mask & (a[i] ^ b[i]);
-            a[i] ^= t;
-            b[i] ^= t;
-        }
-    }
-
-    private static void Invert(
-        System.Span<System.UInt32> output,
-        System.ReadOnlySpan<System.UInt32> z)
-    {
-        System.Span<System.UInt32> t0 = stackalloc System.UInt32[10];
-        System.Span<System.UInt32> t1 = stackalloc System.UInt32[10];
-        System.Span<System.UInt32> t2 = stackalloc System.UInt32[10];
-        System.Span<System.UInt32> t3 = stackalloc System.UInt32[10];
-
-        z.CopyTo(t0);
-
-        // x^(2^255-21) = x^(2^255-19-2) = x^(p-2)
-        // where p = 2^255-19
-        Square(t1, t0);
-        Square(t2, t1);
-        Square(t2, t2);
-        Mult(t2, z, t2);
-        Mult(t1, t1, t2);
-        Square(t1, t1);
-        Mult(t2, t2, t1);
-        Square(t1, t2);
-
-        for (System.Byte i = 1; i < 5; i++)
-        {
-            Square(t1, t1);
-        }
-
-        Mult(t2, t1, t2);
-        Square(t1, t2);
-
-        for (System.Byte i = 1; i < 10; i++)
-        {
-            Square(t1, t1);
-        }
-
-        Mult(t3, t1, t2);
-        Square(t1, t3);
-
-        for (System.Byte i = 1; i < 20; i++)
-        {
-            Square(t1, t1);
-        }
-
-        Mult(t1, t1, t3);
-        Square(t1, t1);
-
-        for (System.Byte i = 1; i < 10; i++)
-        {
-            Square(t1, t1);
-        }
-
-        Mult(t2, t1, t2);
-        Square(t1, t2);
-
-        for (System.Byte i = 1; i < 50; i++)
-        {
-            Square(t1, t1);
-        }
-
-        Mult(t3, t1, t2);
-        Square(t1, t3);
-
-        for (System.Byte i = 1; i < 100; i++)
-        {
-            Square(t1, t1);
-        }
-
-        Mult(t1, t1, t3);
-        Square(t1, t1);
-
-        for (System.Byte i = 1; i < 50; i++)
-        {
-            Square(t1, t1);
-        }
-
-        Mult(t2, t1, t2);
-        Square(t2, t2);
-        Square(t2, t2);
-        Mult(output, t2, z);
-    }
-
-    #endregion Private Methods
 }
+
+
+

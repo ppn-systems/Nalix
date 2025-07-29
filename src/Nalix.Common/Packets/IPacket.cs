@@ -37,7 +37,6 @@ public interface IPacket : IPoolable
     /// <summary>
     /// Gets the packet priority.
     /// </summary>
-    [SerializeIgnore]
     PacketPriority Priority { get; }
 
     /// <summary>
