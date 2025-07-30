@@ -273,15 +273,27 @@ public sealed class Poly1305 : System.IDisposable
         System.Boolean isFinalBlock)
     {
         // Convert block to uint array with proper little-endian handling
-        System.Span<System.UInt32> n = stackalloc System.UInt32[5];
-        for (System.Byte i = 0; i < 4; i++)
-        {
-            System.Int32 offset = i * 4;
-            n[i] = isFinalBlock && block.Length < offset + 4
-                ? GetUInt32OrZero(block, offset)
-                : System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(block.Slice(offset, 4));
-        }
-        n[4] = (System.UInt32)(isFinalBlock && block.Length <= 16 ? 0 : block[16]);
+        System.Span<System.UInt32> n =
+        [
+            // i = 0 (offset = 0)
+            isFinalBlock && block.Length < 4
+                ? GetUInt32OrZero(block, 0)
+                : System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(block[..4]),
+            // i = 1 (offset = 4)
+            isFinalBlock && block.Length < 8
+                ? GetUInt32OrZero(block, 4)
+                : System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(block.Slice(4, 4)),
+            // i = 2 (offset = 8)
+            isFinalBlock && block.Length < 12
+                ? GetUInt32OrZero(block, 8)
+                : System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(block.Slice(8, 4)),
+            // i = 3 (offset = 12)
+            isFinalBlock && block.Length < 16
+                ? GetUInt32OrZero(block, 12)
+                : System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(block.Slice(12, 4)),
+            // i = 4 (offset = 16)
+            (System.UInt32)(isFinalBlock && block.Length <= 16 ? 0 : block[16]),
+        ];
 
         // Push the message block to the accumulator
         Add(accumulator, n);
@@ -320,13 +332,34 @@ public sealed class Poly1305 : System.IDisposable
         System.Span<System.UInt32> a,
         System.ReadOnlySpan<System.UInt32> b)
     {
+        System.Diagnostics.Debug.Assert(a.Length >= 5, "Span a must have at least 5 elements");
+        System.Diagnostics.Debug.Assert(b.Length >= 5, "Span b must have at least 5 elements");
+
         System.UInt64 carry = 0;
-        for (System.Byte i = 0; i < 5; i++)
-        {
-            carry += (System.UInt64)a[i] + b[i];
-            a[i] = (System.UInt32)carry;
-            carry >>= 32;
-        }
+
+        // i = 0
+        carry += (System.UInt64)a[0] + b[0];
+        a[0] = (System.UInt32)carry;
+        carry >>= 32;
+
+        // i = 1
+        carry += (System.UInt64)a[1] + b[1];
+        a[1] = (System.UInt32)carry;
+        carry >>= 32;
+
+        // i = 2
+        carry += (System.UInt64)a[2] + b[2];
+        a[2] = (System.UInt32)carry;
+        carry >>= 32;
+
+        // i = 3
+        carry += (System.UInt64)a[3] + b[3];
+        a[3] = (System.UInt32)carry;
+        carry >>= 32;
+
+        // i = 4
+        carry += (System.UInt64)a[4] + b[4];
+        a[4] = (System.UInt32)carry;
     }
 
     /// <summary>
@@ -340,25 +373,64 @@ public sealed class Poly1305 : System.IDisposable
     {
         System.Span<System.UInt32> product = stackalloc System.UInt32[10];
 
-        // Multiply each component
-        for (System.Byte i = 0; i < 5; i++)
-        {
-            System.UInt64 carry = 0;
-            for (System.Byte j = 0; j < 5; j++)
-            {
-                System.UInt64 t = ((System.UInt64)a[i] * b[j]) + product[i + j] + carry;
-                product[i + j] = (System.UInt32)t;
-                carry = t >> 32;
-            }
+        // Clean state
+        product.Clear();
 
-            if (i + 5 < 10)
-            {
-                product[i + 5] = (System.UInt32)carry;
-            }
-        }
+        // Multiply each component
+        MultiplyRow(a, b, product, 0);
+        MultiplyRow(a, b, product, 1);
+        MultiplyRow(a, b, product, 2);
+        MultiplyRow(a, b, product, 3);
+        MultiplyRow(a, b, product, 4);
 
         // Reduce modulo 2^130 - 5
         ReduceProduct(a, product);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void MultiplyRow(
+        System.ReadOnlySpan<System.UInt32> a,
+        System.ReadOnlySpan<System.UInt32> b,
+        System.Span<System.UInt32> product,
+        System.Int32 row)
+    {
+        System.UInt64 carry = 0;
+        System.UInt32 aValue = a[row];
+
+        // Unroll inner loop cho performance
+        System.UInt64 t;
+
+        // j = 0
+        t = ((System.UInt64)aValue * b[0]) + product[row] + carry;
+        product[row] = (System.UInt32)t;
+        carry = t >> 32;
+
+        // j = 1
+        t = ((System.UInt64)aValue * b[1]) + product[row + 1] + carry;
+        product[row + 1] = (System.UInt32)t;
+        carry = t >> 32;
+
+        // j = 2
+        t = ((System.UInt64)aValue * b[2]) + product[row + 2] + carry;
+        product[row + 2] = (System.UInt32)t;
+        carry = t >> 32;
+
+        // j = 3
+        t = ((System.UInt64)aValue * b[3]) + product[row + 3] + carry;
+        product[row + 3] = (System.UInt32)t;
+        carry = t >> 32;
+
+        // j = 4
+        t = ((System.UInt64)aValue * b[4]) + product[row + 4] + carry;
+        product[row + 4] = (System.UInt32)t;
+        carry = t >> 32;
+
+        // Store final carry
+        if (row + 5 < 10)
+        {
+            product[row + 5] = (System.UInt32)carry;
+        }
     }
 
     /// <summary>
@@ -371,20 +443,35 @@ public sealed class Poly1305 : System.IDisposable
         System.ReadOnlySpan<System.UInt32> product)
     {
         // Copy the low 130 bits
-        for (System.Byte i = 0; i < 5; i++)
-        {
-            result[i] = product[i];
-        }
+        product[..5].CopyTo(result);
 
         // Multiply the high 130 bits by 5 (because 2^130 ≡ 5 (mod 2^130 - 5))
         // and add to the result
-        System.UInt32 carry = 0;
-        for (System.Byte i = 0; i < 5; i++)
-        {
-            System.UInt64 t = ((System.UInt64)product[i + 5] * 5) + result[i] + carry;
-            result[i] = (System.UInt32)t;
-            carry = (System.UInt32)(t >> 32);
-        }
+        System.UInt64 t;
+
+        // i = 0
+        t = ((System.UInt64)product[5] * 5) + result[0];
+        result[0] = (System.UInt32)t;
+        System.UInt32 carry = (System.UInt32)(t >> 32);
+
+        // i = 1
+        t = ((System.UInt64)product[6] * 5) + result[1] + carry;
+        result[1] = (System.UInt32)t;
+        carry = (System.UInt32)(t >> 32);
+
+        // i = 2
+        t = ((System.UInt64)product[7] * 5) + result[2] + carry;
+        result[2] = (System.UInt32)t;
+        carry = (System.UInt32)(t >> 32);
+
+        // i = 3
+        t = ((System.UInt64)product[8] * 5) + result[3] + carry;
+        result[3] = (System.UInt32)t;
+        carry = (System.UInt32)(t >> 32);
+
+        // i = 4
+        t = ((System.UInt64)product[9] * 5) + result[4] + carry;
+        result[4] = (System.UInt32)t;
 
         // Final reduction if needed (result might be >= 2^130 - 5)
         Modulo(result);
@@ -415,17 +502,54 @@ public sealed class Poly1305 : System.IDisposable
         System.ReadOnlySpan<System.UInt32> b)
     {
         // Compare from most significant word down
-        for (System.Byte i = 4; i >= 0; i--)
+        if (a[4] > b[4])
         {
-            if (a[i] > b[i])
-            {
-                return true;
-            }
+            return true;
+        }
 
-            if (a[i] < b[i])
-            {
-                return false;
-            }
+        if (a[4] < b[4])
+        {
+            return false;
+        }
+
+        if (a[3] > b[3])
+        {
+            return true;
+        }
+
+        if (a[3] < b[3])
+        {
+            return false;
+        }
+
+        if (a[2] > b[2])
+        {
+            return true;
+        }
+
+        if (a[2] < b[2])
+        {
+            return false;
+        }
+
+        if (a[1] > b[1])
+        {
+            return true;
+        }
+
+        if (a[1] < b[1])
+        {
+            return false;
+        }
+
+        if (a[0] > b[0])
+        {
+            return true;
+        }
+
+        if (a[0] < b[0])
+        {
+            return false;
         }
 
         // All words are equal
@@ -441,13 +565,26 @@ public sealed class Poly1305 : System.IDisposable
         System.Span<System.UInt32> a,
         System.ReadOnlySpan<System.UInt32> b)
     {
-        System.UInt32 borrow = 0;
-        for (System.Byte i = 0; i < 5; i++)
-        {
-            System.UInt64 diff = (System.UInt64)a[i] - b[i] - borrow;
-            a[i] = (System.UInt32)diff;
-            borrow = (System.UInt32)((diff >> 32) & 1);
-        }
+        System.UInt64 diff;
+
+        diff = (System.UInt64)a[0] - b[0];
+        a[0] = (System.UInt32)diff;
+        System.UInt32 borrow = (System.UInt32)((diff >> 32) & 1);
+
+        diff = (System.UInt64)a[1] - b[1] - borrow;
+        a[1] = (System.UInt32)diff;
+        borrow = (System.UInt32)((diff >> 32) & 1);
+
+        diff = (System.UInt64)a[2] - b[2] - borrow;
+        a[2] = (System.UInt32)diff;
+        borrow = (System.UInt32)((diff >> 32) & 1);
+
+        diff = (System.UInt64)a[3] - b[3] - borrow;
+        a[3] = (System.UInt32)diff;
+        borrow = (System.UInt32)((diff >> 32) & 1);
+
+        diff = (System.UInt64)a[4] - b[4] - borrow;
+        a[4] = (System.UInt32)diff;
     }
 
     /// <summary>
@@ -481,11 +618,10 @@ public sealed class Poly1305 : System.IDisposable
         }
 
         // Convert to bytes (little-endian)
-        for (System.Byte i = 0; i < 4; i++)
-        {
-            System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(
-                tag.Slice(i * 4, 4), finalResult[i]);
-        }
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(tag[..4], finalResult[0]);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(tag.Slice(4, 4), finalResult[1]);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(tag.Slice(8, 4), finalResult[2]);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(tag.Slice(12, 4), finalResult[3]);
     }
 
     #endregion Private Methods
