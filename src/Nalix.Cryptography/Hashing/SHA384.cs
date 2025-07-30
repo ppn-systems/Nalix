@@ -23,7 +23,7 @@ namespace Nalix.Cryptography.Hashing;
 /// </para>
 /// </remarks>
 [System.Runtime.InteropServices.ComVisible(true)]
-public sealed unsafe class SHA384 : IShaDigest, IDisposable
+public sealed class SHA384 : IShaDigest, IDisposable
 {
     #region Fields
 
@@ -79,10 +79,13 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
         sha.Update(data);
 
         // Use direct pointer access for faster copying
-        fixed (Byte* resultPtr = sha.FinalizeHash())
-        fixed (Byte* outputPtr = output)
+        unsafe
         {
-            Buffer.MemoryCopy(resultPtr, outputPtr, 48, 48);
+            fixed (Byte* resultPtr = sha.FinalizeHash())
+            fixed (Byte* outputPtr = output)
+            {
+                Buffer.MemoryCopy(resultPtr, outputPtr, 48, 48);
+            }
         }
     }
 
@@ -92,11 +95,17 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Initialize()
     {
-        fixed (UInt64* statePtr = _state)
-        fixed (UInt64* initPtr = SHA.H384)
+        unsafe
         {
-            // Direct memory copy is faster than Buffer.BlockCopy
-            Buffer.MemoryCopy(initPtr, statePtr, SHA.H384.Length * sizeof(UInt64), SHA.H384.Length * sizeof(UInt64));
+            // Get ref to first byte of SHA.H384 and _state
+            ref Byte src = ref Unsafe.As<UInt64, Byte>(
+                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(SHA.H384));
+
+            ref Byte dst = ref Unsafe.As<UInt64, Byte>(
+                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_state));
+
+            // Copy entire block of memory (as raw bytes)
+            Unsafe.CopyBlockUnaligned(ref dst, ref src, (UInt32)(SHA.H384.Length * sizeof(UInt64)));
         }
 
         _bufferLength = 0;
@@ -135,47 +144,56 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
             if (data.Length < toFill)
             {
                 // Use unsafe code for small copies
-                fixed (Byte* destPtr = &_buffer[_bufferLength])
-                fixed (Byte* srcPtr = data)
+                unsafe
                 {
-                    Buffer.MemoryCopy(srcPtr, destPtr, data.Length, data.Length);
+                    fixed (Byte* destPtr = &_buffer[_bufferLength])
+                    fixed (Byte* srcPtr = data)
+                    {
+                        Buffer.MemoryCopy(srcPtr, destPtr, data.Length, data.Length);
+                    }
                 }
                 _bufferLength += data.Length;
                 return;
             }
 
             // Fill buffer and process it
-            fixed (Byte* destPtr = &_buffer[_bufferLength])
-            fixed (Byte* srcPtr = data)
+            unsafe
             {
-                Buffer.MemoryCopy(srcPtr, destPtr, toFill, toFill);
+                fixed (Byte* destPtr = &_buffer[_bufferLength])
+                fixed (Byte* srcPtr = data)
+                {
+                    Buffer.MemoryCopy(srcPtr, destPtr, toFill, toFill);
+                }
             }
             ProcessBlock(_buffer);
             data = data[toFill..];
         }
 
         // Process full blocks directly from input data
-        fixed (Byte* dataPtr = data)
+        unsafe
         {
-            Byte* currentPtr = dataPtr;
-            Int32 remainingLength = data.Length;
-
-            // Process full blocks with pointer arithmetic (faster than span slicing)
-            while (remainingLength >= 128)
+            fixed (Byte* dataPtr = data)
             {
-                ProcessBlockDirect(currentPtr);
-                currentPtr += 128;
-                remainingLength -= 128;
-            }
+                Byte* currentPtr = dataPtr;
+                Int32 remainingLength = data.Length;
 
-            // Copy any remaining bytes to the buffer
-            if (remainingLength > 0)
-            {
-                fixed (Byte* bufferPtr = _buffer)
+                // Process full blocks with pointer arithmetic (faster than span slicing)
+                while (remainingLength >= 128)
                 {
-                    Buffer.MemoryCopy(currentPtr, bufferPtr, remainingLength, remainingLength);
+                    ProcessBlockDirect(currentPtr);
+                    currentPtr += 128;
+                    remainingLength -= 128;
                 }
-                _bufferLength = remainingLength;
+
+                // Copy any remaining bytes to the buffer
+                if (remainingLength > 0)
+                {
+                    fixed (Byte* bufferPtr = _buffer)
+                    {
+                        Buffer.MemoryCopy(currentPtr, bufferPtr, remainingLength, remainingLength);
+                    }
+                    _bufferLength = remainingLength;
+                }
             }
         }
     }
@@ -186,7 +204,7 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
     /// <returns>A 48-byte array containing the SHA-384 hash.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Byte[] FinalizeHash()
+    public unsafe Byte[] FinalizeHash()
     {
         ObjectDisposedException.ThrowIf(_disposed, nameof(SHA384));
         if (_finalized)
@@ -265,7 +283,7 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
     /// </summary>
     /// <param name="block">The 128-byte block to process.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ProcessBlock(ReadOnlySpan<Byte> block)
+    private unsafe void ProcessBlock(ReadOnlySpan<Byte> block)
     {
         fixed (Byte* blockPtr = block)
         {
@@ -278,7 +296,7 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
     /// </summary>
     /// <param name="blockPtr">Pointer to the 128-byte block to process.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ProcessBlockDirect(Byte* blockPtr)
+    private unsafe void ProcessBlockDirect(Byte* blockPtr)
     {
         const Int32 rounds = 80;
         UInt64* w = stackalloc UInt64[rounds];
@@ -345,7 +363,7 @@ public sealed unsafe class SHA384 : IShaDigest, IDisposable
     /// Disposes the <see cref="SHA384"/> instance, clearing sensitive data.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Dispose()
+    public unsafe void Dispose()
     {
         if (_disposed)
         {

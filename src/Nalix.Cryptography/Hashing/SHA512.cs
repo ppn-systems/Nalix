@@ -43,7 +43,17 @@ public sealed class SHA512 : IShaDigest, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Initialize()
     {
-        Buffer.BlockCopy(SHA.H512, 0, _state, 0, SHA.H512.Length * sizeof(UInt64));
+        unsafe
+        {
+            ref Byte src = ref System.Runtime.CompilerServices.Unsafe.As<UInt64, Byte>(
+                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(SHA.H512));
+
+            ref Byte dst = ref System.Runtime.CompilerServices.Unsafe.As<UInt64, Byte>(
+                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_state));
+
+            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+                ref dst, ref src, (UInt32)(SHA.H512.Length * sizeof(UInt64)));
+        }
 
         _bufferLength = 0;
         _byteCountLow = 0;

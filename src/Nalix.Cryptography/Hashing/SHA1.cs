@@ -1,9 +1,5 @@
 using Nalix.Common.Security.Cryptography.Hashing;
 using Nalix.Cryptography.Internal;
-using System;
-using System.Buffers.Binary;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace Nalix.Cryptography.Hashing;
 
@@ -16,21 +12,21 @@ namespace Nalix.Cryptography.Hashing;
 /// This implementation processes data in 512-bit (64-byte) blocks.
 /// </remarks>
 [System.Runtime.InteropServices.ComVisible(true)]
-public sealed class SHA1 : IShaDigest, IDisposable
+public sealed class SHA1 : IShaDigest, System.IDisposable
 {
     #region Fields
 
     // Hash state instance field
-    private readonly UInt32[] _state = new UInt32[5];
+    private readonly System.UInt32[] _state = new System.UInt32[5];
 
-    private Boolean _disposed = false;
+    private System.Boolean _disposed = false;
 
     // Fields for incremental hashing
-    private readonly Byte[] _buffer = new Byte[64]; // Buffer for incomplete blocks
+    private readonly System.Byte[] _buffer = new System.Byte[64]; // Buffer for incomplete blocks
 
-    private Int32 _bufferIndex = 0;                  // Current position in buffer
-    private UInt64 _totalBytesProcessed = 0;        // Total bytes processed
-    private Boolean _finalized = false;               // Flag indicating hash has been finalized
+    private System.Int32 _bufferIndex = 0;                  // Current position in buffer
+    private System.UInt64 _totalBytesProcessed = 0;        // Total bytes processed
+    private System.Boolean _finalized = false;               // Flag indicating hash has been finalized
 
     #endregion Fields
 
@@ -53,8 +49,9 @@ public sealed class SHA1 : IShaDigest, IDisposable
     /// <remarks>
     /// This method is a convenience wrapper that initializes, updates, and finalizes the hash computation.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Byte[] HashData(ReadOnlySpan<Byte> data)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Byte[] HashData(System.ReadOnlySpan<System.Byte> data)
     {
         using SHA1 sha1 = new();
         sha1.Update(data);
@@ -64,10 +61,18 @@ public sealed class SHA1 : IShaDigest, IDisposable
     /// <summary>
     /// Resets the hash state to initial values.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Initialize()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public unsafe void Initialize()
     {
-        Buffer.BlockCopy(SHA.H1, 0, _state, 0, SHA.H1.Length * sizeof(UInt32));
+        fixed (System.UInt32* src = SHA.H1, dst = _state)
+        {
+            for (System.Int32 i = 0; i < SHA.H1.Length; i++)
+            {
+                dst[i] = src[i];
+            }
+        }
+
         _bufferIndex = 0;
         _totalBytesProcessed = 0;
         _finalized = false;
@@ -77,29 +82,30 @@ public sealed class SHA1 : IShaDigest, IDisposable
     /// Updates the hash with more data.
     /// </summary>
     /// <param name="data">The input data to process.</param>
-    /// <exception cref="ObjectDisposedException">
+    /// <exception cref="System.ObjectDisposedException">
     /// Thrown if this method is called after the object has been disposed.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="System.InvalidOperationException">
     /// Thrown if this method is called after the hash has been finalized.
     /// </exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Update(ReadOnlySpan<Byte> data)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Update(System.ReadOnlySpan<System.Byte> data)
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(SHA1));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA1));
 
         if (_finalized)
         {
-            throw new InvalidOperationException("Hash has been finalized");
+            throw new System.InvalidOperationException("Hash has been finalized");
         }
 
-        _totalBytesProcessed += (UInt64)data.Length;
+        _totalBytesProcessed += (System.UInt64)data.Length;
 
         // Process any bytes still in the buffer
         if (_bufferIndex > 0)
         {
-            Int32 bytesToCopy = Math.Min(64 - _bufferIndex, data.Length);
-            data[..bytesToCopy].CopyTo(_buffer.AsSpan()[_bufferIndex..]);
+            System.Int32 bytesToCopy = System.Math.Min(64 - _bufferIndex, data.Length);
+            data[..bytesToCopy].CopyTo(System.MemoryExtensions.AsSpan(_buffer)[_bufferIndex..]);
             _bufferIndex += bytesToCopy;
 
             if (_bufferIndex == 64)
@@ -121,7 +127,7 @@ public sealed class SHA1 : IShaDigest, IDisposable
         // Store remaining bytes in buffer
         if (data.Length > 0)
         {
-            data.CopyTo(_buffer.AsSpan()[_bufferIndex..]);
+            data.CopyTo(System.MemoryExtensions.AsSpan(_buffer)[_bufferIndex..]);
             _bufferIndex += data.Length;
         }
     }
@@ -130,27 +136,28 @@ public sealed class SHA1 : IShaDigest, IDisposable
     /// Finalizes the hash computation and returns the hash value.
     /// </summary>
     /// <returns>The computed hash.</returns>
-    /// <exception cref="ObjectDisposedException">
+    /// <exception cref="System.ObjectDisposedException">
     /// Thrown if this method is called after the object has been disposed.
     /// </exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Byte[] FinalizeHash()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Byte[] FinalizeHash()
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(SHA1));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA1));
 
-        Byte[] result = new Byte[20];
+        System.Byte[] result = new System.Byte[20];
 
         if (_finalized)
         {
             // Create a copy of the hash result without reprocessing
             unsafe
             {
-                fixed (Byte* p = result)
+                fixed (System.Byte* p = result)
                 {
-                    UInt32* ptr = (UInt32*)p;
-                    for (Int32 i = 0; i < 5; i++)
+                    System.UInt32* ptr = (System.UInt32*)p;
+                    for (System.Int32 i = 0; i < 5; i++)
                     {
-                        ptr[i] = BinaryPrimitives.ReverseEndianness(_state[i]);
+                        ptr[i] = System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(_state[i]);
                     }
                 }
             }
@@ -159,16 +166,17 @@ public sealed class SHA1 : IShaDigest, IDisposable
         }
 
         // Calculate message length in bits
-        UInt64 bitLength = _totalBytesProcessed * 8;
+        System.UInt64 bitLength = _totalBytesProcessed * 8;
 
         // Push padding as in ComputeHash method
-        Span<Byte> paddingBuffer = stackalloc Byte[128]; // Max 2 blocks needed
-        Int32 paddingBufferPos = 0;
+        System.Span<System.Byte> paddingBuffer = stackalloc System.Byte[128]; // Max 2 blocks needed
+        System.Int32 paddingBufferPos = 0;
 
         // Copy remaining data from buffer
         if (_bufferIndex > 0)
         {
-            _buffer.AsSpan(0, _bufferIndex).CopyTo(paddingBuffer);
+            System.MemoryExtensions.AsSpan(_buffer, 0, _bufferIndex)
+                .CopyTo(paddingBuffer);
             paddingBufferPos = _bufferIndex;
         }
 
@@ -176,8 +184,8 @@ public sealed class SHA1 : IShaDigest, IDisposable
         paddingBuffer[paddingBufferPos++] = 0x80;
 
         // Determine if we need one or two blocks
-        Int32 blockCount = (paddingBufferPos + 8 > 64) ? 2 : 1;
-        Int32 finalBlockSize = blockCount * 64;
+        System.Int32 blockCount = (paddingBufferPos + 8 > 64) ? 2 : 1;
+        System.Int32 finalBlockSize = blockCount * 64;
 
         // Fill with zeros until length field
         while (paddingBufferPos < finalBlockSize - 8)
@@ -186,12 +194,12 @@ public sealed class SHA1 : IShaDigest, IDisposable
         }
 
         // WriteInt16 the length in bits as a 64-bit big-endian integer
-        BinaryPrimitives.WriteUInt64BigEndian(
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(
             paddingBuffer[(finalBlockSize - 8)..],
             bitLength);
 
         // Process the final block(s)
-        for (Int32 i = 0; i < blockCount; i++)
+        for (System.Int32 i = 0; i < blockCount; i++)
         {
             ProcessBlock(paddingBuffer.Slice(i * 64, 64), _state);
         }
@@ -201,12 +209,12 @@ public sealed class SHA1 : IShaDigest, IDisposable
         // Convert hash to bytes in big-endian format
         unsafe
         {
-            fixed (Byte* p = result)
+            fixed (System.Byte* p = result)
             {
-                UInt32* ptr = (UInt32*)p;
-                for (Int32 i = 0; i < 5; i++)
+                System.UInt32* ptr = (System.UInt32*)p;
+                for (System.Int32 i = 0; i < 5; i++)
                 {
-                    ptr[i] = BinaryPrimitives.ReverseEndianness(_state[i]);
+                    ptr[i] = System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(_state[i]);
                 }
             }
         }
@@ -221,11 +229,11 @@ public sealed class SHA1 : IShaDigest, IDisposable
     /// <returns>
     /// The SHA-1 hash as a 20-byte array.
     /// </returns>
-    /// <exception cref="ArgumentException">
+    /// <exception cref="System.ArgumentException">
     /// Thrown if the input data is excessively large (greater than 2^61 bytes),
     /// as SHA-1 uses a 64-bit length field.
     /// </exception>
-    /// <exception cref="ObjectDisposedException">
+    /// <exception cref="System.ObjectDisposedException">
     /// Thrown if this method is called after the object has been disposed.
     /// </exception>
     /// <remarks>
@@ -234,43 +242,50 @@ public sealed class SHA1 : IShaDigest, IDisposable
     /// - A padding byte `0x80` is added after the data.
     /// - The length of the original message (in bits) is appended in big-endian format.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Byte[] ComputeHash(ReadOnlySpan<Byte> data)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data)
     {
-        ObjectDisposedException.ThrowIf(_disposed, nameof(SHA1));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA1));
 
         // Reset the state to ensure independence from previous operations
         Initialize();
 
         // Create a temporary copy of the hash state to preserve the instance state
-        Span<UInt32> h = stackalloc UInt32[5];
+        System.Span<System.UInt32> h = stackalloc System.UInt32[5];
 
         unsafe
         {
-            ref Byte srcRef = ref Unsafe.As<UInt32, Byte>(ref MemoryMarshal.GetArrayDataReference(_state));
-            ref Byte dstRef = ref Unsafe.As<UInt32, Byte>(ref MemoryMarshal.GetReference(h));
+            ref System.Byte srcRef = ref System.Runtime.CompilerServices.Unsafe.As<
+                System.UInt32, System.Byte>(
+                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_state));
 
-            Unsafe.CopyBlockUnaligned(ref dstRef, ref srcRef, 20); // 5 * sizeof(uint)
+            ref System.Byte dstRef = ref System.Runtime.CompilerServices.Unsafe.As<
+                System.UInt32, System.Byte>(
+                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(h));
+
+            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(ref dstRef, ref srcRef, 20); // 5 * sizeof(uint)
         }
 
         // Calculate message length in bits (before padding)
-        UInt64 bitLength = (UInt64)data.Length * 8;
+        System.UInt64 bitLength = (System.UInt64)data.Length * 8;
 
         // Process all complete blocks
-        Int32 fullBlocks = data.Length / 64;
+        System.Int32 fullBlocks = data.Length / 64;
         unsafe
         {
-            ref Byte inputRef = ref MemoryMarshal.GetReference(data);
-            for (Int32 i = 0; i < fullBlocks; i++)
+            ref System.Byte inputRef = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(data);
+            for (System.Int32 i = 0; i < fullBlocks; i++)
             {
-                ReadOnlySpan<Byte> block = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref inputRef, i * 64), 64);
+                System.ReadOnlySpan<System.Byte> block = System.Runtime.InteropServices.MemoryMarshal.CreateReadOnlySpan(
+                    ref System.Runtime.CompilerServices.Unsafe.Add(ref inputRef, i * 64), 64);
                 ProcessBlock(block, h);
             }
         }
 
         // Handle the final block with padding
-        Int32 remainingBytes = data.Length % 64;
-        Span<Byte> finalBlock = stackalloc Byte[128]; // Max 2 blocks needed
+        System.Int32 remainingBytes = data.Length % 64;
+        System.Span<System.Byte> finalBlock = stackalloc System.Byte[128]; // Max 2 blocks needed
 
         // Copy remaining data to the final block
         if (remainingBytes > 0)
@@ -282,22 +297,22 @@ public sealed class SHA1 : IShaDigest, IDisposable
         finalBlock[remainingBytes] = 0x80;
 
         // Determine if we need one or two blocks
-        Int32 blockCount = (remainingBytes + 1 + 8 > 64) ? 2 : 1;
-        Int32 finalBlockSize = blockCount * 64;
+        System.Int32 blockCount = (remainingBytes + 1 + 8 > 64) ? 2 : 1;
+        System.Int32 finalBlockSize = blockCount * 64;
 
         // WriteInt16 the length in bits as a 64-bit big-endian integer
         unsafe
         {
-            fixed (Byte* p = finalBlock)
+            fixed (System.Byte* p = finalBlock)
             {
-                *(UInt64*)(p + finalBlockSize - 8) = BitConverter.IsLittleEndian
-                    ? BinaryPrimitives.ReverseEndianness(bitLength)
+                *(System.UInt64*)(p + finalBlockSize - 8) = System.BitConverter.IsLittleEndian
+                    ? System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(bitLength)
                     : bitLength;
             }
         }
 
         // Process the final block(s)
-        for (Int32 i = 0; i < blockCount; i++)
+        for (System.Int32 i = 0; i < blockCount; i++)
         {
             ProcessBlock(finalBlock.Slice(i * 64, 64), h);
         }
@@ -305,29 +320,29 @@ public sealed class SHA1 : IShaDigest, IDisposable
         // Convert the hash to bytes in big-endian format
         unsafe
         {
-            Byte[] result = new Byte[20];
-            fixed (Byte* resultPtr = result)
+            System.Byte[] result = new System.Byte[20];
+            fixed (System.Byte* resultPtr = result)
             {
-                UInt32 v0 = h[0];
-                UInt32 v1 = h[1];
-                UInt32 v2 = h[2];
-                UInt32 v3 = h[3];
-                UInt32 v4 = h[4];
+                System.UInt32 v0 = h[0];
+                System.UInt32 v1 = h[1];
+                System.UInt32 v2 = h[2];
+                System.UInt32 v3 = h[3];
+                System.UInt32 v4 = h[4];
 
-                if (BitConverter.IsLittleEndian)
+                if (System.BitConverter.IsLittleEndian)
                 {
-                    v0 = BinaryPrimitives.ReverseEndianness(v0);
-                    v1 = BinaryPrimitives.ReverseEndianness(v1);
-                    v2 = BinaryPrimitives.ReverseEndianness(v2);
-                    v3 = BinaryPrimitives.ReverseEndianness(v3);
-                    v4 = BinaryPrimitives.ReverseEndianness(v4);
+                    v0 = System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(v0);
+                    v1 = System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(v1);
+                    v2 = System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(v2);
+                    v3 = System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(v3);
+                    v4 = System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(v4);
                 }
 
-                ((UInt32*)resultPtr)[0] = v0;
-                ((UInt32*)resultPtr)[1] = v1;
-                ((UInt32*)resultPtr)[2] = v2;
-                ((UInt32*)resultPtr)[3] = v3;
-                ((UInt32*)resultPtr)[4] = v4;
+                ((System.UInt32*)resultPtr)[0] = v0;
+                ((System.UInt32*)resultPtr)[1] = v1;
+                ((System.UInt32*)resultPtr)[2] = v2;
+                ((System.UInt32*)resultPtr)[3] = v3;
+                ((System.UInt32*)resultPtr)[4] = v4;
 
                 _state[0] = h[0];
                 _state[1] = h[1];
@@ -343,33 +358,37 @@ public sealed class SHA1 : IShaDigest, IDisposable
 
     #region Private Methods
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe void ProcessBlock(ReadOnlySpan<Byte> block, Span<UInt32> h)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe void ProcessBlock(
+        System.ReadOnlySpan<System.Byte> block,
+        System.Span<System.UInt32> h)
     {
-        Span<UInt32> w = stackalloc UInt32[80];
+        System.Span<System.UInt32> w = stackalloc System.UInt32[80];
 
         // Load first 16 words from big-endian data
-        fixed (Byte* ptr = block)
+        fixed (System.Byte* ptr = block)
         {
-            for (Int32 j = 0; j < 16; j++)
+            for (System.Int32 j = 0; j < 16; j++)
             {
-                w[j] = BinaryPrimitives.ReverseEndianness(Unsafe.ReadUnaligned<UInt32>(ptr + (j << 2)));
+                w[j] = System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(
+                    System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt32>(ptr + (j << 2)));
             }
         }
 
         // Message schedule expansion
-        for (Int32 j = 16; j < 80; j++)
+        for (System.Int32 j = 16; j < 80; j++)
         {
             w[j] = BitwiseUtils.RotateLeft(w[j - 3] ^ w[j - 8] ^ w[j - 14] ^ w[j - 16], 1);
         }
 
         // Initialize working variables
-        UInt32 a = h[0], b = h[1], c = h[2], d = h[3], e = h[4];
+        System.UInt32 a = h[0], b = h[1], c = h[2], d = h[3], e = h[4];
 
         // Main loop - optimized with function inlining
-        for (Int32 j = 0; j < 20; j++)
+        for (System.Int32 j = 0; j < 20; j++)
         {
-            UInt32 temp = BitwiseUtils.RotateLeft(a, 5) + ((b & c) | ((~b) & d)) + e + SHA.K1[0] + w[j];
+            System.UInt32 temp = BitwiseUtils.RotateLeft(a, 5) + ((b & c) | ((~b) & d)) + e + SHA.K1[0] + w[j];
             e = d;
             d = c;
             c = BitwiseUtils.RotateLeft(b, 30);
@@ -377,9 +396,9 @@ public sealed class SHA1 : IShaDigest, IDisposable
             a = temp;
         }
 
-        for (Int32 j = 20; j < 40; j++)
+        for (System.Int32 j = 20; j < 40; j++)
         {
-            UInt32 temp = BitwiseUtils.RotateLeft(a, 5) + (b ^ c ^ d) + e + SHA.K1[1] + w[j];
+            System.UInt32 temp = BitwiseUtils.RotateLeft(a, 5) + (b ^ c ^ d) + e + SHA.K1[1] + w[j];
             e = d;
             d = c;
             c = BitwiseUtils.RotateLeft(b, 30);
@@ -387,9 +406,9 @@ public sealed class SHA1 : IShaDigest, IDisposable
             a = temp;
         }
 
-        for (Int32 j = 40; j < 60; j++)
+        for (System.Int32 j = 40; j < 60; j++)
         {
-            UInt32 temp = BitwiseUtils.RotateLeft(a, 5) + ((b & c) | (b & d) | (c & d)) + e + SHA.K1[2] + w[j];
+            System.UInt32 temp = BitwiseUtils.RotateLeft(a, 5) + ((b & c) | (b & d) | (c & d)) + e + SHA.K1[2] + w[j];
             e = d;
             d = c;
             c = BitwiseUtils.RotateLeft(b, 30);
@@ -397,9 +416,9 @@ public sealed class SHA1 : IShaDigest, IDisposable
             a = temp;
         }
 
-        for (Int32 j = 60; j < 80; j++)
+        for (System.Int32 j = 60; j < 80; j++)
         {
-            UInt32 temp = BitwiseUtils.RotateLeft(a, 5) + (b ^ c ^ d) + e + SHA.K1[3] + w[j];
+            System.UInt32 temp = BitwiseUtils.RotateLeft(a, 5) + (b ^ c ^ d) + e + SHA.K1[3] + w[j];
             e = d;
             d = c;
             c = BitwiseUtils.RotateLeft(b, 30);
@@ -433,11 +452,11 @@ public sealed class SHA1 : IShaDigest, IDisposable
         }
 
         // Clear sensitive data from memory
-        Array.Clear(_state, 0, _state.Length);
-        Array.Clear(_buffer, 0, _buffer.Length);
+        System.Array.Clear(_state, 0, _state.Length);
+        System.Array.Clear(_buffer, 0, _buffer.Length);
 
         _disposed = true;
-        GC.SuppressFinalize(this);
+        System.GC.SuppressFinalize(this);
     }
 
     #endregion IDisposable Implementation
@@ -447,7 +466,7 @@ public sealed class SHA1 : IShaDigest, IDisposable
     /// <summary>
     /// Returns a string representation of the SHA-1 hash algorithm.
     /// </summary>
-    public override String ToString() => "SHA-1";
+    public override System.String ToString() => "SHA-1";
 
     #endregion Overrides
 }
