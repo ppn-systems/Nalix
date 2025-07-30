@@ -62,7 +62,18 @@ public sealed class SHA224 : IShaDigest, IDisposable
     public void Initialize()
     {
         // Initialize state with SHA-224 specific values
-        Buffer.BlockCopy(SHA.H224, 0, _state, 0, SHA.H224.Length * sizeof(UInt32));
+        unsafe
+        {
+            // Get references to the raw byte data of both arrays
+            ref Byte src = ref Unsafe.As<UInt32, Byte>(
+                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(SHA.H224));
+
+            ref Byte dst = ref Unsafe.As<UInt32, Byte>(
+                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_state));
+
+            // Copy all bytes from SHA.H224 to _state
+            Unsafe.CopyBlockUnaligned(ref dst, ref src, (UInt32)(SHA.H224.Length * sizeof(UInt32)));
+        }
 
         _totalLength = 0;
         _bufferOffset = 0;
