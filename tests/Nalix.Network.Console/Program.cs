@@ -1,75 +1,130 @@
-﻿using Nalix.Common.Enums;
-using Nalix.Shared.Extensions;
+﻿using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Framework.Injection;
+using Nalix.Framework.Tasks;
+using Nalix.Logging;
+using Nalix.Shared.Memory.Pooling;
 using System;
-using System.Security.Cryptography;
+using System.Threading;
 using System.Threading.Tasks;
 
 internal static class Program
 {
-    private static readonly System.Threading.ManualResetEvent QuitEvent = new(false);
+    private static readonly ManualResetEvent QuitEvent = new(false);
 
     public static async Task Main(String[] args)
-    //InstanceManager.Instance.Register<ILogger>(NLogix.Host.Instance);
-    //InstanceManager.Instance.GetExistingInstance<BufferPoolManager>();
-
-    //Console.WriteLine("Starting Custom TCP Listener...");
-    //const UInt16 port = 8080;
-
-    //// Tạo đối tượng Protocol và Listener
-    //var protocol = new EchoProtocol();
-    //var listener = new CustomTcpListener(port, protocol);
-
-    //// Bắt đầu lắng nghe
-    //CancellationTokenSource cts = new();
-    //try
-    //{
-    //    Console.CancelKeyPress += (s, e) =>
-    //    {
-    //        e.Cancel = true;
-    //        cts.Cancel(); // Dừng server khi nhấn Ctrl+C
-    //    };
-
-    //    listener.Activate(cts.Token);
-
-    //    QuitEvent.WaitOne();
-    //}
-    //catch (Exception ex)
-    //{
-    //    Console.WriteLine($"Error: {ex.Message}");
-    //}
-    //finally
-    //{
-    //    listener.Dispose(); // Dọn dẹp tài nguyên
-    //    Console.WriteLine("Listener stopped.");
-    //}
     {
-        // Create a random 256-bit key for AES-GCM (32 bytes)
-        Byte[] key = new Byte[32];
-        RandomNumberGenerator.Fill(key);
+        InstanceManager.Instance.Register<ILogger>(NLogix.Host.Instance);
+        InstanceManager.Instance.GetExistingInstance<BufferPoolManager>();
 
-        String plaintext = "Xin chào, đây là test encryption/decryption!";
+        var logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        var taskReport = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().GenerateReport();
 
-        Console.WriteLine("Original: " + plaintext);
 
-        // Encrypt to Base64
-        String cipherBase64 = plaintext.EncryptToBase64(key, CipherSuiteType.SALSA20);
-        Console.WriteLine("Cipher (Base64): " + cipherBase64);
+        // Tạo thread để bắt Ctrl+R
+        var cts = new CancellationTokenSource();
+        Thread keyThread = new(() =>
+        {
+            while (!cts.IsCancellationRequested)
+            {
+                // Check if there is key available before reading
+                if (Console.KeyAvailable)
+                {
+                    var keyInfo = Console.ReadKey(true);
+                    if (keyInfo.Key == ConsoleKey.R && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control))
+                    {
+                        // Nếu Ctrl+R thì in report
+                        GenerateReport();
+                    }
+                }
+                Thread.Sleep(100); // Giảm CPU load
+            }
+        });
+        keyThread.Start();
 
-        // Decrypt back
-        String decrypted = cipherBase64.DecryptFromBase64(key);
-        Console.WriteLine("Decrypted: " + decrypted);
+        Console.WriteLine("Starting Custom TCP Listener...");
+        const UInt16 port = 8080;
 
-        // Intentional failure: wrong key
-        Byte[] wrongKey = new Byte[32];
-        RandomNumberGenerator.Fill(wrongKey);
+        var protocol = new EchoProtocol();
+        var listener = new CustomTcpListener(port, protocol);
+
         try
         {
-            String bad = cipherBase64.DecryptFromBase64(wrongKey);
-            Console.WriteLine("Decrypted with wrong key (should not happen): " + bad);
+            Console.CancelKeyPress += (s, e) =>
+            {
+                e.Cancel = true;
+                cts.Cancel();
+                QuitEvent.Set(); // Dừng chương trình
+            };
+
+            listener.Activate(cts.Token);
+
+            TestBufferRent();
+
+            TestBufferRent();
+            QuitEvent.WaitOne();
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Expected failure with wrong key: " + ex.Message);
+            Console.WriteLine($"Error: {ex.Message}");
         }
+        finally
+        {
+            listener.Dispose();
+            cts.Cancel();
+            keyThread.Join();
+            Console.WriteLine("Listener stopped.");
+        }
+    }
+
+    public static void TestBufferRent()
+    {
+        var logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        var pool = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
+
+        logger.Info("=== Buffer Rent Test ===");
+
+        // Rent nhiều size khác nhau để trigger các pool
+        for (Int32 i = 0; i < 10_000; i++)
+        {
+            var buffers = new System.Byte[][]
+            {
+                pool.Rent(256),
+                pool.Rent(256),
+                pool.Rent(512),
+                pool.Rent(1024),
+                pool.Rent(1024),
+                pool.Rent(1024),
+                pool.Rent(2048),
+                pool.Rent(4096),
+            };
+
+            foreach (var buffer in buffers)
+            {
+                pool.Return(buffer);
+            }
+        }
+
+        // In report lúc đang giữ buffer — Usage > 0
+        logger.Info("--- After Rent (buffers in use) ---");
+        logger.Info(pool.GenerateReport());
+
+        // In report sau khi return — Free tăng lại
+        logger.Info("--- After Return ---");
+        logger.Info(pool.GenerateReport());
+    }
+
+    public static void GenerateReport()
+    {
+        var logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+        var instanceReport = InstanceManager.Instance.GenerateReport();
+        var bufferReport = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().GenerateReport();
+        //var objectPoolReport = InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>().GenerateReport();
+        //var taskReport = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().GenerateReport();
+
+        logger.Info(instanceReport);
+        logger.Info(bufferReport);
+        //logger.Info(objectPoolReport);
+        //logger.Info(taskReport);
     }
 }
