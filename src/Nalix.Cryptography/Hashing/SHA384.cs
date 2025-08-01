@@ -1,5 +1,4 @@
 using Nalix.Common.Security.Cryptography.Hashing;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Cryptography.Hashing;
 
@@ -89,20 +88,22 @@ public sealed class SHA384 : IShaDigest, System.IDisposable
     /// <summary>
     /// Initializes the <see cref="SHA384"/> instance to its initial state.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Initialize()
     {
         unsafe
         {
             // Get ref to first byte of SHA.H384 and _state
-            ref System.Byte src = ref Unsafe.As<System.UInt64, System.Byte>(
+            ref System.Byte src = ref System.Runtime.CompilerServices.Unsafe.As<System.UInt64, System.Byte>(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(SHA.H384));
 
-            ref System.Byte dst = ref Unsafe.As<System.UInt64, System.Byte>(
+            ref System.Byte dst = ref System.Runtime.CompilerServices.Unsafe.As<System.UInt64, System.Byte>(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_state));
 
             // Copy entire block of memory (as raw bytes)
-            Unsafe.CopyBlockUnaligned(ref dst, ref src, (System.UInt32)(SHA.H384.Length * sizeof(System.UInt64)));
+            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+                ref dst, ref src, (System.UInt32)(SHA.H384.Length * sizeof(System.UInt64)));
         }
 
         _bufferLength = 0;
@@ -119,7 +120,8 @@ public sealed class SHA384 : IShaDigest, System.IDisposable
     /// <param name="data">The input data to include in the hash.</param>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown if the hash has already been finalized.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Update(System.ReadOnlySpan<System.Byte> data)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA384));
@@ -201,7 +203,8 @@ public sealed class SHA384 : IShaDigest, System.IDisposable
     /// </summary>
     /// <returns>A 48-byte array containing the SHA-384 hash.</returns>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public unsafe System.Byte[] FinalizeHash()
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA384));
@@ -283,7 +286,8 @@ public sealed class SHA384 : IShaDigest, System.IDisposable
     /// Processes a 128-byte block of data as part of the SHA-384 hash computation.
     /// </summary>
     /// <param name="block">The 128-byte block to process.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private unsafe void ProcessBlock(System.ReadOnlySpan<System.Byte> block)
     {
         fixed (System.Byte* blockPtr = block)
@@ -296,7 +300,8 @@ public sealed class SHA384 : IShaDigest, System.IDisposable
     /// Processes a 128-byte block of data directly from a memory pointer.
     /// </summary>
     /// <param name="blockPtr">Pointer to the 128-byte block to process.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private unsafe void ProcessBlockDirect(System.Byte* blockPtr)
     {
         const System.Int32 rounds = 80;
@@ -373,7 +378,8 @@ public sealed class SHA384 : IShaDigest, System.IDisposable
     /// <summary>
     /// Disposes the <see cref="SHA384"/> instance, clearing sensitive data.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public unsafe void Dispose()
     {
         if (_disposed)
