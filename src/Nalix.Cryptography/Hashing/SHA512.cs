@@ -1,6 +1,5 @@
 using Nalix.Common.Security.Cryptography.Hashing;
 using System;
-using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -174,14 +173,15 @@ public sealed class SHA512 : IShaDigest, IDisposable
         Update(padding[..padLength]);
 
         Span<Byte> lengthBlock = stackalloc Byte[16];
-        BinaryPrimitives.WriteUInt64BigEndian(lengthBlock[..8], (_byteCountHigh << 3) | (_byteCountLow >> 61));
-        BinaryPrimitives.WriteUInt64BigEndian(lengthBlock[8..], _byteCountLow << 3);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(
+            lengthBlock[..8], (_byteCountHigh << 3) | (_byteCountLow >> 61));
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(lengthBlock[8..], _byteCountLow << 3);
         Update(lengthBlock);
 
         Byte[] result = new Byte[64];
         for (Int32 i = 0; i < 8; i++)
         {
-            BinaryPrimitives.WriteUInt64BigEndian(result.AsSpan(i * 8), _state[i]);
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(result.AsSpan(i * 8), _state[i]);
         }
 
         _finalHash = result;
@@ -205,7 +205,7 @@ public sealed class SHA512 : IShaDigest, IDisposable
 
         for (Int32 i = 0; i < 16; i++)
         {
-            w[i] = BinaryPrimitives.ReadUInt64BigEndian(block.Slice(i * 8, 8));
+            w[i] = System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(block.Slice(i * 8, 8));
         }
 
         for (Int32 i = 16; i < rounds; i++)
