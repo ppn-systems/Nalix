@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
@@ -10,10 +10,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Nalix.Common" Version="11.4.0" />
-		<PackageReference Include="Nalix.Shared" Version="11.4.0" />
-		<PackageReference Include="Nalix.Network" Version="11.4.0" />
-		<PackageReference Include="Nalix.Framework" Version="11.4.0" />
+		<PackageReference Include="Nalix.Common" Version="11.5.1" />
+		<PackageReference Include="Nalix.Shared" Version="11.5.1" />
+		<PackageReference Include="Nalix.Network" Version="11.5.1" />
+		<PackageReference Include="Nalix.Framework" Version="11.5.1" />
 	</ItemGroup>
 
 </Project>
