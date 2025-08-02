@@ -23,7 +23,8 @@ public abstract partial class TcpListenerBase
                     System.Net.Sockets.SocketType.Stream,
                     System.Net.Sockets.ProtocolType.Tcp)
                 {
-                    ExclusiveAddressUse = !Config.ReuseAddress,                  // fast rebind combo with ReuseAddress
+                    // fast rebind combo with ReuseAddress
+                    ExclusiveAddressUse = !Config.ReuseAddress,
                     LingerState = new System.Net.Sockets.LingerOption(false, 0),
                     Blocking = true,
                     // Must set before Bind
@@ -42,7 +43,7 @@ public abstract partial class TcpListenerBase
                     System.Net.Sockets.SocketOptionName.ReceiveBuffer,
                     Config.BufferSize);
 
-                var epV6Any = new System.Net.IPEndPoint(System.Net.IPAddress.IPv6Any, this._port);
+                System.Net.IPEndPoint epV6Any = new(System.Net.IPAddress.IPv6Any, this._port);
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any} (v6)");
@@ -58,8 +59,16 @@ public abstract partial class TcpListenerBase
             catch
             {
                 // Clean up the half-initialized IPv6 socket before falling back
-                try { listener?.Close(); } catch { }
-                try { listener?.Dispose(); } catch { }
+                try
+                {
+                    listener?.Close();
+                }
+                catch { }
+                try
+                {
+                    listener?.Dispose();
+                }
+                catch { }
                 listener = null;
             }
         }
@@ -85,7 +94,7 @@ public abstract partial class TcpListenerBase
             System.Net.Sockets.SocketOptionName.ReceiveBuffer,
             Config.BufferSize);
 
-        var epV4Any = new System.Net.IPEndPoint(System.Net.IPAddress.Any, this._port);
+        System.Net.IPEndPoint epV4Any = new(System.Net.IPAddress.Any, this._port);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any} (v4)");
