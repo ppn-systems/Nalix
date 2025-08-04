@@ -6,6 +6,11 @@ namespace Nalix.Common.Packets.Enums;
 public enum PacketPriority : System.Byte
 {
     /// <summary>
+    /// Normal priority.
+    /// </summary>
+    Normal = 0x00,
+
+    /// <summary>
     /// Low priority.
     /// </summary>
     Low = 0x01,

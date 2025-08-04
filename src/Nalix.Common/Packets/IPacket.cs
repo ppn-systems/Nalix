@@ -44,16 +44,6 @@ public interface IPacket : IPoolable
     /// </summary>
     TransportProtocol Transport { get; }
 
-    /// <summary>
-    /// Computes a unique hash value for the packet using its key metadata.
-    /// </summary>
-    /// <returns>
-    /// A 64-bit unsigned integer representing the packet's hash, composed of:
-    /// This hash can be used as a fast lookup key for caching or deduplication.
-    /// </returns>
-    [SerializeIgnore]
-    System.Int32 Hash { get; }
-
     #endregion Metadata
 
     #region Packet Methods
