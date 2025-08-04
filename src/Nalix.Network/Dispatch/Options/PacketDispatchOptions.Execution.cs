@@ -1,8 +1,11 @@
 ﻿using Nalix.Common.Packets;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.ReturnTypes;
+using Nalix.Network.Messages;
+using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Dispatch.Options;
+
 public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     #region Private Methods
@@ -26,9 +29,18 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
                 if (completed != execTaskAsTask)
                 {
-                    _ = await context.Connection.Tcp.SendAsync(
-                        TPacket.Create(0, $"Request timeout ({timeout}ms)"));
-                    return;
+                    TextPacket text = ObjectPoolManager.Instance.Get<TextPacket>();
+                    try
+                    {
+                        text.Initialize($"Request timeout ({timeout}ms).");
+                        _ = await context.Connection.Tcp.SendAsync(text.Serialize());
+
+                        return;
+                    }
+                    finally
+                    {
+                        ObjectPoolManager.Instance.Return<TextPacket>(text);
+                    }
                 }
 
                 // Await the execTaskAsTask only once
@@ -67,7 +79,18 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 
         this._errorHandler?.Invoke(exception, descriptor.OpCode);
 
-        _ = await context.Connection.Tcp.SendAsync(TPacket.Create(0, "Internal server error"));
+        TextPacket text = ObjectPoolManager.Instance.Get<TextPacket>();
+        try
+        {
+            text.Initialize("Internal server error");
+            _ = await context.Connection.Tcp.SendAsync(text.Serialize());
+
+            return;
+        }
+        finally
+        {
+            ObjectPoolManager.Instance.Return<TextPacket>(text);
+        }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(

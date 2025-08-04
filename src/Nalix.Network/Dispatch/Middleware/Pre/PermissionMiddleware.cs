@@ -1,6 +1,8 @@
 ﻿using Nalix.Common.Packets;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Core;
+using Nalix.Network.Messages;
+using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Dispatch.Middleware.Pre;
 
@@ -26,10 +28,18 @@ public class PermissionMiddleware<TPacket> : IPacketMiddleware<TPacket>
         if (context.Attributes.Permission is not null &&
             context.Attributes.Permission.Level > context.Connection.Level)
         {
-            _ = await context.Connection.Tcp.SendAsync(TPacket
-                                        .Create(0, "Permission denied. You are not authorized to perform this action."));
+            TextPacket text = ObjectPoolManager.Instance.Get<TextPacket>();
+            try
+            {
+                text.Initialize("Permission denied. You are not authorized to perform this action.");
+                _ = await context.Connection.Tcp.SendAsync(text.Serialize());
 
-            return;
+                return;
+            }
+            finally
+            {
+                ObjectPoolManager.Instance.Return<TextPacket>(text);
+            }
         }
 
         await next();

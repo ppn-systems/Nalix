@@ -2,6 +2,8 @@
 using Nalix.Common.Packets;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Core;
+using Nalix.Network.Messages;
+using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Dispatch.Middleware.Post;
 
@@ -44,10 +46,18 @@ public class WrapPacketMiddleware<TPacket> : IPacketMiddleware<TPacket>
         }
         catch (System.Exception)
         {
-            _ = await context.Connection.Tcp.SendAsync(
-                TPacket.Create(0, "An error occurred while processing your request."));
+            TextPacket text = ObjectPoolManager.Instance.Get<TextPacket>();
+            try
+            {
+                text.Initialize("An error occurred while processing your request.");
+                _ = await context.Connection.Tcp.SendAsync(text.Serialize());
 
-            return;
+                return;
+            }
+            finally
+            {
+                ObjectPoolManager.Instance.Return<TextPacket>(text);
+            }
         }
 
         await next();

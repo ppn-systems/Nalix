@@ -2,7 +2,9 @@
 using Nalix.Common.Packets.Enums;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Core;
+using Nalix.Network.Messages;
 using Nalix.Shared.Extensions;
+using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Dispatch.Middleware.Pre;
 
@@ -40,12 +42,20 @@ public class UnwrapPacketMiddleware<TPacket> : IPacketMiddleware<TPacket>
                 context.SetPacket(current);
             }
         }
-        catch (System.Exception ex)
+        catch (System.Exception)
         {
-            _ = await context.Connection.Tcp.SendAsync(
-                TPacket.Create(0, "Packet transform failed: " + ex.Message));
+            TextPacket text = ObjectPoolManager.Instance.Get<TextPacket>();
+            try
+            {
+                text.Initialize($"Packet transform failed.");
+                _ = await context.Connection.Tcp.SendAsync(text.Serialize());
 
-            return;
+                return;
+            }
+            finally
+            {
+                ObjectPoolManager.Instance.Return<TextPacket>(text);
+            }
         }
 
         await next();

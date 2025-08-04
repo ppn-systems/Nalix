@@ -1,4 +1,3 @@
-using Nalix.Common.Packets.Enums;
 using Nalix.Common.Security.Cryptography;
 
 namespace Nalix.Common.Packets;
@@ -20,14 +19,6 @@ public interface IPacketTransformer<TPacket> where TPacket : IPacket
     /// <param name="s">The string.</param>
     /// <returns>A new instance of <typeparamref name="TPacket"/>.</returns>
     static abstract TPacket Create(System.UInt16 id, System.String s);
-
-    /// <summary>
-    /// Creates a packet using strongly-typed enums.
-    /// </summary>
-    /// <param name="id">The unique identifier of the packet.</param>
-    /// <param name="flags">The flags associated with the packet as an enum.</param>
-    /// <returns>A new instance of <typeparamref name="TPacket"/>.</returns>
-    static abstract TPacket Create(System.UInt16 id, PacketFlags flags);
 
     // --- Encryption ---
 
