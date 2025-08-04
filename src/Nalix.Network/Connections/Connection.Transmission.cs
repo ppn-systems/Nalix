@@ -92,6 +92,7 @@ public sealed partial class Connection : IConnection
                 System.Int32 written = packet.Serialize(buffer);
                 try
                 {
+
                     return this.Send(buffer[..written]);
                 }
                 catch
@@ -269,9 +270,11 @@ public sealed partial class Connection : IConnection
             else if (packet.Length < 512)
             {
                 System.Span<System.Byte> buffer = stackalloc System.Byte[packet.Length * 110 / 100];
-                System.Int32 written = packet.Serialize(buffer);
                 try
                 {
+                    System.Int32 written = packet.Serialize(buffer);
+
+                    _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
                     return this.Send(buffer[..written]);
                 }
                 catch
@@ -286,6 +289,8 @@ public sealed partial class Connection : IConnection
                 try
                 {
                     System.Int32 written = packet.Serialize(rent);
+
+                    _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
                     return this.Send(System.MemoryExtensions.AsSpan(rent)[..written]);
                 }
                 catch
@@ -341,6 +346,8 @@ public sealed partial class Connection : IConnection
                     {
                         c.Initialize(pkt, message);
                         System.Byte[] buffer = c.Serialize(pkt);
+
+                        _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, buffer.Length);
                         _ = this.Send(buffer);
                         return true;
                     }
@@ -360,6 +367,8 @@ public sealed partial class Connection : IConnection
                 {
                     max.Initialize(pkt, part);
                     System.Byte[] buffer = max.Serialize(pkt);
+
+                    _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, buffer.Length);
                     _ = this.Send(buffer);
                     return true;
                 }
@@ -392,9 +401,11 @@ public sealed partial class Connection : IConnection
             else if (packet.Length < 256)
             {
                 System.Byte[] buffer = new System.Byte[packet.Length * 110 / 100];
-                System.Int32 written = packet.Serialize(buffer);
                 try
                 {
+                    System.Int32 written = packet.Serialize(buffer);
+
+                    _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
                     return await this.SendAsync(new System.ReadOnlyMemory<System.Byte>(buffer, 0, written), cancellationToken)
                                      .ConfigureAwait(false);
                 }
@@ -410,6 +421,8 @@ public sealed partial class Connection : IConnection
                 try
                 {
                     System.Int32 written = packet.Serialize(rent);
+
+                    _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
                     return await this.SendAsync(new System.ReadOnlyMemory<System.Byte>(rent, 0, written), cancellationToken)
                                      .ConfigureAwait(false);
                 }
@@ -470,6 +483,8 @@ public sealed partial class Connection : IConnection
                     {
                         c.Initialize(pkt, message);
                         System.Byte[] buffer = c.Serialize(pkt);
+
+                        _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, buffer.Length);
                         return await this.SendAsync(buffer, cancellationToken)
                                          .ConfigureAwait(false);
                     }
@@ -489,6 +504,8 @@ public sealed partial class Connection : IConnection
                 {
                     max.Initialize(pkt, part);
                     System.Byte[] buffer = max.Serialize(pkt);
+
+                    _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, buffer.Length);
                     return await this.SendAsync(buffer, cancellationToken)
                                      .ConfigureAwait(false);
                 }
