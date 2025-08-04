@@ -1,4 +1,4 @@
-﻿using Nalix.Common.Packets;
+﻿using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Core;
 
 namespace Nalix.Network.Dispatch.ReturnTypes.Packet;

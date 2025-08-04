@@ -1,6 +1,6 @@
 ﻿using Nalix.Common.Logging;
-using Nalix.Common.Packets;
 using Nalix.Common.Packets.Attributes;
+using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Core;
 
 namespace Nalix.Network.Dispatch.Analyzers;

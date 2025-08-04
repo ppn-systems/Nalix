@@ -1,4 +1,4 @@
-﻿using Nalix.Common.Packets;
+﻿using Nalix.Common.Packets.Interfaces;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Injection.DI;
 
