@@ -139,12 +139,7 @@ public static partial class Clock
         System.DateTime externalTime = System.DateTime.UnixEpoch.AddMilliseconds(corrected);
 
         System.Double adjustMs = (externalTime - NowUtc()).TotalMilliseconds;
-        if (System.Math.Abs(adjustMs) > maxHardAdjustMs)
-        {
-            return 0;
-        }
-
-        return SynchronizeTime(externalTime, maxAllowedDriftMs);
+        return System.Math.Abs(adjustMs) > maxHardAdjustMs ? 0 : SynchronizeTime(externalTime, maxAllowedDriftMs);
     }
 
     /// <summary>

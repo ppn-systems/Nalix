@@ -65,7 +65,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         set
         {
-            if ((ListenerState)System.Threading.Volatile.Read(ref _state) != ListenerState.Stopped)
+            if ((ListenerState)System.Threading.Volatile.Read(ref _state) != ListenerState.STOPPED)
             {
                 throw new System.InvalidOperationException("Cannot change IsTimeSyncEnabled while listening.");
             }
@@ -83,10 +83,10 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
     private enum ListenerState : System.Int32
     {
-        Stopped = 0,
-        Starting = 1,
-        Running = 2,
-        Stopping = 3
+        STOPPED = 0,
+        STARTING = 1,
+        RUNNING = 2,
+        STOPPING = 3
     }
 
     #endregion Enums
@@ -127,7 +127,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
         _port = port;
         _protocol = protocol;
         _isDisposed = false;
-        _state = (System.Int32)ListenerState.Stopped;
+        _state = (System.Int32)ListenerState.STOPPED;
 
         _acceptWorkerIds = new(Config.MaxParallel);
         _lock = new System.Threading.SemaphoreSlim(1, 1);
@@ -189,7 +189,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
                 }
                 catch { }
 
-                _ = System.Threading.Interlocked.Exchange(ref self._state, (System.Int32)ListenerState.Stopped);
+                _ = System.Threading.Interlocked.Exchange(ref self._state, (System.Int32)ListenerState.STOPPED);
             }
             catch (System.Exception ex)
             {
@@ -249,7 +249,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
                 this._cts?.Cancel();
                 this._cts?.Dispose();
 
-                _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Stopping);
+                _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STOPPING);
 
                 try
                 {
@@ -267,7 +267,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
             }
             catch { }
 
-            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Stopped);
+            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STOPPED);
 
             this._lock.Dispose();
         }

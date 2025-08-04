@@ -370,7 +370,7 @@ public abstract partial class TcpListenerBase
             }
             catch (System.Net.Sockets.SocketException ex) when (IsIgnorableAcceptError(ex.SocketErrorCode, cancellationToken))
             {
-                if (cancellationToken.IsCancellationRequested || State != ListenerState.Running)
+                if (cancellationToken.IsCancellationRequested || State != ListenerState.RUNNING)
                 {
                     break;
                 }
