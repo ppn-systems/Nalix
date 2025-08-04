@@ -40,6 +40,8 @@ public unsafe struct DataReader : System.IDisposable
         _length = buffer.Length;
         BytesRead = 0;
         _pinned = true;
+
+        this.Advance(0x02);
     }
 
     /// <summary>
@@ -55,6 +57,8 @@ public unsafe struct DataReader : System.IDisposable
         BytesRead = 0;
         _pin = default;
         _pinned = false;
+
+        this.Advance(0x02);
     }
 
     /// <summary>
@@ -73,6 +77,8 @@ public unsafe struct DataReader : System.IDisposable
         _length = temp.Length;
         _pinned = true;
         BytesRead = 0;
+
+        this.Advance(0x02);
     }
 
     /// <summary>
@@ -104,6 +110,8 @@ public unsafe struct DataReader : System.IDisposable
             _pinned = true;
         }
         BytesRead = 0;
+
+        this.Advance(0x02);
     }
 
     /// <summary>

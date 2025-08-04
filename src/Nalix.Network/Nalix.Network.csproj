@@ -8,8 +8,8 @@
 		<Deterministic>true</Deterministic>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-		<Version>2.7.1</Version>
-		<PackageVersion>2.7.1</PackageVersion>
+		<Version>2.8.0</Version>
+		<PackageVersion>2.8.0</PackageVersion>
 		
 		<Description>
 Nalix.Network is a high-performance .NET library for network communication. It provides essential components for connection management, protocol handling, transport layers, and event-driven network listeners. Designed for developers building scalable and efficient networking applications.

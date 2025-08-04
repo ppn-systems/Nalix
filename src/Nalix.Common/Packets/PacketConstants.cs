@@ -1,3 +1,6 @@
+using Nalix.Common.Connection.Protocols;
+using Nalix.Common.Packets.Enums;
+
 namespace Nalix.Common.Packets;
 
 /// <summary>
@@ -6,6 +9,22 @@ namespace Nalix.Common.Packets;
 /// </summary>
 public static class PacketConstants
 {
+    /// <summary>
+    /// The size (in bytes) of the packet header, including flags, OpCode, Length, MagicNumber, priority, and protocol.
+    /// </summary>
+    public const System.Int32 HeaderSize =
+        sizeof(PacketFlags) +
+        sizeof(System.UInt16) +  // OpCode
+        sizeof(System.UInt16) +  // Length
+        sizeof(System.UInt32) +  // MagicNumber
+        sizeof(PacketPriority) +
+        sizeof(TransportProtocol);
+
+    /// <summary>
+    /// The magic number used to identify valid packets.
+    /// </summary>
+    public const System.Int32 MagicNumber = 0x4E584C58;
+
     /// <summary>
     /// The threshold size (in bytes) for using heap-based memory allocation.
     /// This value represents the maximum size for which memory should be allocated from the heap instead of the stack.

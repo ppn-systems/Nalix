@@ -1,6 +1,6 @@
 using Nalix.Common.Security.Cryptography;
 
-namespace Nalix.Common.Packets;
+namespace Nalix.Common.Packets.Interfaces;
 
 /// <summary>
 /// Provides a contract for encrypting and decrypting a packet of type <typeparamref name="TPacket"/>.
@@ -10,16 +10,6 @@ namespace Nalix.Common.Packets;
 /// </typeparam>
 public interface IPacketTransformer<TPacket> where TPacket : IPacket
 {
-    // --- Creation ---
-
-    /// <summary>
-    /// Creates a packet using strongly-typed enums.
-    /// </summary>
-    /// <param name="id">The unique identifier of the packet.</param>
-    /// <param name="s">The string.</param>
-    /// <returns>A new instance of <typeparamref name="TPacket"/>.</returns>
-    static abstract TPacket Create(System.UInt16 id, System.String s);
-
     // --- Encryption ---
 
     /// <summary>

@@ -1,4 +1,4 @@
-namespace Nalix.Shared.Serialization.Buffers;
+﻿namespace Nalix.Shared.Serialization.Buffers;
 
 /// <summary>
 /// Represents a mutable buffer segment that can expand dynamically, optionally renting from the ArrayPool.
@@ -148,7 +148,30 @@ public struct DataWriter
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public readonly System.Byte[] ToArray() => WrittenCount == 0 ? [] : _buffer[..WrittenCount];
+    public readonly unsafe System.Byte[] ToArray()
+    {
+        System.Int32 payloadLength = WrittenCount;
+        System.Int32 totalLength = payloadLength + 2;
+
+        var result = new System.Byte[totalLength];
+
+        fixed (System.Byte* ptr = result)
+        {
+            // Write first 2 bytes long (including itself)
+            *(System.UInt16*)ptr = (System.UInt16)totalLength;
+
+            // Copy payload from _buffer to after 2 bytes
+            if (payloadLength > 0)
+            {
+                fixed (System.Byte* src = _buffer)
+                {
+                    System.Buffer.MemoryCopy(src, ptr + 2, payloadLength, payloadLength);
+                }
+            }
+        }
+
+        return result;
+    }
 
     /// <summary>
     /// Clears the buffer and returns it to the ArrayPool if rented.

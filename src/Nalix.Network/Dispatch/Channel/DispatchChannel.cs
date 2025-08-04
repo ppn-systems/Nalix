@@ -1,6 +1,6 @@
 ﻿using Nalix.Common.Connection;
 using Nalix.Common.Logging;
-using Nalix.Common.Packets;
+using Nalix.Common.Packets.Interfaces;
 
 namespace Nalix.Network.Dispatch.Channel;
 

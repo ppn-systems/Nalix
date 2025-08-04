@@ -1,4 +1,5 @@
 using Nalix.Common.Packets;
+using Nalix.Common.Packets.Interfaces;
 
 namespace Nalix.SDK.Remote.Internal;
 
