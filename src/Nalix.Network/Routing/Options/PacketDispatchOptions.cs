@@ -4,7 +4,7 @@
 using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Network.Middleware;
-using Nalix.Network.Routing.Delegates;
+using Nalix.Network.Routing.Metadata;
 
 namespace Nalix.Network.Routing.Options;
 

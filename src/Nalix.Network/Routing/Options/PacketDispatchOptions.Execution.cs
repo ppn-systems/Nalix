@@ -5,7 +5,7 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Network.Connections;
-using Nalix.Network.Routing.Delegates;
+using Nalix.Network.Routing.Metadata;
 using Nalix.Network.Routing.Results;
 
 namespace Nalix.Network.Routing.Options;
