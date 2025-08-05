@@ -167,14 +167,11 @@ public static class PolicyRateLimiter
 
         public System.String Address => $"op:{_op}|ep:{_inner.Address}";
 
-        public override System.Int32 GetHashCode()
-            => System.HashCode.Combine(_op, _inner);
+        public override System.Int32 GetHashCode() => System.HashCode.Combine(_op, _inner);
 
-        public override System.Boolean Equals(System.Object obj)
-            => obj is CompositeEndpointKey other && Equals(other);
+        public System.Boolean Equals(CompositeEndpointKey obj) => _op == obj._op && Equals(_inner, obj._inner);
 
-        public System.Boolean Equals(CompositeEndpointKey obj)
-            => _op == obj._op && Equals(_inner, obj._inner);
+        public override System.Boolean Equals(System.Object obj) => obj is CompositeEndpointKey other && Equals(other);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
