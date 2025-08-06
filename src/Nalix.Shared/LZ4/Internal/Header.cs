@@ -13,6 +13,7 @@ namespace Nalix.Shared.LZ4.Internal;
 /// <param name="compressedLength">The total length of the compressed data, including the header.</param>
 [System.Runtime.InteropServices.StructLayout(
     System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public readonly struct Header(System.Int32 originalLength, System.Int32 compressedLength)
 {
     /// <summary>

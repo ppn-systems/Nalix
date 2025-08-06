@@ -72,7 +72,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
 
     #region Constructors
 
-    static TcpListenerBase() => Config = ConfigurationStore.Instance.Get<SocketOptions>();
+    static TcpListenerBase() => Config = ConfigurationManager.Instance.Get<SocketOptions>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TcpListenerBase"/> class using the port defined in the configuration,

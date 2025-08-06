@@ -63,7 +63,7 @@ public class RemoteStreamClient<TPacket> : SingletonBase<RemoteStreamClient<TPac
     /// </summary>
     private RemoteStreamClient()
     {
-        this.Context = ConfigurationStore.Instance.Get<RemoteTransportOptions>();
+        this.Context = ConfigurationManager.Instance.Get<RemoteTransportOptions>();
 
         _client = new System.Net.Sockets.TcpClient { NoDelay = true };
     }

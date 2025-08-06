@@ -3,7 +3,8 @@ namespace Nalix.Shared.LZ4.Encoders;
 /// <summary>
 /// Provides LZ4-related compression constants used across the encoder implementation.
 /// </summary>
-public static class LZ4Constants
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+public static class LZ4CompressionConstants
 {
     /// <summary>
     /// The minimum length of a match for LZ4 compression.

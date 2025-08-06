@@ -38,7 +38,7 @@ public static class LZ4Codec
     /// <returns>The number of bytes written to the output array.</returns>
     public static System.Byte[] Encode(System.ReadOnlySpan<System.Byte> input)
     {
-        System.Int32 maxOutputSize = LZ4BlockCompressor.GetMaxLength(input.Length);
+        System.Int32 maxOutputSize = LZ4BlockEncoder.GetMaxLength(input.Length);
         System.Byte[] buffer = new System.Byte[maxOutputSize];
         System.Int32 written = Encode(input, buffer);
 

@@ -52,7 +52,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     public RequestLimiter(RateLimitOptions? config = null, ILogger? logger = null)
     {
         this._logger = logger;
-        this._config = config ?? ConfigurationStore.Instance.Get<RateLimitOptions>();
+        this._config = config ?? ConfigurationManager.Instance.Get<RateLimitOptions>();
 
         ValidateConfiguration(this._config);
 
@@ -414,7 +414,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static RateLimitOptions CreateConfiguredConfig(System.Action<RateLimitOptions>? configure)
     {
-        var config = ConfigurationStore.Instance.Get<RateLimitOptions>();
+        var config = ConfigurationManager.Instance.Get<RateLimitOptions>();
         configure?.Invoke(config);
         return config;
     }

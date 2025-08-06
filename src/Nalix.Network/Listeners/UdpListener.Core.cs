@@ -64,7 +64,7 @@ public abstract partial class UdpListenerBase
 
     #region Constructors
 
-    static UdpListenerBase() => Config = ConfigurationStore.Instance.Get<SocketOptions>();
+    static UdpListenerBase() => Config = ConfigurationManager.Instance.Get<SocketOptions>();
 
 
     /// <summary>
