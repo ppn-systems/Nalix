@@ -99,6 +99,9 @@ public sealed partial class Connection : IConnection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get => this._encryptionKey;
+
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         set
         {
             if (value is null || value.Length != 32)
@@ -152,6 +155,8 @@ public sealed partial class Connection : IConnection
     #region Methods
 
     /// <inheritdoc />
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal void InjectIncoming(System.Byte[] bytes) => _cstream.InjectIncoming(bytes);
 
     /// <inheritdoc />

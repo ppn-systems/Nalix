@@ -5,6 +5,8 @@ namespace Nalix.Network.Connection;
 
 internal static class ConnectionExtensions
 {
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void EnforceLimiterOnClose(
         this IConnection connection,
         ConnectionLimiter limiter)
@@ -18,6 +20,8 @@ internal static class ConnectionExtensions
         connection.OnCloseEvent += callback;
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Net.IPAddress ToIPAddress(this System.Net.EndPoint endPoint)
     {
         System.ArgumentNullException.ThrowIfNull(endPoint);
