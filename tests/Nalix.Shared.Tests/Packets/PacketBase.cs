@@ -1,6 +1,6 @@
 ﻿using Nalix.Common.Connection.Protocols;
-using Nalix.Common.Packets;
 using Nalix.Common.Packets.Enums;
+using Nalix.Common.Packets.Interfaces;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Serialization;
 
