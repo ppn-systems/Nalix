@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 namespace Nalix.Shared.Memory.Buffers;
 
 /// <summary>
-/// Manages shared buffer pools with improved performance.
+/// Manages shared buffer pools.
 /// </summary>
-public sealed class BufferManager : IDisposable
+public sealed class BufferPoolCollection : IDisposable
 {
     #region Fields
 
