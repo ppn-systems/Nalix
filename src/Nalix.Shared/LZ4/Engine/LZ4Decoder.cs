@@ -104,9 +104,9 @@ internal readonly struct LZ4Decoder
 
                 System.Byte token = *inputPtr++;
 
-                System.Int32 literalLength = (token >> 4) & LZ4Constants.TokenLiteralMask;
+                System.Int32 literalLength = (token >> 4) & LZ4CompressionConstants.TokenLiteralMask;
 
-                if (literalLength == LZ4Constants.TokenLiteralMask)
+                if (literalLength == LZ4CompressionConstants.TokenLiteralMask)
                 {
                     System.Int32 bytesRead = SpanOps.ReadVarInt(ref inputPtr, inputEnd, out System.Int32 extraLength);
                     if (bytesRead == -1 || extraLength < 0)
@@ -146,8 +146,8 @@ internal readonly struct LZ4Decoder
                     return false;
                 }
 
-                System.Int32 matchLength = token & LZ4Constants.TokenMatchMask;
-                if (matchLength == LZ4Constants.TokenMatchMask)
+                System.Int32 matchLength = token & LZ4CompressionConstants.TokenMatchMask;
+                if (matchLength == LZ4CompressionConstants.TokenMatchMask)
                 {
                     System.Int32 bytesRead = SpanOps.ReadVarInt(ref inputPtr, inputEnd, out System.Int32 extraLength);
                     if (bytesRead == -1 || extraLength < 0)
@@ -157,7 +157,7 @@ internal readonly struct LZ4Decoder
 
                     matchLength += extraLength;
                 }
-                matchLength += LZ4Constants.MinMatchLength;
+                matchLength += LZ4CompressionConstants.MinMatchLength;
 
                 System.Byte* matchSourcePtr = outputPtr - offset;
                 if (outputPtr + matchLength > outputEnd)

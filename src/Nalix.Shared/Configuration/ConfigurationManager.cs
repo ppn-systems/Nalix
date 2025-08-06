@@ -12,7 +12,7 @@ namespace Nalix.Shared.Configuration;
 /// <remarks>
 /// This implementation includes thread safety, caching optimizations, and lazy loading.
 /// </remarks>
-public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
+public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 {
     #region Fields
 
@@ -47,9 +47,9 @@ public sealed class ConfigurationStore : SingletonBase<ConfigurationStore>
     #region Constructor
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConfigurationStore"/> class.
+    /// Initializes a new instance of the <see cref="ConfigurationManager"/> class.
     /// </summary>
-    private ConfigurationStore()
+    private ConfigurationManager()
     {
         // Determine the configuration file path
 

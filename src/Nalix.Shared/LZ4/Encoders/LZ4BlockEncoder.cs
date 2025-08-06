@@ -6,7 +6,7 @@ namespace Nalix.Shared.LZ4.Encoders;
 /// Provides methods for compressing data using the LZ4 greedy compression algorithm.
 /// This encoder is designed to achieve high performance and efficient compression.
 /// </summary>
-public static unsafe class LZ4BlockCompressor
+public static unsafe class LZ4BlockEncoder
 {
     /// <summary>
     /// Calculates the maximum compressed length for a given input size.
@@ -16,7 +16,8 @@ public static unsafe class LZ4BlockCompressor
     /// <returns>The estimated maximum length after compression, including overhead.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 GetMaxLength(System.Int32 input) => input + (input / 250) + Header.Size;
+    public static System.Int32 GetMaxLength(System.Int32 input)
+        => input + (input / 250) + Header.Size;
 
     /// <summary>
     /// Compresses a block of input data into the output buffer using the LZ4 greedy algorithm.
@@ -78,7 +79,7 @@ public static unsafe class LZ4BlockCompressor
         System.Byte* literalStartPtr = inputBase; // Start of the current literal run
 
         // Leave room for the last literal run and match check
-        System.Byte* matchFindInputLimit = inputEnd - LZ4Constants.LastLiteralSize - LZ4Constants.MinMatchLength;
+        System.Byte* matchFindInputLimit = inputEnd - LZ4CompressionConstants.LastLiteralSize - LZ4CompressionConstants.MinMatchLength;
 
         // Validate output buffer size
         if (outputLength < Header.Size + 1)
@@ -90,14 +91,14 @@ public static unsafe class LZ4BlockCompressor
         while (inputPtr < matchFindInputLimit)
         {
             System.Int32 currentInputOffset = (System.Int32)(inputPtr - inputBase);
-            System.Byte* windowStartPtr = inputBase + System.Math.Max(0, currentInputOffset - LZ4Constants.MaxOffset);
+            System.Byte* windowStartPtr = inputBase + System.Math.Max(0, currentInputOffset - LZ4CompressionConstants.MaxOffset);
 
             // Find the longest match for the current input block
             MatchFinder.Match match = MatchFinder.FindLongestMatch(
                 hashTable,
                 inputBase,
                 inputPtr,
-                inputEnd - LZ4Constants.LastLiteralSize,
+                inputEnd - LZ4CompressionConstants.LastLiteralSize,
                 windowStartPtr,
                 currentInputOffset);
 
@@ -150,12 +151,12 @@ public static unsafe class LZ4BlockCompressor
         // Calculate required space for this sequence
         System.Int32 tokenLength = 1;
         System.Int32 literalHeaderLength =
-            (literalLength >= LZ4Constants.TokenLiteralMask)
-            ? 1 + ((literalLength - LZ4Constants.TokenLiteralMask) / 255) : 0;
+            (literalLength >= LZ4CompressionConstants.TokenLiteralMask)
+            ? 1 + ((literalLength - LZ4CompressionConstants.TokenLiteralMask) / 255) : 0;
 
         System.Int32 matchHeaderLength =
-            (matchLength >= LZ4Constants.TokenMatchMask)
-            ? 1 + ((matchLength - LZ4Constants.TokenMatchMask) / 255) : 0;
+            (matchLength >= LZ4CompressionConstants.TokenMatchMask)
+            ? 1 + ((matchLength - LZ4CompressionConstants.TokenMatchMask) / 255) : 0;
 
         System.Int32 requiredSpace =
             tokenLength +
@@ -171,16 +172,16 @@ public static unsafe class LZ4BlockCompressor
 
         // WriteInt16 the token
         System.Byte matchToken = (System.Byte)
-            System.Math.Min(matchLength - LZ4Constants.MinMatchLength, LZ4Constants.TokenMatchMask);
-        System.Byte literalToken = (System.Byte)System.Math.Min(literalLength, LZ4Constants.TokenLiteralMask);
+            System.Math.Min(matchLength - LZ4CompressionConstants.MinMatchLength, LZ4CompressionConstants.TokenMatchMask);
+        System.Byte literalToken = (System.Byte)System.Math.Min(literalLength, LZ4CompressionConstants.TokenLiteralMask);
 
         System.Byte token = (System.Byte)((literalToken << 4) | matchToken);
         *outputPtr++ = token;
 
         // WriteInt16 literal length
-        if (literalLength >= LZ4Constants.TokenLiteralMask)
+        if (literalLength >= LZ4CompressionConstants.TokenLiteralMask)
         {
-            outputPtr += SpanOps.WriteVarInt(outputPtr, literalLength - LZ4Constants.TokenLiteralMask);
+            outputPtr += SpanOps.WriteVarInt(outputPtr, literalLength - LZ4CompressionConstants.TokenLiteralMask);
         }
 
         // WriteInt16 literals
@@ -191,11 +192,11 @@ public static unsafe class LZ4BlockCompressor
         outputPtr += sizeof(System.UInt16);
 
         // WriteInt16 match length
-        if (matchLength >= LZ4Constants.MinMatchLength + LZ4Constants.TokenMatchMask)
+        if (matchLength >= LZ4CompressionConstants.MinMatchLength + LZ4CompressionConstants.TokenMatchMask)
         {
             outputPtr += SpanOps.WriteVarInt(
                 outputPtr,
-                matchLength - LZ4Constants.MinMatchLength - LZ4Constants.TokenMatchMask);
+                matchLength - LZ4CompressionConstants.MinMatchLength - LZ4CompressionConstants.TokenMatchMask);
         }
 
         return true;
@@ -219,8 +220,8 @@ public static unsafe class LZ4BlockCompressor
 
         System.Int32 tokenLength = 1;
         System.Int32 literalHeaderLength =
-            (literalLength >= LZ4Constants.TokenLiteralMask)
-            ? 1 + ((literalLength - LZ4Constants.TokenLiteralMask) / 255) : 0;
+            (literalLength >= LZ4CompressionConstants.TokenLiteralMask)
+            ? 1 + ((literalLength - LZ4CompressionConstants.TokenLiteralMask) / 255) : 0;
 
         System.Int32 requiredSpace = tokenLength + literalHeaderLength + literalLength;
 
@@ -229,13 +230,13 @@ public static unsafe class LZ4BlockCompressor
             return false;
         }
 
-        System.Byte literalToken = (System.Byte)System.Math.Min(literalLength, LZ4Constants.TokenLiteralMask);
+        System.Byte literalToken = (System.Byte)System.Math.Min(literalLength, LZ4CompressionConstants.TokenLiteralMask);
         System.Byte token = (System.Byte)(literalToken << 4); // Match part is 0
         *outputPtr++ = token;
 
-        if (literalLength >= LZ4Constants.TokenLiteralMask)
+        if (literalLength >= LZ4CompressionConstants.TokenLiteralMask)
         {
-            outputPtr += SpanOps.WriteVarInt(outputPtr, literalLength - LZ4Constants.TokenLiteralMask);
+            outputPtr += SpanOps.WriteVarInt(outputPtr, literalLength - LZ4CompressionConstants.TokenLiteralMask);
         }
 
         LiteralWriter.Write(ref outputPtr, literalStartPtr, literalLength);

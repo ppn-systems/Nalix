@@ -48,7 +48,7 @@ public class RemoteDatagramClient<TPacket> : SingletonBase<RemoteDatagramClient<
     /// </summary>
     private RemoteDatagramClient()
     {
-        Context = ConfigurationStore.Instance.Get<RemoteTransportOptions>();
+        Context = ConfigurationManager.Instance.Get<RemoteTransportOptions>();
 
         _udpClient = new System.Net.Sockets.UdpClient(0); // Binds to random local port
         _udpClient.Client.DontFragment = true;

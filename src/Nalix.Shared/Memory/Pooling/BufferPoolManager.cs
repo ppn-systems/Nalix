@@ -63,7 +63,7 @@ public sealed class BufferPoolManager : SingletonBase<BufferPoolManager>, IBuffe
     /// </summary>
     public BufferPoolManager(BufferConfig? bufferConfig = null, ILogger? logger = null)
     {
-        BufferConfig config = bufferConfig ?? ConfigurationStore.Instance.Get<BufferConfig>();
+        BufferConfig config = bufferConfig ?? ConfigurationManager.Instance.Get<BufferConfig>();
 
         _logger = logger;
         _totalBuffers = config.TotalBuffers;

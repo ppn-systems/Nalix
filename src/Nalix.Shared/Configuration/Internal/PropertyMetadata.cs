@@ -1,35 +1,32 @@
-using System;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-
 namespace Nalix.Shared.Configuration.Internal;
 
 /// <summary>
 /// Stores metadata about a configuration property.
 /// </summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal class PropertyMetadata
 {
     #region Properties
 
     /// <summary>
-    /// Gets or sets the property information.
+    /// Gets or sets the type code of the property.
     /// </summary>
-    public PropertyInfo PropertyInfo { get; init; } = null!;
+    public System.TypeCode TypeCode { get; init; }
 
     /// <summary>
     /// Gets or sets the name of the property.
     /// </summary>
-    public String Name { get; init; } = null!;
+    public System.String Name { get; init; } = null!;
 
     /// <summary>
     /// Gets or sets the type of the property.
     /// </summary>
-    public Type PropertyType { get; init; } = null!;
+    public System.Type PropertyType { get; init; } = null!;
 
     /// <summary>
-    /// Gets or sets the type code of the property.
+    /// Gets or sets the property information.
     /// </summary>
-    public TypeCode TypeCode { get; init; }
+    public System.Reflection.PropertyInfo PropertyInfo { get; init; } = null!;
 
     #endregion Properties
 
@@ -40,8 +37,9 @@ internal class PropertyMetadata
     /// </summary>
     /// <param name="target">The target object.</param>
     /// <param name="value">The value to set.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetValue(Object target, Object? value)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void SetValue(System.Object target, System.Object? value)
     {
         // Only set if the types are compatible
         if (value == null || PropertyType.IsInstanceOfType(value))
@@ -50,7 +48,7 @@ internal class PropertyMetadata
         }
         else
         {
-            throw new InvalidOperationException(
+            throw new System.InvalidOperationException(
                 $"Type mismatch for property {Name}: " +
                 $"Expected {PropertyType}, but got {value.GetType()}");
         }

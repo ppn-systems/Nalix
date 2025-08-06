@@ -1,10 +1,9 @@
-using Nalix.Shared.Configuration.Internal;
-
-namespace Nalix.Shared.Configuration.Metadata;
+namespace Nalix.Shared.Configuration.Internal;
 
 /// <summary>
 /// Stores metadata about a configuration type.
 /// </summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal class ConfigurationMetadata
 {
     /// <summary>
