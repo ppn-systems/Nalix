@@ -1,4 +1,4 @@
-namespace Nalix.Shared.LZ4.Internal;
+namespace Nalix.Shared.Memory.Unsafe;
 
 /// <summary>
 /// Provides low-level memory operations using unsafe code to perform optimized, high-performance memory manipulation.
@@ -9,7 +9,7 @@ namespace Nalix.Shared.LZ4.Internal;
 /// on raw memory, which allows for faster execution and is suitable for performance-critical applications like LZ compression/decompression.
 /// </remarks>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-internal static unsafe class MemOps
+public static unsafe class MemOps
 {
     /// <summary>
     /// Reads an unaligned value from a memory location.

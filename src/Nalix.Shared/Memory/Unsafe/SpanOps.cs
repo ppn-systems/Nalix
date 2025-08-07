@@ -1,26 +1,27 @@
-namespace Nalix.Shared.LZ4.Internal;
+namespace Nalix.Shared.Memory.Unsafe;
 
 /// <summary>
 /// Helper methods for working with Spans.
 /// </summary>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-internal static unsafe class SpanOps
+public static unsafe class SpanOps
 {
     /// <summary>
     /// Ensures the requested slice is within the span bounds.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void CheckSliceBounds(
-        System.Int32 length,
-        System.Int32 start,
-        System.Int32 count)
+    public static void CheckSliceBounds(System.Int32 length, System.Int32 start, System.Int32 count)
     {
         // Use unsigned arithmetic for efficient check: (uint)start + (uint)count > (uint)length
-        if ((System.UInt32)start > (System.UInt32)length ||
-            (System.UInt32)count > (System.UInt32)(length - start))
+        if ((System.UInt32)start > (System.UInt32)length)
         {
-            ThrowOutOfRange();
+            throw new System.ArgumentOutOfRangeException(nameof(start));
+        }
+
+        if ((System.UInt32)count > (System.UInt32)(length - start))
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(count));
         }
     }
 
@@ -76,8 +77,4 @@ internal static unsafe class SpanOps
         value = -1; // Error: reached end without termination
         return bytesRead;
     }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)] // Keep exception throwing logic separate
-    private static void ThrowOutOfRange() => throw new System.ArgumentOutOfRangeException("start or count");
 }

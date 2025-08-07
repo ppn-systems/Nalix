@@ -1,3 +1,5 @@
+using Nalix.Shared.Memory.Unsafe;
+
 namespace Nalix.Shared.LZ4.Internal;
 
 /// <summary>
