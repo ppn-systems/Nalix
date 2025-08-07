@@ -31,7 +31,10 @@ public sealed class BufferPoolCollection : System.IDisposable
 
     #region Constructor
 
-    private BufferPoolCollection()
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BufferPoolCollection"/> class.
+    /// </summary>
+    public BufferPoolCollection()
     {
         _sortedKeys = [];
 
