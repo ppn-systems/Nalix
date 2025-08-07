@@ -3,7 +3,7 @@
 namespace Nalix.Framework.Random.Generators;
 
 /// <summary>
-/// A high-performance implementation of the Multiply-with-carry (MWC) random ProtocolType generator algorithm.
+/// A high-performance implementation of the Multiply-with-carry (MWC) random number generator algorithm.
 /// </summary>
 /// <remarks>
 /// This implementation uses a 64-bit state value to produce 32-bit random numbers.
@@ -34,12 +34,19 @@ public abstract class MwcRandom
     /// <summary>
     /// The internal state of the generator, combining both the current value and carry.
     /// </summary>
+    /// <remarks>
+    /// Not thread-safe. Each thread should use its own instance of MwcRandom or derived classes.
+    /// </remarks>
     private System.UInt64 _state;
 
     /// <summary>
     /// Initializes a MwcRandom instance with a given seed value.
     /// </summary>
-    /// <param name="seed">The seed value to initialize the random ProtocolType generator. If 0, uses the current time.</param>
+    /// <param name="seed">The seed value to initialize the random number generator. If 0, uses the current time.</param>
+    /// <remarks>
+    /// Using seed value 0 will generate a time-based seed, which provides better randomness for different instances
+    /// created at different times. For reproducible sequences, provide a non-zero seed value.
+    /// </remarks>
     protected MwcRandom(System.UInt32 seed)
     {
         // If seed is 0, use current time ticks as a seed
@@ -57,9 +64,13 @@ public abstract class MwcRandom
     }
 
     /// <summary>
-    /// Sets the seed value for the random ProtocolType generator.
+    /// Sets the seed value for the random number generator.
     /// </summary>
     /// <param name="seed">The new seed value.</param>
+    /// <remarks>
+    /// This method initializes the internal state and performs a warm-up to avoid initial patterns
+    /// in the generated sequence. Not thread-safe - do not call concurrently from multiple threads.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -84,9 +95,13 @@ public abstract class MwcRandom
     public System.UInt32 GetSeed() => (System.UInt32)_state;
 
     /// <summary>
-    /// Returns a random ProtocolType in the range [0, RandMax].
+    /// Returns a random value in the range [0, RandMax].
     /// </summary>
-    /// <returns>A random ProtocolType as a uint.</returns>
+    /// <returns>A random value as a uint.</returns>
+    /// <remarks>
+    /// Uses the Multiply-with-carry (MWC) algorithm for high-quality pseudo-random number generation.
+    /// This method is not thread-safe - use separate instances per thread for concurrent access.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -98,10 +113,14 @@ public abstract class MwcRandom
     }
 
     /// <summary>
-    /// Returns a random ProtocolType in the range [0, max).
+    /// Returns a random value in the range [0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random ProtocolType in the range [0, max).</returns>
+    /// <returns>A random value in the range [0, max).</returns>
+    /// <remarks>
+    /// Returns 0 if max is 0 or 1. Optimized fast path for power-of-2 values.
+    /// Uses rejection sampling to avoid modulo bias for uniform distribution.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -130,20 +149,27 @@ public abstract class MwcRandom
     }
 
     /// <summary>
-    /// Returns a random ProtocolType in the range [min, max).
+    /// Returns a random value in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random ProtocolType in the range [min, max).</returns>
+    /// <returns>A random value in the range [min, max).</returns>
+    /// <remarks>
+    /// Returns min if min ≥ max. Delegates to Get(max - min) for uniform distribution.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.UInt32 Get(System.UInt32 min, System.UInt32 max) => min >= max ? min : min + Get(max - min);
 
     /// <summary>
-    /// Returns a 64-bit random ProtocolType.
+    /// Returns a 64-bit random value.
     /// </summary>
-    /// <returns>A random ProtocolType as a ulong.</returns>
+    /// <returns>A random value as a ulong.</returns>
+    /// <remarks>
+    /// Generates two 32-bit values and combines them to produce a 64-bit result.
+    /// This approach provides better statistical properties than simple concatenation.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -159,6 +185,10 @@ public abstract class MwcRandom
     /// Returns a random float in the range [0.0f, 1.0f).
     /// </summary>
     /// <returns>A random float.</returns>
+    /// <remarks>
+    /// Uses 24 bits of precision (matching the mantissa size of float) to ensure uniform distribution
+    /// across the entire range without precision loss.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -170,6 +200,10 @@ public abstract class MwcRandom
     /// Returns a random double in the range [0.0, 1.0).
     /// </summary>
     /// <returns>A random double.</returns>
+    /// <remarks>
+    /// Uses all 53 bits of precision available in a double's mantissa to ensure uniform distribution
+    /// across the entire range with maximum precision.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -187,6 +221,10 @@ public abstract class MwcRandom
     /// Fills the given buffer with random bytes.
     /// </summary>
     /// <param name="buffer">The buffer to fill with random bytes.</param>
+    /// <remarks>
+    /// Efficiently fills the buffer by processing 4 bytes at a time when possible,
+    /// minimizing the number of random number generations required.
+    /// </remarks>
     [System.Runtime.CompilerServices.SkipLocalsInit]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
