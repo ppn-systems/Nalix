@@ -1,8 +1,8 @@
 ﻿using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Core;
-using Nalix.Shared.Transport;
 using Nalix.Shared.Memory.Pooling;
+using Nalix.Shared.Transport;
 
 namespace Nalix.Network.Dispatch.Middleware.Pre;
 
@@ -11,7 +11,7 @@ namespace Nalix.Network.Dispatch.Middleware.Pre;
 /// a timeout response is sent to the client.
 /// </summary>
 /// <typeparam name="TPacket">The packet type implementing <see cref="IPacket"/> and <see cref="IPacketTransformer{TPacket}"/>.</typeparam>
-[PacketMiddleware(MiddlewareStage.Pre, order: 1, name: "Timeout")]
+[PacketMiddleware(MiddlewareStage.PreDispatch, order: 1, name: "Timeout")]
 public sealed class TimeoutMiddleware<TPacket> : IPacketMiddleware<TPacket>
     where TPacket : IPacket, IPacketTransformer<TPacket>
 {

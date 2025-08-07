@@ -1,4 +1,5 @@
 ﻿using Nalix.Common.Connection.Protocols;
+using Nalix.Common.Packets;
 using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Core;
@@ -13,7 +14,7 @@ namespace Nalix.Network.Dispatch.Middleware.Post;
 /// <typeparam name="TPacket">
 /// The type of packet, which must implement <see cref="IPacket"/> and <see cref="IPacketTransformer{TPacket}"/>.
 /// </typeparam>
-[PacketMiddleware(MiddlewareStage.Post, order: 2, name: "Wrap")]
+[PacketMiddleware(MiddlewareStage.PostDispatch, order: 2, name: "Wrap")]
 public class WrapPacketMiddleware<TPacket> : IPacketMiddleware<TPacket>
     where TPacket : IPacket, IPacketTransformer<TPacket>
 {
@@ -65,10 +66,9 @@ public class WrapPacketMiddleware<TPacket> : IPacketMiddleware<TPacket>
 
     private static System.Boolean ShouldCompress(in PacketContext<TPacket> context)
     {
-        System.Int32 length = context.Packet.Length;
-
-        return context.Packet.Transport == TransportProtocol.Tcp
-            ? length > 1500
-            : context.Packet.Transport == TransportProtocol.Udp && length > 600 && length < 1200;
+        return (context.Packet.Transport == TransportProtocol.Tcp)
+             ? (context.Packet.Length - PacketConstants.CompressionThreshold) > PacketConstants.CompressionThreshold
+             : (context.Packet.Transport == TransportProtocol.Udp) &&
+               (context.Packet.Length - PacketConstants.CompressionThreshold) is > 600 and < 1200;
     }
 }

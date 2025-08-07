@@ -29,15 +29,21 @@ public static class PacketConstants
     /// The threshold size (in bytes) for using heap-based memory allocation.
     /// This value represents the maximum size for which memory should be allocated from the heap instead of the stack.
     /// </summary>
-    public const System.Int32 HeapAllocLimit = 1024;
+    public const System.Int32 HeapAllocLimit = 0x0400;
 
     /// <summary>
     /// Maximum stack allocation size (in bytes).
     /// </summary>
-    public const System.Int32 StackAllocLimit = 512;
+    public const System.Int32 StackAllocLimit = 0x0200;
 
     /// <summary>
     /// The maximum allowed packet size (in bytes), which is 64KB (65535 bytes).
     /// </summary>
     public const System.Int32 PacketSizeLimit = 0xFFFF;
+
+    /// <summary>
+    /// The minimum payload size (in bytes) required to trigger compression.
+    /// Packets with a payload smaller than this threshold will not be compressed.
+    /// </summary>
+    public const System.Int32 CompressionThreshold = 0x0100;
 }
