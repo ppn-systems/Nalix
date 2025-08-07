@@ -1,6 +1,8 @@
 ﻿using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Core;
+using Nalix.Network.Dispatch.Middleware.Enums;
+using Nalix.Network.Dispatch.Middleware.Interfaces;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Transport;
 
