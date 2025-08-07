@@ -5,6 +5,7 @@ using Nalix.Common.Security.Cryptography;
 using Nalix.Common.Security.Identity;
 using Nalix.Common.Security.Types;
 using Nalix.Framework.Identity;
+using Nalix.Network.Connection.Internal;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Connection;
@@ -19,7 +20,7 @@ public sealed partial class Connection : IConnection
     private readonly ILogger? _logger;
     private readonly System.Threading.Lock _lock;
     private readonly System.Net.Sockets.Socket _socket;
-    private readonly Transport.TransportStream _cstream;
+    private readonly TransportStream _cstream;
     private readonly System.Threading.CancellationTokenSource _ctokens;
 
     private System.EventHandler<IConnectEventArgs>? _onCloseEvent;
@@ -49,7 +50,7 @@ public sealed partial class Connection : IConnection
         _socket = socket ?? throw new System.ArgumentNullException(nameof(socket));
 
 
-        _cstream = new Transport.TransportStream(socket, bufferAllocator, _logger)
+        _cstream = new TransportStream(socket, bufferAllocator, _logger)
         {
             Disconnected = () =>
             {

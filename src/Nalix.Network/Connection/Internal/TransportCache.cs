@@ -2,7 +2,7 @@ using Nalix.Framework.Time;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Caches;
 
-namespace Nalix.Network.Connection.Transport;
+namespace Nalix.Network.Connection.Internal;
 
 /// <summary>
 /// Provides a caching layer for network packets, supporting both outgoing and incoming traffic.

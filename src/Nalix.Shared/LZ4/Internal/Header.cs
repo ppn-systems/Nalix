@@ -14,7 +14,7 @@ namespace Nalix.Shared.LZ4.Internal;
 [System.Runtime.InteropServices.StructLayout(
     System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-public readonly struct Header(System.Int32 originalLength, System.Int32 compressedLength)
+internal readonly struct Header(System.Int32 originalLength, System.Int32 compressedLength)
 {
     /// <summary>
     /// The size of the header structure in bytes. This is the sum of the sizes of the two integer fields.
