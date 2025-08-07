@@ -96,4 +96,41 @@ public class TaskManagerTests
         Assert.Empty(tm.ListRecurring());
         Assert.Empty(tm.ListWorkers(runningOnly: false));
     }
+
+    [Fact]
+    public void TaskManagerOptions_validates_cleanup_interval()
+    {
+        var options = new Nalix.Framework.Options.TaskManagerOptions
+        {
+            CleanupInterval = TimeSpan.FromMilliseconds(500)
+        };
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.Validate());
+    }
+
+    [Fact]
+    public void TaskManagerOptions_accepts_valid_cleanup_interval()
+    {
+        var options = new Nalix.Framework.Options.TaskManagerOptions
+        {
+            CleanupInterval = TimeSpan.FromSeconds(5)
+        };
+
+        options.Validate(); // Should not throw
+        Assert.Equal(TimeSpan.FromSeconds(5), options.CleanupInterval);
+    }
+
+    [Fact]
+    public void TaskManager_uses_custom_cleanup_interval()
+    {
+        var options = new Nalix.Framework.Options.TaskManagerOptions
+        {
+            CleanupInterval = TimeSpan.FromSeconds(10)
+        };
+
+        var tm = new TaskManager(options);
+        // TaskManager should initialize successfully with custom options
+        Assert.NotNull(tm);
+        tm.Dispose();
+    }
 }

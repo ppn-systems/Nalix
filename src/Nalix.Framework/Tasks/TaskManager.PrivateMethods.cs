@@ -58,7 +58,15 @@ public partial class TaskManager
 
                 if (_workers.TryRemove(st.Id, out _))
                 {
-                    try { st.Cts.Dispose(); } catch { }
+                    try
+                    {
+                        st.Cts.Dispose();
+                    }
+                    catch (System.Exception ex)
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Warn($"[FW.{nameof(TaskManager)}] cleanup-cts-dispose-error id={st.Id} msg={ex.Message}");
+                    }
                 }
             }
         }
@@ -193,7 +201,15 @@ public partial class TaskManager
                 {
                     if (s.Options.NonReentrant)
                     {
-                        try { _ = s.Gate.Release(); } catch { /* ignore during shutdown */ }
+                        try
+                        {
+                            _ = s.Gate.Release();
+                        }
+                        catch (System.Exception ex)
+                        {
+                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                    .Warn($"[FW.{nameof(TaskManager)}:Internal] gate-release-error name={s.Name} msg={ex.Message}");
+                        }
                     }
                     next += step;
                 }
@@ -223,19 +239,20 @@ public partial class TaskManager
             return;
         }
 
-        System.Int32 pow = System.Math.Min(5, s.ConsecutiveFailures - n); // cap 32s
-        System.Int32 ms = 1000 << pow;
+        System.Int32 pow = System.Math.Min(5, s.ConsecutiveFailures - n); // cap at 2^5 = 32s
+        System.Int32 baseMs = 1000 << pow; // base delay: 1000ms * 2^pow
         System.Int32 cap = (System.Int32)System.Math.Max(1, s.Options.BackoffCap.TotalMilliseconds);
-        if (ms > cap)
-        {
-            ms = cap;
-        }
+        System.Int32 maxDelay = System.Math.Min(baseMs, cap);
 
-        System.Int32 jitter = Csprng.GetInt32(0, (ms / 4) + 1);
+        // Full jitter: random(0, min(base * 2^pow, cap))
+        // pow = min(5, ConsecutiveFailures - FailuresBeforeBackoff)
+        // baseMs = 1000ms * 2^pow, maxDelay = min(baseMs, cap)
+        // Prevents thundering herd while maintaining exponential backoff
+        System.Int32 delayMs = Csprng.GetInt32(0, maxDelay + 1);
 
         try
         {
-            await System.Threading.Tasks.Task.Delay(ms + jitter, ct).ConfigureAwait(false);
+            await System.Threading.Tasks.Task.Delay(delayMs, ct).ConfigureAwait(false);
         }
         catch (System.OperationCanceledException) { }
     }
@@ -270,7 +287,11 @@ public partial class TaskManager
             {
                 st.Cts.Dispose();
             }
-            catch { }
+            catch (System.Exception ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[FW.{nameof(TaskManager)}] retain-cts-dispose-error id={st.Id} msg={ex.Message}");
+            }
 
             System.Boolean hasSameGroup = false;
             foreach (WorkerState other in _workers.Values)
@@ -284,7 +305,15 @@ public partial class TaskManager
 
             if (!hasSameGroup && _groupGates.TryRemove(st.Group, out Gate? g))
             {
-                try { g.SemaphoreSlim.Dispose(); } catch { }
+                try
+                {
+                    g.SemaphoreSlim.Dispose();
+                }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[FW.{nameof(TaskManager)}] gate-dispose-error-retain group={st.Group} msg={ex.Message}");
+                }
             }
 
             return;
