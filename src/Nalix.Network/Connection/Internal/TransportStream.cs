@@ -4,7 +4,7 @@ using Nalix.Framework.Time;
 using Nalix.Network.Internal;
 using Nalix.Shared.Memory.Pooling;
 
-namespace Nalix.Network.Connection.Transport;
+namespace Nalix.Network.Connection.Internal;
 
 /// <summary>
 /// Manages the socket connection and handles sending/receiving data with caching and logging.
@@ -323,7 +323,7 @@ internal class TransportStream : System.IDisposable
                 }
                 finally
                 {
-                    ObjectPoolManager.Instance.Return<PooledSocketAsyncContext>(saea);
+                    ObjectPoolManager.Instance.Return(saea);
                 }
 
                 if (bytesRead == 0)
