@@ -74,7 +74,7 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
             }
 
             _stream.ReadExactly(sbuffer[2..]);
-            return TPacket.Deserialize(sbuffer);
+            return TPacket.Deserialize(sbuffer[2..]);
         }
 
         // Rent buffer for larger packets
@@ -87,8 +87,7 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
                 fixed (System.Byte* bufferPtr = buffer)
                 fixed (System.Byte* headerPtr = header)
                 {
-                    System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
-                        bufferPtr, headerPtr, 2);
+                    System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(bufferPtr, headerPtr, 2);
                 }
             }
 
@@ -96,7 +95,8 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
             _stream.ReadExactly(buffer, 2, length - 2);
 
             // Deserialize from buffer
-            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 0, length));
+            // Slice the packet body (excluding 2-byte length prefix)
+            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 2, length - 2));
         }
         finally
         {
@@ -162,7 +162,7 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
                 System.MemoryExtensions.AsMemory(sbuffer, 2, length - 2),
                 cancellationToken).ConfigureAwait(false);
 
-            return TPacket.Deserialize(sbuffer);
+            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(sbuffer, 2, length - 2));
         }
 
         // Rent buffer for larger packets
@@ -186,7 +186,7 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
                 cancellationToken).ConfigureAwait(false);
 
             // Deserialize from buffer
-            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 0, length));
+            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 2, length - 2));
         }
         finally
         {
@@ -233,7 +233,7 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
 
             // Create span from unsafe pointer
             System.Span<System.Byte> packetSpan = new(bufferPtr, length);
-            return TPacket.Deserialize(packetSpan);
+            return TPacket.Deserialize(packetSpan[2..]);
         }
 
         // For larger packets, still use ArrayPool but with unsafe optimizations
@@ -248,7 +248,7 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
             }
 
             _stream.ReadExactly(buffer, 2, length - 2);
-            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 0, length));
+            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 2, length - 2));
         }
         finally
         {

@@ -60,6 +60,13 @@ internal sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStre
             throw new System.InvalidOperationException("The network stream is not writable.");
         }
 
+        System.Byte[] header =
+        [
+            (System.Byte)((bytes.Length + sizeof(System.UInt16)) >> 8),
+            (System.Byte)((bytes.Length + sizeof(System.UInt16)) & 0xFF)
+        ];
+
+        await _stream.WriteAsync(header, cancellationToken).ConfigureAwait(false);
         await _stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
         await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -92,6 +99,13 @@ internal sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStre
             throw new System.InvalidOperationException("The network stream is not writable.");
         }
 
+        System.Span<System.Byte> header =
+        [
+            (System.Byte)((bytes.Length + sizeof(System.UInt16)) >> 8),
+            (System.Byte)((bytes.Length + sizeof(System.UInt16)) & 0xFF)
+        ];
+
+        _stream.Write(header);
         _stream.Write(bytes);
         _stream.Flush();
     }
