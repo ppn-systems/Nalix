@@ -1,4 +1,4 @@
-﻿namespace Nalix.Network.Dispatch.Middleware.Core;
+﻿namespace Nalix.Network.Dispatch.Middleware.Enums;
 
 
 /// <summary>
