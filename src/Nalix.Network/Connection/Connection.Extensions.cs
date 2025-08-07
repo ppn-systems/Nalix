@@ -11,6 +11,8 @@ internal static class ConnectionExtensions
         this IConnection connection,
         ConnectionLimiter limiter)
     {
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         void callback(System.Object? _, IConnectEventArgs __)
         {
             _ = limiter.ConnectionClosed(connection.RemoteEndPoint.ToIPAddress()!);
