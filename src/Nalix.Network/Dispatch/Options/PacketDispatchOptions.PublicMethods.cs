@@ -67,13 +67,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
     /// <remarks>
-    /// Pre-processing middleware allows for custom logic such as validation, authorization, logging,
+    /// PreDispatch-processing middleware allows for custom logic such as validation, authorization, logging,
     /// or modification of packet data before it reaches the main handler. Middleware is executed in the
     /// order it is added.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public PacketDispatchOptions<TPacket> WithPreMiddleware(
+    public PacketDispatchOptions<TPacket> WithPreDispatchMiddleware(
         IPacketMiddleware<TPacket> middleware)
     {
         _ = this._pipeline.UsePre(middleware);
@@ -90,12 +90,12 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
     /// <remarks>
-    /// Post-processing middleware is useful for tasks such as auditing, cleanup, metrics collection,
+    /// PostDispatch-processing middleware is useful for tasks such as auditing, cleanup, metrics collection,
     /// or response transformation. Middleware is executed in the order it is added.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public PacketDispatchOptions<TPacket> WithPostMiddleware(
+    public PacketDispatchOptions<TPacket> WithPostDispatchMiddleware(
         IPacketMiddleware<TPacket> middleware)
     {
         _ = this._pipeline.UsePost(middleware);

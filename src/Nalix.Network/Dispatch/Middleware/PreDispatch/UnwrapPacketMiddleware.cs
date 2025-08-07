@@ -14,7 +14,7 @@ namespace Nalix.Network.Dispatch.Middleware.Pre;
 /// <typeparam name="TPacket">
 /// The packet type, which must implement <see cref="IPacket"/> and <see cref="IPacketTransformer{TPacket}"/>.
 /// </typeparam>
-[PacketMiddleware(MiddlewareStage.Pre, order: 3, name: "Unwrap")]
+[PacketMiddleware(MiddlewareStage.PreDispatch, order: 3, name: "Unwrap")]
 public class UnwrapPacketMiddleware<TPacket> : IPacketMiddleware<TPacket>
     where TPacket : IPacket, IPacketTransformer<TPacket>
 {

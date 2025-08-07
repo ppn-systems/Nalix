@@ -18,7 +18,7 @@ public sealed class RateLimitOptions(RequestLimitSettings settings) : Configurat
 {
     #region Fields
 
-    // Pre-defined configurations to avoid memory allocations
+    // PreDispatch-defined configurations to avoid memory allocations
 
     private static readonly RequestLimitSettings LowSettings = new(10, 1000, 5000);
     private static readonly RequestLimitSettings MediumSettings = new(20, 1000, 3000);
