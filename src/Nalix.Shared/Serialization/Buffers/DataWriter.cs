@@ -8,8 +8,14 @@
     System.Runtime.InteropServices.LayoutKind.Auto)]
 public struct DataWriter
 {
+    #region Fields
+
     private readonly System.Boolean _rent;
     private System.Byte[] _buffer;
+
+    #endregion Fields
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of <see cref="DataWriter"/> with a rented buffer of the specified size.
@@ -45,6 +51,10 @@ public struct DataWriter
         _buffer = buffer;
     }
 
+    #endregion Constructors
+
+    #region Properties
+
     /// <summary>
     /// Gets the number of bytes written to the buffer.
     /// </summary>
@@ -77,6 +87,10 @@ public struct DataWriter
     /// </summary>
     public readonly System.Memory<System.Byte> WrittenMemory
         => System.MemoryExtensions.AsMemory(_buffer, 0, WrittenCount);
+
+    #endregion Properties
+
+    #region APIs
 
     /// <summary>
     /// Advances the write cursor by the specified count.
@@ -151,22 +165,14 @@ public struct DataWriter
     public readonly unsafe System.Byte[] ToArray()
     {
         System.Int32 payloadLength = WrittenCount;
-        System.Int32 totalLength = payloadLength + 2;
+        System.Byte[] result = new System.Byte[payloadLength];
 
-        var result = new System.Byte[totalLength];
-
-        fixed (System.Byte* ptr = result)
+        if (payloadLength > 0)
         {
-            // Write first 2 bytes long (including itself)
-            *(System.UInt16*)ptr = (System.UInt16)totalLength;
-
-            // Copy payload from _buffer to after 2 bytes
-            if (payloadLength > 0)
+            fixed (System.Byte* dst = result)
+            fixed (System.Byte* src = _buffer)
             {
-                fixed (System.Byte* src = _buffer)
-                {
-                    System.Buffer.MemoryCopy(src, ptr + 2, payloadLength, payloadLength);
-                }
+                System.Buffer.MemoryCopy(src, dst, payloadLength, payloadLength);
             }
         }
 
@@ -191,4 +197,6 @@ public struct DataWriter
             _buffer = null!;
         }
     }
+
+    #endregion APIs
 }
