@@ -10,7 +10,7 @@ public abstract partial class TcpListenerBase
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void Initialize()
     {
-        if (_config.EnableIPv6)
+        if (s_config.EnableIPv6)
         {
             // Try IPv6 + DualMode first
             System.Net.Sockets.Socket sock = null;
@@ -22,26 +22,26 @@ public abstract partial class TcpListenerBase
                 {
                     Blocking = true,
                     DualMode = true,                            // Must set before Bind
-                    ExclusiveAddressUse = !_config.ReuseAddress, // fast rebind combo with ReuseAddress
+                    ExclusiveAddressUse = !s_config.ReuseAddress, // fast rebind combo with ReuseAddress
                     LingerState = new System.Net.Sockets.LingerOption(false, 0)
                 };
 
                 // Reuse BEFORE bind
                 sock.SetSocketOption(
                     System.Net.Sockets.SocketOptionLevel.Socket,
-                    System.Net.Sockets.SocketOptionName.ReuseAddress, _config.ReuseAddress ? 1 : 0);
+                    System.Net.Sockets.SocketOptionName.ReuseAddress, s_config.ReuseAddress ? 1 : 0);
 
                 // Optional: larger listen buffer (per-connection tuning is more important)
                 sock.SetSocketOption(
                     System.Net.Sockets.SocketOptionLevel.Socket,
-                    System.Net.Sockets.SocketOptionName.ReceiveBuffer, _config.BufferSize);
+                    System.Net.Sockets.SocketOptionName.ReceiveBuffer, s_config.BufferSize);
 
                 System.Net.IPEndPoint epV6Any = new(System.Net.IPAddress.IPv6Any, this._port);
 
                 s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any}.v6)");
 
                 sock.Bind(epV6Any);
-                sock.Listen(_config.Backlog);
+                sock.Listen(s_config.Backlog);
 
                 _listener = sock;
                 s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}.dual");
@@ -74,24 +74,24 @@ public abstract partial class TcpListenerBase
             System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp)
         {
             Blocking = true,
-            ExclusiveAddressUse = !_config.ReuseAddress,
+            ExclusiveAddressUse = !s_config.ReuseAddress,
             LingerState = new System.Net.Sockets.LingerOption(false, 0)
         };
 
         _listener.SetSocketOption(
             System.Net.Sockets.SocketOptionLevel.Socket,
-            System.Net.Sockets.SocketOptionName.ReuseAddress, _config.ReuseAddress ? 1 : 0);
+            System.Net.Sockets.SocketOptionName.ReuseAddress, s_config.ReuseAddress ? 1 : 0);
 
         _listener.SetSocketOption(
             System.Net.Sockets.SocketOptionLevel.Socket,
-            System.Net.Sockets.SocketOptionName.ReceiveBuffer, _config.BufferSize);
+            System.Net.Sockets.SocketOptionName.ReceiveBuffer, s_config.BufferSize);
 
         System.Net.IPEndPoint epV4Any = new(System.Net.IPAddress.Any, this._port);
 
         s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any}.v4");
 
         _listener.Bind(epV4Any);
-        _listener.Listen(_config.Backlog);
+        _listener.Listen(s_config.Backlog);
 
         s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}");
     }
@@ -113,11 +113,11 @@ public abstract partial class TcpListenerBase
         socket.Blocking = true;
 
         // Performance tuning
-        socket.NoDelay = _config.NoDelay;
-        socket.SendBufferSize = _config.BufferSize;
-        socket.ReceiveBufferSize = _config.BufferSize;
+        socket.NoDelay = s_config.NoDelay;
+        socket.SendBufferSize = s_config.BufferSize;
+        socket.ReceiveBufferSize = s_config.BufferSize;
 
-        if (_config.KeepAlive)
+        if (s_config.KeepAlive)
         {
             // Windows specific settings
             socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Socket,
