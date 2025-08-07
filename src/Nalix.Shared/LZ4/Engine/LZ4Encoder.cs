@@ -1,4 +1,5 @@
 using Nalix.Shared.LZ4.Internal;
+using Nalix.Shared.Memory.Unsafe;
 
 namespace Nalix.Shared.LZ4.Engine;
 
@@ -30,7 +31,7 @@ internal readonly struct LZ4Encoder
         }
 
         // Ensure space for at least the header
-        if (output.Length < Header.Size)
+        if (output.Length < LZ4BlockHeader.Size)
         {
             return -1;
         }
@@ -40,7 +41,7 @@ internal readonly struct LZ4Encoder
         InitializeHashTable(hashTable);
 
         // Compress the data
-        System.Span<System.Byte> compressedDataOutput = output[Header.Size..];
+        System.Span<System.Byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
         System.Int32 compressedDataLength = Encoders.LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable);
 
         // Token compression failure
@@ -50,7 +51,7 @@ internal readonly struct LZ4Encoder
         }
 
         // WriteInt16 the header and return total compressed length
-        System.Int32 totalCompressedLength = Header.Size + compressedDataLength;
+        System.Int32 totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
         WriteHeader(output, input.Length, totalCompressedLength);
 
         return totalCompressedLength;
@@ -80,12 +81,12 @@ internal readonly struct LZ4Encoder
                 return false;
             }
 
-            bytesWritten = Header.Size;
+            bytesWritten = LZ4BlockHeader.Size;
             return true;
         }
 
         // Ensure space for at least the header
-        if (output.Length < Header.Size)
+        if (output.Length < LZ4BlockHeader.Size)
         {
             return false;
         }
@@ -95,7 +96,7 @@ internal readonly struct LZ4Encoder
         InitializeHashTable(hashTable);
 
         // Compress the data
-        System.Span<System.Byte> compressedDataOutput = output[Header.Size..];
+        System.Span<System.Byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
         System.Int32 compressedDataLength = Encoders.LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable);
 
         // Token compression failure
@@ -105,7 +106,7 @@ internal readonly struct LZ4Encoder
         }
 
         // WriteInt16 the header and calculate total compressed length
-        System.Int32 totalCompressedLength = Header.Size + compressedDataLength;
+        System.Int32 totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
         WriteHeader(output, input.Length, totalCompressedLength);
 
         bytesWritten = totalCompressedLength;
@@ -130,14 +131,14 @@ internal readonly struct LZ4Encoder
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Int32 WriteEmptyHeader(System.Span<System.Byte> output)
     {
-        if (output.Length < Header.Size)
+        if (output.Length < LZ4BlockHeader.Size)
         {
             return -1;
         }
 
-        Header header = new(0, Header.Size);
+        LZ4BlockHeader header = new(0, LZ4BlockHeader.Size);
         MemOps.WriteUnaligned(output, header);
-        return Header.Size;
+        return LZ4BlockHeader.Size;
     }
 
     /// <summary>
@@ -153,7 +154,7 @@ internal readonly struct LZ4Encoder
         System.Int32 originalLength,
         System.Int32 compressedLength)
     {
-        Header header = new(originalLength, compressedLength);
+        LZ4BlockHeader header = new(originalLength, compressedLength);
         MemOps.WriteUnaligned(output, header);
     }
 }

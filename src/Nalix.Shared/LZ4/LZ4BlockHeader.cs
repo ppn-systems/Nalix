@@ -1,4 +1,4 @@
-namespace Nalix.Shared.LZ4.Internal;
+namespace Nalix.Shared.LZ4;
 
 /// <summary>
 /// Defines the block header structure used in Nalix compression, which contains metadata
@@ -13,8 +13,7 @@ namespace Nalix.Shared.LZ4.Internal;
 /// <param name="compressedLength">The total length of the compressed data, including the header.</param>
 [System.Runtime.InteropServices.StructLayout(
     System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-internal readonly struct Header(System.Int32 originalLength, System.Int32 compressedLength)
+public readonly struct LZ4BlockHeader(System.Int32 originalLength, System.Int32 compressedLength)
 {
     /// <summary>
     /// The size of the header structure in bytes. This is the sum of the sizes of the two integer fields.

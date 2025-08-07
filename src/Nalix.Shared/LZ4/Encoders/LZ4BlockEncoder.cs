@@ -1,4 +1,5 @@
 using Nalix.Shared.LZ4.Internal;
+using Nalix.Shared.Memory.Unsafe;
 
 namespace Nalix.Shared.LZ4.Encoders;
 
@@ -17,7 +18,7 @@ public static unsafe class LZ4BlockEncoder
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 GetMaxLength(System.Int32 input)
-        => input + (input / 250) + Header.Size;
+        => input + (input / 250) + LZ4BlockHeader.Size;
 
     /// <summary>
     /// Compresses a block of input data into the output buffer using the LZ4 greedy algorithm.
@@ -82,7 +83,7 @@ public static unsafe class LZ4BlockEncoder
         System.Byte* matchFindInputLimit = inputEnd - LZ4CompressionConstants.LastLiteralSize - LZ4CompressionConstants.MinMatchLength;
 
         // Validate output buffer size
-        if (outputLength < Header.Size + 1)
+        if (outputLength < LZ4BlockHeader.Size + 1)
         {
             return -1;
         }

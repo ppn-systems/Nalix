@@ -1,5 +1,5 @@
 using Nalix.Shared.LZ4.Encoders;
-using Nalix.Shared.LZ4.Internal;
+using Nalix.Shared.Memory.Unsafe;
 
 namespace Nalix.Shared.LZ4.Engine;
 
@@ -41,12 +41,12 @@ internal readonly struct LZ4Decoder
         output = null;
         bytesWritten = 0;
 
-        if (input.Length < Header.Size)
+        if (input.Length < LZ4BlockHeader.Size)
         {
             return false;
         }
 
-        Header header = MemOps.ReadUnaligned<Header>(input);
+        LZ4BlockHeader header = MemOps.ReadUnaligned<LZ4BlockHeader>(input);
         if (header.OriginalLength < 0 || header.CompressedLength != input.Length)
         {
             return false;
@@ -71,12 +71,12 @@ internal readonly struct LZ4Decoder
     {
         bytesWritten = 0;
 
-        if (input.Length < Header.Size)
+        if (input.Length < LZ4BlockHeader.Size)
         {
             return false;
         }
 
-        Header header = MemOps.ReadUnaligned<Header>(input);
+        LZ4BlockHeader header = MemOps.ReadUnaligned<LZ4BlockHeader>(input);
         if (header.OriginalLength != output.Length || header.OriginalLength < 0)
         {
             return false;
@@ -90,7 +90,7 @@ internal readonly struct LZ4Decoder
         fixed (System.Byte* inputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(input))
         fixed (System.Byte* outputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(output))
         {
-            System.Byte* inputPtr = inputBase + Header.Size;
+            System.Byte* inputPtr = inputBase + LZ4BlockHeader.Size;
             System.Byte* inputEnd = inputBase + header.CompressedLength;
             System.Byte* outputPtr = outputBase;
             System.Byte* outputEnd = outputBase + header.OriginalLength;
