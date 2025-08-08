@@ -22,15 +22,15 @@ internal sealed class PacketAnalyzer<
     /// <summary>
     /// Caches compiled method delegates for each controller type to eliminate reflection.
     /// </summary>
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        System.Type, System.Collections.Frozen.FrozenDictionary<
-            System.UInt16, CompiledHandler<TPacket>>> _compiledMethodCache = new();
+    private static readonly global::System.Collections.Concurrent.ConcurrentDictionary<
+        global::System.Type, global::System.Collections.Frozen.FrozenDictionary<
+            global::System.UInt16, CompiledHandler<TPacket>>> _compiledMethodCache = new();
 
     /// <summary>
     /// Caches attribute lookups per method for performance.
     /// </summary>
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        System.Reflection.MethodInfo, PacketMetadata> _attributeCache = new();
+    private static readonly global::System.Collections.Concurrent.ConcurrentDictionary<
+        global::System.Reflection.MethodInfo, PacketMetadata> _attributeCache = new();
 
     #endregion
 
@@ -39,7 +39,8 @@ internal sealed class PacketAnalyzer<
     /// </summary>
     /// <param name="factory">A factory method that creates a controller instance.</param>
     /// <returns>An array of compiled packet handler delegates.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [global::System.Runtime.CompilerServices.MethodImpl(
+        global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PacketHandlerDelegate<TPacket>[] ScanController(System.Func<TController> factory)
     {
         var controllerType = typeof(TController);
