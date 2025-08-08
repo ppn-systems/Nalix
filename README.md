@@ -2,10 +2,10 @@
 
 ![.NET](https://img.shields.io/badge/.NET-10.0-blueviolet?logo=dotnet&logoColor=white)
 
+![GitHub License](https://img.shields.io/github/license/phcnguyen/Nalix?style=flat-square)
 ![NuGet Version](https://img.shields.io/nuget/v/Nalix.Common?style=flat-square&logo=nuget)
 ![NuGet Downloads](https://img.shields.io/nuget/dt/Nalix.Common?style=flat-square&logo=nuget)
 
-![GitHub License](https://img.shields.io/github/license/phcnguyen/Nalix?style=flat-square)
 ![Issues](https://img.shields.io/github/issues/ppn-systems/Nalix)
 ![PRs](https://img.shields.io/github/issues-pr/ppn-systems/Nalix)
 ![GitHub file size in bytes](https://img.shields.io/github/repo-size/ppn-systems/Nalix)
@@ -36,13 +36,13 @@ Nalix is a real-time server solution designed for efficient communication and da
 ## 🔧 Requirements
 
 - .NET 10 and C# 14 support
-- Install .NET SDK 9 from [dotnet.microsoft.com](https://dotnet.microsoft.com/)
+- Install .NET SDK 10 from [dotnet.microsoft.com](https://dotnet.microsoft.com/)
 - `Visual Studio 2026` [**Download Visual Studio**](https://visualstudio.microsoft.com/downloads/)
 
 ## 💻 Technologies
 
 - C#
-- .Net 9
+- .Net 10
 - Console Debug Logging
 - XUnit Testing
 
@@ -52,12 +52,12 @@ Nalix is a real-time server solution designed for efficient communication and da
 
 | Package ID         |Description                             | Install Command                            |
 |--------------------|----------------------------------------|--------------------------------------------|
+| **Nalix.SDK**      | Client-side SDK offering controllers, time sync, and localization utilities for connecting to Nalix.Network.| `dotnet add package Nalix.SDK`|
 | **Nalix.Common**   | Core abstractions, enums, and shared contracts for the Nalix ecosystem.| `dotnet add package Nalix.Common`|
-| **Nalix.Framework**| High-level framework providing cryptography, identity, injection, randomization, and task orchestration.| `dotnet add package Nalix.Framework`|
+| **Nalix.Shared**   | Shared low-level utilities and primitives such as memory pooling, LZ4 compression, and lightweight serialization.| `dotnet add package Nalix.Shared`          |
 | **Nalix.Logging**  | Asynchronous and high-performance logging subsystem with batching and multiple sinks.| `dotnet add package Nalix.Logging`|
 | **Nalix.Network**  | Core networking runtime providing TCP/UDP connections, protocol pipelines, and throttling.| `dotnet add package Nalix.Network`|
-| **Nalix.Shared**   | Shared low-level utilities and primitives such as memory pooling, LZ4 compression, and lightweight serialization.| `dotnet add package Nalix.Shared`          |
-| **Nalix.SDK**      | Client-side SDK offering controllers, time sync, and localization utilities for connecting to Nalix.Network.| `dotnet add package Nalix.SDK`|
+| **Nalix.Framework**| High-level framework providing cryptography, identity, injection, randomization, and task orchestration.| `dotnet add package Nalix.Framework`|
 
 ## 📦 Installation
 
