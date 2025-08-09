@@ -39,8 +39,8 @@ internal sealed class PacketAnalyzer<
     /// </summary>
     /// <param name="factory">A factory method that creates a controller instance.</param>
     /// <returns>An array of compiled packet handler delegates.</returns>
-    [global::System.Runtime.CompilerServices.MethodImpl(
-        global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PacketHandlerDelegate<TPacket>[] ScanController(System.Func<TController> factory)
     {
         var controllerType = typeof(TController);
@@ -85,7 +85,8 @@ internal sealed class PacketAnalyzer<
     /// </summary>
     /// <param name="controllerType">The controller type.</param>
     /// <returns>A frozen dictionary of compiled handler delegates indexed by opcode.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Collections.Frozen.FrozenDictionary<System.UInt16, CompiledHandler<TPacket>>
         GetOrCompileMethodAccessors(
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
@@ -131,11 +132,13 @@ internal sealed class PacketAnalyzer<
     /// </summary>
     /// <param name="method">The method to compile.</param>
     /// <returns>A compiled handler delegate.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality",
+        "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
         "IL2072:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. " +
         "The return value of the source method does not have matching annotations.", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality",
-        "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     private static CompiledHandler<TPacket> CompileMethodAccessor(System.Reflection.MethodInfo method)
     {
         var instanceParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
@@ -237,7 +240,8 @@ internal sealed class PacketAnalyzer<
     /// </summary>
     /// <param name="method">The method to scan.</param>
     /// <returns>The parsed packet metadata.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static PacketMetadata GetCachedAttributes(System.Reflection.MethodInfo method)
     {
         return _attributeCache.GetOrAdd(method, static m => new PacketMetadata(
@@ -251,7 +255,8 @@ internal sealed class PacketAnalyzer<
     /// <summary>
     /// Gets the 'Result' property info from a Task/ValueTask generic return type.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Reflection.PropertyInfo? GetResultProperty(
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]
