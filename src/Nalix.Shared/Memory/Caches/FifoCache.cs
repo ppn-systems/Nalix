@@ -1,32 +1,24 @@
-using System;
-using System.Collections;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Threading;
-
 namespace Nalix.Shared.Memory.Caches;
 
 /// <summary>
 /// A high-performance First-In-First-Out (FIFO) cache optimized for real-time server environments.
 /// </summary>
 /// <typeparam name="T">The type of elements stored in the cache.</typeparam>
-public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
+public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generic.IEnumerable<T>
 {
     #region Fields
 
-    private readonly ConcurrentQueue<T> _queue;
-    private Int32 _currentSize;
-    private readonly ReaderWriterLockSlim _cacheLock = new(LockRecursionPolicy.NoRecursion);
-    private Boolean _isDisposed;
+    private readonly System.Collections.Concurrent.ConcurrentQueue<T> _queue;
+    private System.Int32 _currentSize;
+    private readonly System.Threading.ReaderWriterLockSlim _cacheLock;
+    private System.Boolean _isDisposed;
 
     // Caches statistics
-    private Int64 _additions;
 
-    private Int64 _removals;
-    private Int64 _trimOperations;
-    private readonly Stopwatch _uptime = Stopwatch.StartNew();
+    private System.Int64 _additions;
+    private System.Int64 _removals;
+    private System.Int64 _trimOperations;
+    private readonly System.Diagnostics.Stopwatch _uptime = System.Diagnostics.Stopwatch.StartNew();
 
     #endregion Fields
 
@@ -35,42 +27,42 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// <summary>
     /// Gets the maximum capacity of the cache.
     /// </summary>
-    public Int32 Capacity { get; }
+    public System.Int32 Capacity { get; }
 
     /// <summary>
     /// Gets the TransportProtocol of elements currently stored in the cache.
     /// </summary>
-    public Int32 Count => Volatile.Read(ref _currentSize);
+    public System.Int32 Count => System.Threading.Volatile.Read(ref _currentSize);
 
     /// <summary>
     /// Gets the TransportProtocol of items added to the cache.
     /// </summary>
-    public Int64 Additions => Interlocked.Read(ref _additions);
+    public System.Int64 Additions => System.Threading.Interlocked.Read(ref _additions);
 
     /// <summary>
     /// Gets the TransportProtocol of items removed from the cache.
     /// </summary>
-    public Int64 Removals => Interlocked.Read(ref _removals);
+    public System.Int64 Removals => System.Threading.Interlocked.Read(ref _removals);
 
     /// <summary>
     /// Gets the TransportProtocol of trim operations performed on the cache.
     /// </summary>
-    public Int64 TrimOperations => Interlocked.Read(ref _trimOperations);
+    public System.Int64 TrimOperations => System.Threading.Interlocked.Read(ref _trimOperations);
 
     /// <summary>
     /// Gets the uptime of the cache in milliseconds.
     /// </summary>
-    public Int64 UptimeMs => _uptime.ElapsedMilliseconds;
+    public System.Int64 UptimeMs => _uptime.ElapsedMilliseconds;
 
     /// <summary>
     /// Gets a value indicating whether the cache is empty.
     /// </summary>
-    public Boolean IsEmpty => Count == 0;
+    public System.Boolean IsEmpty => Count == 0;
 
     /// <summary>
     /// Gets a value indicating whether the cache is at capacity.
     /// </summary>
-    public Boolean IsFull => Count >= Capacity;
+    public System.Boolean IsFull => Count >= Capacity;
 
     #endregion Properties
 
@@ -80,17 +72,19 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// Initializes a new instance of the <see cref="FifoCache{T}"/> class with the specified capacity.
     /// </summary>
     /// <param name="capacity">The maximum TransportProtocol of elements the cache can hold.</param>
-    /// <exception cref="ArgumentException">Thrown when the capacity is less than or equal to zero.</exception>
-    public FifoCache(Int32 capacity)
+    /// <exception cref="System.ArgumentException">Thrown when the capacity is less than or equal to zero.</exception>
+    public FifoCache(System.Int32 capacity)
     {
         if (capacity <= 0)
         {
-            throw new ArgumentException("Capacity must be greater than zero.", nameof(capacity));
+            throw new System.ArgumentException("Capacity must be greater than zero.", nameof(capacity));
         }
 
-        Capacity = capacity;
-        _queue = new ConcurrentQueue<T>();
+        this.Capacity = capacity;
+
         _currentSize = 0;
+        _queue = new System.Collections.Concurrent.ConcurrentQueue<T>();
+        _cacheLock = new(System.Threading.LockRecursionPolicy.NoRecursion);
     }
 
     #endregion Constructor
@@ -101,15 +95,16 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// Adds an element to the cache. If the cache is at capacity, the oldest element is removed.
     /// </summary>
     /// <param name="item">The element to add to the cache.</param>
-    /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Push(T item)
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
 
         _queue.Enqueue(item);
-        _ = Interlocked.Increment(ref _currentSize);
-        _ = Interlocked.Increment(ref _additions);
+        _ = System.Threading.Interlocked.Increment(ref _currentSize);
+        _ = System.Threading.Interlocked.Increment(ref _additions);
 
         TrimExcess();
     }
@@ -118,15 +113,16 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// Adds multiple elements to the cache in a batch operation.
     /// </summary>
     /// <param name="items">The elements to add to the cache.</param>
-    /// <exception cref="ArgumentNullException">Thrown when the items collection is null.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Push(IEnumerable<T> items)
+    /// <exception cref="System.ArgumentNullException">Thrown when the items collection is null.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Push(System.Collections.Generic.IEnumerable<T> items)
     {
-        ArgumentNullException.ThrowIfNull(items);
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ArgumentNullException.ThrowIfNull(items);
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
 
-        Int32 addedCount = 0;
+        System.Int32 addedCount = 0;
         foreach (var item in items)
         {
             _queue.Enqueue(item);
@@ -135,8 +131,8 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
 
         if (addedCount > 0)
         {
-            _ = Interlocked.Add(ref _currentSize, addedCount);
-            _ = Interlocked.Add(ref _additions, addedCount);
+            _ = System.Threading.Interlocked.Add(ref _currentSize, addedCount);
+            _ = System.Threading.Interlocked.Add(ref _additions, addedCount);
             TrimExcess();
         }
     }
@@ -145,14 +141,15 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// Removes and returns the oldest element from the cache.
     /// </summary>
     /// <returns>The oldest element in the cache.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the cache is empty.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <exception cref="System.InvalidOperationException">Thrown when the cache is empty.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T Pop()
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
 
-        return !TryPop(out T? result) ? throw new InvalidOperationException("FifoCache is empty.") : result!;
+        return !TryPop(out T? result) ? throw new System.InvalidOperationException("FifoCache is empty.") : result!;
     }
 
     /// <summary>
@@ -160,16 +157,17 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// </summary>
     /// <param name="value">When this method returns, contains the oldest element in the cache, if the cache is not empty; otherwise, the default value for the type of the value parameter.</param>
     /// <returns><c>true</c> if the oldest element was removed and returned successfully; otherwise, <c>false</c>.</returns>
-    /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Boolean TryPop(out T? value)
+    /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean TryPop(out T? value)
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
 
         if (_queue.TryDequeue(out value))
         {
-            _ = Interlocked.Decrement(ref _currentSize);
-            _ = Interlocked.Increment(ref _removals);
+            _ = System.Threading.Interlocked.Decrement(ref _currentSize);
+            _ = System.Threading.Interlocked.Increment(ref _removals);
             return true;
         }
 
@@ -181,11 +179,12 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// </summary>
     /// <param name="value">When this method returns, contains the oldest element in the cache, if the cache is not empty; otherwise, the default value for the type of the value parameter.</param>
     /// <returns><c>true</c> if the oldest element was retrieved successfully; otherwise, <c>false</c>.</returns>
-    /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Boolean TryPeek(out T? value)
+    /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean TryPeek(out T? value)
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
         return _queue.TryPeek(out value);
     }
 
@@ -194,22 +193,23 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// </summary>
     /// <param name="count">The TransportProtocol of elements to retrieve.</param>
     /// <returns>A list containing the retrieved elements.</returns>
-    /// <exception cref="ArgumentException">Thrown when the count is less than or equal to zero.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public List<T> PopBatch(Int32 count)
+    /// <exception cref="System.ArgumentException">Thrown when the count is less than or equal to zero.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Collections.Generic.List<T> PopBatch(System.Int32 count)
     {
         if (count <= 0)
         {
-            throw new ArgumentException("Count must be greater than zero.", nameof(count));
+            throw new System.ArgumentException("Count must be greater than zero.", nameof(count));
         }
 
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
 
-        var result = new List<T>(Math.Min(count, Count));
-        Int32 retrieved = 0;
+        System.Collections.Generic.List<T> result = new(System.Math.Min(count, Count));
+        System.Int32 retrieved = 0;
 
-        for (Int32 i = 0; i < count; i++)
+        for (System.Int32 i = 0; i < count; i++)
         {
             if (TryPop(out T? item) && item is not null)
             {
@@ -229,18 +229,20 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// <summary>
     /// Clears all elements from the cache.
     /// </summary>
-    /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Clear()
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
 
         _cacheLock.EnterWriteLock();
         try
         {
-            Int32 itemsCleared = Count;
+            System.Int32 itemsCleared = Count;
             _queue.Clear();
-            _ = Interlocked.Exchange(ref _currentSize, 0);
-            _ = Interlocked.Add(ref _removals, itemsCleared);
+            _ = System.Threading.Interlocked.Exchange(ref _currentSize, 0);
+            _ = System.Threading.Interlocked.Add(ref _removals, itemsCleared);
         }
         finally
         {
@@ -251,15 +253,16 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// <summary>
     /// Resets the cache statistics without clearing the cache elements.
     /// </summary>
-    /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ResetStatistics()
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
 
-        _ = Interlocked.Exchange(ref _additions, 0);
-        _ = Interlocked.Exchange(ref _removals, 0);
-        _ = Interlocked.Exchange(ref _trimOperations, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _additions, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _removals, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _trimOperations, 0);
         _uptime.Restart();
     }
 
@@ -267,13 +270,14 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// Gets a snapshot of the current cache statistics.
     /// </summary>
     /// <returns>A dictionary containing cache statistics.</returns>
-    /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Dictionary<String, Object> GetStatistics()
+    /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Collections.Generic.Dictionary<System.String, System.Object> GetStatistics()
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
 
-        return new Dictionary<String, Object>
+        return new System.Collections.Generic.Dictionary<System.String, System.Object>
         {
             ["Capacity"] = Capacity,
             ["Count"] = Count,
@@ -291,11 +295,12 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// </summary>
     /// <remarks>This operation does not remove elements from the cache.</remarks>
     /// <returns>An array containing the elements of the cache.</returns>
-    /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T[] ToArray()
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
         return [.. _queue];
     }
 
@@ -304,11 +309,12 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// </summary>
     /// <remarks>This operation does not remove elements from the cache.</remarks>
     /// <returns>An enumerator for the cache.</returns>
-    /// <exception cref="ObjectDisposedException">Thrown when the cache has been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public IEnumerator<T> GetEnumerator()
+    /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Collections.Generic.IEnumerator<T> GetEnumerator()
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
         return _queue.GetEnumerator();
     }
 
@@ -316,8 +322,9 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// Returns an enumerator that iterates through the cache.
     /// </summary>
     /// <returns>An enumerator for the cache.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 
     #endregion Public Methods
 
@@ -326,7 +333,8 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
     /// <summary>
     /// Trims excess items if the cache exceeds its capacity.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void TrimExcess()
     {
         // Fast path if we know we're within capacity
@@ -339,14 +347,14 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
         _cacheLock.EnterWriteLock();
         try
         {
-            Int32 excessCount = Count - Capacity;
+            System.Int32 excessCount = Count - Capacity;
             if (excessCount <= 0)
             {
                 return;
             }
 
-            Int32 removed = 0;
-            for (Int32 i = 0; i < excessCount; i++)
+            System.Int32 removed = 0;
+            for (System.Int32 i = 0; i < excessCount; i++)
             {
                 if (_queue.TryDequeue(out _))
                 {
@@ -362,9 +370,9 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
             // Update stats
             if (removed > 0)
             {
-                _ = Interlocked.Add(ref _currentSize, -removed);
-                _ = Interlocked.Add(ref _removals, removed);
-                _ = Interlocked.Increment(ref _trimOperations);
+                _ = System.Threading.Interlocked.Add(ref _currentSize, -removed);
+                _ = System.Threading.Interlocked.Add(ref _removals, removed);
+                _ = System.Threading.Interlocked.Increment(ref _trimOperations);
             }
         }
         finally
@@ -389,7 +397,7 @@ public sealed class FifoCache<T> : IDisposable, IEnumerable<T>
 
         _isDisposed = true;
         _cacheLock.Dispose();
-        GC.SuppressFinalize(this);
+        System.GC.SuppressFinalize(this);
     }
 
     #endregion IDisposable

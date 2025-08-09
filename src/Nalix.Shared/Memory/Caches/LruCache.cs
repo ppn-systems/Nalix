@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Threading;
-
 namespace Nalix.Shared.Memory.Caches;
 
 /// <summary>
@@ -11,7 +5,7 @@ namespace Nalix.Shared.Memory.Caches;
 /// </summary>
 /// <typeparam name="TKey">The type of the cache key.</typeparam>
 /// <typeparam name="TValue">The type of the cache value.</typeparam>
-public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
+public class LruCache<TKey, TValue> : System.IDisposable where TKey : notnull
 {
     #region Nested Types
 
@@ -20,8 +14,8 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     {
         public TKey Key { get; init; } = default!;
         public TValue? Value { get; set; }
-        public DateTime LastAccessTime { get; set; }
-        public Int64 AccessCount { get; set; }
+        public System.Int64 AccessCount { get; set; }
+        public System.DateTime LastAccessTime { get; set; }
     }
 
     #endregion Nested Types
@@ -29,20 +23,19 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     #region Fields
 
     // Core data structures
-
-    private readonly ReaderWriterLockSlim _cacheLock = new(LockRecursionPolicy.NoRecursion);
-    private readonly LinkedList<CacheItem> _usageOrder = new();
-    private readonly Dictionary<TKey, LinkedListNode<CacheItem>> _cacheMap;
+    private readonly System.Diagnostics.Stopwatch _uptime = System.Diagnostics.Stopwatch.StartNew();
+    private readonly System.Threading.ReaderWriterLockSlim _cacheLock;
+    private readonly System.Collections.Generic.LinkedList<CacheItem> _usageOrder = new();
+    private readonly System.Collections.Generic.Dictionary<
+        TKey, System.Collections.Generic.LinkedListNode<CacheItem>> _cacheMap;
 
     // Caches statistics
-    private Int64 _hits;
-
-    private Int64 _misses;
-    private Int64 _evictions;
-    private Int64 _additions;
-    private Int64 _updates;
-    private readonly Stopwatch _uptime = Stopwatch.StartNew();
-    private Boolean _isDisposed;
+    private System.Int64 _hits;
+    private System.Int64 _misses;
+    private System.Int64 _evictions;
+    private System.Int64 _additions;
+    private System.Int64 _updates;
+    private System.Boolean _isDisposed;
 
     #endregion Fields
 
@@ -51,12 +44,12 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <summary>
     /// Gets the capacity of the cache.
     /// </summary>
-    public Int32 Capacity { get; }
+    public System.Int32 Capacity { get; }
 
     /// <summary>
     /// Gets the current count of items in the cache.
     /// </summary>
-    public Int32 Count
+    public System.Int32 Count
     {
         get
         {
@@ -75,56 +68,56 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <summary>
     /// Gets the TransportProtocol of cache hits.
     /// </summary>
-    public Int64 Hits => Interlocked.Read(ref _hits);
+    public System.Int64 Hits => System.Threading.Interlocked.Read(ref _hits);
 
     /// <summary>
     /// Gets the TransportProtocol of cache misses.
     /// </summary>
-    public Int64 Misses => Interlocked.Read(ref _misses);
+    public System.Int64 Misses => System.Threading.Interlocked.Read(ref _misses);
 
     /// <summary>
     /// Gets the hit ratio (hits / total accesses).
     /// </summary>
-    public Double HitRatio
+    public System.Double HitRatio
     {
         get
         {
-            Int64 hits = Hits;
-            Int64 misses = Misses;
-            Int64 total = hits + misses;
-            return total == 0 ? 0 : (Double)hits / total;
+            System.Int64 hits = Hits;
+            System.Int64 misses = Misses;
+            System.Int64 total = hits + misses;
+            return total == 0 ? 0 : (System.Double)hits / total;
         }
     }
 
     /// <summary>
     /// Gets the TransportProtocol of items evicted from the cache.
     /// </summary>
-    public Int64 Evictions => Interlocked.Read(ref _evictions);
+    public System.Int64 Evictions => System.Threading.Interlocked.Read(ref _evictions);
 
     /// <summary>
     /// Gets the TransportProtocol of items added to the cache.
     /// </summary>
-    public Int64 Additions => Interlocked.Read(ref _additions);
+    public System.Int64 Additions => System.Threading.Interlocked.Read(ref _additions);
 
     /// <summary>
     /// Gets the TransportProtocol of items updated in the cache.
     /// </summary>
-    public Int64 Updates => Interlocked.Read(ref _updates);
+    public System.Int64 Updates => System.Threading.Interlocked.Read(ref _updates);
 
     /// <summary>
     /// Gets the uptime of the cache in milliseconds.
     /// </summary>
-    public Int64 UptimeMs => _uptime.ElapsedMilliseconds;
+    public System.Int64 UptimeMs => _uptime.ElapsedMilliseconds;
 
     /// <summary>
     /// Returns an enumerable collection of the keys in the cache.
     /// </summary>
     /// <returns>An enumerable collection of the keys in the cache.</returns>
-    public IEnumerable<TKey> Keys
+    public System.Collections.Generic.IEnumerable<TKey> Keys
     {
         get
         {
-            ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
+            System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
             _cacheLock.EnterReadLock();
             try
             {
@@ -149,16 +142,20 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// </summary>
     /// <param name="capacity">The maximum TransportProtocol of items in the cache.</param>
     /// <param name="comparer">Optional custom equality comparer for keys.</param>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when capacity is less than 1.</exception>
-    public LruCache(Int32 capacity, IEqualityComparer<TKey>? comparer = null)
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown when capacity is less than 1.</exception>
+    public LruCache(System.Int32 capacity,
+        System.Collections.Generic.IEqualityComparer<TKey>? comparer = null)
     {
         if (capacity < 1)
         {
-            throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be at least 1.");
+            throw new System.ArgumentOutOfRangeException(nameof(capacity), "Capacity must be at least 1.");
         }
 
-        Capacity = capacity;
-        _cacheMap = new Dictionary<TKey, LinkedListNode<CacheItem>>(capacity, comparer);
+        this.Capacity = capacity;
+
+        _cacheMap = new(capacity, comparer);
+        _uptime = System.Diagnostics.Stopwatch.StartNew();
+        _cacheLock = new(System.Threading.LockRecursionPolicy.NoRecursion);
     }
 
     #endregion Constructors
@@ -170,30 +167,32 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// </summary>
     /// <param name="key">The key of the item.</param>
     /// <param name="value">The value of the item.</param>
-    /// <exception cref="ArgumentNullException">Thrown when key is null.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <exception cref="System.ArgumentNullException">Thrown when key is null.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Add(TKey key, TValue value)
     {
         if (key == null)
         {
-            throw new ArgumentNullException(nameof(key));
+            throw new System.ArgumentNullException(nameof(key));
         }
 
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
         _cacheLock.EnterWriteLock();
         try
         {
-            if (_cacheMap.TryGetValue(key, out LinkedListNode<CacheItem>? node))
+            if (_cacheMap.TryGetValue(key,
+                out System.Collections.Generic.LinkedListNode<CacheItem>? node))
             {
                 // Update existing item
                 _usageOrder.Remove(node);
                 node.Value.Value = value;
-                node.Value.LastAccessTime = DateTime.UtcNow;
+                node.Value.LastAccessTime = System.DateTime.UtcNow;
                 node.Value.AccessCount++;
                 _usageOrder.AddFirst(node);
 
-                _ = Interlocked.Increment(ref _updates);
+                _ = System.Threading.Interlocked.Increment(ref _updates);
             }
             else
             {
@@ -205,7 +204,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
                     {
                         _usageOrder.RemoveLast();
                         _ = _cacheMap.Remove(lastNode.Value.Key);
-                        _ = Interlocked.Increment(ref _evictions);
+                        _ = System.Threading.Interlocked.Increment(ref _evictions);
                     }
                 }
 
@@ -214,15 +213,15 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
                 {
                     Key = key,
                     Value = value,
-                    LastAccessTime = DateTime.UtcNow,
+                    LastAccessTime = System.DateTime.UtcNow,
                     AccessCount = 1
                 };
 
-                LinkedListNode<CacheItem> newNode = new(newItem);
+                System.Collections.Generic.LinkedListNode<CacheItem> newNode = new(newItem);
                 _usageOrder.AddFirst(newNode);
                 _cacheMap[key] = newNode;
 
-                _ = Interlocked.Increment(ref _additions);
+                _ = System.Threading.Interlocked.Increment(ref _additions);
             }
         }
         finally
@@ -236,22 +235,24 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// </summary>
     /// <param name="key">The key of the item to get.</param>
     /// <returns>The value associated with the specified key.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when key is null.</exception>
-    /// <exception cref="KeyNotFoundException">Thrown when the key is not found in the cache.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <exception cref="System.ArgumentNullException">Thrown when key is null.</exception>
+    /// <exception cref="System.Collections.Generic.KeyNotFoundException">Thrown when the key is not found in the cache.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public TValue GetValue(TKey key)
     {
         if (key == null)
         {
-            throw new ArgumentNullException(nameof(key));
+            throw new System.ArgumentNullException(nameof(key));
         }
 
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
         _cacheLock.EnterUpgradeableReadLock();
         try
         {
-            if (_cacheMap.TryGetValue(key, out LinkedListNode<CacheItem>? node))
+            if (_cacheMap.TryGetValue(key,
+                out System.Collections.Generic.LinkedListNode<CacheItem>? node))
             {
                 // Move the accessed node to the front
                 _cacheLock.EnterWriteLock();
@@ -259,7 +260,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
                 {
                     _usageOrder.Remove(node);
                     _usageOrder.AddFirst(node);
-                    node.Value.LastAccessTime = DateTime.UtcNow;
+                    node.Value.LastAccessTime = System.DateTime.UtcNow;
                     node.Value.AccessCount++;
                 }
                 finally
@@ -267,12 +268,12 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
                     _cacheLock.ExitWriteLock();
                 }
 
-                _ = Interlocked.Increment(ref _hits);
+                _ = System.Threading.Interlocked.Increment(ref _hits);
                 return node.Value.Value!;
             }
 
-            _ = Interlocked.Increment(ref _misses);
-            throw new KeyNotFoundException("The key was not found in the cache.");
+            _ = System.Threading.Interlocked.Increment(ref _misses);
+            throw new System.Collections.Generic.KeyNotFoundException("The key was not found in the cache.");
         }
         finally
         {
@@ -286,21 +287,23 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <param name="key">The key of the item to get.</param>
     /// <param name="value">When this method returns, contains the value associated with the specified key, if the key is found; otherwise, the default value for the type of the value parameter.</param>
     /// <returns>true if the key was found in the cache; otherwise, false.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when key is null.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Boolean TryGetValue(TKey key, out TValue? value)
+    /// <exception cref="System.ArgumentNullException">Thrown when key is null.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean TryGetValue(TKey key, out TValue? value)
     {
         if (key == null)
         {
-            throw new ArgumentNullException(nameof(key));
+            throw new System.ArgumentNullException(nameof(key));
         }
 
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
         _cacheLock.EnterUpgradeableReadLock();
         try
         {
-            if (_cacheMap.TryGetValue(key, out LinkedListNode<CacheItem>? node))
+            if (_cacheMap.TryGetValue(key,
+                out System.Collections.Generic.LinkedListNode<CacheItem>? node))
             {
                 // Move the accessed node to the front
                 _cacheLock.EnterWriteLock();
@@ -308,7 +311,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
                 {
                     _usageOrder.Remove(node);
                     _usageOrder.AddFirst(node);
-                    node.Value.LastAccessTime = DateTime.UtcNow;
+                    node.Value.LastAccessTime = System.DateTime.UtcNow;
                     node.Value.AccessCount++;
                 }
                 finally
@@ -317,12 +320,12 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
                 }
 
                 value = node.Value.Value;
-                _ = Interlocked.Increment(ref _hits);
+                _ = System.Threading.Interlocked.Increment(ref _hits);
                 return true;
             }
 
             value = default;
-            _ = Interlocked.Increment(ref _misses);
+            _ = System.Threading.Interlocked.Increment(ref _misses);
             return false;
         }
         finally
@@ -336,16 +339,17 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// </summary>
     /// <param name="key">The key to locate in the cache.</param>
     /// <returns>true if the cache contains an element with the specified key; otherwise, false.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when key is null.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Boolean ContainsKey(TKey key)
+    /// <exception cref="System.ArgumentNullException">Thrown when key is null.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean ContainsKey(TKey key)
     {
         if (key == null)
         {
-            throw new ArgumentNullException(nameof(key));
+            throw new System.ArgumentNullException(nameof(key));
         }
 
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
         _cacheLock.EnterReadLock();
         try
@@ -363,21 +367,23 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// </summary>
     /// <param name="key">The key of the element to remove.</param>
     /// <returns>true if the element is successfully found and removed; otherwise, false.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when key is null.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Boolean Remove(TKey key)
+    /// <exception cref="System.ArgumentNullException">Thrown when key is null.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean Remove(TKey key)
     {
         if (key == null)
         {
-            throw new ArgumentNullException(nameof(key));
+            throw new System.ArgumentNullException(nameof(key));
         }
 
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
         _cacheLock.EnterWriteLock();
         try
         {
-            if (_cacheMap.TryGetValue(key, out LinkedListNode<CacheItem>? node))
+            if (_cacheMap.TryGetValue(key,
+                out System.Collections.Generic.LinkedListNode<CacheItem>? node))
             {
                 _usageOrder.Remove(node);
                 return _cacheMap.Remove(key);
@@ -395,25 +401,27 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// </summary>
     /// <param name="key">The key of the item.</param>
     /// <returns>A tuple containing (item exists, access count, last access time).</returns>
-    /// <exception cref="ArgumentNullException">Thrown when key is null.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public (Boolean Exists, Int64 AccessCount, DateTime LastAccessTime) GetItemInfo(TKey key)
+    /// <exception cref="System.ArgumentNullException">Thrown when key is null.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public (System.Boolean Exists, System.Int64 AccessCount, System.DateTime LastAccessTime) GetItemInfo(TKey key)
     {
         if (key == null)
         {
-            throw new ArgumentNullException(nameof(key));
+            throw new System.ArgumentNullException(nameof(key));
         }
 
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
         _cacheLock.EnterReadLock();
         try
         {
-            if (_cacheMap.TryGetValue(key, out LinkedListNode<CacheItem>? node))
+            if (_cacheMap.TryGetValue(key,
+                out System.Collections.Generic.LinkedListNode<CacheItem>? node))
             {
                 return (true, node.Value.AccessCount, node.Value.LastAccessTime);
             }
-            return (false, 0, DateTime.MinValue);
+            return (false, 0, System.DateTime.MinValue);
         }
         finally
         {
@@ -426,7 +434,7 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// </summary>
     public void Clear()
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
         _cacheLock.EnterWriteLock();
         try
@@ -443,16 +451,17 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// <summary>
     /// Resets the cache statistics without clearing the cache items.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ResetStatistics()
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
-        _ = Interlocked.Exchange(ref _hits, 0);
-        _ = Interlocked.Exchange(ref _misses, 0);
-        _ = Interlocked.Exchange(ref _evictions, 0);
-        _ = Interlocked.Exchange(ref _additions, 0);
-        _ = Interlocked.Exchange(ref _updates, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _hits, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _misses, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _evictions, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _additions, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _updates, 0);
         _uptime.Restart();
     }
 
@@ -460,12 +469,13 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
     /// Gets a snapshot of the current cache statistics.
     /// </summary>
     /// <returns>A dictionary containing cache statistics.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Dictionary<String, Object> GetStatistics()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Collections.Generic.Dictionary<System.String, System.Object> GetStatistics()
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(LruCache<TKey, TValue>));
 
-        return new Dictionary<String, Object>
+        return new System.Collections.Generic.Dictionary<System.String, System.Object>
         {
             ["Capacity"] = Capacity,
             ["Count"] = Count,
@@ -495,7 +505,8 @@ public class LruCache<TKey, TValue> : IDisposable where TKey : notnull
 
         _isDisposed = true;
         _cacheLock.Dispose();
-        GC.SuppressFinalize(this);
+
+        System.GC.SuppressFinalize(this);
     }
 
     #endregion IDisposable
