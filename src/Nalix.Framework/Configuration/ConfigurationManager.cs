@@ -58,9 +58,26 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </summary>
     private ConfigurationManager()
     {
-        // Determine the configuration file path
+        // Determine the configuration file path with validation
+        System.String configDirectory = Directories.ConfigurationDirectory;
+        
+        // Validate the directory path for security
+        if (System.String.IsNullOrWhiteSpace(configDirectory))
+        {
+            throw new System.InvalidOperationException("Configuration directory cannot be null or empty.");
+        }
 
-        this.ConfigFilePath = System.IO.Path.Combine(Directories.ConfigurationDirectory, "configured.ini");
+        // Get the full path to prevent path traversal attacks
+        configDirectory = System.IO.Path.GetFullPath(configDirectory);
+
+        this.ConfigFilePath = System.IO.Path.Combine(configDirectory, "configured.ini");
+
+        // Validate the final configuration file path
+        if (!this.ConfigFilePath.StartsWith(configDirectory, System.StringComparison.OrdinalIgnoreCase))
+        {
+            throw new System.Security.SecurityException(
+                "Configuration file path is outside the allowed configuration directory.");
+        }
 
         // Lazy-load the INI file to defer file access until needed
         _iniFile = new System.Lazy<IniConfig>(() =>
@@ -271,7 +288,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     #region Private Methods
 
     /// <summary>
-    /// Ensures the configuration directory exists.
+    /// Ensures the configuration directory exists with proper validation and error handling.
     /// </summary>
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
@@ -282,16 +299,45 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         if (!_directoryChecked)
         {
             System.String? directory = System.IO.Path.GetDirectoryName(ConfigFilePath);
-            if (!System.String.IsNullOrEmpty(directory) && !System.IO.Directory.Exists(directory))
+            
+            if (System.String.IsNullOrWhiteSpace(directory))
+            {
+                throw new System.InvalidOperationException(
+                    "Configuration file path does not contain a valid directory component.");
+            }
+
+            if (!System.IO.Directory.Exists(directory))
             {
                 try
                 {
-                    _ = System.IO.Directory.CreateDirectory(directory);
+                    System.IO.DirectoryInfo dirInfo = System.IO.Directory.CreateDirectory(directory);
+                    
+                    // Verify directory was actually created and is accessible
+                    if (!dirInfo.Exists)
+                    {
+                        throw new System.InvalidOperationException(
+                            $"Directory creation reported success but directory does not exist: {directory}");
+                    }
+                }
+                catch (System.UnauthorizedAccessException ex)
+                {
+                    throw new System.UnauthorizedAccessException(
+                        $"Access denied when creating configuration directory: {directory}", ex);
+                }
+                catch (System.IO.PathTooLongException ex)
+                {
+                    throw new System.IO.PathTooLongException(
+                        $"Configuration directory path is too long: {directory}", ex);
+                }
+                catch (System.IO.IOException ex)
+                {
+                    throw new System.IO.IOException(
+                        $"I/O error creating configuration directory: {directory}", ex);
                 }
                 catch (System.Exception ex)
                 {
                     throw new System.InvalidOperationException(
-                        $"Failed to create configuration directory: {directory}", ex);
+                        $"Unexpected error creating configuration directory: {directory}", ex);
                 }
             }
 
