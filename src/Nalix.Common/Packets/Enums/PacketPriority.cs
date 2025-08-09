@@ -1,32 +1,41 @@
 namespace Nalix.Common.Packets.Enums;
 
 /// <summary>
-/// Defines the priority levels of a packet.
+/// Specifies the relative priority level of a network packet.
 /// </summary>
+/// <remarks>
+/// The priority level may influence the order in which packets are processed or transmitted.
+/// Higher values generally indicate a greater urgency for delivery.
+/// </remarks>
 public enum PacketPriority : System.Byte
 {
     /// <summary>
-    /// Normal priority.
+    /// Standard priority level for most packets.
+    /// No special handling is required.
     /// </summary>
     Normal = 0x00,
 
     /// <summary>
-    /// Low priority.
+    /// Lower-than-normal priority.
+    /// May be delayed in favor of higher-priority packets.
     /// </summary>
     Low = 0x01,
 
     /// <summary>
-    /// Medium priority.
+    /// Moderate priority level, between <see cref="Low"/> and <see cref="High"/>.
+    /// Useful for packets that should be delivered sooner than normal but are not urgent.
     /// </summary>
     Medium = 0x02,
 
     /// <summary>
-    /// High priority.
+    /// Higher-than-normal priority.
+    /// These packets should be processed or transmitted before <see cref="Normal"/> and <see cref="Medium"/> packets.
     /// </summary>
     High = 0x03,
 
     /// <summary>
-    /// Urgent priority.
+    /// Highest priority level.
+    /// Intended for urgent packets that must be processed or delivered as soon as possible.
     /// </summary>
     Urgent = 0x04
 }

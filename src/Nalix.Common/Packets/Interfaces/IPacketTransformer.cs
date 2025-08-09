@@ -3,83 +3,84 @@ using Nalix.Common.Security.Cryptography;
 namespace Nalix.Common.Packets.Interfaces;
 
 /// <summary>
-/// Provides a contract for encrypting and decrypting a packet of type <typeparamref name="TPacket"/>.
+/// Defines the static transformation contract for a packet type, including
+/// serialization, encryption/decryption, and compression/decompression.
 /// </summary>
 /// <typeparam name="TPacket">
-/// The packet type that implements <see cref="IPacket"/> and supports static encryption and decryption.
+/// The packet type that implements <see cref="IPacket"/> and provides its own static transformation methods.
 /// </typeparam>
 public interface IPacketTransformer<TPacket> where TPacket : IPacket
 {
+    // --- Serialization ---
+
+    /// <summary>
+    /// Deserializes a packet instance from the specified byte buffer.
+    /// </summary>
+    /// <param name="buffer">
+    /// A read-only span of bytes containing the serialized packet data.
+    /// </param>
+    /// <returns>
+    /// A new <typeparamref name="TPacket"/> instance created from the provided buffer.
+    /// </returns>
+    static abstract TPacket Deserialize(System.ReadOnlySpan<System.Byte> buffer);
+
     // --- Encryption ---
 
     /// <summary>
-    /// Encrypts a packet of type <typeparamref name="TPacket"/> using a specific encryption algorithm.
+    /// Encrypts the specified packet using the provided key and encryption algorithm.
     /// </summary>
     /// <param name="packet">
-    /// The packet to be encrypted.
+    /// The packet to encrypt.
     /// </param>
     /// <param name="key">
     /// The encryption key.
     /// </param>
     /// <param name="algorithm">
-    /// The encryption algorithm to use for the packet's payload.
+    /// The symmetric encryption algorithm to apply.
     /// </param>
     /// <returns>
-    /// A new instance of <typeparamref name="TPacket"/> that contains the encrypted packet data.
+    /// A new <typeparamref name="TPacket"/> instance containing the encrypted data.
     /// </returns>
     static abstract TPacket Encrypt(TPacket packet, System.Byte[] key, SymmetricAlgorithmType algorithm);
 
     /// <summary>
-    /// Decrypts a packet of type <typeparamref name="TPacket"/> using a specific encryption algorithm.
+    /// Decrypts the specified packet using the provided key and encryption algorithm.
     /// </summary>
     /// <param name="packet">
-    /// The packet to be decrypted.
+    /// The packet to decrypt.
     /// </param>
     /// <param name="key">
-    /// The encryption key.
+    /// The decryption key.
     /// </param>
     /// <param name="algorithm">
-    /// The encryption algorithm used to decrypt the packet's payload.
+    /// The symmetric encryption algorithm that was used to encrypt the packet.
     /// </param>
     /// <returns>
-    /// A new instance of <typeparamref name="TPacket"/> that contains the decrypted packet data.
+    /// A new <typeparamref name="TPacket"/> instance containing the decrypted data.
     /// </returns>
     static abstract TPacket Decrypt(TPacket packet, System.Byte[] key, SymmetricAlgorithmType algorithm);
 
     // --- Compression ---
 
     /// <summary>
-    /// Compresses a packet of type <typeparamref name="TPacket"/> into the given buffer.
+    /// Compresses the specified packet and returns the compressed result.
     /// </summary>
     /// <param name="packet">
-    /// The packet to be compressed.
+    /// The packet to compress.
     /// </param>
     /// <returns>
-    /// A span of bytes containing the compressed packet data.
+    /// A new <typeparamref name="TPacket"/> instance containing the compressed data.
     /// </returns>
     static abstract TPacket Compress(TPacket packet);
 
     /// <summary>
-    /// Decompresses a packet of type <typeparamref name="TPacket"/> from the given buffer.
+    /// Decompresses the specified packet and returns the decompressed result.
     /// </summary>
     /// <param name="packet">
-    /// The packet to be decompress.
+    /// The packet to decompress.
     /// </param>
     /// <returns>
-    /// An instance of <typeparamref name="TPacket"/> that was decompressed from the buffer.
+    /// A new <typeparamref name="TPacket"/> instance containing the decompressed data.
     /// </returns>
     static abstract TPacket Decompress(TPacket packet);
-
-    // --- Serialization ---
-
-    /// <summary>
-    /// Deserializes a packet of type <typeparamref name="TPacket"/> from the given buffer.
-    /// </summary>
-    /// <param name="buffer">
-    /// The read-only span of bytes containing the serialized packet data.
-    /// </param>
-    /// <returns>
-    /// An instance of <typeparamref name="TPacket"/> that was deserialized from the buffer.
-    /// </returns>
-    static abstract TPacket Deserialize(System.ReadOnlySpan<System.Byte> buffer);
 }

@@ -1,8 +1,6 @@
-using Nalix.Common.Abstractions;
-
 namespace Nalix.Network.Protocols;
 
-public abstract partial class Protocol : ISnapshot<ProtocolStats>
+public abstract partial class Protocol
 {
     #region Fields
 

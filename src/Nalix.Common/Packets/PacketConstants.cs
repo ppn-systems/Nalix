@@ -4,46 +4,54 @@ using Nalix.Common.Packets.Enums;
 namespace Nalix.Common.Packets;
 
 /// <summary>
-/// Represents default values and constants for packet configurations.
-/// This class contains minimum and maximum packet sizes, as well as thresholds for optimized memory operations.
+/// Defines default values and constants for packet configuration and memory thresholds.
 /// </summary>
 public static class PacketConstants
 {
     /// <summary>
-    /// The size (in bytes) of the packet header, including flags, OpCode, Length, MagicNumber, priority, and protocol.
+    /// The size, in bytes, of the fixed packet header.
+    /// Includes:
+    /// <list type="bullet">
+    /// <item><see cref="PacketFlags"/></item>
+    /// <item><see cref="System.UInt16"/> OpCode</item>
+    /// <item><see cref="System.UInt16"/> Length</item>
+    /// <item><see cref="System.UInt32"/> MagicNumber</item>
+    /// <item><see cref="PacketPriority"/></item>
+    /// <item><see cref="TransportProtocol"/></item>
+    /// </list>
     /// </summary>
-    public const System.Int32 HeaderSize =
+    public const System.Byte HeaderSize =
         sizeof(PacketFlags) +
         sizeof(System.UInt16) +  // OpCode
         sizeof(System.UInt16) +  // Length
-        sizeof(System.UInt32) +  // MagicNumber
+        sizeof(System.UInt32) +    // MagicNumber
         sizeof(PacketPriority) +
         sizeof(TransportProtocol);
 
     /// <summary>
-    /// The magic number used to identify valid packets.
+    /// The magic number used to validate and identify a packet format.
     /// </summary>
     public const System.Int32 MagicNumber = 0x4E584C58;
 
     /// <summary>
-    /// The threshold size (in bytes) for using heap-based memory allocation.
-    /// This value represents the maximum size for which memory should be allocated from the heap instead of the stack.
+    /// The threshold size, in bytes, above which memory is allocated from the heap instead of the stack.
     /// </summary>
-    public const System.Int32 HeapAllocLimit = 0x0400;
+    public const System.Int16 HeapAllocLimit = 0x0400;
 
     /// <summary>
-    /// Maximum stack allocation size (in bytes).
+    /// The maximum size, in bytes, eligible for stack allocation.
     /// </summary>
-    public const System.Int32 StackAllocLimit = 0x0200;
+    public const System.Int16 StackAllocLimit = 0x0200;
 
     /// <summary>
-    /// The maximum allowed packet size (in bytes), which is 64KB (65535 bytes).
+    /// The minimum payload size, in bytes, required to enable compression.
+    /// Payloads smaller than this value will not be compressed.
     /// </summary>
-    public const System.Int32 PacketSizeLimit = 0xFFFF;
+    public const System.Int16 CompressionThreshold = 0x0100;
 
     /// <summary>
-    /// The minimum payload size (in bytes) required to trigger compression.
-    /// Packets with a payload smaller than this threshold will not be compressed.
+    /// The maximum allowed total packet size, in bytes.
+    /// This limit is 65,535 bytes (0xFFFF), corresponding to the maximum value of an unsigned 16-bit integer.
     /// </summary>
-    public const System.Int32 CompressionThreshold = 0x0100;
+    public const System.UInt16 PacketSizeLimit = 0xFFFF;
 }

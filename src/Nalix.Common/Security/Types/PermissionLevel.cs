@@ -1,45 +1,42 @@
 namespace Nalix.Common.Security.Types;
 
 /// <summary>
-/// Represents different authority levels of users in the system.
-/// Each value corresponds to a specific access control level.
+/// Specifies the authority levels of users in the system.
+/// Each level determines the scope of access and control.
 /// </summary>
 public enum PermissionLevel : System.Byte
 {
     /// <summary>
-    /// No specific authority level assigned.
-    /// Typically used for unauthenticated or unregistered users.
+    /// No authority level assigned.
+    /// Usually represents unauthenticated or unregistered users.
     /// </summary>
     None = 0,
 
     /// <summary>
-    /// The user is either not logged in or has not registered.
-    /// Typically a guest user with minimal or no access.
+    /// Guest access with minimal or no permissions.
+    /// Typically for users who are not logged in or registered.
     /// </summary>
     Guest = 1,
 
     /// <summary>
-    /// The user has completed basic registration and has standard access privileges.
-    /// This level allows access to general system features.
+    /// Standard registered user with access to general features.
     /// </summary>
     User = 2,
 
     /// <summary>
-    /// The user has elevated privileges, capable of managing content, users, or accessing specific features.
-    /// Typically a role with more administrative control but not full access.
+    /// Elevated privileges for managing content, users, or restricted features.
+    /// Less authority than a full administrator.
     /// </summary>
     Supervisor = 3,
 
     /// <summary>
-    /// The user is an administrator with full access and control over the system.
-    /// This level allows the management of all system aspects and users.
+    /// Full administrative control over the system and its users.
     /// </summary>
     Administrator = 4,
 
     /// <summary>
-    /// The highest level of authority in the system.
-    /// The owner has full control over the entire system, including administrative functions and system-wide settings.
-    /// Typically reserved for the system creator or primary owner.
+    /// Highest authority level with unrestricted control over all system settings.
+    /// Typically reserved for the system owner or creator.
     /// </summary>
     Owner = 5
 }
