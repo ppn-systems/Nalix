@@ -151,7 +151,8 @@ public static partial class Directories
     /// <param name="maxAge">The maximum age of files to keep.</param>
     /// <param name="searchPattern">The search pattern for files to consider.</param>
     /// <returns>The TransportProtocol of files deleted.</returns>
-    public static System.Int32 CleanupDirectory(System.String directoryPath, System.TimeSpan maxAge, System.String searchPattern = "*")
+    public static System.Int32 CleanupDirectory(
+        System.String directoryPath, System.TimeSpan maxAge, System.String searchPattern = "*")
     {
         if (System.String.IsNullOrWhiteSpace(directoryPath))
         {
@@ -258,15 +259,13 @@ public static partial class Directories
     public static System.Collections.Generic.IEnumerable<System.String> GetFiles(
         System.String directory, System.String searchPattern = "*", System.Boolean recursive = false)
     {
-        if (System.String.IsNullOrWhiteSpace(directory))
-        {
-            throw new System.ArgumentNullException(nameof(directory));
-        }
-
-        return !System.IO.Directory.Exists(directory)
+        return System.String.IsNullOrWhiteSpace(directory)
+            ? throw new System.ArgumentNullException(nameof(directory))
+            : !System.IO.Directory.Exists(directory)
             ? []
-            : (System.Collections.Generic.IEnumerable<System.String>)System.IO.Directory.GetFiles(directory, searchPattern,
-            recursive ? System.IO.SearchOption.AllDirectories : System.IO.SearchOption.TopDirectoryOnly);
+            : (System.Collections.Generic.IEnumerable<System.String>)
+            System.IO.Directory.GetFiles(directory, searchPattern, recursive
+            ? System.IO.SearchOption.AllDirectories : System.IO.SearchOption.TopDirectoryOnly);
     }
 
     /// <summary>

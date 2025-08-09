@@ -1,65 +1,72 @@
-/*
- * NOTE TO CONTRIBUTORS:
- *
- * Never use this exception directly.
- * Use the methods in Notio.Common.SelfCheck instead.
- */
-
 namespace Nalix.Common.Exceptions;
 
 /// <summary>
-/// <para>The exception that is thrown by Notio's internal diagnostic checks to signal a condition
-/// most probably caused by an error in Notio.</para>
-/// <para>This API supports the Notio infrastructure and is not intended to be used directly from your code.</para>
+/// The exception that is thrown by Notio's internal diagnostic checks to signal a condition
+/// most probably caused by an error in Notio.
 /// </summary>
+/// <remarks>
+/// <para>This API supports the Notio infrastructure and is not intended to be used directly from your code.</para>
+/// <para>It is typically raised when a self-check or internal validation detects an invalid
+/// state, configuration, or logic error within the system.</para>
+/// </remarks>
 [System.Serializable]
 public class InternalErrorException : BaseException
 {
     /// <summary>
-    /// Gets the detailed information related to this log entry.
+    /// Gets additional diagnostic information related to this exception.
     /// </summary>
     /// <remarks>
-    /// This property typically contains additional context about the log event, such as
-    /// stack traces, exception messages, or other relevant debugging information.
+    /// This property may contain debugging details such as a stack trace, 
+    /// failure context, or other relevant internal state.
     /// </remarks>
     public System.String Details { get; }
 
     /// <summary>
-    /// <para>Initializes a new instance of the <see cref="InternalErrorException"/> class.</para>
-    /// <para>This API supports the Notio infrastructure and is not intended to be used directly from your code.</para>
+    /// Initializes a new instance of the <see cref="InternalErrorException"/> class.
     /// </summary>
+    /// <remarks>
+    /// <para>This API supports the Notio infrastructure and is not intended to be used directly from your code.</para>
+    /// </remarks>
     public InternalErrorException()
     {
     }
 
     /// <summary>
-    /// <para>Initializes a new instance of the <see cref="InternalErrorException"/> class.</para>
+    /// Initializes a new instance of the <see cref="InternalErrorException"/> class with a specified error message.
     /// </summary>
-    /// <param name="message">The message that describes the error.</param>
+    /// <param name="message">
+    /// The error message that describes the reason for the exception.
+    /// </param>
     public InternalErrorException(System.String message)
         : base(message)
     {
     }
 
     /// <summary>
-    /// <para>Initializes a new instance of the <see cref="InternalErrorException"/> class.</para>
-    /// <para>This API supports the Notio infrastructure and is not intended to be used directly from your code.</para>
+    /// Initializes a new instance of the <see cref="InternalErrorException"/> class with a specified error
+    /// message and a reference to the inner exception that is the cause of this exception.
     /// </summary>
-    /// <param name="message">The error message that explains the reason for the exception.</param>
-    /// <param name="innerException">The exception that is the cause of the current exception,
-    /// or <see langword="null"/> if no inner exception is specified.</param>
+    /// <param name="message">
+    /// The error message that explains the reason for the exception.
+    /// </param>
+    /// <param name="innerException">
+    /// The exception that caused the current exception, or <see langword="null"/> if none is specified.
+    /// </param>
     public InternalErrorException(System.String message, System.Exception innerException)
         : base(message, innerException)
     {
     }
 
     /// <summary>
-    /// <para>Initializes a new instance of the <see cref="InternalErrorException"/> class.</para>
-    /// <para>This API supports the Notio infrastructure and is not intended to be used directly from your code.</para>
+    /// Initializes a new instance of the <see cref="InternalErrorException"/> class with a specified
+    /// error message and additional diagnostic details.
     /// </summary>
-    /// <param name="message">The error message that explains the reason for the exception.</param>
-    /// <param name="details">The exception that is the cause of the current exception,
-    /// or <see langword="null"/> if no inner exception is specified.</param>
+    /// <param name="message">
+    /// The error message that explains the reason for the exception.
+    /// </param>
+    /// <param name="details">
+    /// Additional information about the error, which can be used for internal diagnostics.
+    /// </param>
     public InternalErrorException(System.String message, System.String details)
         : base(message) => Details = details;
 }

@@ -1,7 +1,8 @@
 namespace Nalix.Common.Security.Identity;
 
 /// <summary>
-/// TransportProtocol type to serve different purposes in the system.
+/// Defines the category of an <see cref="IIdentifier"/> value,  
+/// used to distinguish between different purposes or entities in the system.
 /// </summary>
 public enum IdentifierType : System.Byte
 {
@@ -13,7 +14,7 @@ public enum IdentifierType : System.Byte
     Unknown = 0,
 
     /// <summary>
-    /// For system configurations or versions.
+    /// For system configurations or version tracking.
     /// </summary>
     Configuration = 1,
 
@@ -131,7 +132,7 @@ public enum IdentifierType : System.Byte
     #endregion External Integration
 
     /// <summary>
-    /// The maximum valid value for TransportProtocol types.
+    /// The maximum valid value for <see cref="IdentifierType"/>.
     /// </summary>
     MaxValue = 255
 }

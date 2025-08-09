@@ -1,14 +1,24 @@
 namespace Nalix.Common.Logging;
 
 /// <summary>
-/// Interface for logging targets that implement custom error handling.
+/// Defines a contract for handling errors that occur during log processing.
 /// </summary>
+/// <remarks>
+/// Implementations of this interface can be used to manage exceptions thrown by <see cref="ILoggerTarget"/> 
+/// or other logging components when publishing log entries.
+/// Typical use cases include retry mechanisms, writing errors to a fallback log, 
+/// or sending notifications to monitoring systems.
+/// </remarks>
 public interface ILoggerErrorHandler
 {
     /// <summary>
-    /// Handles errors that occur during log publishing.
+    /// Handles an error that occurred while processing a log entry.
     /// </summary>
-    /// <param name="exception">The exception that occurred.</param>
-    /// <param name="entry">The log entry that was being processed.</param>
+    /// <param name="exception">
+    /// The <see cref="System.Exception"/> that was thrown during logging.
+    /// </param>
+    /// <param name="entry">
+    /// The <see cref="LogEntry"/> that was being processed when the error occurred.
+    /// </param>
     void HandleError(System.Exception exception, LogEntry entry);
 }

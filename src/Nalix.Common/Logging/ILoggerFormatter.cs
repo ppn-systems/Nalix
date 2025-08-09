@@ -1,14 +1,22 @@
 namespace Nalix.Common.Logging;
 
 /// <summary>
-/// Interface defining a formatter for log messages.
+/// Defines a contract for formatting <see cref="LogEntry"/> objects into displayable or storable text.
 /// </summary>
+/// <remarks>
+/// Implementations of this interface determine how log entries are represented as strings.
+/// This may include adding timestamps, log levels, event IDs, or applying specific formatting styles (e.g., JSON, plain text).
+/// </remarks>
 public interface ILoggerFormatter
 {
     /// <summary>
-    /// Formats a log message based on the provided information.
+    /// Formats the specified <see cref="LogEntry"/> into a string representation.
     /// </summary>
-    /// <param name="message">The log message to format.</param>
-    /// <returns>A formatted string representing the log message.</returns>
+    /// <param name="message">
+    /// The log entry to be formatted.
+    /// </param>
+    /// <returns>
+    /// A string containing the formatted log message.
+    /// </returns>
     System.String FormatLog(LogEntry message);
 }

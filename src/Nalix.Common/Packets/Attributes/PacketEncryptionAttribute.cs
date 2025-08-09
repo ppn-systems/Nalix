@@ -3,20 +3,26 @@ using Nalix.Common.Security.Cryptography;
 namespace Nalix.Common.Packets.Attributes;
 
 /// <summary>
-/// Custom attribute to indicate if a method should have packet encryption.
+/// Specifies that the target method requires packet-level encryption.
 /// </summary>
 /// <remarks>
-/// This attribute can be applied to methods to specify if they should use encryption or not.
-/// By default, it assumes encryption is enabled.
+/// Apply this attribute to a method to indicate that its associated packet data should be
+/// encrypted before transmission and decrypted upon receipt.
+/// By default, encryption is disabled unless explicitly set.
 /// </remarks>
 [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-public class PacketEncryptionAttribute : System.Attribute
+public sealed class PacketEncryptionAttribute : System.Attribute
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketEncryptionAttribute"/> class.
     /// </summary>
-    /// <param name="isEncrypted">Indicates whether the method should be encrypted.</param>
-    /// <param name="algorithmType">The type of symmetric algorithm used for encryption.</param>
+    /// <param name="isEncrypted">
+    /// <c>true</c> to enable encryption for the method's packets; otherwise, <c>false</c>.
+    /// </param>
+    /// <param name="algorithmType">
+    /// The symmetric encryption algorithm to apply when <paramref name="isEncrypted"/> is <c>true</c>.
+    /// Defaults to <see cref="SymmetricAlgorithmType.Salsa20"/>.
+    /// </param>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public PacketEncryptionAttribute(
@@ -28,12 +34,12 @@ public class PacketEncryptionAttribute : System.Attribute
     }
 
     /// <summary>
-    /// Gets the encryption status of the method.
+    /// Gets a value indicating whether encryption is enabled for the target method.
     /// </summary>
     public System.Boolean IsEncrypted { get; }
 
     /// <summary>
-    /// Gets the type of symmetric algorithm used for encryption.
+    /// Gets the symmetric encryption algorithm type to be used if encryption is enabled.
     /// </summary>
     public SymmetricAlgorithmType AlgorithmType { get; }
 }
