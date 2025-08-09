@@ -34,7 +34,7 @@ public sealed class TimingWheelOptions : ConfigurationLoader
     /// </summary>
     [IniComment("TCP connection idle timeout in milliseconds before auto-close (default 60000 = 60s)")]
     [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue)]
-    public System.Int32 TcpIdleTimeout { get; set; } = 60_000;
+    public System.Int32 IdleTimeoutMs { get; set; } = 60_000;
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
