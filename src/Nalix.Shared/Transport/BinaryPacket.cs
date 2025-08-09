@@ -2,8 +2,12 @@
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Enums;
 using Nalix.Common.Packets.Interfaces;
+using Nalix.Common.Security.Cryptography;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
+using Nalix.Shared.Extensions;
+using Nalix.Shared.LZ4;
+using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Serialization;
 
 namespace Nalix.Shared.Transport;
@@ -12,23 +16,23 @@ namespace Nalix.Shared.Transport;
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
-public sealed class BinaryPacket : IPacket
+public sealed class BinaryPacket : IPacket, IPacketTransformer<BinaryPacket>
 {
     /// <summary>
-    /// Gets the total length of the serialized packet in bytes.
-    /// Includes metadata and content.
+    /// Gets the total length of the serialized packet in bytes, including header and content.
     /// </summary>
     [SerializeIgnore]
-    public System.UInt16 Length => (System.UInt16)(PacketConstants.HeaderSize + (Data?.Length ?? 0));
+    public System.UInt16 Length =>
+        (System.UInt16)(PacketConstants.HeaderSize + (Data?.Length ?? 0));
 
     /// <summary>
-    /// Gets the magic number used to identify the packet type or protocol.
+    /// Gets the magic number used to identify the packet format.
     /// </summary>
     [SerializeOrder(0)]
     public System.UInt32 MagicNumber { get; set; }
 
     /// <summary>
-    /// Gets the opcode representing the command or category of this packet.
+    /// Gets the operation code (OpCode) of this packet.
     /// </summary>
     [SerializeOrder(4)]
     public System.UInt16 OpCode { get; set; }
@@ -40,13 +44,13 @@ public sealed class BinaryPacket : IPacket
     public PacketFlags Flags { get; set; }
 
     /// <summary>
-    /// Gets the priority level of the packet.
+    /// Gets the packet priority.
     /// </summary>
     [SerializeOrder(7)]
     public PacketPriority Priority { get; set; }
 
     /// <summary>
-    /// Gets the transport protocol (TCP/UDP) this packet is intended for.
+    /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
     /// </summary>
     [SerializeOrder(8)]
     public TransportProtocol Transport { get; set; }
@@ -59,13 +63,12 @@ public sealed class BinaryPacket : IPacket
     public System.Byte[] Data { get; set; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BinaryPacket"/> class with empty content.
+    /// Initializes a new <see cref="BinaryPacket"/> with empty content.
     /// </summary>
     public BinaryPacket()
     {
         OpCode = 0x00;
         MagicNumber = PacketConstants.MagicNumber;
-
         Flags = PacketFlags.None;
         Data = [];
         Priority = PacketPriority.Normal;
@@ -76,48 +79,132 @@ public sealed class BinaryPacket : IPacket
     /// Initializes the packet with binary data.
     /// </summary>
     /// <param name="data">Binary content of the packet.</param>
-    public void Initialize(System.Byte[] data)
-        => Initialize(data, TransportProtocol.Null);
+    public void Initialize(System.Byte[] data) => Initialize(data, TransportProtocol.Null);
 
     /// <summary>
-    /// Initializes the packet with all necessary parameters.
+    /// Initializes the packet with binary data and a transport protocol.
     /// </summary>
     /// <param name="data">Binary content of the packet.</param>
-    /// <param name="transport">The transport protocol this packet is intended for.</param>
-    public void Initialize(
-        System.Byte[] data,
-        TransportProtocol transport = TransportProtocol.Tcp)
+    /// <param name="transport">The target transport protocol.</param>
+    public void Initialize(System.Byte[] data, TransportProtocol transport = TransportProtocol.Tcp)
     {
-        Data = data ?? [];
-        Transport = transport;
+        this.Data = data ?? [];
+        this.Transport = transport;
     }
 
     /// <summary>
-    /// Serializes the packet into a byte array using the configured serializer.
+    /// Serializes the packet to a newly allocated byte array.
     /// </summary>
-    /// <returns>A byte array containing the serialized representation of the packet.</returns>
     public System.Byte[] Serialize() => LiteSerializer.Serialize(this);
 
     /// <summary>
-    /// Serializes the packet into the provided buffer span.
+    /// Serializes the packet into the provided destination buffer.
     /// </summary>
-    /// <param name="buffer">The buffer to serialize data into.</param>
+    /// <param name="buffer">The destination buffer. Must be large enough.</param>
     public void Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
 
     /// <summary>
-    /// Resets the packet content to its default state for object pooling reuse.
+    /// Deserializes a <see cref="BinaryPacket"/> from the specified buffer.
+    /// </summary>
+    /// <param name="buffer">The source buffer.</param>
+    /// <returns>A pooled <see cref="BinaryPacket"/> instance.</returns>
+    public static BinaryPacket Deserialize(System.ReadOnlySpan<System.Byte> buffer)
+    {
+        BinaryPacket packet = ObjectPoolManager.Instance.Get<BinaryPacket>();
+        _ = LiteSerializer.Deserialize(buffer, ref packet);
+        return packet;
+    }
+
+    /// <summary>
+    /// Encrypts the packet content.
+    /// </summary>
+    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [System.Obsolete("Internal infrastructure API. Encryption is handled by the pipeline.", error: true)]
+    public static BinaryPacket Encrypt(BinaryPacket packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
+        => throw new System.NotImplementedException();
+
+    /// <summary>
+    /// Decrypts the packet content.
+    /// </summary>
+    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [System.Obsolete("Internal infrastructure API. Decryption is handled by the pipeline.", error: true)]
+    public static BinaryPacket Decrypt(BinaryPacket packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
+        => throw new System.NotImplementedException();
+
+    /// <summary>
+    /// Compresses <see cref="Data"/> using LZ4 (raw bytes, no Base64).
+    /// </summary>
+    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public static BinaryPacket Compress(BinaryPacket packet)
+    {
+        System.ArgumentNullException.ThrowIfNull(packet);
+
+        if (packet.Data is null || packet.Data.Length == 0)
+        {
+            return packet;
+        }
+
+        System.Byte[] compressed = LZ4Codec.Encode(packet.Data);
+        packet.Data = compressed;
+
+        _ = packet.Flags.AddFlag(PacketFlags.Compressed);
+
+        return packet;
+    }
+
+    /// <summary>
+    /// Decompresses <see cref="Data"/> previously compressed with LZ4.
+    /// </summary>
+    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public static BinaryPacket Decompress(BinaryPacket packet)
+    {
+        System.ArgumentNullException.ThrowIfNull(packet);
+
+        if (packet.Data is null || packet.Data.Length == 0)
+        {
+            return packet;
+        }
+
+        if (!LZ4Codec.Decode(packet.Data, out System.Byte[]? output, out System.Int32 written) ||
+            output is null || written <= 0)
+        {
+            throw new System.InvalidOperationException("LZ4 decompression failed.");
+        }
+
+        if (written != output.Length)
+        {
+            // Trim to actual length written.
+            System.Byte[] exact = new System.Byte[written];
+            System.Buffer.BlockCopy(output, 0, exact, 0, written);
+            packet.Data = exact;
+        }
+        else
+        {
+            packet.Data = output;
+        }
+
+        _ = packet.Flags.RemoveFlag(PacketFlags.Compressed);
+
+        return packet;
+    }
+
+    /// <summary>
+    /// Resets this instance to its default state for pooling reuse.
     /// </summary>
     public void ResetForPool()
     {
-        Data = [];
-
-        Flags = PacketFlags.None;
-        Priority = PacketPriority.Normal;
-        Transport = TransportProtocol.Null;
+        this.Data = [];
+        this.Flags = PacketFlags.None;
+        this.Priority = PacketPriority.Normal;
+        this.Transport = TransportProtocol.Null;
     }
 
     /// <inheritdoc/>
-    public override System.String ToString()
-        => $"BinaryPacket(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
-           $"Priority={Priority}, Transport={Transport}, Data={Data?.Length ?? 0} bytes)";
+    public override System.String ToString() =>
+        $"BinaryPacket(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+        $"Priority={Priority}, Transport={Transport}, Data={Data?.Length ?? 0} bytes)";
 }
