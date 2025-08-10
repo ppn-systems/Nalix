@@ -18,4 +18,10 @@ public class SerializeOrderAttribute : System.Attribute
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public SerializeOrderAttribute(System.Int32 order) => Order = order;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SerializeOrderAttribute"/> class using an enum value for serialization order.
+    /// </summary>
+    /// <param name="position">The enum value that defines the order of serialization.</param>
+    public SerializeOrderAttribute(SerializeOrderPosition position) : this((System.Byte)position) { }
 }
