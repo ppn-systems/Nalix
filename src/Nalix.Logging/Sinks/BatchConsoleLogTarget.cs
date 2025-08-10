@@ -2,7 +2,6 @@
 
 using Nalix.Common.Logging;
 using Nalix.Logging.Core;
-using Nalix.Logging.Interop;
 using Nalix.Logging.Options;
 
 namespace Nalix.Logging.Sinks;
@@ -127,14 +126,12 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
             return;
         }
 
-        using (TransientConsoleScope.Shared())
+        while (_queue.TryDequeue(out LogEntry log))
         {
-            while (_queue.TryDequeue(out LogEntry log))
-            {
-                _consoleLoggingTarget.Publish(log);
-            }
-            _ = System.Threading.Interlocked.Exchange(ref _count, 0);
+            _consoleLoggingTarget.Publish(log);
         }
+
+        _ = System.Threading.Interlocked.Exchange(ref _count, 0);
     }
 
     #endregion Public Methods

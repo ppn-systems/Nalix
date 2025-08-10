@@ -25,7 +25,7 @@ public sealed class TransientConsoleScope : System.IDisposable
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     public TransientConsoleScope(System.String? title = null, System.Int16 cols = 120, System.Int16 rows = 30, System.Boolean enableAnsi = true)
     {
-        bool ctorSucceeded = false;
+        System.Boolean ctorSucceeded = false;
         _rw.EnterWriteLock(); // hold exclusive for lifetime (will be released in Dispose) if ctor succeeds
 
         try
@@ -171,10 +171,7 @@ public sealed class TransientConsoleScope : System.IDisposable
 
     private readonly struct SharedCookie : System.IDisposable
     {
-        public SharedCookie()
-        {
-            _rw.EnterReadLock();
-        }
+        public SharedCookie() => _rw.EnterReadLock();
         public void Dispose()
         {
             if (_rw.IsReadLockHeld)
@@ -199,7 +196,7 @@ public sealed class TransientConsoleScope : System.IDisposable
                 throw new System.InvalidOperationException("Console output handle is invalid.");
             }
 
-            string toWrite = message + System.Environment.NewLine;
+            System.String toWrite = message + System.Environment.NewLine;
             // Use WriteConsoleW semantics: pass character count (not bytes)
             if (!Kernel32.WRITE_CONSOLE_W(_hPrivOut, toWrite, toWrite.Length, out System.Int32 _, System.IntPtr.Zero))
             {
