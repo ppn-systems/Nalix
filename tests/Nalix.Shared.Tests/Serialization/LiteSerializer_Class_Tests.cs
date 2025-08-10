@@ -1,6 +1,6 @@
 ﻿using Nalix.Shared.Extensions;
+using Nalix.Shared.Messaging;
 using Nalix.Shared.Serialization;
-using Nalix.Shared.Transport;
 using System;
 using Xunit;
 
