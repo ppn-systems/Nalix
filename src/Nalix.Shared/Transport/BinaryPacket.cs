@@ -1,4 +1,5 @@
-﻿using Nalix.Common.Connection.Protocols;
+﻿using Nalix.Common.Attributes;
+using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Enums;
 using Nalix.Common.Packets.Interfaces;
@@ -15,6 +16,7 @@ namespace Nalix.Shared.Transport;
 /// <summary>
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
+[MagicNumber(MagicNumbers.BinaryPacket)]
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class BinaryPacket : IPacket, IPacketTransformer<BinaryPacket>
 {
@@ -29,7 +31,7 @@ public sealed class BinaryPacket : IPacket, IPacketTransformer<BinaryPacket>
     /// Gets the magic number used to identify the packet format.
     /// </summary>
     [SerializeOrder(0)]
-    public static System.UInt32 MagicNumber { get; set; }
+    public System.UInt32 MagicNumber { get; set; }
 
     /// <summary>
     /// Gets the operation code (OpCode) of this packet.
@@ -62,8 +64,6 @@ public sealed class BinaryPacket : IPacket, IPacketTransformer<BinaryPacket>
     [SerializeDynamicSize(256)]
     public System.Byte[] Data { get; set; }
 
-    static BinaryPacket() => MagicNumber = (System.UInt32)PacketMagicNumbers.BinaryPacket;
-
     /// <summary>
     /// Initializes a new <see cref="BinaryPacket"/> with empty content.
     /// </summary>
@@ -74,6 +74,7 @@ public sealed class BinaryPacket : IPacket, IPacketTransformer<BinaryPacket>
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.Null;
         OpCode = PacketConstants.OpCodeDefault;
+        MagicNumber = (System.UInt32)MagicNumbers.BinaryPacket;
     }
 
     /// <summary>

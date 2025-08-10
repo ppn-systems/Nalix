@@ -1,9 +1,9 @@
-﻿namespace Nalix.Common.Packets;
+﻿namespace Nalix.Common.Attributes;
 
 /// <summary>
 /// Enum representing the magic numbers used to identify different packet types.
 /// </summary>
-public enum PacketMagicNumbers : System.UInt32
+public enum MagicNumbers : System.UInt32
 {
     /// <summary>
     /// Magic number for BinaryPacket type.
