@@ -4,7 +4,7 @@ using Nalix.Network.Dispatch.Middleware.Core;
 using Nalix.Network.Dispatch.Middleware.Enums;
 using Nalix.Network.Dispatch.Middleware.Interfaces;
 using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Transport;
+using Nalix.Shared.Messaging;
 
 namespace Nalix.Network.Dispatch.Middleware.Pre;
 
@@ -30,7 +30,7 @@ public class PermissionMiddleware<TPacket> : IPacketMiddleware<TPacket>
         if (context.Attributes.Permission is not null &&
             context.Attributes.Permission.Level > context.Connection.Level)
         {
-            LiteralPacket text = ObjectPoolManager.Instance.Get<LiteralPacket>();
+            TextPacket text = ObjectPoolManager.Instance.Get<TextPacket>();
             try
             {
                 text.Initialize("Permission denied. You are not authorized to perform this action.");
@@ -40,7 +40,7 @@ public class PermissionMiddleware<TPacket> : IPacketMiddleware<TPacket>
             }
             finally
             {
-                ObjectPoolManager.Instance.Return<LiteralPacket>(text);
+                ObjectPoolManager.Instance.Return<TextPacket>(text);
             }
         }
 

@@ -6,7 +6,7 @@ using Nalix.Network.Dispatch.Middleware.Core;
 using Nalix.Network.Dispatch.Middleware.Enums;
 using Nalix.Network.Dispatch.Middleware.Interfaces;
 using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Transport;
+using Nalix.Shared.Messaging;
 
 namespace Nalix.Network.Dispatch.Middleware.Post;
 
@@ -49,7 +49,7 @@ public class WrapPacketMiddleware<TPacket> : IPacketMiddleware<TPacket>
         }
         catch (System.Exception)
         {
-            LiteralPacket text = ObjectPoolManager.Instance.Get<LiteralPacket>();
+            TextPacket text = ObjectPoolManager.Instance.Get<TextPacket>();
             try
             {
                 text.Initialize("An error occurred while processing your request.");
@@ -59,7 +59,7 @@ public class WrapPacketMiddleware<TPacket> : IPacketMiddleware<TPacket>
             }
             finally
             {
-                ObjectPoolManager.Instance.Return<LiteralPacket>(text);
+                ObjectPoolManager.Instance.Return<TextPacket>(text);
             }
         }
 

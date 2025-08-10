@@ -2,7 +2,7 @@
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.ReturnTypes;
 using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Transport;
+using Nalix.Shared.Messaging;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -29,7 +29,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
                 if (completed != execTaskAsTask)
                 {
-                    LiteralPacket text = ObjectPoolManager.Instance.Get<LiteralPacket>();
+                    TextPacket text = ObjectPoolManager.Instance.Get<TextPacket>();
                     try
                     {
                         text.Initialize($"Request timeout ({timeout}ms).");
@@ -39,7 +39,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                     }
                     finally
                     {
-                        ObjectPoolManager.Instance.Return<LiteralPacket>(text);
+                        ObjectPoolManager.Instance.Return<TextPacket>(text);
                     }
                 }
 
@@ -79,7 +79,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         this._errorHandler?.Invoke(exception, descriptor.OpCode);
 
-        LiteralPacket text = ObjectPoolManager.Instance.Get<LiteralPacket>();
+        TextPacket text = ObjectPoolManager.Instance.Get<TextPacket>();
         try
         {
             text.Initialize("Internal server error");
@@ -89,7 +89,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
         finally
         {
-            ObjectPoolManager.Instance.Return<LiteralPacket>(text);
+            ObjectPoolManager.Instance.Return<TextPacket>(text);
         }
     }
 
