@@ -28,7 +28,7 @@ public interface IPacket : IPoolable
     /// <summary>
     /// Gets the magic number that uniquely identifies the packet format or protocol.
     /// </summary>
-    System.UInt32 MagicNumber { get; }
+    static System.UInt32 MagicNumber { get; }
 
     /// <summary>
     /// Gets the operation code (OpCode) that specifies the command or type of the packet.

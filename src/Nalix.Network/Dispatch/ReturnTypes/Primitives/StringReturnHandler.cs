@@ -6,8 +6,7 @@ using Nalix.Shared.Transport;
 namespace Nalix.Network.Dispatch.ReturnTypes.Primitives;
 
 /// <inheritdoc/>
-internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket>
-    where TPacket : IPacket, IPacketTransformer<TPacket>
+internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(

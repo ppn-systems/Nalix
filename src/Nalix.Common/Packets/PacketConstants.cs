@@ -29,9 +29,9 @@ public static class PacketConstants
         sizeof(TransportProtocol);
 
     /// <summary>
-    /// The magic number used to validate and identify a packet format.
+    /// The default operation code value for packets.
     /// </summary>
-    public const System.Int32 MagicNumber = 0x4E584C58;
+    public const System.Byte OpCodeDefault = 0x00;
 
     /// <summary>
     /// The threshold size, in bytes, above which memory is allocated from the heap instead of the stack.

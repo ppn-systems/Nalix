@@ -7,13 +7,13 @@ namespace Nalix.Network.Dispatch.Core;
 /// Defines a dispatcher interface for handling incoming network packets.
 /// </summary>
 /// <typeparam name="TPacket">
-/// The packet type that implements both <see cref="IPacket"/> and <see cref="IPacketTransformer{TPacket}"/>.
+/// The packet type that implements both <see cref="IPacket"/>.
 /// </typeparam>
 /// <remarks>
 /// Implementations of this interface are responsible for deserializing and processing
 /// network packets based on their content and the connection from which they originate.
 /// </remarks>
-public interface IPacketDispatch<TPacket> where TPacket : IPacket, IPacketTransformer<TPacket>
+public interface IPacketDispatch<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Handles an incoming packet represented as a <see cref="System.Byte"/> array.
