@@ -14,8 +14,7 @@ namespace Nalix.Network.Dispatch.Analyzers;
 internal sealed class PacketAnalyzer<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>(
-    ILogger? logger = null)
-    where TController : class where TPacket : IPacket, IPacketTransformer<TPacket>
+    ILogger? logger = null) where TController : class where TPacket : IPacket
 {
     #region Fields
 

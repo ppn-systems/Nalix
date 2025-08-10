@@ -1,5 +1,6 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Packets.Interfaces;
+using Nalix.Network.Dispatch.Analyzers;
 using Nalix.Network.Dispatch.Channel;
 using Nalix.Network.Dispatch.Core;
 
@@ -9,9 +10,6 @@ namespace Nalix.Network.Dispatch;
 /// Represents an ultra-high performance raw dispatcher designed for asynchronous, queue-based processing
 /// with dependency injection (DI) support and flexible raw handling via reflection-based routing.
 /// </summary>
-/// <typeparam name="TPacket">
-/// The raw type implementing <see cref="IPacket"/>, <see cref="IPacketTransformer{TPacket}"/>
-/// </typeparam>
 /// <remarks>
 /// <para>
 /// This dispatcher works by queuing incoming packets and processing them in a background loop. Packet handling
@@ -32,9 +30,7 @@ namespace Nalix.Network.Dispatch;
 /// dispatcher.HandlePacket(data, connection);
 /// </code>
 /// </example>
-public sealed class PacketDispatchChannel<TPacket>
-    : PacketDispatchCore<TPacket>, IPacketDispatch<TPacket> where TPacket
-    : IPacket, IPacketTransformer<TPacket>
+public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacketDispatch<IPacket>
 {
     #region Fields
 
@@ -44,7 +40,7 @@ public sealed class PacketDispatchChannel<TPacket>
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "<Pending>")]
-    private readonly IDispatchChannel<TPacket> _dispatch;
+    private readonly IDispatchChannel<IPacket> _dispatch;
     private readonly System.Threading.SemaphoreSlim _semaphore = new(0);
     private readonly System.Threading.CancellationTokenSource _cts = new();
 
@@ -53,15 +49,15 @@ public sealed class PacketDispatchChannel<TPacket>
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PacketDispatchChannel{TPacket}"/> class
+    /// Initializes a new instance of the <see cref="PacketDispatchChannel"/> class
     /// with custom configuration options.
     /// </summary>
     /// <param name="options">A delegate used to configure dispatcher options</param>
-    public PacketDispatchChannel(System.Action<Options.PacketDispatchOptions<TPacket>> options)
+    public PacketDispatchChannel(System.Action<Options.PacketDispatchOptions<IPacket>> options)
         : base(options)
     {
         _running = false;
-        _dispatch = new DispatchChannel<TPacket>(logger: null);
+        _dispatch = new DispatchChannel<IPacket>(logger: null);
 
         // Push any additional initialization here if needed
 #if DEBUG
@@ -169,14 +165,22 @@ public sealed class PacketDispatchChannel<TPacket>
             return;
         }
 
-        // Deserialize and enqueue the raw for processing
-        this.HandlePacketAsync(TPacket.Deserialize(raw), connection);
+        System.Func<System.ReadOnlySpan<System.Byte>, IPacket>? deserializer = PacketRegistry.ResolvePacketDeserializer(raw);
+
+        if (deserializer == null)
+        {
+            base.Logger?.Error("[{0}] No deserializer found for the packet from {1}. Packet dropped.",
+                                nameof(PacketDispatch), connection.RemoteEndPoint);
+            return;
+        }
+
+        this.HandlePacketAsync(deserializer(raw), connection);
     }
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void HandlePacketAsync(TPacket packet, IConnection connection)
+    public void HandlePacketAsync(IPacket packet, IConnection connection)
     {
         this._dispatch.Push(packet, connection);
 
@@ -205,7 +209,7 @@ public sealed class PacketDispatchChannel<TPacket>
                 await this._semaphore.WaitAsync(this._cts.Token).ConfigureAwait(false);
 
                 // Dequeue and process raw
-                if (!_dispatch.Pull(out TPacket packet, out IConnection connection))
+                if (!_dispatch.Pull(out IPacket packet, out IConnection connection))
                 {
                     base.Logger?.Warn("[Dispatch] Failed to dequeue packet from dispatch channel.");
                     continue;

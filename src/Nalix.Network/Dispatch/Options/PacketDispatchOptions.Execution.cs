@@ -6,7 +6,7 @@ using Nalix.Shared.Transport;
 
 namespace Nalix.Network.Dispatch.Options;
 
-public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket, IPacketTransformer<TPacket>
+public sealed partial class PacketDispatchOptions<TPacket>
 {
     #region Private Methods
 

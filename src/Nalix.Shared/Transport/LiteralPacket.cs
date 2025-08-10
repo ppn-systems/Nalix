@@ -25,7 +25,7 @@ public sealed class LiteralPacket : IPacket, IPacketTransformer<LiteralPacket>
 
     /// <summary>Gets the magic number used to identify the packet format.</summary>
     [SerializeOrder(0)]
-    public System.UInt32 MagicNumber { get; set; }
+    public static System.UInt32 MagicNumber { get; set; }
 
     /// <summary>Gets the operation code (OpCode) of this packet.</summary>
     [SerializeOrder(4)]
@@ -45,18 +45,19 @@ public sealed class LiteralPacket : IPacket, IPacketTransformer<LiteralPacket>
 
     /// <summary>Gets or sets the UTF-8 string content of the packet.</summary>
     [SerializeOrder(9)]
-    [SerializeDynamicSize(256)]
+    [SerializeDynamicSize(1024)]
     public System.String Content { get; set; }
+
+    static LiteralPacket() => MagicNumber = (System.UInt32)PacketMagicNumbers.LiteralPacket;
 
     /// <summary>Initializes a new <see cref="LiteralPacket"/> with empty content.</summary>
     public LiteralPacket()
     {
-        OpCode = 0x00;
-        MagicNumber = PacketConstants.MagicNumber;
         Flags = PacketFlags.None;
         Content = System.String.Empty;
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.Null;
+        OpCode = PacketConstants.OpCodeDefault;
     }
 
     /// <summary>Initializes the packet with the specified string content.</summary>
@@ -87,11 +88,15 @@ public sealed class LiteralPacket : IPacket, IPacketTransformer<LiteralPacket>
     /// </remarks>
     /// <param name="buffer">The source buffer.</param>
     /// <returns>A pooled <see cref="LiteralPacket"/> instance.</returns>
-    public static LiteralPacket Deserialize(System.ReadOnlySpan<System.Byte> buffer)
+    public static LiteralPacket Deserialize(in System.ReadOnlySpan<System.Byte> buffer)
     {
         LiteralPacket packet = ObjectPoolManager.Instance.Get<LiteralPacket>();
-        _ = LiteSerializer.Deserialize<LiteralPacket>(buffer, ref packet);
-        return packet;
+        System.Int32 bytesRead = LiteSerializer.Deserialize<LiteralPacket>(buffer, ref packet);
+
+        return bytesRead == 0
+            ? throw new System.InvalidOperationException(
+                "Failed to deserialize packet: No bytes were read.")
+            : packet;
     }
 
     /// <summary>

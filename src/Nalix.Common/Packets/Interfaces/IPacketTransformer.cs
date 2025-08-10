@@ -22,7 +22,7 @@ public interface IPacketTransformer<TPacket> where TPacket : IPacket
     /// <returns>
     /// A new <typeparamref name="TPacket"/> instance created from the provided buffer.
     /// </returns>
-    static abstract TPacket Deserialize(System.ReadOnlySpan<System.Byte> buffer);
+    static abstract TPacket Deserialize(in System.ReadOnlySpan<System.Byte> buffer);
 
     // --- Encryption ---
 
