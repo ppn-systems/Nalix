@@ -128,47 +128,90 @@ public static class FormatterProvider
     /// </exception>
     public static IFormatter<T> Get<T>()
     {
-        IFormatter<T>? formatter;
-
-        // NEW: Handle Nullable<T>
-        if (typeof(T).IsGenericType &&
-            typeof(T).GetGenericTypeDefinition() == typeof(System.Nullable<>))
-        {
-            System.Type underlyingType = System.Nullable.GetUnderlyingType(typeof(T))!;
-            System.Type formatterType = typeof(NullableFormatter<>).MakeGenericType(underlyingType);
-
-            var instance = System.Activator.CreateInstance(formatterType)!;
-
-            formatter = (IFormatter<T>)instance;
-            Register(formatter);
-            return formatter;
-        }
-
+        // Formatter has been cached → return immediately
         if (FormatterCache<T>.Formatter is not null)
         {
             return FormatterCache<T>.Formatter;
         }
 
-        // Auto-register for enums
-        formatter = TryCreateEnumFormatter<T>()
-             ?? TryCreateArrayFormatter<T>()
-             ?? TryCreateListFormatter<T>();
+        System.Type targetType = typeof(T);
+        IFormatter<T>? formatter;
 
-        if (formatter is not null)
+        // ============================================================
+        // CASE 1: Nullable struct (int?, DateTime?, ...)
+        // ============================================================
+        if (targetType.IsGenericType &&
+            targetType.GetGenericTypeDefinition() == typeof(System.Nullable<>))
         {
-            Register(formatter);
-            return formatter;
+            if (FormatterCache<T>.Formatter is not null)
+            {
+                return FormatterCache<T>.Formatter;
+            }
+
+            var underlying = System.Nullable.GetUnderlyingType(targetType)!;
+            var created = (IFormatter<T>)System.Activator
+                .CreateInstance(typeof(NullableFormatter<>).MakeGenericType(underlying))!;
+
+            FormatterCache<T>.Formatter ??= created;
+            return FormatterCache<T>.Formatter!;
         }
 
-        // fallback to GetComplex
+        // ============================================================
+        // CASE 2: Reference type (class) → null marker support
+        //  - Subtract string because it has its own StringFormatter
+        // ============================================================
+        if (targetType.IsClass && targetType != typeof(System.String))
+        {
+            System.Type formatterType = typeof(NullableObjectFormatter<>).MakeGenericType(targetType);
+
+            formatter = (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
+            FormatterCache<T>.Formatter ??= formatter;
+            return FormatterCache<T>.Formatter!;
+        }
+
+        // ============================================================
+        // CASE 3: Enum formatter
+        // ============================================================
+        formatter = TryCreateEnumFormatter<T>();
+        if (formatter is not null)
+        {
+            FormatterCache<T>.Formatter ??= formatter;
+            return FormatterCache<T>.Formatter!;
+        }
+
+        // ============================================================
+        // CASE 4: Array formatter
+        // ============================================================
+        formatter = TryCreateArrayFormatter<T>();
+        if (formatter is not null)
+        {
+            FormatterCache<T>.Formatter ??= formatter;
+            return FormatterCache<T>.Formatter!;
+        }
+
+        // ============================================================
+        // CASE 5: List formatter
+        // ============================================================
+        formatter = TryCreateListFormatter<T>();
+        if (formatter is not null)
+        {
+            FormatterCache<T>.Formatter ??= formatter;
+            return FormatterCache<T>.Formatter!;
+        }
+
+        // ============================================================
+        // CASE 6: Complex type (struct or class has fields/properties)
+        // ============================================================
         try
         {
-            return GetComplex<T>();
+            formatter = GetComplex<T>();
+            FormatterCache<T>.Formatter ??= formatter;
+            return FormatterCache<T>.Formatter!;
         }
         catch (System.Exception ex)
         {
             throw new System.InvalidOperationException(
-                $"No formatter registered for type {typeof(T)} and could not auto-generate one.", ex);
+                $"No formatter registered for type {targetType.FullName} and could not auto-generate one.", ex);
         }
     }
 
@@ -253,16 +296,9 @@ public static class FormatterProvider
         }
 
         System.Type elementType = type.GetElementType()!;
-        System.Type formatterGeneric;
-
-        if (elementType.IsEnum)
-        {
-            formatterGeneric = typeof(EnumArrayFormatter<>);
-        }
-        else
-        {
-            formatterGeneric = elementType.IsValueType && !elementType.IsEnum ? typeof(ArrayFormatter<>) : typeof(ReferenceArrayFormatter<>);
-        }
+        System.Type formatterGeneric = elementType.IsEnum
+            ? typeof(EnumArrayFormatter<>)
+            : elementType.IsValueType && !elementType.IsEnum ? typeof(ArrayFormatter<>) : typeof(ReferenceArrayFormatter<>);
 
         // T = int[] -> elementType = int -> formatterGeneric<int> = IFormatter<int[]>
         System.Type actualFormatterType = formatterGeneric.MakeGenericType(elementType);
