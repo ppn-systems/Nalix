@@ -11,7 +11,7 @@ internal static class PacketRegistry
 {
     private static readonly System.Collections.Generic.Dictionary<
         System.UInt32, System.Func<System.ReadOnlySpan<System.Byte>, IPacket>> _packetFactories;
-    private static readonly System.Collections.Generic.Dictionary<
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
         System.UInt32, System.Func<System.ReadOnlySpan<System.Byte>, IPacket>> _cachedFactories;
 
     private static readonly System.Collections.Generic.Dictionary<System.Type, PacketTransformerDelegates> _transformers;
@@ -41,8 +41,7 @@ internal static class PacketRegistry
                 .Where(a => !a.IsDynamic &&
                             !System.String.IsNullOrWhiteSpace(a.FullName) &&
                             a.GetTypes().Any(t => t.Namespace != null &&
-                                                  t.Namespace.StartsWith(
-                                                      $"{nameof(Nalix)}.{nameof(Shared)}.{nameof(Shared.Messaging)}")))
+                                                  t.Namespace.StartsWith(typeof(Shared.Messaging.BinaryPacket).Namespace!)))
         );
 
         Initialize([.. assembliesToScan.Distinct()]);
@@ -92,7 +91,7 @@ internal static class PacketRegistry
             {
                 System.Type iface = typeof(IPacketTransformer<>).MakeGenericType(type);
 
-                // Lấy MethodInfo từ generic type definition, không hardcode string
+                // Get MethodInfo for deserialization and transformation methods
                 MethodInfo? deserialize = iface.GetMethod(
                     nameof(IPacketTransformer<IPacket>.Deserialize),
                     BindingFlags.Public | BindingFlags.Static
@@ -124,11 +123,20 @@ internal static class PacketRegistry
                     continue;
                 }
 
+                System.Func<IPacket, IPacket> compressDel = compress.CreateDelegate<System.Func<IPacket, IPacket>>();
+                System.Func<IPacket, IPacket> decompressDel = decompress.CreateDelegate<System.Func<IPacket, IPacket>>();
+
+                System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket> encryptDel = encrypt.CreateDelegate<
+                    System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>>();
+
+                System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket> decryptDel = decrypt.CreateDelegate<
+                    System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>>();
+
                 _transformers[type] = new PacketTransformerDelegates(
-                    Compress: (p) => (IPacket)compress.Invoke(null, [p])!,
-                    Decompress: (p) => (IPacket)decompress.Invoke(null, [p])!,
-                    Encrypt: (p, key, alg) => (IPacket)encrypt.Invoke(null, [p, key, alg])!,
-                    Decrypt: (p, key, alg) => (IPacket)decrypt.Invoke(null, [p, key, alg])!
+                    Compress: compressDel,
+                    Decompress: decompressDel,
+                    Encrypt: encryptDel,
+                    Decrypt: decryptDel
                 );
             }
         }
@@ -139,12 +147,8 @@ internal static class PacketRegistry
     {
         return buffer =>
         {
-            if (!_cachedFactories.TryGetValue(magicNumber,
-                out System.Func<System.ReadOnlySpan<System.Byte>, IPacket>? factory))
-            {
-                factory = deserializeMethod.CreateDelegate<System.Func<System.ReadOnlySpan<System.Byte>, IPacket>>();
-                _cachedFactories[magicNumber] = factory;
-            }
+            System.Func<System.ReadOnlySpan<System.Byte>, IPacket> factory = _cachedFactories.GetOrAdd(magicNumber,
+                _ => deserializeMethod.CreateDelegate<System.Func<System.ReadOnlySpan<System.Byte>, IPacket>>());
             return factory(buffer);
         };
     }

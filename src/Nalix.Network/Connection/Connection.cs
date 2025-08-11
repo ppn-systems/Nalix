@@ -6,6 +6,7 @@ using Nalix.Common.Security.Identity;
 using Nalix.Common.Security.Types;
 using Nalix.Framework.Identity;
 using Nalix.Network.Connection.Internal;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Connection;
@@ -17,7 +18,6 @@ public sealed partial class Connection : IConnection
 {
     #region Fields
 
-    private readonly ILogger? _logger;
     private readonly System.Threading.Lock _lock;
     private readonly System.Net.Sockets.Socket _socket;
     private readonly TransportStream _cstream;
@@ -39,18 +39,15 @@ public sealed partial class Connection : IConnection
     /// </summary>
     /// <param name="socket">The socket used for the connection.</param>
     /// <param name="bufferAllocator">The buffer pool used for data allocation.</param>
-    /// <param name="logger">The logger used for logging connection events. If null, no logging will occur.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="socket"/> is null.</exception>
-    public Connection(System.Net.Sockets.Socket socket, IBufferPool bufferAllocator, ILogger? logger = null)
+    public Connection(System.Net.Sockets.Socket socket, IBufferPool bufferAllocator)
     {
         _lock = new System.Threading.Lock();
         _ctokens = new System.Threading.CancellationTokenSource();
-
-        _logger = logger;
         _socket = socket ?? throw new System.ArgumentNullException(nameof(socket));
 
 
-        _cstream = new TransportStream(socket, bufferAllocator, _logger)
+        _cstream = new TransportStream(socket, bufferAllocator)
         {
             Disconnected = () =>
             {
@@ -68,8 +65,8 @@ public sealed partial class Connection : IConnection
         this.Udp.Initialize(this);
         this.Tcp = new TcpTransport(this);
 
-        _logger?.Debug("[{0}] Connection created for {1}",
-            nameof(Connection), this._socket.RemoteEndPoint?.ToString());
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug("[{0}] Connection created for {1}", nameof(Connection), this._socket.RemoteEndPoint?.ToString());
     }
 
     #endregion Constructor
@@ -184,7 +181,8 @@ public sealed partial class Connection : IConnection
         }
         catch (System.Exception ex)
         {
-            this._logger?.Error("[{0}] Close error: {1}", nameof(Connection), ex.Message);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error("[{0}] Close error: {1}", nameof(Connection), ex.Message);
         }
     }
 
@@ -220,7 +218,8 @@ public sealed partial class Connection : IConnection
         }
         catch (System.Exception ex)
         {
-            this._logger?.Error("[{0}] Dispose error: {1}", nameof(Connection), ex.Message);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error("[{0}] Dispose error: {1}", nameof(Connection), ex.Message);
         }
         finally
         {
