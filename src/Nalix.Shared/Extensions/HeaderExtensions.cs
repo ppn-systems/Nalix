@@ -50,35 +50,35 @@ public static class HeaderExtensions
     /// <summary>Reads a 32-bit unsigned integer (Little-Endian) at offset 0 (MagicNumber).</summary>
     public static System.UInt32 ReadMagicNumberLE(this System.ReadOnlySpan<System.Byte> buffer)
     {
-        CheckSize(buffer, 0, sizeof(System.UInt32));
+        CheckSize(buffer, PacketHeaderOffset.MagicNumber.AsByte(), sizeof(System.UInt32));
         return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(buffer);
     }
 
     /// <summary>Reads a 16-bit unsigned integer (Little-Endian) at offset 4 (OpCode).</summary>
     public static System.UInt16 ReadOpCodeLE(this System.ReadOnlySpan<System.Byte> buffer)
     {
-        CheckSize(buffer, 4, sizeof(System.UInt16));
+        CheckSize(buffer, PacketHeaderOffset.OpCode.AsByte(), sizeof(System.UInt16));
         return System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(buffer[4..]);
     }
 
     /// <summary>Reads <see cref="PacketFlags"/> (Little-Endian) at offset 6.</summary>
     public static PacketFlags ReadFlagsLE(this System.ReadOnlySpan<System.Byte> buffer)
     {
-        CheckSize(buffer, 6, sizeof(System.UInt16));
+        CheckSize(buffer, PacketHeaderOffset.Flags.AsByte(), sizeof(System.UInt16));
         return (PacketFlags)System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(buffer[6..]);
     }
 
     /// <summary>Reads <see cref="PacketPriority"/> (Little-Endian) at offset 8.</summary>
     public static PacketPriority ReadPriorityLE(this System.ReadOnlySpan<System.Byte> buffer)
     {
-        CheckSize(buffer, 8, sizeof(System.UInt16));
+        CheckSize(buffer, PacketHeaderOffset.Priority.AsByte(), sizeof(System.UInt16));
         return (PacketPriority)System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(buffer[8..]);
     }
 
     /// <summary>Reads <see cref="TransportProtocol"/> (Little-Endian) at offset 10.</summary>
     public static TransportProtocol ReadTransportLE(this System.ReadOnlySpan<System.Byte> buffer)
     {
-        CheckSize(buffer, 10, sizeof(System.UInt16));
+        CheckSize(buffer, PacketHeaderOffset.Transport.AsByte(), sizeof(System.UInt16));
         return (TransportProtocol)System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(buffer[10..]);
     }
 
@@ -166,6 +166,10 @@ public static class HeaderExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.ReadOnlySpan<System.Byte> AsReadOnlySpan(this System.Byte[] buffer)
         => System.MemoryExtensions.AsSpan(buffer);
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Byte AsByte(this PacketHeaderOffset position) => (System.Byte)position;
 
     #endregion
 }

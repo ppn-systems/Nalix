@@ -28,31 +28,31 @@ public interface IPacket : IPoolable
     /// <summary>
     /// Gets the magic number that uniquely identifies the packet format or protocol.
     /// </summary>
-    [SerializeOrder(SerializeOrderPosition.MagicNumber)]
+    [SerializeOrder(PacketHeaderOffset.MagicNumber)]
     System.UInt32 MagicNumber { get; }
 
     /// <summary>
     /// Gets the operation code (OpCode) that specifies the command or type of the packet.
     /// </summary>
-    [SerializeOrder(SerializeOrderPosition.OpCode)]
+    [SerializeOrder(PacketHeaderOffset.OpCode)]
     System.UInt16 OpCode { get; }
 
     /// <summary>
     /// Gets the flags associated with the packet, indicating its state or processing options.
     /// </summary>
-    [SerializeOrder(SerializeOrderPosition.Flags)]
+    [SerializeOrder(PacketHeaderOffset.Flags)]
     PacketFlags Flags { get; }
 
     /// <summary>
     /// Gets the priority level of the packet for processing or transmission.
     /// </summary>
-    [SerializeOrder(SerializeOrderPosition.Priority)]
+    [SerializeOrder(PacketHeaderOffset.Priority)]
     PacketPriority Priority { get; }
 
     /// <summary>
     /// Gets the transport protocol (for example, TCP or UDP) used to transmit the packet.
     /// </summary>
-    [SerializeOrder(SerializeOrderPosition.Transport)]
+    [SerializeOrder(PacketHeaderOffset.Transport)]
     TransportProtocol Transport { get; }
 
     #endregion Metadata

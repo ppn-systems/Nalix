@@ -17,14 +17,14 @@ namespace Nalix.Shared.Messaging;
 [MagicNumber(MagicNumbers.BinaryPacket)]
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class BinaryPacket<T> : IPacket, IPacketTransformer<BinaryPacket<T>>
-    where T : ISerializableSize
+    where T : IFixedSizeSerializable
 {
     /// <summary>
     /// Gets the total length of the serialized packet in bytes, including header and content.
     /// </summary>
     [SerializeIgnore]
     public System.UInt16 Length =>
-        (System.UInt16)(PacketConstants.HeaderSize + (Data is null ? 0 : Data.GetSize()));
+        (System.UInt16)(PacketConstants.HeaderSize + (Data is null ? 0 : T.Size));
 
     /// <summary>
     /// Gets the magic number used to identify the packet format.
@@ -168,7 +168,7 @@ public sealed class BinaryPacket<T> : IPacket, IPacketTransformer<BinaryPacket<T
     /// <inheritdoc/>
     public override System.String ToString() =>
         $"BinaryPacket(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
-        $"Priority={Priority}, Transport={Transport}, Data={Data?.GetSize() ?? 0} bytes)";
+        $"Priority={Priority}, Transport={Transport}, Data={T.Size} bytes)";
 
     private static T CreateNonNull()
     {
