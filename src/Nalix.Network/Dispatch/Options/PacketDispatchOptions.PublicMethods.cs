@@ -25,8 +25,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public PacketDispatchOptions<TPacket> WithLogging(ILogger logger)
     {
-        this._logger = logger;
-        this._logger.Info("Logger instance successfully attached to PacketDispatch. Logging is now active.");
+        this.Logger = logger;
+        this.Logger.Info("Logger instance successfully attached to PacketDispatch. Logging is now active.");
 
         return this;
     }
@@ -51,7 +51,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithErrorHandling(
         System.Action<System.Exception, System.UInt16> errorHandler)
     {
-        this._logger?.Info("Custom error handler has been set. All unhandled exceptions during packet processing will be routed.");
+        this.Logger?.Info("Custom error handler has been set. All unhandled exceptions during packet processing will be routed.");
         this._errorHandler = errorHandler;
 
         return this;
@@ -176,7 +176,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             ?? throw new System.InvalidOperationException(
                 $"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
-        PacketAnalyzer<TController, TPacket> scanner = new(this._logger);
+        PacketAnalyzer<TController, TPacket> scanner = new(this.Logger);
         PacketHandlerDelegate<TPacket>[] handlerDescriptors = scanner.ScanController(factory);
 
         foreach (PacketHandlerDelegate<TPacket> descriptor in handlerDescriptors)
@@ -190,7 +190,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             this._handlerCache[descriptor.OpCode] = descriptor;
         }
 
-        this._logger?.Info("Registered {0} handlers for controller {1}",
+        this.Logger?.Info("Registered {0} handlers for controller {1}",
             handlerDescriptors.Length, controllerType.Name);
 
         return this;
@@ -232,7 +232,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return true;
         }
 
-        this._logger?.Warn("Handler not found for OpCode={0}", opCode);
+        this.Logger?.Warn("Handler not found for OpCode={0}", opCode);
         handler = null;
         return false;
     }
@@ -253,7 +253,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return true;
         }
 
-        this._logger?.Warn("Handler not found for OpCode={0}", opCode);
+        this.Logger?.Warn("Handler not found for OpCode={0}", opCode);
         return false;
     }
 }
