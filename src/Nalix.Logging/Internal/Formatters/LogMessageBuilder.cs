@@ -2,6 +2,7 @@
 
 using Nalix.Common.Logging;
 using Nalix.Logging.Core;
+using Nalix.Logging.Internal.Pooling;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
@@ -122,27 +123,23 @@ internal static class LogMessageBuilder
     {
         System.String timestampFormat = format ?? "HH:mm:ss.fff";
 
-        // Allocate buffer on the stack for datetime formatting
-        System.Span<System.Char> dateBuffer = stackalloc System.Char[timestampFormat.Length];
+        // Use timestamp cache for better performance
+        System.String formattedTimestamp = TimestampCache.GetFormattedTimestamp(timeStamp, timestampFormat);
 
-        // Format timestamp directly into stack-allocated buffer
-        if (timeStamp.TryFormat(dateBuffer, out System.Int32 charsWritten, timestampFormat))
+        _ = builder.Append(InternCache.BracketOpen);
+
+        if (colors)
         {
-            _ = builder.Append(NLogixConstants.LogBracketOpen);
-
-            if (colors)
-            {
-                _ = builder.Append(AnsiColors.Blue);
-                _ = builder.Append(dateBuffer[..charsWritten]);
-                _ = builder.Append(AnsiColors.White);
-            }
-            else
-            {
-                _ = builder.Append(dateBuffer[..charsWritten]);
-            }
-
-            _ = builder.Append(NLogixConstants.LogBracketClose);
+            _ = builder.Append(AnsiColors.Blue);
+            _ = builder.Append(formattedTimestamp);
+            _ = builder.Append(AnsiColors.White);
         }
+        else
+        {
+            _ = builder.Append(formattedTimestamp);
+        }
+
+        _ = builder.Append(InternCache.BracketClose);
     }
 
     /// <summary>
@@ -155,8 +152,8 @@ internal static class LogMessageBuilder
         System.Text.StringBuilder builder,
         LogLevel logLevel, System.Boolean colors)
     {
-        _ = builder.Append(NLogixConstants.LogSpaceSeparator)
-                   .Append(NLogixConstants.LogBracketOpen);
+        _ = builder.Append(InternCache.Space)
+                   .Append(InternCache.BracketOpen);
 
         System.ReadOnlySpan<System.Char> levelText = LogLevelShortNames.GetShortName(logLevel);
 
@@ -171,7 +168,7 @@ internal static class LogMessageBuilder
             _ = builder.Append(levelText);
         }
 
-        _ = builder.Append(NLogixConstants.LogBracketClose);
+        _ = builder.Append(InternCache.BracketClose);
     }
 
     /// <summary>
@@ -189,8 +186,8 @@ internal static class LogMessageBuilder
             return;
         }
 
-        _ = builder.Append(NLogixConstants.LogSpaceSeparator)
-               .Append(NLogixConstants.LogBracketOpen);
+        _ = builder.Append(InternCache.Space)
+               .Append(InternCache.BracketOpen);
 
         if (colors)
         {
@@ -201,7 +198,7 @@ internal static class LogMessageBuilder
             if (!System.String.IsNullOrEmpty(eventId.Name))
             {
                 _ = builder.Append(AnsiColors.White)
-                           .Append(':')
+                           .Append(InternCache.Colon)
                            .Append(AnsiColors.DarkGray)
                            .Append(eventId.Name);
             }
@@ -214,12 +211,12 @@ internal static class LogMessageBuilder
             _ = builder.Append(eventId.Id);
             if (!System.String.IsNullOrEmpty(eventId.Name))
             {
-                _ = builder.Append(':')
+                _ = builder.Append(InternCache.Colon)
                            .Append(eventId.Name);
             }
         }
 
-        _ = builder.Append(NLogixConstants.LogBracketClose);
+        _ = builder.Append(InternCache.BracketClose);
     }
 
     /// <summary>
@@ -230,8 +227,8 @@ internal static class LogMessageBuilder
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void AppendMessage(System.Text.StringBuilder builder, System.String message)
     {
-        // Use span-based append for standard separators
-        _ = builder.Append(DashWithSpaces);
+        // Use interned string for separator
+        _ = builder.Append(InternCache.DashWithSpaces);
         _ = builder.Append(message);
     }
 
@@ -250,8 +247,8 @@ internal static class LogMessageBuilder
 
         try
         {
-            _ = builder.Append(NLogixConstants.LogSpaceSeparator)
-                       .Append(DashWithSpaces)
+            _ = builder.Append(InternCache.Space)
+                       .Append(InternCache.DashWithSpaces)
                        .AppendLine();
 
             if (colors)
@@ -278,7 +275,8 @@ internal static class LogMessageBuilder
             {
                 _ = builder.Append("Logger failed to format exception: ")
                            .Append(exception?.GetType().Name)
-                           .Append(": ")
+                           .Append(InternCache.Colon)
+                           .Append(InternCache.Space)
                            .AppendLine(exception?.Message);
             }
             catch { /* last resort: ignore */ }
@@ -293,7 +291,8 @@ internal static class LogMessageBuilder
     private static void WriteHeader(System.Text.StringBuilder builder, System.Exception ex)
     {
         _ = builder.Append(ex.GetType().Name)
-                   .Append(": ")
+                   .Append(InternCache.Colon)
+                   .Append(InternCache.Space)
                    .AppendLine(ex.Message);
     }
 
