@@ -36,7 +36,7 @@ public abstract partial class TcpListenerBase
 
         try
         {
-            IConnection connection = new Connection.Connection(socket, _bufferPool, _logger);
+            IConnection connection = new Connection.Connection(socket, _bufferPool);
 
             connection.EnforceLimiterOnClose(_connectionLimiter);
             connection.OnCloseEvent += this.HandleConnectionClose;

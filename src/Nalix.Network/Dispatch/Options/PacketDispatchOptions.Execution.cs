@@ -8,6 +8,7 @@ namespace Nalix.Network.Dispatch.Options;
 public sealed partial class PacketDispatchOptions<TPacket>
 {
     #region Private Methods
+
     private async System.Threading.Tasks.ValueTask ExecuteHandler(
         PacketHandlerDelegate<TPacket> descriptor,
         PacketContext<TPacket> context)

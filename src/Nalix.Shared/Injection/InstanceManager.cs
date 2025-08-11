@@ -1,10 +1,12 @@
+using Nalix.Shared.Injection.DI;
+
 namespace Nalix.Shared.Injection;
 
 /// <summary>
 /// High-performance manager that maintains single instances of different types,
 /// optimized for real-time server applications with thread safety and caching.
 /// </summary>
-public sealed class InstanceManager : System.IDisposable
+public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDisposable
 {
     #region Fields
 
@@ -41,7 +43,7 @@ public sealed class InstanceManager : System.IDisposable
     #region Properties
 
     /// <summary>
-    /// Checks if this application (including version TransportProtocol) is the only instance currently running.
+    /// Checks if this application is the only instance currently running.
     /// </summary>
     public static System.Boolean IsTheOnlyInstance
     {
@@ -198,9 +200,10 @@ public sealed class InstanceManager : System.IDisposable
             {
                 disposable.Dispose();
             }
-            catch (System.Exception)
+            catch (System.Exception ex)
             {
-                // Log exception but continue (in production, add logging)
+                System.Diagnostics.Debug.WriteLine(
+                    $"[InstanceManager] WARN: Failed to dispose instance of type '{type.Name}': {ex.Message}");
             }
         }
 
@@ -264,9 +267,10 @@ public sealed class InstanceManager : System.IDisposable
                     {
                         disposable.Dispose();
                     }
-                    catch (System.Exception)
+                    catch (System.Exception ex)
                     {
-                        // Log exception but continue (in production, add logging)
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[InstanceManager] WARN: Failed to dispose instance during clear: {ex.Message}");
                     }
                 }
             }
@@ -284,7 +288,7 @@ public sealed class InstanceManager : System.IDisposable
     /// <summary>
     /// Disposes of all instances in the cache that implement <see cref="System.IDisposable"/>.
     /// </summary>
-    public void Dispose()
+    protected override void Dispose(System.Boolean disposeManaged)
     {
         if (System.Threading.Interlocked.Exchange(ref _isDisposed, 1) != 0)
         {
@@ -297,14 +301,14 @@ public sealed class InstanceManager : System.IDisposable
             {
                 disposable.Dispose();
             }
-            catch (System.Exception)
+            catch (System.Exception ex)
             {
-                // Log exception but continue (in production, add logging)
+                System.Diagnostics.Debug.WriteLine(
+                    $"[InstanceManager] WARN: Failed to dispose instance during cleanup: {ex.Message}");
             }
         }
 
         Clear(disposeInstances: true);
-        System.GC.SuppressFinalize(this);
     }
 
     #endregion IDisposable

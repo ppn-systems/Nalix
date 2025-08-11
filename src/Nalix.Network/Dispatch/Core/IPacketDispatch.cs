@@ -41,5 +41,5 @@ public interface IPacketDispatch<TPacket> where TPacket : IPacket
     /// </summary>
     /// <param name="packet">The deserialized packet instance to be handled.</param>
     /// <param name="connection">The connection from which the packet was received.</param>
-    void HandlePacketAsync(TPacket packet, IConnection connection);
+    void HandlePacket(TPacket packet, IConnection connection);
 }
