@@ -73,40 +73,37 @@ public sealed class NLogixDistributor : ILogDistributor
 
         // Increment the published entries counter
         _ = System.Threading.Interlocked.Increment(ref _totalEntriesPublished);
+        System.Int32 count = _targets.Count;
 
-        // Optimize for the common case of a single target
-        if (_targets.Count == 1)
+        // Fast path: no targets
+        if (count == 0)
         {
-            ILoggerTarget target = System.Linq.Enumerable.First(_targets.Keys);
-            try
-            {
-                target.Publish(entry.Value);
-                _ = System.Threading.Interlocked.Increment(ref _totalTargetInvocations);
-            }
-            catch (System.Exception ex)
-            {
-                // Count the error but continue operation
-                _ = System.Threading.Interlocked.Increment(ref _totalPublishErrors);
-                HandleTargetError(target, ex, entry.Value);
-            }
             return;
         }
 
-        // For multiple targets, publish to each
-        foreach (ILoggerTarget target in _targets.Keys)
+        // Optimize for the common case of a single target
+        if (count == 1)
         {
-            try
+            foreach (System.Collections.Generic.KeyValuePair<ILoggerTarget, System.Byte> kvp in _targets)
             {
-                target.Publish(entry.Value);
-                _ = System.Threading.Interlocked.Increment(ref _totalTargetInvocations);
-            }
-            catch (System.Exception ex)
-            {
-                // Count the error but continue with other targets
-                _ = System.Threading.Interlocked.Increment(ref _totalPublishErrors);
-                HandleTargetError(target, ex, entry.Value);
+                try
+                {
+                    kvp.Key.Publish(entry.Value);
+                    _ = System.Threading.Interlocked.Increment(ref _totalTargetInvocations);
+                }
+                catch (System.Exception ex)
+                {
+                    // Count the error but continue operation
+                    _ = System.Threading.Interlocked.Increment(ref _totalPublishErrors);
+                    HandleTargetError(kvp.Key, ex, entry.Value);
+                }
+                return; // Only one target, exit after processing
             }
         }
+
+        // For best performance, always publish synchronously
+        // The individual targets handle async operations internally if needed
+        Publish(entry.Value);
     }
 
     /// <summary>
@@ -126,17 +123,40 @@ public sealed class NLogixDistributor : ILogDistributor
         // Quick check for disposed state
         System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
 
-        // For simplicity and performance, use Task.Run only when there are multiple targets
-        // Otherwise just do it synchronously to avoid task allocation overhead
-        if (_targets.Count <= 1)
+        System.Int32 count = _targets.Count;
+
+        // Fast path: no targets
+        if (count == 0)
         {
-            Publish(entry.Value);
             return System.Threading.Tasks.ValueTask.CompletedTask;
         }
 
-        return new System.Threading.Tasks.ValueTask(
-            System.Threading.Tasks.Task.Run(() => Publish(entry.Value))
-        );
+        // Optimize for the common case of a single target
+        if (count == 1)
+        {
+            foreach (System.Collections.Generic.KeyValuePair<ILoggerTarget, System.Byte> kvp in _targets)
+            {
+                try
+                {
+                    kvp.Key.Publish(entry.Value);
+                    _ = System.Threading.Interlocked.Increment(ref _totalTargetInvocations);
+                }
+                catch (System.Exception ex)
+                {
+                    // Count the error but continue operation
+                    _ = System.Threading.Interlocked.Increment(ref _totalPublishErrors);
+                    HandleTargetError(kvp.Key, ex, entry.Value);
+                }
+
+                // Only one target, exit after processing
+                return System.Threading.Tasks.ValueTask.CompletedTask;
+            }
+        }
+
+        // For best performance, always publish synchronously
+        // The individual targets handle async operations internally if needed
+        Publish(entry.Value);
+        return System.Threading.Tasks.ValueTask.CompletedTask;
     }
 
     /// <summary>
