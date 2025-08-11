@@ -54,7 +54,7 @@ public static class FormatterProvider
 
         // ============================================================ //
         // String
-        Register(new StringFormatter());
+        Register<System.String>(new StringFormatter());
 
         // ============================================================ //
         // Nullable types
