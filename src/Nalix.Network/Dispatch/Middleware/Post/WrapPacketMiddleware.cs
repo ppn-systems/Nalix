@@ -1,45 +1,45 @@
 ﻿using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Interfaces;
+using Nalix.Network.Dispatch.Analyzers;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Core;
 using Nalix.Network.Dispatch.Middleware.Enums;
 using Nalix.Network.Dispatch.Middleware.Interfaces;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging;
+using static Nalix.Network.Dispatch.Analyzers.PacketRegistry;
 
 namespace Nalix.Network.Dispatch.Middleware.Post;
 
 /// <summary>
 /// Middleware that wraps a packet with compression and encryption as needed before dispatch.
 /// </summary>
-/// <typeparam name="TPacket">
-/// The type of packet, which must implement <see cref="IPacket"/> and <see cref="IPacketTransformer{TPacket}"/>.
-/// </typeparam>
 [PacketMiddleware(MiddlewareStage.PostDispatch, order: 2, name: "Wrap")]
-public class WrapPacketMiddleware<TPacket> : IPacketMiddleware<TPacket>
-    where TPacket : IPacket, IPacketTransformer<TPacket>
+public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 {
     /// <inheritdoc/>
     public async System.Threading.Tasks.Task InvokeAsync(
-        PacketContext<TPacket> context,
+        PacketContext<IPacket> context,
         System.Func<System.Threading.Tasks.Task> next)
     {
         try
         {
-            TPacket current = context.Packet;
+            IPacket current = context.Packet;
 
-            if (WrapPacketMiddleware<TPacket>.ShouldCompress(context))
+            if (PacketRegistry.TryResolveTransformer(current.GetType(), out PacketTransformerDelegates? t) && t is not null)
             {
-                current = TPacket.Compress(current);
-            }
+                if (ShouldCompress(context))
+                {
+                    current = t.Compress(current);
+                }
 
-            if (context.Attributes.Encryption?.IsEncrypted ?? false)
-            {
-                current = TPacket.Encrypt(
-                    current,
-                    context.Connection.EncryptionKey,
-                    context.Connection.Encryption);
+                if (context.Attributes.Encryption?.IsEncrypted ?? false)
+                {
+                    current = t.Encrypt(current,
+                        context.Connection.EncryptionKey,
+                        context.Connection.Encryption);
+                }
             }
 
             if (!ReferenceEquals(current, context.Packet))
@@ -66,7 +66,7 @@ public class WrapPacketMiddleware<TPacket> : IPacketMiddleware<TPacket>
         await next();
     }
 
-    private static System.Boolean ShouldCompress(in PacketContext<TPacket> context)
+    private static System.Boolean ShouldCompress(in PacketContext<IPacket> context)
     {
         return (context.Packet.Transport == TransportProtocol.Tcp)
              ? (context.Packet.Length - PacketConstants.CompressionThreshold) > PacketConstants.CompressionThreshold
