@@ -9,7 +9,7 @@ using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging;
 
-namespace Nalix.Network.Dispatch.Middleware.PreDispatch;
+namespace Nalix.Network.Dispatch.Middleware.Pre;
 
 /// <summary>
 /// Middleware that enforces rate limiting for incoming packets.
