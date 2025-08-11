@@ -4,14 +4,11 @@ using Nalix.Common.Packets.Enums;
 namespace Nalix.Shared.Extensions;
 
 /// <summary>
-/// Provides high-performance helpers for reading header fields from serialized packet data.
+/// Provides high‑performance helpers for reading packet header fields from serialized data.
 /// </summary>
 /// <remarks>
-/// This API operates directly on <see cref="System.ReadOnlySpan{T}"/> to avoid allocations and supports both
-/// unsafe generic reads and explicit little-endian typed reads.<br/>
-/// <b>Endianness:</b>,
-/// the value is read as the machine's native endianness (typically little-endian on x86/x64/ARM64).
-/// For protocol stability, prefer the explicit Little-Endian helpers (e.g.,..).
+/// These APIs operate directly on <see cref="System.ReadOnlySpan{T}"/> to avoid allocations.
+/// For protocol stability across platforms, use the explicit little‑endian readers.
 /// </remarks>
 public static class HeaderExtensions
 {
@@ -20,21 +17,22 @@ public static class HeaderExtensions
     /// <summary>
     /// Reads an unmanaged value of type <typeparamref name="T"/> from <paramref name="buffer"/> at the specified byte <paramref name="offset"/>.
     /// </summary>
-    /// <typeparam name="T">An unmanaged value type (kiểu value không quản lý) to read.</typeparam>
+    /// <typeparam name="T">An unmanaged value type to read.</typeparam>
     /// <param name="buffer">The source buffer.</param>
-    /// <param name="offset">The zero-based byte offset at which the value starts.</param>
+    /// <param name="offset">The zero‑based byte offset at which the value starts.</param>
     /// <returns>The value read from the buffer.</returns>
-    /// <exception cref="System.ArgumentException">Thrown if the buffer is too small to contain the value at the offset.</exception>
+    /// <exception cref="System.ArgumentException">Thrown when <paramref name="buffer"/> is too small to contain the value at the given <paramref name="offset"/>.</exception>
     /// <remarks>
-    /// This method reads using the platform's native endianness. For protocol consistency across platforms,
-    /// prefer typed Little-Endian helpers below.
+    /// This method uses the platform's native endianness. For wire formats, prefer the explicit little‑endian readers below.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static unsafe T ReadValue<T>(this System.ReadOnlySpan<System.Byte> buffer, System.Int32 offset) where T : unmanaged
     {
         System.Int32 size = sizeof(T);
         if ((System.UInt32)(offset + size) > (System.UInt32)buffer.Length)
         {
-            throw new System.ArgumentException($"Buffer is too small to contain {typeof(T).Name} at offset {offset}.");
+            throw new System.ArgumentException($"Buffer is too small to read {typeof(T).Name} at offset {offset}.");
         }
 
         fixed (System.Byte* p = buffer)
@@ -45,113 +43,142 @@ public static class HeaderExtensions
 
     #endregion
 
-    #region Safe typed Little-Endian readers
+    #region Little‑endian header readers (fixed offsets)
 
-    /// <summary>Reads a 32-bit unsigned integer (Little-Endian) at offset 0 (MagicNumber).</summary>
+    /// <summary>
+    /// Reads the 32‑bit <c>MagicNumber</c> at offset 0 in little‑endian format.
+    /// </summary>
+    /// <param name="buffer">The source buffer.</param>
+    /// <returns>The magic number.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.UInt32 ReadMagicNumberLE(this System.ReadOnlySpan<System.Byte> buffer)
     {
-        CheckSize(buffer, PacketHeaderOffset.MagicNumber.AsByte(), sizeof(System.UInt32));
+        CheckSize(buffer, (System.Byte)PacketHeaderOffset.MagicNumber, sizeof(System.UInt32));
         return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(buffer);
     }
 
-    /// <summary>Reads a 16-bit unsigned integer (Little-Endian) at offset 4 (OpCode).</summary>
-    public static System.UInt16 ReadOpCodeLE(this System.ReadOnlySpan<System.Byte> buffer)
-    {
-        CheckSize(buffer, PacketHeaderOffset.OpCode.AsByte(), sizeof(System.UInt16));
-        return System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(buffer[4..]);
-    }
-
-    /// <summary>Reads <see cref="PacketFlags"/> (Little-Endian) at offset 6.</summary>
-    public static PacketFlags ReadFlagsLE(this System.ReadOnlySpan<System.Byte> buffer)
-    {
-        CheckSize(buffer, PacketHeaderOffset.Flags.AsByte(), sizeof(System.UInt16));
-        return (PacketFlags)System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(buffer[6..]);
-    }
-
-    /// <summary>Reads <see cref="PacketPriority"/> (Little-Endian) at offset 8.</summary>
-    public static PacketPriority ReadPriorityLE(this System.ReadOnlySpan<System.Byte> buffer)
-    {
-        CheckSize(buffer, PacketHeaderOffset.Priority.AsByte(), sizeof(System.UInt16));
-        return (PacketPriority)System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(buffer[8..]);
-    }
-
-    /// <summary>Reads <see cref="TransportProtocol"/> (Little-Endian) at offset 10.</summary>
-    public static TransportProtocol ReadTransportLE(this System.ReadOnlySpan<System.Byte> buffer)
-    {
-        CheckSize(buffer, PacketHeaderOffset.Transport.AsByte(), sizeof(System.UInt16));
-        return (TransportProtocol)System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(buffer[10..]);
-    }
-
-    #endregion
-
-    #region Byte block copy
-
     /// <summary>
-    /// Copies a block of bytes from <paramref name="buffer"/> starting at <paramref name="offset"/> with the specified <paramref name="length"/>.
+    /// Reads the 16‑bit <c>OpCode</c> at offset 4 in little‑endian format.
     /// </summary>
     /// <param name="buffer">The source buffer.</param>
-    /// <param name="offset">The zero-based offset at which to start copying.</param>
-    /// <param name="length">The number of bytes to copy.</param>
-    /// <returns>A new array containing the copied bytes.</returns>
-    /// <exception cref="System.ArgumentException">Thrown if the requested range exceeds the buffer bounds.</exception>
-    public static unsafe System.Byte[] ReadBytes(
-        this System.ReadOnlySpan<System.Byte> buffer, System.Int32 offset, System.Int32 length)
+    /// <returns>The operation code.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.UInt16 ReadOpCodeLE(this System.ReadOnlySpan<System.Byte> buffer)
     {
-        if ((System.UInt32)(offset + length) > (System.UInt32)buffer.Length)
-        {
-            throw new System.ArgumentException($"Buffer is too small to contain {length} bytes at offset {offset}.");
-        }
+        var offs = (System.Int32)PacketHeaderOffset.OpCode;
+        CheckSize(buffer, offs, sizeof(System.UInt16));
+        return System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(buffer[offs..]);
+    }
 
-        System.Byte[] result = new System.Byte[length];
+    /// <summary>
+    /// Reads the <see cref="PacketFlags"/> at offset 6.
+    /// </summary>
+    /// <param name="buffer">The source buffer.</param>
+    /// <returns>The packet flags.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static PacketFlags ReadFlagsLE(this System.ReadOnlySpan<System.Byte> buffer)
+    {
+        var offs = (System.Int32)PacketHeaderOffset.Flags;
+        CheckSize(buffer, offs, sizeof(System.Byte));
+        return (PacketFlags)buffer[offs];
+    }
 
-        fixed (System.Byte* pSrc = buffer)
-        fixed (System.Byte* pDst = result)
-        {
-            System.Buffer.MemoryCopy(pSrc + offset, pDst, length, length);
-        }
+    /// <summary>
+    /// Reads the <see cref="PacketPriority"/> at offset 7.
+    /// </summary>
+    /// <param name="buffer">The source buffer.</param>
+    /// <returns>The packet priority.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static PacketPriority ReadPriorityLE(this System.ReadOnlySpan<System.Byte> buffer)
+    {
+        var offs = (System.Int32)PacketHeaderOffset.Priority;
+        CheckSize(buffer, offs, sizeof(System.Byte));
+        return (PacketPriority)buffer[offs];
+    }
 
-        return result;
+    /// <summary>
+    /// Reads the <see cref="TransportProtocol"/> at offset 8.
+    /// </summary>
+    /// <param name="buffer">The source buffer.</param>
+    /// <returns>The transport protocol.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static TransportProtocol ReadTransportLE(this System.ReadOnlySpan<System.Byte> buffer)
+    {
+        var offs = (System.Int32)PacketHeaderOffset.Transport;
+        CheckSize(buffer, offs, sizeof(System.Byte));
+        return (TransportProtocol)buffer[offs];
     }
 
     #endregion
 
-    #region Convenience overloads for byte[]
+    #region Byte[] convenience overloads
 
-    /// <summary>Reads OpCode (Little-Endian) from a byte array.</summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.UInt16 ReadOpCodeLE(this System.Byte[] buffer) => buffer.AsReadOnlySpan().ReadOpCodeLE();
-
-    /// <summary>Reads MagicNumber (Little-Endian) from a byte array.</summary>
+    /// <summary>
+    /// Reads the 32‑bit <c>MagicNumber</c> (little‑endian) from a <see cref="System.Byte"/> array.
+    /// </summary>
+    /// <param name="buffer">The source array.</param>
+    /// <returns>The magic number.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.UInt32 ReadMagicNumberLE(this System.Byte[] buffer) => buffer.AsReadOnlySpan().ReadMagicNumberLE();
 
-    /// <summary>Reads <see cref="PacketFlags"/> (Little-Endian) from a byte array.</summary>
+    /// <summary>
+    /// Reads the 16‑bit <c>OpCode</c> (little‑endian) from a <see cref="System.Byte"/> array.
+    /// </summary>
+    /// <param name="buffer">The source array.</param>
+    /// <returns>The operation code.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.UInt16 ReadOpCodeLE(this System.Byte[] buffer) => buffer.AsReadOnlySpan().ReadOpCodeLE();
+
+    /// <summary>
+    /// Reads the <see cref="PacketFlags"/> from a <see cref="System.Byte"/> array.
+    /// </summary>
+    /// <param name="buffer">The source array.</param>
+    /// <returns>The packet flags.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static PacketFlags ReadFlagsLE(this System.Byte[] buffer) => buffer.AsReadOnlySpan().ReadFlagsLE();
 
-    /// <summary>Reads <see cref="PacketPriority"/> (Little-Endian) from a byte array.</summary>
+    /// <summary>
+    /// Reads the <see cref="PacketPriority"/> from a <see cref="System.Byte"/> array.
+    /// </summary>
+    /// <param name="buffer">The source array.</param>
+    /// <returns>The packet priority.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static PacketPriority ReadPriorityLE(this System.Byte[] buffer) => buffer.AsReadOnlySpan().ReadPriorityLE();
 
-    /// <summary>Reads <see cref="TransportProtocol"/> (Little-Endian) from a byte array.</summary>
+    /// <summary>
+    /// Reads the <see cref="TransportProtocol"/> from a <see cref="System.Byte"/> array.
+    /// </summary>
+    /// <param name="buffer">The source array.</param>
+    /// <returns>The transport protocol.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static TransportProtocol ReadTransportLE(this System.Byte[] buffer) => buffer.AsReadOnlySpan().ReadTransportLE();
-
-    /// <summary>Copies a range of bytes from a byte array.</summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Byte[] ReadBytes(this System.Byte[] buffer, System.Int32 offset, System.Int32 length)
-        => buffer.AsReadOnlySpan().ReadBytes(offset, length);
 
     #endregion
 
     #region Helpers
 
+    /// <summary>
+    /// Throws when <paramref name="buffer"/> cannot supply <paramref name="size"/> bytes starting at <paramref name="offset"/>.
+    /// </summary>
+    /// <param name="buffer">The source buffer.</param>
+    /// <param name="offset">The starting offset.</param>
+    /// <param name="size">The required byte count.</param>
+    /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void CheckSize(System.ReadOnlySpan<System.Byte> buffer, System.Int32 offset, System.Int32 size)
@@ -164,12 +191,7 @@ public static class HeaderExtensions
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.ReadOnlySpan<System.Byte> AsReadOnlySpan(this System.Byte[] buffer)
-        => System.MemoryExtensions.AsSpan(buffer);
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Byte AsByte(this PacketHeaderOffset position) => (System.Byte)position;
+    private static System.ReadOnlySpan<System.Byte> AsReadOnlySpan(this System.Byte[] buffer) => buffer;
 
     #endregion
 }
