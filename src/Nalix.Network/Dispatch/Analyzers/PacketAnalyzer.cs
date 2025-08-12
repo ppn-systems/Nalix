@@ -2,6 +2,7 @@
 using Nalix.Common.Packets.Attributes;
 using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Core;
+using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Dispatch.Analyzers;
 
@@ -13,8 +14,8 @@ namespace Nalix.Network.Dispatch.Analyzers;
 /// <typeparam name="TPacket">The packet type handled by this controller.</typeparam>
 internal sealed class PacketAnalyzer<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>(
-    ILogger? logger = null) where TController : class where TPacket : IPacket
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>()
+    where TController : class where TPacket : IPacket
 {
     #region Fields
 
@@ -40,7 +41,7 @@ internal sealed class PacketAnalyzer<
     /// <returns>An array of compiled packet handler delegates.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public PacketHandlerDelegate<TPacket>[] ScanController(System.Func<TController> factory)
+    public static PacketHandlerDelegate<TPacket>[] ScanController(System.Func<TController> factory)
     {
         var controllerType = typeof(TController);
 
@@ -50,8 +51,14 @@ internal sealed class PacketAnalyzer<
             ?? throw new System.InvalidOperationException(
                 $"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Info($"[PacketAnalyzer] Scanning controller: {controllerType.FullName}");
+
         // Get or compile all handler methods
         var compiledMethods = GetOrCompileMethodAccessors(controllerType);
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[PacketAnalyzer] Found {compiledMethods.Count} method(s) with [PacketOpcode]");
 
         // Create the controller instance
         TController controllerInstance = factory();
@@ -72,8 +79,8 @@ internal sealed class PacketAnalyzer<
                 compiledMethod.ReturnType,
                 compiledMethod.CompiledInvoker);
 
-            logger?.Debug("Scanned handler OpCode={0} Method={1}",
-                opCode, compiledMethod.MethodInfo.Name);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[PacketAnalyzer] Registered handler OpCode={opCode} Method={compiledMethod.MethodInfo.Name}");
         }
 
         return descriptors;
@@ -99,27 +106,41 @@ internal sealed class PacketAnalyzer<
                 m => System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m) is not null
             ));
 
-        return methodInfos.Length == 0
-            ? throw new System.InvalidOperationException(
-                $"Controller '{controllerType.Name}' does not define any methods with [PacketOpcode] attribute.")
-            : _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
+        if (methodInfos.Length == 0)
         {
-            var compiled = new System.Collections.Generic.Dictionary<System.UInt16, CompiledHandler<TPacket>>(methods.Length);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                .Warn($"[PacketAnalyzer] Controller {controllerType.Name} has no methods with [PacketOpcode]");
+            throw new System.InvalidOperationException(
+                $"Controller '{controllerType.Name}' does not define any methods with [PacketOpcode] attribute.");
+        }
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+            .Debug($"[PacketAnalyzer] Compiling {methodInfos.Length} handler(s) for {controllerType.Name}");
+
+        return _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
+        {
+            System.Collections.Generic.Dictionary<System.UInt16, CompiledHandler<TPacket>> compiled = new(methods.Length);
 
             foreach (var method in methods)
             {
                 var opcodeAttr = System.Reflection.CustomAttributeExtensions
                     .GetCustomAttribute<PacketOpcodeAttribute>(method)!;
 
-                var compiledMethod = CompileMethodAccessor(method);
-
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
                 {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Error($"[PacketAnalyzer] Duplicate OpCode {opcodeAttr.OpCode} " +
+                                                   $"in {method.DeclaringType?.Name ?? "Unknown"}");
+
                     throw new System.InvalidOperationException(
                         $"Duplicate OpCode {opcodeAttr.OpCode} in controller {method.DeclaringType?.Name ?? "Unknown"}.");
                 }
 
+                var compiledMethod = CompileMethodAccessor(method);
                 compiled[opcodeAttr.OpCode] = compiledMethod;
+
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                    .Trace($"[PacketAnalyzer] Compiled handler OpCode={opcodeAttr.OpCode} Method={method.Name}");
             }
 
             return System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(compiled);
