@@ -1,5 +1,6 @@
 using Nalix.Common.Logging;
 using Nalix.Framework.Time;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Injection.DI;
 
 namespace Nalix.Network.Timing;
@@ -14,8 +15,6 @@ namespace Nalix.Network.Timing;
 public class TimeSynchronizer : SingletonBase<TimeSynchronizer>
 {
     #region Fields
-
-    private ILogger? _logger;
 
     private volatile System.Boolean _isRunning = false;
     private volatile System.Boolean _isTimeSyncEnabled = false;
@@ -58,20 +57,8 @@ public class TimeSynchronizer : SingletonBase<TimeSynchronizer>
         this._isRunning = false;
         this._isTimeSyncEnabled = false;
 
-        _logger?.Debug("TimeSynchronizer initialized.");
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TimeSynchronizer"/> class with a logger.
-    /// </summary>
-    /// <param name="logger">The logger instance to use for diagnostics.</param>
-    public TimeSynchronizer(ILogger? logger)
-    {
-        this._logger = logger;
-        this._isRunning = false;
-        this._isTimeSyncEnabled = false;
-
-        _logger?.Debug("TimeSynchronizer initialized with logger.");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug("TimeSynchronizer initialized.");
     }
 
     #endregion Constructor
@@ -90,7 +77,8 @@ public class TimeSynchronizer : SingletonBase<TimeSynchronizer>
     {
         if (this._isRunning)
         {
-            _logger?.Warn("Time synchronization loop is already running.");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn("Time synchronization loop is already running.");
             return;
         }
 
@@ -100,7 +88,8 @@ public class TimeSynchronizer : SingletonBase<TimeSynchronizer>
         {
             if (!this._isTimeSyncEnabled)
             {
-                _logger?.Debug("Waiting for time sync loop to be enabled...");
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Debug("Waiting for time sync loop to be enabled...");
             }
 
             while (!this._isTimeSyncEnabled && !cancellationToken.IsCancellationRequested)
@@ -108,7 +97,8 @@ public class TimeSynchronizer : SingletonBase<TimeSynchronizer>
                 await System.Threading.Tasks.Task.Delay(10000, cancellationToken).ConfigureAwait(false);
             }
 
-            _logger?.Info("Time sync loop enabled, starting update cycle.");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Info("Time sync loop enabled, starting update cycle.");
 
             while (this._isRunning && !cancellationToken.IsCancellationRequested)
             {
@@ -128,11 +118,13 @@ public class TimeSynchronizer : SingletonBase<TimeSynchronizer>
         }
         catch (System.OperationCanceledException)
         {
-            _logger?.Debug("Time synchronization loop cancelled");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("Time synchronization loop cancelled");
         }
         catch (System.Exception ex)
         {
-            _logger?.Error("Time synchronization loop error: {0}", ex.Message);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error("Time synchronization loop error: {0}", ex.Message);
         }
         finally
         {
@@ -151,22 +143,8 @@ public class TimeSynchronizer : SingletonBase<TimeSynchronizer>
         }
 
         this._isRunning = false;
-        _logger?.Info("Time synchronization loop stopped.");
-    }
-
-    /// <summary>
-    /// Configures the logger instance to be used for diagnostics output.
-    /// </summary>
-    /// <param name="logger">The logger instance to set.</param>
-    public void ConfigureLogger(ILogger? logger)
-    {
-        if (_logger != null)
-        {
-            return;
-        }
-
-        _logger = logger;
-        _logger?.Debug("Logger set for TimeSynchronizer.");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Info("Time synchronization loop stopped.");
     }
 
     #endregion APIs

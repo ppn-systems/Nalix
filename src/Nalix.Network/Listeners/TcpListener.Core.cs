@@ -7,6 +7,7 @@ using Nalix.Network.Protocols;
 using Nalix.Network.Throttling;
 using Nalix.Network.Timing;
 using Nalix.Shared.Configuration;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Listeners.Tcp;
@@ -26,7 +27,6 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
 
     internal static readonly SocketOptions Config;
 
-    private readonly ILogger _logger;
     private readonly System.UInt16 _port;
     private readonly IProtocol _protocol;
     private readonly IBufferPool _bufferPool;
@@ -81,20 +81,17 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
     /// <param name="port">Gets or sets the port number for the network connection.</param>
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
-    /// <param name="logger">The logger to log events and errors.</param>
-    protected TcpListenerBase(System.UInt16 port, IProtocol protocol, IBufferPool bufferPool, ILogger logger)
+    protected TcpListenerBase(System.UInt16 port, IProtocol protocol, IBufferPool bufferPool)
     {
-        System.ArgumentNullException.ThrowIfNull(logger, nameof(logger));
         System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
         System.ArgumentNullException.ThrowIfNull(bufferPool, nameof(bufferPool));
 
         this._port = port;
-        this._logger = logger;
         this._protocol = protocol;
         this._bufferPool = bufferPool;
-        this._connectionLimiter = new ConnectionLimiter();
 
         this._socketLock = new();
+        this._connectionLimiter = new ConnectionLimiter();
         this._lock = new System.Threading.SemaphoreSlim(1, 1);
 
         // Optimized for _udpListener.IOControlCode on Windows
@@ -108,10 +105,9 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
                  System.Math.Max(completionPortThreads, parallelismLevel));
 
             System.Threading.ThreadPool.GetMinThreads(out var afterWorker, out var afterIOCP);
-            this._logger.Info("SetMinThreads: worker={0}, IOCP={1}", afterWorker, afterIOCP);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Info("SetMinThreads: worker={0}, IOCP={1}", afterWorker, afterIOCP);
         }
-
-        TimeSynchronizer.Instance.ConfigureLogger(logger);
 
         TimeSynchronizer.Instance.TimeSynchronized += this.SynchronizeTime;
 
@@ -130,9 +126,8 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
     /// </summary>
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
-    /// <param name="logger">The logger to log events and errors.</param>
-    protected TcpListenerBase(IProtocol protocol, IBufferPool bufferPool, ILogger logger)
-        : this(Config.Port, protocol, bufferPool, logger)
+    protected TcpListenerBase(IProtocol protocol, IBufferPool bufferPool)
+        : this(Config.Port, protocol, bufferPool)
     {
     }
 
@@ -184,7 +179,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
         }
 
         this._isDisposed = true;
-        this._logger.Info("TcpListenerBase disposed");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info("TcpListenerBase disposed");
     }
 
     #endregion IDispose
