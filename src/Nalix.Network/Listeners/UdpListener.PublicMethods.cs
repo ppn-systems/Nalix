@@ -1,6 +1,8 @@
 ﻿using Nalix.Common.Exceptions;
+using Nalix.Common.Logging;
 using Nalix.Framework.Time;
 using Nalix.Network.Listeners.Core;
+using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -24,29 +26,33 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
 
         if (this._isRunning)
         {
-            this._logger.Warn("[UDP] Listener is already running.");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn("[UDP] Listener is already running.");
             return;
         }
 
         if (this._udpClient == null)
         {
-            this.InitializeUdpClient();
+            this.Initialize();
         }
 
         try
         {
             this._isRunning = true;
-            this._logger.Debug("Starting UDP listener");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("Starting UDP listener");
 
             this._cts?.Dispose();
             this._cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             this._cancellationToken = this._cts.Token;
 
-            await this._lock.WaitAsync(this._cancellationToken).ConfigureAwait(false);
+            await this._lock.WaitAsync(this._cancellationToken)
+                            .ConfigureAwait(false);
 
             try
             {
-                this._logger.Info("[UDP] Listening on port {0}", Config.Port);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Info("[UDP] Listening on port {0}", Config.Port);
 
                 System.Threading.Tasks.Task receiveTask = this.ReceiveDatagramsAsync(this._cancellationToken);
                 await receiveTask.ConfigureAwait(false);
@@ -58,7 +64,8 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
         }
         catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            this._logger.Info("[UDP] Listener on {0} stopped by cancellation", Config.Port);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Info("[UDP] Listener on {0} stopped by cancellation", Config.Port);
         }
         catch (System.Net.Sockets.SocketException ex)
         {
@@ -80,12 +87,14 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
                     if (this._udpClient != null)
                     {
                         this._udpClient.Close();
-                        await System.Threading.Tasks.Task.Delay(200, cancellationToken).ConfigureAwait(false);
+                        await System.Threading.Tasks.Task.Delay(200, cancellationToken)
+                                                        .ConfigureAwait(false);
                     }
                 }
                 catch (System.Exception ex)
                 {
-                    this._logger.Error("[UDP] Error during shutdown: {0}", ex.Message);
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Error("[UDP] Error during shutdown: {0}", ex.Message);
                 }
                 finally
                 {
@@ -110,12 +119,14 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
             if (this._isRunning)
             {
                 this._udpClient?.Close();
-                this._logger.Info("[UDP] Listener on {0} stopped", Config.Port);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Info("[UDP] Listener on {0} stopped", Config.Port);
             }
         }
         catch (System.Exception ex)
         {
-            this._logger.Error("[UDP] Error closing listener: {0}", ex.Message);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error("[UDP] Error closing listener: {0}", ex.Message);
         }
         finally
         {
@@ -137,6 +148,5 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
     /// Determines whether the incoming packet is authenticated.
     /// Default returns true (i.e., trusted). Override in derived class.
     /// </summary>
-    protected virtual System.Boolean IsAuthenticated(in System.Net.Sockets.UdpReceiveResult result)
-        => true;
+    protected virtual System.Boolean IsAuthenticated(in System.Net.Sockets.UdpReceiveResult result) => true;
 }

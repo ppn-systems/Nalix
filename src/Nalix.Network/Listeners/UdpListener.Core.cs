@@ -4,6 +4,7 @@ using Nalix.Network.Configurations;
 using Nalix.Network.Protocols;
 using Nalix.Network.Timing;
 using Nalix.Shared.Configuration;
+using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -19,10 +20,9 @@ public abstract partial class UdpListenerBase
 
     internal static readonly SocketOptions Config;
 
-    private readonly ILogger _logger;
     private readonly System.UInt16 _port;
     private readonly IProtocol _protocol;
-    private readonly IBufferPool _bufferPool;
+    private readonly IBufferPoolManager _bufferPool;
     private readonly System.Threading.SemaphoreSlim _lock;
 
     private System.Net.Sockets.UdpClient? _udpClient;
@@ -73,19 +73,12 @@ public abstract partial class UdpListenerBase
     /// <param name="port">The UDP port to listen on.</param>
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
     /// <param name="bufferPool">The buffer pool for managing memory buffers.</param>
-    /// <param name="logger">The logger instance for logging events.</param>
-    protected UdpListenerBase(
-        System.UInt16 port,
-        IProtocol protocol,
-        IBufferPool bufferPool,
-        ILogger logger)
+    protected UdpListenerBase(System.UInt16 port, IProtocol protocol, IBufferPoolManager bufferPool)
     {
-        System.ArgumentNullException.ThrowIfNull(logger, nameof(logger));
         System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
         System.ArgumentNullException.ThrowIfNull(bufferPool, nameof(bufferPool));
 
         this._port = port;
-        this._logger = logger;
         this._protocol = protocol;
         this._bufferPool = bufferPool;
 
@@ -102,9 +95,8 @@ public abstract partial class UdpListenerBase
     /// </summary>
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
     /// <param name="bufferPool">The buffer pool for managing memory buffers.</param>
-    /// <param name="logger">The logger instance for logging events.</param>
-    protected UdpListenerBase(IProtocol protocol, IBufferPool bufferPool, ILogger logger)
-        : this(Config.Port, protocol, bufferPool, logger)
+    protected UdpListenerBase(IProtocol protocol, IBufferPoolManager bufferPool)
+        : this(Config.Port, protocol, bufferPool)
     {
     }
 
@@ -144,7 +136,7 @@ public abstract partial class UdpListenerBase
         }
 
         this._isDisposed = true;
-        this._logger.Info("UDP Listener disposed");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info("UDP Listener disposed");
     }
 
     #endregion IDisposable
