@@ -1,6 +1,8 @@
 ﻿using Nalix.Common.Connection;
+using Nalix.Common.Logging;
 using Nalix.Network.Connection;
 using Nalix.Network.Internal;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Listeners.Tcp;
@@ -66,7 +68,8 @@ public abstract partial class TcpListenerBase
             return;
         }
 
-        _logger.Debug("[TCP] Closing {0}", args.Connection.RemoteEndPoint);
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug("[TCP] Closing {0}", args.Connection.RemoteEndPoint);
 
         // De-subscribe to prevent memory leaks
         args.Connection.OnCloseEvent -= this.HandleConnectionClose;
@@ -85,12 +88,14 @@ public abstract partial class TcpListenerBase
     {
         try
         {
-            this._logger.Debug("[TCP] New connection from {0}", connection.RemoteEndPoint);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("[TCP] New connection from {0}", connection.RemoteEndPoint);
             this._protocol.OnAccept(connection);
         }
         catch (System.Exception ex)
         {
-            this._logger.Error("[TCP] Process error from {0}: {1}", connection.RemoteEndPoint, ex.Message);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error("[TCP] Process error from {0}: {1}", connection.RemoteEndPoint, ex.Message);
             connection.Close();
         }
     }
@@ -120,11 +125,12 @@ public abstract partial class TcpListenerBase
             }
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                _logger.Error("[TCP] Accept error on {0}: {1}", Config.Port, ex.Message);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error("[TCP] Accept error on {0}: {1}", Config.Port, ex.Message);
+
                 // Brief delay to prevent CPU spinning on repeated errors
-                await System.Threading.Tasks.Task
-                        .Delay(50, cancellationToken)
-                        .ConfigureAwait(false);
+                await System.Threading.Tasks.Task.Delay(50, cancellationToken)
+                                                 .ConfigureAwait(false);
             }
         }
     }
@@ -162,7 +168,7 @@ public abstract partial class TcpListenerBase
                 if (!_connectionLimiter.IsConnectionAllowed(
                     ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
                 {
-                    this.SafeCloseSocket(socket);
+                    SafeCloseSocket(socket);
                     throw new System.OperationCanceledException();
                 }
 
@@ -178,7 +184,7 @@ public abstract partial class TcpListenerBase
             if (!this._connectionLimiter.IsConnectionAllowed(
                 ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
             {
-                this.SafeCloseSocket(socket);
+                SafeCloseSocket(socket);
                 throw new System.OperationCanceledException();
             }
 
@@ -255,7 +261,8 @@ public abstract partial class TcpListenerBase
             }
             catch (System.Exception ex) when (!_cancellationToken.IsCancellationRequested)
             {
-                _logger.Error("[TCP] Accept error on {0}: {1}", Config.Port, ex.Message);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error("[TCP] Accept error on {0}: {1}", Config.Port, ex.Message);
 
                 // Brief delay to prevent CPU spinning on repeated errors
                 _ = System.Threading.Tasks.Task.Delay(100, _cancellationToken);
@@ -274,15 +281,17 @@ public abstract partial class TcpListenerBase
             {
                 if (!socket.Connected || socket.Handle.ToInt64() == -1)
                 {
-                    this._logger.Warn("[TCP] Socket is invalid or disconnected");
-                    this.SafeCloseSocket(socket);
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn("[TCP] Socket is invalid or disconnected");
+
+                    SafeCloseSocket(socket);
                     return;
                 }
 
                 if (!_connectionLimiter.IsConnectionAllowed(
                     ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
                 {
-                    this.SafeCloseSocket(socket);
+                    SafeCloseSocket(socket);
                     return;
                 }
 
@@ -296,9 +305,10 @@ public abstract partial class TcpListenerBase
             }
             catch (System.ObjectDisposedException)
             {
-                _logger.Warn("[TCP] Socket was disposed during accept");
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn("[TCP] Socket was disposed during accept");
 
-                this.SafeCloseSocket(socket);
+                SafeCloseSocket(socket);
                 if (e is PooledSocketAsyncEventArgs pooled && pooled.Context != null)
                 {
                     ObjectPoolManager.Instance.Return<PooledAcceptContext>(pooled.Context);
@@ -306,14 +316,18 @@ public abstract partial class TcpListenerBase
             }
             catch (System.Exception ex)
             {
-                _logger.Error("[TCP] Process accept error: {0}", ex.Message);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error("[TCP] Process accept error: {0}", ex.Message);
+
                 try { socket.Close(); } catch { }
                 ObjectPoolManager.Instance.Return<PooledAcceptContext>(((PooledSocketAsyncEventArgs)e).Context!);
             }
         }
         else
         {
-            _logger.Warn("[TCP] Accept failed: {0}", e.SocketError);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn("[TCP] Accept failed: {0}", e.SocketError);
+
             if (e is PooledSocketAsyncEventArgs pooled)
             {
                 ObjectPoolManager.Instance.Return<PooledAcceptContext>(pooled.Context!); // 💥 TH AcceptSocket == null
@@ -321,7 +335,7 @@ public abstract partial class TcpListenerBase
         }
     }
 
-    private void SafeCloseSocket(System.Net.Sockets.Socket socket)
+    private static void SafeCloseSocket(System.Net.Sockets.Socket socket)
     {
         try
         {
@@ -329,7 +343,8 @@ public abstract partial class TcpListenerBase
         }
         catch (System.Exception ex)
         {
-            _logger.Debug("[TCP] Error closing socket: {0}", ex.Message);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("[TCP] Error closing socket: {0}", ex.Message);
         }
     }
 }

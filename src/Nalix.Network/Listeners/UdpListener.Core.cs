@@ -91,7 +91,6 @@ public abstract partial class UdpListenerBase
 
         this._lock = new System.Threading.SemaphoreSlim(1, 1);
 
-        TimeSynchronizer.Instance.ConfigureLogger(logger);
         TimeSynchronizer.Instance.TimeSynchronized += this.SynchronizeTime;
 
         Config.Port = this._port;
