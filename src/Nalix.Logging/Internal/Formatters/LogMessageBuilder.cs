@@ -18,25 +18,6 @@ namespace Nalix.Logging.Internal.Formatters;
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal static class LogMessageBuilder
 {
-    #region Constants
-
-    // Use buffer sizes that are powers of 2 for optimization
-
-    private const System.Int32 SmallMessageBufferSize = 256;
-    private const System.Int32 MediumMessageBufferSize = 512;
-    private const System.Int32 LargeMessageBufferSize = 1024;
-
-    #endregion Constants
-
-    #region Fields
-
-    // Preallocated arrays for common separators to avoid string allocations
-    private static System.ReadOnlySpan<System.Char> DashWithSpaces => [' ', '-', ' '];
-
-    private static System.Int32 LogCounter = 0;
-
-    #endregion Fields
-
     #region Public Methods
 
     /// <summary>
@@ -93,23 +74,6 @@ internal static class LogMessageBuilder
     #endregion Public Methods
 
     #region Utility Methods
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void AppendNumber(
-        System.Text.StringBuilder builder, System.Boolean colors)
-    {
-        if (!colors)
-        {
-            return;
-        }
-
-        _ = builder.Append(NLogixConstants.LogBracketOpen)
-                   .Append(System.Threading.Interlocked.Increment(ref LogCounter).ToString("D6"))
-                   .Append(NLogixConstants.LogBracketClose)
-                   .Append(NLogixConstants.LogSpaceSeparator);
-    }
 
     /// <summary>
     /// Appends a formatted timestamp to the string builder.
@@ -178,8 +142,8 @@ internal static class LogMessageBuilder
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void AppendEventId(
-    System.Text.StringBuilder builder,
-    in EventId eventId, System.Boolean colors)
+        System.Text.StringBuilder builder,
+        in EventId eventId, System.Boolean colors)
     {
         if (eventId.Id == 0)
         {
@@ -187,7 +151,7 @@ internal static class LogMessageBuilder
         }
 
         _ = builder.Append(InternCache.Space)
-               .Append(InternCache.BracketOpen);
+                   .Append(InternCache.BracketOpen);
 
         if (colors)
         {
@@ -235,10 +199,7 @@ internal static class LogMessageBuilder
     /// <summary>
     /// Appends an exception to the builder. Never throws (best-effort).
     /// </summary>
-    private static void AppendException(
-        System.Text.StringBuilder builder,
-        System.Exception? exception,
-        System.Boolean colors)
+    private static void AppendException(System.Text.StringBuilder builder, System.Exception? exception, System.Boolean colors)
     {
         if (exception is null)
         {
@@ -247,9 +208,7 @@ internal static class LogMessageBuilder
 
         try
         {
-            _ = builder.Append(InternCache.Space)
-                       .Append(InternCache.DashWithSpaces)
-                       .AppendLine();
+            _ = builder.AppendLine(InternCache.DashWithSpaces);
 
             if (colors)
             {

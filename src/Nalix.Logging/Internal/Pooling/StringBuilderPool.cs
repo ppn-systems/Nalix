@@ -1,7 +1,5 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using System.Runtime.CompilerServices;
-
 namespace Nalix.Logging.Internal.Pooling;
 
 /// <summary>
@@ -25,7 +23,7 @@ internal static class StringBuilderPool
     [System.ThreadStatic]
     private static System.Text.StringBuilder? t_cachedInstance;
 
-    private static readonly System.Collections.Concurrent.ConcurrentBag<System.Text.StringBuilder> s_pool = new();
+    private static readonly System.Collections.Concurrent.ConcurrentBag<System.Text.StringBuilder> s_pool = [];
 
     #endregion Fields
 
@@ -36,7 +34,8 @@ internal static class StringBuilderPool
     /// </summary>
     /// <param name="capacity">The initial capacity of the StringBuilder.</param>
     /// <returns>A StringBuilder instance from the pool or a new instance.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Text.StringBuilder Rent(System.Int32 capacity = DefaultCapacity)
     {
         // Fast path: thread-local cache
@@ -75,7 +74,8 @@ internal static class StringBuilderPool
     /// Returns a StringBuilder to the pool for reuse.
     /// </summary>
     /// <param name="builder">The StringBuilder to return to the pool.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Return(System.Text.StringBuilder? builder)
     {
         if (builder == null)
@@ -102,26 +102,6 @@ internal static class StringBuilderPool
         if (s_pool.Count < PoolSize)
         {
             s_pool.Add(builder);
-        }
-    }
-
-    /// <summary>
-    /// Rents a StringBuilder and returns its content as a string, then returns the builder to the pool.
-    /// </summary>
-    /// <param name="builderAction">Action that populates the StringBuilder.</param>
-    /// <returns>The string content of the StringBuilder.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static System.String Build(System.Action<System.Text.StringBuilder> builderAction)
-    {
-        System.Text.StringBuilder sb = Rent();
-        try
-        {
-            builderAction(sb);
-            return sb.ToString();
-        }
-        finally
-        {
-            Return(sb);
         }
     }
 
