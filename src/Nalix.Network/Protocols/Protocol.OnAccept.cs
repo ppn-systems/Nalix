@@ -1,4 +1,6 @@
 using Nalix.Common.Connection;
+using Nalix.Common.Logging;
+using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Protocols;
 
@@ -81,11 +83,24 @@ public abstract partial class Protocol
             // Connection failed validation, close immediately
             connection.Close();
         }
+        catch (System.OperationCanceledException)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                .Trace($"[Accept] Canceled for {connection.RemoteEndPoint} (Id={connection.Id}).");
+        }
+        catch (System.ObjectDisposedException)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                .Warn($"[Accept] Dispatcher disposed while accepting {connection.RemoteEndPoint} (Id={connection.Id}).");
+        }
         catch (System.Exception ex)
         {
             // Log exception if a logger is available
             this.OnConnectionError(connection, ex);
             connection.Disconnect();
+
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?.Debug(
+                $"[Accept] Error while accepting from {connection.RemoteEndPoint} (Id={connection.Id}): {ex.Message}", ex);
         }
     }
 
