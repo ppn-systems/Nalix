@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Environment;
+using Nalix.Common.Logging;
 using Nalix.Logging.Options;
 
 #if DEBUG
@@ -30,20 +31,21 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
     private readonly System.Threading.Channels.ChannelReader<System.String> _reader;
 
     private readonly ChannelFileWriter _fileWriter;
-    private readonly System.Threading.CancellationTokenSource _cts = new();
     private readonly System.Threading.Tasks.Task _consumerTask;
+    private readonly System.Threading.CancellationTokenSource _cts = new();
 
     private readonly System.Int32 _maxQueueSize;
     private readonly System.Boolean _blockWhenFull;
 
     private readonly System.Int32 _batchSize;
-    private readonly System.TimeSpan _maxBatchDelay;
     private readonly System.Boolean _adaptiveFlush;
+    private readonly System.TimeSpan _maxBatchDelay;
 
+    private System.Int32 _queued;
     private System.Boolean _disposed;
+    private ILoggerFormatter _formatter;
     private System.Int64 _totalEntriesWritten;
     private System.Int64 _entriesDroppedCount;
-    private System.Int32 _queued; // approximate queued (interlocked)
 
     #endregion
 
@@ -53,27 +55,31 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
     /// Initializes a new instance of the <see cref="ChannelFileLoggerProvider"/>.
     /// </summary>
     /// <param name="options">File logger options (reuses existing <see cref="FileLogOptions"/>).</param>
+    /// <param name="formatter">The formatter used to format log messages.</param>
     /// <param name="batchSize">Max entries per batch before a flush (default: 256).</param>
     /// <param name="maxBatchDelay">Max time to wait before flushing a partial batch (default: options.FlushInterval or 1s).</param>
     /// <param name="adaptiveFlush">Enable adaptive flush based on incoming rate (default: true).</param>
     public ChannelFileLoggerProvider(
         FileLogOptions options,
+        ILoggerFormatter formatter,
         System.Int32 batchSize = 256,
         System.TimeSpan? maxBatchDelay = null,
         System.Boolean adaptiveFlush = true)
     {
         Options = options ?? throw new System.ArgumentNullException(nameof(options));
 
-        _maxQueueSize = System.Math.Max(1, options.MaxQueueSize);
-        _blockWhenFull = options.BlockWhenQueueFull;
+        _cts = new();
+        _formatter = formatter;
+        _adaptiveFlush = adaptiveFlush;
         _batchSize = System.Math.Max(1, batchSize);
+        _blockWhenFull = options.BlockWhenQueueFull;
         _maxBatchDelay = maxBatchDelay ?? options.FlushInterval;
+        _maxQueueSize = System.Math.Max(1, options.MaxQueueSize);
+
         if (_maxBatchDelay <= System.TimeSpan.Zero)
         {
             _maxBatchDelay = System.TimeSpan.FromSeconds(1);
         }
-
-        _adaptiveFlush = adaptiveFlush;
 
         // Bounded channel, single consumer, many producers
         System.Threading.Channels.BoundedChannelOptions channelOptions = new(_maxQueueSize)
@@ -82,6 +88,7 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
             SingleWriter = false,
             FullMode = _blockWhenFull ? System.Threading.Channels.BoundedChannelFullMode.Wait : System.Threading.Channels.BoundedChannelFullMode.DropNewest
         };
+
         _channel = System.Threading.Channels.Channel.CreateBounded<System.String>(channelOptions);
         _writer = _channel.Writer;
         _reader = _channel.Reader;
@@ -125,8 +132,10 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    internal void Enqueue(System.String message)
+    internal void Enqueue(LogEntry entry)
     {
+        System.String message = _formatter.Format(entry);
+
         if (_disposed || System.String.IsNullOrEmpty(message))
         {
             return;
