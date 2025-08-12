@@ -96,6 +96,22 @@ public class RemoteDatagramClient<TPacket> : SingletonBase<RemoteDatagramClient<
         _ = await _udpClient.SendAsync(memory.ToArray(), memory.Length, _remoteEndPoint);
     }
 
+    //private static unsafe System.Byte[] PrepareBuffer(TPacket packet, in System.Byte[] extra7)
+    //{
+    //    System.Byte[] buffer = new System.Byte[TPacket.Size + 7];
+
+    //    // Serialize packet
+    //    packet.Serialize(System.MemoryExtensions.AsSpan(buffer, 0, TPacket.Size));
+
+    //    fixed (System.Byte* pFinal = buffer)
+    //    fixed (System.Byte* pExtra = extra7)
+    //    {
+    //        System.Buffer.MemoryCopy(pExtra, pFinal + packet.Length, 7, 7);
+    //    }
+
+    //    return buffer;
+    //}
+
     /// <summary>
     /// Asynchronous loop that continuously listens for incoming UDP packets and raises the <see cref="OnPacketReceived"/> event.
     /// </summary>

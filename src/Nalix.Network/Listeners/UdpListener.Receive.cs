@@ -56,7 +56,7 @@ public abstract partial class UdpListenerBase
 
         IIdentifier identifier = Identifier.Deserialize(result.Buffer[^7..]);
         IConnection? connection = ConnectionHub.Instance.GetConnection(identifier);
-        ((Connection.Connection?)connection)?.InjectIncoming(result.Buffer);
+        ((Connection.Connection?)connection)?.InjectIncoming(result.Buffer[..^7]);
     }
 
     private struct CallbackState

@@ -20,6 +20,12 @@ namespace Nalix.Shared.Messaging;
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class BinaryPacket : IPacket, IPacketTransformer<BinaryPacket>
 {
+    /// <inheritdoc/>
+    public const System.Int32 DynamicSize = 512;
+
+    /// <inheritdoc/>
+    public static System.Int32 Size => PacketConstants.HeaderSize + DynamicSize;
+
     /// <summary>
     /// Gets the total length of the serialized packet in bytes, including header and content.
     /// </summary>
@@ -61,7 +67,7 @@ public sealed class BinaryPacket : IPacket, IPacketTransformer<BinaryPacket>
     /// Gets or sets the binary content of the packet.
     /// </summary>
     [SerializeOrder(9)]
-    [SerializeDynamicSize(256)]
+    [SerializeDynamicSize(DynamicSize)]
     public System.Byte[] Data { get; set; }
 
     /// <summary>
