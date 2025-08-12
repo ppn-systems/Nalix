@@ -79,9 +79,22 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// </summary>
     public System.Int32 CachedInstanceCount => _instanceCache.Count;
 
-    #endregion Properties
-
-    #region Public Methods
+    /// <summary>
+    /// Registers an instance of the specified type in the instance cache.
+    /// If the instance implements <see cref="System.IDisposable"/>, it will be tracked for disposal.
+    /// </summary>
+    /// <typeparam name="T">The type of the instance to register.</typeparam>
+    /// <param name="instance">The instance to register.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Register<T>(T instance) where T : class
+    {
+        _instanceCache[typeof(T)] = instance;
+        if (instance is System.IDisposable d)
+        {
+            _disposableInstances.Add(d);
+        }
+    }
 
     /// <summary>
     /// Gets or creates an instance of the specified type with high performance.
