@@ -128,7 +128,8 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
             _ = System.Threading.Interlocked.Decrement(ref this._connectionCount);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug("[{0}] Connection unregistered: {1} (Total: {2})", nameof(ConnectionHub), id, this._connectionCount);
+                                    .Debug("[{0}] Connection unregistered: {1} (Total: {2})",
+                                    nameof(ConnectionHub), id, this._connectionCount);
 
             return true;
         }
