@@ -176,8 +176,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
             ?? throw new System.InvalidOperationException(
                 $"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
-        PacketAnalyzer<TController, TPacket> scanner = new(this.Logger);
-        PacketHandlerDelegate<TPacket>[] handlerDescriptors = scanner.ScanController(factory);
+        PacketAnalyzer<TController, TPacket> scanner = new();
+        PacketHandlerDelegate<TPacket>[] handlerDescriptors = PacketAnalyzer<TController, TPacket>.ScanController(factory);
 
         foreach (PacketHandlerDelegate<TPacket> descriptor in handlerDescriptors)
         {
