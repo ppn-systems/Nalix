@@ -1,5 +1,4 @@
-﻿using Nalix.Common.Caching;
-using Nalix.Common.Logging;
+﻿using Nalix.Common.Logging;
 using Nalix.Network.Configurations;
 using Nalix.Network.Protocols;
 using Nalix.Network.Timing;
@@ -22,7 +21,6 @@ public abstract partial class UdpListenerBase
 
     private readonly System.UInt16 _port;
     private readonly IProtocol _protocol;
-    private readonly IBufferPoolManager _bufferPool;
     private readonly System.Threading.SemaphoreSlim _lock;
 
     private System.Net.Sockets.UdpClient? _udpClient;
@@ -72,15 +70,12 @@ public abstract partial class UdpListenerBase
     /// </summary>
     /// <param name="port">The UDP port to listen on.</param>
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
-    /// <param name="bufferPool">The buffer pool for managing memory buffers.</param>
-    protected UdpListenerBase(System.UInt16 port, IProtocol protocol, IBufferPoolManager bufferPool)
+    protected UdpListenerBase(System.UInt16 port, IProtocol protocol)
     {
         System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
-        System.ArgumentNullException.ThrowIfNull(bufferPool, nameof(bufferPool));
 
         this._port = port;
         this._protocol = protocol;
-        this._bufferPool = bufferPool;
 
         this._lock = new System.Threading.SemaphoreSlim(1, 1);
 
@@ -94,9 +89,8 @@ public abstract partial class UdpListenerBase
     /// Initializes a new instance of the <see cref="UdpListenerBase"/> class using the configured port, protocol, buffer pool, and logger.
     /// </summary>
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
-    /// <param name="bufferPool">The buffer pool for managing memory buffers.</param>
-    protected UdpListenerBase(IProtocol protocol, IBufferPoolManager bufferPool)
-        : this(Config.Port, protocol, bufferPool)
+    protected UdpListenerBase(IProtocol protocol)
+        : this(Config.Port, protocol)
     {
     }
 

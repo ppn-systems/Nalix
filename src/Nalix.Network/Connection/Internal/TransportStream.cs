@@ -1,4 +1,3 @@
-using Nalix.Common.Caching;
 using Nalix.Common.Logging;
 using Nalix.Common.Packets;
 using Nalix.Framework.Time;
@@ -11,16 +10,19 @@ namespace Nalix.Network.Connection.Internal;
 /// <summary>
 /// Manages the socket connection and handles sending/receiving data with caching and logging.
 /// </summary>
-internal class TransportStream : System.IDisposable
+/// <remarks>
+/// Initializes a new instance of the <see cref="TransportStream"/> class.
+/// </remarks>
+/// <param name="socket">The socket.</param>
+internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDisposable
 {
     #region Fields
 
-    private readonly IBufferPoolManager _pool;
-    private readonly TransportCache _cache;
-    private readonly System.Net.Sockets.Socket _socket;
+    private readonly TransportCache _cache = new();
+    private readonly System.Net.Sockets.Socket _socket = socket;
 
-    private System.Byte[] _buffer;
     private System.Boolean _disposed;
+    private System.Byte[] _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Rent(256);
 
     #endregion Fields
 
@@ -47,19 +49,6 @@ internal class TransportStream : System.IDisposable
 
     static TransportStream() =>
         ObjectPoolManager.Instance.SetMaxCapacity<PooledSocketAsyncContext>(1024);
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TransportStream"/> class.
-    /// </summary>
-    /// <param name="socket">The socket.</param>
-    /// <param name="bufferPool">The buffer pool.</param>
-    public TransportStream(System.Net.Sockets.Socket socket, IBufferPoolManager bufferPool)
-    {
-        this._pool = bufferPool;
-        this._buffer = this._pool.Rent();
-        this._cache = new TransportCache();
-        this._socket = socket;
-    }
 
     #endregion Constructor
 
@@ -187,7 +176,8 @@ internal class TransportStream : System.IDisposable
             }
         }
 
-        System.Byte[] buffer = _pool.Rent(totalLength);
+        System.Byte[] buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                                        .Rent(totalLength);
 
         try
         {
@@ -214,7 +204,7 @@ internal class TransportStream : System.IDisposable
         }
         finally
         {
-            _pool.Return(buffer);
+            InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Return(buffer);
         }
     }
 
@@ -241,7 +231,7 @@ internal class TransportStream : System.IDisposable
         }
 
         System.UInt16 totalLength = (System.UInt16)(data.Length + sizeof(System.UInt16));
-        System.Byte[] buffer = _pool.Rent(totalLength);
+        System.Byte[] buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Rent(totalLength);
 
         try
         {
@@ -268,7 +258,7 @@ internal class TransportStream : System.IDisposable
         }
         finally
         {
-            _pool.Return(buffer);
+            InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Return(buffer);
         }
     }
 
@@ -366,21 +356,22 @@ internal class TransportStream : System.IDisposable
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug("[{0}] Packet size: {1} bytes.", nameof(TransportStream), size);
 
-            if (size > this._pool.MaxBufferSize)
+            if (size > InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().MaxBufferSize)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error("[{0}] Size {1} exceeds max {2} ", nameof(TransportStream), size, this._pool.MaxBufferSize);
+                                        .Error("[{0}] Size {1} exceeds max {2} ", nameof(TransportStream), size,
+                                        InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().MaxBufferSize);
 
                 return;
             }
 
-            if (size > this._buffer.Length)
+            if (size > _buffer.Length)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug("[{0}] Renting larger buffer", nameof(TransportStream));
 
-                this._pool.Return(this._buffer);
-                this._buffer = this._pool.Rent(size);
+                InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Return(_buffer);
+                _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Rent(size);
             }
 
             while (totalBytesRead < size)
@@ -474,9 +465,8 @@ internal class TransportStream : System.IDisposable
 
         if (disposing)
         {
-            this._pool.Return(this._buffer);
+            InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Return(this._buffer);
 
-            // Đóng socket thay vì đóng stream
             try
             {
                 this._socket.Shutdown(System.Net.Sockets.SocketShutdown.Both);
