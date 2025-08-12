@@ -92,12 +92,10 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
         this._logger = logger;
         this._protocol = protocol;
         this._bufferPool = bufferPool;
-        this._connectionLimiter = new ConnectionLimiter(logger);
+        this._connectionLimiter = new ConnectionLimiter();
 
         this._socketLock = new();
         this._lock = new System.Threading.SemaphoreSlim(1, 1);
-
-
 
         // Optimized for _udpListener.IOControlCode on Windows
         if (Config.IsWindows)

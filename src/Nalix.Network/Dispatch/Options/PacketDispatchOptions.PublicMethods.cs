@@ -207,7 +207,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
         out System.Func<TPacket, IConnection, System.Threading.Tasks.Task>? handler)
     {
-        if (this._handlerCache.TryGetValue(opCode, out var descriptor))
+        if (TryResolveHandlerDescriptor(opCode,
+            out PacketHandlerDelegate<TPacket> descriptor))
         {
             // Wrap descriptor execution trong legacy Task-based signature
             handler = async (packet, connection) =>
@@ -225,21 +226,19 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 }
                 finally
                 {
-                    ObjectPoolManager.Instance.Return<PacketContext<TPacket>>(context);
+                    context.Return();
                 }
             };
 
             return true;
         }
 
-        this.Logger?.Warn("Handler not found for OpCode={0}", opCode);
         handler = null;
         return false;
     }
 
     /// <summary>
     /// New preferred method - returns descriptor directly cho better performance.
-    /// Sử dụng method này cho new code để có performance tối ưu.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

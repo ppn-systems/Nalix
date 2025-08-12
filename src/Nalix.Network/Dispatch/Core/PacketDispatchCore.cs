@@ -41,7 +41,8 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket
     /// </exception>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:UsePre primary constructor", Justification = "<Pending>")]
-    protected PacketDispatchCore(PacketDispatchOptions<TPacket> options) => this.Options = options ?? throw new System.ArgumentNullException(nameof(options));
+    protected PacketDispatchCore(PacketDispatchOptions<TPacket> options)
+        => this.Options = options ?? throw new System.ArgumentNullException(nameof(options));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatchCore{TPacket}"/> class
@@ -111,13 +112,10 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected async System.Threading.Tasks.Task ExecutePacketHandlerAsync(
-        TPacket packet,
-        IConnection connection)
+    protected async System.Threading.Tasks.Task ExecutePacketHandlerAsync(TPacket packet, IConnection connection)
     {
         if (this.Options.TryResolveHandler(packet.OpCode,
-            out System.Func<TPacket,
-            IConnection,
+            out System.Func<TPacket, IConnection,
             System.Threading.Tasks.Task>? handler))
         {
             this.Logger?.Debug($"[Dispatch] Processing packet OpCode: {packet.OpCode} from {connection.RemoteEndPoint}...");

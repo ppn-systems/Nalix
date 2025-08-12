@@ -71,9 +71,11 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     /// <summary>
     /// Create base handlers dictionary.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Collections.Frozen.FrozenDictionary<System.Type, IReturnHandler<TPacket>> CreateHandlers()
     {
-        var handlers = new System.Collections.Generic.Dictionary<System.Type, IReturnHandler<TPacket>>
+        System.Collections.Generic.Dictionary<System.Type, IReturnHandler<TPacket>> handlers = new()
         {
             [typeof(void)] = new VoidReturnHandler<TPacket>(),
             [typeof(TPacket)] = new PacketReturnHandler<TPacket>(),
@@ -88,6 +90,8 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
         return System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(handlers);
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static IReturnHandler<TPacket> CreateTaskHandler(
         IReturnHandler<TPacket> innerHandler,
         System.Type resultType)
@@ -96,6 +100,8 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
         return (IReturnHandler<TPacket>)System.Activator.CreateInstance(handlerType, innerHandler)!;
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static IReturnHandler<TPacket> CreateValueTaskHandler(
         IReturnHandler<TPacket> innerHandler,
         System.Type resultType)

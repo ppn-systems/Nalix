@@ -8,10 +8,11 @@ namespace Nalix.Network.Dispatch.Core;
 /// Enhanced PacketContext với pooling support và zero-allocation design.
 /// </summary>
 /// <typeparam name="TPacket">Packet type</typeparam>
-public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
+public sealed class PacketContext<TPacket> : IPoolable
 {
     #region Fields
 
+    private PacketContextState _state;
     private System.Boolean _isInitialized;
 
     // Context state
@@ -78,8 +79,7 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// <summary>
     /// Default constructor cho pooling.
     /// </summary>
-    public PacketContext()
-    { }
+    public PacketContext() => _state = PacketContextState.Pooled;
 
     #endregion Constructor
 
@@ -92,6 +92,10 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal void Initialize(TPacket packet, IConnection connection, PacketMetadata descriptor)
     {
+        _ = System.Threading.Interlocked.Exchange(
+            ref System.Runtime.CompilerServices.Unsafe.As<PacketContextState, System.Byte>(ref _state),
+            (System.Byte)PacketContextState.InUse);
+
         this.Packet = packet;
         this.Connection = connection;
         this.Attributes = descriptor;
@@ -154,6 +158,10 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
         {
             this.Reset();
         }
+
+        _ = System.Threading.Interlocked.Exchange(
+            ref System.Runtime.CompilerServices.Unsafe.As<PacketContextState, System.Byte>(ref _state),
+            (System.Byte)PacketContextState.Pooled);
     }
 
     /// <summary>
@@ -161,12 +169,16 @@ public sealed class PacketContext<TPacket> : System.IDisposable, IPoolable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Dispose()
+    public void Return()
     {
-        if (this._isInitialized)
+        if (System.Threading.Interlocked.Exchange(
+        ref System.Runtime.CompilerServices.Unsafe.As<PacketContextState, System.Int32>(ref _state),
+        (System.Int32)PacketContextState.Returned) != (System.Int32)PacketContextState.InUse)
         {
-            this.Reset();
+            return;
         }
+
+        ObjectPoolManager.Instance.Return(this);
     }
 
     #endregion IDisposable

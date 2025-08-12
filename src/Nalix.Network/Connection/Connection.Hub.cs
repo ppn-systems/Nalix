@@ -2,6 +2,7 @@ using Nalix.Common.Connection;
 using Nalix.Common.Logging;
 using Nalix.Common.Security.Identity;
 using Nalix.Framework.Identity;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Injection.DI;
 
 namespace Nalix.Network.Connection;
@@ -13,8 +14,6 @@ namespace Nalix.Network.Connection;
 public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub, System.IDisposable
 {
     #region Fields
-
-    private ILogger? _logger;
 
     // Separate dictionaries for better cache locality and reduced contention
     private readonly System.Collections.Concurrent.ConcurrentDictionary<IIdentifier, System.String> _usernames =
@@ -54,19 +53,6 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
 
     #region APIs
 
-    /// <summary>
-    /// Sets the logger instance to be used by the ConnectionHub.
-    /// </summary>
-    /// <param name="logger">The logger instance to set. Cannot be null.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown if the provided logger is null.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void WithLogging(ILogger logger)
-    {
-        System.ArgumentNullException.ThrowIfNull(logger);
-        this._logger = logger;
-    }
-
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -82,13 +68,15 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
             connection.OnCloseEvent += this.OnClientDisconnected;
             _ = System.Threading.Interlocked.Increment(ref this._connectionCount);
 
-            this._logger?.Debug("[{0}] Connection registered: {1} (Total: {2})",
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("[{0}] Connection registered: {1} (Total: {2})",
                 nameof(ConnectionHub), connection.Id, this._connectionCount);
 
             return true;
         }
 
-        this._logger?.Warn("[{0}] Connection already exists: {1}", nameof(ConnectionHub), connection.Id);
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Warn("[{0}] Connection already exists: {1}", nameof(ConnectionHub), connection.Id);
         return false;
     }
 
@@ -114,7 +102,8 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
         this._usernames[id] = username;
         this._usernameToId[username] = id;
 
-        this._logger?.Debug("[{0}] Username associated: {1} -> {2}", nameof(ConnectionHub), username, id);
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug("[{0}] Username associated: {1} -> {2}", nameof(ConnectionHub), username, id);
     }
 
     /// <inheritdoc/>
@@ -138,13 +127,14 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
             connection.OnCloseEvent -= this.OnClientDisconnected;
             _ = System.Threading.Interlocked.Decrement(ref this._connectionCount);
 
-            this._logger?.Debug("[{0}] Connection unregistered: {1} (Total: {2})",
-                nameof(ConnectionHub), id, this._connectionCount);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("[{0}] Connection unregistered: {1} (Total: {2})", nameof(ConnectionHub), id, this._connectionCount);
 
             return true;
         }
 
-        this._logger?.Warn("[{0}] Failed to unregister connection: {1}", nameof(ConnectionHub), id);
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Warn("[{0}] Failed to unregister connection: {1}", nameof(ConnectionHub), id);
         return false;
     }
 
@@ -230,7 +220,8 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
         System.Collections.Generic.IReadOnlyCollection<IConnection> connections = this.ListConnections();
         if (connections is null || connections.Count == 0)
         {
-            this._logger?.Debug("[{0}] No connections to broadcast to", nameof(ConnectionHub));
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("[{0}] No connections to broadcast to", nameof(ConnectionHub));
             return;
         }
 
@@ -252,7 +243,8 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
                 }
                 catch (System.Exception ex)
                 {
-                    this._logger?.Error("[{0}] Broadcast error for {1}: {2}", nameof(ConnectionHub), connection.Id, ex.Message);
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Error("[{0}] Broadcast error for {1}: {2}", nameof(ConnectionHub), connection.Id, ex.Message);
                 }
             }, cancellationToken);
         }
@@ -267,7 +259,8 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
         }
         catch (System.OperationCanceledException)
         {
-            this._logger?.Debug("[{0}] Broadcast cancelled", nameof(ConnectionHub));
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("[{0}] Broadcast cancelled", nameof(ConnectionHub));
         }
     }
 
@@ -312,7 +305,8 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
                 }
                 catch (System.Exception ex)
                 {
-                    this._logger?.Error("[{0}] Filtered broadcast error for {1}: {2}", nameof(ConnectionHub), connection.Id, ex.Message);
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Error("[{0}] Filtered broadcast error for {1}: {2}", nameof(ConnectionHub), connection.Id, ex.Message);
                 }
             }, cancellationToken);
         }
@@ -323,7 +317,8 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
         }
         catch (System.OperationCanceledException)
         {
-            this._logger?.Debug("[{0}] Filtered broadcast cancelled", nameof(ConnectionHub));
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("[{0}] Filtered broadcast cancelled", nameof(ConnectionHub));
         }
     }
 
@@ -345,7 +340,8 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
             }
             catch (System.Exception ex)
             {
-                this._logger?.Error("[{0}] Error disconnecting {1}: {2}", nameof(ConnectionHub), connection.Id, ex.Message);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error("[{0}] Error disconnecting {1}: {2}", nameof(ConnectionHub), connection.Id, ex.Message);
             }
         });
 
@@ -355,7 +351,8 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
         this._usernameToId.Clear();
         _ = System.Threading.Interlocked.Exchange(ref this._connectionCount, 0);
 
-        this._logger?.Info("[{0}] All {1} connections disconnected", nameof(ConnectionHub), connections.Count);
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Info("[{0}] All {1} connections disconnected", nameof(ConnectionHub), connections.Count);
     }
 
     /// <summary>
@@ -394,7 +391,8 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
             connection.OnCloseEvent -= this.OnClientDisconnected;
         }
 
-        this._logger?.Warn("[{0}] Disposed", nameof(ConnectionHub));
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Warn("[{0}] Disposed", nameof(ConnectionHub));
     }
 
     #endregion APIs

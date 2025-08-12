@@ -10,8 +10,6 @@ internal sealed class UnsupportedReturnHandler<TPacket>(System.Type returnType) 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Boolean> _loggedTypes = new();
 
     /// <inheritdoc/>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Threading.Tasks.ValueTask HandleAsync(
         System.Object? result,
         PacketContext<TPacket> context)
