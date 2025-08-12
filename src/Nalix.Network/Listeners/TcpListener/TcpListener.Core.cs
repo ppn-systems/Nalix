@@ -106,6 +106,9 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     {
         s_config.Validate();
 
+        InstanceManager.Instance.Register(new ObjectPoolManager());
+        InstanceManager.Instance.Register(new BufferPoolManager());
+
         if (System.OperatingSystem.IsWindows() && s_config.TuneThreadPool)
         {
             System.Int32 parallelism = System.Math.Max(System.Environment.ProcessorCount * MinWorkerThreads, 16);
@@ -127,7 +130,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     /// <param name="port">Gets or sets the port number for the network connection.</param>
     /// <param name="protocol">The protocol to handle the connections.</param>
     [System.Diagnostics.DebuggerStepThrough]
-    protected TcpListenerBase(System.UInt16 port, IProtocol protocol)
+    protected TcpListenerBase(System.UInt16 port, IProtocol protocol) : this()
     {
         System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
 

@@ -146,6 +146,7 @@ public abstract partial class TcpListenerBase
             {
                 needInit = true;
             }
+
             if (needInit)
             {
                 Initialize();

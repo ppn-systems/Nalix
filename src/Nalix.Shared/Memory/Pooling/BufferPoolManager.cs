@@ -226,6 +226,88 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     }
 
     /// <summary>
+    /// Rents a buffer and wraps it as an <see cref="System.ArraySegment{T}"/> for use with
+    /// <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> (SAEA) workflows.
+    /// </summary>
+    /// <param name="size">The minimum number of bytes required.</param>
+    /// <returns>
+    /// An <see cref="System.ArraySegment{T}"/> backed by a pooled buffer,
+    /// with <c>Offset = 0</c> and <c>Count = size</c>.
+    /// </returns>
+    /// <remarks>
+    /// The caller must return the underlying array via <see cref="Return(System.ArraySegment{System.Byte})"/>
+    /// or <see cref="ReturnFromSaea"/> after use to avoid leaking pool buffers.
+    /// </remarks>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.ArraySegment<System.Byte> RentSegment(System.Int32 size = 256)
+    {
+        System.Byte[] buffer = this.Rent(size);
+        return new System.ArraySegment<System.Byte>(buffer, 0, size);
+    }
+
+    /// <summary>
+    /// Returns a buffer that was rented via <see cref="RentSegment"/> back to the pool.
+    /// Only the underlying <see cref="System.ArraySegment{T}.Array"/> is returned;
+    /// <c>Offset</c> and <c>Count</c> are ignored.
+    /// </summary>
+    /// <param name="segment">The segment whose backing array will be returned.</param>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Return(System.ArraySegment<System.Byte> segment)
+        => this.Return(segment.Array);
+
+    /// <summary>
+    /// Rents a buffer from the pool and assigns it to the given
+    /// <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> via
+    /// <see cref="System.Net.Sockets.SocketAsyncEventArgs.SetBuffer(System.Byte[], System.Int32, System.Int32)"/>.
+    /// </summary>
+    /// <param name="saea">The <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> to configure.</param>
+    /// <param name="size">The minimum buffer size required.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="saea"/> is <see langword="null"/>.</exception>
+    /// <remarks>
+    /// Call <see cref="ReturnFromSaea"/> when the async operation completes to return the buffer to the pool.
+    /// </remarks>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void RentForSaea(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketAsyncEventArgs saea,
+        System.Int32 size = 256)
+    {
+        System.ArgumentNullException.ThrowIfNull(saea);
+
+        System.Byte[] buffer = this.Rent(size);
+        saea.SetBuffer(buffer, 0, size);
+    }
+
+    /// <summary>
+    /// Returns the buffer currently assigned to a
+    /// <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> back to the pool
+    /// and clears the buffer reference on the SAEA.
+    /// </summary>
+    /// <param name="saea">The <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> whose buffer will be returned.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="saea"/> is <see langword="null"/>.</exception>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void ReturnFromSaea(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketAsyncEventArgs saea)
+    {
+        System.ArgumentNullException.ThrowIfNull(saea);
+
+        // Grab the buffer before clearing the reference
+        System.Byte[]? buffer = saea.Buffer;
+
+        // Detach buffer from SAEA to avoid accidental reuse after return
+        saea.SetBuffer(null, 0, 0);
+
+        this.Return(buffer);
+    }
+
+    /// <summary>
     /// Gets the allocation ratio for a given buffer size with caching for performance.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
@@ -536,6 +618,8 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private System.Int32 CALCULATE_SAFE_SHRINK_STEP(in BufferPoolState info, System.Int32 cycle)
     {
         if (info.TotalBuffers <= 0)
