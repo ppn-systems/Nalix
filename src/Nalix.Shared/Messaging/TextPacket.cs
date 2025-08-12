@@ -20,6 +20,12 @@ namespace Nalix.Shared.Messaging;
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class TextPacket : IPacket, IPacketTransformer<TextPacket>
 {
+    /// <inheritdoc/>
+    public const System.Int32 DynamicSize = 1024;
+
+    /// <inheritdoc/>
+    public static System.Int32 Size => PacketConstants.HeaderSize + DynamicSize;
+
     /// <summary>Gets the total serialized length in bytes, including header and content.</summary>
     [SerializeIgnore]
     public System.UInt16 Length =>
@@ -47,7 +53,7 @@ public sealed class TextPacket : IPacket, IPacketTransformer<TextPacket>
 
     /// <summary>Gets or sets the UTF-8 string content of the packet.</summary>
     [SerializeOrder(9)]
-    [SerializeDynamicSize(1024)]
+    [SerializeDynamicSize(DynamicSize)]
     public System.String Content { get; set; }
 
     /// <summary>Initializes a new <see cref="TextPacket"/> with empty content.</summary>

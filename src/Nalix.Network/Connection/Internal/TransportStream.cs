@@ -292,6 +292,7 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
 
         this._cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
         this._cache.PushIncoming(new System.ReadOnlyMemory<System.Byte>(data));
+
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(TransportStream)}] Injected {data.Length} bytes into incoming cache.");
     }
