@@ -7,7 +7,7 @@ namespace Nalix.Common.Caching;
 /// Implementations of this interface should handle buffer allocation, pooling,
 /// and returning to minimize memory allocations and improve performance.
 /// </remarks>
-public interface IBufferPool
+public interface IBufferPoolManager
 {
     /// <summary>
     /// Gets the maximum buffer size available in the pool based on its configuration.
