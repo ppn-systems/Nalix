@@ -3,7 +3,6 @@ using Nalix.Common.Packets.Interfaces;
 using Nalix.Common.Security.Cryptography;
 using Nalix.Shared.Extensions;
 using System.Linq;
-using System.Reflection;
 
 namespace Nalix.Network.Dispatch.Analyzers;
 
@@ -29,9 +28,9 @@ internal static class PacketRegistry
         _packetFactories = [];
         _cachedFactories = [];
 
-        System.Collections.Generic.List<Assembly> assembliesToScan = [];
+        System.Collections.Generic.List<System.Reflection.Assembly> assembliesToScan = [];
 
-        if (Assembly.GetEntryAssembly() is { } entryAsm)
+        if (System.Reflection.Assembly.GetEntryAssembly() is { } entryAsm)
         {
             assembliesToScan.Add(entryAsm);
         }
@@ -47,20 +46,20 @@ internal static class PacketRegistry
         Initialize([.. assembliesToScan.Distinct()]);
     }
 
-    public static void Initialize(params Assembly[] assemblies)
+    public static void Initialize(params System.Reflection.Assembly[] assemblies)
     {
         if (assemblies == null || assemblies.Length == 0)
         {
-            assemblies = [Assembly.GetExecutingAssembly()];
+            assemblies = [System.Reflection.Assembly.GetExecutingAssembly()];
         }
 
-        foreach (Assembly assembly in assemblies.Distinct())
+        foreach (System.Reflection.Assembly assembly in assemblies.Distinct())
         {
             RegisterPacketsFromAssembly(assembly);
         }
     }
 
-    private static void RegisterPacketsFromAssembly(Assembly assembly)
+    private static void RegisterPacketsFromAssembly(System.Reflection.Assembly assembly)
     {
         foreach (System.Type type in assembly.GetTypes())
         {
@@ -69,7 +68,8 @@ internal static class PacketRegistry
                 continue;
             }
 
-            if (type.GetCustomAttribute<MagicNumberAttribute>() is not MagicNumberAttribute magicNumberAttribute)
+            if (System.Reflection.CustomAttributeExtensions.GetCustomAttribute<MagicNumberAttribute>(type)
+                is not MagicNumberAttribute magicNumberAttribute)
             {
                 continue;
             }
@@ -92,25 +92,30 @@ internal static class PacketRegistry
                 System.Type iface = typeof(IPacketTransformer<>).MakeGenericType(type);
 
                 // Get MethodInfo for deserialization and transformation methods
-                MethodInfo? deserialize = iface.GetMethod(
+                System.Reflection.MethodInfo? deserialize = iface.GetMethod(
                     nameof(IPacketTransformer<IPacket>.Deserialize),
-                    BindingFlags.Public | BindingFlags.Static
+                    System.Reflection.BindingFlags.Public |
+                    System.Reflection.BindingFlags.Static
                 );
-                MethodInfo? compress = iface.GetMethod(
+                System.Reflection.MethodInfo? compress = iface.GetMethod(
                     nameof(IPacketTransformer<IPacket>.Compress),
-                    BindingFlags.Public | BindingFlags.Static
+                    System.Reflection.BindingFlags.Public |
+                    System.Reflection.BindingFlags.Static
                 );
-                MethodInfo? decompress = iface.GetMethod(
+                System.Reflection.MethodInfo? decompress = iface.GetMethod(
                     nameof(IPacketTransformer<IPacket>.Decompress),
-                    BindingFlags.Public | BindingFlags.Static
+                    System.Reflection.BindingFlags.Public |
+                    System.Reflection.BindingFlags.Static
                 );
-                MethodInfo? encrypt = iface.GetMethod(
+                System.Reflection.MethodInfo? encrypt = iface.GetMethod(
                     nameof(IPacketTransformer<IPacket>.Encrypt),
-                    BindingFlags.Public | BindingFlags.Static
+                    System.Reflection.BindingFlags.Public |
+                    System.Reflection.BindingFlags.Static
                 );
-                MethodInfo? decrypt = iface.GetMethod(
+                System.Reflection.MethodInfo? decrypt = iface.GetMethod(
                     nameof(IPacketTransformer<IPacket>.Decrypt),
-                    BindingFlags.Public | BindingFlags.Static
+                    System.Reflection.BindingFlags.Public |
+                    System.Reflection.BindingFlags.Static
                 );
 
                 if (deserialize != null)
@@ -143,7 +148,7 @@ internal static class PacketRegistry
     }
 
     private static System.Func<System.ReadOnlySpan<System.Byte>, IPacket> CreateDeserializerDelegate(
-        System.UInt32 magicNumber, MethodInfo deserializeMethod)
+        System.UInt32 magicNumber, System.Reflection.MethodInfo deserializeMethod)
     {
         return buffer =>
         {

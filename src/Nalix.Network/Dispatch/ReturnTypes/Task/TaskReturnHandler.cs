@@ -1,6 +1,4 @@
 ﻿using Nalix.Network.Dispatch.Core;
-using Nalix.Network.Dispatch.ReturnTypes;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Dispatch.ReturnTypes.Task;
 
@@ -9,7 +7,6 @@ internal sealed class TaskReturnHandler<TPacket, TResult>(IReturnHandler<TPacket
     : IReturnHandler<TPacket>
 {
     /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.ValueTask HandleAsync(
         System.Object? result,
         PacketContext<TPacket> context)

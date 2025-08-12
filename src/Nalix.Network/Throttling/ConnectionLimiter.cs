@@ -2,6 +2,7 @@ using Nalix.Common.Logging;
 using Nalix.Network.Configurations;
 using Nalix.Network.Throttling.Metadata;
 using Nalix.Shared.Configuration;
+using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Throttling;
 
@@ -24,7 +25,6 @@ public sealed class ConnectionLimiter : System.IDisposable
 
     private static readonly System.DateTime DateTimeUnixEpoch = new(1970, 1, 1, 0, 0, 0, System.DateTimeKind.Utc);
 
-    private readonly ILogger? _logger;
     private readonly ConnLimitOptions _config;
 
     private readonly System.Threading.Timer _cleanupTimer;
@@ -47,11 +47,9 @@ public sealed class ConnectionLimiter : System.IDisposable
     /// Initializes a new instance of the <see cref="ConnectionLimiter"/> class.
     /// </summary>
     /// <param name="connectionConfig">The connection configuration. If null, default config is used.</param>
-    /// <param name="logger">Optional logger for metrics and diagnostics.</param>
     /// <exception cref="System.ArgumentException">Thrown when configuration has invalid values.</exception>
-    public ConnectionLimiter(ConnLimitOptions? connectionConfig = null, ILogger? logger = null)
+    public ConnectionLimiter(ConnLimitOptions? connectionConfig = null)
     {
-        this._logger = logger;
         this._config = connectionConfig ?? ConfigurationManager.Instance.Get<ConnLimitOptions>();
 
         if (this._config.MaxConnectionsPerIpAddress <= 0)
@@ -77,23 +75,15 @@ public sealed class ConnectionLimiter : System.IDisposable
             this._config.CleanupInterval
         );
 
-        this._logger?.Debug("ConnectionLimiter initialized: max={0}, inactivity={1}s",
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Debug("ConnectionLimiter initialized: max={0}, inactivity={1}s",
                         this._maxConnectionsPerIp, this._inactivityThreshold.TotalSeconds);
-    }
-
-    /// <summary>
-    /// Initializes with default configuration and logger.
-    /// </summary>
-    public ConnectionLimiter(ILogger? logger = null)
-        : this((ConnLimitOptions?)null, logger)
-    {
     }
 
     /// <summary>
     /// Initializes with custom configuration via action callback.
     /// </summary>
-    public ConnectionLimiter(System.Action<ConnLimitOptions>? configure = null, ILogger? logger = null)
-        : this(CreateConfiguredConfig(configure), logger)
+    public ConnectionLimiter(System.Action<ConnLimitOptions>? configure = null)
+        : this(CreateConfiguredConfig(configure))
     {
     }
 
@@ -101,7 +91,7 @@ public sealed class ConnectionLimiter : System.IDisposable
     /// Initializes a new instance of the <see cref="ConnectionLimiter"/> class with default configuration and logger.
     /// </summary>
     public ConnectionLimiter()
-        : this((ConnLimitOptions?)null, null)
+        : this((ConnLimitOptions?)null)
     {
     }
 
@@ -136,8 +126,9 @@ public sealed class ConnectionLimiter : System.IDisposable
             // Fast path for already at limit
             if (existingInfo.CurrentConnections >= this._maxConnectionsPerIp)
             {
-                this._logger?.Trace("Limit exceeded for {0}: {1}/{2}",
-                    endPoint, existingInfo.CurrentConnections, this._maxConnectionsPerIp);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace("Limit exceeded for {0}: {1}/{2}",
+                                                    endPoint, existingInfo.CurrentConnections, this._maxConnectionsPerIp);
 
                 return false;
             }
@@ -146,7 +137,7 @@ public sealed class ConnectionLimiter : System.IDisposable
             System.Int32 totalToday = currentDate > existingInfo.LastConnectionTime.Date ?
                 1 : existingInfo.TotalConnectionsToday + 1;
 
-            var newInfo = existingInfo with
+            ConnectionLimitInfo newInfo = existingInfo with
             {
                 CurrentConnections = existingInfo.CurrentConnections + 1,
                 LastConnectionTime = now,
@@ -154,15 +145,17 @@ public sealed class ConnectionLimiter : System.IDisposable
             };
 
             this._connectionInfo[endPoint] = newInfo;
-            this._logger?.Trace("Allowed {0}", endPoint);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace("Allowed {0}", endPoint);
 
             return true;
         }
 
         // New endpoint
-        var info = new ConnectionLimitInfo(1, now, 1, now);
+        ConnectionLimitInfo info = new(1, now, 1, now);
         this._connectionInfo[endPoint] = info;
-        this._logger?.Trace("Allowed {0}", endPoint);
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Trace("Allowed {0}", endPoint);
 
         return true;
     }
@@ -186,20 +179,21 @@ public sealed class ConnectionLimiter : System.IDisposable
         }
 
         // Fast path if entry doesn't exist
-        if (!this._connectionInfo.TryGetValue(endPoint, out var existingInfo))
+        if (!this._connectionInfo.TryGetValue(endPoint, out ConnectionLimitInfo existingInfo))
         {
             return false;
         }
 
         // SynchronizeTime the current connections count
-        var newInfo = existingInfo with
+        ConnectionLimitInfo newInfo = existingInfo with
         {
             CurrentConnections = System.Math.Max(0, existingInfo.CurrentConnections - 1),
             LastConnectionTime = System.DateTime.UtcNow
         };
 
         this._connectionInfo[endPoint] = newInfo;
-        this._logger?.Trace("Closed {0}", endPoint);
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Trace("Closed {0}", endPoint);
 
         return true;
     }
@@ -224,8 +218,9 @@ public sealed class ConnectionLimiter : System.IDisposable
 
         if (this._connectionInfo.TryGetValue(endPoint, out var stats))
         {
-            this._logger?.Trace("Observability for {0}: {1} current, {2} today",
-                endPoint, stats.CurrentConnections, stats.TotalConnectionsToday);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace("Observability for {0}: {1} current, {2} today",
+                                            endPoint, stats.CurrentConnections, stats.TotalConnectionsToday);
             return (stats.CurrentConnections, stats.TotalConnectionsToday, stats.LastConnectionTime);
         }
 
@@ -270,7 +265,8 @@ public sealed class ConnectionLimiter : System.IDisposable
         {
             total += info.CurrentConnections;
         }
-        this._logger?.Debug("Total connections: {0}", total);
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug("Total connections: {0}", total);
 
         return total;
     }
@@ -288,7 +284,8 @@ public sealed class ConnectionLimiter : System.IDisposable
         System.ObjectDisposedException.ThrowIf(this._disposed, this);
 
         this._connectionInfo.Clear();
-        this._logger?.Info("Counters reset");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Info("Counters reset");
     }
 
     #endregion Public Methods
@@ -339,7 +336,8 @@ public sealed class ConnectionLimiter : System.IDisposable
 
                     keysToRemove.Add(key);
 
-                    this._logger?.Trace("Removed stale {0}", key);
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Trace("Removed stale {0}", key);
                 }
 
                 processedCount++;
@@ -356,7 +354,8 @@ public sealed class ConnectionLimiter : System.IDisposable
         }
         catch (System.Exception ex) when (ex is not System.ObjectDisposedException)
         {
-            this._logger?.Error("Cleanup error: {0}", ex.Message);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error("Cleanup error: {0}", ex.Message);
         }
         finally
         {
@@ -401,7 +400,8 @@ public sealed class ConnectionLimiter : System.IDisposable
         }
         catch (System.Exception ex)
         {
-            this._logger?.Error("Dispose error: {0}", ex.Message);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error("Dispose error: {0}", ex.Message);
         }
 
         System.GC.SuppressFinalize(this);

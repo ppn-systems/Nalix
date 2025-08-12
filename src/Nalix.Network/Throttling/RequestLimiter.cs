@@ -3,6 +3,7 @@ using Nalix.Common.Logging;
 using Nalix.Network.Configurations;
 using Nalix.Network.Throttling.Metadata;
 using Nalix.Shared.Configuration;
+using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Throttling;
 
@@ -21,11 +22,10 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
 {
     #region Fields
 
-    private readonly ILogger? _logger;
-    private readonly System.Threading.Timer _cleanupTimer;
     private readonly RateLimitOptions _config;
     private readonly System.Int64 _timeWindowTicks;
     private readonly System.Int64 _lockoutDurationTicks;
+    private readonly System.Threading.Timer _cleanupTimer;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, RequestLimiterInfo> _ipData;
 
     // Async fields
@@ -45,13 +45,11 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// Initializes a new instance of the <see cref="RequestLimiter"/> class with the provided firewall configuration and optional logger.
     /// </summary>
     /// <param name="config">The configuration for the firewall's rate-limiting settings. If <see langword="null"/>, the default configuration will be used.</param>
-    /// <param name="logger">An optional logger for logging purposes. If <see langword="null"/>, no logging will be done.</param>
     /// <exception cref="InternalErrorException">
     /// Thrown when the configuration contains invalid rate-limiting settings.
     /// </exception>
-    public RequestLimiter(RateLimitOptions? config = null, ILogger? logger = null)
+    public RequestLimiter(RateLimitOptions? config = null)
     {
-        this._logger = logger;
         this._config = config ?? ConfigurationManager.Instance.Get<RateLimitOptions>();
 
         ValidateConfiguration(this._config);
@@ -80,23 +78,25 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         this._cleanupTimer = new System.Threading.Timer(static s
             => ((RequestLimiter)s!).TriggerCleanupAsync(), this, System.TimeSpan.FromMinutes(1), System.TimeSpan.FromMinutes(1));
 
-        this._logger?.Debug("RequestLimiter initialized with async support - maxRequests={0}, timeWindow={1}ms, lockout={2}s",
-            this._config.MaxAllowedRequests, this._config.TimeWindowInMilliseconds, this._config.LockoutDurationSeconds);
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug(
+                                    $"RequestLimiter initialized with async support - maxRequests={_config.MaxAllowedRequests}, " +
+                                    $"timeWindow={_config.TimeWindowInMilliseconds}ms, lockout={_config.LockoutDurationSeconds}s");
     }
 
     /// <summary>
     /// Initializes with default configuration and logger.
     /// </summary>
-    public RequestLimiter(ILogger? logger = null)
-        : this((RateLimitOptions?)null, logger)
+    public RequestLimiter()
+        : this((RateLimitOptions?)null)
     {
     }
 
     /// <summary>
     /// Initializes with custom configuration via action callback.
     /// </summary>
-    public RequestLimiter(System.Action<RateLimitOptions>? configure = null, ILogger? logger = null)
-        : this(CreateConfiguredConfig(configure), logger)
+    public RequestLimiter(System.Action<RateLimitOptions>? configure = null)
+        : this(CreateConfiguredConfig(configure))
     {
     }
 
@@ -138,12 +138,6 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         );
 
         System.Boolean allowed = data.BlockedUntilTicks < current;
-
-        // Async logging to avoid blocking
-        if (this._logger is not null)
-        {
-            _ = System.Threading.Tasks.Task.Run(() => this.LogRequestResultAsync(endPoint, allowed, data.LastRequestTicks), cancellationToken);
-        }
 
         // Trigger async cleanup if needed
         if (this.ShouldTriggerCleanup())
@@ -244,32 +238,6 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     }
 
     /// <summary>
-    /// Async logging to avoid blocking main thread
-    /// </summary>
-    private async System.Threading.Tasks.Task LogRequestResultAsync(System.String endPoint, System.Boolean allowed, System.Int64 lastRequestTicks)
-    {
-        try
-        {
-            await System.Threading.Tasks.Task.Yield(); // Ensure we're on background thread
-
-            var elapsed = System.Diagnostics.Stopwatch.GetElapsedTime(lastRequestTicks);
-
-            if (allowed)
-            {
-                this._logger?.Debug("Request from {0} allowed, elapsed: {1:g}", endPoint, elapsed);
-            }
-            else
-            {
-                this._logger?.Warn("Request from {0} blocked, elapsed: {1:g}", endPoint, elapsed);
-            }
-        }
-        catch (System.Exception ex)
-        {
-            this._logger?.Error("Async logging failed: {0}", ex.Message);
-        }
-    }
-
-    /// <summary>
     /// Determines if cleanup should be triggered
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -293,7 +261,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         }
         catch (System.Exception ex)
         {
-            this._logger?.Error("Failed to trigger async cleanup: {0}", ex.Message);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?.Error("Failed to trigger async cleanup: {0}", ex.Message);
         }
     }
 
@@ -319,7 +287,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             }
             catch (System.Exception ex)
             {
-                this._logger?.Error("Async cleanup failed: {0}", ex.Message);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?.Error("Async cleanup failed: {0}", ex.Message);
             }
         }
     }
@@ -327,7 +295,8 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Performs the actual cleanup operation asynchronously
     /// </summary>
-    private async System.Threading.Tasks.Task PerformCleanupAsync(System.Int64 currentTimestamp, System.Threading.CancellationToken cancellationToken)
+    private async System.Threading.Tasks.Task PerformCleanupAsync(
+        System.Int64 currentTimestamp, System.Threading.CancellationToken cancellationToken)
     {
         if (this._disposed || System.Threading.Interlocked.Exchange(ref this._cleanupRunning, 1) == 1)
         {
@@ -378,8 +347,8 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
                 }
             }
 
-            this._logger?.Debug("Async cleanup processed {0} IPs, removed {1} inactive IPs",
-                          processedCount, removedCount);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug("Async cleanup processed {0} IPs, removed {1} inactive IPs", processedCount, removedCount);
         }
         finally
         {
@@ -486,7 +455,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         }
         catch (System.TimeoutException)
         {
-            this._logger?.Warn("Cleanup task did not complete within timeout");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn("Cleanup task did not complete within timeout");
         }
 
         // Dispose resources
@@ -494,7 +463,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         this._cancellationTokenSource.Dispose();
         this._ipData.Clear();
 
-        this._logger?.Debug("RequestLimiter disposed asynchronously");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Debug("RequestLimiter disposed asynchronously");
     }
 
     #endregion IDisposable & IAsyncDisposable

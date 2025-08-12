@@ -6,8 +6,6 @@ namespace Nalix.Network.Dispatch.ReturnTypes.Task;
 internal sealed class ValueTaskVoidReturnHandler<TPacket> : IReturnHandler<TPacket>
 {
     /// <inheritdoc/>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.ValueTask HandleAsync(
         System.Object? result,
         PacketContext<TPacket> context)
