@@ -1,4 +1,3 @@
-using Nalix.Common.Caching;
 using Nalix.Common.Logging;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Buffers;
@@ -9,7 +8,7 @@ namespace Nalix.Shared.Memory.Pooling;
 /// <summary>
 /// Manages buffers of various sizes with optimized allocation and deallocation.
 /// </summary>
-public sealed class BufferPoolManager : IBufferPoolManager, System.IDisposable
+public sealed class BufferPoolManager : System.IDisposable
 {
     #region Constants
 

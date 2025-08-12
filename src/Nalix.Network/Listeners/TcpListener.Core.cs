@@ -1,4 +1,3 @@
-using Nalix.Common.Caching;
 using Nalix.Common.Logging;
 using Nalix.Network.Configurations;
 using Nalix.Network.Internal;
@@ -29,7 +28,6 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
 
     private readonly System.UInt16 _port;
     private readonly IProtocol _protocol;
-    private readonly IBufferPoolManager _bufferPool;
     private readonly System.Threading.Lock _socketLock;
 
     private readonly System.Threading.SemaphoreSlim _lock;
@@ -80,15 +78,12 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
     /// </summary>
     /// <param name="port">Gets or sets the port number for the network connection.</param>
     /// <param name="protocol">The protocol to handle the connections.</param>
-    /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
-    protected TcpListenerBase(System.UInt16 port, IProtocol protocol, IBufferPoolManager bufferPool)
+    protected TcpListenerBase(System.UInt16 port, IProtocol protocol)
     {
         System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
-        System.ArgumentNullException.ThrowIfNull(bufferPool, nameof(bufferPool));
 
         this._port = port;
         this._protocol = protocol;
-        this._bufferPool = bufferPool;
 
         this._socketLock = new();
         this._connectionLimiter = new ConnectionLimiter();
@@ -125,9 +120,8 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
     /// and the specified protocol, buffer pool, and logger.
     /// </summary>
     /// <param name="protocol">The protocol to handle the connections.</param>
-    /// <param name="bufferPool">The buffer pool for managing connection buffers.</param>
-    protected TcpListenerBase(IProtocol protocol, IBufferPoolManager bufferPool)
-        : this(Config.Port, protocol, bufferPool)
+    protected TcpListenerBase(IProtocol protocol)
+        : this(Config.Port, protocol)
     {
     }
 
@@ -179,7 +173,8 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
         }
 
         this._isDisposed = true;
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info("TcpListenerBase disposed");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Info("TcpListenerBase disposed");
     }
 
     #endregion IDispose
