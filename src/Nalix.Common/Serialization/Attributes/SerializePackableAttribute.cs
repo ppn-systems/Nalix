@@ -6,7 +6,7 @@ namespace Nalix.Common.Serialization.Attributes;
 /// </summary>
 [System.AttributeUsage(
     System.AttributeTargets.Class | System.AttributeTargets.Struct |
-    System.AttributeTargets.Interface, AllowMultiple = false, Inherited = false)]
+    System.AttributeTargets.Interface, Inherited = true)]
 public sealed class SerializePackableAttribute(SerializeLayout layout) : System.Attribute
 {
     /// <summary>

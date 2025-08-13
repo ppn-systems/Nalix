@@ -6,7 +6,7 @@ namespace Nalix.Common.Serialization.Attributes;
 /// Follows Domain-Driven Design principles for serialization metadata.
 /// </summary>
 /// <param name="size">Expected average size for optimization.</param>
-[System.AttributeUsage(System.AttributeTargets.Property | System.AttributeTargets.Field, AllowMultiple = false)]
+[System.AttributeUsage(System.AttributeTargets.Property | System.AttributeTargets.Field, Inherited = true)]
 public sealed class SerializeDynamicSizeAttribute(System.Int32 size) : System.Attribute
 {
     /// <summary>

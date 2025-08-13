@@ -65,6 +65,10 @@ public interface IPacket : IPoolable
     /// <returns>
     /// A new byte array containing the serialized form of the packet.
     /// </returns>
+
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     System.Byte[] Serialize();
 
     /// <summary>
@@ -77,6 +81,10 @@ public interface IPacket : IPoolable
     /// <exception cref="Exceptions.PackageException">
     /// Thrown when the destination buffer is too small to hold the serialized packet.
     /// </exception>
+
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     void Serialize(System.Span<System.Byte> buffer);
 
     #endregion Packet Methods
