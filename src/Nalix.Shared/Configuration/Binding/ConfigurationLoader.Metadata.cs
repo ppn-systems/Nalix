@@ -8,8 +8,12 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Creates configuration metadata for a type.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static ConfigurationMetadata CreateConfigurationMetadata(System.Type type)
     {
         System.Collections.Generic.List<PropertyMetadata> bindableProperties = [];
@@ -51,8 +55,12 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Gets the configuration metadata for a type, creating it if it doesn't exist.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static ConfigurationMetadata GetOrCreateMetadata(System.Type type)
         => _metadataCache.GetOrAdd(type, CreateConfigurationMetadata);
 }

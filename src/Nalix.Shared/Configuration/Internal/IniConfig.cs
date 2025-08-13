@@ -3,7 +3,9 @@ namespace Nalix.Shared.Configuration.Internal;
 /// <summary>
 /// A high-performance wrapper class for reading and writing INI files.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[System.Diagnostics.DebuggerDisplay("Path = {_path}, Sections = {_iniData.Count}, Dirty = {_isDirty}")]
 internal sealed class IniConfig
 {
     #region Constants
@@ -25,6 +27,7 @@ internal sealed class IniConfig
     // Thread synchronization for file operations
     private readonly System.Threading.ReaderWriterLockSlim _fileLock;
 
+    [System.Diagnostics.CodeAnalysis.NotNull]
     private readonly System.String _path;
     private readonly System.Collections.Generic.Dictionary<System.String,
                      System.Collections.Generic.Dictionary<System.String, System.String>> _iniData;
@@ -77,6 +80,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Reloads the INI file from disk, discarding any unsaved changes.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Reload() => Load();
 
     /// <summary>
@@ -84,7 +89,9 @@ internal sealed class IniConfig
     /// </summary>
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
-    /// <param name="value">The value to write.</param>
+    /// <param name="value">The value to write.</param>    
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void WriteValue(System.String section, System.String key, System.Object value)
     {
         System.ArgumentNullException.ThrowIfNull(key);
@@ -179,6 +186,8 @@ internal sealed class IniConfig
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The character value if the string has exactly one character; otherwise, null.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Char? GetChar(System.String section, System.String key)
     {
         System.String stringValue = GetString(section, key);
@@ -188,6 +197,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a boolean.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean? GetBool(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:bool";
@@ -231,6 +242,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a decimal.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Decimal? GetDecimal(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:decimal";
@@ -256,6 +269,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a byte.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte? GetByte(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:byte";
@@ -279,6 +294,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as an sbyte.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.SByte? GetSByte(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:sbyte";
@@ -302,6 +319,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a short.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Int16? GetInt16(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:int16";
@@ -325,6 +344,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as an unsigned short.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.UInt16? GetUInt16(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:uint16";
@@ -348,6 +369,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as an integer.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Int32? GetInt32(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:int32";
@@ -371,6 +394,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as an unsigned integer.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.UInt32? GetUInt32(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:uint32";
@@ -394,6 +419,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a long.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Int64? GetInt64(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:int64";
@@ -417,6 +444,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as an unsigned long.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.UInt64? GetUInt64(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:uint64";
@@ -440,6 +469,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a float.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Single? GetSingle(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:single";
@@ -465,6 +496,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a double.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Double? GetDouble(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:double";
@@ -490,6 +523,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a DateTime.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.DateTime? GetDateTime(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:datetime";
@@ -515,6 +550,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a TimeSpan.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.TimeSpan? GetTimeSpan(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:timespan";
@@ -540,6 +577,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a Guid.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Guid? GetGuid(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:guid";
@@ -563,6 +602,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets all sections in the INI file.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.IEnumerable<System.String> GetSections()
     {
         _fileLock.EnterReadLock();
@@ -634,6 +675,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Loads the INI file with retry logic for handling file access issues.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void LoadWithRetry()
     {
         const System.Int32 maxRetries = 3;
@@ -664,6 +707,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Loads the data from the INI file into memory with optimized parsing.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void Load()
     {
         if (!ExistsFile)
@@ -789,6 +834,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Writes the INI data to the file with optimized I/O and error handling.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void WriteFile()
     {
         if (!_isDirty)

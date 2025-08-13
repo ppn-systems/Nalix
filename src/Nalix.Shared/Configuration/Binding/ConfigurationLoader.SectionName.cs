@@ -5,8 +5,12 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Gets the section name for a configuration type, with caching for performance.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static System.String GetSectionName(System.Type type)
         => _sectionNameCache.GetOrAdd(type, t =>
         {
@@ -28,8 +32,12 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Capitalizes the first letter of a string.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static System.String Capitalize(System.String input)
         => System.String.IsNullOrEmpty(input) ? input :
            System.Char.ToUpperInvariant(input[0]) + input[1..];

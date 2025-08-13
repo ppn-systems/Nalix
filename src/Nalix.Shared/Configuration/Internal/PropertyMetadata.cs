@@ -3,6 +3,7 @@ namespace Nalix.Shared.Configuration.Internal;
 /// <summary>
 /// Stores metadata about a configuration property.
 /// </summary>
+[System.Diagnostics.DebuggerDisplay("{Name,nq} ({PropertyType.Name})")]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal class PropertyMetadata
 {
@@ -16,16 +17,19 @@ internal class PropertyMetadata
     /// <summary>
     /// Gets or sets the name of the property.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.NotNull]
     public System.String Name { get; init; } = null!;
 
     /// <summary>
     /// Gets or sets the type of the property.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.NotNull]
     public System.Type PropertyType { get; init; } = null!;
 
     /// <summary>
     /// Gets or sets the property information.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.NotNull]
     public System.Reflection.PropertyInfo PropertyInfo { get; init; } = null!;
 
     #endregion Properties

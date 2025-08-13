@@ -12,6 +12,7 @@ namespace Nalix.Shared.Configuration;
 /// <remarks>
 /// This implementation includes thread safety, caching optimizations, and lazy loading.
 /// </remarks>
+[System.Diagnostics.DebuggerDisplay("ConfigFilePath = {ConfigFilePath,nq}, LoadedTypes = {_configContainerDict.Count}")]
 public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 {
     #region Fields
@@ -76,8 +77,11 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </summary>
     /// <typeparam name="TClass">The type of the configuration container.</typeparam>
     /// <returns>An instance of type <typeparamref name="TClass"/>.</returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public TClass Get<TClass>() where TClass : ConfigurationLoader, new()
     {
         return (TClass)_configContainerDict.GetOrAdd(typeof(TClass), type =>
@@ -103,6 +107,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// Reloads all configuration containers from the INI file.
     /// </summary>
     /// <returns>True if the reload was successful; otherwise, false.</returns>
+    [System.Diagnostics.CodeAnalysis.MemberNotNull]
     public System.Boolean ReloadAll()
     {
         // Ensure only one reload happens at a time
@@ -152,6 +157,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </summary>
     /// <typeparam name="TClass">The configuration type to check.</typeparam>
     /// <returns>True if the configuration is loaded; otherwise, false.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean IsLoaded<TClass>() where TClass : ConfigurationLoader
         => _configContainerDict.ContainsKey(typeof(TClass));
 
@@ -248,6 +257,9 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <summary>
     /// Ensures the configuration directory exists.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void EnsureConfigDirectoryExists()
     {
         if (!_directoryChecked)
