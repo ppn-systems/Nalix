@@ -10,6 +10,7 @@ public abstract partial class TcpListenerBase
     /// Configures the socket for high-performance operation by setting buffer sizes, timeouts, and keep-alive options.
     /// </summary>
     /// <param name="socket">The socket to configure.</param>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -57,7 +58,11 @@ public abstract partial class TcpListenerBase
         }
     }
 
-    private void InitializeTcpListenerSocket()
+
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void Initialize()
     {
         // Create the optimal socket listener.
         this._listener = new System.Net.Sockets.Socket(

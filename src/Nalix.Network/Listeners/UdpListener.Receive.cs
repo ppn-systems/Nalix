@@ -1,4 +1,5 @@
 ﻿using Nalix.Common.Logging;
+using Nalix.Common.Packets;
 using Nalix.Common.Security.Identity;
 using Nalix.Framework.Identity;
 using Nalix.Network.Connection;
@@ -47,7 +48,14 @@ public abstract partial class UdpListenerBase
 
     private void ProcessDatagram(System.Net.Sockets.UdpReceiveResult result)
     {
-        IIdentifier identifier = Identifier.Deserialize(result.Buffer[^7..]);
+        if (result.Buffer.Length < PacketConstants.HeaderSize + Identifier.Size)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug($"[UDP] Packet too short from {result.RemoteEndPoint}: {result.Buffer.Length} bytes");
+            return;
+        }
+
+        IIdentifier identifier = Identifier.Deserialize(result.Buffer[^Identifier.Size..]);
 
         if (ConnectionHub.Instance.GetConnection(identifier) is not Connection.Connection connection)
         {

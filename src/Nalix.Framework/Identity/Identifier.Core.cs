@@ -30,6 +30,11 @@ public readonly partial struct Identifier : IIdentifier, System.IEquatable<Ident
 {
     #region Const
 
+    /// <summary>
+    /// The size in bytes of the <see cref="Identifier"/> structure.
+    /// </summary>
+    public const System.Byte Size = 7;
+
     private const System.UInt64 MaxSevenByteValue = 0x00FFFFFFFFFFFFFFUL;
     private const System.String Base36Chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 

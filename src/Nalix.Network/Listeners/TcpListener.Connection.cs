@@ -28,6 +28,7 @@ public abstract partial class TcpListenerBase
 
     #endregion Fields
 
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private IConnection InitializeConnection(
@@ -59,6 +60,7 @@ public abstract partial class TcpListenerBase
     /// </summary>
     /// <param name="sender">The source of the event.</param>
     /// <param name="args">The connection event arguments.</param>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void HandleConnectionClose(System.Object? sender, IConnectEventArgs args)
@@ -82,6 +84,7 @@ public abstract partial class TcpListenerBase
     /// <summary>
     /// Processes a new connection using the protocol handler.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void ProcessConnection(IConnection connection)
@@ -103,6 +106,7 @@ public abstract partial class TcpListenerBase
     /// <summary>
     /// Accepts connections in a loop until cancellation is requested
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private async System.Threading.Tasks.Task AcceptConnectionsAsync(
@@ -140,6 +144,7 @@ public abstract partial class TcpListenerBase
     /// </summary>
     /// <param name="cancellationToken">The cancellation token for the connection creation process.</param>
     /// <returns>A task representing the connection creation.</returns>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -198,6 +203,7 @@ public abstract partial class TcpListenerBase
         }
     }
 
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnSyncAcceptCompleted(
@@ -224,6 +230,7 @@ public abstract partial class TcpListenerBase
         this.AcceptNext(newArgs);
     }
 
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void AcceptNext(System.Net.Sockets.SocketAsyncEventArgs args)
@@ -270,6 +277,7 @@ public abstract partial class TcpListenerBase
         }
     }
 
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void HandleAccept(System.Net.Sockets.SocketAsyncEventArgs e)
@@ -335,6 +343,9 @@ public abstract partial class TcpListenerBase
         }
     }
 
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void SafeCloseSocket(System.Net.Sockets.Socket socket)
     {
         try
