@@ -6,6 +6,7 @@ namespace Nalix.Shared.Serialization.Buffers;
 /// Provides functionality for reading serialized data from a byte buffer.
 /// Supports managed <c>byte[]</c>, <c>ReadOnlyMemory&lt;byte&gt;</c>, <c>ReadOnlySpan&lt;byte&gt;</c>, and unmanaged memory.
 /// </summary>
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public unsafe struct DataReader : System.IDisposable
 {
     #region Fields
@@ -128,6 +129,9 @@ public unsafe struct DataReader : System.IDisposable
     /// <exception cref="SerializationException">
     /// Thrown if the requested length exceeds the available buffer size.
     /// </exception>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public readonly System.ReadOnlySpan<System.Byte> GetSpan(System.Int32 length)
     {
         return length > BytesRemaining
@@ -144,6 +148,9 @@ public unsafe struct DataReader : System.IDisposable
     /// <exception cref="SerializationException">
     /// Thrown if the requested size exceeds the available buffer size.
     /// </exception>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public readonly ref System.Byte GetSpanReference(System.Int32 sizeHint)
     {
         if (sizeHint > BytesRemaining)
@@ -163,6 +170,9 @@ public unsafe struct DataReader : System.IDisposable
     /// <exception cref="SerializationException">
     /// Thrown if the advance count exceeds the available buffer size.
     /// </exception>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Advance(System.Int32 count)
     {
         System.ArgumentOutOfRangeException.ThrowIfNegative(count);
@@ -178,6 +188,7 @@ public unsafe struct DataReader : System.IDisposable
     /// <summary>
     /// Releases pinned memory if necessary and resets the reader state.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     public void Dispose()
     {
         if (_pinned)

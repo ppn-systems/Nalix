@@ -7,6 +7,7 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 /// Provides serialization and deserialization for arrays of enum values using their underlying primitive type.
 /// </summary>
 /// <typeparam name="T">The enum type of the array elements.</typeparam>
+[System.Diagnostics.DebuggerStepThrough]
 public sealed class EnumArrayFormatter<T> : IFormatter<T[]> where T : struct, System.Enum
 {
     private static readonly System.Int32 _elementSize;

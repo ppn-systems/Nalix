@@ -4,6 +4,7 @@ namespace Nalix.Shared.Serialization.Formatters.Cache;
 /// Provides a static cache for storing and retrieving formatters for specific types.
 /// </summary>
 /// <typeparam name="T">The type for which the formatter is stored.</typeparam>
+[System.Diagnostics.DebuggerStepThrough]
 internal static class FormatterCache<T>
 {
     /// <summary>

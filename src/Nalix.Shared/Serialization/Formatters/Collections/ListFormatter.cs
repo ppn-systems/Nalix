@@ -6,6 +6,7 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 /// Provides serialization and deserialization for lists of elements.
 /// </summary>
 /// <typeparam name="T">The type of the elements in the list.</typeparam>
+[System.Diagnostics.DebuggerStepThrough]
 public sealed class ListFormatter<T> : IFormatter<System.Collections.Generic.List<T>>
 {
     /// <summary>

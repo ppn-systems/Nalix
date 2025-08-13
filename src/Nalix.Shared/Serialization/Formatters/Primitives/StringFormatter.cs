@@ -6,6 +6,7 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 /// <summary>
 /// Cung cấp serialize/deserialize cho kiểu string với hiệu năng cao (dùng unsafe, length dạng ushort).
 /// </summary>
+[System.Diagnostics.DebuggerStepThrough]
 public sealed class StringFormatter : IFormatter<System.String>
 {
     private static readonly System.Text.Encoding Utf8 = System.Text.Encoding.UTF8;

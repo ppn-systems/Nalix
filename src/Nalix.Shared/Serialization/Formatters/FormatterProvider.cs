@@ -87,6 +87,9 @@ public static class FormatterProvider
     /// <exception cref="System.ArgumentNullException">
     /// Thrown if the provided formatter is null.
     /// </exception>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Register<T>(IFormatter<T> formatter)
         => FormatterCache<T>.Formatter = formatter
         ?? throw new System.ArgumentNullException(nameof(formatter));
@@ -99,6 +102,9 @@ public static class FormatterProvider
     /// <exception cref="System.InvalidOperationException">
     /// Thrown if the type is unsupported (neither a struct nor a class).
     /// </exception>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void RegisterComplex<T>(IFormatter<T> formatter)
     {
         // Check if the type is a value type and not an enum
@@ -126,6 +132,9 @@ public static class FormatterProvider
     /// <exception cref="System.InvalidOperationException">
     /// Thrown if no formatter is registered for the given type.
     /// </exception>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static IFormatter<T> Get<T>()
     {
         // Formatter has been cached → return immediately
@@ -223,6 +232,9 @@ public static class FormatterProvider
     /// <exception cref="System.InvalidOperationException">
     /// Thrown if no formatter is registered for the specified type.
     /// </exception>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal static IFormatter<T> GetComplex<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>()

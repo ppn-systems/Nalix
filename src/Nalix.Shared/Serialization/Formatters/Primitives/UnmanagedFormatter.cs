@@ -21,6 +21,7 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 /// </list>
 /// Reference: <see href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/unmanaged-types"/>.
 /// </remarks>
+[System.Diagnostics.DebuggerStepThrough]
 public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unmanaged
 {
     /// <summary>
