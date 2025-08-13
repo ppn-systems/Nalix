@@ -20,7 +20,7 @@ public static unsafe class LZ4BlockEncoder
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 GetMaxLength(System.Int32 input)
-        => input + (input / 250) + LZ4BlockHeader.Size;
+        => input + (input / 255) + 16 + LZ4BlockHeader.Size;
 
     /// <summary>
     /// Compresses a block of input data into the output buffer using the LZ4 greedy algorithm.

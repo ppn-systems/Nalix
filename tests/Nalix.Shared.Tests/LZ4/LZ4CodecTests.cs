@@ -257,4 +257,171 @@ public class LZ4CodecTests
         Assert.Equal(original.Length, decompressedSize);
         Assert.Equal(original, decompressed);
     }
+
+    private static Byte[] RandomBytes(Int32 length, Int32 seed = 12345)
+    {
+        var rnd = new Random(seed + length);
+        var data = new Byte[length];
+        rnd.NextBytes(data);
+        return data;
+    }
+
+    [Fact]
+    public void Encode_Empty_ReturnsHeaderOnly_AndDecodeToEmpty()
+    {
+        ReadOnlySpan<Byte> input = [];
+
+        // allocate exactly header size (8 bytes) to be strict
+        var outBuf = new Byte[8];
+        Int32 written = LZ4Codec.Encode(input, outBuf);
+
+        Assert.Equal(8, written); // header only
+
+        // decode into empty output span
+        var dest = Array.Empty<Byte>();
+        Int32 decoded = LZ4Codec.Decode(outBuf.AsSpan(0, written), dest);
+        Assert.Equal(0, decoded);
+
+        // decode using out-array overload
+        Boolean ok = LZ4Codec.Decode(outBuf.AsSpan(0, written), out var outArr, out Int32 bytesWritten);
+        Assert.True(ok);
+        Assert.NotNull(outArr);
+        Assert.Equal(0, bytesWritten);
+        Assert.Empty(outArr!);
+    }
+
+    [Fact]
+    public void Roundtrip_SmallLiteralOnly()
+    {
+        Byte[] input = [1, 2, 3, 4, 5, 6];
+        Int32 maxLen = Nalix.Shared.LZ4.Encoders.LZ4BlockEncoder.GetMaxLength(input.Length);
+        var outBuf = new Byte[maxLen];
+
+        Int32 written = LZ4Codec.Encode(input, outBuf);
+        Assert.InRange(written, 8, maxLen); // must include header
+        Assert.True(written <= maxLen);
+
+        // decode with exact-sized buffer (original length must match)
+        var dest = new Byte[input.Length];
+        Int32 decoded = LZ4Codec.Decode(outBuf.AsSpan(0, written), dest);
+        Assert.Equal(input.Length, decoded);
+        Assert.Equal(input, dest);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    [InlineData(15)]
+    [InlineData(16)]
+    [InlineData(255)]
+    [InlineData(256)]
+    [InlineData(4096)]
+    [InlineData(65536)]
+    public void Roundtrip_Random_VariousSizes(Int32 size)
+    {
+        Byte[] input = RandomBytes(size);
+        Int32 maxLen = Nalix.Shared.LZ4.Encoders.LZ4BlockEncoder.GetMaxLength(size);
+        var outBuf = new Byte[maxLen];
+
+        Int32 written = LZ4Codec.Encode(input, outBuf);
+        Assert.InRange(written, 8, maxLen);
+
+        // decode span overload
+        var dest = new Byte[size];
+        Int32 decoded = LZ4Codec.Decode(outBuf.AsSpan(0, written), dest);
+        Assert.Equal(size, decoded);
+        Assert.Equal(input, dest);
+
+        // decode out-array overload
+        Boolean ok = LZ4Codec.Decode(outBuf.AsSpan(0, written), out var outArr, out Int32 bytesWritten);
+        Assert.True(ok);
+        Assert.Equal(size, bytesWritten);
+        Assert.Equal(input, outArr);
+    }
+
+    [Fact]
+    public void Encode_BufferTooSmall_ReturnsMinusOne()
+    {
+        Byte[] input = RandomBytes(32);
+        // deliberately too small (smaller than 8-byte header)
+        var outBuf = new Byte[4];
+
+        Int32 written = LZ4Codec.Encode(input, outBuf);
+        Assert.Equal(-1, written);
+    }
+
+    [Fact]
+    public void Decode_WithWrongOutputSize_ReturnsMinusOne()
+    {
+        Byte[] input = RandomBytes(1000);
+        Int32 maxLen = Nalix.Shared.LZ4.Encoders.LZ4BlockEncoder.GetMaxLength(input.Length);
+        var outBuf = new Byte[maxLen];
+
+        Int32 written = LZ4Codec.Encode(input, outBuf);
+        Assert.True(written > 0);
+
+        // provide output buffer of wrong size
+        var destWrong = new Byte[input.Length - 1];
+        Int32 decoded = LZ4Codec.Decode(outBuf.AsSpan(0, written), destWrong);
+        Assert.Equal(-1, decoded);
+    }
+
+    [Fact]
+    public void Decode_InvalidHeader_Fails()
+    {
+        Byte[] input = RandomBytes(128);
+        Int32 maxLen = Nalix.Shared.LZ4.Encoders.LZ4BlockEncoder.GetMaxLength(input.Length);
+        var outBuf = new Byte[maxLen];
+
+        Int32 written = LZ4Codec.Encode(input, outBuf);
+        Assert.True(written >= 8);
+
+        // corrupt header: set OriginalLength to a different value
+        // header layout: int OriginalLength (offset 0), int CompressedLength (offset 4)
+        Span<Byte> slice = outBuf.AsSpan(0, written);
+        // toggle one bit in OriginalLength
+        slice[0] ^= 0xFF;
+
+        // span overload should return -1
+        var dest = new Byte[input.Length];
+        Int32 decoded = LZ4Codec.Decode(slice, dest);
+        Assert.Equal(-1, decoded);
+
+        // out-array overload should return false
+        Boolean ok = LZ4Codec.Decode(slice, out var outArr, out Int32 bytesWritten);
+        Assert.False(ok);
+        Assert.Null(outArr);
+        Assert.Equal(0, bytesWritten);
+    }
+
+    [Fact]
+    public void Encode_ArrayOverload_Works()
+    {
+        Byte[] input = RandomBytes(1024);
+        Int32 maxLen = Nalix.Shared.LZ4.Encoders.LZ4BlockEncoder.GetMaxLength(input.Length);
+        var outBuf = new Byte[maxLen];
+
+        Int32 written = LZ4Codec.Encode(input, outBuf);
+        Assert.True(written > 0);
+
+        // now use array overloads for both directions
+        var dest = new Byte[input.Length];
+        Int32 decoded = LZ4Codec.Decode(outBuf, dest);
+        Assert.Equal(input.Length, decoded);
+        Assert.Equal(input, dest);
+    }
+
+    [Fact]
+    public void Encode_ConvenienceAlloc_ReturnsTightBuffer()
+    {
+        Byte[] input = RandomBytes(777);
+        Byte[] compressed = LZ4Codec.Encode(input);
+
+        // decode back via out-array overload (no pre-alloc)
+        Boolean ok = LZ4Codec.Decode(compressed, out var outArr, out Int32 written);
+        Assert.True(ok);
+        Assert.NotNull(outArr);
+        Assert.Equal(input.Length, written);
+        Assert.Equal(input, outArr);
+    }
 }

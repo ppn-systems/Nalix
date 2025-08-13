@@ -63,7 +63,13 @@ internal readonly struct LZ4Decoder
         }
 
         output = new System.Byte[header.OriginalLength];
-        return DecodeInternal(input, output, out bytesWritten);
+        if (!DecodeInternal(input, output, out bytesWritten))
+        {
+            output = null;
+            bytesWritten = 0;
+            return false;
+        }
+        return true;
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
