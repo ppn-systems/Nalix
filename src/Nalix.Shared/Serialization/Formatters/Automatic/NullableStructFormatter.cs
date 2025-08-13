@@ -10,6 +10,7 @@ namespace Nalix.Shared.Serialization.Formatters.Automatic;
 /// This formatter uses a single byte marker (0 for null, 1 for non-null) followed by the serialized value if non-null.
 /// It delegates the actual serialization and deserialization of the value type to an instance of <see cref="StructFormatter{T}"/>.
 /// </remarks>
+[System.Diagnostics.DebuggerStepThrough]
 public sealed class NullableStructFormatter<T> : IFormatter<T?> where T : struct
 {
     /// <summary>

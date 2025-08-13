@@ -7,6 +7,7 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 /// directly serializing the underlying type.
 /// </summary>
 /// <typeparam name="T">The enum type to be serialized and deserialized.</typeparam>
+[System.Diagnostics.DebuggerStepThrough]
 public sealed class EnumFormatter<T> : IFormatter<T>
 {
     private static readonly SerializeDelegate _serialize;

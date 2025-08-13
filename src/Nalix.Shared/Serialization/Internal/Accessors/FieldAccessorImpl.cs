@@ -30,17 +30,8 @@ internal sealed class FieldAccessorImpl<T, TField>(System.Int32 index) : FieldAc
     {
         System.ArgumentNullException.ThrowIfNull(obj);
 
-        try
-        {
-            TField value = FieldCache<T>.GetValue<TField>(obj, _index);
-            _formatter.Serialize(ref writer, value);
-        }
-        catch (System.Exception ex)
-        {
-            throw new System.InvalidOperationException(
-                $"Failed to serialize field '{FieldCache<T>.GetField(_index).Name ?? $"Field#{_index}"}' " +
-                $"of type '{typeof(TField).Name}' in '{typeof(T).Name}'.", ex);
-        }
+        TField value = FieldCache<T>.GetValue<TField>(obj, _index);
+        _formatter.Serialize(ref writer, value);
     }
 
     /// <summary>
@@ -52,16 +43,8 @@ internal sealed class FieldAccessorImpl<T, TField>(System.Int32 index) : FieldAc
     {
         System.ArgumentNullException.ThrowIfNull(obj);
 
-        try
-        {
-            TField value = _formatter.Deserialize(ref reader);
-            // Zero-boxing field assignment thông qua FieldCache
-            FieldCache<T>.SetValue(obj, _index, value);
-        }
-        catch (System.Exception ex)
-        {
-            throw new System.InvalidOperationException($"Failed to deserialize field at index {_index}", ex);
-        }
+        TField value = _formatter.Deserialize(ref reader);
+        FieldCache<T>.SetValue(obj, _index, value);
     }
 
     #endregion Serialization Implementation

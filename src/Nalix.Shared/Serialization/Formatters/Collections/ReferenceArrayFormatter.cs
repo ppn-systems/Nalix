@@ -6,6 +6,7 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 /// Provides serialization and deserialization for arrays of reference types.
 /// </summary>
 /// <typeparam name="T">The reference type of the array elements.</typeparam>
+[System.Diagnostics.DebuggerStepThrough]
 public sealed class ReferenceArrayFormatter<T> : IFormatter<T[]> where T : class
 {
     /// <summary>

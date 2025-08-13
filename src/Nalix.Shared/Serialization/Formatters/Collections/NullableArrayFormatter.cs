@@ -6,6 +6,7 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 /// Provides serialization and deserialization for arrays of nullable value types.
 /// </summary>
 /// <typeparam name="T">The value type of the array elements, which must be a structure.</typeparam>
+[System.Diagnostics.DebuggerStepThrough]
 public sealed class NullableArrayFormatter<T> : IFormatter<T?[]> where T : struct
 {
     /// <summary>

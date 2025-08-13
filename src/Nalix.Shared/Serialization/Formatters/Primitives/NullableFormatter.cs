@@ -9,6 +9,7 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 /// <typeparam name="T">
 /// The underlying value type, which must have a registered formatter.
 /// </typeparam>
+[System.Diagnostics.DebuggerStepThrough]
 public sealed class NullableFormatter<T> : IFormatter<T?> where T : struct
 {
     /// <summary>
@@ -57,12 +58,9 @@ public sealed class NullableFormatter<T> : IFormatter<T?> where T : struct
             .Get<System.Byte>()
             .Deserialize(ref reader);
 
-        if (hasValue == NoValueFlag)
-        {
-            return null;
-        }
-
-        return hasValue != HasValueFlag
+        return hasValue == NoValueFlag
+            ? null
+            : hasValue != HasValueFlag
             ? throw new SerializationException("Invalid nullable data!")
             : (T?)FormatterProvider.Get<T>().Deserialize(ref reader);
     }
