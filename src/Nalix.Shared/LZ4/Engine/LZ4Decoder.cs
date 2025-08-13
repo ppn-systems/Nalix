@@ -6,6 +6,8 @@ namespace Nalix.Shared.LZ4.Engine;
 /// <summary>
 /// Provides decompression functionality for the LZ4 format.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal readonly struct LZ4Decoder
 {
@@ -19,7 +21,8 @@ internal readonly struct LZ4Decoder
     /// or -1 if decompression fails.
     /// </returns>26
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Int32 Decode(
         System.ReadOnlySpan<System.Byte> input,
         System.Span<System.Byte> output) => !DecodeInternal(input, output, out System.Int32 written) ? -1 : written;
@@ -32,7 +35,8 @@ internal readonly struct LZ4Decoder
     /// <param name="bytesWritten">The number of bytes written to the output buffer.</param>
     /// <returns><c>true</c> if decompression succeeds; otherwise, <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Decode(
         System.ReadOnlySpan<System.Byte> input,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte[]? output,
@@ -63,7 +67,8 @@ internal readonly struct LZ4Decoder
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal static unsafe System.Boolean DecodeInternal(
         System.ReadOnlySpan<System.Byte> input,
         System.Span<System.Byte> output,

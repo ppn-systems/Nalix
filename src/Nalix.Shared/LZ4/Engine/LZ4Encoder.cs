@@ -6,6 +6,8 @@ namespace Nalix.Shared.LZ4.Engine;
 /// <summary>
 /// Provides functionality to compress data using the LZ4 algorithm, optimized for zero-allocation and high efficiency.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal readonly struct LZ4Encoder
 {
@@ -19,7 +21,8 @@ internal readonly struct LZ4Encoder
     /// or -1 if the output buffer is too small or compression fails.
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static unsafe System.Int32 Encode(
         System.ReadOnlySpan<System.Byte> input,
         System.Span<System.Byte> output)
@@ -55,62 +58,6 @@ internal readonly struct LZ4Encoder
         WriteHeader(output, input.Length, totalCompressedLength);
 
         return totalCompressedLength;
-    }
-
-    /// <summary>
-    /// Compresses the provided input data into a specified output buffer with a success flag.
-    /// </summary>
-    /// <param name="input">The input data to compress as a <see cref="System.ReadOnlySpan{T}"/>.</param>
-    /// <param name="output">The buffer where the compressed data will be written. Must have enough capacity.</param>
-    /// <param name="bytesWritten">The total number of bytes written to the output buffer.</param>
-    /// <returns><c>true</c> if compression succeeds; otherwise, <c>false</c>.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static unsafe System.Boolean Encode(
-        System.ReadOnlySpan<System.Byte> input,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] System.Span<System.Byte> output,
-        out System.Int32 bytesWritten)
-    {
-        bytesWritten = 0;
-
-        // Token empty input
-        if (input.IsEmpty)
-        {
-            if (WriteEmptyHeader(output) == -1)
-            {
-                return false;
-            }
-
-            bytesWritten = LZ4BlockHeader.Size;
-            return true;
-        }
-
-        // Ensure space for at least the header
-        if (output.Length < LZ4BlockHeader.Size)
-        {
-            return false;
-        }
-
-        // Allocate hash table for compression
-        System.Int32* hashTable = stackalloc System.Int32[MatchFinder.HashTableSize];
-        InitializeHashTable(hashTable);
-
-        // Compress the data
-        System.Span<System.Byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
-        System.Int32 compressedDataLength = Encoders.LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable);
-
-        // Token compression failure
-        if (compressedDataLength < 0)
-        {
-            return false;
-        }
-
-        // WriteInt16 the header and calculate total compressed length
-        System.Int32 totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
-        WriteHeader(output, input.Length, totalCompressedLength);
-
-        bytesWritten = totalCompressedLength;
-        return true;
     }
 
     /// <summary>

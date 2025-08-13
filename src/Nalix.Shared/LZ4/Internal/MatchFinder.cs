@@ -1,4 +1,4 @@
-using Nalix.Shared.LZ4.Encoders;
+﻿using Nalix.Shared.LZ4.Encoders;
 using Nalix.Shared.Memory.Unsafe;
 
 namespace Nalix.Shared.LZ4.Internal;
@@ -62,29 +62,35 @@ internal static unsafe class MatchFinder
         System.Int32 currentInputOffset)
     {
         // Ensure there are enough bytes to find a match
-        if (currentInputPtr + LZ4CompressionConstants.MinMatchLength > inputLimit)
+        if ((System.UIntPtr)(inputLimit - currentInputPtr) < LZ4CompressionConstants.MinMatchLength)
         {
             return default; // No match possible
         }
 
         // Read the current 4-byte sequence and compute its hash
         System.UInt32 currentSequence = MemOps.ReadUnaligned<System.UInt32>(currentInputPtr);
-        System.UInt32 hash = CalculateHash(currentSequence);
+        System.UInt32 hash = (currentSequence * 2654435761u) >> HashShift;
 
         // Retrieve the candidate match offset and update the hash table
         System.Int32 matchCandidateOffset = hashTable[hash];
         hashTable[hash] = currentInputOffset;
 
+        if ((System.UInt32)matchCandidateOffset >= (System.UInt32)currentInputOffset)
+        {
+            return default;
+        }
+
         // Calculate the candidate match pointer
         System.Byte* matchCandidatePtr = inputBase + matchCandidateOffset;
 
-        // Validate the candidate match
-        if (matchCandidateOffset <= 0 || // Invalid offset
-            matchCandidatePtr < searchStartPtr || // Outside of search window
-            matchCandidatePtr >= currentInputPtr || // Cannot match itself
-            MemOps.ReadUnaligned<System.UInt32>(matchCandidatePtr) != currentSequence) // Quick check fails
+        if (matchCandidatePtr < searchStartPtr)
         {
-            return default; // No valid match found
+            return default;
+        }
+
+        if (MemOps.ReadUnaligned<System.UInt32>(matchCandidatePtr) != currentSequence)
+        {
+            return default;
         }
 
         // Calculate the length of the match
@@ -102,13 +108,4 @@ internal static unsafe class MatchFinder
 
         return new Match(offset, matchLength);
     }
-
-    /// <summary>
-    /// Computes a hash for a 4-byte sequence using a fast multiplication-based method.
-    /// </summary>
-    /// <param name="sequence">The 4-byte sequence to hash.</param>
-    /// <returns>The hash value.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt32 CalculateHash(System.UInt32 sequence) => (sequence * 2654435761u) >> HashShift;
 }
