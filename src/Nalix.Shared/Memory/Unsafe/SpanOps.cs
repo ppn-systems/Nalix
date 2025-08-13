@@ -3,6 +3,8 @@ namespace Nalix.Shared.Memory.Unsafe;
 /// <summary>
 /// Helper methods for working with Spans.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static unsafe class SpanOps
 {
@@ -10,7 +12,8 @@ public static unsafe class SpanOps
     /// Ensures the requested slice is within the span bounds.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void CheckSliceBounds(System.Int32 length, System.Int32 start, System.Int32 count)
     {
         // Use unsigned arithmetic for efficient check: (uint)start + (uint)count > (uint)length
@@ -30,7 +33,8 @@ public static unsafe class SpanOps
     /// Writes bytes until the value is less than 255.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Int32 WriteVarInt(System.Byte* dest, System.Int32 value)
     {
         System.Int32 bytesWritten = 0;
@@ -51,7 +55,8 @@ public static unsafe class SpanOps
     /// Reads a variable-length integer (little-endian).
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Int32 ReadVarInt(
         ref System.Byte* src,
         System.Byte* srcEnd,

@@ -8,6 +8,8 @@ namespace Nalix.Shared.Memory.Unsafe;
 /// copying memory blocks, and comparing memory regions. It utilizes `unsafe` code to perform these operations directly
 /// on raw memory, which allows for faster execution and is suitable for performance-critical applications like LZ compression/decompression.
 /// </remarks>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static unsafe class MemOps
 {
@@ -18,7 +20,8 @@ public static unsafe class MemOps
     /// <param name="source">A pointer to the source memory location.</param>
     /// <returns>The value read from the specified memory location.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static T ReadUnaligned<T>(System.Byte* source) where T : unmanaged
         => System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(source);
 
@@ -29,7 +32,8 @@ public static unsafe class MemOps
     /// <param name="source">A <see cref="System.ReadOnlySpan{Byte}"/> representing the source memory.</param>
     /// <returns>The value read from the specified memory location.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static T ReadUnaligned<T>(System.ReadOnlySpan<System.Byte> source) where T : unmanaged
     {
         fixed (System.Byte* pSource = &System.Runtime.InteropServices.MemoryMarshal.GetReference(source))
@@ -45,7 +49,8 @@ public static unsafe class MemOps
     /// <param name="destination">A pointer to the destination memory location.</param>
     /// <param name="value">The value to write.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void WriteUnaligned<T>(System.Byte* destination, T value) where T : unmanaged
         => System.Runtime.CompilerServices.Unsafe.WriteUnaligned(destination, value);
 
@@ -56,7 +61,8 @@ public static unsafe class MemOps
     /// <param name="destination">A <see cref="System.Span{Byte}"/> representing the destination memory.</param>
     /// <param name="value">The value to write.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void WriteUnaligned<T>(System.Span<System.Byte> destination, T value) where T : unmanaged
     {
         fixed (System.Byte* pDest = &System.Runtime.InteropServices.MemoryMarshal.GetReference(destination))
@@ -76,7 +82,8 @@ public static unsafe class MemOps
     /// such as LZ decompression, where memory regions may overlap.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Copy(
         System.Byte* source,
         System.Byte* destination, System.Int32 length)
@@ -107,7 +114,8 @@ public static unsafe class MemOps
     /// <param name="source">A <see cref="System.ReadOnlySpan{Byte}"/> representing the source memory.</param>
     /// <param name="destination">A pointer to the destination memory location.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Copy(
         System.ReadOnlySpan<System.Byte> source,
         System.Byte* destination)
@@ -130,7 +138,8 @@ public static unsafe class MemOps
     /// <param name="source">A pointer to the source memory location.</param>
     /// <param name="destination">A <see cref="System.Span{Byte}"/> representing the destination memory.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Copy(
         System.Byte* source,
         System.Span<System.Byte> destination)
@@ -155,7 +164,8 @@ public static unsafe class MemOps
     /// <param name="length">The number of bytes to compare.</param>
     /// <returns><c>true</c> if the two memory regions are equal, otherwise <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean SequenceEqual(
         System.Byte* p1,
         System.Byte* p2,
@@ -233,7 +243,8 @@ public static unsafe class MemOps
     /// <param name="maxLength">The maximum number of bytes to compare.</param>
     /// <returns>The number of matching bytes.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Int32 CountEqualBytes(
         System.Byte* p1,
         System.Byte* p2,

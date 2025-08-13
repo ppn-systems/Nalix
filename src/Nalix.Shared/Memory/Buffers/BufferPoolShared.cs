@@ -3,6 +3,8 @@
 /// <summary>
 /// Manages a pool of shared buffers with optimized memory handling.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Diagnostics.DebuggerDisplay("Size={_bufferSize}, Total={_totalBuffers}, Free={_freeBuffers.Count}")]
 public sealed class BufferPoolShared : System.IDisposable
 {
     #region Fields

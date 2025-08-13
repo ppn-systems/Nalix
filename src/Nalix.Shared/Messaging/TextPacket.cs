@@ -18,6 +18,8 @@ namespace Nalix.Shared.Messaging;
 /// </summary>
 [MagicNumber(MagicNumbers.LiteralPacket)]
 [SerializePackable(SerializeLayout.Explicit)]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Diagnostics.DebuggerDisplay("TextPacket OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class TextPacket : IPacket, IPacketTransformer<TextPacket>
 {
     /// <inheritdoc/>
