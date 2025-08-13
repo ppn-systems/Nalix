@@ -14,7 +14,6 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
 {
     #region Fields
 
-
     private readonly PacketMiddlewarePipeline<TPacket> _pipeline;
 
     private readonly System.Collections.Generic.Dictionary<

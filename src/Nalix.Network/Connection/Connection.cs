@@ -17,17 +17,17 @@ public sealed partial class Connection : IConnection
 {
     #region Fields
 
+    private readonly TransportStream _cstream;
     private readonly System.Threading.Lock _lock;
     private readonly System.Net.Sockets.Socket _socket;
-    private readonly TransportStream _cstream;
     private readonly System.Threading.CancellationTokenSource _ctokens;
+
+    private System.Boolean _disposed;
+    private System.Byte[] _encryptionKey;
 
     private System.EventHandler<IConnectEventArgs>? _onCloseEvent;
     private System.EventHandler<IConnectEventArgs>? _onProcessEvent;
     private System.EventHandler<IConnectEventArgs>? _onPostProcessEvent;
-
-    private System.Boolean _disposed;
-    private System.Byte[] _encryptionKey;
 
     #endregion Fields
 
@@ -53,9 +53,9 @@ public sealed partial class Connection : IConnection
             }
         };
 
-        _cstream.SetPacketCached(() => _onProcessEvent?.Invoke(this, new ConnectionEventArgs(this)));
         _disposed = false;
         _encryptionKey = new System.Byte[32];
+        _cstream.SetPacketCached(() => _onProcessEvent?.Invoke(this, new ConnectionEventArgs(this)));
 
         this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
         this.Id = Identifier.NewId(IdentifierType.Session);
@@ -90,6 +90,15 @@ public sealed partial class Connection : IConnection
     public System.Int64 LastPingTime => this._cstream.LastPingTime;
 
     /// <inheritdoc />
+    public PermissionLevel Level { get; set; } = PermissionLevel.Guest;
+
+    /// <inheritdoc />
+    public SymmetricAlgorithmType Encryption { get; set; } = SymmetricAlgorithmType.XTEA;
+
+    /// <inheritdoc />
+    public System.ReadOnlyMemory<System.Byte> IncomingPacket => this._cstream.PopIncoming();
+
+    /// <inheritdoc />
     public System.Byte[] EncryptionKey
     {
         [System.Runtime.CompilerServices.MethodImpl(
@@ -111,15 +120,6 @@ public sealed partial class Connection : IConnection
             }
         }
     }
-
-    /// <inheritdoc />
-    public System.ReadOnlyMemory<System.Byte> IncomingPacket => this._cstream.PopIncoming();
-
-    /// <inheritdoc />
-    public PermissionLevel Level { get; set; } = PermissionLevel.Guest;
-
-    /// <inheritdoc />
-    public SymmetricAlgorithmType Encryption { get; set; } = SymmetricAlgorithmType.XTEA;
 
     #endregion Properties
 

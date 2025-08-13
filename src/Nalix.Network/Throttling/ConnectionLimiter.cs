@@ -75,7 +75,8 @@ public sealed class ConnectionLimiter : System.IDisposable
             this._config.CleanupInterval
         );
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Debug("ConnectionLimiter initialized: max={0}, inactivity={1}s",
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug("ConnectionLimiter initialized: max={0}, inactivity={1}s",
                         this._maxConnectionsPerIp, this._inactivityThreshold.TotalSeconds);
     }
 
