@@ -12,6 +12,8 @@ public static class BigIntExtensions
     /// <param name="b">Second BigInteger value.</param>
     /// <param name="mod">Modulo value.</param>
     /// <returns>The result of (a + b) % mod.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Numerics.BigInteger ModAdd(
@@ -39,6 +41,8 @@ public static class BigIntExtensions
     /// <param name="b">Second BigInteger value.</param>
     /// <param name="mod">Modulo value.</param>
     /// <returns>The result of (a - b) % mod.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Numerics.BigInteger ModSub(
@@ -66,6 +70,8 @@ public static class BigIntExtensions
     /// <param name="b">Second BigInteger value.</param>
     /// <param name="mod">Modulo value.</param>
     /// <returns>The result of (a * b) % mod.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Numerics.BigInteger MultiplyMod(
@@ -80,6 +86,8 @@ public static class BigIntExtensions
     /// <param name="num">The BigInteger value.</param>
     /// <param name="modulo">The modulo value.</param>
     /// <returns>The result of num % modulo, adjusted to be non-negative.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Numerics.BigInteger Mod(

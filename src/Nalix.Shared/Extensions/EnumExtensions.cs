@@ -14,8 +14,9 @@ public static class EnumExtensions
     /// <returns>The converted value in the specified type <typeparamref name="TValue"/>.</returns>
     /// <exception cref="System.ArgumentException">
     /// Thrown if the size of <typeparamref name="TEnum"/> and <typeparamref name="TValue"/> are not the same.
-    /// </exception>
-
+    /// </exception>    
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static TValue As<TEnum, TValue>(this TEnum @this) where TEnum : System.Enum
@@ -38,7 +39,8 @@ public static class EnumExtensions
     /// <param name="flags">The enumeration value to check.</param>
     /// <param name="flag">The flag to check for.</param>
     /// <returns><see langword="true"/> if the specified flag is set; otherwise, <see langword="false"/>.</returns>
-
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean HasFlag<TEnum>(this TEnum flags, TEnum flag)
@@ -52,7 +54,8 @@ public static class EnumExtensions
     /// <param name="flags">The enumeration value to modify.</param>
     /// <param name="flag">The flag to add.</param>
     /// <returns>A new enumeration value with the specified flag added.</returns>
-
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static TEnum AddFlag<TEnum>(this TEnum flags, TEnum flag)
@@ -66,7 +69,8 @@ public static class EnumExtensions
     /// <param name="flags">The enumeration value to modify.</param>
     /// <param name="flag">The flag to remove.</param>
     /// <returns>A new enumeration value with the specified flag removed.</returns>
-
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static TEnum RemoveFlag<TEnum>(this TEnum flags, TEnum flag)
@@ -79,7 +83,8 @@ public static class EnumExtensions
     /// <typeparam name="TEnum">The enumeration type, which must be decorated with <see cref="System.FlagsAttribute"/>.</typeparam>
     /// <param name="flags">The enumeration value to check.</param>
     /// <returns><see langword="true"/> if no flags are set; otherwise, <see langword="false"/>.</returns>
-
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean IsNone<TEnum>(this TEnum flags)
@@ -98,7 +103,8 @@ public static class EnumExtensions
     /// <see langword="true"/> if the enumeration value contains all required flags
     /// and does not contain any excluded flags; otherwise, <see langword="false"/>.
     /// </returns>
-
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean Matches<TEnum>(this TEnum flags, TEnum requiredFlags, TEnum excludedFlags)

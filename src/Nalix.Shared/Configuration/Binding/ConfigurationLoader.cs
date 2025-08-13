@@ -11,6 +11,7 @@ namespace Nalix.Shared.Configuration.Binding;
 /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
 /// The section and key names in the INI file are derived from the class and property names.
 /// </remarks>
+[System.Diagnostics.DebuggerDisplay("{GetType().Name,nq} (Initialized = {IsInitialized})")]
 public abstract partial class ConfigurationLoader
 {
     #region Fields
@@ -85,6 +86,8 @@ public abstract partial class ConfigurationLoader
     /// Creates a shallow clone of this configuration instance.
     /// </summary>
     /// <returns>A new instance with the same property values.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public T Clone<T>() where T : ConfigurationLoader, new()
     {
         T clone = new();
@@ -116,6 +119,7 @@ public abstract partial class ConfigurationLoader
     /// using optimized reflection with caching to set property values based on the configuration file.
     /// </summary>
     /// <param name="configFile">The INI configuration file to load values from.</param>
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_isInitialized), nameof(LastInitializationTime))]
     internal void Initialize(IniConfig configFile)
     {
         System.ArgumentNullException.ThrowIfNull(configFile);

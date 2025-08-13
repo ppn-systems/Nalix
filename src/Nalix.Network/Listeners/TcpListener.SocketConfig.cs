@@ -81,7 +81,9 @@ public abstract partial class TcpListenerBase
             Config.ReuseAddress ? SocketOptions.True : SocketOptions.False);
 
         System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, this._port);
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Debug("[TCP] TCP socket bound to {0}", remote);
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug("[TCP] TCP socket bound to {0}", remote);
 
         // Bind and Listen
         this._listener.Bind(remote);

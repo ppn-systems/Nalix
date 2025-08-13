@@ -76,8 +76,8 @@ public sealed class ConnectionLimiter : System.IDisposable
         );
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug("ConnectionLimiter initialized: max={0}, inactivity={1}s",
-                        this._maxConnectionsPerIp, this._inactivityThreshold.TotalSeconds);
+                                .Debug($"ConnectionLimiter initialized: " +
+                                       $"max={_maxConnectionsPerIp}, inactivity={_inactivityThreshold.TotalSeconds}s");
     }
 
     /// <summary>
@@ -128,8 +128,8 @@ public sealed class ConnectionLimiter : System.IDisposable
             if (existingInfo.CurrentConnections >= this._maxConnectionsPerIp)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace("Limit exceeded for {0}: {1}/{2}",
-                                                    endPoint, existingInfo.CurrentConnections, this._maxConnectionsPerIp);
+                                        .Trace($"Limit exceeded for {endPoint}: " +
+                                               $"{existingInfo.CurrentConnections}/{this._maxConnectionsPerIp}");
 
                 return false;
             }
@@ -220,8 +220,8 @@ public sealed class ConnectionLimiter : System.IDisposable
         if (this._connectionInfo.TryGetValue(endPoint, out var stats))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace("Observability for {0}: {1} current, {2} today",
-                                            endPoint, stats.CurrentConnections, stats.TotalConnectionsToday);
+                                    .Trace($"Observability for {endPoint}: " +
+                                           $"{stats.CurrentConnections} current, {stats.TotalConnectionsToday} today");
             return (stats.CurrentConnections, stats.TotalConnectionsToday, stats.LastConnectionTime);
         }
 
@@ -395,9 +395,10 @@ public sealed class ConnectionLimiter : System.IDisposable
 
         try
         {
-            this._cleanupTimer?.Dispose();
-            this._cleanupLock?.Dispose();
             this._connectionInfo.Clear();
+
+            this._cleanupLock?.Dispose();
+            this._cleanupTimer?.Dispose();
         }
         catch (System.Exception ex)
         {

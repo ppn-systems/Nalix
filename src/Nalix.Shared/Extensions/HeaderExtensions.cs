@@ -25,6 +25,9 @@ public static class HeaderExtensions
     /// <remarks>
     /// This method uses the platform's native endianness. For wire formats, prefer the explicit little‑endian readers below.
     /// </remarks>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.SkipLocalsInit]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static unsafe T ReadValue<T>(this System.ReadOnlySpan<System.Byte> buffer, System.Int32 offset) where T : unmanaged
@@ -51,6 +54,8 @@ public static class HeaderExtensions
     /// <param name="buffer">The source buffer.</param>
     /// <returns>The magic number.</returns>
     /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.UInt32 ReadMagicNumberLE(this System.ReadOnlySpan<System.Byte> buffer)
@@ -65,6 +70,8 @@ public static class HeaderExtensions
     /// <param name="buffer">The source buffer.</param>
     /// <returns>The operation code.</returns>
     /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.UInt16 ReadOpCodeLE(this System.ReadOnlySpan<System.Byte> buffer)
@@ -80,6 +87,8 @@ public static class HeaderExtensions
     /// <param name="buffer">The source buffer.</param>
     /// <returns>The packet flags.</returns>
     /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static PacketFlags ReadFlagsLE(this System.ReadOnlySpan<System.Byte> buffer)
@@ -95,6 +104,8 @@ public static class HeaderExtensions
     /// <param name="buffer">The source buffer.</param>
     /// <returns>The packet priority.</returns>
     /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static PacketPriority ReadPriorityLE(this System.ReadOnlySpan<System.Byte> buffer)
@@ -110,6 +121,8 @@ public static class HeaderExtensions
     /// <param name="buffer">The source buffer.</param>
     /// <returns>The transport protocol.</returns>
     /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static TransportProtocol ReadTransportLE(this System.ReadOnlySpan<System.Byte> buffer)
@@ -128,6 +141,8 @@ public static class HeaderExtensions
     /// </summary>
     /// <param name="buffer">The source array.</param>
     /// <returns>The magic number.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.UInt32 ReadMagicNumberLE(this System.Byte[] buffer) => buffer.AsReadOnlySpan().ReadMagicNumberLE();
@@ -137,6 +152,8 @@ public static class HeaderExtensions
     /// </summary>
     /// <param name="buffer">The source array.</param>
     /// <returns>The operation code.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.UInt16 ReadOpCodeLE(this System.Byte[] buffer) => buffer.AsReadOnlySpan().ReadOpCodeLE();
@@ -146,6 +163,8 @@ public static class HeaderExtensions
     /// </summary>
     /// <param name="buffer">The source array.</param>
     /// <returns>The packet flags.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static PacketFlags ReadFlagsLE(this System.Byte[] buffer) => buffer.AsReadOnlySpan().ReadFlagsLE();
@@ -155,6 +174,8 @@ public static class HeaderExtensions
     /// </summary>
     /// <param name="buffer">The source array.</param>
     /// <returns>The packet priority.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static PacketPriority ReadPriorityLE(this System.Byte[] buffer) => buffer.AsReadOnlySpan().ReadPriorityLE();
@@ -164,6 +185,8 @@ public static class HeaderExtensions
     /// </summary>
     /// <param name="buffer">The source array.</param>
     /// <returns>The transport protocol.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static TransportProtocol ReadTransportLE(this System.Byte[] buffer) => buffer.AsReadOnlySpan().ReadTransportLE();
@@ -179,6 +202,8 @@ public static class HeaderExtensions
     /// <param name="offset">The starting offset.</param>
     /// <param name="size">The required byte count.</param>
     /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void CheckSize(System.ReadOnlySpan<System.Byte> buffer, System.Int32 offset, System.Int32 size)
@@ -189,6 +214,8 @@ public static class HeaderExtensions
         }
     }
 
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.ReadOnlySpan<System.Byte> AsReadOnlySpan(this System.Byte[] buffer) => buffer;
