@@ -6,6 +6,7 @@ namespace Nalix.Shared.Injection;
 /// High-performance manager that maintains single instances of different types,
 /// optimized for real-time server applications with thread safety and caching.
 /// </summary>
+[System.Diagnostics.DebuggerDisplay("CachedInstanceCount = {CachedInstanceCount}")]
 public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDisposable
 {
     #region Fields
@@ -77,7 +78,12 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// <summary>
     /// Gets the TransportProtocol of cached instances.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
     public System.Int32 CachedInstanceCount => _instanceCache.Count;
+
+    #endregion Properties
+
+    #region Public Methods
 
     /// <summary>
     /// Registers an instance of the specified type in the instance cache.
@@ -86,7 +92,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// <typeparam name="T">The type of the instance to register.</typeparam>
     /// <param name="instance">The instance to register.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Register<T>(T instance) where T : class
     {
         _instanceCache[typeof(T)] = instance;
@@ -103,7 +110,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// <param name="args">The arguments to pass to the constructor if a new instance is created.</param>
     /// <returns>The existing or newly created instance.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public T GetOrCreateInstance<T>(params System.Object[] args) where T : class
     {
         System.ObjectDisposedException.ThrowIf(
@@ -125,7 +133,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// if the instance manager has been disposed.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Object GetOrCreateInstance(System.Type type, params System.Object[] args)
     {
         System.ObjectDisposedException.ThrowIf(
@@ -153,7 +162,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// <param name="args">Constructor arguments.</param>
     /// <returns>A new instance of the specified type.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Object CreateInstance(System.Type type, params System.Object[] args)
     {
         System.ObjectDisposedException.ThrowIf(
@@ -197,7 +207,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// <param name="type">The type of the instance to remove.</param>
     /// <returns><c>true</c> if the instance was successfully removed; otherwise, <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean RemoveInstance(System.Type type)
     {
         System.ObjectDisposedException.ThrowIf(
@@ -229,7 +240,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// <typeparam name="T">The type of the instance to remove.</typeparam>
     /// <returns><c>true</c> if the instance was successfully removed; otherwise, <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean RemoveInstance<T>() => RemoveInstance(typeof(T));
 
     /// <summary>
@@ -237,8 +249,10 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// </summary>
     /// <typeparam name="T">The type to check.</typeparam>
     /// <returns><c>true</c> if an instance of the specified type is cached; otherwise, <c>false</c>.</returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean HasInstance<T>() => _instanceCache.ContainsKey(typeof(T));
 
     /// <summary>
@@ -246,8 +260,11 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// </summary>
     /// <typeparam name="T">The type of the instance to get.</typeparam>
     /// <returns>The existing instance, or <c>null</c> if no instance exists.</returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public T? GetExistingInstance<T>() where T : class
     {
         System.ObjectDisposedException.ThrowIf(
@@ -263,7 +280,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// </summary>
     /// <param name="disposeInstances">If <c>true</c>, disposes any instances that implement <see cref="System.IDisposable"/>.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Clear(System.Boolean disposeInstances = true)
     {
         System.ObjectDisposedException.ThrowIf(
@@ -331,6 +349,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// <summary>
     /// Finds the best matching constructor for the given arguments.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Reflection.ConstructorInfo? FindBestMatchingConstructor(
@@ -378,6 +397,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// Calculates a score for how well a constructor matches the provided arguments.
     /// Higher score means better match.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Int32 CalculateConstructorMatchScore(
@@ -411,6 +431,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// <summary>
     /// Creates a cached activator for faster instance creation.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Func<System.Object[], System.Object> CreateActivator(

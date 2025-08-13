@@ -5,11 +5,15 @@ namespace Nalix.Shared.Injection.DI;
 /// Supports registering interfaces with implementations and factories for service creation.
 /// Performance optimized for high-throughput applications.
 /// </summary>
+[System.Diagnostics.DebuggerDisplay("Services = {Services.Count}, TypeMapping = {TypeMapping.Count}")]
 public static class Singleton
 {
     #region Fields
 
     // Using ConcurrentDictionaries for thread-safe operations
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Usage", "CA2000:Dispose objects before losing scope", Justification = "Lock object is disposed in Clear/Dispose")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     private static readonly System.Threading.ReaderWriterLockSlim CacheLock;
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
@@ -40,6 +44,16 @@ public static class Singleton
 
     #endregion Constructor
 
+    #region Properties
+
+    /// <summary>
+    /// Gets a value indicating whether the Singleton container is currently in the process of disposing.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(false, nameof(IsDisposing))]
+    public static System.Boolean IsDisposing => System.Threading.Volatile.Read(ref _isDisposing) != 0;
+
+    #endregion Properties
+
     #region Public Methods
 
     /// <summary>
@@ -51,7 +65,8 @@ public static class Singleton
     /// <exception cref="System.ArgumentNullException">Thrown when the instance is null.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown when the type is already registered and overwrite is not allowed.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Register<TClass>(TClass instance, System.Boolean allowOverwrite = false)
         where TClass : class
     {
@@ -91,7 +106,8 @@ public static class Singleton
     /// <param name="factory">An optional factory function to create instances of the implementation.</param>
     /// <exception cref="System.InvalidOperationException">Thrown if the interface has already been registered.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Register<TInterface, TImplementation>(
         System.Func<TImplementation>? factory = null)
         where TImplementation : class, TInterface
@@ -129,7 +145,9 @@ public static class Singleton
     /// <returns>The resolved or newly created instance of the requested type.</returns>
     /// <exception cref="System.InvalidOperationException">Thrown if the type cannot be resolved or created.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public static TClass? Resolve<TClass>(System.Boolean createIfNotExists = true) where TClass : class
     {
         System.Type type = typeof(TClass);
@@ -169,10 +187,102 @@ public static class Singleton
     }
 
     /// <summary>
+    /// Checks whether a specific type is registered.
+    /// </summary>
+    /// <typeparam name="TClass">The type to check for registration.</typeparam>
+    /// <returns>True if the type is registered, otherwise false.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public static System.Boolean IsRegistered<TClass>() where TClass : class
+    {
+        System.Type type = typeof(TClass);
+        return Services.ContainsKey(type) ||
+               TypeMapping.ContainsKey(type) ||
+               Factories.ContainsKey(type);
+    }
+
+    /// <summary>
+    /// Removes the registration of a specific type.
+    /// </summary>
+    /// <typeparam name="TClass">The type to remove from registration.</typeparam>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public static void Remove<TClass>() where TClass : class
+    {
+        System.Type type = typeof(TClass);
+
+        // Remove from cache
+        CacheLock.EnterWriteLock();
+        try
+        {
+            _ = ResolutionCache.Remove(type);
+        }
+        finally
+        {
+            CacheLock.ExitWriteLock();
+        }
+
+        _ = Services.TryRemove(type, out _);
+        _ = TypeMapping.TryRemove(type, out _);
+        _ = Factories.TryRemove(type, out _);
+    }
+
+    /// <summary>
+    /// Clears all registrations.
+    /// </summary>
+    public static void Clear()
+    {
+        // Dispose the resolution cache
+        CacheLock.EnterWriteLock();
+        try
+        {
+            // ConditionalWeakTable doesn't have Dispose method, so we're recreating it
+            foreach (System.Type key in GetAllCachedTypes())
+            {
+                _ = ResolutionCache.Remove(key);
+            }
+        }
+        finally
+        {
+            CacheLock.ExitWriteLock();
+        }
+
+        Services.Clear();
+        TypeMapping.Clear();
+        Factories.Clear();
+    }
+
+    #endregion Public Methods
+
+    #region Private Methods
+
+    /// <summary>
+    /// Helper method to get all cached types for clearing
+    /// </summary>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Collections.Generic.List<System.Type> GetAllCachedTypes()
+    {
+        System.Collections.Generic.List<System.Type> result =
+        [
+            // This is a bit of a hack because ConditionalWeakTable doesn't expose keys directly
+            // In production, you might want a different approach
+            .. Services.Keys,
+        ];
+
+        return result;
+    }
+
+    /// <summary>
     /// Internal implementation of Resolve without caching
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     private static TClass? ResolveInternal<TClass>(System.Boolean createIfNotExists) where TClass : class
     {
         System.Type type = typeof(TClass);
@@ -229,93 +339,6 @@ public static class Singleton
         }
 
         return !createIfNotExists ? null : throw new System.InvalidOperationException($"No registration found for type {type.Name}");
-    }
-
-    /// <summary>
-    /// Checks whether a specific type is registered.
-    /// </summary>
-    /// <typeparam name="TClass">The type to check for registration.</typeparam>
-    /// <returns>True if the type is registered, otherwise false.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean IsRegistered<TClass>() where TClass : class
-    {
-        System.Type type = typeof(TClass);
-        return Services.ContainsKey(type) ||
-               TypeMapping.ContainsKey(type) ||
-               Factories.ContainsKey(type);
-    }
-
-    /// <summary>
-    /// Removes the registration of a specific type.
-    /// </summary>
-    /// <typeparam name="TClass">The type to remove from registration.</typeparam>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void Remove<TClass>() where TClass : class
-    {
-        System.Type type = typeof(TClass);
-
-        // Remove from cache
-        CacheLock.EnterWriteLock();
-        try
-        {
-            _ = ResolutionCache.Remove(type);
-        }
-        finally
-        {
-            CacheLock.ExitWriteLock();
-        }
-
-        _ = Services.TryRemove(type, out _);
-        _ = TypeMapping.TryRemove(type, out _);
-        _ = Factories.TryRemove(type, out _);
-    }
-
-    /// <summary>
-    /// Clears all registrations.
-    /// </summary>
-    public static void Clear()
-    {
-        // Dispose the resolution cache
-        CacheLock.EnterWriteLock();
-        try
-        {
-            // ConditionalWeakTable doesn't have Dispose method, so we're recreating it
-            foreach (System.Type key in GetAllCachedTypes())
-            {
-                _ = ResolutionCache.Remove(key);
-            }
-        }
-        finally
-        {
-            CacheLock.ExitWriteLock();
-        }
-
-        Services.Clear();
-        TypeMapping.Clear();
-        Factories.Clear();
-    }
-
-    #endregion Public Methods
-
-    #region Private Methods
-
-    /// <summary>
-    /// Helper method to get all cached types for clearing
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Collections.Generic.List<System.Type> GetAllCachedTypes()
-    {
-        System.Collections.Generic.List<System.Type> result =
-        [
-            // This is a bit of a hack because ConditionalWeakTable doesn't expose keys directly
-            // In production, you might want a different approach
-            .. Services.Keys,
-        ];
-
-        return result;
     }
 
     #endregion Private Methods
