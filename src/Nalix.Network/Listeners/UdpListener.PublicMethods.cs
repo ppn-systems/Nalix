@@ -1,4 +1,5 @@
-﻿using Nalix.Common.Exceptions;
+﻿using Nalix.Common.Connection;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Logging;
 using Nalix.Framework.Time;
 using Nalix.Network.Listeners.Core;
@@ -148,5 +149,5 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
     /// Determines whether the incoming packet is authenticated.
     /// Default returns true (i.e., trusted). Override in derived class.
     /// </summary>
-    protected virtual System.Boolean IsAuthenticated(in System.Net.Sockets.UdpReceiveResult result) => true;
+    protected virtual System.Boolean IsAuthenticated(IConnection connection, in System.Net.Sockets.UdpReceiveResult result) => false;
 }

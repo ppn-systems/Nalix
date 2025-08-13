@@ -12,7 +12,8 @@ namespace Nalix.SDK.Remote.Internal;
 /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
 [System.ComponentModel.EditorBrowsable(
     System.ComponentModel.EditorBrowsableState.Never)]
-internal sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStream stream)
+[System.Diagnostics.DebuggerDisplay("Writable={_stream?.CanWrite}, Stream={_stream}")]
+public sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStream stream)
     where TPacket : IPacket
 {
     private readonly System.Net.Sockets.NetworkStream _stream = stream
@@ -32,6 +33,7 @@ internal sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStre
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="System.ArgumentException">Thrown when the packet is invalid or does not implement <see cref="IPacket"/> correctly.</exception>
     /// <exception cref="System.IO.IOException">Thrown when an error occurs while writing to the stream.</exception>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.Task SendAsync(
@@ -49,6 +51,7 @@ internal sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStre
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="System.IO.IOException">Thrown when an error occurs while writing to the stream.</exception>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.Task SendAsync(
@@ -77,6 +80,7 @@ internal sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStre
     /// <param name="packet">The packet to send, implementing <see cref="IPacket"/>.</param>
     /// <exception cref="System.ArgumentException">Thrown when the packet is invalid or does not implement <see cref="IPacket"/> correctly.</exception>
     /// <exception cref="System.IO.IOException">Thrown when an error occurs while writing to the stream.</exception>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Send(TPacket packet)
@@ -90,6 +94,7 @@ internal sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStre
     /// </summary>
     /// <param name="bytes">The bytes to send as a read-only span.</param>
     /// <exception cref="System.IO.IOException">Thrown when an error occurs while writing to the stream.</exception>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Send(System.ReadOnlySpan<System.Byte> bytes)

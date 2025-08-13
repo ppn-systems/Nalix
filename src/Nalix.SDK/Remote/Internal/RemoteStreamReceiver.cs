@@ -14,7 +14,7 @@ namespace Nalix.SDK.Remote.Internal;
 /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
 [System.ComponentModel.EditorBrowsable(
     System.ComponentModel.EditorBrowsableState.Never)]
-internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkStream stream)
+public sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkStream stream)
     where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     private readonly System.Net.Sockets.NetworkStream _stream = stream

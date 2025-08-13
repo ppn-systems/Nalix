@@ -11,13 +11,19 @@ namespace Nalix.SDK.Remote;
 /// <typeparam name="TPacket">
 /// The packet type that must implement <see cref="IPacket"/>, <see cref="IPacketTransformer{TPacket}"/>, and <see cref="IPacketTransformer{TPacket}"/>.
 /// </typeparam>
-public class RemoteDatagramClient<TPacket> : SingletonBase<RemoteDatagramClient<TPacket>>, System.IDisposable
-    where TPacket : IPacket, IPacketTransformer<TPacket>
+[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)]
+[System.Diagnostics.DebuggerDisplay("Remote={Context.Address}:{Context.Port}, IsRunning={IsRunning}")]
+public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TPacket>
+    : SingletonBase<RemoteDatagramClient<TPacket>>, System.IDisposable where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     #region Fields
 
-    private readonly System.Net.Sockets.UdpClient _udpClient;
     private readonly System.Net.IPEndPoint _remoteEndPoint;
+    private readonly System.Net.Sockets.UdpClient _udpClient;
 
     private System.Threading.CancellationTokenSource _cts;
 
@@ -62,6 +68,8 @@ public class RemoteDatagramClient<TPacket> : SingletonBase<RemoteDatagramClient<
     /// Starts the receiving loop asynchronously.
     /// </summary>
     /// <param name="externalToken">An optional external cancellation token to allow controlled shutdown.</param>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_cts))]
     public void Start(System.Threading.CancellationToken externalToken = default)
     {
         if (this.IsRunning)
@@ -78,6 +86,7 @@ public class RemoteDatagramClient<TPacket> : SingletonBase<RemoteDatagramClient<
     /// <summary>
     /// Stops the UDP client, cancels receiving operations, and disposes internal resources.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     public void Stop()
     {
         _cts?.Cancel();
@@ -90,32 +99,18 @@ public class RemoteDatagramClient<TPacket> : SingletonBase<RemoteDatagramClient<
     /// Sends a serialized packet asynchronously to the configured remote endpoint.
     /// </summary>
     /// <param name="packet">The packet to send.</param>
+    [System.Runtime.CompilerServices.SkipLocalsInit]
     public async System.Threading.Tasks.Task SendAsync(TPacket packet)
     {
         System.Memory<System.Byte> memory = packet.Serialize();
         _ = await _udpClient.SendAsync(memory.ToArray(), memory.Length, _remoteEndPoint);
     }
 
-    //private static unsafe System.Byte[] PrepareBuffer(TPacket packet, in System.Byte[] extra7)
-    //{
-    //    System.Byte[] buffer = new System.Byte[TPacket.Size + 7];
-
-    //    // Serialize packet
-    //    packet.Serialize(System.MemoryExtensions.AsSpan(buffer, 0, TPacket.Size));
-
-    //    fixed (System.Byte* pFinal = buffer)
-    //    fixed (System.Byte* pExtra = extra7)
-    //    {
-    //        System.Buffer.MemoryCopy(pExtra, pFinal + packet.Length, 7, 7);
-    //    }
-
-    //    return buffer;
-    //}
-
     /// <summary>
     /// Asynchronous loop that continuously listens for incoming UDP packets and raises the <see cref="OnPacketReceived"/> event.
     /// </summary>
     /// <param name="token">The cancellation token used to stop the loop.</param>
+    [System.Runtime.CompilerServices.SkipLocalsInit]
     private async System.Threading.Tasks.Task ReceiveLoopAsync(
         System.Threading.CancellationToken token)
     {
@@ -142,6 +137,7 @@ public class RemoteDatagramClient<TPacket> : SingletonBase<RemoteDatagramClient<
     /// <summary>
     /// Disposes the client and releases all held resources.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     public new void Dispose()
     {
         this.Stop();
