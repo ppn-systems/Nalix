@@ -5,7 +5,7 @@ namespace Nalix.Common.Serialization.Attributes;
 /// <summary>
 /// Specifies that a field or property should be included in serialization, with a defined order.
 /// </summary>
-[System.AttributeUsage(System.AttributeTargets.Property | System.AttributeTargets.Field)]
+[System.AttributeUsage(System.AttributeTargets.Property | System.AttributeTargets.Field, Inherited = true)]
 public class SerializeOrderAttribute : System.Attribute
 {
     /// <summary>
