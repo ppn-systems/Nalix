@@ -5,14 +5,11 @@ namespace Nalix.Logging.Formatters;
 /// <summary>
 /// The Logging Formatter class provides methods for formatting log output.
 /// </summary>
+[System.Diagnostics.DebuggerDisplay("Colors={_colors}")]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class LoggingFormatter(System.Boolean colors = false) : ILoggerFormatter
 {
     private readonly System.Boolean _colors = colors;
-
-    /// <summary>
-    /// Singleton instances of <see cref="LoggingFormatter"/> can be reused.
-    /// </summary>
-    internal static readonly LoggingFormatter Instance = new();
 
     /// <summary>
     /// Format a log message with timestamp, log level, event TransportProtocol, message and exception.
@@ -23,6 +20,10 @@ public class LoggingFormatter(System.Boolean colors = false) : ILoggerFormatter
     /// var formatter = new LoggingFormatter();
     /// string log = formatter.FormatLog(logEntry);
     /// </example>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.String FormatLog(LogEntry logMsg)
         => FormatLogEntry(
             logMsg.TimeStamp, logMsg.LogLevel,
@@ -40,6 +41,10 @@ public class LoggingFormatter(System.Boolean colors = false) : ILoggerFormatter
     /// <example>
     /// string log = LoggingFormatter.FormatLogEntry(TimeStamp.UtcNow, LogLevel.Information, new EventId(1), "Sample message", null);
     /// </example>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.String FormatLogEntry(
         System.DateTime timeStamp, LogLevel logLevel,
         EventId eventId, System.String message, System.Exception? exception)

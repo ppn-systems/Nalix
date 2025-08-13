@@ -5,6 +5,8 @@ namespace Nalix.Logging.Engine;
 /// <summary>
 /// High-performance publisher that dispatches log entries to registered logging targets.
 /// </summary>
+[System.Diagnostics.DebuggerDisplay("{ToString(),nq}")]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public sealed class LogDistributor : ILogDistributor
 {
     #region Fields
@@ -55,7 +57,8 @@ public sealed class LogDistributor : ILogDistributor
     /// <exception cref="System.ArgumentNullException">Thrown if entry is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Publish(LogEntry? entry)
     {
         if (entry == null)
@@ -141,6 +144,9 @@ public sealed class LogDistributor : ILogDistributor
     /// <returns>The current instance of <see cref="ILogDistributor"/>, allowing method chaining.</returns>
     /// <exception cref="System.ArgumentNullException">Thrown if target is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public ILogDistributor AddTarget(ILoggerTarget target)
     {
         System.ArgumentNullException.ThrowIfNull(target);
@@ -157,6 +163,9 @@ public sealed class LogDistributor : ILogDistributor
     /// <returns><c>true</c> if the target was successfully removed; otherwise, <c>false</c>.</returns>
     /// <exception cref="System.ArgumentNullException">Thrown if target is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean RemoveTarget(ILoggerTarget target)
     {
         System.ArgumentNullException.ThrowIfNull(target);
@@ -171,6 +180,9 @@ public sealed class LogDistributor : ILogDistributor
     /// <param name="target">The target that caused the error.</param>
     /// <param name="exception">The exception that occurred.</param>
     /// <param name="entry">The log entry being published.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void HandleTargetError(ILoggerTarget target, System.Exception exception, LogEntry entry)
     {
         try
@@ -195,6 +207,9 @@ public sealed class LogDistributor : ILogDistributor
     /// <summary>
     /// Disposes of the logging publisher and its targets if applicable.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Dispose()
     {
         // Thread-safe disposal check

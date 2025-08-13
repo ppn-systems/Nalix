@@ -5,6 +5,8 @@ namespace Nalix.Logging.Options;
 /// <summary>
 /// Provides configuration options for the logging system with a fluent interface.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Diagnostics.DebuggerDisplay("Min={MinLevel}, Utc={UseUtcTimestamp}")]
 public sealed class NLogOptions : System.IDisposable
 {
     #region Fields
@@ -65,6 +67,9 @@ public sealed class NLogOptions : System.IDisposable
     /// </summary>
     /// <param name="configure">The default configuration action.</param>
     /// <returns>The current <see cref="NLogOptions"/> instance for method chaining.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public NLogOptions ConfigureDefaults(System.Func<NLogOptions, NLogOptions> configure)
     {
         System.ArgumentNullException.ThrowIfNull(configure);
@@ -78,6 +83,9 @@ public sealed class NLogOptions : System.IDisposable
     /// <returns>The current <see cref="NLogOptions"/> instance for method chaining.</returns>
     /// <exception cref="System.ArgumentNullException">Thrown if target is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public NLogOptions AddTarget(ILoggerTarget target)
     {
         System.ArgumentNullException.ThrowIfNull(target);
@@ -93,6 +101,9 @@ public sealed class NLogOptions : System.IDisposable
     /// <param name="level">The minimum <see cref="LogLevel"/>.</param>
     /// <returns>The current <see cref="NLogOptions"/> instance for method chaining.</returns>
     /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public NLogOptions SetMinLevel(LogLevel level)
     {
         this.ThrowIfDisposed();
@@ -108,6 +119,9 @@ public sealed class NLogOptions : System.IDisposable
     /// <returns>The current <see cref="NLogOptions"/> instance for method chaining.</returns>
     /// <exception cref="System.ArgumentNullException">Thrown if configure is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public NLogOptions SetFileOptions(System.Action<FileLogOptions> configure)
     {
         System.ArgumentNullException.ThrowIfNull(configure);
@@ -122,6 +136,9 @@ public sealed class NLogOptions : System.IDisposable
     /// Checks whether this instance is disposed and throws an exception if it is.
     /// </summary>
     /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void ThrowIfDisposed()
         => System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                          .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogOptions));
@@ -129,6 +146,14 @@ public sealed class NLogOptions : System.IDisposable
     /// <summary>
     /// Releases resources used by this instance.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Design", "CA1063:Implement IDisposable Correctly",
+        Justification = "Pattern is intentional and calls GC.SuppressFinalize")]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     public void Dispose()
     {
         // Thread-safe disposal check

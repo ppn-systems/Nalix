@@ -5,6 +5,8 @@ namespace Nalix.Logging.Options;
 /// <summary>
 /// Configuration options for the file logger.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Diagnostics.DebuggerDisplay("File={LogFileName,nq}, Dir={LogDirectory,nq}, MaxSize={MaxFileSizeBytes}")]
 public sealed class FileLogOptions
 {
     #region Constants
@@ -156,6 +158,10 @@ public sealed class FileLogOptions
     /// <summary>
     /// Gets full path to the current log file.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.String GetFullLogFilePath() => System.IO.Path.Combine(LogDirectory, LogFileName);
 
     #endregion Methods
