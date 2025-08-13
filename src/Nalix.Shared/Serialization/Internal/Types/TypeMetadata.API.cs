@@ -48,17 +48,28 @@ internal static partial class TypeMetadata
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static System.Boolean IsUnmanaged(System.Type type)
     {
+        if (!s_visitedTypes.Add(type))
+        {
+            return false;  // Circular reference detected
+        }
+
         try
         {
             return type.IsValueType &&
                    System.Runtime.InteropServices.Marshal.SizeOf(type) > 0 &&
-                   System.Linq.Enumerable.All(
-                       type.GetFields(System.Reflection.BindingFlags.Instance |
-                                      System.Reflection.BindingFlags.NonPublic |
-                                      System.Reflection.BindingFlags.Public),
-                       f => IsUnmanaged(f.FieldType));
+                   System.Linq.Enumerable.All(type.GetFields(
+                   System.Reflection.BindingFlags.Instance |
+                   System.Reflection.BindingFlags.NonPublic |
+                   System.Reflection.BindingFlags.Public), f => IsUnmanaged(f.FieldType));
         }
-        catch { return false; }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            s_visitedTypes.Remove(type);
+        }
     }
 
     /// <summary>
@@ -119,23 +130,22 @@ internal static partial class TypeMetadata
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean IsAnonymous(System.Type type)
     {
-        // Kiểu ẩn danh thường không có namespace
+        // Anonymous types typically have no namespace
         System.Boolean hasNoNamespace = type.Namespace == null;
 
-        // Kiểu ẩn danh thường là sealed (không thể kế thừa)
+        // Anonymous types are usually sealed (cannot be inherited)
         System.Boolean isSealed = type.IsSealed;
 
-        // Tên kiểu ẩn danh thường bắt đầu bằng các chuỗi đặc biệt do trình biên dịch tạo ra
+        // Anonymous type names usually start with compiler-generated prefixes
         System.Boolean nameIndicatesAnonymous =
             type.Name.StartsWith("<>f__AnonymousType", System.StringComparison.Ordinal) ||
             type.Name.StartsWith("<>__AnonType", System.StringComparison.Ordinal) ||
-            type.Name.StartsWith("VB$AnonymousType_", System.StringComparison.Ordinal); // cho VB.NET
+            type.Name.StartsWith("VB$AnonymousType_", System.StringComparison.Ordinal); // For VB.NET
 
-        // Kiểu ẩn danh được đánh dấu bằng thuộc tính CompilerGeneratedAttribute
+        // Anonymous types are marked with CompilerGeneratedAttribute
         System.Boolean isCompilerGenerated = type.IsDefined(
             typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), inherit: false);
 
-        // Kết luận: là kiểu ẩn danh nếu thỏa mãn tất cả điều kiện trên
         return hasNoNamespace && isSealed && nameIndicatesAnonymous && isCompilerGenerated;
     }
 }

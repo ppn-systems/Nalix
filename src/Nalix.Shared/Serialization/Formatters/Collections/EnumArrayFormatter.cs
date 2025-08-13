@@ -24,12 +24,16 @@ internal sealed class EnumArrayFormatter<
 
     static EnumArrayFormatter()
     {
-        _elementSize = System.Runtime.InteropServices.Marshal.SizeOf(System.Enum.GetUnderlyingType(typeof(T)));
+        System.Type underlyingType = System.Enum.GetUnderlyingType(typeof(T));
 
-        if (_elementSize is 0 or > 8)
+        _elementSize = underlyingType switch
         {
-            throw new SerializationException($"Unsupported enum underlying type size: {_elementSize}");
-        }
+            System.Type t when t == typeof(System.Byte) || t == typeof(System.SByte) => 1,
+            System.Type t when t == typeof(System.Int16) || t == typeof(System.UInt16) => 2,
+            System.Type t when t == typeof(System.Int32) || t == typeof(System.UInt32) => 4,
+            System.Type t when t == typeof(System.Int64) || t == typeof(System.UInt64) => 8,
+            _ => throw new SerializationException($"Unsupported enum underlying type: {underlyingType}")
+        };
     }
 
     /// <summary>

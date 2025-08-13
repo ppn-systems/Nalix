@@ -60,10 +60,10 @@ internal static partial class TypeMetadata
                     {
                         System.Reflection.PropertyInfo? prop = type.GetProperty(nameof(IFixedSizeSerializable.Size), Flags);
 
-                        if (prop != null)
+                        if (prop?.GetValue(null) is System.Int32 size)
                         {
                             IsFixedSizeSerializable = true;
-                            SerializableFixedSize = (System.Int32)prop.GetValue(null)!;
+                            SerializableFixedSize = size;
                         }
                     }
                 }

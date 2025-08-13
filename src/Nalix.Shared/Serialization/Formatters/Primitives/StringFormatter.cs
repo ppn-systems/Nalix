@@ -66,7 +66,8 @@ public sealed class StringFormatter : IFormatter<System.String>
 
                     if (bytesWritten != byteCount)
                     {
-                        throw new SerializationException("UTF8 encoding error for the string.");
+                        throw new SerializationException(
+                            $"UTF8 encoding mismatch:  expected {byteCount} bytes, got {bytesWritten} bytes.");
                     }
                 }
             }
