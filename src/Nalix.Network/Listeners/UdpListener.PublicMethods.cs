@@ -12,6 +12,7 @@ namespace Nalix.Network.Listeners.Udp;
 /// protocol processing, and time synchronization. Inherit from this class to implement custom UDP listeners.
 /// </summary>
 [System.Obsolete("This API is for internal use only.", error: true)]
+[System.Diagnostics.DebuggerDisplay("Port={Config?.Port}, Running={_isRunning}")]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public abstract partial class UdpListenerBase : IListener, System.IDisposable
 {
@@ -20,6 +21,9 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
     /// The listening process can be cancelled using the provided <see cref="System.Threading.CancellationToken"/>.
     /// </summary>
     /// <param name="cancellationToken">A <see cref="System.Threading.CancellationToken"/> to cancel the listening process.</param>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.Task StartListeningAsync(
         System.Threading.CancellationToken cancellationToken = default)
     {
@@ -109,6 +113,9 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
     /// <summary>
     /// Stops the listener from receiving further UDP datagrams.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void StopListening()
     {
         System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
@@ -141,6 +148,7 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
     /// Updates the listener with the current server time, provided as a Unix timestamp.
     /// </summary>
     /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
+    [System.Diagnostics.DebuggerStepThrough]
     public virtual void SynchronizeTime(System.Int64 milliseconds)
     {
     }
@@ -149,5 +157,7 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
     /// Determines whether the incoming packet is authenticated.
     /// Default returns true (i.e., trusted). Override in derived class.
     /// </summary>
-    protected virtual System.Boolean IsAuthenticated(IConnection connection, in System.Net.Sockets.UdpReceiveResult result) => false;
+    [System.Diagnostics.DebuggerStepThrough]
+    protected abstract System.Boolean IsAuthenticated(
+        IConnection connection, in System.Net.Sockets.UdpReceiveResult result);
 }
