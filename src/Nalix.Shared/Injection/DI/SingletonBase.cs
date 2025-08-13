@@ -4,6 +4,10 @@ namespace Nalix.Shared.Injection.DI;
 /// A high-performance generic thread-safe Singleton implementation using <see cref="System.Lazy{T}"/>.
 /// </summary>
 /// <typeparam name="T">The type of the Singleton class.</typeparam>
+[System.Diagnostics.DebuggerDisplay("Instance = {Instance}, IsCreated = {IsCreated}")]
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+    "Design", "CA1000:Do not declare static members on generic types", Justification = "Singleton pattern intentionally exposes static Instance")]
+[System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
 public abstract class SingletonBase<T> : System.IDisposable where T : class
 {
     #region Fields
@@ -28,6 +32,8 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     /// <remarks>
     /// This property uses aggressive inlining for better performance in high-throughput scenarios.
     /// </remarks>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Usage", "CA2213:Disposable fields should be disposed", Justification = "Lazy<T> no need to dispose")]
     public static T Instance => Instances.Value;
 
     /// <summary>
@@ -72,6 +78,7 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     /// <param name="disposeManaged">
     /// <c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.
     /// </param>
+    [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, nameof(_isDisposed))]
     protected virtual void Dispose(System.Boolean disposeManaged)
     {
         if (_isDisposed)
@@ -103,8 +110,11 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     /// <summary>
     /// Creates an instance of the Singleton class with error handling.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static T CreateInstanceInternal()
     {
         try
@@ -123,8 +133,11 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     /// Creates an instance of the Singleton class.
     /// </summary>
     /// <returns>The single instance of <typeparamref name="T"/>.</returns>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static T CreateInstance()
     {
         return System.Activator.CreateInstance(typeof(T), nonPublic: true) as T
@@ -141,7 +154,8 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     /// This method is intended for testing purposes only and should not be used in production code.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal static void ResetForTesting()
     {
         if (Instances.IsValueCreated &&
