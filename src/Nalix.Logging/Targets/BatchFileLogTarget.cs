@@ -7,6 +7,9 @@ namespace Nalix.Logging.Targets;
 /// A logging target that buffers log messages and periodically writes them to a file.
 /// This approach improves performance by reducing I/O operations when logging frequently.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Diagnostics.DebuggerDisplay("Buffered={_count}, Max={_maxBufferSize}, Disposed={_disposed}")]
 public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
 {
     #region Fields
@@ -74,6 +77,9 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// and the buffer exceeds <see cref="_maxBufferSize"/>, the buffer is flushed immediately.
     /// </summary>
     /// <param name="logMessage">The log entry to publish.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Publish(LogEntry logMessage)
     {
         if (_disposed)
@@ -94,6 +100,9 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// Flushes the current log buffer to the underlying file logging target.
     /// This method is thread-safe and can be called manually or triggered automatically.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Flush()
     {
         if (_disposed)
@@ -118,6 +127,9 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     /// <param name="configureOptions">The action used to configure the options.</param>
     /// <returns>The configured <see cref="BatchFileLogOptions"/>.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static BatchFileLogOptions ConfigureOptions(System.Action<BatchFileLogOptions> configureOptions)
     {
         BatchFileLogOptions options = new();
@@ -133,6 +145,8 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// Releases resources used by the <see cref="BatchFileLogTarget"/> instance.
     /// Flushes any remaining logs in the buffer before shutting down.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (_disposed)

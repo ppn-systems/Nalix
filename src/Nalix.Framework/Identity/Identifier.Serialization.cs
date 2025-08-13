@@ -13,7 +13,8 @@ public readonly partial struct Identifier
     /// <returns>A reconstructed <see cref="Identifier"/> instance.</returns>
     /// <exception cref="System.ArgumentException">Thrown if the input array is null or not exactly 7 bytes.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static Identifier Deserialize(System.ReadOnlySpan<System.Byte> bytes)
     {
         if (bytes.Length != 7)
@@ -39,7 +40,8 @@ public readonly partial struct Identifier
     /// <returns>A reconstructed <see cref="Identifier"/> instance.</returns>
     /// <exception cref="System.ArgumentException">Thrown if the input array is null or not exactly 7 bytes.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static Identifier Deserialize(System.Byte[] bytes)
     {
         return bytes == null || bytes.Length != 7
@@ -55,6 +57,9 @@ public readonly partial struct Identifier
     /// <exception cref="System.FormatException">
     /// Thrown if the input string is not a valid Base36 representation of a <see cref="Identifier"/>.
     /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static Identifier Deserialize(System.String text)
     {
         return !TryDeserialize(System.MemoryExtensions.AsSpan(text), out Identifier result)
@@ -74,7 +79,8 @@ public readonly partial struct Identifier
     /// <c>true</c> if the string was successfully parsed; otherwise, <c>false</c>.
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean TryDeserialize(
         System.ReadOnlySpan<System.Char> text, out Identifier handle)
     {
@@ -145,6 +151,9 @@ public readonly partial struct Identifier
     /// - Bytes 4-5: Machine ID (ushort)
     /// - Byte 6: Type (byte)
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Byte[] Serialize()
     {
         System.Byte[] result = new System.Byte[7];
@@ -160,6 +169,9 @@ public readonly partial struct Identifier
     /// <returns>
     /// <c>true</c> if the token was successfully formatted; otherwise, <c>false</c>.
     /// </returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TrySerialize(
         System.Span<System.Char> destination, out System.Byte charsWritten)
     {
@@ -204,7 +216,8 @@ public readonly partial struct Identifier
     /// The bytes are written in little-endian format.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TrySerialize(
         System.Span<System.Byte> destination, out System.Int32 bytesWritten)
     {
@@ -237,6 +250,8 @@ public readonly partial struct Identifier
     /// Returns the Base36 string representation of this identifier.
     /// </summary>
     /// <returns>A Base36 encoded string representing this identifier.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override System.String ToString() => ToBase36String();
 
     /// <summary>
@@ -247,6 +262,8 @@ public readonly partial struct Identifier
     /// Base36 encoding uses digits 0-9 and letters A-Z, providing a compact
     /// and URL-safe string representation.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.String ToBase36String()
     {
         System.UInt64 combinedValue = GetCombinedValue();
@@ -260,6 +277,8 @@ public readonly partial struct Identifier
     /// <remarks>
     /// The hexadecimal representation shows the raw byte values of the identifier.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.String ToHexString()
     {
         System.Span<System.Byte> buffer = stackalloc System.Byte[7];
@@ -274,6 +293,8 @@ public readonly partial struct Identifier
     /// <c>true</c> to use hexadecimal format; <c>false</c> to use Base36 format.
     /// </param>
     /// <returns>A string representation of this identifier in the specified format.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.String ToString(System.Boolean useHexFormat)
         => useHexFormat ? ToHexString() : ToBase36String();
 

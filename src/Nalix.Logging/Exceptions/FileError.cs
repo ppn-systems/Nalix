@@ -9,16 +9,20 @@ namespace Nalix.Logging.Exceptions;
 /// </remarks>
 /// <param name="ex">The exception that caused the error.</param>
 /// <param name="filePath">The file path where the error occurred.</param>
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Diagnostics.DebuggerDisplay("{Exception.Message,nq} ({OriginalFilePath})")]
 public sealed class FileError(System.Exception ex, System.String filePath)
 {
     /// <summary>
     /// Gets or sets the new log file name to use when recovering from errors.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.NotNull]
     public System.String NewLogFileName { get; set; } = System.String.Empty;
 
     /// <summary>
     /// Gets the original log file path where the error occurred.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.NotNull]
     public System.String OriginalFilePath { get; } = filePath ?? System.String.Empty;
 
     /// <summary>

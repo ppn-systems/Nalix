@@ -6,6 +6,8 @@ namespace Nalix.Logging.Formatters.Internal;
 /// <summary>
 /// A high-performance provider for file-based logging with support for file rotation and error handling.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Diagnostics.DebuggerDisplay("Queued={QueuedEntryCount}, Written={TotalEntriesWritten}, Dropped={EntriesDroppedCount}")]
 internal sealed class FileLoggerProvider : System.IDisposable
 {
     #region Fields
@@ -139,6 +141,9 @@ internal sealed class FileLoggerProvider : System.IDisposable
     /// <summary>
     /// Releases all resources used by the <see cref="FileLoggerProvider"/>.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Dispose()
     {
         if (_isDisposed)
@@ -201,6 +206,9 @@ internal sealed class FileLoggerProvider : System.IDisposable
     /// Writes a log entry to the queue or directly to file based on configuration.
     /// </summary>
     /// <param name="message">The log message.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal void WriteEntry(System.String message)
     {
         System.ObjectDisposedException.ThrowIf(_isDisposed, this);
@@ -250,6 +258,9 @@ internal sealed class FileLoggerProvider : System.IDisposable
     /// <summary>
     /// Flushes all pending log entries to disk immediately.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void FlushQueue()
     {
         if (_isDisposed)
@@ -292,6 +303,7 @@ internal sealed class FileLoggerProvider : System.IDisposable
     /// <summary>
     /// Returns diagnostic information about this logger provider.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
     public System.String GetDiagnosticInfo()
     {
         var uptime = System.DateTime.UtcNow - _startTime;
@@ -318,6 +330,9 @@ internal sealed class FileLoggerProvider : System.IDisposable
     /// <summary>
     /// Processes the queue continuously in a background thread.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void ProcessQueueContinuously()
     {
         System.Threading.CancellationToken token = _cancellationTokenSource.Token;
@@ -386,6 +401,9 @@ internal sealed class FileLoggerProvider : System.IDisposable
     /// <param name="ex">The exception that occurred.</param>
     /// <param name="message">The message that failed to write.</param>
     /// <returns>True if the error was handled and writing can continue, false otherwise.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private System.Boolean HandleWriteError(System.Exception ex, System.String message)
     {
         // If no error handler is configured, we can't recover
