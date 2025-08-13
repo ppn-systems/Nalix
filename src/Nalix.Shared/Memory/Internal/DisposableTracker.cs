@@ -3,6 +3,7 @@ namespace Nalix.Shared.Memory.Internal;
 /// <summary>
 /// Helper class to track disposal state and handle the actual disposal of the array.
 /// </summary>
+[System.Diagnostics.DebuggerDisplay("Length={_length}, Disposed={_disposed != 0}")]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class DisposableTracker<T>(
     T[] array, System.Int32 length,
@@ -20,7 +21,8 @@ internal sealed class DisposableTracker<T>(
     #region IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Dispose()
     {
         if (System.Threading.Interlocked.Exchange(ref _disposed, 1) != 0)

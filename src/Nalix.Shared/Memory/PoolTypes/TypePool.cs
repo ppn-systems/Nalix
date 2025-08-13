@@ -1,7 +1,5 @@
 using Nalix.Common.Caching;
 using Nalix.Shared.Memory.Pools;
-using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Shared.Memory.PoolTypes;
 
@@ -12,11 +10,13 @@ namespace Nalix.Shared.Memory.PoolTypes;
 /// Initializes a new instance of the <see cref="TypePool"/> class.
 /// </remarks>
 /// <param name="maxCapacity">The maximum capacity of this pool.</param>
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal class TypePool(System.Int32 maxCapacity)
 {
     #region Fields
 
-    private readonly ConcurrentStack<IPoolable> _objects = new();
+    private readonly System.Collections.Concurrent.ConcurrentStack<IPoolable> _objects = new();
 
     #endregion Fields
 
@@ -62,7 +62,8 @@ internal class TypePool(System.Int32 maxCapacity)
     /// </summary>
     /// <param name="obj">The object to add.</param>
     /// <returns>True if the object was added, false if the pool is full.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean TryPush(IPoolable obj)
     {
         if (_objects.Count >= MaxCapacity)
@@ -79,7 +80,8 @@ internal class TypePool(System.Int32 maxCapacity)
     /// </summary>
     /// <param name="obj">The object from the pool.</param>
     /// <returns>True if an object was retrieved, false if the pool is empty.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean TryPop(out IPoolable? obj) => _objects.TryPop(out obj);
 
     /// <summary>

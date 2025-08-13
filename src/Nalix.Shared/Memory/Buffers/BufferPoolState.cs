@@ -3,8 +3,8 @@ namespace Nalix.Shared.Memory.Buffers;
 /// <summary>
 /// Information about the Buffers Pools with optimized memory layout.
 /// </summary>
-[System.Runtime.InteropServices.StructLayout(
-    System.Runtime.InteropServices.LayoutKind.Sequential)]
+[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+[System.Diagnostics.DebuggerDisplay("Size={BufferSize}, Total={TotalBuffers}, Free={FreeBuffers}, Misses={Misses}")]
 public readonly record struct BufferPoolState : System.IEquatable<BufferPoolState>
 {
     /// <summary>

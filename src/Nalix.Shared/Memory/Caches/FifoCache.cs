@@ -4,6 +4,7 @@ namespace Nalix.Shared.Memory.Caches;
 /// A high-performance First-In-First-Out (FIFO) cache optimized for real-time server environments.
 /// </summary>
 /// <typeparam name="T">The type of elements stored in the cache.</typeparam>
+[System.Diagnostics.DebuggerDisplay("Count={Count}, Capacity={Capacity}, IsFull={IsFull}, IsEmpty={IsEmpty}")]
 public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generic.IEnumerable<T>
 {
     #region Fields
@@ -97,7 +98,8 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
     /// <param name="item">The element to add to the cache.</param>
     /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Push(T item)
     {
         System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
@@ -116,7 +118,8 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
     /// <exception cref="System.ArgumentNullException">Thrown when the items collection is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Push(System.Collections.Generic.IEnumerable<T> items)
     {
         System.ArgumentNullException.ThrowIfNull(items);
@@ -144,7 +147,8 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
     /// <exception cref="System.InvalidOperationException">Thrown when the cache is empty.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public T Pop()
     {
         System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
@@ -159,7 +163,8 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
     /// <returns><c>true</c> if the oldest element was removed and returned successfully; otherwise, <c>false</c>.</returns>
     /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TryPop(out T? value)
     {
         System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
@@ -181,7 +186,8 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
     /// <returns><c>true</c> if the oldest element was retrieved successfully; otherwise, <c>false</c>.</returns>
     /// <exception cref="System.ObjectDisposedException">Thrown when the cache has been disposed.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TryPeek(out T? value)
     {
         System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
