@@ -1,5 +1,4 @@
-﻿using Nalix.Common.Connection;
-using Nalix.Common.Logging;
+﻿using Nalix.Common.Logging;
 using Nalix.Common.Security.Identity;
 using Nalix.Framework.Identity;
 using Nalix.Network.Connection;
@@ -48,16 +47,23 @@ public abstract partial class UdpListenerBase
 
     private void ProcessDatagram(System.Net.Sockets.UdpReceiveResult result)
     {
-        if (!this.IsAuthenticated(result))
+        IIdentifier identifier = Identifier.Deserialize(result.Buffer[^7..]);
+
+        if (ConnectionHub.Instance.GetConnection(identifier) is not Connection.Connection connection)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug($"[UDP] Unidentified packet from {result.RemoteEndPoint}");
+            return;
+        }
+
+        if (!this.IsAuthenticated(connection, result))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[UDP] Unauthenticated packet from {result.RemoteEndPoint}");
             return;
         }
 
-        IIdentifier identifier = Identifier.Deserialize(result.Buffer[^7..]);
-        IConnection? connection = ConnectionHub.Instance.GetConnection(identifier);
-        ((Connection.Connection?)connection)?.InjectIncoming(result.Buffer[..^7]);
+        connection.InjectIncoming(result.Buffer[..^7]);
     }
 
     private struct CallbackState

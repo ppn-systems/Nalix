@@ -12,15 +12,17 @@ namespace Nalix.SDK.Remote;
 /// The <see cref="RemoteStreamClient{TPacket}"/> class is a singleton that manages the connection,
 /// network stream, and client disposal. It supports both synchronous and asynchronous connection.
 /// </remarks>
+[System.Diagnostics.DebuggerDisplay("Remote={Context.Address}:{Context.Port}, Connected={IsConnected}")]
 public class RemoteStreamClient<TPacket> : SingletonBase<RemoteStreamClient<TPacket>>, System.IDisposable
     where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     #region Fields
 
     private System.Net.Sockets.TcpClient _client;
+    private System.Net.Sockets.NetworkStream _stream;
+
     private RemoteStreamSender<TPacket> _sender;
     private RemoteStreamReceiver<TPacket> _reader;
-    private System.Net.Sockets.NetworkStream _stream;
 
     #endregion Fields
 
@@ -31,17 +33,17 @@ public class RemoteStreamClient<TPacket> : SingletonBase<RemoteStreamClient<TPac
     /// </summary>
     public RemoteTransportOptions Context { get; }
 
-    ///// <summary>
-    ///// Gets the network sender used to send packets.
-    ///// </summary>
-    //public RemoteStreamSender<TPacket> Sender => _sender
-    //    ?? throw new System.InvalidOperationException("Sender is not initialized.");
+    /// <summary>
+    /// Gets the network sender used to send packets.
+    /// </summary>
+    public RemoteStreamSender<TPacket> Sender => _sender
+        ?? throw new System.InvalidOperationException("Sender is not initialized.");
 
-    ///// <summary>
-    ///// Gets the network receiver used to receive packets.
-    ///// </summary>
-    //public RemoteStreamReceiver<TPacket> Receiver => _reader
-    //    ?? throw new System.InvalidOperationException("Receiver is not initialized.");
+    /// <summary>
+    /// Gets the network receiver used to receive packets.
+    /// </summary>
+    public RemoteStreamReceiver<TPacket> Receiver => _reader
+        ?? throw new System.InvalidOperationException("Receiver is not initialized.");
 
     /// <summary>
     /// Gets the <see cref="System.Net.Sockets.NetworkStream"/> used for network communication.
@@ -75,6 +77,10 @@ public class RemoteStreamClient<TPacket> : SingletonBase<RemoteStreamClient<TPac
     /// <summary>
     /// Connects to a remote server synchronously within a specified timeout period.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_stream))]
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_sender))]
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_reader))]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Connect(
@@ -105,6 +111,11 @@ public class RemoteStreamClient<TPacket> : SingletonBase<RemoteStreamClient<TPac
     /// <summary>
     /// Asynchronously connects to a remote server within a specified timeout period.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.SkipLocalsInit]
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_stream))]
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_sender))]
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_reader))]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.Task ConnectAsync(
@@ -135,11 +146,13 @@ public class RemoteStreamClient<TPacket> : SingletonBase<RemoteStreamClient<TPac
     /// <summary>
     /// Closes the network connection and releases resources.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     public void Close() => this.Dispose();
 
     /// <summary>
     /// Releases the resources used by the <see cref="RemoteStreamClient{TPacket}"/> instance.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     public new void Dispose()
     {
         _stream?.Dispose();
