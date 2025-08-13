@@ -11,6 +11,8 @@ namespace Nalix.Shared.LZ4;
 /// </remarks>
 /// <param name="originalLength">The length of the original data before compression.</param>
 /// <param name="compressedLength">The total length of the compressed data, including the header.</param>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[System.Diagnostics.DebuggerDisplay("OrigLen={OriginalLength}, CompLen={CompressedLength}")]
 [System.Runtime.InteropServices.StructLayout(
     System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]
 public readonly struct LZ4BlockHeader(System.Int32 originalLength, System.Int32 compressedLength)
