@@ -74,22 +74,32 @@ internal static unsafe class MatchFinder
         }
 
         // Read the current 4-byte sequence and compute its hash
+        System.UInt32 hash;
         System.UInt32 currentSequence = MemOps.ReadUnaligned<System.UInt32>(currentInputPtr);
-        System.UInt32 hash = (currentSequence * 2654435761u) >> HashShift;
+
+#if NET5_0_OR_GREATER
+        if (System.Runtime.Intrinsics.X86.Sse42.IsSupported)
+        {
+            hash = System.Runtime.Intrinsics.X86.Sse42.Crc32(0, currentSequence);
+        }
+        else
+#endif
+        {
+            hash = (currentSequence * 2654435761u) >> HashShift;
+        }
 
         // Retrieve the candidate match offset and update the hash table
         System.Int32 matchCandidateOffset = hashTable[hash];
         hashTable[hash] = currentInputOffset;
 
-        if ((System.UInt32)matchCandidateOffset >= (System.UInt32)currentInputOffset)
-        {
-            return default;
-        }
-
         // Calculate the candidate match pointer
         System.Byte* matchCandidatePtr = inputBase + matchCandidateOffset;
 
-        if (matchCandidatePtr < searchStartPtr)
+        System.Boolean isValid = (System.UInt32)matchCandidateOffset < (System.UInt32)currentInputOffset
+            && matchCandidatePtr >= searchStartPtr
+            && MemOps.ReadUnaligned<System.UInt32>(matchCandidatePtr) == currentSequence;
+
+        if (!isValid)
         {
             return default;
         }
