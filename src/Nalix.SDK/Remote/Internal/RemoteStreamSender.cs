@@ -104,11 +104,8 @@ public sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStream
             throw new System.InvalidOperationException("The network stream is not writable.");
         }
 
-        System.Span<System.Byte> header =
-        [
-            (System.Byte)((bytes.Length + sizeof(System.UInt16)) >> 8),
-            (System.Byte)((bytes.Length + sizeof(System.UInt16)) & 0xFF)
-        ];
+        System.Span<System.Byte> header = stackalloc System.Byte[2];
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16BigEndian(header, (System.UInt16)(bytes.Length + sizeof(System.UInt16)));
 
         _stream.Write(header);
         _stream.Write(bytes);

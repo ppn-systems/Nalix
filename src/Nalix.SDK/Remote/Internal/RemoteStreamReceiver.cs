@@ -60,44 +60,22 @@ public sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkStre
         // Use stackalloc for small packets (<= 512 bytes) with unsafe optimization
         if (length <= PacketConstants.StackAllocLimit)
         {
-            System.Span<System.Byte> sbuffer = stackalloc System.Byte[length];
+            System.Span<System.Byte> sbuffer = stackalloc System.Byte[length - 2];
 
-            // Unsafe fast copy of header
-            unsafe
-            {
-                fixed (System.Byte* bufferPtr = sbuffer)
-                fixed (System.Byte* headerPtr = header)
-                {
-                    // Direct memory copy - fastest possible
-                    System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
-                        bufferPtr, headerPtr, 2);
-                }
-            }
-
-            _stream.ReadExactly(sbuffer[2..]);
-            return TPacket.Deserialize(sbuffer[2..]);
+            _stream.ReadExactly(sbuffer);
+            return TPacket.Deserialize(sbuffer);
         }
 
         // Rent buffer for larger packets
-        System.Byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length);
+        System.Byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length - 2);
         try
         {
-            // Unsafe fast copy of header to rented buffer
-            unsafe
-            {
-                fixed (System.Byte* bufferPtr = buffer)
-                fixed (System.Byte* headerPtr = header)
-                {
-                    System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(bufferPtr, headerPtr, 2);
-                }
-            }
-
             // Read remaining packet data
-            _stream.ReadExactly(buffer, 2, length - 2);
+            _stream.ReadExactly(buffer, 0, length - 2);
 
             // Deserialize from buffer
             // Slice the packet body (excluding 2-byte length prefix)
-            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 2, length - 2));
+            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 0, length - 2));
         }
         finally
         {
@@ -147,48 +125,26 @@ public sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkStre
         // For small packets, use array with unsafe optimization
         if (length <= PacketConstants.StackAllocLimit)
         {
-            System.Byte[] sbuffer = new System.Byte[length];
-
-            // Unsafe fast copy of header
-            unsafe
-            {
-                fixed (System.Byte* bufferPtr = sbuffer)
-                fixed (System.Byte* headerPtr = header)
-                {
-                    System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
-                        bufferPtr, headerPtr, 2);
-                }
-            }
+            System.Byte[] sbuffer = new System.Byte[length - 2];
 
             await _stream.ReadExactlyAsync(
-                System.MemoryExtensions.AsMemory(sbuffer, 2, length - 2),
+                System.MemoryExtensions.AsMemory(sbuffer, 0, length - 2),
                 cancellationToken).ConfigureAwait(false);
 
-            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(sbuffer, 2, length - 2));
+            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(sbuffer, 0, length - 2));
         }
 
         // Rent buffer for larger packets
-        System.Byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length);
+        System.Byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length - 2);
         try
         {
-            // Unsafe fast copy of header to rented buffer
-            unsafe
-            {
-                fixed (System.Byte* bufferPtr = buffer)
-                fixed (System.Byte* headerPtr = header)
-                {
-                    System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
-                        bufferPtr, headerPtr, 2);
-                }
-            }
-
             // Read remaining packet data
             await _stream.ReadExactlyAsync(
-                System.MemoryExtensions.AsMemory(buffer, 2, length - 2),
+                System.MemoryExtensions.AsMemory(buffer, 0, length - 2),
                 cancellationToken).ConfigureAwait(false);
 
             // Deserialize from buffer
-            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 2, length - 2));
+            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 0, length - 2));
         }
         finally
         {
@@ -224,34 +180,23 @@ public sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkStre
         if (length <= PacketConstants.StackAllocLimit)
         {
             // Stack allocation for small packets
-            System.Byte* bufferPtr = stackalloc System.Byte[length];
-
-            // Direct memory copy - no bounds checking
-            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
-                bufferPtr, headerPtr, 2);
+            System.Byte* bufferPtr = stackalloc System.Byte[length - 2];
 
             // Read remaining data
-            System.Span<System.Byte> remainingSpan = new(bufferPtr + 2, length - 2);
+            System.Span<System.Byte> remainingSpan = new(bufferPtr, length - 2);
             _stream.ReadExactly(remainingSpan);
 
             // Create span from unsafe pointer
-            System.Span<System.Byte> packetSpan = new(bufferPtr, length);
-            return TPacket.Deserialize(packetSpan[2..]);
+            System.Span<System.Byte> packetSpan = new(bufferPtr, length - 2);
+            return TPacket.Deserialize(packetSpan);
         }
 
         // For larger packets, still use ArrayPool but with unsafe optimizations
-        System.Byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length);
+        System.Byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length - 2);
         try
         {
-            fixed (System.Byte* bufferPtr = buffer)
-            {
-                // Ultra-fast header copy
-                System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
-                    bufferPtr, headerPtr, 2);
-            }
-
-            _stream.ReadExactly(buffer, 2, length - 2);
-            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 2, length - 2));
+            _stream.ReadExactly(buffer, 0, length - 2);
+            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 0, length - 2));
         }
         finally
         {
