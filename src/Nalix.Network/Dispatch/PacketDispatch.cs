@@ -2,12 +2,13 @@
 
 using Nalix.Common.Connection;
 using Nalix.Common.Packets.Interfaces;
+using Nalix.Network.Dispatch.Core.Engine;
 using Nalix.Network.Dispatch.Core.Interfaces;
 using Nalix.Network.Dispatch.Inspection;
 using Nalix.Network.Dispatch.Options;
 using Nalix.Shared.Extensions;
 
-namespace Nalix.Network.Dispatch.Core.Engine;
+namespace Nalix.Network.Dispatch;
 
 /// <summary>
 /// Ultra-high performance raw dispatcher with advanced dependency injection (DI) integration and async support.

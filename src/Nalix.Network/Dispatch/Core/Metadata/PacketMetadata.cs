@@ -1,8 +1,11 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Common.Packets.Attributes;
 
-namespace Nalix.Network.Dispatch.Core;
+namespace Nalix.Network.Dispatch.Core.Metadata;
 
 /// <summary>
 /// Represents a fully attributed packet descriptor used to define behavior and metadata

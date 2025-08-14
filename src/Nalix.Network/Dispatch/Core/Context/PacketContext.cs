@@ -2,6 +2,7 @@
 
 using Nalix.Common.Caching;
 using Nalix.Common.Connection;
+using Nalix.Network.Dispatch.Core.Metadata;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Dispatch.Core.Context;
