@@ -104,7 +104,7 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Push(T item)
     {
-        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<>));
 
         _queue.Enqueue(item);
         _ = System.Threading.Interlocked.Increment(ref _currentSize);
@@ -125,7 +125,7 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
     public void Push(System.Collections.Generic.IEnumerable<T> items)
     {
         System.ArgumentNullException.ThrowIfNull(items);
-        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<>));
 
         System.Int32 addedCount = 0;
         foreach (var item in items)
@@ -153,7 +153,7 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public T Pop()
     {
-        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<>));
 
         return !TryPop(out T? result) ? throw new System.InvalidOperationException("FifoCache is empty.") : result!;
     }
@@ -169,7 +169,7 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TryPop(out T? value)
     {
-        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<>));
 
         if (_queue.TryDequeue(out value))
         {
@@ -192,7 +192,7 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TryPeek(out T? value)
     {
-        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<>));
         return _queue.TryPeek(out value);
     }
 
@@ -212,7 +212,7 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
             throw new System.ArgumentException("Count must be greater than zero.", nameof(count));
         }
 
-        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<>));
 
         System.Collections.Generic.List<T> result = new(System.Math.Min(count, Count));
         System.Int32 retrieved = 0;
@@ -242,7 +242,7 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Clear()
     {
-        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<>));
 
         _cacheLock.EnterWriteLock();
         try
@@ -266,7 +266,7 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ResetStatistics()
     {
-        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<>));
 
         _ = System.Threading.Interlocked.Exchange(ref _additions, 0);
         _ = System.Threading.Interlocked.Exchange(ref _removals, 0);
@@ -283,7 +283,7 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.Dictionary<System.String, System.Object> GetStatistics()
     {
-        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<>));
 
         return new System.Collections.Generic.Dictionary<System.String, System.Object>
         {
@@ -308,7 +308,7 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T[] ToArray()
     {
-        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<>));
         return [.. _queue];
     }
 
@@ -322,7 +322,7 @@ public sealed class FifoCache<T> : System.IDisposable, System.Collections.Generi
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.IEnumerator<T> GetEnumerator()
     {
-        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<T>));
+        System.ObjectDisposedException.ThrowIf(_isDisposed, nameof(FifoCache<>));
         return _queue.GetEnumerator();
     }
 

@@ -27,8 +27,7 @@ internal static unsafe class SpanOps
         // Negative should never happen in encoder paths; clamp-to-0 preserves protocol.
         if (value < 0)
         {
-            System.Diagnostics.Debug.Fail("WriteVarInt: negative value.");
-            value = 0;
+            throw new System.ArgumentOutOfRangeException(nameof(value), "WriteVarInt does not support negative values.");
         }
 
         // Number of full 0xFF bytes and the final remainder (<255)
