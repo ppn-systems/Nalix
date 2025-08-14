@@ -3,10 +3,11 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Channel;
+using Nalix.Network.Dispatch.Core.Engine;
 using Nalix.Network.Dispatch.Core.Interfaces;
 using Nalix.Network.Dispatch.Inspection;
 
-namespace Nalix.Network.Dispatch.Core.Engine;
+namespace Nalix.Network.Dispatch;
 
 /// <summary>
 /// Represents an ultra-high performance raw dispatcher designed for asynchronous, queue-based processing
