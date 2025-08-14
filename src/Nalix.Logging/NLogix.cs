@@ -18,7 +18,7 @@ namespace Nalix.Logging;
 /// </remarks>
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("{GetType().Name,nq}")]
-public sealed partial class NLogix : LogEngine, ILogger
+public sealed partial class NLogix : NLogEngine, ILogger
 {
     #region Constructors
 
