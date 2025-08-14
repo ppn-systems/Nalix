@@ -8,12 +8,21 @@ namespace Nalix.Framework.Checksums;
 public static class Xor256
 {
     /// <summary>
-    /// Computes the XOR checksum over a byte span.
+    /// Computes the XOR checksum over a read-only span of bytes.
     /// </summary>
+    /// <param name="data">The read-only span of bytes to compute the XOR checksum for.</param>
+    /// <returns>The computed XOR checksum as an 8-bit unsigned integer.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when <paramref name="data"/> is empty.</exception>
+    /// <remarks>
+    /// This method uses unsafe memory operations to process 8 bytes at a time for performance optimization.
+    /// Remaining bytes are processed individually.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte Compute(System.ReadOnlySpan<System.Byte> data)
     {
+
+
         if (data.IsEmpty)
         {
             throw new System.ArgumentException("Data cannot be empty", nameof(data));
@@ -44,13 +53,13 @@ public static class Xor256
 
                     // Fold ulong into byte
                     xor ^= (System.Byte)(accum & 0xFF);
-                    xor ^= (System.Byte)(accum >> 8 & 0xFF);
-                    xor ^= (System.Byte)(accum >> 16 & 0xFF);
-                    xor ^= (System.Byte)(accum >> 24 & 0xFF);
-                    xor ^= (System.Byte)(accum >> 32 & 0xFF);
-                    xor ^= (System.Byte)(accum >> 40 & 0xFF);
-                    xor ^= (System.Byte)(accum >> 48 & 0xFF);
-                    xor ^= (System.Byte)(accum >> 56 & 0xFF);
+                    xor ^= (System.Byte)((accum >> 8) & 0xFF);
+                    xor ^= (System.Byte)((accum >> 16) & 0xFF);
+                    xor ^= (System.Byte)((accum >> 24) & 0xFF);
+                    xor ^= (System.Byte)((accum >> 32) & 0xFF);
+                    xor ^= (System.Byte)((accum >> 40) & 0xFF);
+                    xor ^= (System.Byte)((accum >> 48) & 0xFF);
+                    xor ^= (System.Byte)((accum >> 56) & 0xFF);
 
                     i = ulongCount * sizeof(System.UInt64);
                 }
@@ -67,8 +76,12 @@ public static class Xor256
     }
 
     /// <summary>
-    /// Computes the XOR checksum from a byte array.
+    /// Computes the XOR checksum over a byte array.
     /// </summary>
+    /// <param name="data">The byte array to compute the XOR checksum for.</param>
+    /// <returns>The computed XOR checksum as an 8-bit unsigned integer.</returns>
+    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="data"/> is null.</exception>
+    /// <exception cref="System.ArgumentException">Thrown when <paramref name="data"/> is empty.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte Compute(params System.Byte[] data)
@@ -78,16 +91,24 @@ public static class Xor256
     }
 
     /// <summary>
-    /// Computes XOR checksum over any unmanaged data.
+    /// Computes the XOR checksum over a read-only span of unmanaged data.
     /// </summary>
+    /// <typeparam name="T">The unmanaged type of the data.</typeparam>
+    /// <param name="data">The read-only span of unmanaged data to compute the XOR checksum for.</param>
+    /// <returns>The computed XOR checksum as an 8-bit unsigned integer.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when <paramref name="data"/> is empty.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte Compute<T>(System.ReadOnlySpan<T> data) where T : unmanaged
         => Compute(System.Runtime.InteropServices.MemoryMarshal.AsBytes(data));
 
     /// <summary>
-    /// Verifies that the computed XOR matches the expected checksum.
+    /// Verifies whether the computed XOR checksum matches the expected checksum.
     /// </summary>
+    /// <param name="data">The read-only span of bytes to verify.</param>
+    /// <param name="expectedXor">The expected XOR checksum to compare against.</param>
+    /// <returns><c>true</c> if the computed XOR checksum matches <paramref name="expectedXor"/>; otherwise, <c>false</c>.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when <paramref name="data"/> is empty.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean Verify(System.ReadOnlySpan<System.Byte> data, System.Byte expectedXor)
