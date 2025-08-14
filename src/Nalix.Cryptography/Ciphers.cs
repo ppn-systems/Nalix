@@ -1,9 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Exceptions;
-using Nalix.Common.Security.Cryptography;
+using Nalix.Common.Security.Cryptography.Enums;
 using Nalix.Cryptography.Aead;
-using Nalix.Cryptography.Internal;
+using Nalix.Cryptography.Primitives;
 using Nalix.Cryptography.Symmetric.Block;
 using Nalix.Cryptography.Symmetric.Stream;
 using Nalix.Framework.Randomization;

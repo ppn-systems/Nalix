@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
-using Nalix.Logging.Formatters.Internal;
+using Nalix.Logging.Internal;
 
 namespace Nalix.Logging.Formatters;
 

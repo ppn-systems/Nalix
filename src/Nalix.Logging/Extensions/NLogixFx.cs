@@ -2,8 +2,8 @@
 
 using Nalix.Common.Logging;
 using Nalix.Logging.Engine;
-using Nalix.Logging.Options;
-using Nalix.Logging.Targets;
+using Nalix.Logging.Sinks.Console;
+using Nalix.Logging.Sinks.File;
 
 namespace Nalix.Logging.Extensions;
 

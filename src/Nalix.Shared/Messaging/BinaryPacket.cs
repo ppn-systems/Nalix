@@ -5,7 +5,7 @@ using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Enums;
 using Nalix.Common.Packets.Interfaces;
-using Nalix.Common.Security.Cryptography;
+using Nalix.Common.Security.Cryptography.Enums;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Extensions;

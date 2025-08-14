@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Exceptions;
-using Nalix.Common.Security.Cryptography.Asymmetric;
+using Nalix.Common.Security.Cryptography.Interfaces;
 using Nalix.Cryptography.Hashing;
 using Nalix.Cryptography.Internal;
 using Nalix.Framework.Randomization;
