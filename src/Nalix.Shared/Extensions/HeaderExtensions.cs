@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Connection.Protocols;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Packets.Enums;
 
 namespace Nalix.Shared.Extensions;

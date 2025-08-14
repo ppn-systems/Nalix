@@ -1,3 +1,5 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Shared.Serialization.Buffers;
 
 namespace Nalix.Shared.Serialization.Formatters.Collections;

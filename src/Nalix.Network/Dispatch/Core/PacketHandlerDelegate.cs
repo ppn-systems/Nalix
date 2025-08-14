@@ -1,7 +1,9 @@
-﻿namespace Nalix.Network.Dispatch.Core;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+namespace Nalix.Network.Dispatch.Core;
 
 /// <summary>
-/// Enhanced version of PacketHandlerDelegate using compiled delegates for zero-allocation execution.
+/// Enhanced version of <c>PacketHandlerDelegate</c> using compiled delegates for zero-allocation execution.
 /// </summary>
 /// <typeparam name="TPacket">The packet type handled by this delegate.</typeparam>
 [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
@@ -59,41 +61,27 @@ public readonly struct PacketHandlerDelegate<TPacket>(
     /// PERFORMANCE CRITICAL: this is a zero-allocation execution path.
     /// </summary>
     /// <param name="context">The packet context containing the request and metadata.</param>
-    /// <returns>A task that completes with the handler’s result.</returns>
+    /// <returns>
+    /// A <see cref="System.Threading.Tasks.ValueTask{TResult}"/> that completes with the handler’s result.
+    /// </returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Threading.Tasks.ValueTask<System.Object?> ExecuteAsync(PacketContext<TPacket> context)
         => this.CompiledInvoker(this.ControllerInstance, context);
 
     /// <summary>
-    /// <para>✅ <b>Extendable Logic</b>:</para>
-    /// <para>You can extend this method to implement additional validation rules such as:</para>
-    /// <list type="bullet">
-    /// <item><description><b>Permission Checks</b>: Ensure the user has sufficient access level.</description></item>
-    /// <item><description><b>Rate Limiting</b>: Enforce request intervals to prevent abuse.</description></item>
-    /// <item><description><b>Custom Filters</b>: Push any domain-specific condition (e.g., session validity).</description></item>
-    /// </list>
-    ///
-    /// <para>🔧 <b>How to Extend</b>:</para>
-    /// <para>Un-comment or implement logic based on <c>PacketContext&lt;TPacket&gt;</c>, for example:</para>
-    /// <code>
-    /// if (Attributes.Permission != null &amp;&amp; Attributes.Permission.Level &gt; context.Connection.Level)
-    ///     return false;
-    /// </code>
-    ///
-    /// <para>Or for rate limiting:</para>
-    /// <code>
-    /// var key = $"rate_{context.Connection.Id}_{OpCode}";
-    /// var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-    /// var last = context.GetValueProperty&lt;long&gt;(key);
-    /// if (now - last &lt; Attributes.RateLimit.Interval) return false;
-    /// context.SetProperty(key, now);
-    /// </code>
-    ///
-    /// <para>🔒 <b>Security Note</b>:</para>
-    /// <para>Always call <c>CanExecute()</c> before executing the handler to prevent unauthorized or abusive access.</para>
-    ///
+    /// Determines whether this handler can be executed for the specified packet context.
     /// </summary>
     /// <param name="_">The current packet context. Pass this to validation logic as needed.</param>
-    /// <returns>True if the handler can be executed; otherwise, false.</returns>
+    /// <returns><see langword="true"/> if the handler can be executed; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>
+    /// This method can be extended to implement validation logic such as:
+    /// <list type="bullet">
+    /// <item><description>Permission checks</description></item>
+    /// <item><description>Rate limiting</description></item>
+    /// <item><description>Custom filters</description></item>
+    /// </list>
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean CanExecute(PacketContext<TPacket> _) => true;

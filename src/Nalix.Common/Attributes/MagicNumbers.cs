@@ -1,4 +1,6 @@
-﻿namespace Nalix.Common.Attributes;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+namespace Nalix.Common.Attributes;
 
 /// <summary>
 /// Enum representing the magic numbers used to identify different packet types.

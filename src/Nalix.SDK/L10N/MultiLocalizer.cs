@@ -1,3 +1,5 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 namespace Nalix.SDK.L10N;
 
 /// <summary>
@@ -7,6 +9,7 @@ namespace Nalix.SDK.L10N;
 /// This class allows loading multiple localization files (PO files)
 /// for different languages and retrieving translations based on the specified language.
 /// </remarks>
+[System.Diagnostics.DebuggerDisplay("Default={_defaultLocalizer}, Languages={_localizers.Count}")]
 public class MultiLocalizer
 {
     #region Fields
@@ -36,6 +39,8 @@ public class MultiLocalizer
     /// multiLocalizer.Load("fr", "localization_fr.po");
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Load(System.String languageName, System.String path)
     {
         languageName = languageName.ToLower();
@@ -63,6 +68,8 @@ public class MultiLocalizer
     /// bool exists = multiLocalizer.Contains("fr");
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean Contains(System.String languageName)
     {
         languageName = languageName.ToLower();
@@ -86,6 +93,8 @@ public class MultiLocalizer
     /// Localizer localizer = multiLocalizer.Get("fr");
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Localizer Get(System.String languageName)
     {
         languageName = languageName.ToLower();
@@ -113,6 +122,8 @@ public class MultiLocalizer
     /// }
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean TryGet(System.String languageName, out Localizer localizer)
     {
         languageName = languageName.ToLower();
@@ -141,6 +152,8 @@ public class MultiLocalizer
     /// string[] languages = multiLocalizer.GetLanguages();
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.String[] GetLanguages()
     {
         lock (_localizers)
@@ -161,6 +174,8 @@ public class MultiLocalizer
     /// multiLocalizer.SetDefault("fr");
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetDefault(System.String languageName)
     {
         System.String loweredName = languageName.ToLower();
@@ -185,6 +200,8 @@ public class MultiLocalizer
     /// Localizer defaultLocalizer = multiLocalizer.GetDefault();
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Localizer GetDefault()
     {
         lock (_localizers)

@@ -11,6 +11,7 @@ namespace Nalix.Network.Listeners.Tcp;
 /// This class manages the process of accepting incoming network connections
 /// and handling the associated protocol processing.
 /// </summary>
+[System.Diagnostics.DebuggerDisplay("Port={_port}, IsListening={_isRunning}")]
 public abstract partial class TcpListenerBase
 {
     /// <summary>

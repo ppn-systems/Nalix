@@ -1,3 +1,5 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Shared.Configuration.Internal;
 
 namespace Nalix.Shared.Configuration.Binding;

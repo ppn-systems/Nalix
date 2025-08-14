@@ -1,6 +1,6 @@
+using Nalix.Common.Attributes;
 using Nalix.Common.Security.Types;
 using Nalix.Network.Throttling.Settings;
-using Nalix.Shared.Configuration.Attributes;
 using Nalix.Shared.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;

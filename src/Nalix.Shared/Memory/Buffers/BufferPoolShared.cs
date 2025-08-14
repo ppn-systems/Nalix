@@ -1,4 +1,6 @@
-﻿namespace Nalix.Shared.Memory.Buffers;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+namespace Nalix.Shared.Memory.Buffers;
 
 /// <summary>
 /// Manages a pool of shared buffers with optimized memory handling.

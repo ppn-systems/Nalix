@@ -1,12 +1,12 @@
-﻿using Nalix.Common.Packets.Interfaces;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Core;
 using Nalix.Network.Dispatch.Middleware.Core;
 using Nalix.Network.Dispatch.Middleware.Enums;
 using Nalix.Network.Dispatch.Middleware.Interfaces;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging;
-using System;
-using System.Threading.Tasks;
 
 namespace Nalix.Network.Dispatch.Middleware.Pre;
 
@@ -21,14 +21,14 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
     /// Invokes the permission check logic. If the connection's permission level is
     /// lower than required by the packet attributes, an error message is sent and processing stops.
     /// </summary>
-    public async Task InvokeAsync(
+    public async System.Threading.Tasks.Task InvokeAsync(
         PacketContext<IPacket> context,
-        Func<Task> next)
+        System.Func<System.Threading.Tasks.Task> next)
     {
         if (context.Attributes.Permission is not null &&
             context.Attributes.Permission.Level > context.Connection.Level)
         {
-            var text = ObjectPoolManager.Instance.Get<TextPacket>();
+            TextPacket text = ObjectPoolManager.Instance.Get<TextPacket>();
             try
             {
                 text.Initialize("Permission denied. You are not authorized to perform this action.");

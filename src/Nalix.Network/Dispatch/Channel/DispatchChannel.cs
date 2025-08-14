@@ -8,6 +8,7 @@ namespace Nalix.Network.Dispatch.Channel;
 /// Implementation of the IDispatchChannel interface with optimized memory usage.
 /// </summary>
 /// <typeparam name="TPacket">The type of packet used in the dispatch channel.</typeparam>
+[System.Diagnostics.DebuggerDisplay("ActiveConnections={ActiveConnectionCount}, TotalPackets={TotalPackets}")]
 public class DispatchChannel<TPacket>(ILogger? logger = null) : IDispatchChannel<TPacket> where TPacket : IPacket
 {
     #region Fields
@@ -44,6 +45,8 @@ public class DispatchChannel<TPacket>(ILogger? logger = null) : IDispatchChannel
     /// <param name="packet">The packet to be added to the queue.</param>
     /// <param name="connection">The connection associated with the packet.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="packet"/> or <paramref name="connection"/> is null.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Push(TPacket packet, IConnection connection)
     {
         if (packet is null)
@@ -78,6 +81,8 @@ public class DispatchChannel<TPacket>(ILogger? logger = null) : IDispatchChannel
     /// <param name="connection">When this method returns, 
     /// contains the connection associated with the retrieved packet, or null if the queue is empty.</param>
     /// <returns><c>true</c> if a packet was successfully retrieved; otherwise, <c>false</c> if the queue is empty.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean Pull(
     [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
         out TPacket packet,
@@ -104,6 +109,8 @@ public class DispatchChannel<TPacket>(ILogger? logger = null) : IDispatchChannel
     /// </summary>
     /// <param name="sender">The object that triggered the event.</param>
     /// <param name="e">Event arguments containing information about the connection that was closed.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnConnectionClosed(System.Object? sender, IConnectEventArgs e)
     {
         if (sender is not IConnection conn)

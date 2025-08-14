@@ -1,4 +1,6 @@
-namespace Nalix.Shared.Configuration.Attributes;
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+namespace Nalix.Common.Attributes;
 
 /// <summary>
 /// An attribute that indicates that a property should be ignored during configuration container initialization.
@@ -12,7 +14,7 @@ namespace Nalix.Shared.Configuration.Attributes;
 /// </remarks>
 /// <param name="reason">The optional reason for ignoring the property.</param>
 [System.AttributeUsage(System.AttributeTargets.Property)]
-public class ConfiguredIgnoreAttribute(System.String? reason = null) : System.Attribute
+public class ConfiguredIgnoreAttribute(System.String reason = null) : System.Attribute
 {
     /// <summary>
     /// Optional reason for ignoring the property during configuration.

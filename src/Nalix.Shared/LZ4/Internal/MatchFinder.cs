@@ -1,4 +1,6 @@
-﻿using Nalix.Shared.LZ4.Encoders;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Shared.LZ4.Encoders;
 using Nalix.Shared.Memory.Unsafe;
 
 namespace Nalix.Shared.LZ4.Internal;

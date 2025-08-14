@@ -10,6 +10,7 @@ namespace Nalix.Network.Internal;
 /// Use with an object pool to efficiently handle repeated async socket operations.
 /// The context must be reset before being reused.
 /// </remarks>
+[System.Diagnostics.DebuggerDisplay("HasBuffer={Buffer != null}, RemoteEndPoint={RemoteEndPoint}")]
 internal class PooledSocketAsyncContext : System.Net.Sockets.SocketAsyncEventArgs, IPoolable
 {
     /// <summary>
@@ -41,7 +42,9 @@ internal class PooledSocketAsyncContext : System.Net.Sockets.SocketAsyncEventArg
     /// <summary>
     /// Resets the internal state of this instance for reuse by the object pool.
     /// Clears <c>UserToken</c>, buffer, and optionally other stateful properties.
-    /// </summary>
+    /// </summary>    
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()
     {
         base.UserToken = null;
