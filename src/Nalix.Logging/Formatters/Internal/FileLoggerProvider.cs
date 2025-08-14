@@ -1,3 +1,5 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Logging.Exceptions;
 using Nalix.Logging.Options;
 

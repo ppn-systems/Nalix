@@ -1,5 +1,8 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Common.Logging;
 using Nalix.Shared.Configuration.Internal;
+using Nalix.Shared.Injection;
 
 namespace Nalix.Shared.Configuration.Binding;
 
@@ -30,8 +33,6 @@ public abstract partial class ConfigurationLoader
         "Configs",
         "Config"
     ];
-
-    private readonly ILogger? _logger;
 
     private System.Int32 _isInitialized; // Flag to track initialization status
 
@@ -70,13 +71,6 @@ public abstract partial class ConfigurationLoader
     public ConfigurationLoader()
     {
     }
-
-    /// <summary>
-    /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
-    /// The section and key names in the INI file are derived from the class and property names.
-    /// </summary>
-    /// <param name="logger">The logger to log events and errors.</param>
-    public ConfigurationLoader(ILogger logger) => _logger = logger;
 
     #endregion Constructor
 
@@ -153,7 +147,8 @@ public abstract partial class ConfigurationLoader
             }
             catch (System.Exception ex)
             {
-                _logger?.Warn($"Error setting value for {propertyInfo.Name}: {ex.Message}");
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"Error setting value for {propertyInfo.Name}: {ex.Message}");
             }
         }
 

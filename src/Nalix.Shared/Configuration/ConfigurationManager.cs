@@ -1,6 +1,10 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Common.Environment;
+using Nalix.Common.Logging;
 using Nalix.Shared.Configuration.Binding;
 using Nalix.Shared.Configuration.Internal;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Injection.DI;
 
 namespace Nalix.Shared.Configuration;
@@ -139,11 +143,14 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             finally
             {
                 _configLock.ExitWriteLock();
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Info("[ConfigManager] Reload completed. Reloaded {0} containers.", _configContainerDict.Count);
             }
         }
-        catch (System.Exception)
+        catch (System.Exception ex)
         {
-            // In production, log the exception
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error("[ConfigManager] Reload failed: {0}", ex);
             return false;
         }
         finally

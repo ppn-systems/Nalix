@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Connection;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Connection;
 using Nalix.Common.Logging;
 using Nalix.Common.Packets.Attributes;
 using Nalix.Network.Dispatch.Analyzers;
@@ -136,7 +138,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.
     /// </returns>
     /// <exception cref="System.ArgumentNullException">
-    /// Thrown if <paramref name="instance"/> is null.
+    /// Thrown if <paramref name="instance"/> is <see langword="null"/>.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -176,8 +178,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
             ?? throw new System.InvalidOperationException(
                 $"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
-        PacketAnalyzer<TController, TPacket> scanner = new();
-        PacketHandlerDelegate<TPacket>[] handlerDescriptors = PacketAnalyzer<TController, TPacket>.ScanController(factory);
+        PacketHandlerDelegate<TPacket>[] handlerDescriptors =
+            PacketAnalyzer<TController, TPacket>.ScanController(factory);
 
         foreach (PacketHandlerDelegate<TPacket> descriptor in handlerDescriptors)
         {
@@ -197,8 +199,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
-    /// Legacy compatibility method - wraps new descriptor-based handler trong old signature.
-    /// Maintained để backward compatibility với existing code.
+    /// Legacy compatibility method - wraps new descriptor-based handler in the old signature.
+    /// Maintained for backward compatibility with existing code.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -210,18 +212,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
         if (TryResolveHandlerDescriptor(opCode,
             out PacketHandlerDelegate<TPacket> descriptor))
         {
-            // Wrap descriptor execution trong legacy Task-based signature
             handler = async (packet, connection) =>
             {
-                // Rent context from pool
                 PacketContext<TPacket> context = ObjectPoolManager.Instance.Get<PacketContext<TPacket>>();
 
                 try
                 {
-                    // Initialize context
                     context.Initialize(packet, connection, descriptor.Attributes);
-
-                    // Execute through new pipeline
                     await this.ExecuteHandler(descriptor, context);
                 }
                 finally
@@ -238,7 +235,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
-    /// New preferred method - returns descriptor directly cho better performance.
+    /// New preferred method - returns descriptor directly for better performance.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

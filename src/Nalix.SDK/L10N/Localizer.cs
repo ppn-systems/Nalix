@@ -1,3 +1,5 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.SDK.L10N.Formats;
 
 namespace Nalix.SDK.L10N;
@@ -10,6 +12,7 @@ namespace Nalix.SDK.L10N;
 /// The <see cref="Localizer"/> class supports translation lookup
 /// for singular, plural, and contextual messages using the PO file format.
 /// </remarks>
+[System.Diagnostics.DebuggerDisplay("Catalog Entries={_catalog?.EntryCount ?? 0}")]
 public class Localizer
 {
     #region Fields
@@ -71,6 +74,8 @@ public class Localizer
     /// localizer.Load("localization.po");
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public virtual void Load(System.String path) => _catalog.LoadFromFile(path);
 
     /// <summary>
@@ -86,6 +91,8 @@ public class Localizer
     /// string translated = localizer.Get("hello");
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public virtual System.String Get(System.String id) => _catalog.GetString(id);
 
     /// <summary>
@@ -102,6 +109,8 @@ public class Localizer
     /// string translated = localizer.GetParticular("menu", "File");
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public virtual System.String GetParticular(System.String context, System.String id)
         => _catalog.GetParticularString(context, id);
 
@@ -121,6 +130,8 @@ public class Localizer
     /// string translated = localizer.GetPlural("apple", "apples", 2);
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public virtual System.String GetPlural(System.String id, System.String idPlural, System.Int32 n)
         => _catalog.GetPluralString(id, idPlural, n);
 
@@ -142,6 +153,8 @@ public class Localizer
     /// string translated = localizer.GetParticularPlural("inventory", "item", "items", 3);
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public virtual System.String GetParticularPlural(
         System.String context, System.String id, System.String idPlural, System.Int32 n)
         => _catalog.GetParticularPluralString(context, id, idPlural, n);

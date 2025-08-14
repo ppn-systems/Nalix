@@ -1,3 +1,5 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Common.Caching;
 using Nalix.Shared.Injection.DI;
 using Nalix.Shared.Memory.Pools;

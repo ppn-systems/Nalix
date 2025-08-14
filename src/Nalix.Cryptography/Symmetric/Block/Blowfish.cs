@@ -1,3 +1,5 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using System;
 using System.Runtime.CompilerServices;
 using System.Text;

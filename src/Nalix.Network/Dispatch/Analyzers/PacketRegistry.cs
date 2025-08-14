@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Attributes;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Attributes;
 using Nalix.Common.Logging;
 using Nalix.Common.Packets.Interfaces;
 using Nalix.Common.Security.Cryptography;
@@ -27,7 +29,7 @@ internal static class PacketRegistry
     static PacketRegistry()
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info("[PacketRegistry] Initializing...");
+            .Info("[PacketRegistry] Initializing...");
 
         _transformers = [];
         _packetFactories = [];
@@ -39,7 +41,7 @@ internal static class PacketRegistry
         {
             assembliesToScan.Add(entryAsm);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[PacketRegistry] Added entry assembly: {entryAsm.FullName}");
+                .Debug($"[PacketRegistry] Added entry assembly: {entryAsm.FullName}");
         }
 
         assembliesToScan.AddRange(
@@ -51,7 +53,7 @@ internal static class PacketRegistry
         );
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[PacketRegistry] Total assemblies to scan: {assembliesToScan.Count}");
+            .Debug($"[PacketRegistry] Total assemblies to scan: {assembliesToScan.Count}");
 
         Initialize([.. assembliesToScan.Distinct()]);
     }
@@ -61,7 +63,7 @@ internal static class PacketRegistry
         if (assemblies == null || assemblies.Length == 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn("[PacketRegistry] Assemblies param is null/empty, using executing assembly.");
+                .Warn("[PacketRegistry] Assemblies param is null/empty, using executing assembly.");
 
             assemblies = [System.Reflection.Assembly.GetExecutingAssembly()];
         }
@@ -75,20 +77,20 @@ internal static class PacketRegistry
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[PacketRegistry] Error registering packets " +
-                                               $"from assembly {assembly.FullName}: {ex.Message}", ex);
+                    .Error($"[PacketRegistry] Error registering packets " +
+                           $"from assembly {assembly.FullName}: {ex.Message}", ex);
             }
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[PacketRegistry] Initialization complete. " +
-                                      $"Registered {_packetFactories.Count} packets, {_transformers.Count} transformers.");
+            .Info($"[PacketRegistry] Initialization complete. " +
+                  $"Registered {_packetFactories.Count} packets, {_transformers.Count} transformers.");
     }
 
     private static void RegisterPacketsFromAssembly(System.Reflection.Assembly assembly)
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[PacketRegistry] Scanning assembly: {assembly.FullName}");
+            .Debug($"[PacketRegistry] Scanning assembly: {assembly.FullName}");
 
         System.Int32 count = 0;
 
@@ -110,7 +112,7 @@ internal static class PacketRegistry
             if (_packetFactories.ContainsKey(magicNumber))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[PacketRegistry] Duplicate MagicNumber 0x{magicNumber:X8} for {type.FullName}");
+                    .Error($"[PacketRegistry] Duplicate MagicNumber 0x{magicNumber:X8} for {type.FullName}");
 
                 throw new System.InvalidOperationException(
                     $"MagicNumber 0x{magicNumber:X8} already assigned to another packet type. " +
@@ -165,11 +167,11 @@ internal static class PacketRegistry
                 System.Func<IPacket, IPacket> compressDel = compress.CreateDelegate<System.Func<IPacket, IPacket>>();
                 System.Func<IPacket, IPacket> decompressDel = decompress.CreateDelegate<System.Func<IPacket, IPacket>>();
 
-                System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket> encryptDel = encrypt.CreateDelegate<
-                    System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>>();
+                System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket> encryptDel =
+                    encrypt.CreateDelegate<System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>>();
 
-                System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket> decryptDel = decrypt.CreateDelegate<
-                    System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>>();
+                System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket> decryptDel =
+                    decrypt.CreateDelegate<System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>>();
 
                 _transformers[type] = new PacketTransformerDelegates(
                     Compress: compressDel,
@@ -179,7 +181,7 @@ internal static class PacketRegistry
                 );
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[PacketRegistry] Registered transformer for {type.FullName}");
+                    .Trace($"[PacketRegistry] Registered transformer for {type.FullName}");
             }
 
             count++;
@@ -194,7 +196,8 @@ internal static class PacketRegistry
     {
         return buffer =>
         {
-            System.Func<System.ReadOnlySpan<System.Byte>, IPacket> factory = _cachedFactories.GetOrAdd(magicNumber,
+            System.Func<System.ReadOnlySpan<System.Byte>, IPacket> factory = _cachedFactories.GetOrAdd(
+                magicNumber,
                 _ => deserializeMethod.CreateDelegate<System.Func<System.ReadOnlySpan<System.Byte>, IPacket>>());
             return factory(buffer);
         };
@@ -204,8 +207,11 @@ internal static class PacketRegistry
     public static System.Func<System.ReadOnlySpan<System.Byte>, IPacket>?
         ResolvePacketDeserializer(System.UInt32 magicNumber)
         => _cachedFactories.TryGetValue(magicNumber, out System.Func<System.ReadOnlySpan<System.Byte>, IPacket>? cached)
-            ? cached : _packetFactories.TryGetValue(magicNumber,
-                out System.Func<System.ReadOnlySpan<System.Byte>, IPacket>? factory) ? factory : null;
+            ? cached
+            : _packetFactories.TryGetValue(magicNumber,
+                out System.Func<System.ReadOnlySpan<System.Byte>, IPacket>? factory)
+                ? factory
+                : null;
 
     public static System.Func<System.ReadOnlySpan<System.Byte>, IPacket>?
         ResolvePacketDeserializer(System.ReadOnlySpan<System.Byte> raw)

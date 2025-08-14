@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Attributes;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Attributes;
 using Nalix.Shared.Injection.DI;
 
 namespace Nalix.Shared.Injection;

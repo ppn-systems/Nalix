@@ -1,4 +1,6 @@
-using Nalix.Shared.Configuration.Attributes;
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Attributes;
 using Nalix.Shared.Configuration.Internal;
 
 namespace Nalix.Shared.Configuration.Binding;

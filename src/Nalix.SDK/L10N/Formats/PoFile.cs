@@ -1,3 +1,5 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,6 +14,7 @@ namespace Nalix.SDK.L10N.Formats;
 /// </summary>
 [System.ComponentModel.EditorBrowsable(
     System.ComponentModel.EditorBrowsableState.Never)]
+[System.Diagnostics.DebuggerDisplay("Translations={_translations.Count}, Plurals={_pluralTranslations.Count}")]
 public partial class PoFile
 {
     #region Fields
@@ -60,12 +63,12 @@ public partial class PoFile
     }
 
     /// <summary>
-    /// Parses the PO file content from a <see cref="TextReader"/>.
+    /// Parses the PO file content from a <see cref="StreamReader"/>.
     /// </summary>
-    /// <param name="reader">A <see cref="TextReader"/> containing PO file content.</param>
+    /// <param name="reader">A <see cref="StreamReader"/> containing PO file content.</param>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0059:Unnecessary assignment of a value", Justification = "<Pending>")]
-    private void Parse(TextReader reader)
+    private void Parse(StreamReader reader)
     {
         String line;
         String msgid = "", msgidPlural = "", msgstr = "";

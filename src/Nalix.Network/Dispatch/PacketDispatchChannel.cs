@@ -1,3 +1,5 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Common.Connection;
 using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Analyzers;
@@ -30,6 +32,7 @@ namespace Nalix.Network.Dispatch;
 /// dispatcher.HandlePacket(data, connection);
 /// </code>
 /// </example>
+[System.Diagnostics.DebuggerDisplay("Running={_running}, Pending={_dispatch.TotalPackets}")]
 public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacketDispatch<IPacket>, System.IDisposable
 {
     #region Fields
@@ -126,7 +129,8 @@ public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacket
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(System.Byte[]? raw, IConnection connection)
     {
         if (raw == null)
@@ -140,7 +144,8 @@ public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacket
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(System.ReadOnlyMemory<System.Byte>? raw, IConnection connection)
     {
         if (raw == null)
@@ -155,7 +160,8 @@ public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacket
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(in System.ReadOnlySpan<System.Byte> raw, IConnection connection)
     {
         if (raw.IsEmpty)
@@ -179,7 +185,8 @@ public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacket
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(IPacket packet, IConnection connection)
     {
         this._dispatch.Push(packet, connection);
@@ -233,6 +240,7 @@ public sealed class PacketDispatchChannel : PacketDispatchCore<IPacket>, IPacket
     /// <summary>
     /// Releases resources used by the dispatcher
     /// </summary>
+    [System.Diagnostics.DebuggerNonUserCode]
     public void Dispose()
     {
         this.Stop();

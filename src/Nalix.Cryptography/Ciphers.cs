@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Exceptions;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Exceptions;
 using Nalix.Common.Security.Cryptography;
 using Nalix.Cryptography.Aead;
 using Nalix.Cryptography.Internal;

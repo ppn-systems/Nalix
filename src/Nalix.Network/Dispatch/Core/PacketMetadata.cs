@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Packets.Attributes;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Packets.Attributes;
 
 namespace Nalix.Network.Dispatch.Core;
 
@@ -9,7 +11,7 @@ namespace Nalix.Network.Dispatch.Core;
 /// </summary>
 /// <remarks>
 /// This struct uses sequential layout and is optimized for performance in network dispatch systems.
-/// All attributes are designed to be immutable for safe usage in high-throughput scenarios.
+/// All attributes are immutable for safe usage in high-throughput scenarios.
 /// </remarks>
 [System.Runtime.InteropServices.StructLayout(
     System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]

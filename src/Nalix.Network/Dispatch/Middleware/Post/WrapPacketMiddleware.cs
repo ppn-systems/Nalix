@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Connection.Protocols;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Analyzers;
@@ -36,7 +38,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                 if (context.Attributes.Encryption?.IsEncrypted ?? false)
                 {
-                    current = t.Encrypt(current,
+                    current = t.Encrypt(
+                        current,
                         context.Connection.EncryptionKey,
                         context.Connection.Encryption);
                 }
@@ -69,8 +72,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
     private static System.Boolean ShouldCompress(in PacketContext<IPacket> context)
     {
         return (context.Packet.Transport == TransportProtocol.Tcp)
-             ? (context.Packet.Length - PacketConstants.CompressionThreshold) > PacketConstants.CompressionThreshold
-             : (context.Packet.Transport == TransportProtocol.Udp) &&
-               (context.Packet.Length - PacketConstants.CompressionThreshold) is > 600 and < 1200;
+            ? (context.Packet.Length - PacketConstants.CompressionThreshold) > PacketConstants.CompressionThreshold
+            : (context.Packet.Transport == TransportProtocol.Udp) &&
+              (context.Packet.Length - PacketConstants.CompressionThreshold) is > 600 and < 1200;
     }
 }
