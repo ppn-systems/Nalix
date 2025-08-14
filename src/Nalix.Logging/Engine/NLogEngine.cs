@@ -11,13 +11,13 @@ namespace Nalix.Logging.Engine;
 /// </summary>
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("{GetType().Name,nq}")]
-public abstract class LogEngine : System.IDisposable
+public abstract class NLogEngine : System.IDisposable
 {
     #region Fields
 
     private readonly LogLevel _minLevel;
     private readonly NLogOptions _logOptions;
-    private readonly LogDistributor _distributor;
+    private readonly NLogDistributor _distributor;
 
     private System.Int32 _isDisposed;
 
@@ -26,15 +26,15 @@ public abstract class LogEngine : System.IDisposable
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="LogEngine"/> class.
+    /// Initializes a new instance of the <see cref="NLogEngine"/> class.
     /// </summary>
     /// <param name="configureOptions">
     /// An action that allows configuring the logging options.
     /// This action is used to set up logging options such as the minimum logging level and file options.
     /// </param>
-    protected LogEngine(System.Action<NLogOptions>? configureOptions = null)
+    protected NLogEngine(System.Action<NLogOptions>? configureOptions = null)
     {
-        _distributor = new LogDistributor();
+        _distributor = new NLogDistributor();
         _logOptions = new NLogOptions(_distributor);
 
         // Apply configuration if provided

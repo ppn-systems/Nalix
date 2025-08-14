@@ -9,7 +9,7 @@ namespace Nalix.Logging.Engine;
 /// </summary>
 [System.Diagnostics.DebuggerDisplay("{ToString(),nq}")]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-public sealed class LogDistributor : ILogDistributor
+public sealed class NLogDistributor : ILogDistributor
 {
     #region Fields
 
@@ -69,7 +69,7 @@ public sealed class LogDistributor : ILogDistributor
         }
 
         // Quick check for disposed state
-        System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LogDistributor));
+        System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogDistributor));
 
         // Increment the published entries counter
         _ = System.Threading.Interlocked.Increment(ref _entriesDistributor);
@@ -124,7 +124,7 @@ public sealed class LogDistributor : ILogDistributor
         }
 
         // Quick check for disposed state
-        System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LogDistributor));
+        System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogDistributor));
 
         // For simplicity and performance, use Task.Run only when there are multiple targets
         // Otherwise just do it synchronously to avoid task allocation overhead
@@ -152,7 +152,7 @@ public sealed class LogDistributor : ILogDistributor
     public ILogDistributor AddTarget(ILoggerTarget target)
     {
         System.ArgumentNullException.ThrowIfNull(target);
-        System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LogDistributor));
+        System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogDistributor));
 
         _ = _targets.TryAdd(target, DummyValue);
         return this;
@@ -171,7 +171,7 @@ public sealed class LogDistributor : ILogDistributor
     public System.Boolean RemoveTarget(ILoggerTarget target)
     {
         System.ArgumentNullException.ThrowIfNull(target);
-        System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(LogDistributor));
+        System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogDistributor));
 
         return _targets.TryRemove(target, out _);
     }
@@ -244,7 +244,7 @@ public sealed class LogDistributor : ILogDistributor
         {
             // Log final disposal errors to debug output
             System.Diagnostics.Debug.WriteLine(
-                $"Error during LogDistributor disposal: {ex.Message}");
+                $"Error during NLogDistributor disposal: {ex.Message}");
         }
     }
 
@@ -253,7 +253,7 @@ public sealed class LogDistributor : ILogDistributor
     /// </summary>
     /// <returns>A string containing diagnostic information.</returns>
     public override System.String ToString()
-        => $"[LogDistributor Stats - {System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + System.Environment.NewLine +
+        => $"[NLogDistributor Stats - {System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + System.Environment.NewLine +
            $"- User: {System.Environment.UserName}" + System.Environment.NewLine +
            $"- Active Targets: {_targets.Count}" + System.Environment.NewLine +
            $"- Entries Published: {EntriesDistributor:N0}" + System.Environment.NewLine +
