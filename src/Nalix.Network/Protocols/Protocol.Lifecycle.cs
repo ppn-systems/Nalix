@@ -18,7 +18,14 @@ public abstract partial class Protocol
     /// </summary>
     public virtual System.Boolean KeepConnectionOpen
     {
+        [System.Diagnostics.DebuggerStepThrough]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get => System.Threading.Interlocked.CompareExchange(ref this._keepConnectionOpen, 0, 0) == 1;
+
+        [System.Diagnostics.DebuggerStepThrough]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         protected set => System.Threading.Interlocked.Exchange(ref this._keepConnectionOpen, value ? 1 : 0);
     }
 
