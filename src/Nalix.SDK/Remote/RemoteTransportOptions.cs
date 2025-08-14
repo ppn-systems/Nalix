@@ -15,7 +15,18 @@ public sealed class RemoteTransportOptions : ConfigurationLoader
     /// Gets or sets the port number for the connection.
     /// Default value is 57206.
     /// </summary>
-    public System.UInt16 Port { get; set; } = 57206;
+    public System.UInt16 Port
+    {
+        [System.Diagnostics.DebuggerStepThrough]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        get;
+
+        [System.Diagnostics.DebuggerStepThrough]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        set;
+    } = 57206;
 
     /// <summary>
     /// Gets or sets the server address or hostname.
@@ -30,10 +41,12 @@ public sealed class RemoteTransportOptions : ConfigurationLoader
     [ConfiguredIgnore]
     public System.Byte[] EncryptionKey
     {
+        [System.Diagnostics.DebuggerStepThrough]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get => _key;
 
+        [System.Diagnostics.DebuggerStepThrough]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         set
