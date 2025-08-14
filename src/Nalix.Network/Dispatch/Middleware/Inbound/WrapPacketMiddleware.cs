@@ -3,7 +3,7 @@
 using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Interfaces;
-using Nalix.Network.Dispatch.Core;
+using Nalix.Network.Dispatch.Core.Context;
 using Nalix.Network.Dispatch.Middleware.Core.Attributes;
 using Nalix.Network.Dispatch.Middleware.Core.Enums;
 using Nalix.Network.Dispatch.Middleware.Core.Interfaces;

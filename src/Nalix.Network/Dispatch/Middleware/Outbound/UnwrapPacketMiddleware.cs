@@ -2,7 +2,7 @@
 
 using Nalix.Common.Packets.Enums;
 using Nalix.Common.Packets.Interfaces;
-using Nalix.Network.Dispatch.Core;
+using Nalix.Network.Dispatch.Core.Context;
 using Nalix.Network.Dispatch.Middleware.Core.Attributes;
 using Nalix.Network.Dispatch.Middleware.Core.Enums;
 using Nalix.Network.Dispatch.Middleware.Core.Interfaces;
