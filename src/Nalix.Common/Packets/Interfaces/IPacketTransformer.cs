@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Security.Cryptography;
+using Nalix.Common.Security.Cryptography.Enums;
 
 namespace Nalix.Common.Packets.Interfaces;
 

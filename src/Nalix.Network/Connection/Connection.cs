@@ -1,6 +1,6 @@
 ﻿using Nalix.Common.Connection;
 using Nalix.Common.Logging;
-using Nalix.Common.Security.Cryptography;
+using Nalix.Common.Security.Cryptography.Enums;
 using Nalix.Common.Security.Identity;
 using Nalix.Common.Security.Types;
 using Nalix.Framework.Identity;

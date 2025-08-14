@@ -2,7 +2,6 @@
 
 using Nalix.Common.Logging;
 using Nalix.Logging.Engine;
-using Nalix.Logging.Options;
 
 namespace Nalix.Logging;
 

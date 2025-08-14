@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Cryptography.Hmac;
+using Nalix.Cryptography.Hashing;
 using Nalix.Cryptography.Symmetric.Stream;
 
 namespace Nalix.Cryptography.Aead;

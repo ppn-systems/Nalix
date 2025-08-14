@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Cryptography.Enums;
-using Nalix.Cryptography.Internal;
+using Nalix.Common.Security.Cryptography.Enums;
+using Nalix.Cryptography.Primitives;
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
