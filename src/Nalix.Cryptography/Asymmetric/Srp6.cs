@@ -3,7 +3,7 @@
 using Nalix.Common.Exceptions;
 using Nalix.Common.Security.Cryptography.Interfaces;
 using Nalix.Cryptography.Hashing;
-using Nalix.Cryptography.Internal;
+using Nalix.Cryptography.Primitives;
 using Nalix.Framework.Randomization;
 
 namespace Nalix.Cryptography.Asymmetric;
