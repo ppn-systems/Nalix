@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Logging;
 using Nalix.Shared.Configuration.Internal;
+using Nalix.Shared.Injection;
 
 namespace Nalix.Shared.Configuration.Binding;
 
@@ -34,8 +36,7 @@ public partial class ConfigurationLoader
             System.TypeCode.Single => configFile.GetSingle(section, property.Name),
             System.TypeCode.Double => configFile.GetDouble(section, property.Name),
             System.TypeCode.DateTime => configFile.GetDateTime(section, property.Name),
-            _ => throw new System.NotSupportedException(
-                $"Value type {property.PropertyType.Name} is not supported for configuration files."),
+            _ => ThrowUnsupported(property),
         };
 
     /// <summary>
@@ -48,13 +49,15 @@ public partial class ConfigurationLoader
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void HandleEmptyValue(
         IniConfig configFile,
-        System.String section, PropertyMetadata property)
+        System.String section,
+        PropertyMetadata property)
     {
         System.Object? currentValue = property.PropertyInfo.GetValue(this);
         System.String valueToWrite = currentValue?.ToString() ?? GetDefaultValueString(property.TypeCode);
 
         configFile.WriteValue(section, property.Name, valueToWrite);
-        _logger?.Warn($"Attribute value {property.Name} is empty, writing default to the file");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"Default value written for {section}.{property.Name}: '{valueToWrite}'");
     }
 
     /// <summary>
@@ -86,4 +89,17 @@ public partial class ConfigurationLoader
             System.TypeCode.DateTime => System.DateTime.UtcNow.ToString("O"),
             _ => System.String.Empty,
         };
+
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private static System.Object ThrowUnsupported(PropertyMetadata property)
+    {
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Error($"Unsupported type {property.PropertyType.Name} for property {property.Name}");
+
+        throw new System.NotSupportedException(
+            $"Value type {property.PropertyType.Name} is not supported for configuration files.");
+    }
 }
