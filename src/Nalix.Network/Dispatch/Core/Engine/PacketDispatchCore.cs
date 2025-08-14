@@ -5,7 +5,7 @@ using Nalix.Common.Logging;
 using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Options;
 
-namespace Nalix.Network.Dispatch.Core;
+namespace Nalix.Network.Dispatch.Core.Engine;
 
 /// <summary>
 /// Serves as the base class for packet dispatchers, offering common configuration and logging support.

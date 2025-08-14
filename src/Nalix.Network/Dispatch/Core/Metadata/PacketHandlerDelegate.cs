@@ -1,6 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Network.Dispatch.Core;
+using Nalix.Network.Dispatch.Core.Context;
+
+namespace Nalix.Network.Dispatch.Core.Metadata;
 
 /// <summary>
 /// Enhanced version of <c>PacketHandlerDelegate</c> using compiled delegates for zero-allocation execution.

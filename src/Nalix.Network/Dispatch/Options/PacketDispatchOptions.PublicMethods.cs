@@ -3,7 +3,8 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Logging;
 using Nalix.Common.Packets.Attributes;
-using Nalix.Network.Dispatch.Core;
+using Nalix.Network.Dispatch.Core.Context;
+using Nalix.Network.Dispatch.Core.Metadata;
 using Nalix.Network.Dispatch.Inspection;
 using Nalix.Network.Dispatch.Middleware.Core.Interfaces;
 using Nalix.Shared.Memory.Pooling;
