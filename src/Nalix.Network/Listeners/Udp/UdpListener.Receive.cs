@@ -60,7 +60,14 @@ public abstract partial class UdpListenerBase
 
         IIdentifier identifier = Identifier.Deserialize(result.Buffer[^Identifier.Size..]);
 
-        if (ConnectionHub.Instance.GetConnection(identifier) is not Connection.Connection connection)
+        if (InstanceManager.Instance.GetExistingInstance<ConnectionHub>() is null)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error("[UDP] ConnectionHub is not registered in InstanceManager");
+            return;
+        }
+        if (InstanceManager.Instance.GetExistingInstance<ConnectionHub>()!
+                                    .GetConnection(identifier) is not Connection.Connection connection)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[UDP] Unidentified packet from {result.RemoteEndPoint}");

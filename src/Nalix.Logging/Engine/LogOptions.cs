@@ -10,7 +10,7 @@ namespace Nalix.Logging.Engine;
 /// </summary>
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Min={MinLevel}, Utc={UseUtcTimestamp}")]
-public sealed class NLogOptions : System.IDisposable
+public sealed class LogOptions : System.IDisposable
 {
     #region Fields
 
@@ -59,21 +59,21 @@ public sealed class NLogOptions : System.IDisposable
     #endregion Properties
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="NLogOptions"/> class.
+    /// Initializes a new instance of the <see cref="LogOptions"/> class.
     /// </summary>
     /// <param name="publisher">The <see cref="ILogDistributor"/> instance for publishing log messages.</param>
-    internal NLogOptions(ILogDistributor publisher)
+    internal LogOptions(ILogDistributor publisher)
         => _publisher = publisher ?? throw new System.ArgumentNullException(nameof(publisher));
 
     /// <summary>
     /// Applies default configuration settings to the logging configuration.
     /// </summary>
     /// <param name="configure">The default configuration action.</param>
-    /// <returns>The current <see cref="NLogOptions"/> instance for method chaining.</returns>
+    /// <returns>The current <see cref="LogOptions"/> instance for method chaining.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public NLogOptions ConfigureDefaults(System.Func<NLogOptions, NLogOptions> configure)
+    public LogOptions ConfigureDefaults(System.Func<LogOptions, LogOptions> configure)
     {
         System.ArgumentNullException.ThrowIfNull(configure);
         return configure(this);
@@ -83,13 +83,13 @@ public sealed class NLogOptions : System.IDisposable
     /// Adds a logging target to receive log entries.
     /// </summary>
     /// <param name="target">The <see cref="ILoggerTarget"/> to add.</param>
-    /// <returns>The current <see cref="NLogOptions"/> instance for method chaining.</returns>
+    /// <returns>The current <see cref="LogOptions"/> instance for method chaining.</returns>
     /// <exception cref="System.ArgumentNullException">Thrown if target is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public NLogOptions AddTarget(ILoggerTarget target)
+    public LogOptions AddTarget(ILoggerTarget target)
     {
         System.ArgumentNullException.ThrowIfNull(target);
         this.ThrowIfDisposed();
@@ -102,12 +102,12 @@ public sealed class NLogOptions : System.IDisposable
     /// Sets the minimum logging level for filtering log entries.
     /// </summary>
     /// <param name="level">The minimum <see cref="LogLevel"/>.</param>
-    /// <returns>The current <see cref="NLogOptions"/> instance for method chaining.</returns>
+    /// <returns>The current <see cref="LogOptions"/> instance for method chaining.</returns>
     /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public NLogOptions SetMinLevel(LogLevel level)
+    public LogOptions SetMinLevel(LogLevel level)
     {
         this.ThrowIfDisposed();
 
@@ -119,13 +119,13 @@ public sealed class NLogOptions : System.IDisposable
     /// Sets the configuration options for file logging.
     /// </summary>
     /// <param name="configure">Action that configures the <see cref="FileLogOptions"/>.</param>
-    /// <returns>The current <see cref="NLogOptions"/> instance for method chaining.</returns>
+    /// <returns>The current <see cref="LogOptions"/> instance for method chaining.</returns>
     /// <exception cref="System.ArgumentNullException">Thrown if configure is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public NLogOptions SetFileOptions(System.Action<FileLogOptions> configure)
+    public LogOptions SetFileOptions(System.Action<FileLogOptions> configure)
     {
         System.ArgumentNullException.ThrowIfNull(configure);
         this.ThrowIfDisposed();
@@ -144,7 +144,7 @@ public sealed class NLogOptions : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void ThrowIfDisposed()
         => System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
-                                         .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogOptions));
+                                         .CompareExchange(ref _disposed, 0, 0) != 0, nameof(LogOptions));
 
     /// <summary>
     /// Releases resources used by this instance.
@@ -172,7 +172,7 @@ public sealed class NLogOptions : System.IDisposable
         catch (System.Exception ex)
         {
             // Log any disposal errors to debug output
-            System.Diagnostics.Debug.WriteLine($"Error disposing NLogOptions: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Error disposing LogOptions: {ex.Message}");
         }
 
         System.GC.SuppressFinalize(this);

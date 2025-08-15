@@ -11,13 +11,13 @@ namespace Nalix.Logging.Engine;
 /// </summary>
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("{GetType().Name,nq}")]
-public abstract class NLogEngine : System.IDisposable
+public abstract class LogEngine : System.IDisposable
 {
     #region Fields
 
     private readonly LogLevel _minLevel;
-    private readonly NLogOptions _logOptions;
-    private readonly NLogDistributor _distributor;
+    private readonly LogOptions _logOptions;
+    private readonly LogDistributor _distributor;
 
     private System.Int32 _isDisposed;
 
@@ -26,16 +26,16 @@ public abstract class NLogEngine : System.IDisposable
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="NLogEngine"/> class.
+    /// Initializes a new instance of the <see cref="LogEngine"/> class.
     /// </summary>
     /// <param name="configureOptions">
     /// An action that allows configuring the logging options.
     /// This action is used to set up logging options such as the minimum logging level and file options.
     /// </param>
-    protected NLogEngine(System.Action<NLogOptions>? configureOptions = null)
+    protected LogEngine(System.Action<LogOptions>? configureOptions = null)
     {
-        _distributor = new NLogDistributor();
-        _logOptions = new NLogOptions(_distributor);
+        _distributor = new LogDistributor();
+        _logOptions = new LogOptions(_distributor);
 
         // Apply configuration if provided
         if (configureOptions != null)
@@ -71,7 +71,7 @@ public abstract class NLogEngine : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    protected void Configure(System.Action<NLogOptions> configureOptions)
+    protected void Configure(System.Action<LogOptions> configureOptions)
         => configureOptions?.Invoke(_logOptions);
 
     /// <summary>
@@ -94,6 +94,10 @@ public abstract class NLogEngine : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Reliability", "CA2012:Use ValueTasks correctly", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     protected void CreateLogEntry(
         LogLevel level, EventId eventId,
         System.String message, System.Exception? error = null)

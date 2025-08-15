@@ -1,10 +1,9 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
 using Nalix.Common.Logging;
 using Nalix.Framework.Time;
 using Nalix.Shared.Injection;
-using Nalix.Shared.Injection.DI;
 
 namespace Nalix.Network.Timing;
 
@@ -16,12 +15,12 @@ namespace Nalix.Network.Timing;
 /// the synchronizer starts emitting ticks at ~16ms intervals via the <see cref="TimeSynchronized"/> event.
 /// </remarks>
 [Service]
-public class TimeSynchronizer : SingletonBase<TimeSynchronizer>
+public class TimeSynchronizer : System.IDisposable
 {
     #region Fields
 
-    private volatile System.Boolean _isRunning = false;
-    private volatile System.Boolean _isTimeSyncEnabled = false;
+    private System.Boolean _disposed;
+    private System.Boolean _isRunning;
 
     #endregion Fields
 
@@ -36,11 +35,7 @@ public class TimeSynchronizer : SingletonBase<TimeSynchronizer>
     /// Gets or sets a value indicating whether time synchronization is enabled.
     /// When enabled, the background loop will start ticking periodically if not already active.
     /// </summary>
-    public System.Boolean IsTimeSyncEnabled
-    {
-        get => this._isTimeSyncEnabled;
-        set => this._isTimeSyncEnabled = value;
-    }
+    public System.Boolean IsTimeSyncEnabled { get; set; }
 
     /// <summary>
     /// Occurs at every synchronization interval.
@@ -58,8 +53,10 @@ public class TimeSynchronizer : SingletonBase<TimeSynchronizer>
     public TimeSynchronizer()
     {
         // Ensure the singleton instance is created
-        this._isRunning = false;
-        this._isTimeSyncEnabled = false;
+        _disposed = false;
+        _isRunning = false;
+
+        this.IsTimeSyncEnabled = false;
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug("TimeSynchronizer initialized.");
@@ -79,24 +76,24 @@ public class TimeSynchronizer : SingletonBase<TimeSynchronizer>
     public async System.Threading.Tasks.Task StartTickLoopAsync(
         System.Threading.CancellationToken cancellationToken)
     {
-        if (this._isRunning)
+        if (System.Threading.Interlocked.CompareExchange(
+            ref System.Runtime.CompilerServices.Unsafe.As<
+                System.Boolean, System.Int32>(ref _isRunning), 1, 0) == 1)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn("Time synchronization loop is already running.");
             return;
         }
 
-        this._isRunning = true;
-
         try
         {
-            if (!this._isTimeSyncEnabled)
+            if (!this.IsTimeSyncEnabled)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug("Waiting for time sync loop to be enabled...");
             }
 
-            while (!this._isTimeSyncEnabled && !cancellationToken.IsCancellationRequested)
+            while (!this.IsTimeSyncEnabled && !cancellationToken.IsCancellationRequested)
             {
                 await System.Threading.Tasks.Task.Delay(10000, cancellationToken).ConfigureAwait(false);
             }
@@ -108,7 +105,9 @@ public class TimeSynchronizer : SingletonBase<TimeSynchronizer>
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 System.Int64 current = Clock.UnixMillisecondsNow();
-                this.TimeSynchronized?.Invoke(current);
+
+                var handler = TimeSynchronized;
+                handler?.Invoke(current);
 
                 System.Int64 elapsed = Clock.UnixMillisecondsNow() - current;
                 System.Int64 remaining = 16 - elapsed;
@@ -132,7 +131,9 @@ public class TimeSynchronizer : SingletonBase<TimeSynchronizer>
         }
         finally
         {
-            this._isRunning = false;
+            _ = System.Threading.Interlocked.Exchange(
+                ref System.Runtime.CompilerServices.Unsafe.As<
+                    System.Boolean, System.Int32>(ref _isRunning), 0);
         }
     }
 
@@ -141,14 +142,30 @@ public class TimeSynchronizer : SingletonBase<TimeSynchronizer>
     /// </summary>
     public void StopTicking()
     {
-        if (!this._isRunning)
+        if (System.Threading.Interlocked.Exchange(
+            ref System.Runtime.CompilerServices.Unsafe.As<
+                System.Boolean, System.Int32>(ref _isRunning), 0) == 0)
         {
             return;
         }
 
-        this._isRunning = false;
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Info("Time synchronization loop stopped.");
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        if (System.Threading.Interlocked.Exchange(
+            ref System.Runtime.CompilerServices.Unsafe.As<
+                System.Boolean, System.Int32>(ref _disposed), 1) == 1)
+        {
+            return;
+        }
+
+        this.StopTicking();
+        this.TimeSynchronized = null;
+        System.GC.SuppressFinalize(this);
     }
 
     #endregion APIs
