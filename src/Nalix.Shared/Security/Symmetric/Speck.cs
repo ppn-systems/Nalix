@@ -3,14 +3,10 @@
 namespace Nalix.Shared.Security.Symmetric;
 
 /// <summary>
-/// SPECK 128/256: 128-bit block cipher with a 256-bit s.
-/// - BLOCK size: 16 bytes (two 64-bit words)
-/// - Key size:   32 bytes (four 64-bit words)
-/// - Rounds:     34
-/// Notes:
-/// - This is a separate variant from SPECK 64/128. Do not mix keys/ciphertexts across variants.
-/// - Endianness: operates on native little-endian when reading/writing 64-bit words.
-/// - Security: SPECK is controversial; consider modern AEADs (AES-GCM / CHACHA20-Poly1305) for new designs.
+/// SPECK 128/256: 128-bit block cipher with a 256-bit key.
+/// WARNING:  SPECK is NOT approved by NIST and has known weaknesses.
+/// For production systems, use AES-GCM or ChaCha20-Poly1305 instead.
+/// This implementation is provided for compatibility with legacy systems only.
 /// </summary>
 public sealed class Speck
 {
