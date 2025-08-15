@@ -6,7 +6,7 @@ using Nalix.Network.Dispatch.Middleware.Core.Attributes;
 using Nalix.Network.Dispatch.Middleware.Core.Enums;
 using Nalix.Network.Dispatch.Middleware.Core.Interfaces;
 using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Messaging;
+using Nalix.Shared.Messaging.Text;
 
 namespace Nalix.Network.Dispatch.Middleware.Outbound;
 
@@ -34,7 +34,7 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
 
             if (completed == delay)
             {
-                TextPacket text = ObjectPoolManager.Instance.Get<TextPacket>();
+                Text256 text = ObjectPoolManager.Instance.Get<Text256>();
                 try
                 {
                     text.Initialize($"Request timeout ({timeout}ms).");
