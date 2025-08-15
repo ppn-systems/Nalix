@@ -1,6 +1,5 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Attributes;
 using Nalix.Shared.Injection.DI;
 
 namespace Nalix.Shared.Injection;
@@ -87,50 +86,6 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     #endregion Properties
 
     #region Public Methods
-
-    /// <summary>
-    /// Automatically registers all types marked with <see cref="ServiceAttribute"/> from the specified assemblies.
-    /// If no assemblies are provided, the entry assembly is used.
-    /// For each discovered service type, an instance is created and registered. If the type implements interfaces,
-    /// the instance is registered for each interface; otherwise, it is registered for the type itself.
-    /// </summary>
-    /// <param name="assemblies">
-    /// The assemblies to scan for service types. If none are specified, the entry assembly is used.
-    /// </param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void AutoRegisterServices(params System.Reflection.Assembly[] assemblies)
-    {
-        var asmList = assemblies.Length > 0 ? assemblies : [EntryAssembly];
-
-        foreach (var asm in asmList)
-        {
-            foreach (var type in asm.GetTypes())
-            {
-                ServiceAttribute? attr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<ServiceAttribute>(type);
-                if (attr == null || type.IsAbstract || type.IsInterface)
-                {
-                    continue;
-                }
-
-                var interfaces = type.GetInterfaces();
-                var instance = CreateInstance(type);
-
-                if (interfaces.Length == 0)
-                {
-                    Register(instance);
-                }
-                else
-                {
-                    foreach (var iface in interfaces)
-                    {
-                        _instanceCache[iface] = instance;
-                    }
-                }
-            }
-        }
-    }
 
     /// <summary>
     /// Registers an instance of the specified type in the instance cache.
