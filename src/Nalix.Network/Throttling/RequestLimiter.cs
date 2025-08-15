@@ -109,6 +109,8 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Synchronous version - for backward compatibility
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean CheckLimit([System.Diagnostics.CodeAnalysis.NotNull] System.String endPoint)
         => this.CheckLimitAsync(endPoint).AsTask().GetAwaiter().GetResult();
 
@@ -160,8 +162,10 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     {
         System.ObjectDisposedException.ThrowIf(this._disposed, nameof(RequestLimiter));
 
-        System.Collections.Generic.Dictionary<System.String, System.Boolean> results;
-        System.Collections.Generic.List<System.Threading.Tasks.Task<System.Collections.Generic.KeyValuePair<System.String, System.Boolean>>> tasks;
+        System.Collections.Generic.Dictionary<
+            System.String, System.Boolean> results;
+        System.Collections.Generic.List<
+            System.Threading.Tasks.Task<System.Collections.Generic.KeyValuePair<System.String, System.Boolean>>> tasks;
 
         tasks = [];
         results = [];
@@ -251,7 +255,9 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Determines if cleanup should be triggered
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Boolean ShouldTriggerCleanup() =>
         // Trigger cleanup when we have too many tracked IPs
         this._ipData.Count > this._config.MaxAllowedRequests * 10;
@@ -259,7 +265,8 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Triggers async cleanup
     /// </summary>
-    private async System.Threading.Tasks.ValueTask TriggerCleanupAsync(System.Threading.CancellationToken cancellationToken = default)
+    private async System.Threading.Tasks.ValueTask TriggerCleanupAsync(
+        System.Threading.CancellationToken cancellationToken = default)
     {
         try
         {
@@ -286,7 +293,8 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Background task for processing cleanup requests
     /// </summary>
-    private async System.Threading.Tasks.Task ProcessCleanupRequestsAsync(System.Threading.CancellationToken cancellationToken)
+    private async System.Threading.Tasks.Task ProcessCleanupRequestsAsync(
+        System.Threading.CancellationToken cancellationToken)
     {
         await foreach (var request in this._cleanupChannel.Reader.ReadAllAsync(cancellationToken))
         {
@@ -373,6 +381,8 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Validates the configuration parameters
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void ValidateConfiguration(RateLimitOptions config)
     {
         if (config.MaxAllowedRequests <= 0)
@@ -394,7 +404,8 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
     /// <summary>
     /// Creates a configured connection configuration.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static RateLimitOptions CreateConfiguredConfig(System.Action<RateLimitOptions>? configure)
     {
         var config = ConfigurationManager.Instance.Get<RateLimitOptions>();
