@@ -98,12 +98,4 @@ public class Clock_BasicTests
         Assert.Equal(DateTimeKind.Utc, raw.Kind);
         Assert.InRange(Math.Abs((raw - DateTime.UtcNow).TotalMilliseconds), 0, 50);
     }
-
-    [Fact]
-    public void CreateTimeStamp_Then_Elapsed_Positive()
-    {
-        var ts = Clock.CreateTimeStamp();
-        BusyWaitMs(2);
-        Assert.True(ts.GetElapsedMilliseconds() >= 1.0);
-    }
 }

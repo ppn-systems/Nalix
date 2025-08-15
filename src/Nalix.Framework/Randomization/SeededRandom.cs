@@ -9,6 +9,8 @@ namespace Nalix.Framework.Randomization;
 /// Initializes a new instance of the <see cref="SeededRandom"/> class with a specified seed.
 /// </remarks>
 /// <param name="seed">The seed value to initialize the random TransportProtocol generator.</param>
+[System.Diagnostics.DebuggerStepThrough]
+[System.Diagnostics.DebuggerDisplay("SeededRandom(Seed={_seed})")]
 public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
 {
     /// <summary>
@@ -17,7 +19,8 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random integer in the range [0, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Int32 Get(System.Int32 max)
     {
         if (max <= 0)
@@ -45,7 +48,8 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random unsigned integer in the range [0, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public new System.UInt32 Get(System.UInt32 max)
     {
         if (max == 0)
@@ -76,7 +80,8 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random unsigned long integer in the range [0, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.UInt64 Get(System.UInt64 max)
     {
         if (max == 0)
@@ -113,7 +118,8 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random signed long integer in the range [0, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Int64 Get(System.Int64 max)
     {
         if (max <= 0)
@@ -133,7 +139,8 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random integer in the range [min, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Int32 Get(System.Int32 min, System.Int32 max)
     {
         if (min >= max)
@@ -153,7 +160,8 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random unsigned integer in the range [min, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public new System.UInt32 Get(System.UInt32 min, System.UInt32 max)
     {
         if (min >= max)
@@ -172,7 +180,8 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random unsigned long integer in the range [min, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.UInt64 Get(System.UInt64 min, System.UInt64 max)
     {
         if (min >= max)
@@ -192,7 +201,8 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random signed long integer in the range [min, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Int64 Get(System.Int64 min, System.Int64 max)
     {
         if (min >= max)
@@ -211,7 +221,8 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random floating-point TransportProtocol in the range [0, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Single Get(System.Single max) => max <= 0 ? 0 : GetFloat() * max;
 
     /// <summary>
@@ -220,7 +231,8 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random double-precision floating-point TransportProtocol in the range [0, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Double Get(System.Double max) => max <= 0 ? 0 : GetDouble() * max;
 
     /// <summary>
@@ -230,7 +242,8 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random floating-point TransportProtocol in the range [min, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Single Get(System.Single min, System.Single max)
         => min >= max ? min : min + (GetFloat() * (max - min));
 
@@ -241,7 +254,8 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random double-precision floating-point TransportProtocol in the range [min, max).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Double Get(System.Double min, System.Double max)
         => min >= max ? min : min + (GetDouble() * (max - min));
 
@@ -251,8 +265,10 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <param name="probability">The probability of returning true (0.0 to 1.0).</param>
     /// <returns>A random boolean.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean GetBool(System.Double probability = 0.5) => probability > 0.0 && (probability >= 1.0 || GetDouble() < probability);
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public System.Boolean GetBool(System.Double probability = 0.5)
+        => probability > 0.0 && (probability >= 1.0 || GetDouble() < probability);
 
     /// <summary>
     /// Returns a random floating-point TransportProtocol in the range [0.0, 1.0).
@@ -264,7 +280,8 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <returns>A random float in the range [0.0, 1.0).</returns>
     // Use 24 bits (mantissa size for float) to ensure uniform distribution
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public new System.Single GetFloat() => (Get() >> 8) * (1.0f / 16777216.0f);
 
     /// <summary>
@@ -277,7 +294,8 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <returns>A random double in the range [0.0, 1.0).</returns>
     // Use all 53 bits of precision available in a double
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public new System.Double GetDouble() => (Get64() >> 11) * (1.0 / 9007199254740992.0);
 
     /// <summary>
@@ -285,6 +303,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// </summary>
     /// <param name="buffer">The buffer to fill with random bytes.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public new void NextBytes(System.Span<System.Byte> buffer) => base.NextBytes(buffer);
 }
