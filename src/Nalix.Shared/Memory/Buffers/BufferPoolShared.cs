@@ -416,6 +416,8 @@ internal sealed class BufferPoolShared : System.IDisposable
         private System.Int32 _count;
         private System.Threading.SpinLock _lock;
 
+        public System.Int32 Count => System.Threading.Volatile.Read(ref _count);
+
         public BufferRing(System.Int32 capacity)
         {
             if (capacity <= 0)
@@ -423,31 +425,11 @@ internal sealed class BufferPoolShared : System.IDisposable
                 capacity = 4;
             }
 
-            _slots = new System.Byte[capacity][];
             _head = 0;
             _tail = 0;
             _count = 0;
+            _slots = new System.Byte[capacity][];
             _lock = new System.Threading.SpinLock(enableThreadOwnerTracking: false);
-        }
-
-        public System.Int32 Count
-        {
-            get
-            {
-                System.Boolean taken = false;
-                try
-                {
-                    _lock.Enter(ref taken);
-                    return _count;
-                }
-                finally
-                {
-                    if (taken)
-                    {
-                        _lock.Exit();
-                    }
-                }
-            }
         }
 
         public System.Boolean TryEnqueue(System.Byte[] buffer)
