@@ -4,29 +4,40 @@ namespace Nalix.Common.Environment;
 
 public static partial class Directories
 {
-    #region Public Methods
+    // -------- Events registration --------
 
     /// <summary>
-    /// Register a handler for directory creation events.
+    /// Registers a directory creation event handler.
     /// </summary>
-    /// <param name="handler">The handler to call when a directory is created.</param>
-    public static void RegisterDirectoryCreationHandler(System.Action<System.String> handler)
-        => DirectoryCreated += handler;
+    /// <param name="handler">
+    /// The handler to invoke when a directory is created.
+    /// </param>
+    public static void RegisterDirectoryCreationHandler([System.Diagnostics.CodeAnalysis.DisallowNull] System.Action<System.String> handler)
+    {
+        System.ArgumentNullException.ThrowIfNull(handler);
+        Directories.DirectoryCreated += handler;
+    }
 
     /// <summary>
-    /// Unregister a handler for directory creation events.
+    /// Unregisters a directory creation event handler.
     /// </summary>
-    /// <param name="handler">The handler to remove.</param>
-    public static void UnregisterDirectoryCreationHandler(System.Action<System.String> handler)
-        => DirectoryCreated -= handler;
+    /// <param name="handler">
+    /// The handler to remove.
+    /// </param>
+    public static void UnregisterDirectoryCreationHandler([System.Diagnostics.CodeAnalysis.DisallowNull] System.Action<System.String> handler)
+    {
+        System.ArgumentNullException.ThrowIfNull(handler);
+        Directories.DirectoryCreated -= handler;
+    }
+
+    // -------- Helpers to build paths --------
 
     /// <summary>
-    /// Creates a subdirectory within the specified parent directory if it doesn't exist.
+    /// Creates a subdirectory under the specified parent directory, if it does not exist.
     /// </summary>
-    /// <param name="parentPath">The parent directory path.</param>
-    /// <param name="directoryName">The name of the subdirectory to create.</param>
-    /// <returns>The full path to the created directory.</returns>
-    public static System.String CreateSubdirectory(System.String parentPath, System.String directoryName)
+    public static System.String CreateSubdirectory(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String parentPath,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String directoryName)
     {
         if (System.String.IsNullOrWhiteSpace(parentPath))
         {
@@ -38,39 +49,35 @@ public static partial class Directories
             throw new System.ArgumentNullException(nameof(directoryName));
         }
 
-        System.String fullPath = System.IO.Path.Combine(parentPath, directoryName);
+        System.String fullPath = CombineSafe(parentPath, directoryName);
         EnsureDirectoryExists(fullPath);
-
         return fullPath;
     }
 
     /// <summary>
-    /// Creates a timestamped subdirectory within the specified parent directory.
+    /// Creates a subdirectory with a UTC timestamp-based name (yyyyMMddTHHmmssZ).
     /// </summary>
-    /// <param name="parentPath">The parent directory path.</param>
-    /// <param name="prefix">An optional prefix for the directory name.</param>
-    /// <returns>The full path to the created directory.</returns>
-    public static System.String CreateTimestampedDirectory(System.String parentPath, System.String prefix = "")
+    public static System.String CreateTimestampedDirectory(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String parentPath,
+        System.String prefix = "")
     {
         if (System.String.IsNullOrWhiteSpace(parentPath))
         {
             throw new System.ArgumentNullException(nameof(parentPath));
         }
 
-        // Create a directory name with the current timestamp
-        System.String timestamp = System.DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss");
-        System.String directoryName = System.String.IsNullOrEmpty(prefix) ? timestamp : $"{prefix}_{timestamp}";
+        System.String timestamp = System.DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ");
+        System.String directoryName = System.String.IsNullOrEmpty(prefix) ? timestamp : (prefix + "_" + timestamp);
 
         return CreateSubdirectory(parentPath, directoryName);
     }
 
     /// <summary>
-    /// Gets a path to a file within one of the application's directories.
+    /// Returns a full file path under a given directory, ensuring the directory exists.
     /// </summary>
-    /// <param name="directoryPath">The base directory path.</param>
-    /// <param name="fileName">The file name.</param>
-    /// <returns>The full path to the file.</returns>
-    public static System.String GetFilePath(System.String directoryPath, System.String fileName)
+    public static System.String GetFilePath(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String directoryPath,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String fileName)
     {
         if (System.String.IsNullOrWhiteSpace(directoryPath))
         {
@@ -83,24 +90,22 @@ public static partial class Directories
         }
 
         EnsureDirectoryExists(directoryPath);
-        return System.IO.Path.Combine(directoryPath, fileName);
+        return CombineSafe(directoryPath, fileName);
     }
 
     /// <summary>
-    /// Gets a path to a temporary file with the given name.
+    /// Returns a temp file path under <see cref="TemporaryDirectory"/>.
     /// </summary>
-    /// <param name="fileName">The file name.</param>
-    /// <returns>The full path to the temporary file.</returns>
-    public static System.String GetTempFilePath(System.String fileName) => GetFilePath(TempPath, fileName);
+    public static System.String GetTempFilePath([System.Diagnostics.CodeAnalysis.DisallowNull] System.String fileName)
+        => GetFilePath(TemporaryDirectory, fileName);
 
     /// <summary>
-    /// Gets a path to a timestamped file in the specified directory.
+    /// Returns a timestamped file path (yyyyMMddTHHmmssZ) under a directory.
     /// </summary>
-    /// <param name="directoryPath">The directory path.</param>
-    /// <param name="fileNameBase">The base file name (without extension).</param>
-    /// <param name="extension">The file extension (without the dot).</param>
-    /// <returns>The full path to the timestamped file.</returns>
-    public static System.String GetTimestampedFilePath(System.String directoryPath, System.String fileNameBase, System.String extension)
+    public static System.String GetTimestampedFilePath(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String directoryPath,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String fileNameBase,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String extension)
     {
         if (System.String.IsNullOrWhiteSpace(directoryPath))
         {
@@ -112,49 +117,51 @@ public static partial class Directories
             throw new System.ArgumentNullException(nameof(fileNameBase));
         }
 
-        System.String timestamp = System.DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss");
-        System.String fileName = $"{fileNameBase}_{timestamp}.{extension.TrimStart('.')}";
+        System.String timestamp = System.DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ");
+        System.String fileName = fileNameBase + "_" + timestamp + "." + extension.TrimStart('.');
 
         return GetFilePath(directoryPath, fileName);
     }
 
     /// <summary>
-    /// Gets a path to a log file with the given name.
+    /// Returns a log file path under <see cref="LogsDirectory"/>.
     /// </summary>
-    /// <param name="fileName">The file name.</param>
-    /// <returns>The full path to the log file.</returns>
-    public static System.String GetLogFilePath(System.String fileName) => GetFilePath(LogsPath, fileName);
+    public static System.String GetLogFilePath(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String fileName)
+        => GetFilePath(LogsDirectory, fileName);
 
     /// <summary>
-    /// Gets a path to a config file with the given name.
+    /// Returns a config file path under <see cref="ConfigurationDirectory"/>.
     /// </summary>
-    /// <param name="fileName">The file name.</param>
-    /// <returns>The full path to the config file.</returns>
-    public static System.String GetConfigFilePath(System.String fileName) => GetFilePath(ConfigPath, fileName);
+    public static System.String GetConfigFilePath(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String fileName)
+        => GetFilePath(ConfigurationDirectory, fileName);
 
     /// <summary>
-    /// Gets a path to a storage file with the given name.
+    /// Returns a storage file path under <see cref="StoragePath"/>.
     /// </summary>
-    /// <param name="fileName">The file name.</param>
-    /// <returns>The full path to the storage file.</returns>
-    public static System.String GetStorageFilePath(System.String fileName) => GetFilePath(StoragePath, fileName);
+    public static System.String GetStorageFilePath(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String fileName)
+        => GetFilePath(StoragePath, fileName);
 
     /// <summary>
-    /// Gets a path to a database file with the given name.
+    /// Returns a database file path under <see cref="DatabaseDirectory"/>.
     /// </summary>
-    /// <param name="fileName">The file name.</param>
-    /// <returns>The full path to the database file.</returns>
-    public static System.String GetDatabaseFilePath(System.String fileName) => GetFilePath(DatabasePath, fileName);
+    public static System.String GetDatabaseFilePath(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String fileName)
+        => GetFilePath(DatabaseDirectory, fileName);
 
-    /// <summary>
-    /// Cleans up files in the specified directory that are older than the given timespan.
-    /// </summary>
+    // -------- Maintenance --------
+
+    /// <summary>Deletes files older than the specified age in a directory.</summary>
     /// <param name="directoryPath">The directory to clean.</param>
-    /// <param name="maxAge">The maximum age of files to keep.</param>
-    /// <param name="searchPattern">The search pattern for files to consider.</param>
-    /// <returns>The TransportProtocol of files deleted.</returns>
+    /// <param name="maxAge">The maximum age to keep.</param>
+    /// <param name="searchPattern">Glob pattern to select files.</param>
+    /// <returns>Number of files deleted.</returns>
     public static System.Int32 CleanupDirectory(
-        System.String directoryPath, System.TimeSpan maxAge, System.String searchPattern = "*")
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String directoryPath,
+        System.TimeSpan maxAge,
+        System.String searchPattern = "*")
     {
         if (System.String.IsNullOrWhiteSpace(directoryPath))
         {
@@ -166,82 +173,73 @@ public static partial class Directories
             return 0;
         }
 
-        System.Int32 deletedCount = 0;
+        System.Int32 deleted = 0;
         System.DateTime cutoff = System.DateTime.UtcNow - maxAge;
+
+        System.IO.EnumerationOptions opts = new()
+        {
+            RecurseSubdirectories = false,
+            IgnoreInaccessible = true
+        };
 
         try
         {
-            System.IO.DirectoryInfo di = new(directoryPath);
-
-            // Process files
-            foreach (System.IO.FileInfo file in di.GetFiles(searchPattern))
+            foreach (System.String filePath in System.IO.Directory.EnumerateFiles(directoryPath, searchPattern, opts))
             {
-                if (file.LastWriteTimeUtc < cutoff)
+                try
                 {
-                    try
+                    System.IO.FileInfo fi = new(filePath);
+                    if (fi.LastWriteTimeUtc < cutoff)
                     {
-                        file.Delete();
-                        deletedCount++;
-                    }
-                    catch
-                    {
-                        // Ignore errors when deleting files
+                        fi.Delete();
+                        deleted++;
                     }
                 }
+                catch { }
             }
         }
-        catch
-        {
-            // Ignore any errors during cleanup
-        }
+        catch { }
 
-        return deletedCount;
+        return deleted;
     }
 
     /// <summary>
-    /// Ensures all application directories exist and have proper permissions.
+    /// Validates that all known directories are accessible by writing a temporary file.
     /// </summary>
-    /// <returns>True if all directories are accessible, false otherwise.</returns>
+    /// <returns>
+    /// <c>true</c> if all directories accept writes; otherwise <c>false</c>.
+    /// </returns>
     public static System.Boolean ValidateDirectories()
     {
         try
         {
-            // Test write access to all key directories
             System.String[] testPaths =
             [
-                LogsPath,
-                DataPath,
-                ConfigPath,
-                TempPath,
-                StoragePath,
-                DatabasePath,
-                CachesPath,
-                UploadsPath,
-                BackupsPath
+                LogsDirectory, DataDirectory, ConfigurationDirectory, TemporaryDirectory, StoragePath,
+                DatabaseDirectory, CacheDirectory, UploadsDirectory, BackupsDirectory
             ];
 
-            foreach (System.String path in testPaths)
+            for (System.Int32 i = 0; i < testPaths.Length; i++)
             {
-                // Test write access by creating and immediately deleting a temporary file
-                System.String testFile = System.IO.Path.Combine(path, $"test_{System.Guid.NewGuid():N}.tmp");
-                using (System.IO.File.Create(testFile)) { }
-                System.IO.File.Delete(testFile);
+                System.String path = testPaths[i];
+                System.String test = System.IO.Path.Join(path, "test_" + System.Guid.NewGuid().ToString("N") + ".tmp");
+                using (System.IO.File.Create(test)) { }
+                System.IO.File.Delete(test);
             }
 
             return true;
         }
-        catch (System.Exception)
+        catch
         {
             return false;
         }
     }
 
     /// <summary>
-    /// Temporarily overrides the base path for testing purposes.
-    /// Will be reset after application restart.
+    /// Overrides the base path for testing. The override is not persisted across process restarts.
     /// </summary>
-    /// <param name="path">The path to use as the base path.</param>
-    public static void OverrideBasePathForTesting(System.String path)
+    public static void OverrideBasePathForTesting(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String path)
     {
         if (System.String.IsNullOrWhiteSpace(path))
         {
@@ -252,31 +250,41 @@ public static partial class Directories
     }
 
     /// <summary>
-    /// Gets all files in a directory matching a pattern, with optional recursive search.
+    /// Enumerates files from a directory with optional recursion.
     /// </summary>
-    /// <param name="directory">The directory to search.</param>
-    /// <param name="searchPattern">The search pattern to use.</param>
-    /// <param name="recursive">Whether to search subdirectories recursively.</param>
-    /// <returns>A collection of file paths.</returns>
     public static System.Collections.Generic.IEnumerable<System.String> GetFiles(
-        System.String directory, System.String searchPattern = "*", System.Boolean recursive = false)
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String directory,
+        System.String searchPattern = "*",
+        System.Boolean recursive = false)
     {
-        return System.String.IsNullOrWhiteSpace(directory)
-            ? throw new System.ArgumentNullException(nameof(directory))
-            : !System.IO.Directory.Exists(directory)
-            ? []
-            : (System.Collections.Generic.IEnumerable<System.String>)
-            System.IO.Directory.GetFiles(directory, searchPattern, recursive
-            ? System.IO.SearchOption.AllDirectories : System.IO.SearchOption.TopDirectoryOnly);
+        if (System.String.IsNullOrWhiteSpace(directory))
+        {
+            throw new System.ArgumentNullException(nameof(directory));
+        }
+
+        if (!System.IO.Directory.Exists(directory))
+        {
+            yield break;
+        }
+
+        System.IO.EnumerationOptions opts = new()
+        {
+            RecurseSubdirectories = recursive,
+            IgnoreInaccessible = true
+        };
+
+        foreach (System.String file in System.IO.Directory.EnumerateFiles(directory, searchPattern, opts))
+        {
+            yield return file;
+        }
     }
 
     /// <summary>
-    /// Gets the size of a directory in bytes, optionally including subdirectories.
+    /// Computes the size of a directory in bytes.
     /// </summary>
-    /// <param name="directoryPath">The directory to calculate the size for.</param>
-    /// <param name="includeSubdirectories">Whether to include subdirectories in the calculation.</param>
-    /// <returns>The total size in bytes.</returns>
-    public static System.Int64 GetDirectorySize(System.String directoryPath, System.Boolean includeSubdirectories = true)
+    public static System.Int64 GetDirectorySize(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String directoryPath,
+        System.Boolean includeSubdirectories = true)
     {
         if (System.String.IsNullOrWhiteSpace(directoryPath))
         {
@@ -290,65 +298,47 @@ public static partial class Directories
 
         System.Int64 size = 0;
 
-        // Add size of files in the current directory
-        foreach (System.String file in System.IO.Directory.GetFiles(directoryPath))
+        try
         {
-            try
+            System.IO.EnumerationOptions opts = new()
             {
-                size += new System.IO.FileInfo(file).Length;
-            }
-            catch
-            {
-                // Ignore files that can't be accessed
-            }
-        }
+                RecurseSubdirectories = includeSubdirectories,
+                IgnoreInaccessible = true
+            };
 
-        // Add size of subdirectories if requested
-        if (includeSubdirectories)
-        {
-            foreach (System.String subdirectory in System.IO.Directory.GetDirectories(directoryPath))
+            foreach (System.String file in System.IO.Directory.EnumerateFiles(directoryPath, "*", opts))
             {
-                try
-                {
-                    size += GetDirectorySize(subdirectory, true);
-                }
-                catch
-                {
-                    // Ignore directories that can't be accessed
-                }
+                try { size += new System.IO.FileInfo(file).Length; } catch { }
             }
         }
+        catch { }
 
         return size;
     }
 
     /// <summary>
-    /// Creates a subdirectory for today's date in the specified parent directory.
-    /// Format: YYYY-MM-DD
+    /// Creates a date-based directory (yyyy-MM-dd) under the specified parent path.
     /// </summary>
-    /// <param name="parentPath">The parent directory path.</param>
-    /// <returns>The path to the date-based subdirectory.</returns>
-    public static System.String CreateDateDirectory(System.String parentPath)
+    public static System.String CreateDateDirectory(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String parentPath)
     {
         if (System.String.IsNullOrWhiteSpace(parentPath))
         {
             throw new System.ArgumentNullException(nameof(parentPath));
         }
 
-        System.String datePath = System.IO.Path.Combine(parentPath, System.DateTime.UtcNow.ToString("yyyy-MM-dd"));
-        EnsureDirectoryExists(datePath);
-        return datePath;
+        System.String dir = System.IO.Path.Join(parentPath, System.DateTime.UtcNow.ToString("yyyy-MM-dd"));
+        EnsureDirectoryExists(dir);
+        return dir;
     }
 
     /// <summary>
-    /// Creates a hierarchical directory structure based on the current date.
-    /// Format: YYYY/MM/DD
+    /// Creates a hierarchical date-based directory (yyyy/MM/dd) under the specified parent path.
     /// </summary>
-    /// <param name="parentPath">The parent directory path.</param>
-    /// <returns>The path to the hierarchical date-based directory.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.String CreateHierarchicalDateDirectory(System.String parentPath)
+    public static System.String CreateHierarchicalDateDirectory(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String parentPath)
     {
         if (System.String.IsNullOrWhiteSpace(parentPath))
         {
@@ -356,13 +346,62 @@ public static partial class Directories
         }
 
         System.DateTime now = System.DateTime.UtcNow;
-        System.String yearPath = System.IO.Path.Combine(parentPath, now.ToString("yyyy"));
-        System.String monthPath = System.IO.Path.Combine(yearPath, now.ToString("MM"));
-        System.String dayPath = System.IO.Path.Combine(monthPath, now.ToString("dd"));
+        System.String year = System.IO.Path.Join(parentPath, now.ToString("yyyy"));
+        System.String month = System.IO.Path.Join(year, now.ToString("MM"));
+        System.String day = System.IO.Path.Join(month, now.ToString("dd"));
 
-        EnsureDirectoryExists(dayPath);
-        return dayPath;
+        EnsureDirectoryExists(day);
+        return day;
     }
 
-    #endregion Public Methods
+    /// <summary>
+    /// Returns a sharded file path under a parent directory to reduce directory fan-out.
+    /// </summary>
+    /// <param name="parentPath">The parent path.</param>
+    /// <param name="key">A key used to derive shard segments.</param>
+    /// <param name="depth">Number of shard levels (e.g., 2).</param>
+    /// <param name="width">Hex digits per level (e.g., 2 => 00..FF).</param>
+    public static System.String GetShardedPath(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String parentPath,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String key,
+        System.Int32 depth = 2,
+        System.Int32 width = 2)
+    {
+        if (System.String.IsNullOrWhiteSpace(parentPath))
+        {
+            throw new System.ArgumentNullException(nameof(parentPath));
+        }
+
+        if (System.String.IsNullOrWhiteSpace(key))
+        {
+            throw new System.ArgumentNullException(nameof(key));
+        }
+
+        if (depth < 1 || width < 1)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(depth));
+        }
+
+        // FNV-1a 32-bit
+        unchecked
+        {
+            System.UInt32 h = 2166136261;
+            for (System.Int32 i = 0; i < key.Length; i++)
+            {
+                h ^= key[i];
+                h *= 16777619;
+            }
+
+            System.String p = parentPath;
+            for (System.Int32 i = 0; i < depth; i++)
+            {
+                System.UInt32 mask = (System.UInt32)((1 << (width * 4)) - 1);
+                System.String seg = (h & mask).ToString("X" + width.ToString());
+                p = System.IO.Path.Join(p, seg);
+                h >>= width * 4;
+            }
+            EnsureDirectoryExists(p);
+            return System.IO.Path.Join(p, key);
+        }
+    }
 }

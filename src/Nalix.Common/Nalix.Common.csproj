@@ -22,6 +22,8 @@ Nalix.Common is a foundational .NET library that provides essential utilities fo
 			• System utilities for low-level operations.
 			• Repository and connection management for structured data handling.
         </PackageReleaseNotes>
+
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	
     </PropertyGroup>
 

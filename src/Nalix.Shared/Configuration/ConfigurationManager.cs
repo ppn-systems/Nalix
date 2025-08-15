@@ -58,7 +58,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     {
         // Determine the configuration file path
 
-        this.ConfigFilePath = System.IO.Path.Combine(Directories.ConfigPath, "configured.ini");
+        this.ConfigFilePath = System.IO.Path.Combine(Directories.ConfigurationDirectory, "configured.ini");
 
         // Lazy-load the INI file to defer file access until needed
         _iniFile = new System.Lazy<IniConfig>(() =>
