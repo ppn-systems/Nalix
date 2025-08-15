@@ -13,19 +13,19 @@ using Nalix.Shared.LZ4.Extensions;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Serialization;
 
-namespace Nalix.Shared.Messaging;
+namespace Nalix.Shared.Messaging.Text;
 
 /// <summary>
 /// Represents a simple text-based packet used for transmitting UTF-8 string content over the network.
 /// </summary>
-[MagicNumber(MagicNumbers.LiteralPacket)]
+[MagicNumber(MagicNumbers.Text256)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("TextPacket OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public sealed class TextPacket : IPacket, IPacketTransformer<TextPacket>
+[System.Diagnostics.DebuggerDisplay("Text256 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+public class Text256 : IPacket, IPacketTransformer<Text256>
 {
     /// <inheritdoc/>
-    public const System.Int32 DynamicSize = 1024;
+    public const System.Int32 DynamicSize = 256;
 
     /// <inheritdoc/>
     public static System.Int32 Size => PacketConstants.HeaderSize + DynamicSize;
@@ -60,15 +60,15 @@ public sealed class TextPacket : IPacket, IPacketTransformer<TextPacket>
     [SerializeDynamicSize(DynamicSize)]
     public System.String Content { get; set; }
 
-    /// <summary>Initializes a new <see cref="TextPacket"/> with empty content.</summary>
-    public TextPacket()
+    /// <summary>Initializes a new <see cref="Text256"/> with empty content.</summary>
+    public Text256()
     {
         Flags = PacketFlags.None;
         Content = System.String.Empty;
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.Null;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)MagicNumbers.BinaryPacket;
+        MagicNumber = (System.UInt32)MagicNumbers.Text256;
     }
 
     /// <summary>Initializes the packet with the specified string content.</summary>
@@ -92,16 +92,16 @@ public sealed class TextPacket : IPacket, IPacketTransformer<TextPacket>
     public void Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
 
     /// <summary>
-    /// Deserializes a <see cref="TextPacket"/> from the specified buffer.
+    /// Deserializes a <see cref="Text256"/> from the specified buffer.
     /// </summary>
     /// <remarks>
     /// <b>Internal infrastructure API.</b> Do not call directly—use the dispatcher/serializer.
     /// </remarks>
     /// <param name="buffer">The source buffer.</param>
-    /// <returns>A pooled <see cref="TextPacket"/> instance.</returns>
-    public static TextPacket Deserialize(in System.ReadOnlySpan<System.Byte> buffer)
+    /// <returns>A pooled <see cref="Text256"/> instance.</returns>
+    public static Text256 Deserialize(in System.ReadOnlySpan<System.Byte> buffer)
     {
-        TextPacket packet = ObjectPoolManager.Instance.Get<TextPacket>();
+        Text256 packet = ObjectPoolManager.Instance.Get<Text256>();
         System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
 
         return bytesRead == 0
@@ -116,7 +116,7 @@ public sealed class TextPacket : IPacket, IPacketTransformer<TextPacket>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     [System.Obsolete("Internal infrastructure API. Encryption is handled by the pipeline.", error: true)]
-    public static TextPacket Encrypt(TextPacket packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
+    public static Text256 Encrypt(Text256 packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
         => throw new System.NotImplementedException();
 
     /// <summary>
@@ -125,7 +125,7 @@ public sealed class TextPacket : IPacket, IPacketTransformer<TextPacket>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     [System.Obsolete("Internal infrastructure API. Decryption is handled by the pipeline.", error: true)]
-    public static TextPacket Decrypt(TextPacket packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
+    public static Text256 Decrypt(Text256 packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
         => throw new System.NotImplementedException();
 
     /// <summary>
@@ -133,7 +133,7 @@ public sealed class TextPacket : IPacket, IPacketTransformer<TextPacket>
     /// </summary>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public static TextPacket Compress(TextPacket packet)
+    public static Text256 Compress(Text256 packet)
     {
         if (packet?.Content == null)
         {
@@ -151,7 +151,7 @@ public sealed class TextPacket : IPacket, IPacketTransformer<TextPacket>
     /// </summary>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public static TextPacket Decompress(TextPacket packet)
+    public static Text256 Decompress(Text256 packet)
     {
         if (packet?.Content == null)
         {
@@ -175,6 +175,6 @@ public sealed class TextPacket : IPacket, IPacketTransformer<TextPacket>
 
     /// <inheritdoc/>
     public override System.String ToString()
-        => $"TextPacket(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+        => $"Text256(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
            $"Priority={Priority}, Transport={Transport}, Content={System.Text.Encoding.UTF8.GetByteCount(Content)} bytes)";
 }

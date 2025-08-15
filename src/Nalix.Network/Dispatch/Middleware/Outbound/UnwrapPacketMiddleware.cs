@@ -7,7 +7,7 @@ using Nalix.Network.Dispatch.Middleware.Core.Attributes;
 using Nalix.Network.Dispatch.Middleware.Core.Enums;
 using Nalix.Network.Dispatch.Middleware.Core.Interfaces;
 using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Messaging;
+using Nalix.Shared.Messaging.Text;
 using static Nalix.Network.Dispatch.Inspection.PacketRegistry;
 
 namespace Nalix.Network.Dispatch.Middleware.Outbound;
@@ -50,7 +50,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
         }
         catch (System.Exception)
         {
-            TextPacket text = ObjectPoolManager.Instance.Get<TextPacket>();
+            Text256 text = ObjectPoolManager.Instance.Get<Text256>();
             try
             {
                 text.Initialize($"Packet transform failed.");

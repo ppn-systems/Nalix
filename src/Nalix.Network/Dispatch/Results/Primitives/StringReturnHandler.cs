@@ -4,7 +4,7 @@ using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Core.Context;
 using Nalix.Network.Dispatch.Results;
 using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Messaging;
+using Nalix.Shared.Messaging.Text;
 
 namespace Nalix.Network.Dispatch.Results.Primitives;
 
@@ -18,7 +18,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
     {
         if (result is System.String data)
         {
-            TextPacket text = ObjectPoolManager.Instance.Get<TextPacket>();
+            Text256 text = ObjectPoolManager.Instance.Get<Text256>();
             try
             {
                 text.Initialize(data);

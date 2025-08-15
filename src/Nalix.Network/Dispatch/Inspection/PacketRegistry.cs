@@ -6,6 +6,7 @@ using Nalix.Common.Packets.Interfaces;
 using Nalix.Common.Security.Cryptography.Enums;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Injection;
+using Nalix.Shared.Messaging.Binary;
 using System.Linq;
 
 namespace Nalix.Network.Dispatch.Inspection;
@@ -49,7 +50,7 @@ internal static class PacketRegistry
                 .Where(a => !a.IsDynamic &&
                             !System.String.IsNullOrWhiteSpace(a.FullName) &&
                             a.GetTypes().Any(t => t.Namespace != null &&
-                                                  t.Namespace.StartsWith(typeof(Shared.Messaging.BinaryPacket).Namespace!)))
+                                                  t.Namespace.StartsWith(typeof(Binary128).Namespace!)))
         );
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?

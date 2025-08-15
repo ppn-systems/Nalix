@@ -4,7 +4,7 @@ using Nalix.Network.Dispatch.Core.Context;
 using Nalix.Network.Dispatch.Core.Metadata;
 using Nalix.Network.Dispatch.Results;
 using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Messaging;
+using Nalix.Shared.Messaging.Text;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -53,7 +53,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         this._errorHandler?.Invoke(exception, descriptor.OpCode);
 
-        TextPacket text = ObjectPoolManager.Instance.Get<TextPacket>();
+        Text256 text = ObjectPoolManager.Instance.Get<Text256>();
         try
         {
             text.Initialize("Internal server error");
@@ -63,7 +63,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
         finally
         {
-            ObjectPoolManager.Instance.Return<TextPacket>(text);
+            ObjectPoolManager.Instance.Return<Text256>(text);
         }
     }
 
