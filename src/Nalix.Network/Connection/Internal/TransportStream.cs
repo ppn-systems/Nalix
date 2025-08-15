@@ -60,8 +60,6 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
     /// Begins receiving data asynchronously.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void BeginReceive(System.Threading.CancellationToken cancellationToken = default)
     {
         if (this._disposed)
@@ -216,8 +214,6 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
     /// <param name="data">The data to send.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that represents the asynchronous send operation. The value of the TResult parameter contains true if the data was sent successfully; otherwise, false.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
         System.ReadOnlyMemory<System.Byte> data,
         System.Threading.CancellationToken cancellationToken)
@@ -325,8 +321,6 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
     /// </summary>
     /// <param name="task">The task representing the read operation.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private async System.Threading.Tasks.Task OnReceiveCompleted(
         System.Threading.Tasks.Task<System.Int32> task,
         System.Threading.CancellationToken cancellationToken)
@@ -457,8 +451,6 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
     /// Disposes the managed and unmanaged resources.
     /// </summary>
     /// <param name="disposing">If true, releases managed resources; otherwise, only releases unmanaged resources.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void Dispose(System.Boolean disposing)
     {
         if (this._disposed)
@@ -496,8 +488,6 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
     /// <summary>
     /// Disposes the resources used by the <see cref="TransportStream"/> instance.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         this.Dispose(true);
