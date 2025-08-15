@@ -4,13 +4,6 @@ using Nalix.Common.Caching;
 using Nalix.Shared.Injection.DI;
 using Nalix.Shared.Memory.Pools;
 using Nalix.Shared.Memory.PoolTypes;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Nalix.Shared.Memory.Pooling;
 
@@ -22,16 +15,16 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     #region Fields
 
     // Thread-safe storage for pools
-    private readonly ConcurrentDictionary<Type, ObjectPool> _poolDict = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, ObjectPool> _poolDict = new();
 
     // Configuration
-    private Int32 _defaultMaxPoolSize = 1024;
+    private System.Int32 _defaultMaxPoolSize = 1024;
 
     // Statistics tracking
-    internal Int64 _totalGetOperations;
+    internal System.Int64 _totalGetOperations;
 
-    internal Int64 _totalReturnOperations;
-    internal DateTime _startTime = DateTime.UtcNow;
+    internal System.Int64 _totalReturnOperations;
+    internal System.DateTime _startTime = System.DateTime.UtcNow;
 
     #endregion Fields
 
@@ -40,7 +33,7 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// <summary>
     /// Gets the default maximum size for new pools.
     /// </summary>
-    public Int32 DefaultMaxPoolSize
+    public System.Int32 DefaultMaxPoolSize
     {
         get => _defaultMaxPoolSize;
         set => _defaultMaxPoolSize = value > 0 ? value : 1024;
@@ -49,22 +42,22 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// <summary>
     /// Gets the total TransportProtocol of pools currently managed.
     /// </summary>
-    public Int32 PoolCount => _poolDict.Count;
+    public System.Int32 PoolCount => _poolDict.Count;
 
     /// <summary>
     /// Gets the total TransportProtocol of get operations performed.
     /// </summary>
-    public Int64 TotalGetOperations => Interlocked.Read(ref _totalGetOperations);
+    public System.Int64 TotalGetOperations => System.Threading.Interlocked.Read(ref _totalGetOperations);
 
     /// <summary>
     /// Gets the total TransportProtocol of return operations performed.
     /// </summary>
-    public Int64 TotalReturnOperations => Interlocked.Read(ref _totalReturnOperations);
+    public System.Int64 TotalReturnOperations => System.Threading.Interlocked.Read(ref _totalReturnOperations);
 
     /// <summary>
     /// Gets the uptime of the pool manager.
     /// </summary>
-    public TimeSpan Uptime => DateTime.UtcNow - _startTime;
+    public System.TimeSpan Uptime => System.DateTime.UtcNow - _startTime;
 
     #endregion Properties
 
@@ -84,10 +77,11 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// </summary>
     /// <typeparam name="T">The type of object to get from the pool.</typeparam>
     /// <returns>An instance of <typeparamref name="T"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T Get<T>() where T : IPoolable, new()
     {
-        _ = Interlocked.Increment(ref _totalGetOperations);
+        _ = System.Threading.Interlocked.Increment(ref _totalGetOperations);
         ObjectPool pool = GetOrCreatePool<T>();
         return pool.Get<T>();
     }
@@ -97,16 +91,17 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// </summary>
     /// <typeparam name="T">The type of object to return to the pool.</typeparam>
     /// <param name="obj">The object to return to the pool.</param>
-    /// <exception cref="ArgumentNullException">Thrown when obj is null.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <exception cref="System.ArgumentNullException">Thrown when obj is null.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Return<T>(T obj) where T : IPoolable, new()
     {
         if (obj == null)
         {
-            throw new ArgumentNullException(nameof(obj));
+            throw new System.ArgumentNullException(nameof(obj));
         }
 
-        _ = Interlocked.Increment(ref _totalReturnOperations);
+        _ = System.Threading.Interlocked.Increment(ref _totalReturnOperations);
         ObjectPool pool = GetOrCreatePool<T>();
         pool.Return(obj);
     }
@@ -128,12 +123,12 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// <typeparam name="T">The type of objects to preallocate.</typeparam>
     /// <param name="count">The TransportProtocol of instances to preallocate.</param>
     /// <returns>The TransportProtocol of instances successfully preallocated.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when count is less than or equal to zero.</exception>
-    public Int32 Prealloc<T>(Int32 count) where T : IPoolable, new()
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown when count is less than or equal to zero.</exception>
+    public System.Int32 Prealloc<T>(System.Int32 count) where T : IPoolable, new()
     {
         if (count <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(count), "Count must be greater than zero.");
+            throw new System.ArgumentOutOfRangeException(nameof(count), "Count must be greater than zero.");
         }
 
         ObjectPool pool = GetOrCreatePool<T>();
@@ -146,14 +141,14 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// <typeparam name="T">The type to configure.</typeparam>
     /// <param name="maxCapacity">The maximum capacity for the type's pool.</param>
     /// <returns>True if the capacity was set, false otherwise.</returns>
-    public Boolean SetMaxCapacity<T>(Int32 maxCapacity) where T : IPoolable
+    public System.Boolean SetMaxCapacity<T>(System.Int32 maxCapacity) where T : IPoolable
     {
         if (maxCapacity < 0)
         {
             return false;
         }
 
-        Type type = typeof(T);
+        System.Type type = typeof(T);
         if (_poolDict.TryGetValue(type, out ObjectPool? pool))
         {
             return pool.SetMaxCapacity<T>(maxCapacity);
@@ -170,12 +165,12 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// </summary>
     /// <typeparam name="T">The type to get information about.</typeparam>
     /// <returns>A dictionary containing pool statistics for the type.</returns>
-    public Dictionary<String, Object> GetTypeInfo<T>() where T : IPoolable
+    public System.Collections.Generic.Dictionary<System.String, System.Object> GetTypeInfo<T>() where T : IPoolable
     {
-        Type type = typeof(T);
+        System.Type type = typeof(T);
         return _poolDict.TryGetValue(type, out ObjectPool? pool)
             ? pool.GetTypeInfo<T>()
-            : new Dictionary<String, Object>
+            : new System.Collections.Generic.Dictionary<System.String, System.Object>
             {
                 ["TypeName"] = type.Name,
                 ["AvailableCount"] = 0,
@@ -189,9 +184,9 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// </summary>
     /// <typeparam name="T">The type to clear from the pool.</typeparam>
     /// <returns>The TransportProtocol of objects removed.</returns>
-    public Int32 ClearPool<T>() where T : IPoolable
+    public System.Int32 ClearPool<T>() where T : IPoolable
     {
-        Type type = typeof(T);
+        System.Type type = typeof(T);
         return _poolDict.TryGetValue(type, out ObjectPool? pool) ? pool.ClearType<T>() : 0;
     }
 
@@ -199,9 +194,9 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// Clears all objects from all pools.
     /// </summary>
     /// <returns>The total TransportProtocol of objects removed.</returns>
-    public Int32 ClearAllPools()
+    public System.Int32 ClearAllPools()
     {
-        Int32 totalRemoved = 0;
+        System.Int32 totalRemoved = 0;
 
         foreach (var pool in _poolDict.Values)
         {
@@ -216,9 +211,9 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
     /// <returns>The total TransportProtocol of objects removed.</returns>
-    public Int32 TrimAllPools(Int32 percentage = 50)
+    public System.Int32 TrimAllPools(System.Int32 percentage = 50)
     {
-        Int32 totalRemoved = 0;
+        System.Int32 totalRemoved = 0;
 
         foreach (var pool in _poolDict.Values)
         {
@@ -233,9 +228,9 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// </summary>
     public void ResetStatistics()
     {
-        _ = Interlocked.Exchange(ref _totalGetOperations, 0);
-        _ = Interlocked.Exchange(ref _totalReturnOperations, 0);
-        _startTime = DateTime.UtcNow;
+        _ = System.Threading.Interlocked.Exchange(ref _totalGetOperations, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _totalReturnOperations, 0);
+        _startTime = System.DateTime.UtcNow;
 
         // Also reset statistics for all pools
         foreach (var pool in _poolDict.Values)
@@ -251,26 +246,26 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
     /// <param name="cancellationToken">A token to cancel the background trimming.</param>
     /// <returns>A task representing the background trimming operation.</returns>
-    public Task ScheduleRegularTrimming(
-        TimeSpan interval,
-        Int32 percentage = 50,
-        CancellationToken cancellationToken = default)
+    public System.Threading.Tasks.Task ScheduleRegularTrimming(
+        System.TimeSpan interval,
+        System.Int32 percentage = 50,
+        System.Threading.CancellationToken cancellationToken = default)
     {
-        return Task.Run(async () =>
+        return System.Threading.Tasks.Task.Run(async () =>
         {
             while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
-                    await Task.Delay(interval, cancellationToken);
+                    await System.Threading.Tasks.Task.Delay(interval, cancellationToken);
                     _ = TrimAllPools(percentage);
                 }
-                catch (OperationCanceledException)
+                catch (System.OperationCanceledException)
                 {
                     // Expected when cancellation is requested
                     break;
                 }
-                catch (Exception)
+                catch (System.Exception)
                 {
                     // Log or handle other exceptions
                     // Continue the loop to maintain the trimming schedule
@@ -283,10 +278,10 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// Generates a report on the current state of all pools.
     /// </summary>
     /// <returns>A string containing the report.</returns>
-    public String GenerateReport()
+    public System.String GenerateReport()
     {
-        StringBuilder sb = new();
-        _ = sb.AppendLine($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ObjectPoolManager Status:");
+        System.Text.StringBuilder sb = new();
+        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ObjectPoolManager Status:");
         _ = sb.AppendLine($"Total Pools: {PoolCount}");
         _ = sb.AppendLine($"Total Get Operations: {TotalGetOperations}");
         _ = sb.AppendLine($"Total Return Operations: {TotalReturnOperations}");
@@ -299,23 +294,23 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
         _ = sb.AppendLine("------------------------------------------------------------");
 
         // Sort pools by type name for better readability
-        var sortedPools = new List<KeyValuePair<Type, ObjectPool>>(_poolDict);
-        sortedPools.Sort((a, b) => String.Compare(a.Key.Name, b.Key.Name, StringComparison.Ordinal));
+        System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<System.Type, ObjectPool>> sortedPools = [.. _poolDict];
+        sortedPools.Sort((a, b) => System.String.Compare(a.Key.Name, b.Key.Name, System.StringComparison.Ordinal));
 
         foreach (var kvp in sortedPools)
         {
-            Type type = kvp.Key;
+            System.Type type = kvp.Key;
             ObjectPool pool = kvp.Value;
             var stats = pool.GetStatistics();
             var typeStats = pool.GetTypeInfo<IPoolable>();
 
-            String typeName = type.Name.Length > 24
-                ? String.Concat(type.Name.AsSpan(0, 21), "...")
+            System.String typeName = type.Name.Length > 24
+                ? System.String.Concat(System.MemoryExtensions.AsSpan(type.Name, 0, 21), "...")
                 : type.Name.PadRight(24);
 
-            Int32 availableCount = Convert.ToInt32(typeStats["AvailableCount"]);
-            Int32 maxCapacity = Convert.ToInt32(typeStats["MaxCapacity"]);
-            Int64 created = Convert.ToInt64(stats["TotalCreatedCount"]);
+            System.Int32 availableCount = System.Convert.ToInt32(typeStats["AvailableCount"]);
+            System.Int32 maxCapacity = System.Convert.ToInt32(typeStats["MaxCapacity"]);
+            System.Int64 created = System.Convert.ToInt64(stats["TotalCreatedCount"]);
 
             _ = sb.AppendLine($"{typeName} | {availableCount,9} | {maxCapacity,12} | {created,7}");
         }
@@ -328,9 +323,9 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// Gets detailed statistics for all pools.
     /// </summary>
     /// <returns>A dictionary containing statistics for the pool manager and all pools.</returns>
-    public Dictionary<String, Object> GetDetailedStatistics()
+    public System.Collections.Generic.Dictionary<System.String, System.Object> GetDetailedStatistics()
     {
-        var stats = new Dictionary<String, Object>
+        var stats = new System.Collections.Generic.Dictionary<System.String, System.Object>
         {
             ["PoolCount"] = PoolCount,
             ["TotalGetOperations"] = TotalGetOperations,
@@ -340,11 +335,13 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
             ["DefaultMaxPoolSize"] = DefaultMaxPoolSize
         };
 
-        var poolStats = new Dictionary<String, Dictionary<String, Object>>();
+        System.Collections.Generic.Dictionary<
+            System.String, System.Collections.Generic.Dictionary<
+                System.String, System.Object>> poolStats = [];
 
         foreach (var kvp in _poolDict)
         {
-            String typeName = kvp.Key.Name;
+            System.String typeName = kvp.Key.Name;
             poolStats[typeName] = kvp.Value.GetStatistics();
         }
 
@@ -358,10 +355,11 @@ public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
     /// </summary>
     /// <typeparam name="T">The type of objects the pool will contain.</typeparam>
     /// <returns>An object pool for the specified type.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private ObjectPool GetOrCreatePool<T>() where T : IPoolable, new()
     {
-        Type type = typeof(T);
+        System.Type type = typeof(T);
         return _poolDict.GetOrAdd(type, _ => new ObjectPool(_defaultMaxPoolSize));
     }
 

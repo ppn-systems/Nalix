@@ -91,7 +91,7 @@ public sealed class BufferPoolManager : System.IDisposable
 
     #endregion Constructors
 
-    #region Public Methods
+    #region APIs
 
     /// <summary>
     /// Periodically trims excess buffers to reduce memory footprint
@@ -239,7 +239,7 @@ public sealed class BufferPoolManager : System.IDisposable
                                                 : _bufferAllocations.Last().Allocation;
     }
 
-    #endregion Public Methods
+    #endregion APIs
 
     #region Private Methods
 
