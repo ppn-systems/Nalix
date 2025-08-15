@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Logging;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Logging;
 using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Listeners.Udp;

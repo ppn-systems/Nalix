@@ -1,11 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Logging.Formatters;
+namespace Nalix.Logging.Engine;
 
 /// <summary>
 /// Contains constant values used for logging.
 /// </summary>
-public static class LoggingConstants
+public static class NLogConstants
 {
     /// <summary>
     /// The opening bracket character used in log formatting.

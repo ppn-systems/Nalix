@@ -1,4 +1,4 @@
-using System;
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 namespace Nalix.Network.Throttling.Settings;
 
@@ -12,17 +12,17 @@ public readonly struct RequestLimitSettings
     /// <summary>
     /// Gets the maximum TransportProtocol of requests allowed.
     /// </summary>
-    public Int32 Requests { get; }
+    public System.Int32 Requests { get; }
 
     /// <summary>
     /// Gets the duration in seconds to lock out after exceeding the request limit.
     /// </summary>
-    public Int32 LockoutDurationSec { get; }
+    public System.Int32 LockoutDurationSec { get; }
 
     /// <summary>
     /// Gets the time window in milliseconds for measuring the request rate.
     /// </summary>
-    public Int32 TimeWindowMs { get; }
+    public System.Int32 TimeWindowMs { get; }
 
     #endregion Properties
 
@@ -34,26 +34,26 @@ public readonly struct RequestLimitSettings
     /// <param name="requests">The maximum TransportProtocol of requests allowed.</param>
     /// <param name="lockoutSeconds">The duration in seconds to lock out after exceeding the request limit.</param>
     /// <param name="windowMilliseconds">The time window in milliseconds for measuring the request rate.</param>
-    /// <exception cref="ArgumentOutOfRangeException">
+    /// <exception cref="System.ArgumentOutOfRangeException">
     /// Thrown if any parameter is out of valid range.
     /// </exception>
-    public RequestLimitSettings(Int32 requests, Int32 lockoutSeconds, Int32 windowMilliseconds)
+    public RequestLimitSettings(System.Int32 requests, System.Int32 lockoutSeconds, System.Int32 windowMilliseconds)
     {
         if (requests < 1)
         {
-            throw new ArgumentOutOfRangeException(
+            throw new System.ArgumentOutOfRangeException(
                 nameof(requests), "Requests must be at least 1.");
         }
 
         if (lockoutSeconds < 0)
         {
-            throw new ArgumentOutOfRangeException(
+            throw new System.ArgumentOutOfRangeException(
                 nameof(lockoutSeconds), "Lockout duration cannot be negative.");
         }
 
         if (windowMilliseconds < 1)
         {
-            throw new ArgumentOutOfRangeException(
+            throw new System.ArgumentOutOfRangeException(
                 nameof(windowMilliseconds), "Time window must be at least 1 ms.");
         }
 
@@ -69,7 +69,7 @@ public readonly struct RequestLimitSettings
     /// <summary>
     /// Returns a string representation of the settings.
     /// </summary>
-    public override String ToString() =>
+    public override System.String ToString() =>
         $"Requests: {this.Requests}, Lockout: {this.LockoutDurationSec}s, Window: {this.TimeWindowMs}ms";
 
     #endregion Methods
