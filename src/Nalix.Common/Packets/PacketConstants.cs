@@ -26,7 +26,7 @@ public static class PacketConstants
         sizeof(PacketFlags) +
         sizeof(System.UInt16) +  // OpCode
         sizeof(System.UInt16) +  // Length
-        sizeof(System.UInt32) +    // MagicNumber
+        sizeof(System.UInt32) +  // MagicNumber
         sizeof(PacketPriority) +
         sizeof(TransportProtocol);
 

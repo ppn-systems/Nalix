@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Caching;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Common.Logging;
 using Nalix.Common.Packets.Interfaces;
