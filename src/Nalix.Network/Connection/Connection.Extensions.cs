@@ -24,8 +24,6 @@ internal static class ConnectionExtensions
         connection.OnCloseEvent += callback;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Net.IPAddress ToIPAddress(this System.Net.EndPoint endPoint)
     {
         System.ArgumentNullException.ThrowIfNull(endPoint);

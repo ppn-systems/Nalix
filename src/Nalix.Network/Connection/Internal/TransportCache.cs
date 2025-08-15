@@ -86,8 +86,6 @@ internal sealed class TransportCache : System.IDisposable
     /// Releases all resources used by this <see cref="TransportCache"/> instance.
     /// Clears and disposes both incoming and outgoing caches.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         this.Incoming.Clear();

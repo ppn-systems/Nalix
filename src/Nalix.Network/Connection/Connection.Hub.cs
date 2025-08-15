@@ -378,8 +378,6 @@ public sealed class ConnectionHub : SingletonBase<ConnectionHub>, IConnectionHub
     /// <summary>
     /// Releases unmanaged resources and performs other cleanup operations.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public new void Dispose()
     {
         if (this._disposed)

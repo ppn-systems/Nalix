@@ -158,8 +158,6 @@ public sealed partial class Connection : IConnection
     internal void InjectIncoming(System.Byte[] bytes) => _cstream.InjectIncoming(bytes);
 
     /// <inheritdoc />
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Close(System.Boolean force = false)
     {
         try
@@ -196,8 +194,6 @@ public sealed partial class Connection : IConnection
     #region Dispose Pattern
 
     /// <inheritdoc />
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         lock (this._lock)
