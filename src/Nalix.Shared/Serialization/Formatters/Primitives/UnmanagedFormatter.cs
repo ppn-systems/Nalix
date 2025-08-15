@@ -2,7 +2,6 @@
 
 using Nalix.Shared.Serialization.Buffers;
 using Nalix.Shared.Serialization.Internal.Types;
-using System;
 
 namespace Nalix.Shared.Serialization.Formatters.Primitives;
 
@@ -23,14 +22,22 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 /// </list>
 /// Reference: <see href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/unmanaged-types"/>.
 /// </remarks>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unmanaged
 {
+    private static System.String DebuggerDisplay => $"UnmanagedFormatter<{typeof(T).FullName}>";
+
     /// <summary>
     /// Writes an unmanaged value to the buffer without alignment requirements.
     /// </summary>
     /// <param name="writer">The <see cref="DataWriter"/> to write to.</param>
     /// <param name="value">The unmanaged value to write.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public unsafe void Serialize(ref DataWriter writer, T value)
     {
         System.Int32 size = TypeMetadata.SizeOf<T>();
@@ -47,6 +54,9 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
     /// </summary>
     /// <param name="reader">The <see cref="DataReader"/> to read from.</param>
     /// <returns>The unmanaged value read from the buffer.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public unsafe T Deserialize(ref DataReader reader)
     {
         T value;
@@ -56,7 +66,7 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
 #if DEBUG
         if (reader.BytesRemaining < size)
         {
-            throw new InvalidOperationException($"Buffer underrun while deserializing {typeof(T)}. Needed {size} bytes.");
+            throw new System.InvalidOperationException($"Buffer underrun while deserializing {typeof(T)}. Needed {size} bytes.");
         }
 #endif
 

@@ -11,7 +11,10 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 /// <typeparam name="T">
 /// The underlying value type, which must have a registered formatter.
 /// </typeparam>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed class NullableFormatter<T> : IFormatter<T?> where T : struct
 {
     /// <summary>
@@ -24,13 +27,16 @@ public sealed class NullableFormatter<T> : IFormatter<T?> where T : struct
     /// </summary>
     private const System.Byte HasValueFlag = 1;
 
+    private static System.String DebuggerDisplay => $"NullableFormatter<{typeof(T).FullName}>";
+
     /// <summary>
     /// Serializes a nullable value into the provided writer.
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The nullable value to serialize.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Serialize(ref DataWriter writer, T? value)
     {
         // 0 = null, 1 = has value
@@ -53,7 +59,8 @@ public sealed class NullableFormatter<T> : IFormatter<T?> where T : struct
     /// Thrown if the nullable data is invalid or has an unexpected format.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public T? Deserialize(ref DataReader reader)
     {
         System.Byte hasValue = FormatterProvider

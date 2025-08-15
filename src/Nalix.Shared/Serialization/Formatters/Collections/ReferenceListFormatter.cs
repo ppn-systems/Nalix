@@ -10,10 +10,14 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 /// where T is a reference type.
 /// </summary>
 /// <typeparam name="T">The reference type of list elements.</typeparam>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed class ReferenceListFormatter<T> : IFormatter<System.Collections.Generic.List<T>> where T : class
 {
     private static readonly IFormatter<T> _elementFormatter = FormatterProvider.Get<T>();
+    private static System.String DebuggerDisplay => $"ReferenceListFormatter<{typeof(T).FullName}>";
 
     /// <summary>
     /// Serializes a list of reference type elements into the provided writer.
@@ -24,7 +28,8 @@ public sealed class ReferenceListFormatter<T> : IFormatter<System.Collections.Ge
     /// Thrown if the underlying formatter for type <typeparamref name="T"/> encounters an error during serialization.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Serialize(ref DataWriter writer, System.Collections.Generic.List<T> value)
     {
         if (value is null)
@@ -53,7 +58,8 @@ public sealed class ReferenceListFormatter<T> : IFormatter<System.Collections.Ge
     /// Thrown if the list length is out of range or if the underlying formatter for type <typeparamref name="T"/> encounters an error during deserialization.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
     {
         System.UInt16 count = FormatterProvider.Get<System.UInt16>()

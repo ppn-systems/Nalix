@@ -287,6 +287,8 @@ public static class FormatterProvider
 
     #region Private Methods
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static EnumFormatter<T>? TryCreateEnumFormatter<T>()
     {
         if (typeof(T).IsEnum)
@@ -301,6 +303,8 @@ public static class FormatterProvider
         }
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T>? TryCreateArrayFormatter<T>()
     {
         System.Type type = typeof(T);
@@ -321,6 +325,8 @@ public static class FormatterProvider
         return (IFormatter<T>)System.Activator.CreateInstance(actualFormatterType)!;
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T>? TryCreateListFormatter<T>()
     {
         if (!typeof(T).IsGenericType ||

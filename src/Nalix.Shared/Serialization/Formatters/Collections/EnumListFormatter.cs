@@ -11,11 +11,15 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 /// where T is an enum type.
 /// </summary>
 /// <typeparam name="T">The enum type.</typeparam>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed class EnumListFormatter<T> : IFormatter<System.Collections.Generic.List<T>>
     where T : struct, System.Enum
 {
     private static readonly EnumFormatter<T> _enumFormatter = new();
+    private static System.String DebuggerDisplay => $"EnumListFormatter<{typeof(T).FullName}>";
 
     /// <summary>
     /// Serializes a list of enum values into the provided writer using their underlying primitive type.
@@ -26,7 +30,8 @@ public sealed class EnumListFormatter<T> : IFormatter<System.Collections.Generic
     /// Thrown if the underlying type of the enum is not supported by the <see cref="EnumFormatter{T}"/>.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Serialize(ref DataWriter writer, System.Collections.Generic.List<T> value)
     {
         if (value is null)
@@ -55,7 +60,8 @@ public sealed class EnumListFormatter<T> : IFormatter<System.Collections.Generic
     /// Thrown if the list length is out of range or if the underlying type of the enum is not supported by the <see cref="EnumFormatter{T}"/>.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
     {
         System.UInt16 count = FormatterProvider.Get<System.UInt16>()

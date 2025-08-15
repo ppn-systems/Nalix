@@ -12,9 +12,14 @@ namespace Nalix.Shared.Serialization.Formatters.Automatic;
 /// This formatter uses a single byte marker (0 for null, 1 for non-null) followed by the serialized value if non-null.
 /// It delegates the actual serialization and deserialization of the value type to an instance of <see cref="StructFormatter{T}"/>.
 /// </remarks>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed class NullableStructFormatter<T> : IFormatter<T?> where T : struct
 {
+    private static System.String DebuggerDisplay => $"NullableStructFormatter<{typeof(T).FullName}>";
+
     /// <summary>
     /// Serializes a nullable value of type <typeparamref name="T"/> to the specified <see cref="DataWriter"/>.
     /// </summary>
@@ -24,6 +29,9 @@ public sealed class NullableStructFormatter<T> : IFormatter<T?> where T : struct
     /// Writes a single byte marker (0 if the value is null, 1 if non-null) followed by the serialized value if non-null.
     /// The serialization of the underlying value is handled by an instance of <see cref="StructFormatter{T}"/>.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Serialize(ref DataWriter writer, T? value)
     {
         if (!value.HasValue)
@@ -52,6 +60,9 @@ public sealed class NullableStructFormatter<T> : IFormatter<T?> where T : struct
     /// Reads a single byte marker to determine nullability (0 for null, 1 for non-null). If non-null, the underlying value
     /// is deserialized using an instance of <see cref="StructFormatter{T}"/>.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public T? Deserialize(ref DataReader reader)
     {
         System.Byte marker = FormatterProvider.Get<System.Byte>()

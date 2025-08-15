@@ -12,9 +12,14 @@ namespace Nalix.Shared.Serialization.Formatters.Automatic;
 /// This formatter writes a single byte marker (0 for null, 1 for non-null) followed by the serialized object if non-null.
 /// Serialization and deserialization of the underlying object are delegated to an instance of <see cref="IFormatter{T}"/> obtained via <see cref="FormatterProvider"/>.
 /// </remarks>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed class NullableObjectFormatter<T> : IFormatter<T?> where T : class, new()
 {
+    private static System.String DebuggerDisplay => $"NullableObjectFormatter<{typeof(T).FullName}>";
+
     /// <summary>
     /// Serializes a nullable reference type value of type <typeparamref name="T"/> to the specified <see cref="DataWriter"/>.
     /// </summary>
@@ -24,6 +29,9 @@ public sealed class NullableObjectFormatter<T> : IFormatter<T?> where T : class,
     /// Writes a single byte marker (0 if the value is null, 1 if non-null) followed by the serialized object if non-null.
     /// The serialization of the underlying object is handled by an <see cref="IFormatter{T}"/> obtained via <see cref="FormatterProvider.Get{TFormatter}"/>.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Serialize(ref DataWriter writer, T? value)
     {
         if (value is null)
@@ -52,6 +60,9 @@ public sealed class NullableObjectFormatter<T> : IFormatter<T?> where T : class,
     /// Reads a single byte marker to determine nullability (0 for null, 1 for non-null). If non-null, the underlying object
     /// is deserialized using an <see cref="IFormatter{T}"/> obtained via <see cref="FormatterProvider.Get{TFormatter}"/>.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public T? Deserialize(ref DataReader reader)
     {
         System.Byte marker = FormatterProvider.Get<System.Byte>()
