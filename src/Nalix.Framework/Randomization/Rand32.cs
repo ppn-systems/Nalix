@@ -10,6 +10,9 @@ namespace Nalix.Framework.Randomization;
 /// and exposes a familiar interface similar to <see cref="System.Random"/>.
 /// </remarks>
 /// <param name="seed">The seed to initialize the random TransportProtocol generator.</param>
+[System.Diagnostics.DebuggerStepThrough]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed class Rand32(System.Int32 seed)
 {
     #region Constants
@@ -27,6 +30,8 @@ public sealed class Rand32(System.Int32 seed)
     #endregion Constants
 
     #region Fields
+
+    private System.String DebuggerDisplay => $"Rand32[Seed={_seed}]";
 
     /// <summary>
     /// Current seed value for the random TransportProtocol generator.
@@ -58,7 +63,8 @@ public sealed class Rand32(System.Int32 seed)
     /// </summary>
     /// <param name="seed">The new seed value.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Seed(System.Int32 seed)
     {
         _seed = seed;
@@ -70,7 +76,8 @@ public sealed class Rand32(System.Int32 seed)
     /// </summary>
     /// <returns>The current seed value.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Int32 GetSeed() => _seed;
 
     /// <summary>
@@ -78,7 +85,8 @@ public sealed class Rand32(System.Int32 seed)
     /// </summary>
     /// <returns>A random integer.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Int32 Next() => (System.Int32)(_rand.Get() & RandMax);
 
     /// <summary>
@@ -88,7 +96,8 @@ public sealed class Rand32(System.Int32 seed)
     /// <returns>A random integer.</returns>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown when max is less than or equal to 0.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Int32 Next(System.Int32 max)
     {
         if (max <= 0)
@@ -121,7 +130,8 @@ public sealed class Rand32(System.Int32 seed)
     /// <returns>A random integer.</returns>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown when min is greater than or equal to max.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Int32 Next(System.Int32 min, System.Int32 max)
     {
         if (min >= max)
@@ -144,7 +154,8 @@ public sealed class Rand32(System.Int32 seed)
     /// </summary>
     /// <returns>A random float.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Single NextFloat() => _rand.GetFloat();
 
     /// <summary>
@@ -153,7 +164,8 @@ public sealed class Rand32(System.Int32 seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random float.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Single NextFloat(System.Single max) => NextFloat() * max;
 
     /// <summary>
@@ -163,7 +175,8 @@ public sealed class Rand32(System.Int32 seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random float.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Single NextFloat(System.Single min, System.Single max) => min + (NextFloat() * (max - min));
 
     /// <summary>
@@ -171,7 +184,8 @@ public sealed class Rand32(System.Int32 seed)
     /// </summary>
     /// <returns>A random double.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Double NextDouble() => _rand.GetDouble();
 
     /// <summary>
@@ -180,7 +194,8 @@ public sealed class Rand32(System.Int32 seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random double.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Double NextDouble(System.Double max) => NextDouble() * max;
 
     /// <summary>
@@ -190,7 +205,8 @@ public sealed class Rand32(System.Int32 seed)
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random double.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Double NextDouble(System.Double min, System.Double max) => min + (NextDouble() * (max - min));
 
     /// <summary>
@@ -199,7 +215,8 @@ public sealed class Rand32(System.Int32 seed)
     /// <param name="pct">The percentage probability (0-100).</param>
     /// <returns>True if the random check passed based on the specified percentage.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean NextPct(System.Int32 pct) => pct > 0 && (pct >= 100 || Next(100) < pct);
 
     /// <summary>
@@ -208,7 +225,8 @@ public sealed class Rand32(System.Int32 seed)
     /// <param name="probability">The probability (0.0-1.0).</param>
     /// <returns>True if the random check passed based on the specified probability.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean NextProbability(System.Double probability) => probability > 0.0 && (probability >= 1.0 || NextDouble() < probability);
 
     /// <summary>
@@ -266,14 +284,17 @@ public sealed class Rand32(System.Int32 seed)
     /// <param name="span">The span to pick from.</param>
     /// <returns>A random item from the span.</returns>
     /// <exception cref="System.ArgumentException">Thrown when the span is empty.</exception>
-    public T Choose<T>(System.ReadOnlySpan<T> span) => span.IsEmpty ? throw new System.ArgumentException("Cannot choose from an empty span", nameof(span)) : span[Next(span.Length)];
+    public T Choose<T>(System.ReadOnlySpan<T> span)
+        => span.IsEmpty ? throw new System.ArgumentException(
+            "Cannot choose from an empty span", nameof(span)) : span[Next(span.Length)];
 
     /// <summary>
     /// Fills the specified buffer with random bytes.
     /// </summary>
     /// <param name="buffer">The buffer to fill.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void NextBytes(System.Span<System.Byte> buffer) => _rand.NextBytes(buffer);
 
     /// <summary>
