@@ -129,8 +129,6 @@ public struct DataWriter
     /// <param name="minimumSize">The minimum number of bytes required.</param>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if minimumSize is not positive.</exception>
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Expand(System.Int32 minimumSize)
     {
         if (minimumSize <= 0)
@@ -168,8 +166,6 @@ public struct DataWriter
     /// Retrieves a reference to the first byte in the free buffer space with the specified size hint.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public readonly unsafe System.Byte[] ToArray()
     {
         System.Int32 payloadLength = WrittenCount;
@@ -191,8 +187,6 @@ public struct DataWriter
     /// Clears the buffer and returns it to the ArrayPool if rented.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (_buffer != null)

@@ -8,16 +8,22 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 /// Provides serialization and deserialization for lists of elements.
 /// </summary>
 /// <typeparam name="T">The type of the elements in the list.</typeparam>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed class ListFormatter<T> : IFormatter<System.Collections.Generic.List<T>>
 {
+    private static System.String DebuggerDisplay => $"ListFormatter<{typeof(T).FullName}>";
+
     /// <summary>
     /// Serializes a list of elements into the provided writer.
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The list of elements to serialize.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Serialize(ref DataWriter writer, System.Collections.Generic.List<T> value)
     {
         if (value == null)
@@ -48,7 +54,8 @@ public sealed class ListFormatter<T> : IFormatter<System.Collections.Generic.Lis
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized list of elements, or null if the serialized data represents a null list.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
     {
         System.UInt16 length = FormatterProvider.Get<System.UInt16>()

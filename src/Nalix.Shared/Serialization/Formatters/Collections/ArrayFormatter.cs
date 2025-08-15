@@ -10,16 +10,22 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 /// Provides serialization and deserialization for arrays of unmanaged types.
 /// </summary>
 /// <typeparam name="T">The unmanaged type of the array elements.</typeparam>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
 {
+    private static System.String DebuggerDisplay => $"ArrayFormatter<{typeof(T).FullName}>";
+
     /// <summary>
     /// Serializes an array of unmanaged values into the provided writer.
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The array to serialize.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public unsafe void Serialize(ref DataWriter writer, T[] value)
     {
         if (value == null)
@@ -62,7 +68,8 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized array of unmanaged values, or null if applicable.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public unsafe T[] Deserialize(ref DataReader reader)
     {
         System.UInt16 length = FormatterProvider
