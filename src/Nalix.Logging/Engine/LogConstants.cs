@@ -5,7 +5,7 @@ namespace Nalix.Logging.Engine;
 /// <summary>
 /// Contains constant values used for logging.
 /// </summary>
-public static class NLogConstants
+public static class LogConstants
 {
     /// <summary>
     /// The opening bracket character used in log formatting.

@@ -75,7 +75,7 @@ public abstract partial class TcpListenerBase
 
                 System.Collections.Generic.List<System.Threading.Tasks.Task> tasks =
                 [
-                    TimeSynchronizer.Instance.StartTickLoopAsync(linkedToken)
+                    InstanceManager.Instance.GetOrCreateInstance < TimeSynchronizer >().StartTickLoopAsync(linkedToken)
                 ];
 
                 for (System.Int32 i = 0; i < Config.MaxParallel; i++)
@@ -131,7 +131,8 @@ public abstract partial class TcpListenerBase
                                                          .ConfigureAwait(false);
                     }
 
-                    TimeSynchronizer.Instance.StopTicking();
+                    InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
+                                            .StopTicking();
                 }
                 catch (System.Exception ex)
                 {

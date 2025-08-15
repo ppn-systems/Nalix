@@ -85,10 +85,10 @@ internal static class LoggingBuilder
             return;
         }
 
-        _ = builder.Append(NLogConstants.LogBracketOpen)
+        _ = builder.Append(LogConstants.LogBracketOpen)
                .Append(System.Threading.Interlocked.Increment(ref LogCounter).ToString("D6"))
-               .Append(NLogConstants.LogBracketClose)
-               .Append(NLogConstants.LogSpaceSeparator);
+               .Append(LogConstants.LogBracketClose)
+               .Append(LogConstants.LogSpaceSeparator);
     }
 
     /// <summary>
@@ -109,7 +109,7 @@ internal static class LoggingBuilder
         // Format timestamp directly into stack-allocated buffer
         if (timeStamp.TryFormat(dateBuffer, out System.Int32 charsWritten, timestampFormat))
         {
-            _ = builder.Append(NLogConstants.LogBracketOpen);
+            _ = builder.Append(LogConstants.LogBracketOpen);
 
             if (colors)
             {
@@ -124,7 +124,7 @@ internal static class LoggingBuilder
                 _ = builder.Append(ColorAnsi.White);
             }
 
-            _ = builder.Append(NLogConstants.LogBracketClose);
+            _ = builder.Append(LogConstants.LogBracketClose);
         }
     }
 
@@ -138,8 +138,8 @@ internal static class LoggingBuilder
         System.Text.StringBuilder builder,
         LogLevel logLevel, System.Boolean colors)
     {
-        _ = builder.Append(NLogConstants.LogSpaceSeparator)
-               .Append(NLogConstants.LogBracketOpen);
+        _ = builder.Append(LogConstants.LogSpaceSeparator)
+               .Append(LogConstants.LogBracketOpen);
 
         if (colors)
         {
@@ -155,7 +155,7 @@ internal static class LoggingBuilder
             _ = builder.Append(ColorAnsi.White);
         }
 
-        _ = builder.Append(NLogConstants.LogBracketClose);
+        _ = builder.Append(LogConstants.LogBracketClose);
     }
 
     /// <summary>
@@ -174,8 +174,8 @@ internal static class LoggingBuilder
             return;
         }
 
-        _ = builder.Append(NLogConstants.LogSpaceSeparator)
-               .Append(NLogConstants.LogBracketOpen);
+        _ = builder.Append(LogConstants.LogSpaceSeparator)
+               .Append(LogConstants.LogBracketOpen);
 
         if (colors && eventId.Name != null)
         {
@@ -197,7 +197,7 @@ internal static class LoggingBuilder
             _ = builder.Append(ColorAnsi.White);
         }
 
-        _ = builder.Append(NLogConstants.LogBracketClose);
+        _ = builder.Append(LogConstants.LogBracketClose);
     }
 
     /// <summary>
@@ -210,7 +210,7 @@ internal static class LoggingBuilder
         System.Text.StringBuilder builder,
         System.String message, System.Boolean colors)
     {
-        _ = builder.Append(NLogConstants.LogSpaceSeparator);
+        _ = builder.Append(LogConstants.LogSpaceSeparator);
 
         // Use span-based append for standard separators
         _ = builder.Append(DashWithSpaces);
@@ -243,7 +243,7 @@ internal static class LoggingBuilder
             return;
         }
 
-        _ = builder.Append(NLogConstants.LogSpaceSeparator);
+        _ = builder.Append(LogConstants.LogSpaceSeparator);
         _ = builder.Append(DashWithSpaces);
         _ = builder.AppendLine();
 
@@ -345,7 +345,7 @@ internal static class LoggingBuilder
         System.Exception? exception, System.Boolean colors)
     {
         // Base size includes timestamp format, brackets, and separators
-        System.Int32 length = NLogConstants.DefaultLogBufferSize + message.Length;
+        System.Int32 length = LogConstants.DefaultLogBufferSize + message.Length;
 
         // Add event TransportProtocol length if present
         if (eventId.Id != 0)
