@@ -48,8 +48,6 @@ public abstract partial class Protocol : IProtocol
     /// <param name="args">Event arguments containing the connection and additional data.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when args is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void PostProcessMessage(System.Object sender, IConnectEventArgs args)
     {
         System.ArgumentNullException.ThrowIfNull(args);

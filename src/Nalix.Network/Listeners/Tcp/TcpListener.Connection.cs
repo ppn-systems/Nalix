@@ -109,8 +109,6 @@ public abstract partial class TcpListenerBase
     /// Accepts connections in a loop until cancellation is requested
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private async System.Threading.Tasks.Task AcceptConnectionsAsync(
         System.Threading.CancellationToken cancellationToken)
     {
@@ -147,8 +145,6 @@ public abstract partial class TcpListenerBase
     /// <param name="cancellationToken">The cancellation token for the connection creation process.</param>
     /// <returns>A task representing the connection creation.</returns>
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -233,8 +229,6 @@ public abstract partial class TcpListenerBase
     }
 
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void AcceptNext(System.Net.Sockets.SocketAsyncEventArgs args)
     {
         while (!_cancellationToken.IsCancellationRequested &&
@@ -280,8 +274,6 @@ public abstract partial class TcpListenerBase
     }
 
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void HandleAccept(System.Net.Sockets.SocketAsyncEventArgs e)
     {
         if (e.SocketError == System.Net.Sockets.SocketError.Success &&
