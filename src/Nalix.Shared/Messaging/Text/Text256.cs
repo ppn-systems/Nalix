@@ -36,28 +36,28 @@ public class Text256 : IPacket, IPacketTransformer<Text256>
         (System.UInt16)(PacketConstants.HeaderSize + System.Text.Encoding.UTF8.GetByteCount(Content ?? System.String.Empty));
 
     /// <summary>Gets the magic number used to identify the packet format.</summary>
-    [SerializeOrder(0)]
+    [SerializeOrder(PacketHeaderOffset.MagicNumber)]
     public System.UInt32 MagicNumber { get; set; }
 
     /// <summary>Gets the operation code (OpCode) of this packet.</summary>
-    [SerializeOrder(4)]
+    [SerializeOrder(PacketHeaderOffset.OpCode)]
     public System.UInt16 OpCode { get; set; }
 
     /// <summary>Gets the flags associated with this packet.</summary>
-    [SerializeOrder(6)]
+    [SerializeOrder(PacketHeaderOffset.Flags)]
     public PacketFlags Flags { get; set; }
 
     /// <summary>Gets the packet priority.</summary>
-    [SerializeOrder(7)]
+    [SerializeOrder(PacketHeaderOffset.Priority)]
     public PacketPriority Priority { get; set; }
 
     /// <summary>Gets the transport protocol (e.g., TCP/UDP) this packet targets.</summary>
-    [SerializeOrder(8)]
+    [SerializeOrder(PacketHeaderOffset.Transport)]
     public TransportProtocol Transport { get; set; }
 
     /// <summary>Gets or sets the UTF-8 string content of the packet.</summary>
-    [SerializeOrder(9)]
     [SerializeDynamicSize(DynamicSize)]
+    [SerializeOrder(PacketHeaderOffset.End)]
     public System.String Content { get; set; }
 
     /// <summary>Initializes a new <see cref="Text256"/> with empty content.</summary>
@@ -71,15 +71,18 @@ public class Text256 : IPacket, IPacketTransformer<Text256>
         MagicNumber = (System.UInt32)MagicNumbers.Text256;
     }
 
-    /// <summary>Initializes the packet with the specified string content.</summary>
-    /// <param name="content">The UTF-8 string to store.</param>
-    public void Initialize(System.String content) => Initialize(content, TransportProtocol.Null);
-
     /// <summary>Initializes the packet with content and transport protocol.</summary>
     /// <param name="content">The UTF-8 string to store.</param>
     /// <param name="transport">The target transport protocol.</param>
-    public void Initialize(System.String content, TransportProtocol transport = TransportProtocol.Tcp)
+    public void Initialize(
+        System.String content,
+        TransportProtocol transport = TransportProtocol.Tcp)
     {
+        if (content.Length > DynamicSize)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(content), $"Text supports at most {DynamicSize} bytes.");
+        }
+
         this.Transport = transport;
         this.Content = content ?? System.String.Empty;
     }
@@ -141,7 +144,7 @@ public class Text256 : IPacket, IPacketTransformer<Text256>
         }
 
         packet.Content = packet.Content.CompressToBase64();
-        _ = packet.Flags.AddFlag(PacketFlags.Compressed);
+        packet.Flags = packet.Flags.AddFlag(PacketFlags.Compressed);
 
         return packet;
     }
@@ -159,7 +162,7 @@ public class Text256 : IPacket, IPacketTransformer<Text256>
         }
 
         packet.Content = packet.Content.DecompressFromBase64();
-        _ = packet.Flags.RemoveFlag(PacketFlags.Compressed);
+        packet.Flags = packet.Flags.RemoveFlag(PacketFlags.Compressed);
 
         return packet;
     }

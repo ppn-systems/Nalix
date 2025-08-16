@@ -77,10 +77,17 @@ public static class LiteSerializer
 
             return buffer;
         }
-        else if (kind is TypeKind.None)
+        else if (kind is TypeKind.FixedSizeSerializable)
         {
-            DataWriter writer = (size > 512) ? new(size) : new(512);
+            System.Diagnostics.Debug.WriteLine(
+                $"Serializing fixed-size type {typeof(T).FullName} with size {size} bytes.");
+
+            System.Byte[] buffer = size > 0
+                ? System.GC.AllocateUninitializedArray<System.Byte>(size)
+                : new System.Byte[512]; // small fallback
+
             IFormatter<T> formatter = FormatterProvider.Get<T>();
+            DataWriter writer = new(buffer);
 
             try
             {
@@ -96,17 +103,10 @@ public static class LiteSerializer
                 writer.Dispose();
             }
         }
-        else if (kind is TypeKind.FixedSizeSerializable)
+        else if (kind is TypeKind.None)
         {
-            System.Diagnostics.Debug.WriteLine(
-                $"Serializing fixed-size type {typeof(T).FullName} with size {size} bytes.");
-
-            System.Byte[] buffer = size > 0
-                ? System.GC.AllocateUninitializedArray<System.Byte>(size)
-                : new System.Byte[512]; // small fallback
-
+            DataWriter writer = (size > 512) ? new(size) : new(512);
             IFormatter<T> formatter = FormatterProvider.Get<T>();
-            DataWriter writer = new(buffer);
 
             try
             {
@@ -208,7 +208,7 @@ public static class LiteSerializer
                 throw new SerializationException("Buffer too small.");
             }
 
-            DataWriter writer = new(buffer.ToArray());
+            DataWriter writer = new(buffer);
             FormatterProvider.Get<T>().Serialize(ref writer, value);
             return writer.WrittenCount;
         }

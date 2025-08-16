@@ -18,65 +18,65 @@ namespace Nalix.Shared.Messaging.Control;
 /// <summary>
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
-[MagicNumber(MagicNumbers.Handshake)]
+[MagicNumber(MagicNumbers.Control)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Binary128 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public class Control : IPacket, IPacketTransformer<Control>
+[System.Diagnostics.DebuggerDisplay("Control OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+public sealed class Control : IPacket, IPacketTransformer<Control>
 {
     /// <summary>
     /// Gets the total length of the serialized packet in bytes, including header and content.
     /// </summary>
     [SerializeIgnore]
     public System.UInt16 Length =>
-        PacketConstants.HeaderSize + sizeof(ControlType) + sizeof(System.Int64);
+        PacketConstants.HeaderSize + sizeof(ControlType) + (sizeof(System.Int64) * 2);
 
     /// <summary>
     /// Gets the magic number used to identify the packet format.
     /// </summary>
-    [SerializeOrder(0)]
+    [SerializeOrder(PacketHeaderOffset.MagicNumber)]
     public System.UInt32 MagicNumber { get; set; }
 
     /// <summary>
     /// Gets the operation code (OpCode) of this packet.
     /// </summary>
-    [SerializeOrder(4)]
+    [SerializeOrder(PacketHeaderOffset.OpCode)]
     public System.UInt16 OpCode { get; set; }
 
     /// <summary>
     /// Gets the flags associated with this packet.
     /// </summary>
-    [SerializeOrder(6)]
+    [SerializeOrder(PacketHeaderOffset.Flags)]
     public PacketFlags Flags { get; set; }
 
     /// <summary>
     /// Gets the packet priority.
     /// </summary>
-    [SerializeOrder(7)]
+    [SerializeOrder(PacketHeaderOffset.Priority)]
     public PacketPriority Priority { get; set; }
 
     /// <summary>
     /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
     /// </summary>
-    [SerializeOrder(8)]
+    [SerializeOrder(PacketHeaderOffset.Transport)]
     public TransportProtocol Transport { get; set; }
 
     /// <summary>
     /// Gets or sets the binary content of the packet.
     /// </summary>
-    [SerializeOrder(9)]
+    [SerializeOrder(PacketHeaderOffset.End + 0)]
     public ControlType Type { get; set; }
 
     /// <summary>
     /// Gets or sets the timestamp associated with this packet.
     /// </summary>
-    [SerializeOrder(10)]
+    [SerializeOrder(PacketHeaderOffset.End + 1)]
     public System.Int64 Timestamp { get; set; }
 
     /// <summary>
     /// Gets or sets the monotonic timestamp (in ticks) for RTT measurement.
     /// </summary>
-    [SerializeOrder(11)]
+    [SerializeOrder(PacketHeaderOffset.End + 2)]
     public System.Int64 MonoTicks { get; set; }
 
     /// <summary>
@@ -84,21 +84,15 @@ public class Control : IPacket, IPacketTransformer<Control>
     /// </summary>
     public Control()
     {
-        Timestamp = 0;
-        MonoTicks = 0;
-        Type = ControlType.Ping; // Default type, can be changed later
-        Flags = PacketFlags.None;
-        Priority = PacketPriority.Normal;
-        Transport = TransportProtocol.Null;
-        OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)MagicNumbers.Handshake;
+        this.Timestamp = 0;
+        this.MonoTicks = 0;
+        this.Type = ControlType.Ping; // Default type, can be changed later
+        this.Flags = PacketFlags.None;
+        this.Priority = PacketPriority.Urgent;
+        this.Transport = TransportProtocol.Null;
+        this.OpCode = PacketConstants.OpCodeDefault;
+        this.MagicNumber = (System.UInt32)MagicNumbers.Control;
     }
-
-    /// <summary>
-    /// Initializes the packet with binary data.
-    /// </summary>
-    /// <param name="type">Binary content of the packet.</param>
-    public void Initialize(ControlType type) => Initialize(type, TransportProtocol.Tcp);
 
     /// <summary>
     /// Initializes the packet with binary data and a transport protocol.
@@ -180,7 +174,7 @@ public class Control : IPacket, IPacketTransformer<Control>
     public void ResetForPool()
     {
         this.Timestamp = 0;
-        MonoTicks = 0;
+        this.MonoTicks = 0;
         this.Type = ControlType.Ping;
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.Normal;

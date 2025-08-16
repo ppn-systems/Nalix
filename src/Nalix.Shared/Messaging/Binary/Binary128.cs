@@ -40,37 +40,37 @@ public class Binary128 : IPacket, IPacketTransformer<Binary128>
     /// <summary>
     /// Gets the magic number used to identify the packet format.
     /// </summary>
-    [SerializeOrder(0)]
+    [SerializeOrder(PacketHeaderOffset.MagicNumber)]
     public System.UInt32 MagicNumber { get; set; }
 
     /// <summary>
     /// Gets the operation code (OpCode) of this packet.
     /// </summary>
-    [SerializeOrder(4)]
+    [SerializeOrder(PacketHeaderOffset.OpCode)]
     public System.UInt16 OpCode { get; set; }
 
     /// <summary>
     /// Gets the flags associated with this packet.
     /// </summary>
-    [SerializeOrder(6)]
+    [SerializeOrder(PacketHeaderOffset.Flags)]
     public PacketFlags Flags { get; set; }
 
     /// <summary>
     /// Gets the packet priority.
     /// </summary>
-    [SerializeOrder(7)]
+    [SerializeOrder(PacketHeaderOffset.Priority)]
     public PacketPriority Priority { get; set; }
 
     /// <summary>
     /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
     /// </summary>
-    [SerializeOrder(8)]
+    [SerializeOrder(PacketHeaderOffset.Transport)]
     public TransportProtocol Transport { get; set; }
 
     /// <summary>
     /// Gets or sets the binary content of the packet.
     /// </summary>
-    [SerializeOrder(9)]
+    [SerializeOrder(PacketHeaderOffset.End)]
     [SerializeDynamicSize(DynamicSize)]
     public System.Byte[] Data { get; set; }
 
@@ -88,18 +88,19 @@ public class Binary128 : IPacket, IPacketTransformer<Binary128>
     }
 
     /// <summary>
-    /// Initializes the packet with binary data.
-    /// </summary>
-    /// <param name="data">Binary content of the packet.</param>
-    public void Initialize(System.Byte[] data) => Initialize(data, TransportProtocol.Null);
-
-    /// <summary>
     /// Initializes the packet with binary data and a transport protocol.
     /// </summary>
     /// <param name="data">Binary content of the packet.</param>
     /// <param name="transport">The target transport protocol.</param>
-    public void Initialize(System.Byte[] data, TransportProtocol transport = TransportProtocol.Tcp)
+    public void Initialize(
+        System.Byte[] data,
+        TransportProtocol transport = TransportProtocol.Tcp)
     {
+        if (data.Length > DynamicSize)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(data), $"Binary supports at most {DynamicSize} bytes.");
+        }
+
         this.Data = data ?? [];
         this.Transport = transport;
     }
@@ -172,7 +173,7 @@ public class Binary128 : IPacket, IPacketTransformer<Binary128>
         System.Byte[] compressed = LZ4Codec.Encode(packet.Data);
         packet.Data = compressed;
 
-        _ = packet.Flags.AddFlag(PacketFlags.Compressed);
+        packet.Flags = packet.Flags.AddFlag(PacketFlags.Compressed);
 
         return packet;
     }
@@ -209,7 +210,7 @@ public class Binary128 : IPacket, IPacketTransformer<Binary128>
             packet.Data = output;
         }
 
-        _ = packet.Flags.RemoveFlag(PacketFlags.Compressed);
+        packet.Flags = packet.Flags.RemoveFlag(PacketFlags.Compressed);
 
         return packet;
     }
