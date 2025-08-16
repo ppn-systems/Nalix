@@ -174,6 +174,24 @@ public static class Clock
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.DateTime GetRawUtcNow() => System.DateTime.UtcNow;
 
+    /// <summary>
+    /// Returns the current monotonic tick count using <see cref="System.Diagnostics.Stopwatch"/>.
+    /// These ticks are monotonic (not affected by system clock changes),
+    /// suitable for latency/RTT measurement.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Int64 MonoTicksNow()
+        => System.Diagnostics.Stopwatch.GetTimestamp();
+
+    /// <summary>
+    /// Converts a monotonic tick delta into milliseconds.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Double MonoTicksToMilliseconds(System.Int64 tickDelta)
+        => tickDelta * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+
     #endregion Basic Time Functions
 
     #region Conversion Methods

@@ -7,6 +7,8 @@ using Nalix.Common.Security.Cryptography.Enums;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Messaging.Binary;
+using Nalix.Shared.Messaging.Control;
+using Nalix.Shared.Messaging.Text;
 using System.Linq;
 
 namespace Nalix.Network.Dispatch.Inspection;
@@ -30,7 +32,7 @@ internal static class PacketRegistry
     static PacketRegistry()
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-            .Info("[PacketRegistry] Initializing...");
+                                .Info("[PacketRegistry] Initializing...");
 
         _transformers = [];
         _packetFactories = [];
@@ -42,19 +44,26 @@ internal static class PacketRegistry
         {
             assembliesToScan.Add(entryAsm);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Debug($"[PacketRegistry] Added entry assembly: {entryAsm.FullName}");
+                                    .Debug($"[PacketRegistry] Added entry assembly: {entryAsm.FullName}");
         }
+
+        System.String[] namespaces =
+        [
+            typeof(Control).Namespace!,
+            typeof(Text256).Namespace!,
+            typeof(Binary128).Namespace!
+        ];
 
         assembliesToScan.AddRange(
             System.AppDomain.CurrentDomain.GetAssemblies()
                 .Where(a => !a.IsDynamic &&
                             !System.String.IsNullOrWhiteSpace(a.FullName) &&
                             a.GetTypes().Any(t => t.Namespace != null &&
-                                                  t.Namespace.StartsWith(typeof(Binary128).Namespace!)))
-        );
+                                                  namespaces.Any(ns => t.Namespace.StartsWith(ns))))
+                );
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-            .Debug($"[PacketRegistry] Total assemblies to scan: {assembliesToScan.Count}");
+                                .Debug($"[PacketRegistry] Total assemblies to scan: {assembliesToScan.Count}");
 
         Initialize([.. assembliesToScan.Distinct()]);
     }
@@ -64,7 +73,7 @@ internal static class PacketRegistry
         if (assemblies == null || assemblies.Length == 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Warn("[PacketRegistry] Assemblies param is null/empty, using executing assembly.");
+                                    .Warn("[PacketRegistry] Assemblies param is null/empty, using executing assembly.");
 
             assemblies = [System.Reflection.Assembly.GetExecutingAssembly()];
         }
@@ -78,8 +87,8 @@ internal static class PacketRegistry
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Error($"[PacketRegistry] Error registering packets " +
-                           $"from assembly {assembly.FullName}: {ex.Message}", ex);
+                                        .Error($"[PacketRegistry] Error registering packets " +
+                                               $"from assembly {assembly.FullName}: {ex.Message}", ex);
             }
         }
 
