@@ -182,6 +182,8 @@ public abstract partial class TcpListenerBase
                 _acceptWorkerIds.Add(h.Id);
             }
 
+            START_PROCESS_CHANNEL(linkedToken);
+
             return;
         }
         catch (System.OperationCanceledException)
@@ -256,6 +258,8 @@ public abstract partial class TcpListenerBase
             try { _listener?.Close(); } catch { }
 
             _listener = null;
+
+            STOP_PROCESS_CHANNEL();
 
             _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()?
                                          .CancelGroup($"{NetTaskNames.Net}/{NetTaskNames.Tcp}/{_port}"));

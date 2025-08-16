@@ -122,6 +122,18 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     [IniComment("Specify whether ExclusiveAddressUse is enabled (default: true unless ReuseAddress is true)")]
     public System.Boolean ExclusiveAddressUse { get; set; } = true;
 
+    /// <summary>
+    /// Maximum accepted connections that may queue in the channel while the consumer
+    /// thread is busy.
+    /// <para>
+    /// Tune to roughly <c>2 × burst rate × ProcessConnection latency (ms)</c>.
+    /// Default 128 matches the typical TCP backlog.
+    /// </para>
+    /// </summary>
+    [IniComment("Maximum accepted connections that may queue in the channel while the consumer thread is busy (tune to ~2 × burst rate × ProcessConnection latency in ms, default 128)")]
+    [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "ProcessChannelCapacity must be at least 1.")]
+    public System.Int32 ProcessChannelCapacity { get; set; } = 128;
+
     #endregion Properties
 
     /// <summary>

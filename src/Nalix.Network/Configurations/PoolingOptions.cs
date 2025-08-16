@@ -1,112 +1,225 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Shared.Attributes;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Routing;
+using Nalix.Network.Timekeeping;
 
 namespace Nalix.Network.Configurations;
 
 /// <summary>
-/// Represents configuration options for connection pooling in the network layer.
+/// Configuration for all object pools in the network layer.
+/// <para>
+/// Each pool has two knobs:
+/// <list type="bullet">
+///   <item><b>Capacity</b> — hard ceiling; objects returned beyond this are discarded and GC'd.</item>
+///   <item><b>Preallocate</b> — objects created eagerly at startup to avoid first-use allocation spikes.</item>
+/// </list>
+/// </para>
+/// <para><b>Tuning guidance:</b><br/>
+/// Set <c>Capacity</c> to the expected <em>peak concurrent</em> usage of that object type,
+/// with a reasonable buffer (× 1.5–2). Setting it too high wastes memory; too low causes
+/// excess allocations and GC pressure under load.<br/>
+/// Set <c>Preallocate</c> to the expected <em>steady-state</em> usage so the pool is warm
+/// before the first request arrives.
+/// </para>
 /// </summary>
-[IniComment("Object pool configuration — controls max capacity and startup preallocation for network contexts")]
-public class PoolingOptions : ConfigurationLoader
+[IniComment("Object pool configuration — capacity ceiling and startup preallocations for network contexts")]
+public sealed class PoolingOptions : ConfigurationLoader
 {
-    #region Max Capacity
+    #region Accept Context — one per in-flight AcceptAsync operation
 
     /// <summary>
-    /// Maximum number of pooled <see cref="PooledAcceptContext"/> instances.
+    /// Maximum number of <see cref="PooledAcceptContext"/> instances retained in the pool.
+    /// <para>
+    /// Each accept-loop worker holds exactly one context while waiting for a connection.
+    /// Set this to at least the number of accept workers (default 20) plus a small buffer.
+    /// </para>
     /// </summary>
-    [IniComment("Max pooled AcceptContext instances (1–1,000,000)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000, ErrorMessage = "AcceptContextMaxCapacity must be between 1 and 1,000,000.")]
-    public System.Int32 AcceptContextMaxCapacity { get; set; } = 1024;
+    [IniComment("Max pooled AcceptContext instances — set to accept-worker count + buffer (default 1024)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
+        ErrorMessage = "AcceptContext.Capacity must be between 1 and 1,000,000.")]
+    public System.Int32 AcceptContext_Capacity { get; set; } = 1024;
 
     /// <summary>
-    /// Maximum number of pooled <see cref="PacketContext{T}"/> instances.
+    /// Number of <see cref="PooledAcceptContext"/> instances to create at startup.
     /// </summary>
-    [IniComment("Max pooled PacketContext instances (1–1,000,000)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000, ErrorMessage = "PacketContextMaxCapacity must be between 1 and 1,000,000.")]
-    public System.Int32 PacketContextMaxCapacity { get; set; } = 1024;
+    [IniComment("AcceptContext instances to warm up at startup (default 20 = typical worker count)")]
+    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
+        ErrorMessage = "AcceptContext.Preallocate must be between 0 and 1,000,000.")]
+    public System.Int32 AcceptContext_Preallocate { get; set; } = 20;
+
+    #endregion
+
+    #region Socket Async Event Args — shared by Accept and Receive paths
 
     /// <summary>
-    /// Maximum number of pooled <see cref="PooledSocketAsyncEventArgs"/> instances.
+    /// Maximum number of <see cref="PooledSocketAsyncEventArgs"/> instances retained in the pool.
+    /// <para>
+    /// SAEAs are shared between the accept path (one per accept worker) and the receive path
+    /// (one per active connection). Peak usage ≈ accept workers + peak concurrent connections.
+    /// </para>
     /// </summary>
-    [IniComment("Max pooled SocketAsyncEventArgs instances (1–1,000,000)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000, ErrorMessage = "SocketArgsMaxCapacity must be between 1 and 1,000,000.")]
-    public System.Int32 SocketArgsMaxCapacity { get; set; } = 1024;
+    [IniComment("Max pooled SocketAsyncEventArgs — accept workers + peak connections (default 256)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
+        ErrorMessage = "SocketArgs.Capacity must be between 1 and 1,000,000.")]
+    public System.Int32 SocketArgs_Capacity { get; set; } = 256;
 
     /// <summary>
-    /// Process context pooling is currently disabled, but this option is reserved for future use to control the maximum capacity of pooled process contexts.
+    /// Number of <see cref="PooledSocketAsyncEventArgs"/> instances to create at startup.
     /// </summary>
-    [IniComment("Max pooled ProcessContextMaxCapacity instances (1–1,000,000)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000, ErrorMessage = "ProcessContextMaxCapacity must be between 1 and 1,000,000.")]
-    public System.Int32 ProcessContextMaxCapacity { get; set; } = 1024;
+    [IniComment("SocketAsyncEventArgs instances to warm up at startup (default 32)")]
+    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
+        ErrorMessage = "SocketArgs.Preallocate must be between 0 and 1,000,000.")]
+    public System.Int32 SocketArgs_Preallocate { get; set; } = 32;
 
-    #endregion Max Capacity
+    #endregion
 
-    #region Preallocate
+    #region Receive Context — one per active TCP connection
 
     /// <summary>
-    /// Number of <see cref="PooledAcceptContext"/> instances to preallocate on startup.
+    /// Maximum number of <see cref="PooledReceiveContext"/> instances retained in the pool.
+    /// <para>
+    /// Each active connection holds exactly one receive context for its lifetime.
+    /// Set this to the expected peak concurrent connection count.
+    /// </para>
     /// </summary>
-    [IniComment("AcceptContext instances to preallocate at startup (0–AcceptContextMaxCapacity)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000, ErrorMessage = "AcceptContextPreallocate must be between 0 and 1,000,000.")]
-    public System.Int32 AcceptContextPreallocate { get; set; } = 16;
+    [IniComment("Max pooled ReceiveContext instances — set to peak concurrent connections (default 256)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
+        ErrorMessage = "ReceiveContext.Capacity must be between 1 and 1,000,000.")]
+    public System.Int32 ReceiveContext_Capacity { get; set; } = 256;
 
     /// <summary>
-    /// Number of <see cref="PacketContext{T}"/> instances to preallocate on startup.
+    /// Number of <see cref="PooledReceiveContext"/> instances to create at startup.
     /// </summary>
-    [IniComment("PacketContext instances to preallocate at startup (0–PacketContextMaxCapacity)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000, ErrorMessage = "PacketContextPreallocate must be between 0 and 1,000,000.")]
-    public System.Int32 PacketContextPreallocate { get; set; } = 16;
+    [IniComment("ReceiveContext instances to warm up at startup (default 32)")]
+    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
+        ErrorMessage = "ReceiveContext.Preallocate must be between 0 and 1,000,000.")]
+    public System.Int32 ReceiveContext_Preallocate { get; set; } = 32;
+
+    #endregion
+
+    #region Timeout Task — one per active connection registered with TimingWheel
 
     /// <summary>
-    /// Number of <see cref="PooledSocketAsyncEventArgs"/> instances to preallocate on startup.
+    /// Max pooled TimeoutTask instances — set to peak concurrent connections, higher under DDoS (default 4096).
+    /// <para>
+    /// <see cref="TimingWheel"/> allocates one task per registered connection and keeps it
+    /// alive until the connection times out or disconnects. Under sustained load the pool
+    /// fills up to this ceiling; objects beyond it are GC'd instead of reused.
+    /// </para>
+    /// <para>
+    /// Set this to at least the peak concurrent connection count. If the server sees bursts
+    /// (e.g. DDoS) followed by mass disconnect, a higher value (e.g. 4096) avoids repeated
+    /// allocation/GC cycles during the burst.
+    /// </para>
     /// </summary>
-    [IniComment("SocketAsyncEventArgs instances to preallocate at startup (0–SocketArgsMaxCapacity)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000, ErrorMessage = "SocketArgsPreallocate must be between 0 and 1,000,000.")]
-    public System.Int32 SocketArgsPreallocate { get; set; } = 16;
+    [IniComment("Max pooled TimeoutTask instances — set to peak concurrent connections, higher under DDoS (default 4096)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
+        ErrorMessage = "TimeoutTask.Capacity must be between 1 and 1,000,000.")]
+    public System.Int32 TimeoutTask_Capacity { get; set; } = 4096;
 
     /// <summary>
-    /// Process context pooling is currently disabled, but this option is reserved for future use to control the maximum capacity of pooled process contexts.
+    /// TimeoutTask instances to warm up at startup (default 64).
     /// </summary>
-    [IniComment("Max pooled ProcessContextPreallocate instances (1–1,000,000)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000, ErrorMessage = "ProcessContextPreallocate must be between 1 and 1,000,000.")]
-    public System.Int32 ProcessContextPreallocate { get; set; } = 16;
+    [IniComment("TimeoutTask instances to warm up at startup (default 64)")]
+    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
+        ErrorMessage = "TimeoutTask.Preallocate must be between 0 and 1,000,000.")]
+    public System.Int32 TimeoutTask_Preallocate { get; set; } = 64;
 
-    #endregion Preallocate
+    #endregion
+
+    #region Packet Context — reusable packet processing contexts
 
     /// <summary>
-    /// Validates the configuration options and throws an exception if validation fails.
+    /// Maximum number of <see cref="PacketContext{T}"/> instances retained in the pool.
     /// </summary>
-    /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
-    /// Thrown when one or more validation attributes fail.
-    /// </exception>
+    [IniComment("Max pooled PacketContext instances (default 1024)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
+        ErrorMessage = "PacketContext.Capacity must be between 1 and 1,000,000.")]
+    public System.Int32 PacketContext_Capacity { get; set; } = 2024;
+
+    /// <summary>
+    /// Number of <see cref="PacketContext{T}"/> instances to create at startup.
+    /// </summary>
+    [IniComment("PacketContext instances to warm up at startup (default 16)")]
+    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
+        ErrorMessage = "PacketContext.Preallocate must be between 0 and 1,000,000.")]
+    public System.Int32 PacketContext_Preallocate { get; set; } = 16;
+
+    #endregion
+
+    #region Process Context — reserved, currently unused
+
+    /// <summary>
+    /// Maximum number of process context instances retained in the pool.
+    /// Reserved for future use.
+    /// </summary>
+    [IniComment("Max pooled ProcessContext instances — reserved for future use (default 256)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
+        ErrorMessage = "ProcessContext.Capacity must be between 1 and 1,000,000.")]
+    public System.Int32 ProcessContext_Capacity { get; set; } = 256;
+
+    /// <summary>
+    /// Number of process context instances to create at startup.
+    /// Reserved for future use.
+    /// </summary>
+    [IniComment("ProcessContext instances to warm up at startup — reserved for future use (default 16)")]
+    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
+        ErrorMessage = "ProcessContext.Preallocate must be between 0 and 1,000,000.")]
+    public System.Int32 ProcessContext_Preallocate { get; set; } = 16;
+
+    #endregion
+
+    #region Validation
+
+    /// <summary>
+    /// Validates all options. Throws <see cref="System.ComponentModel.DataAnnotations.ValidationException"/>
+    /// if any value is out of range or a preallocate value exceeds its capacity.
+    /// </summary>
     public void Validate()
     {
-        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+        System.ComponentModel.DataAnnotations.ValidationContext ctx = new(this);
+        System.ComponentModel.DataAnnotations.Validator.ValidateObject(
+            this, ctx, validateAllProperties: true);
 
-        if (AcceptContextPreallocate > AcceptContextMaxCapacity)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("AcceptContextPreallocate cannot be greater than AcceptContextMaxCapacity.");
-        }
+        ASSERT_PREALLOCATE_LE_CAPACITY(
+            nameof(AcceptContext_Preallocate), AcceptContext_Preallocate,
+            nameof(AcceptContext_Capacity), AcceptContext_Capacity);
 
-        if (PacketContextPreallocate > PacketContextMaxCapacity)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("PacketContextPreallocate cannot be greater than PacketContextMaxCapacity.");
-        }
+        ASSERT_PREALLOCATE_LE_CAPACITY(
+            nameof(SocketArgs_Preallocate), SocketArgs_Preallocate,
+            nameof(SocketArgs_Capacity), SocketArgs_Capacity);
 
-        if (SocketArgsPreallocate > SocketArgsMaxCapacity)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("SocketArgsPreallocate cannot be greater than SocketArgsMaxCapacity.");
-        }
+        ASSERT_PREALLOCATE_LE_CAPACITY(
+            nameof(ReceiveContext_Preallocate), ReceiveContext_Preallocate,
+            nameof(ReceiveContext_Capacity), ReceiveContext_Capacity);
 
-        if (ProcessContextPreallocate > ProcessContextMaxCapacity)
+        ASSERT_PREALLOCATE_LE_CAPACITY(
+            nameof(TimeoutTask_Preallocate), TimeoutTask_Preallocate,
+            nameof(TimeoutTask_Capacity), TimeoutTask_Capacity);
+
+        ASSERT_PREALLOCATE_LE_CAPACITY(
+            nameof(PacketContext_Preallocate), PacketContext_Preallocate,
+            nameof(PacketContext_Capacity), PacketContext_Capacity);
+
+        ASSERT_PREALLOCATE_LE_CAPACITY(
+            nameof(ProcessContext_Preallocate), ProcessContext_Preallocate,
+            nameof(ProcessContext_Capacity), ProcessContext_Capacity);
+    }
+
+    private static void ASSERT_PREALLOCATE_LE_CAPACITY(
+        System.String preallocName, System.Int32 preallocVal,
+        System.String capacityName, System.Int32 capacityVal)
+    {
+        if (preallocVal > capacityVal)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("ProcessContextPreallocate cannot be greater than ProcessContextMaxCapacity.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException(
+                $"{preallocName} ({preallocVal}) cannot exceed {capacityName} ({capacityVal}).");
         }
     }
+
+    #endregion
 }
