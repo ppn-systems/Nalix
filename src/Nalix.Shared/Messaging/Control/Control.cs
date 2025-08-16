@@ -8,6 +8,7 @@ using Nalix.Common.Packets.Interfaces;
 using Nalix.Common.Security.Cryptography.Enums;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
+using Nalix.Framework.Time;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging.Binary;
 using Nalix.Shared.Serialization;
@@ -17,24 +18,18 @@ namespace Nalix.Shared.Messaging.Control;
 /// <summary>
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
-[MagicNumber(MagicNumbers.Control)]
+[MagicNumber(MagicNumbers.Handshake)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Binary128 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public class Handshake : IPacket, IPacketTransformer<Handshake>
+public class Control : IPacket, IPacketTransformer<Control>
 {
-    /// <inheritdoc/>
-    public const System.Int32 DynamicSize = 32;
-
-    /// <inheritdoc/>
-    public static System.Int32 Size => PacketConstants.HeaderSize + DynamicSize;
-
     /// <summary>
     /// Gets the total length of the serialized packet in bytes, including header and content.
     /// </summary>
     [SerializeIgnore]
     public System.UInt16 Length =>
-        (System.UInt16)(PacketConstants.HeaderSize + (Data?.Length ?? 0));
+        PacketConstants.HeaderSize + sizeof(ControlType) + sizeof(System.Int64);
 
     /// <summary>
     /// Gets the magic number used to identify the packet format.
@@ -70,37 +65,52 @@ public class Handshake : IPacket, IPacketTransformer<Handshake>
     /// Gets or sets the binary content of the packet.
     /// </summary>
     [SerializeOrder(9)]
-    [SerializeDynamicSize(DynamicSize)]
-    public System.Byte[] Data { get; set; }
+    public ControlType Type { get; set; }
+
+    /// <summary>
+    /// Gets or sets the timestamp associated with this packet.
+    /// </summary>
+    [SerializeOrder(10)]
+    public System.Int64 Timestamp { get; set; }
+
+    /// <summary>
+    /// Gets or sets the monotonic timestamp (in ticks) for RTT measurement.
+    /// </summary>
+    [SerializeOrder(11)]
+    public System.Int64 MonoTicks { get; set; }
 
     /// <summary>
     /// Initializes a new <see cref="Binary128"/> with empty content.
     /// </summary>
-    public Handshake()
+    public Control()
     {
-        Data = [];
+        Timestamp = 0;
+        MonoTicks = 0;
+        Type = ControlType.Ping; // Default type, can be changed later
         Flags = PacketFlags.None;
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.Null;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)MagicNumbers.Control;
+        MagicNumber = (System.UInt32)MagicNumbers.Handshake;
     }
 
     /// <summary>
     /// Initializes the packet with binary data.
     /// </summary>
-    /// <param name="data">Binary content of the packet.</param>
-    public void Initialize(System.Byte[] data) => Initialize(data, TransportProtocol.Null);
+    /// <param name="type">Binary content of the packet.</param>
+    public void Initialize(ControlType type) => Initialize(type, TransportProtocol.Tcp);
 
     /// <summary>
     /// Initializes the packet with binary data and a transport protocol.
     /// </summary>
-    /// <param name="data">Binary content of the packet.</param>
+    /// <param name="type">Binary content of the packet.</param>
     /// <param name="transport">The target transport protocol.</param>
-    public void Initialize(System.Byte[] data, TransportProtocol transport = TransportProtocol.Tcp)
+    public void Initialize(ControlType type, TransportProtocol transport = TransportProtocol.Tcp)
     {
-        this.Data = data ?? [];
+        this.Type = type;
         this.Transport = transport;
+        this.MonoTicks = Clock.MonoTicksNow();
+        this.Timestamp = Clock.UnixMillisecondsNow();
     }
 
     /// <summary>
@@ -125,9 +135,9 @@ public class Handshake : IPacket, IPacketTransformer<Handshake>
     /// </summary>
     /// <param name="buffer">The source buffer.</param>
     /// <returns>A pooled <see cref="Binary128"/> instance.</returns>
-    public static Handshake Deserialize(in System.ReadOnlySpan<System.Byte> buffer)
+    public static Control Deserialize(in System.ReadOnlySpan<System.Byte> buffer)
     {
-        Handshake packet = ObjectPoolManager.Instance.Get<Handshake>();
+        Control packet = ObjectPoolManager.Instance.Get<Control>();
         System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
 
         return bytesRead == 0
@@ -136,40 +146,32 @@ public class Handshake : IPacket, IPacketTransformer<Handshake>
             : packet;
     }
 
-    /// <summary>
-    /// Encrypts the packet content.
-    /// </summary>
+    /// <inheritdoc/>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     [System.Obsolete("Internal infrastructure API. Encryption is handled by the pipeline.", error: true)]
-    public static Handshake Encrypt(Handshake packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
+    public static Control Encrypt(Control packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
         => throw new System.NotImplementedException();
 
-    /// <summary>
-    /// Decrypts the packet content.
-    /// </summary>
+    /// <inheritdoc/>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     [System.Obsolete("Internal infrastructure API. Decryption is handled by the pipeline.", error: true)]
-    public static Handshake Decrypt(Handshake packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
+    public static Control Decrypt(Control packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
         => throw new System.NotImplementedException();
 
-    /// <summary>
-    /// Compresses <see cref="Data"/> using LZ4 (raw bytes, no Base64).
-    /// </summary>
+    /// <inheritdoc/>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     [System.Obsolete("Internal infrastructure API. Decryption is handled by the pipeline.", error: true)]
-    public static Handshake Compress(Handshake packet)
+    public static Control Compress(Control packet)
         => throw new System.NotImplementedException();
 
-    /// <summary>
-    /// Decompresses <see cref="Data"/> previously compressed with LZ4.
-    /// </summary>
+    /// <inheritdoc/>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     [System.Obsolete("Internal infrastructure API. Decryption is handled by the pipeline.", error: true)]
-    public static Handshake Decompress(Handshake packet)
+    public static Control Decompress(Control packet)
         => throw new System.NotImplementedException();
 
     /// <summary>
@@ -177,7 +179,9 @@ public class Handshake : IPacket, IPacketTransformer<Handshake>
     /// </summary>
     public void ResetForPool()
     {
-        this.Data = [];
+        this.Timestamp = 0;
+        MonoTicks = 0;
+        this.Type = ControlType.Ping;
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.Normal;
         this.Transport = TransportProtocol.Null;
@@ -185,6 +189,6 @@ public class Handshake : IPacket, IPacketTransformer<Handshake>
 
     /// <inheritdoc/>
     public override System.String ToString() =>
-        $"Handshake(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
-        $"Priority={Priority}, Transport={Transport}, Data={Data?.Length ?? 0} bytes)";
+        $"Control(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+        $"Priority={Priority}, Transport={Transport}, Type={Type}, Timestamp={Timestamp})";
 }

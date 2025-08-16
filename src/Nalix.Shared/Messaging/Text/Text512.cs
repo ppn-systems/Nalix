@@ -8,7 +8,7 @@ using Nalix.Common.Packets.Enums;
 namespace Nalix.Shared.Messaging.Text;
 
 /// <inheritdoc/>
-[MagicNumber(MagicNumbers.Binary512)]
+[MagicNumber(MagicNumbers.Text512)]
 public sealed class Text512 : Text256
 {
     /// <inheritdoc/>
