@@ -50,7 +50,8 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
     #region Constructor
 
     static TransportStream() =>
-        ObjectPoolManager.Instance.SetMaxCapacity<PooledSocketAsyncContext>(1024);
+        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+        .SetMaxCapacity<PooledSocketAsyncContext>(1024);
 
     #endregion Constructor
 
@@ -367,7 +368,9 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug("[{0}] Renting larger buffer", nameof(TransportStream));
 
-                InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Return(_buffer);
+                InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                        .Return(_buffer);
+
                 _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Rent(size);
             }
 
@@ -375,7 +378,8 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
             {
                 System.Int32 bytesRead;
                 System.Threading.Tasks.TaskCompletionSource<System.Int32> tcs = new();
-                PooledSocketAsyncContext saea = ObjectPoolManager.Instance.Get<PooledSocketAsyncContext>();
+                PooledSocketAsyncContext saea = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                                        .Get<PooledSocketAsyncContext>();
 
                 try
                 {
@@ -398,7 +402,8 @@ internal class TransportStream(System.Net.Sockets.Socket socket) : System.IDispo
                 }
                 finally
                 {
-                    ObjectPoolManager.Instance.Return(saea);
+                    InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                            .Return(saea);
                 }
 
                 if (bytesRead == 0)

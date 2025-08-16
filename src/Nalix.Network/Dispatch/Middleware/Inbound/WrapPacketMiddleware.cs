@@ -64,7 +64,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"No transformer found for packet type {current.GetType().Name}.");
 
-                Text256 text = ObjectPoolManager.Instance.Get<Text256>();
+                Text256 text = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                       .Get<Text256>();
                 try
                 {
                     text.Initialize("Unsupported packet type for encryption/compression.");
@@ -74,14 +75,16 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
                 }
                 finally
                 {
-                    ObjectPoolManager.Instance.Return<Text256>(text);
+                    InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                            .Return<Text256>(text);
                 }
             }
 
         }
         catch (System.Exception)
         {
-            Text256 text = ObjectPoolManager.Instance.Get<Text256>();
+            Text256 text = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                   .Get<Text256>();
             try
             {
                 text.Initialize("An error occurred while processing your request.");
@@ -91,7 +94,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
             }
             finally
             {
-                ObjectPoolManager.Instance.Return<Text256>(text);
+                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                        .Return<Text256>(text);
             }
         }
 

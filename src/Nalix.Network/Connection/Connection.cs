@@ -61,7 +61,8 @@ public sealed partial class Connection : IConnection
 
         this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
         this.Id = Identifier.NewId(IdentifierType.Session);
-        this.Udp = ObjectPoolManager.Instance.Get<UdpTransport>();
+        this.Udp = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                           .Get<UdpTransport>();
         this.Udp.Initialize(this);
         this.Tcp = new TcpTransport(this);
 
@@ -210,7 +211,8 @@ public sealed partial class Connection : IConnection
         {
             this.Disconnect();
 
-            ObjectPoolManager.Instance.Return<UdpTransport>((UdpTransport)this.Udp);
+            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .Return<UdpTransport>((UdpTransport)this.Udp);
         }
         catch (System.Exception ex)
         {

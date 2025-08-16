@@ -2,6 +2,7 @@
 
 using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Core.Context;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging.Text;
 
@@ -39,8 +40,8 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
         {
             Name = nameof(Text256),
             MaxBytes = Text256.DynamicSize,
-            Rent = ObjectPoolManager.Instance.Get<Text256>,
-            Return = o => ObjectPoolManager.Instance.Return((Text256)o),
+            Rent = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Get<Text256>,
+            Return = o => InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Return((Text256)o),
             Initialize = (o, s) => ((Text256)o).Initialize(s),
             Serialize = o => ((Text256)o).Serialize(),
         },
@@ -48,8 +49,8 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
         {
             Name = nameof(Text512),
             MaxBytes = Text512.DynamicSize,
-            Rent = ObjectPoolManager.Instance.Get<Text512>,
-            Return = o => ObjectPoolManager.Instance.Return((Text512)o),
+            Rent = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Get<Text512>,
+            Return = o => InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Return((Text512)o),
             Initialize = (o, s) => ((Text512)o).Initialize(s),
             Serialize = o => ((Text512)o).Serialize(),
         },
@@ -57,8 +58,8 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
         {
             Name = nameof(Text1024),
             MaxBytes = Text1024.DynamicSize,
-            Rent = ObjectPoolManager.Instance.Get<Text1024>,
-            Return = o => ObjectPoolManager.Instance.Return((Text1024)o),
+            Rent = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Get<Text1024>,
+            Return = o => InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Return((Text1024)o),
             Initialize = (o, s) => ((Text1024)o).Initialize(s),
             Serialize = o => ((Text1024)o).Serialize(),
         },

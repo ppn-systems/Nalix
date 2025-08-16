@@ -9,7 +9,7 @@ namespace Nalix.Network.Dispatch.Inspection;
 /// This avoids runtime reflection by precompiling the method invoker.
 /// </summary>
 /// <typeparam name="TPacket">The packet type this handler processes.</typeparam>
-internal readonly record struct CompiledHandler<TPacket>(
+internal readonly record struct MethodInvoker<TPacket>(
     System.Reflection.MethodInfo MethodInfo,
     System.Type ReturnType,
     System.Func<System.Object, PacketContext<TPacket>,

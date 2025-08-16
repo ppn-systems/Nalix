@@ -7,6 +7,7 @@ using Nalix.Network.Dispatch.Core.Context;
 using Nalix.Network.Dispatch.Core.Metadata;
 using Nalix.Network.Dispatch.Inspection;
 using Nalix.Network.Dispatch.Middleware.Core.Interfaces;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Dispatch.Options;
@@ -215,7 +216,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             handler = async (packet, connection) =>
             {
-                PacketContext<TPacket> context = ObjectPoolManager.Instance.Get<PacketContext<TPacket>>();
+                PacketContext<TPacket> context = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                                         .Get<PacketContext<TPacket>>();
 
                 try
                 {
