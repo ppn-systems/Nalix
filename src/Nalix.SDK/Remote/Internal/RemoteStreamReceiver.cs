@@ -17,7 +17,7 @@ namespace Nalix.SDK.Remote.Internal;
 [System.ComponentModel.EditorBrowsable(
     System.ComponentModel.EditorBrowsableState.Never)]
 [System.Diagnostics.DebuggerDisplay("Readable={_stream?.CanRead}")]
-public sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkStream stream)
+internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkStream stream)
     where TPacket : IPacket, IPacketTransformer<TPacket>
 {
     private readonly System.Net.Sockets.NetworkStream _stream = stream
