@@ -15,7 +15,7 @@ namespace Nalix.SDK.Remote.Internal;
 [System.ComponentModel.EditorBrowsable(
     System.ComponentModel.EditorBrowsableState.Never)]
 [System.Diagnostics.DebuggerDisplay("Writable={_stream?.CanWrite}, Stream={_stream}")]
-public sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStream stream)
+internal sealed class RemoteStreamSender<TPacket>(System.Net.Sockets.NetworkStream stream)
     where TPacket : IPacket
 {
     private readonly System.Net.Sockets.NetworkStream _stream = stream

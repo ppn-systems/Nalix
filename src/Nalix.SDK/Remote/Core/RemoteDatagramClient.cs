@@ -4,7 +4,7 @@ using Nalix.Common.Packets.Interfaces;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Injection.DI;
 
-namespace Nalix.SDK.Remote;
+namespace Nalix.SDK.Remote.Core;
 
 /// <summary>
 /// Represents a singleton UDP client transport used for sending and receiving packets of type <typeparamref name="TPacket"/>.
@@ -16,7 +16,7 @@ namespace Nalix.SDK.Remote;
 [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)]
-[System.Diagnostics.DebuggerDisplay("Remote={Context.Address}:{Context.Port}, IsRunning={IsRunning}")]
+[System.Diagnostics.DebuggerDisplay("Remote={Options.Address}:{Options.Port}, IsReceiving={IsReceiving}")]
 public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TPacket>
@@ -36,17 +36,17 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
     /// <summary>
     /// Gets the configuration context for the remote transport options, including remote IP and port.
     /// </summary>
-    public RemoteTransportOptions Context { get; }
+    public RemoteTransportOptions Options { get; }
 
     /// <summary>
     /// Indicates whether the UDP client is actively running and receiving data.
     /// </summary>
-    public System.Boolean IsRunning { get; private set; }
+    public System.Boolean IsReceiving { get; private set; }
 
     /// <summary>
     /// Occurs when a valid packet is received from a remote endpoint.
     /// </summary>
-    public event System.Action<TPacket, System.Net.IPEndPoint> OnPacketReceived;
+    public event System.Action<TPacket, System.Net.IPEndPoint> PacketReceived;
 
     #endregion Propierties
 
@@ -56,14 +56,14 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
     /// </summary>
     private RemoteDatagramClient()
     {
-        Context = ConfigurationManager.Instance.Get<RemoteTransportOptions>();
+        Options = ConfigurationManager.Instance.Get<RemoteTransportOptions>();
 
         _udpClient = new System.Net.Sockets.UdpClient(0); // Binds to random local port
         _udpClient.Client.DontFragment = true;
         _udpClient.Client.ReceiveBufferSize = 1 << 16;
         _udpClient.Client.SendBufferSize = 1 << 16;
 
-        _remoteEndPoint = new System.Net.IPEndPoint(System.Net.IPAddress.Parse(Context.Address), Context.Port);
+        _remoteEndPoint = new System.Net.IPEndPoint(System.Net.IPAddress.Parse(Options.Address), Options.Port);
     }
 
     /// <summary>
@@ -72,9 +72,9 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
     /// <param name="externalToken">An optional external cancellation token to allow controlled shutdown.</param>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_cts))]
-    public void Start(System.Threading.CancellationToken externalToken = default)
+    public void StartReceiving(System.Threading.CancellationToken externalToken = default)
     {
-        if (this.IsRunning)
+        if (this.IsReceiving)
         {
             return;
         }
@@ -82,19 +82,19 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
         _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(externalToken);
         _ = ReceiveLoopAsync(_cts.Token);
 
-        this.IsRunning = true;
+        this.IsReceiving = true;
     }
 
     /// <summary>
     /// Stops the UDP client, cancels receiving operations, and disposes internal resources.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    public void Stop()
+    public void StopReceiving()
     {
         _cts?.Cancel();
         _udpClient?.Dispose();
 
-        this.IsRunning = false;
+        this.IsReceiving = false;
     }
 
     /// <summary>
@@ -109,7 +109,7 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
     }
 
     /// <summary>
-    /// Asynchronous loop that continuously listens for incoming UDP packets and raises the <see cref="OnPacketReceived"/> event.
+    /// Asynchronous loop that continuously listens for incoming UDP packets and raises the <see cref="PacketReceived"/> event.
     /// </summary>
     /// <param name="token">The cancellation token used to stop the loop.</param>
     [System.Runtime.CompilerServices.SkipLocalsInit]
@@ -122,7 +122,7 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
             {
                 System.Net.Sockets.UdpReceiveResult result = await _udpClient.ReceiveAsync(token);
                 TPacket packet = TPacket.Deserialize(result.Buffer);
-                this.OnPacketReceived?.Invoke(packet, result.RemoteEndPoint);
+                this.PacketReceived?.Invoke(packet, result.RemoteEndPoint);
             }
             catch (System.OperationCanceledException)
             {
@@ -142,7 +142,7 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
     [System.Diagnostics.DebuggerStepThrough]
     public new void Dispose()
     {
-        this.Stop();
+        this.StopReceiving();
         System.GC.SuppressFinalize(this);
     }
 }

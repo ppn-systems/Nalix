@@ -6,6 +6,16 @@
 		<OutputType>Library</OutputType>
 		<Deterministic>true</Deterministic>
 
+		<!-- NativeAOT: export UnmanagedCallersOnly symbols as a real DLL/.so/.dylib -->
+		<PublishAot>true</PublishAot>
+		<StripSymbols>true</StripSymbols>
+		<Optimize>true</Optimize>
+		<InvariantGlobalization>true</InvariantGlobalization>
+
+		<!-- Reduce reflection metadata; keep it small & fast for interop -->
+		<IlcGenerateCompleteTypeMetadata>false</IlcGenerateCompleteTypeMetadata>
+		<IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+
 		<Version>3.4.0</Version>
 		<PackageVersion>3.4.0</PackageVersion>
 
