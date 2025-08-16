@@ -17,9 +17,9 @@ namespace Nalix.Shared.Security;
 [System.Diagnostics.DebuggerNonUserCode]
 internal static class EnvelopeFormat
 {
-    public const System.Int32 HeaderSize = EnvelopeHeader.SIZE;
+    public const System.Int32 TagSize = 16;
     public const System.Byte CurrentVersion = 1;
-    public const System.Int32 TagSize = 16; // AEAD tags
+    public const System.Int32 HeaderSize = EnvelopeHeader.SIZE;
 
     /// <summary>
     /// Parse envelope into constituent spans without allocations.
