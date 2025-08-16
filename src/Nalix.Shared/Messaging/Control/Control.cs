@@ -158,15 +158,13 @@ public sealed class Control : IPacket, IPacketTransformer<Control>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     [System.Obsolete("Internal infrastructure API. Decryption is handled by the pipeline.", error: true)]
-    public static Control Compress(Control packet)
-        => throw new System.NotImplementedException();
+    public static Control Compress(Control packet) => throw new System.NotImplementedException();
 
     /// <inheritdoc/>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     [System.Obsolete("Internal infrastructure API. Decryption is handled by the pipeline.", error: true)]
-    public static Control Decompress(Control packet)
-        => throw new System.NotImplementedException();
+    public static Control Decompress(Control packet) => throw new System.NotImplementedException();
 
     /// <summary>
     /// Resets this instance to its default state for pooling reuse.

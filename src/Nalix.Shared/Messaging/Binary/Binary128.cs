@@ -138,18 +138,12 @@ public class Binary128 : IPacket, IPacketTransformer<Binary128>
             : packet;
     }
 
-    /// <summary>
-    /// Encrypts the packet content.
-    /// </summary>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     [System.Obsolete("Internal infrastructure API. Encryption is handled by the pipeline.", error: true)]
     public static Binary128 Encrypt(Binary128 packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
         => throw new System.NotImplementedException();
 
-    /// <summary>
-    /// Decrypts the packet content.
-    /// </summary>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     [System.Obsolete("Internal infrastructure API. Decryption is handled by the pipeline.", error: true)]

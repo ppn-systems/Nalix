@@ -1,5 +1,5 @@
 ﻿using Nalix.Shared.Extensions;
-using Nalix.Shared.Messaging;
+using Nalix.Shared.Messaging.Binary;
 using Nalix.Shared.Serialization;
 using System;
 using Xunit;
@@ -11,7 +11,7 @@ public class LiteSerializer_ClassTest
     [Fact]
     public void Serialize_And_Deserialize_Should_Preserve_All_Fields()
     {
-        var original = new BinaryPacket
+        var original = new Binary128
         {
             OpCode = 456,
             Data = [10, 20, 30, 40, 50]
@@ -22,7 +22,7 @@ public class LiteSerializer_ClassTest
         Assert.NotNull(bytes);
         Assert.True(bytes.Length > 0);
 
-        BinaryPacket deserialized = null;
+        Binary128 deserialized = null;
         _ = LiteSerializer.Deserialize(bytes, ref deserialized);
 
         Assert.NotNull(deserialized);
@@ -34,7 +34,7 @@ public class LiteSerializer_ClassTest
     [Fact]
     public void Serialize_And_Deserialize_EmptyPayload_Should_Work()
     {
-        var original = new BinaryPacket
+        var original = new Binary128
         {
             OpCode = 2,
             Data = []
@@ -44,7 +44,7 @@ public class LiteSerializer_ClassTest
 
         Assert.NotNull(bytes);
 
-        BinaryPacket deserialized = null;
+        Binary128 deserialized = null;
         _ = LiteSerializer.Deserialize(bytes, ref deserialized);
 
         Assert.NotNull(deserialized);
@@ -54,7 +54,7 @@ public class LiteSerializer_ClassTest
     [Fact]
     public void Serialize_And_Deserialize_NullPayload_Should_Work()
     {
-        var original = new BinaryPacket
+        var original = new Binary128
         {
             OpCode = 2,
             Data = null!
@@ -64,7 +64,7 @@ public class LiteSerializer_ClassTest
 
         Assert.NotNull(bytes);
 
-        BinaryPacket deserialized = null;
+        Binary128 deserialized = null;
         _ = LiteSerializer.Deserialize(bytes, ref deserialized);
 
         // Theo kiểu code, null array sẽ ra null luôn
@@ -80,7 +80,7 @@ public class LiteSerializer_ClassTest
             payload[i] = (System.Byte)i;
         }
 
-        var original = new BinaryPacket
+        var original = new Binary128
         {
             OpCode = 999,
             Data = payload
@@ -89,7 +89,7 @@ public class LiteSerializer_ClassTest
         var bytes = LiteSerializer.Serialize(original);
         Assert.NotNull(bytes);
 
-        BinaryPacket deserialized = null;
+        Binary128 deserialized = null;
         _ = LiteSerializer.Deserialize(bytes, ref deserialized);
 
         Assert.NotNull(deserialized);
@@ -99,14 +99,14 @@ public class LiteSerializer_ClassTest
     [Fact]
     public void Serialize_And_Deserialize_Should_Not_Change_Reference_Type()
     {
-        var original = new BinaryPacket
+        var original = new Binary128
         {
             OpCode = 22,
             Data = [5, 6, 7]
         };
 
         var bytes = LiteSerializer.Serialize(original);
-        BinaryPacket deserialized = null;
+        Binary128 deserialized = null;
         _ = LiteSerializer.Deserialize(bytes, ref deserialized);
 
         Assert.NotSame(original, deserialized);
@@ -125,7 +125,7 @@ public class LiteSerializer_ClassTest
             payload[i] = (System.Byte)(i + 1);
         }
 
-        var original = new BinaryPacket
+        var original = new Binary128
         {
             OpCode = 1234,
             Data = payload
@@ -134,7 +134,7 @@ public class LiteSerializer_ClassTest
         var bytes = LiteSerializer.Serialize(original);
         Assert.NotNull(bytes);
 
-        BinaryPacket deserialized = null;
+        Binary128 deserialized = null;
         _ = LiteSerializer.Deserialize(bytes, ref deserialized);
 
         Assert.NotNull(deserialized);
@@ -145,14 +145,14 @@ public class LiteSerializer_ClassTest
     public void Deserialize_With_Empty_Buffer_Should_Throw()
     {
         var buffer = System.Array.Empty<System.Byte>();
-        BinaryPacket packet = null;
+        Binary128 packet = null;
         _ = Assert.Throws<System.ArgumentException>(() => LiteSerializer.Deserialize(buffer, ref packet));
     }
 
     [Fact]
     public void Serialize_And_Deserialize_With_Max_Min_Values()
     {
-        var original = new BinaryPacket
+        var original = new Binary128
         {
             OpCode = 127,
             Data = [0, 255, 128]
@@ -166,7 +166,7 @@ public class LiteSerializer_ClassTest
         //System.Diagnostics.Debug.WriteLine($"TP: {bytes.ReadTransportLE()}");
         //System.Diagnostics.Debug.WriteLine($"PY: {bytes.ReadPriorityLE()}");
 
-        BinaryPacket deserialized = null;
+        Binary128 deserialized = null;
         _ = LiteSerializer.Deserialize(bytes, ref deserialized);
 
         System.Diagnostics.Debug.WriteLine($"OP: {deserialized.OpCode} - {original.OpCode}");
