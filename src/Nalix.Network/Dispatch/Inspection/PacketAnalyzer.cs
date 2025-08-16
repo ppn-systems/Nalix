@@ -28,7 +28,7 @@ internal sealed class PacketAnalyzer<
     /// </summary>
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
         System.Type, System.Collections.Frozen.FrozenDictionary<
-            System.UInt16, CompiledHandler<TPacket>>> _compiledMethodCache = new();
+            System.UInt16, MethodInvoker<TPacket>>> _compiledMethodCache = new();
 
     /// <summary>
     /// Caches attribute lookups per method for performance.
@@ -97,7 +97,7 @@ internal sealed class PacketAnalyzer<
     /// <returns>A frozen dictionary of compiled handler delegates indexed by opcode.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Collections.Frozen.FrozenDictionary<System.UInt16, CompiledHandler<TPacket>>
+    private static System.Collections.Frozen.FrozenDictionary<System.UInt16, MethodInvoker<TPacket>>
         GetOrCompileMethodAccessors(
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)]
@@ -122,7 +122,7 @@ internal sealed class PacketAnalyzer<
 
         return _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
         {
-            System.Collections.Generic.Dictionary<System.UInt16, CompiledHandler<TPacket>> compiled = new(methods.Length);
+            System.Collections.Generic.Dictionary<System.UInt16, MethodInvoker<TPacket>> compiled = new(methods.Length);
 
             foreach (var method in methods)
             {
@@ -156,7 +156,7 @@ internal sealed class PacketAnalyzer<
     /// <returns>A compiled handler delegate.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static CompiledHandler<TPacket> CompileMethodAccessor(System.Reflection.MethodInfo method)
+    private static MethodInvoker<TPacket> CompileMethodAccessor(System.Reflection.MethodInfo method)
     {
         var instanceParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
         var contextParam = System.Linq.Expressions.Expression.Parameter(typeof(PacketContext<TPacket>), "context");
@@ -187,7 +187,7 @@ internal sealed class PacketAnalyzer<
         var compiledDelegate = lambda.Compile();
         var asyncDelegate = CreateAsyncWrapper(compiledDelegate, method.ReturnType);
 
-        return new CompiledHandler<TPacket>(method, method.ReturnType, asyncDelegate);
+        return new MethodInvoker<TPacket>(method, method.ReturnType, asyncDelegate);
     }
 
     /// <summary>

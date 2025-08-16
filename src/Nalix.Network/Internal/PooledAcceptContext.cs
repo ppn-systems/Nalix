@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Caching;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Internal;
@@ -38,7 +39,8 @@ internal sealed class PooledAcceptContext : IPoolable
     /// </summary>
     public PooledAcceptContext()
     {
-        this.Args = ObjectPoolManager.Instance.Get<PooledSocketAsyncEventArgs>();
+        this.Args = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                            .Get<PooledSocketAsyncEventArgs>();
 
         if (this.Args == null)
         {

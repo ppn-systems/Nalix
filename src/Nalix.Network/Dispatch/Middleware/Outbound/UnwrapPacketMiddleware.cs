@@ -6,6 +6,7 @@ using Nalix.Network.Dispatch.Core.Context;
 using Nalix.Network.Dispatch.Middleware.Core.Attributes;
 using Nalix.Network.Dispatch.Middleware.Core.Enums;
 using Nalix.Network.Dispatch.Middleware.Core.Interfaces;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging.Text;
 using static Nalix.Network.Dispatch.Inspection.PacketRegistry;
@@ -58,7 +59,8 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
             }
             else
             {
-                var text = ObjectPoolManager.Instance.Get<Text256>();
+                Text256 text = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                   .Get<Text256>();
                 try
                 {
                     text.Initialize("Unsupported packet type for decryption/decompression.");
@@ -67,13 +69,15 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                 }
                 finally
                 {
-                    ObjectPoolManager.Instance.Return(text);
+                    InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                            .Return(text);
                 }
             }
         }
         catch (System.Exception)
         {
-            var text = ObjectPoolManager.Instance.Get<Text256>();
+            Text256 text = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                               .Get<Text256>();
             try
             {
                 text.Initialize("Packet transform failed.");
@@ -82,7 +86,8 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
             }
             finally
             {
-                ObjectPoolManager.Instance.Return(text);
+                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                        .Return(text);
             }
         }
 

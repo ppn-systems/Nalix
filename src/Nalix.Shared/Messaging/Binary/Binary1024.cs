@@ -9,6 +9,7 @@ using Nalix.Common.Security.Cryptography.Enums;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Extensions;
+using Nalix.Shared.Injection;
 using Nalix.Shared.LZ4;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Serialization;
@@ -129,7 +130,8 @@ public class Binary1024 : IPacket, IPacketTransformer<Binary1024>
     /// <returns>A pooled <see cref="Binary128"/> instance.</returns>
     public static Binary1024 Deserialize(in System.ReadOnlySpan<System.Byte> buffer)
     {
-        Binary1024 packet = ObjectPoolManager.Instance.Get<Binary1024>();
+        Binary1024 packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                    .Get<Binary1024>();
         System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
 
         return bytesRead == 0

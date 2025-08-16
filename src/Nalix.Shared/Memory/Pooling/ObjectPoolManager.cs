@@ -1,7 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Caching;
-using Nalix.Shared.Injection.DI;
 using Nalix.Shared.Memory.Pools;
 using Nalix.Shared.Memory.PoolTypes;
 
@@ -10,7 +9,7 @@ namespace Nalix.Shared.Memory.Pooling;
 /// <summary>
 /// Provides thread-safe access to a collection of object pools containing instances of <see cref="IPoolable"/>.
 /// </summary>
-public sealed class ObjectPoolManager : SingletonBase<ObjectPoolManager>
+public sealed class ObjectPoolManager
 {
     #region Fields
 
