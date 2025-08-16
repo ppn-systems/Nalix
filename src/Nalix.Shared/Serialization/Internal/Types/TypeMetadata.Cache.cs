@@ -7,6 +7,7 @@ namespace Nalix.Shared.Serialization.Internal.Types;
 internal static partial class TypeMetadata
 {
     private const System.Reflection.BindingFlags Flags =
+        System.Reflection.BindingFlags.Static |
         System.Reflection.BindingFlags.Public |
         System.Reflection.BindingFlags.Instance |
         System.Reflection.BindingFlags.NonPublic |
@@ -52,10 +53,7 @@ internal static partial class TypeMetadata
                 {
                     if (typeof(IFixedSizeSerializable).IsAssignableFrom(type))
                     {
-                        System.Reflection.PropertyInfo? prop = type.GetProperty(
-                            nameof(IFixedSizeSerializable.Size),
-                            System.Reflection.BindingFlags.Static | Flags
-                        );
+                        System.Reflection.PropertyInfo? prop = type.GetProperty(nameof(IFixedSizeSerializable.Size), Flags);
 
                         if (prop != null)
                         {

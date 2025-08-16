@@ -23,12 +23,12 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
     /// </summary>
     private sealed class Candidate
     {
+        public required System.String Name;
         public required System.Int32 MaxBytes;
         public required System.Func<System.Object> Rent;
         public required System.Action<System.Object> Return;
-        public required System.Action<System.Object, System.String> Initialize;
         public required System.Func<System.Object, System.Byte[]> Serialize;
-        public required System.String Name;
+        public required System.Action<System.Object, System.String> Initialize;
     }
 
     // TODO: Add or remove candidates here to match what you ship in Shared.
@@ -37,8 +37,8 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
     [
         new Candidate
         {
-            MaxBytes = Text256.DynamicSize,
             Name = nameof(Text256),
+            MaxBytes = Text256.DynamicSize,
             Rent = ObjectPoolManager.Instance.Get<Text256>,
             Return = o => ObjectPoolManager.Instance.Return((Text256)o),
             Initialize = (o, s) => ((Text256)o).Initialize(s),
@@ -46,8 +46,8 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
         },
         new Candidate
         {
-            MaxBytes = Text512.DynamicSize,
             Name = nameof(Text512),
+            MaxBytes = Text512.DynamicSize,
             Rent = ObjectPoolManager.Instance.Get<Text512>,
             Return = o => ObjectPoolManager.Instance.Return((Text512)o),
             Initialize = (o, s) => ((Text512)o).Initialize(s),
@@ -55,8 +55,8 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
         },
         new Candidate
         {
-            MaxBytes = Text1024.DynamicSize,
             Name = nameof(Text1024),
+            MaxBytes = Text1024.DynamicSize,
             Rent = ObjectPoolManager.Instance.Get<Text1024>,
             Return = o => ObjectPoolManager.Instance.Return((Text1024)o),
             Initialize = (o, s) => ((Text1024)o).Initialize(s),

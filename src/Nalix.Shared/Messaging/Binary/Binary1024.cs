@@ -9,6 +9,8 @@ namespace Nalix.Shared.Messaging.Binary;
 
 /// <inheritdoc/>
 [MagicNumber(MagicNumbers.Binary1024)]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Diagnostics.DebuggerDisplay("Binary1024 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class Binary1024 : Binary128
 {
     /// <inheritdoc/>
@@ -26,4 +28,9 @@ public sealed class Binary1024 : Binary128
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)MagicNumbers.Binary1024;
     }
+
+    /// <inheritdoc/>
+    public override System.String ToString() =>
+        $"Binary1024(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+        $"Priority={Priority}, Transport={Transport}, Data={Data?.Length ?? 0} bytes)";
 }
