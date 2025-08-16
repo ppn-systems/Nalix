@@ -20,16 +20,25 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 {
     /// <inheritdoc/>
     public async System.Threading.Tasks.Task InvokeAsync(
-        PacketContext<IPacket> context,
-        System.Func<System.Threading.Tasks.Task> next)
+            PacketContext<IPacket> context,
+            System.Func<System.Threading.Tasks.Task> next)
     {
+        IPacket current = context.Packet;
+
+        System.Boolean needDecrypt = current.Flags.HasFlag(PacketFlags.Encrypted);
+        System.Boolean needDecompress = current.Flags.HasFlag(PacketFlags.Compressed);
+
+        if (!needDecrypt && !needDecompress)
+        {
+            await next();
+            return;
+        }
+
         try
         {
-            IPacket current = context.Packet;
-
             if (TryResolveTransformer(current.GetType(), out PacketTransformerDelegates? t) && t is not null)
             {
-                if (context.Packet.Flags.HasFlag(PacketFlags.Encrypted))
+                if (needDecrypt)
                 {
                     current = t.Decrypt(
                         current,
@@ -37,25 +46,38 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                         context.Connection.Encryption);
                 }
 
-                if (context.Packet.Flags.HasFlag(PacketFlags.Compressed))
+                if (needDecompress)
                 {
                     current = t.Decompress(current);
                 }
-            }
 
-            if (!ReferenceEquals(current, context.Packet))
+                if (!ReferenceEquals(current, context.Packet))
+                {
+                    context.SetPacket(current);
+                }
+            }
+            else
             {
-                context.SetPacket(current);
+                var text = ObjectPoolManager.Instance.Get<Text256>();
+                try
+                {
+                    text.Initialize("Unsupported packet type for decryption/decompression.");
+                    _ = await context.Connection.Tcp.SendAsync(text.Serialize());
+                    return;
+                }
+                finally
+                {
+                    ObjectPoolManager.Instance.Return(text);
+                }
             }
         }
         catch (System.Exception)
         {
-            Text256 text = ObjectPoolManager.Instance.Get<Text256>();
+            var text = ObjectPoolManager.Instance.Get<Text256>();
             try
             {
-                text.Initialize($"Packet transform failed.");
+                text.Initialize("Packet transform failed.");
                 _ = await context.Connection.Tcp.SendAsync(text.Serialize());
-
                 return;
             }
             finally
