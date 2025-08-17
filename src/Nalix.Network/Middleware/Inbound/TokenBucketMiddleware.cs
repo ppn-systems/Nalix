@@ -37,7 +37,7 @@ public class TokenBucketMiddleware : IPacketMiddleware<IPacket>
         PacketContext<IPacket> context,
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
     {
-        TokenBucketLimiter.LimitDecision decision = _limiter.Check(context.Connection.EndPoint);
+        TokenBucketLimiter.RateLimitDecision decision = _limiter.Check(context.Connection.EndPoint);
 
         if (!decision.Allowed)
         {

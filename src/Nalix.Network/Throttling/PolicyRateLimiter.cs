@@ -84,7 +84,7 @@ public static class PolicyRateLimiter
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static TokenBucketLimiter.LimitDecision Check(
+    public static TokenBucketLimiter.RateLimitDecision Check(
         [System.Diagnostics.CodeAnalysis.NotNull] System.UInt16 opCode,
         [System.Diagnostics.CodeAnalysis.NotNull] PacketContext<IPacket> context)
     {
@@ -106,7 +106,7 @@ public static class PolicyRateLimiter
 
         // 2) Get or add limiter with hard cap
         TokenBucketLimiter limiter = GetOrAddLimiter(policy);
-        TokenBucketLimiter.LimitDecision decision = limiter.Check(new RateLimitSubject(opCode, context.Connection.EndPoint));
+        TokenBucketLimiter.RateLimitDecision decision = limiter.Check(new RateLimitSubject(opCode, context.Connection.EndPoint));
 
         // 4) Opportunistic sweeping
         if ((System.Threading.Interlocked.Increment(ref s_checkCounter) & (SweepEveryNChecks - 1)) == 0)
@@ -129,7 +129,7 @@ public static class PolicyRateLimiter
             return tiers[^1];
         }
 
-        static TokenBucketLimiter.LimitDecision Allowed() => new()
+        static TokenBucketLimiter.RateLimitDecision Allowed() => new()
         {
             Allowed = true,
             RetryAfterMs = 0,
@@ -137,7 +137,7 @@ public static class PolicyRateLimiter
             Reason = TokenBucketLimiter.RateLimitReason.None
         };
 
-        static TokenBucketLimiter.LimitDecision DeniedHard() => new()
+        static TokenBucketLimiter.RateLimitDecision DeniedHard() => new()
         {
             Allowed = false,
             RetryAfterMs = System.Int32.MaxValue,
