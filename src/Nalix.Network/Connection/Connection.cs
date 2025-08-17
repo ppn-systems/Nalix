@@ -44,8 +44,7 @@ public sealed partial class Connection : IConnection
         _lock = new System.Threading.Lock();
         _ctokens = new System.Threading.CancellationTokenSource();
 
-
-        _cstream = new TransportStream(socket)
+        _cstream = new TransportStream(socket, _ctokens)
         {
             Disconnected = () =>
             {
@@ -54,7 +53,7 @@ public sealed partial class Connection : IConnection
         };
 
         _disposed = false;
-        _encryptionKey = new System.Byte[32];
+        _encryptionKey = new System.Byte[0x01];
         _cstream.SetPacketCached(() => _onProcessEvent?.Invoke(this, new ConnectionEventArgs(this)));
 
         this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
@@ -65,7 +64,7 @@ public sealed partial class Connection : IConnection
         this.Tcp = new TcpTransport(this);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug("[{0}] Connection created for {1}", nameof(Connection), this.RemoteEndPoint);
+                                .Debug("[{0}] Connection created for {1}", nameof(Connection), this.RemoteEndPoint.ToString());
     }
 
     #endregion Constructor
