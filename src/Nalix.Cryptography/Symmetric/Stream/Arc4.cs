@@ -90,8 +90,7 @@ public sealed class Arc4 : System.IDisposable
     /// <summary>
     /// Resets the internal state of the cipher.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerNonUserCode]
     public void Reset()
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
@@ -103,8 +102,7 @@ public sealed class Arc4 : System.IDisposable
     /// <summary>
     /// Disposes the resources used by this instance.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerNonUserCode]
     public void Dispose()
     {
         if (!_disposed)

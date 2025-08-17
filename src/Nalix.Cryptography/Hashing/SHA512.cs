@@ -38,8 +38,10 @@ public sealed class SHA512 : IShaDigest, System.IDisposable
     /// <summary>
     /// Initializes or resets the hash state.
     /// </summary>
+    [System.Diagnostics.DebuggerNonUserCode]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public void Initialize()
     {
         unsafe
@@ -67,6 +69,9 @@ public sealed class SHA512 : IShaDigest, System.IDisposable
     /// </summary>
     /// <param name="data">The input data to hash.</param>
     /// <returns>The computed SHA-512 hash as a byte array.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte[] HashData(System.ReadOnlySpan<System.Byte> data)
     {
         using SHA512 sha = new();
@@ -80,6 +85,9 @@ public sealed class SHA512 : IShaDigest, System.IDisposable
     /// <param name="data">The input data to hash.</param>
     /// <param name="output">The span to receive the 64-byte hash output.</param>
     /// <exception cref="System.ArgumentException">Thrown if the output span is less than 64 bytes.</exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void HashData(System.ReadOnlySpan<System.Byte> data, System.Span<System.Byte> output)
     {
         if (output.Length < 64)
@@ -97,6 +105,9 @@ public sealed class SHA512 : IShaDigest, System.IDisposable
     /// </summary>
     /// <param name="data">The input data.</param>
     /// <returns>The resulting hash.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data)
     {
         Update(data);
@@ -276,8 +287,7 @@ public sealed class SHA512 : IShaDigest, System.IDisposable
     /// <summary>
     /// Releases all resources used by the <see cref="SHA512"/> instance.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerNonUserCode]
     public void Dispose()
     {
         if (_disposed)

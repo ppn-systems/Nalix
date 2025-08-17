@@ -5,6 +5,7 @@ namespace Nalix.Cryptography.Hashing;
 /// <summary>
 /// Provides SHA-family cryptographic constants used in hash computations.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public static class SHA
 {
     /// <summary>
