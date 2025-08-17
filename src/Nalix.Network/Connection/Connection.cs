@@ -44,12 +44,10 @@ public sealed partial class Connection : IConnection
         _lock = new System.Threading.Lock();
         _ctokens = new System.Threading.CancellationTokenSource();
 
-        _cstream = new TransportStream(socket, _ctokens)
+        _cstream = new TransportStream(socket, _ctokens);
+        _cstream.Disconnected += () =>
         {
-            Disconnected = () =>
-            {
-                _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
-            }
+            _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
         };
 
         _disposed = false;
