@@ -46,6 +46,7 @@ public sealed class SHA224 : IShaDigest, System.IDisposable
     /// </summary>
     /// <param name="data">The input data to hash.</param>
     /// <returns>The computed 224-bit hash as a byte array.</returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte[] HashData(System.ReadOnlySpan<System.Byte> data)
@@ -58,8 +59,10 @@ public sealed class SHA224 : IShaDigest, System.IDisposable
     /// <summary>
     /// Resets the hash state to its initial values.
     /// </summary>
+    [System.Diagnostics.DebuggerNonUserCode]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public void Initialize()
     {
         // Initialize state with SHA-224 specific values
@@ -226,6 +229,7 @@ public sealed class SHA224 : IShaDigest, System.IDisposable
     /// <remarks>
     /// This method allows incremental hashing by calling <see cref="Update"/> before finalizing with <see cref="FinalizeHash"/>.
     /// </remarks>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data)
@@ -307,8 +311,7 @@ public sealed class SHA224 : IShaDigest, System.IDisposable
     /// <summary>
     /// Releases resources used by the SHA224 instance.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerNonUserCode]
     public void Dispose()
     {
         if (_disposed)

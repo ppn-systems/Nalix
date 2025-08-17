@@ -51,6 +51,7 @@ public sealed class SHA1 : IShaDigest, System.IDisposable
     /// <remarks>
     /// This method is a convenience wrapper that initializes, updates, and finalizes the hash computation.
     /// </remarks>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte[] HashData(System.ReadOnlySpan<System.Byte> data)
@@ -63,8 +64,10 @@ public sealed class SHA1 : IShaDigest, System.IDisposable
     /// <summary>
     /// Resets the hash state to initial values.
     /// </summary>
+    [System.Diagnostics.DebuggerNonUserCode]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public unsafe void Initialize()
     {
         fixed (System.UInt32* src = SHA.H1, dst = _state)
@@ -244,6 +247,7 @@ public sealed class SHA1 : IShaDigest, System.IDisposable
     /// - A padding byte `0x80` is added after the data.
     /// - The length of the original message (in bits) is appended in big-endian format.
     /// </remarks>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data)
@@ -446,6 +450,7 @@ public sealed class SHA1 : IShaDigest, System.IDisposable
     /// <remarks>
     /// This method clears sensitive data from memory and marks the instance as disposed.
     /// </remarks>
+    [System.Diagnostics.DebuggerNonUserCode]
     public void Dispose()
     {
         if (_disposed)

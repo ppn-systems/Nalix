@@ -67,7 +67,6 @@ public interface IPacket : IPoolable
     /// <returns>
     /// A new byte array containing the serialized form of the packet.
     /// </returns>
-
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -80,10 +79,6 @@ public interface IPacket : IPoolable
     /// The destination buffer where the serialized packet will be written.
     /// The buffer must be large enough to hold the complete packet.
     /// </param>
-    /// <exception cref="Exceptions.PackageException">
-    /// Thrown when the destination buffer is too small to hold the serialized packet.
-    /// </exception>
-
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

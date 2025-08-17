@@ -49,49 +49,12 @@ public sealed class SHA384 : IShaDigest, System.IDisposable
     #region Public Methods
 
     /// <summary>
-    /// Computes the SHA-384 hash for the provided input data.
-    /// </summary>
-    /// <param name="data">The input data to hash.</param>
-    /// <returns>A 48-byte array containing the SHA-384 hash.</returns>
-    public static System.Byte[] HashData(System.ReadOnlySpan<System.Byte> data)
-    {
-        using SHA384 sha = new();
-        sha.Update(data);
-        return sha.FinalizeHash();
-    }
-
-    /// <summary>
-    /// Computes the SHA-384 hash for the provided input data and writes it to the output span.
-    /// </summary>
-    /// <param name="data">The input data to hash.</param>
-    /// <param name="output">The span to receive the 48-byte hash.</param>
-    /// <exception cref="System.ArgumentException">Thrown if <paramref name="output"/> is less than 48 bytes.</exception>
-    public static void HashData(System.ReadOnlySpan<System.Byte> data, System.Span<System.Byte> output)
-    {
-        if (output.Length < 48)
-        {
-            throw new System.ArgumentException("Output must be at least 48 bytes.", nameof(output));
-        }
-
-        using SHA384 sha = new();
-        sha.Update(data);
-
-        // Use direct pointer access for faster copying
-        unsafe
-        {
-            fixed (System.Byte* resultPtr = sha.FinalizeHash())
-            fixed (System.Byte* outputPtr = output)
-            {
-                System.Buffer.MemoryCopy(resultPtr, outputPtr, 48, 48);
-            }
-        }
-    }
-
-    /// <summary>
     /// Initializes the <see cref="SHA384"/> instance to its initial state.
     /// </summary>
+    [System.Diagnostics.DebuggerNonUserCode]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public void Initialize()
     {
         unsafe
@@ -114,6 +77,62 @@ public sealed class SHA384 : IShaDigest, System.IDisposable
         _finalized = false;
         _disposed = false;
         _finalHash = null;
+    }
+
+    /// <summary>
+    /// Computes the SHA-384 hash for the provided input data.
+    /// </summary>
+    /// <param name="data">The input data to hash.</param>
+    /// <returns>A 48-byte array containing the SHA-384 hash.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    public static System.Byte[] HashData(System.ReadOnlySpan<System.Byte> data)
+    {
+        using SHA384 sha = new();
+        sha.Update(data);
+        return sha.FinalizeHash();
+    }
+
+    /// <summary>
+    /// Computes the SHA-384 hash for the provided input data and writes it to the output span.
+    /// </summary>
+    /// <param name="data">The input data to hash.</param>
+    /// <param name="output">The span to receive the 48-byte hash.</param>
+    /// <exception cref="System.ArgumentException">Thrown if <paramref name="output"/> is less than 48 bytes.</exception>
+    [System.Diagnostics.Contracts.Pure]
+    public static void HashData(System.ReadOnlySpan<System.Byte> data, System.Span<System.Byte> output)
+    {
+        if (output.Length < 48)
+        {
+            throw new System.ArgumentException("Output must be at least 48 bytes.", nameof(output));
+        }
+
+        using SHA384 sha = new();
+        sha.Update(data);
+
+        // Use direct pointer access for faster copying
+        unsafe
+        {
+            fixed (System.Byte* resultPtr = sha.FinalizeHash())
+            fixed (System.Byte* outputPtr = output)
+            {
+                System.Buffer.MemoryCopy(resultPtr, outputPtr, 48, 48);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates the hash with the provided data and finalizes the computation.
+    /// </summary>
+    /// <param name="data">The input data to include in the hash.</param>
+    /// <returns>A 48-byte array containing the SHA-384 hash.</returns>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data)
+    {
+        Update(data);
+        return FinalizeHash();
     }
 
     /// <summary>
@@ -268,18 +287,6 @@ public sealed class SHA384 : IShaDigest, System.IDisposable
         return result;
     }
 
-    /// <summary>
-    /// Updates the hash with the provided data and finalizes the computation.
-    /// </summary>
-    /// <param name="data">The input data to include in the hash.</param>
-    /// <returns>A 48-byte array containing the SHA-384 hash.</returns>
-    /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
-    public System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data)
-    {
-        Update(data);
-        return FinalizeHash();
-    }
-
     #endregion Public Methods
 
     #region Private Methods
@@ -380,8 +387,7 @@ public sealed class SHA384 : IShaDigest, System.IDisposable
     /// <summary>
     /// Disposes the <see cref="SHA384"/> instance, clearing sensitive data.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerNonUserCode]
     public unsafe void Dispose()
     {
         if (_disposed)

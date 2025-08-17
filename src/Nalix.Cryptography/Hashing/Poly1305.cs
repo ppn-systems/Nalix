@@ -319,7 +319,7 @@ public sealed class Poly1305 : System.IDisposable
 
         for (System.Int32 i = 0; i < bytesAvailable; i++)
         {
-            result |= (System.UInt32)data[offset + i] << 8 * i;
+            result |= (System.UInt32)data[offset + i] << (8 * i);
         }
 
         return result;
@@ -404,27 +404,27 @@ public sealed class Poly1305 : System.IDisposable
         System.UInt64 t;
 
         // j = 0
-        t = (System.UInt64)aValue * b[0] + product[row] + carry;
+        t = ((System.UInt64)aValue * b[0]) + product[row] + carry;
         product[row] = (System.UInt32)t;
         carry = t >> 32;
 
         // j = 1
-        t = (System.UInt64)aValue * b[1] + product[row + 1] + carry;
+        t = ((System.UInt64)aValue * b[1]) + product[row + 1] + carry;
         product[row + 1] = (System.UInt32)t;
         carry = t >> 32;
 
         // j = 2
-        t = (System.UInt64)aValue * b[2] + product[row + 2] + carry;
+        t = ((System.UInt64)aValue * b[2]) + product[row + 2] + carry;
         product[row + 2] = (System.UInt32)t;
         carry = t >> 32;
 
         // j = 3
-        t = (System.UInt64)aValue * b[3] + product[row + 3] + carry;
+        t = ((System.UInt64)aValue * b[3]) + product[row + 3] + carry;
         product[row + 3] = (System.UInt32)t;
         carry = t >> 32;
 
         // j = 4
-        t = (System.UInt64)aValue * b[4] + product[row + 4] + carry;
+        t = ((System.UInt64)aValue * b[4]) + product[row + 4] + carry;
         product[row + 4] = (System.UInt32)t;
         carry = t >> 32;
 
@@ -452,27 +452,27 @@ public sealed class Poly1305 : System.IDisposable
         System.UInt64 t;
 
         // i = 0
-        t = (System.UInt64)product[5] * 5 + result[0];
+        t = ((System.UInt64)product[5] * 5) + result[0];
         result[0] = (System.UInt32)t;
         System.UInt32 carry = (System.UInt32)(t >> 32);
 
         // i = 1
-        t = (System.UInt64)product[6] * 5 + result[1] + carry;
+        t = ((System.UInt64)product[6] * 5) + result[1] + carry;
         result[1] = (System.UInt32)t;
         carry = (System.UInt32)(t >> 32);
 
         // i = 2
-        t = (System.UInt64)product[7] * 5 + result[2] + carry;
+        t = ((System.UInt64)product[7] * 5) + result[2] + carry;
         result[2] = (System.UInt32)t;
         carry = (System.UInt32)(t >> 32);
 
         // i = 3
-        t = (System.UInt64)product[8] * 5 + result[3] + carry;
+        t = ((System.UInt64)product[8] * 5) + result[3] + carry;
         result[3] = (System.UInt32)t;
         carry = (System.UInt32)(t >> 32);
 
         // i = 4
-        t = (System.UInt64)product[9] * 5 + result[4] + carry;
+        t = ((System.UInt64)product[9] * 5) + result[4] + carry;
         result[4] = (System.UInt32)t;
 
         // Final reduction if needed (result might be >= 2^130 - 5)
@@ -571,19 +571,19 @@ public sealed class Poly1305 : System.IDisposable
 
         diff = (System.UInt64)a[0] - b[0];
         a[0] = (System.UInt32)diff;
-        System.UInt32 borrow = (System.UInt32)(diff >> 32 & 1);
+        System.UInt32 borrow = (System.UInt32)((diff >> 32) & 1);
 
         diff = (System.UInt64)a[1] - b[1] - borrow;
         a[1] = (System.UInt32)diff;
-        borrow = (System.UInt32)(diff >> 32 & 1);
+        borrow = (System.UInt32)((diff >> 32) & 1);
 
         diff = (System.UInt64)a[2] - b[2] - borrow;
         a[2] = (System.UInt32)diff;
-        borrow = (System.UInt32)(diff >> 32 & 1);
+        borrow = (System.UInt32)((diff >> 32) & 1);
 
         diff = (System.UInt64)a[3] - b[3] - borrow;
         a[3] = (System.UInt32)diff;
-        borrow = (System.UInt32)(diff >> 32 & 1);
+        borrow = (System.UInt32)((diff >> 32) & 1);
 
         diff = (System.UInt64)a[4] - b[4] - borrow;
         a[4] = (System.UInt32)diff;
@@ -633,6 +633,7 @@ public sealed class Poly1305 : System.IDisposable
     /// <summary>
     /// Securely clears sensitive data when the object is disposed.
     /// </summary>
+    [System.Diagnostics.DebuggerNonUserCode]
     public void Dispose()
     {
         if (!_disposed)

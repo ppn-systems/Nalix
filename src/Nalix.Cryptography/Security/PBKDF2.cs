@@ -115,8 +115,7 @@ public sealed class PBKDF2 : System.IDisposable
     /// <summary>
     /// Releases all resources used by the <see cref="PBKDF2"/> instance and clears sensitive data.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerNonUserCode]
     public void Dispose()
     {
         if (_disposed)
