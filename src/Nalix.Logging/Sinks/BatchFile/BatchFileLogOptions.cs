@@ -7,6 +7,7 @@ namespace Nalix.Logging.Sinks.BatchFile;
 /// <summary>
 /// Defines the options for buffered logging.
 /// </summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public sealed class BatchFileLogOptions
 {
     /// <summary>

@@ -17,7 +17,7 @@ namespace Nalix.Logging;
 /// Logging targets and behavior can be customized during initialization using <see cref="LogOptions"/>.
 /// </remarks>
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("{GetType().Name,nq}")]
+[System.Diagnostics.DebuggerDisplay("Logger=NLogix, {GetType().Name,nq}")]
 public sealed partial class NLogix : LogEngine, ILogger
 {
     #region Constructors
