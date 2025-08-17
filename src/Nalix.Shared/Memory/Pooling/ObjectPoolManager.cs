@@ -62,9 +62,11 @@ public sealed class ObjectPoolManager
 
     #region Constructor
 
-    private ObjectPoolManager()
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ObjectPoolManager"/> class.
+    /// </summary>
+    public ObjectPoolManager()
     {
-        // Private constructor for singleton pattern
     }
 
     #endregion Constructor
