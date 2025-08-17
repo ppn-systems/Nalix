@@ -193,5 +193,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
                                 .Info("TcpListenerBase disposed");
     }
 
+    public void DeactivateAsync() => throw new System.NotImplementedException();
+
     #endregion IDispose
 }

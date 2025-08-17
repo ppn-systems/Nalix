@@ -73,7 +73,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         this._cleanupChannel = System.Threading.Channels.Channel.CreateBounded<CleanupRequest>(channelOptions);
         this._cleanupWriter = this._cleanupChannel.Writer;
 
-        // Start background cleanup task
+        // Activate background cleanup task
         this._cleanupTask = this.ProcessCleanupRequestsAsync(this._cancellationTokenSource.Token);
 
         // Keep original timer as fallback
