@@ -17,7 +17,7 @@ namespace Nalix.Cryptography.Hashing;
 /// </remarks>
 [System.Runtime.InteropServices.ComVisible(true)]
 [System.Diagnostics.DebuggerDisplay("Disposed={_disposed}, Finalized={_finalized}, Bytes={_byteCount}")]
-public sealed class SHA3_256 : IShaDigest, System.IDisposable
+public sealed class SHA3256 : IShaDigest, System.IDisposable
 {
     #region Constants
 
@@ -46,8 +46,8 @@ public sealed class SHA3_256 : IShaDigest, System.IDisposable
 
     #region Constructors
 
-    /// <summary>Initializes a new instance of the <see cref="SHA3_256"/> class.</summary>
-    public SHA3_256() => Initialize();
+    /// <summary>Initializes a new instance of the <see cref="SHA3256"/> class.</summary>
+    public SHA3256() => Initialize();
 
     #endregion
 
@@ -79,7 +79,7 @@ public sealed class SHA3_256 : IShaDigest, System.IDisposable
     [System.Diagnostics.Contracts.Pure]
     public static System.Byte[] HashData(System.ReadOnlySpan<System.Byte> data)
     {
-        using var sha3 = new SHA3_256();
+        using var sha3 = new SHA3256();
         sha3.Update(data);
         return sha3.FinalizeHash();
     }
@@ -95,7 +95,7 @@ public sealed class SHA3_256 : IShaDigest, System.IDisposable
             throw new System.ArgumentException("Output buffer must be at least 32 bytes.", nameof(output));
         }
 
-        using var sha3 = new SHA3_256();
+        using var sha3 = new SHA3256();
         sha3.Update(data);
         sha3.FinalizeHash(output);
     }
@@ -110,7 +110,7 @@ public sealed class SHA3_256 : IShaDigest, System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Update(System.ReadOnlySpan<System.Byte> data)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA3_256));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA3256));
         if (_finalized)
         {
             throw new System.InvalidOperationException("Cannot update after finalization.");
@@ -162,7 +162,7 @@ public sealed class SHA3_256 : IShaDigest, System.IDisposable
     [System.Diagnostics.Contracts.Pure]
     public System.Byte[] FinalizeHash()
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA3_256));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA3256));
         if (_finalized && _finalHash != null)
         {
             return (System.Byte[])_finalHash.Clone();
@@ -186,7 +186,7 @@ public sealed class SHA3_256 : IShaDigest, System.IDisposable
     [System.Diagnostics.Contracts.Pure]
     public void FinalizeHash(System.Span<System.Byte> output)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA3_256));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA3256));
         if (output.Length < HashSizeBytes)
         {
             throw new System.ArgumentException("Output buffer must be at least 32 bytes.", nameof(output));
