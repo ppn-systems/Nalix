@@ -1,8 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
+using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Attributes;
-using Nalix.Common.Packets.Interfaces;
 using Nalix.Network.Dispatch.Core.Context;
 using Nalix.Network.Dispatch.Core.Metadata;
 using Nalix.Shared.Injection;
@@ -67,7 +67,7 @@ internal sealed class PacketAnalyzer<
         // Create the controller instance
         TController controllerInstance = factory();
 
-        // Build delegate descriptors
+        // CreateCatalog delegate descriptors
         PacketHandlerDelegate<TPacket>[] descriptors = new PacketHandlerDelegate<TPacket>[compiledMethods.Count];
         System.Int16 index = 0;
 

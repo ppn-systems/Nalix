@@ -6,7 +6,7 @@ using Nalix.Common.Packets.Enums;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 
-namespace Nalix.Common.Packets.Interfaces;
+namespace Nalix.Common.Packets.Abstractions;
 
 /// <summary>
 /// Defines the common contract for all network packets.

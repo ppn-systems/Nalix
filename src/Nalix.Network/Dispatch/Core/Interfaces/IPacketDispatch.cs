@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
-using Nalix.Common.Packets.Interfaces;
+using Nalix.Common.Packets.Abstractions;
 
 namespace Nalix.Network.Dispatch.Core.Interfaces;
 

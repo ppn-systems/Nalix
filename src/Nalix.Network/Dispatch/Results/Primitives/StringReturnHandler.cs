@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Packets.Interfaces;
+using Nalix.Common.Packets.Abstractions;
 using Nalix.Network.Dispatch.Core.Context;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
