@@ -24,69 +24,6 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
         ?? throw new System.ArgumentNullException(nameof(stream));
 
     /// <summary>
-    /// Receives a packet from the network stream using unsafe optimizations.
-    /// </summary>
-    /// <returns>The deserialized packet implementing <see cref="IPacket"/>.</returns>
-    /// <exception cref="System.InvalidOperationException">Thrown when the stream is not readable or the packet size is invalid.</exception>
-    /// <exception cref="System.IO.EndOfStreamException">Thrown when the stream ends unexpectedly.</exception>
-    /// <exception cref="System.IO.IOException">Thrown when an error occurs while reading from the stream.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Runtime.CompilerServices.SkipLocalsInit]
-    public TPacket Receive()
-    {
-        if (!_stream.CanRead)
-        {
-            throw new System.InvalidOperationException("The network stream is not readable.");
-        }
-
-        // Read 2-byte size header using stackalloc
-        System.Span<System.Byte> header = stackalloc System.Byte[2];
-        _stream.ReadExactly(header);
-
-        // Unsafe fast conversion to ushort (big-endian)
-        System.UInt16 length;
-        unsafe
-        {
-            fixed (System.Byte* headerPtr = header)
-            {
-                // Direct memory access for big-endian conversion
-                length = (System.UInt16)((headerPtr[0] << 8) | headerPtr[1]);
-            }
-        }
-
-        if (length < 2)
-        {
-            throw new System.InvalidOperationException("Invalid packet size: must be at least 2 bytes.");
-        }
-
-        // Use stackalloc for small packets (<= 512 bytes) with unsafe optimization
-        if (length <= PacketConstants.StackAllocLimit)
-        {
-            System.Span<System.Byte> sbuffer = stackalloc System.Byte[length - 2];
-
-            _stream.ReadExactly(sbuffer);
-            return TPacket.Deserialize(sbuffer);
-        }
-
-        // Rent buffer for larger packets
-        System.Byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length - 2);
-        try
-        {
-            // Read remaining packet data
-            _stream.ReadExactly(buffer, 0, length - 2);
-
-            // Deserialize from buffer
-            // Slice the packet body (excluding 2-byte length prefix)
-            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 0, length - 2));
-        }
-        finally
-        {
-            System.Buffers.ArrayPool<System.Byte>.Shared.Return(buffer);
-        }
-    }
-
-    /// <summary>
     /// Asynchronously receives a packet from the network stream with unsafe optimizations.
     /// </summary>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
@@ -147,58 +84,6 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
                 cancellationToken).ConfigureAwait(false);
 
             // Deserialize from buffer
-            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 0, length - 2));
-        }
-        finally
-        {
-            System.Buffers.ArrayPool<System.Byte>.Shared.Return(buffer);
-        }
-    }
-
-    /// <summary>
-    /// Ultra-fast synchronous receive with maximum unsafe optimizations.
-    /// Use this when you need absolute maximum performance and can guarantee thread safety.
-    /// </summary>
-    /// <returns>The deserialized packet implementing <see cref="IPacket"/>.</returns>
-    /// <remarks>
-    /// This method bypasses some safety checks for maximum performance.
-    /// Only use in performance-critical scenarios where safety is guaranteed.
-    /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [System.Runtime.CompilerServices.SkipLocalsInit]
-    public unsafe TPacket ReceiveUnsafe()
-    {
-        // Direct stackalloc without bounds checking
-        System.Byte* headerPtr = stackalloc System.Byte[2];
-
-        // Read header directly into unsafe memory
-        System.Span<System.Byte> headerSpan = new(headerPtr, 2);
-        _stream.ReadExactly(headerSpan);
-
-        // Ultra-fast big-endian conversion
-        System.UInt16 length = (System.UInt16)((headerPtr[0] << 8) | headerPtr[1]);
-
-        if (length <= PacketConstants.StackAllocLimit)
-        {
-            // Stack allocation for small packets
-            System.Byte* bufferPtr = stackalloc System.Byte[length - 2];
-
-            // Read remaining data
-            System.Span<System.Byte> remainingSpan = new(bufferPtr, length - 2);
-            _stream.ReadExactly(remainingSpan);
-
-            // Create span from unsafe pointer
-            System.Span<System.Byte> packetSpan = new(bufferPtr, length - 2);
-            return TPacket.Deserialize(packetSpan);
-        }
-
-        // For larger packets, still use ArrayPool but with unsafe optimizations
-        System.Byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length - 2);
-        try
-        {
-            _stream.ReadExactly(buffer, 0, length - 2);
             return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 0, length - 2));
         }
         finally
