@@ -9,7 +9,6 @@ using Nalix.Shared.Injection;
 using Nalix.Shared.Messaging.Binary;
 using Nalix.Shared.Messaging.Control;
 using Nalix.Shared.Messaging.Text;
-using System.Linq;
 
 namespace Nalix.Network.Dispatch.Inspection;
 
@@ -54,18 +53,24 @@ internal static class PacketRegistry
             typeof(Binary128).Namespace!
         ];
 
+        // Fully-qualified LINQ, explicit Any(), and safer type enumeration.
         assembliesToScan.AddRange(
-            System.AppDomain.CurrentDomain.GetAssemblies()
-                .Where(a => !a.IsDynamic &&
-                            !System.String.IsNullOrWhiteSpace(a.FullName) &&
-                            a.GetTypes().Any(t => t.Namespace != null &&
-                                                  namespaces.Any(ns => t.Namespace.StartsWith(ns))))
-                );
+            System.Linq.Enumerable.Where(
+                System.AppDomain.CurrentDomain.GetAssemblies(),
+                a => !a.IsDynamic
+                  && !System.String.IsNullOrWhiteSpace(a.FullName)
+                  && System.Linq.Enumerable.Any(
+                         SafeGetTypes(a),
+                         t => t?.Namespace is System.String ns
+                           && System.Linq.Enumerable.Any(
+                                  namespaces,
+                                  prefix => ns.StartsWith(prefix, System.StringComparison.Ordinal))))
+        );
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[PacketRegistry] Total assemblies to scan: {assembliesToScan.Count}");
 
-        Initialize([.. assembliesToScan.Distinct()]);
+        Initialize([.. System.Linq.Enumerable.Distinct(assembliesToScan)]);
     }
 
     public static void Initialize(params System.Reflection.Assembly[] assemblies)
@@ -78,7 +83,7 @@ internal static class PacketRegistry
             assemblies = [System.Reflection.Assembly.GetExecutingAssembly()];
         }
 
-        foreach (System.Reflection.Assembly assembly in assemblies.Distinct())
+        foreach (System.Reflection.Assembly assembly in System.Linq.Enumerable.Distinct(assemblies))
         {
             try
             {
@@ -129,9 +134,10 @@ internal static class PacketRegistry
                     $"Duplicate found in {type.FullName}.");
             }
 
-            System.Type? transformerInterface = type.GetInterfaces()
-                .FirstOrDefault(i => i.IsGenericType &&
-                                     i.GetGenericTypeDefinition() == typeof(IPacketTransformer<>));
+
+            System.Type? transformerInterface = System.Linq.Enumerable.FirstOrDefault(type.GetInterfaces(),
+                i => i.IsGenericType &&
+                i.GetGenericTypeDefinition() == typeof(IPacketTransformer<>));
 
             if (transformerInterface != null)
             {
@@ -211,6 +217,23 @@ internal static class PacketRegistry
                 _ => deserializeMethod.CreateDelegate<System.Func<System.ReadOnlySpan<System.Byte>, IPacket>>());
             return factory(buffer);
         };
+    }
+
+    private static System.Collections.Generic.IEnumerable<System.Type> SafeGetTypes(System.Reflection.Assembly assembly)
+    {
+        try
+        {
+            return assembly.GetTypes();
+        }
+        catch (System.Reflection.ReflectionTypeLoadException ex)
+        {
+            // ex.Types is Type?[] → filter nulls safely
+            return System.Linq.Enumerable.OfType<System.Type>(ex.Types);
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     // Public API
