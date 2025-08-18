@@ -1,7 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
-using Nalix.Common.Packets.Interfaces;
+using Nalix.Common.Packets.Abstractions;
 using Nalix.Network.Dispatch.Core.Metadata;
 using Nalix.Network.Dispatch.Middleware.Core.Pipeline;
 

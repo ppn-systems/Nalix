@@ -2,7 +2,7 @@
 
 using Nalix.Common.Connection;
 using Nalix.Common.Logging;
-using Nalix.Common.Packets.Interfaces;
+using Nalix.Common.Packets.Abstractions;
 using Nalix.Network.Dispatch.Options;
 
 namespace Nalix.Network.Dispatch.Core.Engine;
