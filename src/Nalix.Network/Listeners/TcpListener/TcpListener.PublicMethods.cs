@@ -244,12 +244,6 @@ public abstract partial class TcpListenerBase
             }
         }
 
-        if (s_config.EnableTimeout)
-        {
-            InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
-                                    .Deactivate(System.Threading.CancellationToken.None);
-        }
-
         System.Threading.CancellationTokenSource cts = System.Threading.Interlocked.Exchange(ref _cts, null);
         try
         {
@@ -266,6 +260,12 @@ public abstract partial class TcpListenerBase
 
             InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
                                     .CloseAllConnections();
+
+            if (s_config.EnableTimeout)
+            {
+                InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
+                                        .Deactivate(System.Threading.CancellationToken.None);
+            }
 
             s_logger.Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] stop protocol={_protocol} port={_port}");
         }
