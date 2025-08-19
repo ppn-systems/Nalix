@@ -57,7 +57,7 @@ public class TimeSynchronizer : System.IDisposable
         this.IsTimeSyncEnabled = false;
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug("TimeSynchronizer initialized.");
+                                .Debug($"[{nameof(TimeSynchronizer)}] TimeSynchronizer initialized.");
     }
 
     #endregion Constructor
@@ -79,7 +79,7 @@ public class TimeSynchronizer : System.IDisposable
                 System.Boolean, System.Int32>(ref _isRunning), 1, 0) == 1)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn("Time synchronization loop is already running.");
+                                    .Warn($"[{nameof(TimeSynchronizer)}] Time synchronization loop is already running.");
             return;
         }
 
@@ -88,7 +88,7 @@ public class TimeSynchronizer : System.IDisposable
             if (!this.IsTimeSyncEnabled)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug("Waiting for time sync loop to be enabled...");
+                                        .Debug($"[{nameof(TimeSynchronizer)}] Waiting for time sync loop to be enabled...");
             }
 
             while (!this.IsTimeSyncEnabled && !cancellationToken.IsCancellationRequested)
@@ -97,7 +97,7 @@ public class TimeSynchronizer : System.IDisposable
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info("Time sync loop enabled, starting update cycle.");
+                                    .Info($"[{nameof(TimeSynchronizer)}] Time sync loop enabled, starting update cycle.");
 
             while (this._isRunning && !cancellationToken.IsCancellationRequested)
             {
@@ -120,12 +120,12 @@ public class TimeSynchronizer : System.IDisposable
         catch (System.OperationCanceledException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug("Time synchronization loop cancelled");
+                                    .Debug($"[{nameof(TimeSynchronizer)}] Time synchronization loop cancelled");
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error("Time synchronization loop error: {0}", ex.Message);
+                                    .Error($"[{nameof(TimeSynchronizer)}] Time synchronization loop error: {0}", ex.Message);
         }
         finally
         {
@@ -148,7 +148,7 @@ public class TimeSynchronizer : System.IDisposable
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info("Time synchronization loop stopped.");
+                                .Info($"[{nameof(TimeSynchronizer)}] Time synchronization loop stopped.");
     }
 
     /// <inheritdoc/>

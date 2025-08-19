@@ -78,7 +78,7 @@ public sealed class ConnectionLimiter : System.IDisposable
         );
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"ConnectionLimiter initialized: " +
+                                .Debug($"[{nameof(ConnectionLimiter)}] Initialized: " +
                                        $"max={_maxConnectionsPerIp}, inactivity={_inactivityThreshold.TotalSeconds}s");
     }
 
@@ -117,7 +117,7 @@ public sealed class ConnectionLimiter : System.IDisposable
 
         if (endPoint is null)
         {
-            throw new System.ArgumentException("EndPoint cannot be null", nameof(endPoint));
+            throw new System.ArgumentException($"[{nameof(ConnectionLimiter)}] EndPoint cannot be null", nameof(endPoint));
         }
 
         System.DateTime now = System.DateTime.UtcNow;
@@ -130,7 +130,7 @@ public sealed class ConnectionLimiter : System.IDisposable
             if (existingInfo.CurrentConnections >= this._maxConnectionsPerIp)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"Limit exceeded for {endPoint}: " +
+                                        .Trace($"[{nameof(ConnectionLimiter)}] Limit exceeded for {endPoint}: " +
                                                $"{existingInfo.CurrentConnections}/{this._maxConnectionsPerIp}");
 
                 return false;
@@ -149,7 +149,7 @@ public sealed class ConnectionLimiter : System.IDisposable
 
             this._connectionInfo[endPoint] = newInfo;
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace("Allowed {0}", endPoint);
+                                    .Trace($"[{nameof(ConnectionLimiter)}] Allowed {endPoint}");
 
             return true;
         }
@@ -158,7 +158,7 @@ public sealed class ConnectionLimiter : System.IDisposable
         ConnectionLimitInfo info = new(1, now, 1, now);
         this._connectionInfo[endPoint] = info;
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace("Allowed {0}", endPoint);
+                                .Trace($"[{nameof(ConnectionLimiter)}] Allowed {endPoint}");
 
         return true;
     }
@@ -178,7 +178,7 @@ public sealed class ConnectionLimiter : System.IDisposable
 
         if (endPoint is null)
         {
-            throw new System.ArgumentException("EndPoint cannot be null", nameof(endPoint));
+            throw new System.ArgumentException($"[{nameof(ConnectionLimiter)}] EndPoint cannot be null", nameof(endPoint));
         }
 
         // Fast path if entry doesn't exist
@@ -196,7 +196,7 @@ public sealed class ConnectionLimiter : System.IDisposable
 
         this._connectionInfo[endPoint] = newInfo;
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace("Closed {0}", endPoint);
+                                .Trace($"[{nameof(ConnectionLimiter)}] Closed {endPoint}");
 
         return true;
     }
@@ -216,14 +216,15 @@ public sealed class ConnectionLimiter : System.IDisposable
 
         if (endPoint is null)
         {
-            throw new System.ArgumentException("EndPoint cannot be null", nameof(endPoint));
+            throw new System.ArgumentException($"[{nameof(ConnectionLimiter)}] EndPoint cannot be null", nameof(endPoint));
         }
 
         if (this._connectionInfo.TryGetValue(endPoint, out var stats))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"Observability for {endPoint}: " +
+                                    .Trace($"[{nameof(ConnectionLimiter)}] Observability for {endPoint}: " +
                                            $"{stats.CurrentConnections} current, {stats.TotalConnectionsToday} today");
+
             return (stats.CurrentConnections, stats.TotalConnectionsToday, stats.LastConnectionTime);
         }
 
@@ -267,7 +268,7 @@ public sealed class ConnectionLimiter : System.IDisposable
             total += info.CurrentConnections;
         }
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug("Total connections: {0}", total);
+                                .Debug($"[{nameof(ConnectionLimiter)}] Total connections: {total}");
 
         return total;
     }
@@ -284,7 +285,7 @@ public sealed class ConnectionLimiter : System.IDisposable
 
         this._connectionInfo.Clear();
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info("Counters reset");
+                                .Info($"[{nameof(ConnectionLimiter)}] Counters reset");
     }
 
     #endregion Public Methods
@@ -336,7 +337,7 @@ public sealed class ConnectionLimiter : System.IDisposable
                     keysToRemove.Add(key);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace("Removed stale {0}", key);
+                                            .Trace($"[{nameof(ConnectionLimiter)}] Removed stale {key}");
                 }
 
                 processedCount++;
@@ -354,7 +355,7 @@ public sealed class ConnectionLimiter : System.IDisposable
         catch (System.Exception ex) when (ex is not System.ObjectDisposedException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error("Cleanup error: {0}", ex.Message);
+                                    .Error($"[{nameof(ConnectionLimiter)}] Cleanup error: {ex.Message}");
         }
         finally
         {
@@ -401,7 +402,7 @@ public sealed class ConnectionLimiter : System.IDisposable
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error("Dispose error: {0}", ex.Message);
+                                    .Error($"[{nameof(ConnectionLimiter)}] Dispose error: {ex.Message}");
         }
 
         System.GC.SuppressFinalize(this);

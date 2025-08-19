@@ -45,13 +45,14 @@ public sealed class ObjectFormatter<T> : IFormatter<T> where T : class, new()
         {
             _accessors = ObjectFormatter<T>.CreateAccessors();
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"ObjectFormatter<{typeof(T).Name}> " +
-                                           $"initialized: {_accessors.Length} fields, {FieldCache<T>.GetLayout()} layout");
+                                    .Debug($"[ObjectFormatter<{typeof(T).Name}>] " +
+                                           $"Initialized: {_accessors.Length} fields, {FieldCache<T>.GetLayout()} layout");
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"Failed to initialize ObjectFormatter<{typeof(T).Name}>: {ex.Message}");
+                                    .Error($"[ObjectFormatter<{typeof(T).Name}>] " +
+                                           $"Failed to initialize ObjectFormatter<{typeof(T).Name}>: {ex.Message}");
 
             throw new SerializationException($"Formatter initialization failed for {typeof(T).Name}", ex);
         }

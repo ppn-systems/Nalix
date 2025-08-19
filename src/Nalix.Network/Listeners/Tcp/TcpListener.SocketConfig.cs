@@ -90,7 +90,7 @@ public abstract partial class TcpListenerBase
         System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, this._port);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug("[TCP] TCP socket bound to {0}", remote);
+                                .Debug($"[{nameof(TcpListenerBase)}] TCP socket bound to {0}", remote);
 
         // Bind and Listen
         this._listener.Bind(remote);

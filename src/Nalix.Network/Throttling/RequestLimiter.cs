@@ -82,7 +82,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug(
-                                    $"RequestLimiter initialized with async support - maxRequests={_config.MaxAllowedRequests}, " +
+                                    $"[{nameof(RequestLimiter)}] Initialized with async support - maxRequests={_config.MaxAllowedRequests}, " +
                                     $"timeWindow={_config.TimeWindowInMilliseconds}ms, lockout={_config.LockoutDurationSeconds}s");
     }
 
@@ -131,7 +131,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
 
         if (System.String.IsNullOrWhiteSpace(endPoint))
         {
-            throw new InternalErrorException("EndPoint cannot be null or whitespace", nameof(endPoint));
+            throw new InternalErrorException($"[{nameof(RequestLimiter)}] EndPoint cannot be null or whitespace", nameof(endPoint));
         }
 
         // Fast path - synchronous check
@@ -280,7 +280,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error("Failed to trigger async cleanup: {0}", ex.Message);
+                                    .Error($"[{nameof(RequestLimiter)}] Failed to trigger async cleanup: {ex.Message}");
         }
     }
 
@@ -309,7 +309,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error("Async cleanup failed: {0}", ex.Message);
+                                        .Error($"[{nameof(RequestLimiter)}] Async cleanup failed: {ex.Message}");
             }
         }
     }
@@ -370,7 +370,8 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug("Async cleanup processed {0} IPs, removed {1} inactive IPs", processedCount, removedCount);
+                                    .Debug($"[{nameof(RequestLimiter)}] " +
+                                           $"Async cleanup processed {processedCount} IPs, removed {removedCount} inactive IPs.");
         }
         finally
         {
@@ -481,7 +482,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         catch (System.TimeoutException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn("Cleanup task did not complete within timeout");
+                                    .Warn($"[{nameof(RequestLimiter)}] Cleanup task did not complete within timeout");
         }
 
         // Dispose resources
@@ -490,7 +491,7 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
         this._ipData.Clear();
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug("RequestLimiter disposed asynchronously");
+                                .Debug($"[{nameof(RequestLimiter)}] disposed asynchronously");
     }
 
     #endregion IDisposable & IAsyncDisposable

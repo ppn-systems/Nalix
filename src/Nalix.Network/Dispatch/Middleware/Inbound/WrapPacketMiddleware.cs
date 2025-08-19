@@ -44,7 +44,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
             if (catalog is null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error("[WrapPacketMiddleware] Missing PacketCatalog.");
+                                        .Error($"[{nameof(WrapPacketMiddleware)}] Missing PacketCatalog.");
                 return;
             }
 
@@ -71,7 +71,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
             else
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"No transformer found for packet type {current.GetType().Name}.");
+                                        .Error($"[{nameof(WrapPacketMiddleware)}] " +
+                                               $"No transformer found for packet type {current.GetType().Name}.");
 
                 Text256 text = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                        .Get<Text256>();

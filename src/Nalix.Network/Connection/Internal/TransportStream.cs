@@ -75,7 +75,7 @@ internal class TransportStream(
         if (this._disposed)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug("[{0}] BeginReceive called on disposed", nameof(TransportStream));
+                                    .Debug($"[{nameof(TransportStream)}] BeginReceive called on disposed");
             return;
         }
 
@@ -93,7 +93,7 @@ internal class TransportStream(
         try
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug("[{0}] Starting asynchronous read operation", nameof(TransportStream));
+                                    .Debug($"[{nameof(TransportStream)}] Starting asynchronous read operation");
 
             System.Net.Sockets.SocketAsyncEventArgs args = new();
             args.SetBuffer(this._buffer, 0, 2);
@@ -137,7 +137,7 @@ internal class TransportStream(
                     catch (System.Exception ex)
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Error("[{0}] BeginReceive error: {1}", nameof(TransportStream), ex.Message);
+                                                .Error($"[{nameof(TransportStream)}] BeginReceive error: {ex.Message}");
                     }
                 }, _rxToken);
             };
@@ -182,7 +182,7 @@ internal class TransportStream(
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error("[{0}] BeginReceive error: {1}", nameof(TransportStream), ex.Message);
+                                    .Error($"[{nameof(TransportStream)}] BeginReceive error: {ex.Message}");
         }
     }
 
@@ -222,7 +222,7 @@ internal class TransportStream(
                 if (sent != bufferS.Length)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error("[{0}] Partial send: {1}/{2}", nameof(TransportStream), sent, bufferS.Length);
+                                            .Error($"[{nameof(TransportStream)}] Partial send: {sent}/{bufferS.Length}");
                     return false;
                 }
 
@@ -233,7 +233,7 @@ internal class TransportStream(
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error("[{0}] Send error (stackalloc): {1}", nameof(TransportStream), ex);
+                                        .Error($"[{nameof(TransportStream)}] Send error (stackalloc): {ex}");
                 return false;
             }
         }
@@ -244,7 +244,7 @@ internal class TransportStream(
         try
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug("[{0}] Sending data (pooled)", nameof(TransportStream));
+                                    .Debug($"[{nameof(TransportStream)}] Sending data (pooled)");
 
             System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(System.MemoryExtensions
                                                   .AsSpan(buffer), totalLength);
@@ -264,7 +264,7 @@ internal class TransportStream(
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error("[{0}] Send error (pooled): {1}", nameof(TransportStream), ex);
+                                    .Error($"[{nameof(TransportStream)}] Send error (pooled): {ex}");
             return false;
         }
         finally
@@ -305,7 +305,7 @@ internal class TransportStream(
                      .AsSpan(buffer, sizeof(System.UInt16)));
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug("[{0}] Sending data async", nameof(TransportStream));
+                                    .Debug($"[{nameof(TransportStream)}] Sending data async");
 
             _ = await this._socket.SendAsync(System.MemoryExtensions
                                   .AsMemory(buffer, 0, totalLength), System.Net.Sockets.SocketFlags.None, cancellationToken)
@@ -318,12 +318,13 @@ internal class TransportStream(
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error("[{0}] SendAsync error: {1}", nameof(TransportStream), ex.Message);
+                                    .Error($"[{nameof(TransportStream)}] SendAsync error: {ex.Message}");
             return false;
         }
         finally
         {
-            InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Return(buffer);
+            InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                    .Return(buffer);
         }
     }
 
@@ -631,7 +632,7 @@ internal class TransportStream(
 
         this._disposed = true;
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug("TransportStream disposed");
+                                .Debug($"[{nameof(TransportStream)}] disposed");
     }
 
     // Ensure linked token once; recreate only when necessary
@@ -682,7 +683,7 @@ internal class TransportStream(
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Error("[{0}] Disconnected handler error: {1}", nameof(TransportStream), ex.Message);
+                .Error($"[{nameof(TransportStream)}] Disconnected handler error: {ex.Message}");
         }
     }
 

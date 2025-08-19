@@ -56,13 +56,15 @@ internal sealed class PacketAnalyzer<
                 $"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-            .Info($"[PacketAnalyzer] Scanning controller: {controllerType.FullName}");
+                                .Info($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
+                                      $"Scanning controller: {controllerType.FullName}");
 
         // Get or compile all handler methods
         var compiledMethods = GetOrCompileMethodAccessors(controllerType);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-            .Debug($"[PacketAnalyzer] Found {compiledMethods.Count} method(s) with [PacketOpcode]");
+                                .Debug($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
+                                       $"Found {compiledMethods.Count} method(s) with [PacketOpcode]");
 
         // Create the controller instance
         TController controllerInstance = factory();
@@ -84,7 +86,8 @@ internal sealed class PacketAnalyzer<
                 compiledMethod.CompiledInvoker);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Trace($"[PacketAnalyzer] Registered handler OpCode={opCode} Method={compiledMethod.MethodInfo.Name}");
+                                    .Trace($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
+                                           $"Registered handler OpCode={opCode} Method={compiledMethod.MethodInfo.Name}");
         }
 
         return descriptors;
@@ -112,13 +115,16 @@ internal sealed class PacketAnalyzer<
         if (methodInfos.Length == 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Warn($"[PacketAnalyzer] Controller {controllerType.Name} has no methods with [PacketOpcode]");
+                                    .Warn($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
+                                          $"Controller {controllerType.Name} has no methods with [PacketOpcode]");
+
             throw new System.InvalidOperationException(
                 $"Controller '{controllerType.Name}' does not define any methods with [PacketOpcode] attribute.");
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-            .Debug($"[PacketAnalyzer] Compiling {methodInfos.Length} handler(s) for {controllerType.Name}");
+                                .Debug($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
+                                       $"Compiling {methodInfos.Length} handler(s) for {controllerType.Name}");
 
         return _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
         {
@@ -132,7 +138,8 @@ internal sealed class PacketAnalyzer<
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                        .Error($"[PacketAnalyzer] Duplicate OpCode {opcodeAttr.OpCode} in {method.DeclaringType?.Name ?? "Unknown"}");
+                        .Error($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
+                               $"Duplicate OpCode {opcodeAttr.OpCode} in {method.DeclaringType?.Name ?? "Unknown"}");
 
                     throw new System.InvalidOperationException(
                         $"Duplicate OpCode {opcodeAttr.OpCode} in controller {method.DeclaringType?.Name ?? "Unknown"}.");
@@ -142,7 +149,8 @@ internal sealed class PacketAnalyzer<
                 compiled[opcodeAttr.OpCode] = compiledMethod;
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Trace($"[PacketAnalyzer] Compiled handler OpCode={opcodeAttr.OpCode} Method={method.Name}");
+                                        .Trace($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
+                                               $"Compiled handler OpCode={opcodeAttr.OpCode} Method={method.Name}");
             }
 
             return System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(compiled);
