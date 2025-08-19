@@ -93,15 +93,39 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// </summary>
     /// <typeparam name="T">The type of the instance to register.</typeparam>
     /// <param name="instance">The instance to register.</param>
+    /// <param name="registerInterfaces">If <c>true</c>, also registers the instance for all its interfaces.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Register<T>(T instance) where T : class
+    public void Register<T>(T instance, System.Boolean registerInterfaces = true) where T : class
     {
-        _instanceCache[typeof(T)] = instance;
-        if (instance is System.IDisposable d)
+        System.Type type = typeof(T);
+
+        if (_instanceCache.TryGetValue(type, out System.Object? existing) &&
+            existing is System.IDisposable d1)
         {
-            _disposableInstances.Add(d);
+            d1.Dispose();
+        }
+
+        _instanceCache[type] = instance;
+
+        if (registerInterfaces)
+        {
+            foreach (System.Type itf in type.GetInterfaces())
+            {
+                if (_instanceCache.TryGetValue(itf, out System.Object? existingItf) &&
+                    existingItf is System.IDisposable d2)
+                {
+                    d2.Dispose();
+                }
+
+                _instanceCache[itf] = instance;
+            }
+        }
+
+        if (instance is System.IDisposable disposable)
+        {
+            _disposableInstances.Add(disposable);
         }
     }
 
