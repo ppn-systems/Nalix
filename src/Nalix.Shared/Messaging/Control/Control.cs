@@ -23,14 +23,19 @@ namespace Nalix.Shared.Messaging.Control;
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Control OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public sealed class Control : IPacket, IPacketTransformer<Control>
+public sealed class Control : IPacket, IPacketReasoned, IPacketSequenced, IPacketTransformer<Control>
 {
     /// <summary>
     /// Gets the total length of the serialized packet in bytes, including header and content.
     /// </summary>
     [SerializeIgnore]
     public System.UInt16 Length =>
-        PacketConstants.HeaderSize + sizeof(ControlType) + (sizeof(System.Int64) * 2);
+        PacketConstants.HeaderSize
+        + sizeof(System.UInt32)  // SequenceId
+        + sizeof(System.UInt16)  // ReasonCode
+        + sizeof(ControlType)    // ControlType
+        + sizeof(System.Int64)   // Timestamp
+        + sizeof(System.Int64);  // MonoTicks
 
     /// <summary>
     /// Gets the magic number used to identify the packet format.
@@ -63,21 +68,33 @@ public sealed class Control : IPacket, IPacketTransformer<Control>
     public TransportProtocol Transport { get; set; }
 
     /// <summary>
-    /// Gets or sets the binary content of the packet.
+    /// Gets or sets the sequence identifier for this packet.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.End + 0)]
+    public System.UInt32 SequenceId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the reason code associated with this control packet.
+    /// </summary>
+    [SerializeOrder(PacketHeaderOffset.End + 1)]
+    public System.UInt16 ReasonCode { get; set; }
+
+    /// <summary>
+    /// Gets or sets the binary content of the packet.
+    /// </summary>
+    [SerializeOrder(PacketHeaderOffset.End + 2)]
     public ControlType Type { get; set; }
 
     /// <summary>
     /// Gets or sets the timestamp associated with this packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.End + 1)]
+    [SerializeOrder(PacketHeaderOffset.End + 3)]
     public System.Int64 Timestamp { get; set; }
 
     /// <summary>
     /// Gets or sets the monotonic timestamp (in ticks) for RTT measurement.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.End + 2)]
+    [SerializeOrder(PacketHeaderOffset.End + 4)]
     public System.Int64 MonoTicks { get; set; }
 
     /// <summary>
@@ -87,7 +104,9 @@ public sealed class Control : IPacket, IPacketTransformer<Control>
     {
         this.Timestamp = 0;
         this.MonoTicks = 0;
-        this.Type = ControlType.Ping; // Default type, can be changed later
+        this.SequenceId = 0;
+        this.ReasonCode = 0;
+        this.Type = ControlType.Null; // Default type, can be changed later
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.Urgent;
         this.Transport = TransportProtocol.Null;
@@ -96,17 +115,32 @@ public sealed class Control : IPacket, IPacketTransformer<Control>
     }
 
     /// <summary>
+    /// Initializes the control packet with full metadata.
+    /// </summary>
+    /// <param name="type">The control message type.</param>
+    /// <param name="sequenceId">The sequence identifier (optional, default = 0).</param>
+    /// <param name="reasonCode">The reason code (optional, default = 0).</param>
+    /// <param name="transport">The transport protocol (default = TCP).</param>
+    public void Initialize(
+        ControlType type,
+        System.UInt32 sequenceId = 0,
+        System.UInt16 reasonCode = 0,
+        TransportProtocol transport = TransportProtocol.Tcp)
+    {
+        this.Type = type;
+        this.Transport = transport;
+        this.SequenceId = sequenceId;
+        this.ReasonCode = reasonCode;
+        this.MonoTicks = Clock.MonoTicksNow();
+        this.Timestamp = Clock.UnixMillisecondsNow();
+    }
+
+    /// <summary>
     /// Initializes the packet with binary data and a transport protocol.
     /// </summary>
     /// <param name="type">Binary content of the packet.</param>
     /// <param name="transport">The target transport protocol.</param>
-    public void Initialize(ControlType type, TransportProtocol transport = TransportProtocol.Tcp)
-    {
-        this.Type = type;
-        this.Transport = transport;
-        this.MonoTicks = Clock.MonoTicksNow();
-        this.Timestamp = Clock.UnixMillisecondsNow();
-    }
+    public void Initialize(ControlType type, TransportProtocol transport = TransportProtocol.Tcp) => Initialize(type, 0, 0, transport);
 
     /// <summary>
     /// Serializes the packet to a newly allocated byte array.
@@ -175,7 +209,9 @@ public sealed class Control : IPacket, IPacketTransformer<Control>
     {
         this.Timestamp = 0;
         this.MonoTicks = 0;
-        this.Type = ControlType.Ping;
+        this.SequenceId = 0;
+        this.ReasonCode = 0;
+        this.Type = ControlType.Null;
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.Normal;
         this.Transport = TransportProtocol.Null;
@@ -183,6 +219,6 @@ public sealed class Control : IPacket, IPacketTransformer<Control>
 
     /// <inheritdoc/>
     public override System.String ToString() =>
-        $"Control(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
-        $"Priority={Priority}, Transport={Transport}, Type={Type}, Timestamp={Timestamp})";
+        $"Control(Op={OpCode}, Len={Length}, Flg={Flags}, Pri={Priority}, " +
+        $"Tr={Transport}, Seq={SequenceId}, Rsn={ReasonCode}, Typ={Type}, Ts={Timestamp}, Mono={MonoTicks})";
 }
