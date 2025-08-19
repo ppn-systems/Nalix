@@ -3,7 +3,9 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Shared.Configuration;
+using Nalix.Shared.Injection;
 using Nalix.Shared.Injection.DI;
+using Nalix.Shared.Memory.Caches;
 
 namespace Nalix.SDK.Remote.Core;
 
@@ -12,7 +14,7 @@ namespace Nalix.SDK.Remote.Core;
 /// This client is designed to communicate with a predefined remote endpoint using the UDP protocol.
 /// </summary>
 /// <typeparam name="TPacket">
-/// The packet type that must implement <see cref="IPacket"/>, <see cref="IPacketTransformer{TPacket}"/>, and <see cref="IPacketTransformer{TPacket}"/>.
+/// The packet type that must implement <see cref="IPacket"/>.
 /// </typeparam>
 [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
@@ -21,12 +23,16 @@ namespace Nalix.SDK.Remote.Core;
 public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TPacket>
-    : SingletonBase<RemoteDatagramClient<TPacket>>, System.IDisposable where TPacket : IPacket, IPacketTransformer<TPacket>, IAsyncActivatable
+    : SingletonBase<RemoteDatagramClient<TPacket>>, System.IDisposable where TPacket : IPacket, IAsyncActivatable
 {
     #region Fields
 
     private readonly System.Net.IPEndPoint _remoteEndPoint;
     private readonly System.Net.Sockets.UdpClient _udpClient;
+
+    private readonly IPacketCatalog _catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
+        ?? throw new System.InvalidOperationException(
+            "Packet catalog instance is not registered in the dependency injection container.");
 
     #endregion Fields
 
@@ -41,6 +47,11 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
     /// Indicates whether the UDP client is actively running and receiving data.
     /// </summary>
     public System.Boolean IsReceiving { get; private set; }
+
+    /// <summary>
+    /// Gets the cache that stores recently received (incoming) packets.
+    /// </summary>
+    public readonly FifoCache<TPacket> Incoming = new(200);
 
     /// <summary>
     /// Occurs when a valid packet is received from a remote endpoint.
@@ -59,8 +70,8 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
 
         _udpClient = new System.Net.Sockets.UdpClient(0); // Binds to random local port
         _udpClient.Client.DontFragment = true;
-        _udpClient.Client.ReceiveBufferSize = 1 << 16;
         _udpClient.Client.SendBufferSize = 1 << 16;
+        _udpClient.Client.ReceiveBufferSize = 1 << 16;
 
         _remoteEndPoint = new System.Net.IPEndPoint(System.Net.IPAddress.Parse(Options.Address), Options.Port);
     }
@@ -78,8 +89,12 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
             try
             {
                 System.Net.Sockets.UdpReceiveResult result = await _udpClient.ReceiveAsync(token);
-                TPacket packet = TPacket.Deserialize(result.Buffer);
-                this.PacketReceived?.Invoke(packet, result.RemoteEndPoint);
+
+                if (_catalog.TryDeserialize(
+                    System.MemoryExtensions.AsSpan(result.Buffer), out IPacket packet))
+                {
+                    Incoming.Push((TPacket)packet);
+                }
             }
             catch (System.OperationCanceledException)
             {

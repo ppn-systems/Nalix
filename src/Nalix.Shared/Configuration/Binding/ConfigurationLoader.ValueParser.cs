@@ -73,9 +73,6 @@ public partial class ConfigurationLoader
     private static System.String GetDefaultValueString(System.TypeCode typeCode)
         => typeCode switch
         {
-            System.TypeCode.Char => System.String.Empty,
-            System.TypeCode.String => System.String.Empty,
-            System.TypeCode.Boolean => "false",
             System.TypeCode.Byte => "0",
             System.TypeCode.SByte => "0",
             System.TypeCode.Decimal => "0",
@@ -87,6 +84,9 @@ public partial class ConfigurationLoader
             System.TypeCode.UInt64 => "0",
             System.TypeCode.Single => "0",
             System.TypeCode.Double => "0",
+            System.TypeCode.Boolean => "false",
+            System.TypeCode.Char => System.String.Empty,
+            System.TypeCode.String => System.String.Empty,
             System.TypeCode.DateTime => System.DateTime.UtcNow.ToString("O"),
             _ => System.String.Empty,
         };
