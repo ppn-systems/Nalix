@@ -146,7 +146,7 @@ public sealed class EmailLogTarget : ILoggerTarget, System.IDisposable
     private System.Net.Mail.MailMessage CreateMailMessage(LogEntry entry)
     {
         System.String exceptionHtml = entry.Exception is not null
-                ? $"<p><b>Exception:</b> <pre style='background:#f8f9fa; padding:10px;'>{entry.Exception}</pre></p>"
+                ? $"<p><b>Exception:</b> {entry.Exception.GetType().Name}: {entry.Exception.Message}</pre></p>"
                 : "";
 
         System.String htmlBody = System.String.Format(HtmlTemplate,
