@@ -27,11 +27,14 @@ public abstract partial class ConfigurationLoader
 
     private static readonly System.String[] _suffixesToTrim =
     [
-        "Configuration",
-        "Settings",
-        "Options",
+        "Config",
+        "Option",
         "Configs",
-        "Config"
+        "Options",
+        "Setting",
+        "Settings",
+        "Configuration",
+        "Configurations",
     ];
 
     private System.Int32 _isInitialized; // Flag to track initialization status

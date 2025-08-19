@@ -2,6 +2,7 @@
 
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
+using Nalix.Shared.Injection;
 
 namespace Nalix.SDK.Remote.Internal;
 
@@ -17,11 +18,14 @@ namespace Nalix.SDK.Remote.Internal;
 [System.ComponentModel.EditorBrowsable(
     System.ComponentModel.EditorBrowsableState.Never)]
 [System.Diagnostics.DebuggerDisplay("Readable={_stream?.CanRead}")]
-internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkStream stream)
-    where TPacket : IPacket, IPacketTransformer<TPacket>
+internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkStream stream) where TPacket : IPacket
 {
     private readonly System.Net.Sockets.NetworkStream _stream = stream
         ?? throw new System.ArgumentNullException(nameof(stream));
+
+    private readonly IPacketCatalog _catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
+        ?? throw new System.InvalidOperationException(
+            "Packet catalog instance is not registered in the dependency injection container.");
 
     /// <summary>
     /// Asynchronously receives a packet from the network stream with unsafe optimizations.
@@ -71,7 +75,9 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
                 System.MemoryExtensions.AsMemory(sbuffer, 0, length - 2),
                 cancellationToken).ConfigureAwait(false);
 
-            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(sbuffer, 0, length - 2));
+            return (TPacket)(_catalog.TryDeserialize(
+                System.MemoryExtensions.AsSpan(sbuffer, 0, length - 2), out IPacket packet)
+                ? packet : throw new System.InvalidOperationException("Failed to deserialize packet."));
         }
 
         // Rent buffer for larger packets
@@ -84,7 +90,9 @@ internal sealed class RemoteStreamReceiver<TPacket>(System.Net.Sockets.NetworkSt
                 cancellationToken).ConfigureAwait(false);
 
             // Deserialize from buffer
-            return TPacket.Deserialize(System.MemoryExtensions.AsSpan(buffer, 0, length - 2));
+            return (TPacket)(_catalog.TryDeserialize(
+                System.MemoryExtensions.AsSpan(buffer, 0, length - 2), out IPacket packet)
+                ? packet : throw new System.InvalidOperationException("Failed to deserialize packet."));
         }
         finally
         {

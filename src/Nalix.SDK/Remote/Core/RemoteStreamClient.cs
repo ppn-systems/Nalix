@@ -14,7 +14,7 @@ namespace Nalix.SDK.Remote.Core;
 /// network stream, and client disposal. It supports both synchronous and asynchronous connection.
 /// </remarks>
 [System.Diagnostics.DebuggerDisplay("Remote={Options.Address}:{Options.Port}, Connected={IsConnected}")]
-public class RemoteStreamClient<TPacket> : System.IDisposable where TPacket : IPacket, IPacketTransformer<TPacket>
+public class RemoteStreamClient<TPacket> : System.IDisposable where TPacket : IPacket
 {
     #region Fields
 

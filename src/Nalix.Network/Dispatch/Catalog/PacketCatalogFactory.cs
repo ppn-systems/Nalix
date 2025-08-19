@@ -51,6 +51,13 @@ namespace Nalix.Network.Dispatch.Catalog;
 /// </example>
 public sealed class PacketCatalogFactory
 {
+    private static readonly System.Collections.Generic.HashSet<System.String?> DefaultNamespaces =
+    [
+        typeof(Text256).Namespace,
+        typeof(Control).Namespace,
+        typeof(Binary128).Namespace
+    ];
+
     private readonly System.Collections.Generic.HashSet<System.Type> _explicitPacketTypes = [];
     private readonly System.Collections.Generic.HashSet<System.Reflection.Assembly> _assemblies = [];
 
@@ -167,6 +174,13 @@ public sealed class PacketCatalogFactory
                     continue;
                 }
 
+                if (type.Namespace is not null && DefaultNamespaces.Contains(type.Namespace))
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Trace($"[{nameof(PacketCatalogFactory)}] Skipped default packet type: {type.FullName}");
+                    continue;
+                }
+
                 if (!typeof(IPacket).IsAssignableFrom(type))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -182,7 +196,7 @@ public sealed class PacketCatalogFactory
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[{nameof(PacketCatalogFactory)}] No candidate packet types were discovered. " +
-                                          "The resulting catalog will be empty.");
+                                          $"The resulting catalog will be empty.");
         }
 
         // 2) CreateCatalog maps
@@ -228,7 +242,8 @@ public sealed class PacketCatalogFactory
                     else
                     {
                         throw new System.InvalidOperationException(
-                            $"[{nameof(PacketCatalogFactory)}] Duplicate MagicNumber 0x{magicAttr.MagicNumber:X8} on {type.FullName}");
+                            $"[{nameof(PacketCatalogFactory)}] " +
+                            $"Duplicate MagicNumber 0x{magicAttr.MagicNumber:X8} on {type.FullName}");
                     }
                 }
 
