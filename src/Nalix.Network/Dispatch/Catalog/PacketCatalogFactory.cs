@@ -7,6 +7,9 @@ using Nalix.Common.Packets.Models;
 using Nalix.Common.Security.Cryptography.Enums;
 using Nalix.Network.Dispatch.Catalog.Internal;
 using Nalix.Shared.Injection;
+using Nalix.Shared.Messaging.Binary;
+using Nalix.Shared.Messaging.Control;
+using Nalix.Shared.Messaging.Text;
 
 namespace Nalix.Network.Dispatch.Catalog;
 
@@ -50,6 +53,25 @@ public sealed class PacketCatalogFactory
 {
     private readonly System.Collections.Generic.HashSet<System.Type> _explicitPacketTypes = [];
     private readonly System.Collections.Generic.HashSet<System.Reflection.Assembly> _assemblies = [];
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PacketCatalogFactory"/> class.
+    /// Registers the <see cref="Binary128"/> packet type by default.
+    /// </summary>
+    public PacketCatalogFactory()
+    {
+        _ = this.RegisterPacket<Binary128>()
+                .RegisterPacket<Binary256>()
+                .RegisterPacket<Binary512>()
+                .RegisterPacket<Binary1024>();
+
+        _ = this.RegisterPacket<Text256>()
+                .RegisterPacket<Text512>()
+                .RegisterPacket<Text1024>();
+
+        _ = this.RegisterPacket<Control>()
+                .RegisterPacket<Handshake>();
+    }
 
     /// <summary>
     /// Adds an assembly to the discovery set for packet types.
@@ -170,7 +192,8 @@ public sealed class PacketCatalogFactory
             if (magicAttr is null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(PacketCatalogFactory)}] Type has no MagicNumberAttribute, skipping: {type.FullName}");
+                                        .Trace($"[{nameof(PacketCatalogFactory)}] " +
+                                               $"Type has no MagicNumberAttribute, skipping: {type.FullName}");
                 continue; // only types with magic number are packets
             }
 
@@ -199,6 +222,7 @@ public sealed class PacketCatalogFactory
                         InstanceManager.Instance.GetExistingInstance<ILogger>()!
                                                 .Error($"[{nameof(PacketCatalogFactory)}] Duplicate MagicNumber found: " +
                                                        $"0x{magicAttr.MagicNumber:X8} on {type.FullName}");
+
                         continue; // Skip this type, already registered
                     }
                     else
@@ -234,7 +258,8 @@ public sealed class PacketCatalogFactory
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(PacketCatalogFactory)}] Built: {deserializers.Count} packets, {transformers.Count} transformers.");
+                                .Info($"[{nameof(PacketCatalogFactory)}] " +
+                                      $"Built: {deserializers.Count} packets, {transformers.Count} transformers.");
 
         return new PacketCatalog(
             System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(deserializers),
