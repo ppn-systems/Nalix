@@ -42,11 +42,8 @@ public sealed class PacketDispatchChannel
 {
     #region Fields
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "<Pending>")]
-    private readonly IDispatchChannel<IPacket> _dispatch;
+    private readonly PacketCatalog _catalog;
+    private readonly DispatchChannel<IPacket> _dispatch;
     private readonly System.Threading.SemaphoreSlim _semaphore = new(0);
     private readonly System.Threading.CancellationTokenSource _cts = new();
 
@@ -66,6 +63,10 @@ public sealed class PacketDispatchChannel
         : base(options)
     {
         _dispatch = new DispatchChannel<IPacket>(logger: null);
+        _catalog = InstanceManager.Instance.GetExistingInstance<PacketCatalog>()
+                   ?? throw new System.InvalidOperationException(
+                       $"[{nameof(PacketDispatchChannel)}] PacketCatalog not registered in InstanceManager. " +
+                       $"Make sure to build and register PacketCatalog before starting dispatcher.");
 
         // Push any additional initialization here if needed
 #if DEBUG
@@ -187,18 +188,8 @@ public sealed class PacketDispatchChannel
         System.Int32 len = raw.Length;
         System.UInt32 magic = len >= 4 ? raw.ReadMagicNumberLE() : 0u;
 
-        // 3) Resolve catalog ONCE
-        PacketCatalog? catalog = InstanceManager.Instance.GetExistingInstance<PacketCatalog>();
-        if (catalog is null)
-        {
-            Logger?.Error(
-                "[PacketDispatch] Missing PacketCatalog. Remote={0}, Len={1}, Magic=0x{2:X8}. Dropped.",
-                connection.RemoteEndPoint, len, magic);
-            return;
-        }
-
-        // 4) Try deserialize
-        if (!catalog.TryDeserialize(raw, out IPacket? packet) || packet is null)
+        // 3) Try deserialize
+        if (!_catalog.TryDeserialize(raw, out IPacket? packet) || packet is null)
         {
             // Log only a small head preview to avoid leaking large/secret data
             System.String head = System.Convert.ToHexString(raw[..System.Math.Min(16, len)]);
@@ -208,12 +199,12 @@ public sealed class PacketDispatchChannel
             return;
         }
 
-        // 5) Success trace (can be disabled in production)
+        // 4) Success trace (can be disabled in production)
         Logger?.Trace(
             "[PacketDispatch] Deserialized {0} from {1}. Len={2}, Magic=0x{3:X8}.",
             packet.GetType().Name, connection.RemoteEndPoint, len, magic);
 
-        // 6) Dispatch to typed handler
+        // 5) Dispatch to typed handler
         this.HandlePacket(packet, connection);
     }
 
