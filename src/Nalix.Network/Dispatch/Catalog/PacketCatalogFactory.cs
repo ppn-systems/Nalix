@@ -51,12 +51,15 @@ namespace Nalix.Network.Dispatch.Catalog;
 /// </example>
 public sealed class PacketCatalogFactory
 {
-    private static readonly System.Collections.Generic.HashSet<System.String?> DefaultNamespaces =
-    [
-        typeof(Text256).Namespace,
-        typeof(Control).Namespace,
-        typeof(Binary128).Namespace
-    ];
+    private static readonly System.Collections.Generic.HashSet<System.String> Namespaces = new(
+        System.Linq.Enumerable.Where(
+        [
+            typeof(Text256).Namespace,
+            typeof(Control).Namespace,
+            typeof(Binary128).Namespace
+        ], ns => ns is not null)!,
+        System.StringComparer.Ordinal
+    );
 
     private readonly System.Collections.Generic.HashSet<System.Type> _explicitPacketTypes = [];
     private readonly System.Collections.Generic.HashSet<System.Reflection.Assembly> _assemblies = [];
@@ -174,7 +177,7 @@ public sealed class PacketCatalogFactory
                     continue;
                 }
 
-                if (type.Namespace is not null && DefaultNamespaces.Contains(type.Namespace))
+                if (type.Namespace is not null && Namespaces.Contains(type.Namespace))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Trace($"[{nameof(PacketCatalogFactory)}] Skipped default packet type: {type.FullName}");
