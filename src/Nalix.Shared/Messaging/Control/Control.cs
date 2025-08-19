@@ -168,6 +168,7 @@ public sealed class Control : IPacket, IPacketReasoned, IPacketSequenced, IPacke
     {
         Control packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                  .Get<Control>();
+
         System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
 
         return bytesRead == 0

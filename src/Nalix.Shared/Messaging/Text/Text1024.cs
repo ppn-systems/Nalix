@@ -107,6 +107,7 @@ public class Text1024 : IPacket, IPacketTransformer<Text1024>
     {
         Text1024 packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                   .Get<Text1024>();
+
         System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
 
         return bytesRead == 0
