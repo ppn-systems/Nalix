@@ -18,7 +18,8 @@ public abstract partial class UdpListenerBase
         };
 
         ConfigureHighPerformanceSocket(_udpClient.Client);
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Debug("[UDP] UDP client bound to port {0}", Config.Port);
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[{nameof(UdpListenerBase)}] UDP client bound to port {Config.Port}");
     }
 
     [System.Diagnostics.DebuggerStepThrough]

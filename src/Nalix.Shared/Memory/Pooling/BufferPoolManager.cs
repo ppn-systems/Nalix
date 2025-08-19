@@ -104,7 +104,7 @@ public sealed class BufferPoolManager : System.IDisposable
         System.Boolean deepTrim = System.Threading.Interlocked.Increment(ref _trimCycleCount) % 6 == 0;
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"Running automatic buffer trimming (Deep trim: {deepTrim})");
+                                .Debug($"[{nameof(BufferPoolManager)}] Running automatic buffer trimming (Deep trim: {deepTrim})");
 
         // TODO: Implement trimming logic based on buffer pool statistics
     }
@@ -118,7 +118,7 @@ public sealed class BufferPoolManager : System.IDisposable
     {
         if (_isInitialized)
         {
-            throw new System.InvalidOperationException("Buffers already allocated.");
+            throw new System.InvalidOperationException($"[{nameof(BufferPoolManager)}] Buffers already allocated.");
         }
 
         foreach (var (bufferSize, allocation) in _bufferAllocations)
@@ -164,7 +164,7 @@ public sealed class BufferPoolManager : System.IDisposable
         catch (System.ArgumentException ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"Failed to rent buffer of size {size}: {ex.Message}");
+                                    .Error($"[{nameof(BufferPoolManager)}] Failed to rent buffer of size {size}: {ex.Message}");
             throw;
         }
     }
@@ -189,7 +189,7 @@ public sealed class BufferPoolManager : System.IDisposable
         {
             // Log but don't throw to avoid crashing application
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"Failed to return buffer of size {buffer.Length}: {ex.Message}");
+                                    .Warn($"[{nameof(BufferPoolManager)}] Failed to return buffer of size {buffer.Length}: {ex.Message}");
         }
     }
 
@@ -253,7 +253,7 @@ public sealed class BufferPoolManager : System.IDisposable
         if (System.String.IsNullOrWhiteSpace(bufferAllocationsString))
         {
             throw new System.ArgumentException(
-                "The input string must not be blank or contain only white spaces.",
+                $"[{nameof(BufferPoolManager)}] The input string must not be blank or contain only white spaces.",
                 nameof(bufferAllocationsString));
         }
 
@@ -269,14 +269,14 @@ public sealed class BufferPoolManager : System.IDisposable
                         System.String[] parts = pair.Split(',', System.StringSplitOptions.RemoveEmptyEntries);
                         return parts.Length != 2
                             ? throw new System.FormatException(
-                                $"Incorrectly formatted pair: '{pair}'. " +
+                                $"[{nameof(BufferPoolManager)}] Incorrectly formatted pair: '{pair}'. " +
                                 $"Expected format: '<size>,<ratio>;<size>,<ratio>' (e.g., '1024,0.40;2048,0.60').")
                             : !System.Int32.TryParse(parts[0].Trim(), out System.Int32 allocationSize) || allocationSize <= 0
                             ? throw new System.ArgumentOutOfRangeException(
-                                nameof(bufferAllocationsString), "Buffers allocation size must be greater than zero.")
+                                nameof(bufferAllocationsString), $"[{nameof(BufferPoolManager)}] Buffers allocation size must be greater than zero.")
                             : !System.Double.TryParse(parts[1].Trim(), out System.Double ratio) || ratio <= 0 || ratio > 1
                             ? throw new System.ArgumentOutOfRangeException(
-                                nameof(bufferAllocationsString), "Ratio must be between 0 and 1.")
+                                nameof(bufferAllocationsString), $"[{nameof(BufferPoolManager)}] Ratio must be between 0 and 1.")
                             : (allocationSize, ratio);
                     })
                     .OrderBy(tuple => tuple.allocationSize)
@@ -286,7 +286,7 @@ public sealed class BufferPoolManager : System.IDisposable
                 System.Double totalAllocation = allocations.Sum(a => a.ratio);
                 return totalAllocation > 1.1
                     ? throw new System.ArgumentException(
-                        $"Total allocation ratio ({totalAllocation:F2}) exceeds 1.0. " +
+                        $"[{nameof(BufferPoolManager)}] Total allocation ratio ({totalAllocation:F2}) exceeds 1.0. " +
                         "The sum of all allocations should be at most 1.0.")
                     : ((System.Int32, System.Double)[])allocations;
             }
@@ -295,7 +295,7 @@ public sealed class BufferPoolManager : System.IDisposable
                 System.OverflowException or System.ArgumentOutOfRangeException)
             {
                 throw new System.ArgumentException(
-                    "The input string is malformed or contains invalid values. " +
+                    $"[{nameof(BufferPoolManager)}] The input string is malformed or contains invalid values. " +
                     $"Expected format: '<size>,<ratio>;<size>,<ratio>' (e.g., '1024,0.40;2048,0.60'). Error: {ex.Message}");
             }
         });
@@ -341,7 +341,7 @@ public sealed class BufferPoolManager : System.IDisposable
                     pool.DecreaseCapacity(buffersToShrink);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Info($"Optimized buffer pool for size {poolInfo.BufferSize}, " +
+                                            .Info($"[{nameof(BufferPoolManager)}] Optimized buffer pool for size {poolInfo.BufferSize}, " +
                                                   $"reduced by {buffersToShrink}, " +
                                                   $"new capacity: {poolInfo.TotalBuffers - buffersToShrink}.");
                 }
@@ -403,7 +403,7 @@ public sealed class BufferPoolManager : System.IDisposable
                     pool.IncreaseCapacity(maxIncrease);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Info($"Optimized buffer pool for size {poolInfo.BufferSize}, " +
+                                            .Info($"[{nameof(BufferPoolManager)}] Optimized buffer pool for size {poolInfo.BufferSize}, " +
                                                   $"added {maxIncrease} buffers, " +
                                                   $"new capacity: {poolInfo.TotalBuffers + maxIncrease}, " +
                                                   $"miss ratio: {missRatio:F2}.");
