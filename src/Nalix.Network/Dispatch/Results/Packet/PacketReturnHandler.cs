@@ -13,9 +13,13 @@ internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket>
         System.Object? result,
         PacketContext<TPacket> context)
     {
-        if (result is TPacket packet)
+        if (result is not TPacket packet)
         {
-            _ = await context.Connection.Tcp.SendAsync(packet.Serialize());
+            return;
         }
+
+        _ = await context.Connection.Tcp.SendAsync(packet
+                                        .Serialize())
+                                        .ConfigureAwait(false);
     }
 }

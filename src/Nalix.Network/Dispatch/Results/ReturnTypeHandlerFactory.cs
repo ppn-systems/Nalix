@@ -18,9 +18,6 @@ namespace Nalix.Network.Dispatch.Results;
 /// </typeparam>
 internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
 {
-    /// <summary>
-    /// Cached handlers để tránh recreation.
-    /// </summary>
     private static readonly System.Collections.Frozen.FrozenDictionary<System.Type, IReturnHandler<TPacket>> _handlers;
 
     static ReturnTypeHandlerFactory()
@@ -55,13 +52,13 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
 
             if (genericType == typeof(System.Threading.Tasks.Task<>))
             {
-                var innerHandler = GetHandler(genericArg);
+                IReturnHandler<TPacket> innerHandler = GetHandler(genericArg);
                 return CreateTaskHandler(innerHandler, genericArg);
             }
 
             if (genericType == typeof(System.Threading.Tasks.ValueTask<>))
             {
-                var innerHandler = GetHandler(genericArg);
+                IReturnHandler<TPacket> innerHandler = GetHandler(genericArg);
                 return CreateValueTaskHandler(innerHandler, genericArg);
             }
         }

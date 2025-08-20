@@ -220,7 +220,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 try
                 {
                     context.Initialize(packet, connection, descriptor.Attributes);
-                    await this.ExecuteHandler(descriptor, context);
+                    await this.ExecuteHandlerAsync(descriptor, context)
+                              .ConfigureAwait(false);
                 }
                 finally
                 {
