@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35931.197 d17.13
+VisualStudioVersion = 17.13.35931.197
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Benchmark", "Nalix.Benchmark\Nalix.Benchmark.csproj", "{CA6475DB-203E-4A08-9F05-2BE35CE0DD60}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Benchmark.Shared", "Nalix.Benchmark.Shared\Nalix.Benchmark.Shared.csproj", "{3C173F2F-10E9-45AD-96E7-A41E83DAFA97}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,10 +11,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{CA6475DB-203E-4A08-9F05-2BE35CE0DD60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CA6475DB-203E-4A08-9F05-2BE35CE0DD60}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CA6475DB-203E-4A08-9F05-2BE35CE0DD60}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CA6475DB-203E-4A08-9F05-2BE35CE0DD60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C173F2F-10E9-45AD-96E7-A41E83DAFA97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C173F2F-10E9-45AD-96E7-A41E83DAFA97}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C173F2F-10E9-45AD-96E7-A41E83DAFA97}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C173F2F-10E9-45AD-96E7-A41E83DAFA97}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
