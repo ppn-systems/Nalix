@@ -23,43 +23,43 @@ public sealed class IoTTcpSession : IClientConnection
     private readonly System.Threading.Lock _sync = new();
 
     // Internal helpers
-    private FRAME_SENDER _sender;
-    private FRAME_READER _receiver;
+    private FRAME_SENDER? _sender;
+    private FRAME_READER? _receiver;
 
     // Socket + loop control
-    private System.Net.Sockets.Socket _socket;
-    private System.Threading.CancellationTokenSource _loopCts;
+    private System.Net.Sockets.Socket? _socket;
+    private System.Threading.CancellationTokenSource? _loopCts;
 
     // Last known endpoint for auto-reconnect etc.
-    private System.Threading.Tasks.Task _receiveTask;
+    private System.Threading.Tasks.Task? _receiveTask;
 
     // Dispose guard.
     private System.Int32 _disposed;
 
     // Cached logger
-    private readonly ILogger _log;
+    private readonly ILogger? _log;
 
     #endregion
 
     #region Events
 
     /// <inheritdoc/>
-    public event System.EventHandler OnConnected;
+    public event System.EventHandler? OnConnected;
 
     /// <inheritdoc/>
-    public event System.EventHandler<System.Exception> OnError;
+    public event System.EventHandler<System.Exception>? OnError;
 
     /// <inheritdoc/>
-    public event System.EventHandler<System.Int64> OnBytesSent;
+    public event System.EventHandler<System.Int64>? OnBytesSent;
 
     /// <inheritdoc/>
-    public event System.EventHandler<System.Int64> OnBytesReceived;
+    public event System.EventHandler<System.Int64>? OnBytesReceived;
 
     /// <inheritdoc/>
-    public event System.EventHandler<IBufferLease> OnMessageReceived;
+    public event System.EventHandler<IBufferLease>? OnMessageReceived;
 
     /// <inheritdoc/>
-    public event System.EventHandler<System.Exception> OnDisconnected;
+    public event System.EventHandler<System.Exception>? OnDisconnected;
 
     #endregion
 
@@ -82,6 +82,7 @@ public sealed class IoTTcpSession : IClientConnection
     /// </summary>
     public IoTTcpSession()
     {
+        _disposed = 0;
         _log = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
@@ -115,11 +116,11 @@ public sealed class IoTTcpSession : IClientConnection
     #region Public API
 
     /// <inheritdoc/>
-    public async System.Threading.Tasks.Task ConnectAsync(System.String host = null, System.UInt16? port = null, System.Threading.CancellationToken ct = default)
+    public async System.Threading.Tasks.Task ConnectAsync(System.String? host = null, System.UInt16? port = null, System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(IoTTcpSession));
 
-        System.String effectiveHost = System.String.IsNullOrWhiteSpace(host) ? Options.Address : host;
+        System.String? effectiveHost = System.String.IsNullOrWhiteSpace(host) ? Options.Address : host;
         System.UInt16 effectivePort = port ?? Options.Port;
 
         // Basic validation for host
@@ -137,12 +138,15 @@ public sealed class IoTTcpSession : IClientConnection
         // Cancel previous tasks gracefully
         lock (_sync)
         {
-            CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
+            if (_loopCts != null)
+            {
+                CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
+            }
         }
 
         // Retry logic using exponential backoff (retry maximum of 3 times for IoT)
         const System.Int32 maxRetries = 3;
-        System.Exception lastException = null;
+        System.Exception? lastException = null;
 
         for (System.Int32 retryCount = 0; retryCount < maxRetries; retryCount++)
         {
@@ -206,7 +210,7 @@ public sealed class IoTTcpSession : IClientConnection
 
         CLEANUP_CONNECTION();
         _log?.Info($"[SDK.{nameof(IoTTcpSession)}] Disconnected (requested).");
-        OnDisconnected?.Invoke(this, null);
+        OnDisconnected?.Invoke(this, null!);
         return System.Threading.Tasks.Task.CompletedTask;
     }
 
@@ -219,7 +223,7 @@ public sealed class IoTTcpSession : IClientConnection
     }
 
     /// <inheritdoc/>
-    public System.Threading.Tasks.Task<System.Boolean> SendAsync(IPacket packet, System.Threading.CancellationToken ct = default)
+    public System.Threading.Tasks.Task<System.Boolean> SendAsync([System.Diagnostics.CodeAnalysis.NotNull] IPacket packet, System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(packet);
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(IoTTcpSession));
@@ -236,7 +240,7 @@ public sealed class IoTTcpSession : IClientConnection
         }
 
         CLEANUP_CONNECTION();
-        _receiveTask.Dispose();
+        _receiveTask?.Dispose();
         _log?.Info($"[SDK.{nameof(IoTTcpSession)}] Disposed.");
         System.GC.SuppressFinalize(this);
     }
@@ -249,7 +253,7 @@ public sealed class IoTTcpSession : IClientConnection
     {
         _receiveTask = System.Threading.Tasks.Task.Run(async () =>
         {
-            try { await _receiver.ReceiveLoopAsync(loopToken); }
+            try { await _receiver!.ReceiveLoopAsync(loopToken); }
             catch (System.Exception ex) { HANDLE_RECEIVE_ERROR(ex); }
         }, System.Threading.CancellationToken.None);
     }
@@ -261,17 +265,20 @@ public sealed class IoTTcpSession : IClientConnection
     {
         lock (_sync)
         {
-            CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
+            if (_loopCts is not null)
+            {
+                CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
+            }
 
             System.Threading.Interlocked.Exchange(ref _sender, null)?.Dispose();
 
             try { _socket?.Shutdown(System.Net.Sockets.SocketShutdown.Both); } catch { }
             try { _socket?.Close(); _socket?.Dispose(); } catch { }
-            _socket = null;
-            _receiver = null;
+            _socket = null!;
+            _receiver = null!;
         }
 
-        _receiveTask = null;
+        _receiveTask = null!;
     }
 
     private static void CANCEL_AND_DISPOSE_LOCKED(ref System.Threading.CancellationTokenSource cts)
@@ -283,7 +290,7 @@ public sealed class IoTTcpSession : IClientConnection
 
         try { cts.Cancel(); } catch { }
         try { cts.Dispose(); } catch { }
-        cts = null;
+        cts = null!;
     }
 
     #endregion

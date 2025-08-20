@@ -27,7 +27,7 @@ namespace Nalix.SDK.Transport.Extensions;
 public static class TimeSyncExtensions
 {
     // Lazy logger resolution: avoids hard startup failure if ILogger is registered after this type loads.
-    private static ILogger Log => InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static ILogger? Log => InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
     /// Performs a one-shot time synchronization with the server.

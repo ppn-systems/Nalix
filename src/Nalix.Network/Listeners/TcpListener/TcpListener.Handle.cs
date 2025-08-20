@@ -23,11 +23,11 @@ public abstract partial class TcpListenerBase
             _protocol.OnAccept(connection, _cancellationToken);
 
             _metrics.RECORD_ACCEPTED();
-            s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection.EndPoint}");
+            s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection.EndPoint}");
         }
         catch (System.Exception ex)
         {
-            s_logger.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] process-error={connection.EndPoint}", ex);
+            s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] process-error={connection.EndPoint}", ex);
 
             connection.Close();
         }
@@ -52,7 +52,7 @@ public abstract partial class TcpListenerBase
 
         args.Connection.Dispose();
 
-        s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleConnectionClose)}] close={args.Connection.EndPoint}");
+        s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleConnectionClose)}] close={args.Connection.EndPoint}");
     }
 
     [System.Diagnostics.DebuggerStepThrough]
@@ -148,7 +148,7 @@ public abstract partial class TcpListenerBase
                 }
                 catch (System.ObjectDisposedException)
                 {
-                    s_logger.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] disposed-during-accept remote={socket.RemoteEndPoint}");
+                    s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] disposed-during-accept remote={socket.RemoteEndPoint}");
 
                     SafeCloseSocket(socket);
                     if (args is PooledSocketAsyncEventArgs pooled && pooled.Context != null)
@@ -165,7 +165,7 @@ public abstract partial class TcpListenerBase
                 catch (System.Exception ex)
                 {
                     _metrics.RECORD_ERROR();
-                    s_logger.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error port={_port}", ex);
+                    s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error port={_port}", ex);
 
                     SafeCloseSocket(socket);
 
@@ -179,7 +179,7 @@ public abstract partial class TcpListenerBase
             }
             else
             {
-                s_logger.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-failed={args.SocketError}");
+                s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-failed={args.SocketError}");
 
                 if (args is PooledSocketAsyncEventArgs pooled)
                 {
@@ -276,7 +276,7 @@ public abstract partial class TcpListenerBase
             }
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                s_logger.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptNext)}] accept-error port={_port}", ex);
+                s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptNext)}] accept-error port={_port}", ex);
 
                 // Brief delay to prevent CPU spinning on repeated errors
                 System.Threading.Tasks.Task.Delay(50, System.Threading.CancellationToken.None)
@@ -305,7 +305,7 @@ public abstract partial class TcpListenerBase
             ctx.Beat();
 
 #if DEBUG
-            s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] waiting-accept port={_port}");
+            s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] waiting-accept port={_port}");
 #endif
 
             IConnection connection;
@@ -317,7 +317,7 @@ public abstract partial class TcpListenerBase
             catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
 #if DEBUG
-                s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] shutdown-requested port={_port}");
+                s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] shutdown-requested port={_port}");
 #endif
                 break;
             }
@@ -338,7 +338,7 @@ public abstract partial class TcpListenerBase
 
                 _metrics.RECORD_ERROR();
 #if DEBUG
-                s_logger.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] transient-socket-error={ex.SocketErrorCode} port={_port}");
+                s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] transient-socket-error={ex.SocketErrorCode} port={_port}");
 #endif
 
                 await System.Threading.Tasks.Task.Delay(50, System.Threading.CancellationToken.None)
@@ -348,7 +348,7 @@ public abstract partial class TcpListenerBase
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 _metrics.RECORD_ERROR();
-                s_logger.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accept-error port={_port}", ex);
+                s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accept-error port={_port}", ex);
 
                 await System.Threading.Tasks.Task.Delay(50, cancellationToken)
                                                  .ConfigureAwait(false);
@@ -356,7 +356,7 @@ public abstract partial class TcpListenerBase
             }
 
 #if DEBUG
-            s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accepted remote={connection.EndPoint} port={_port}");
+            s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accepted remote={connection.EndPoint} port={_port}");
 #endif
 
             PooledProcessContext pctx = s_pool.Get<PooledProcessContext>();
@@ -368,7 +368,7 @@ public abstract partial class TcpListenerBase
         }
 
 #if DEBUG
-        s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] loop-exited port={_port}");
+        s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] loop-exited port={_port}");
 #endif
     }
 

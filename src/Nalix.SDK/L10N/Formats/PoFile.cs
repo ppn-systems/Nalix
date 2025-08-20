@@ -62,7 +62,7 @@ public partial class PoFile
     /// <param name="reader">A <see cref="System.IO.StreamReader"/> containing PO file content.</param>
     private void Parse(System.IO.StreamReader reader)
     {
-        System.String line;
+        System.String? line;
         System.String msgid = "", msgstr = "";
         System.Collections.Generic.List<System.String> msgstrPlural = [];
         System.Boolean isPlural = false;
@@ -140,7 +140,7 @@ public partial class PoFile
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.String GetString(System.String id)
-        => _translations.TryGetValue(id, out System.String value) ? value : id;
+        => _translations.TryGetValue(id, out System.String? value) ? value : id;
 
     /// <summary>
     /// Gets the pluralized translation for a given ProtocolType.
@@ -153,7 +153,7 @@ public partial class PoFile
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.String GetPluralString(System.String id, System.String idPlural, System.Int32 n)
     {
-        if (_pluralTranslations.TryGetValue(id, out System.String[] plurals))
+        if (_pluralTranslations.TryGetValue(id, out System.String[]? plurals))
         {
             System.Int32 index = _pluralRule(n);
             if (index >= 0 && index < plurals.Length)
@@ -175,7 +175,7 @@ public partial class PoFile
     public System.String GetParticularString(System.String context, System.String id)
     {
         System.String key = $"{context}\u0004{id}"; // PO uses \u0004 to separate context
-        return _translations.TryGetValue(key, out System.String value) ? value : id;
+        return _translations.TryGetValue(key, out System.String? value) ? value : id;
     }
 
     /// <summary>
@@ -193,7 +193,7 @@ public partial class PoFile
     {
         System.String key = $"{context}\u0004{id}"; // PO uses \u0004 to separate context
 
-        if (_pluralTranslations.TryGetValue(key, out System.String[] plurals))
+        if (_pluralTranslations.TryGetValue(key, out System.String[]? plurals))
         {
             System.Int32 index = _pluralRule(n);
 
@@ -213,8 +213,8 @@ public partial class PoFile
     /// <returns>The metadata value if found, otherwise <c>null</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.String GetMetadata(System.String key)
-        => _metadata.TryGetValue(key, out System.String value) ? value : null;
+    public System.String? GetMetadata(System.String key)
+        => _metadata.TryGetValue(key, out System.String? value) ? value : null;
 
     #endregion Public API
 
@@ -294,7 +294,7 @@ public partial class PoFile
         }
 
         // Set plural rule if available
-        if (_metadata.TryGetValue("Plural-Forms", out System.String pluralForms))
+        if (_metadata.TryGetValue("Plural-Forms", out System.String? pluralForms))
         {
             _pluralRule = ParsePluralRule(pluralForms);
         }

@@ -34,7 +34,7 @@ public static class HandshakeExtensions
     public const System.Int32 PublicKeyLength = 32;
 
     // Lazy logger resolution: avoids hard startup failure if ILogger is registered after this type loads.
-    private static ILogger Log => InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static ILogger? Log => InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
     /// Performs a full X25519 Diffie-Hellman handshake with the server.
@@ -55,11 +55,12 @@ public static class HandshakeExtensions
     /// <see cref="IClientConnection.OnDisconnected"/> only for the duration of the handshake
     /// and automatically unsubscribes via <see cref="SubscriptionExtensions.SubscribeTemp"/>.
     /// </remarks>
+    /// <exception cref="System.ArgumentNullException"></exception>
     public static async System.Threading.Tasks.Task<System.Boolean> HandshakeAsync(
         this IClientConnection client,
         System.UInt16 opCode = 1,
         System.Int32 timeoutMs = -1,
-        System.Func<System.Byte[], System.Boolean> validateServerPublicKey = null,
+        System.Func<System.Byte[], System.Boolean>? validateServerPublicKey = null,
         System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(client);
@@ -76,7 +77,8 @@ public static class HandshakeExtensions
             return true;
         }
 
-        IPacketRegistry catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
+        IPacketRegistry catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
+            ?? throw new System.InvalidOperationException("IPacketRegistry instance not found in InstanceManager.");
 
         System.Threading.Tasks.TaskCompletionSource<Handshake> tcs = new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -116,7 +118,7 @@ public static class HandshakeExtensions
                     return false;
                 }
 
-                System.Byte[] secret = null;
+                System.Byte[]? secret = null;
                 try
                 {
                     secret = X25519.Agreement(kp.PrivateKey, hs.Data);
@@ -151,7 +153,7 @@ public static class HandshakeExtensions
             return false;
         }
 
-        void OnMessageReceived(System.Object _, IBufferLease buffer)
+        void OnMessageReceived(System.Object? _, IBufferLease buffer)
         {
             // Always dispose the lease; deserialize takes a ReadOnlySpan copy.
             using (buffer)
@@ -170,6 +172,6 @@ public static class HandshakeExtensions
             }
         }
 
-        void OnDisconnected(System.Object _, System.Exception ex) => tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected during handshake."));
+        void OnDisconnected(System.Object? _, System.Exception ex) => tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected during handshake."));
     }
 }
