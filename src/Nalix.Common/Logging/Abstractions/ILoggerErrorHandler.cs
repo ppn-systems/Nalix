@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Logging;
+using Nalix.Common.Logging.Models;
+
+namespace Nalix.Common.Logging.Abstractions;
 
 /// <summary>
 /// Defines a contract for handling errors that occur during log processing.

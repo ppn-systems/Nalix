@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Security.Cryptography.Enums;
+namespace Nalix.Common.Security.Enums;
 
 /// <summary>
 /// Specifies the hash algorithms supported for HMAC (Hash-based Message Authentication Code) computation.

@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Security.Identity;
+using Nalix.Common.Security.Abstractions;
+
+namespace Nalix.Common.Security.Types;
 
 /// <summary>
 /// Defines the category of an <see cref="IIdentifier"/> value,  

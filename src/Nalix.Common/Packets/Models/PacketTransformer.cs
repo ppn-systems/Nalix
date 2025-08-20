@@ -1,5 +1,5 @@
 ﻿using Nalix.Common.Packets.Abstractions;
-using Nalix.Common.Security.Cryptography.Enums;
+using Nalix.Common.Security.Enums;
 
 namespace Nalix.Common.Packets.Models;
 
