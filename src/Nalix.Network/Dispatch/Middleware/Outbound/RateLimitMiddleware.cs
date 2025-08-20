@@ -2,10 +2,9 @@
 
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Network.Configurations;
-using Nalix.Network.Dispatch.Core.Context;
-using Nalix.Network.Dispatch.Middleware.Core.Attributes;
-using Nalix.Network.Dispatch.Middleware.Core.Enums;
-using Nalix.Network.Dispatch.Middleware.Core.Interfaces;
+using Nalix.Network.Dispatch.Abstractions;
+using Nalix.Network.Dispatch.Attributes;
+using Nalix.Network.Dispatch.Enums;
 using Nalix.Network.Throttling;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Injection;

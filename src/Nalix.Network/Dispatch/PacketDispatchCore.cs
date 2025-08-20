@@ -1,11 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
-using Nalix.Common.Logging;
+using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Network.Dispatch.Options;
 
-namespace Nalix.Network.Dispatch.Core.Engine;
+namespace Nalix.Network.Dispatch;
 
 /// <summary>
 /// Serves as the base class for packet dispatchers, offering common configuration and logging support.

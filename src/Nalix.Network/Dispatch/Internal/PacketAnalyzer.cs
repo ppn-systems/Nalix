@@ -1,13 +1,15 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Logging;
+using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Attributes;
-using Nalix.Network.Dispatch.Core.Context;
-using Nalix.Network.Dispatch.Core.Metadata;
+using Nalix.Network.Dispatch.Delegates;
 using Nalix.Shared.Injection;
 
-namespace Nalix.Network.Dispatch.Inspection;
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+
+namespace Nalix.Network.Dispatch.Internal;
 
 /// <summary>
 /// High-performance controller scanner with caching and zero-allocation lookups.
@@ -28,7 +30,7 @@ internal sealed class PacketAnalyzer<
     /// </summary>
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
         System.Type, System.Collections.Frozen.FrozenDictionary<
-            System.UInt16, MethodInvoker<TPacket>>> _compiledMethodCache = new();
+            System.UInt16, PacketHandlerInvoker<TPacket>>> _compiledMethodCache = new();
 
     /// <summary>
     /// Caches attribute lookups per method for performance.
@@ -36,7 +38,7 @@ internal sealed class PacketAnalyzer<
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
         System.Reflection.MethodInfo, PacketMetadata> _attributeCache = new();
 
-    #endregion
+    #endregion Fields
 
     /// <summary>
     /// Scans the controller and returns an array of packet handler delegates.
@@ -45,7 +47,7 @@ internal sealed class PacketAnalyzer<
     /// <returns>An array of compiled packet handler delegates.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static PacketHandlerDelegate<TPacket>[] ScanController(System.Func<TController> factory)
+    public static PacketHandler<TPacket>[] ScanController(System.Func<TController> factory)
     {
         var controllerType = typeof(TController);
 
@@ -70,14 +72,14 @@ internal sealed class PacketAnalyzer<
         TController controllerInstance = factory();
 
         // CreateCatalog delegate descriptors
-        PacketHandlerDelegate<TPacket>[] descriptors = new PacketHandlerDelegate<TPacket>[compiledMethods.Count];
+        PacketHandler<TPacket>[] descriptors = new PacketHandler<TPacket>[compiledMethods.Count];
         System.Int16 index = 0;
 
         foreach (var (opCode, compiledMethod) in compiledMethods)
         {
             var attributes = GetCachedAttributes(compiledMethod.MethodInfo);
 
-            descriptors[index++] = new PacketHandlerDelegate<TPacket>(
+            descriptors[index++] = new PacketHandler<TPacket>(
                 opCode,
                 attributes,
                 controllerInstance,
@@ -100,7 +102,7 @@ internal sealed class PacketAnalyzer<
     /// <returns>A frozen dictionary of compiled handler delegates indexed by opcode.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Collections.Frozen.FrozenDictionary<System.UInt16, MethodInvoker<TPacket>>
+    private static System.Collections.Frozen.FrozenDictionary<System.UInt16, PacketHandlerInvoker<TPacket>>
         GetOrCompileMethodAccessors(
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)]
@@ -128,7 +130,7 @@ internal sealed class PacketAnalyzer<
 
         return _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
         {
-            System.Collections.Generic.Dictionary<System.UInt16, MethodInvoker<TPacket>> compiled = new(methods.Length);
+            System.Collections.Generic.Dictionary<System.UInt16, PacketHandlerInvoker<TPacket>> compiled = new(methods.Length);
 
             foreach (var method in methods)
             {
@@ -164,38 +166,33 @@ internal sealed class PacketAnalyzer<
     /// <returns>A compiled handler delegate.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static MethodInvoker<TPacket> CompileMethodAccessor(System.Reflection.MethodInfo method)
+    private static PacketHandlerInvoker<TPacket> CompileMethodAccessor(System.Reflection.MethodInfo method)
     {
         var instanceParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
         var contextParam = System.Linq.Expressions.Expression.Parameter(typeof(PacketContext<TPacket>), "context");
 
         var castedInstance = System.Linq.Expressions.Expression.Convert(instanceParam, method.DeclaringType!);
 
-        var packetProperty = System.Linq.Expressions.Expression.Property(
-            contextParam,
-            typeof(PacketContext<TPacket>).GetProperty(nameof(PacketContext<TPacket>.Packet))!);
+        var packetProperty = System.Linq.Expressions.Expression.Property(contextParam, typeof(PacketContext<TPacket>)
+                                                               .GetProperty(nameof(PacketContext<TPacket>.Packet))!);
 
-        var connectionProperty = System.Linq.Expressions.Expression.Property(
-            contextParam,
-            typeof(PacketContext<TPacket>).GetProperty(nameof(PacketContext<TPacket>.Connection))!);
+        var connectionProperty = System.Linq.Expressions.Expression.Property(contextParam, typeof(PacketContext<TPacket>)
+                                                                   .GetProperty(nameof(PacketContext<TPacket>.Connection))!);
 
-        var methodCall = System.Linq.Expressions.Expression.Call(
-            castedInstance, method, packetProperty, connectionProperty);
+        var methodCall = System.Linq.Expressions.Expression.Call(castedInstance, method, packetProperty, connectionProperty);
 
         System.Linq.Expressions.Expression body = method.ReturnType == typeof(void)
-            ? System.Linq.Expressions.Expression.Block(
-                methodCall,
-                System.Linq.Expressions.Expression.Constant(null, typeof(System.Object)))
+            ? System.Linq.Expressions.Expression.Block(methodCall, System.Linq.Expressions.Expression
+                                                .Constant(null, typeof(System.Object)))
             : System.Linq.Expressions.Expression.Convert(methodCall, typeof(System.Object));
 
         var lambda = System.Linq.Expressions.Expression.Lambda<
-            System.Func<System.Object, PacketContext<TPacket>, System.Object?>>(
-            body, instanceParam, contextParam);
+            System.Func<System.Object, PacketContext<TPacket>, System.Object?>>(body, instanceParam, contextParam);
 
         var compiledDelegate = lambda.Compile();
         var asyncDelegate = CreateAsyncWrapper(compiledDelegate, method.ReturnType);
 
-        return new MethodInvoker<TPacket>(method, method.ReturnType, asyncDelegate);
+        return new PacketHandlerInvoker<TPacket>(method, method.ReturnType, asyncDelegate);
     }
 
     /// <summary>

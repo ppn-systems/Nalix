@@ -1,7 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Packets.Abstractions;
-using Nalix.Network.Dispatch.Core.Context;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging.Text;
@@ -22,7 +21,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
     /// <summary>
     /// Internal registry describing how to rent/return/operate on a concrete text packet type.
     /// </summary>
-    private sealed class Candidate
+    internal sealed class Candidate
     {
         public required System.String Name;
         public required System.Int32 MaxBytes;
@@ -34,7 +33,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
 
     // TODO: Add or remove candidates here to match what you ship in Shared.
     // Order matters: smallest first.
-    private static readonly Candidate[] _candidates =
+    internal static readonly Candidate[] Candidates =
     [
         new Candidate
         {
@@ -75,7 +74,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
             System.Int32 byteCount = System.Text.Encoding.UTF8.GetByteCount(data);
 
             // 1) Try to fit in a single packet (choose the smallest that fits).
-            foreach (Candidate c in _candidates)
+            foreach (Candidate c in Candidates)
             {
                 if (byteCount <= c.MaxBytes)
                 {
@@ -96,7 +95,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
             }
 
             // 2) Fallback: chunk by UTF-8 byte limit using the largest candidate.
-            Candidate max = _candidates[^1];
+            Candidate max = Candidates[^1];
             foreach (System.String part in SplitUtf8ByBytes(data, max.MaxBytes))
             {
                 var pkt = max.Rent();
@@ -122,7 +121,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
     /// <param name="s">The input string.</param>
     /// <param name="byteLimit">Maximum bytes per segment (UTF-8).</param>
     /// <returns>An enumerable of segments.</returns>
-    private static System.Collections.Generic.IEnumerable<System.String> SplitUtf8ByBytes(
+    internal static System.Collections.Generic.IEnumerable<System.String> SplitUtf8ByBytes(
         System.String s, System.Int32 byteLimit)
     {
         System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(byteLimit);

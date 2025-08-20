@@ -3,7 +3,7 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Packets.Abstractions;
 
-namespace Nalix.Network.Dispatch.Core.Interfaces;
+namespace Nalix.Network.Dispatch.Abstractions;
 
 /// <summary>
 /// Defines a dispatcher interface for handling incoming network packets.

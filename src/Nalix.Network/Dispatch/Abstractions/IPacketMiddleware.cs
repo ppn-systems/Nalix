@@ -1,11 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-
-using Nalix.Network.Dispatch.Core.Context;
-
-namespace Nalix.Network.Dispatch.Middleware.Core.Interfaces;
+namespace Nalix.Network.Dispatch.Abstractions;
 
 /// <summary>
 /// Interface that standardizes middleware implementations for packet handling.
