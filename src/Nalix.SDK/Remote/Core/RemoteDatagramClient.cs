@@ -53,11 +53,6 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
     /// </summary>
     public readonly FifoCache<TPacket> Incoming = new(200);
 
-    /// <summary>
-    /// Occurs when a valid packet is received from a remote endpoint.
-    /// </summary>
-    public event System.Action<TPacket, System.Net.IPEndPoint> PacketReceived;
-
     #endregion Propierties
 
     /// <summary>
@@ -77,7 +72,7 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
     }
 
     /// <summary>
-    /// Asynchronous loop that continuously listens for incoming UDP packets and raises the <see cref="PacketReceived"/> event.
+    /// Asynchronous loop that continuously listens for incoming UDP packets.
     /// </summary>
     /// <param name="token">The cancellation token used to stop the loop.</param>
     [System.Runtime.CompilerServices.SkipLocalsInit]
