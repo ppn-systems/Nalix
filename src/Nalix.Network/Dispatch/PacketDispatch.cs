@@ -45,7 +45,8 @@ public sealed class PacketDispatch : PacketDispatchCore<IPacket>, IPacketDispatc
         if (raw == null)
         {
             Logger?.Warn(
-                $"[Dispatch] Null System.Byte[] received from {connection.RemoteEndPoint}. Packet dropped.");
+                $"[{nameof(PacketDispatch)}] " +
+                $"Null System.Byte[] received from {connection.RemoteEndPoint}. Packet dropped.");
             return;
         }
 

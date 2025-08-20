@@ -88,7 +88,7 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
                 if (_catalog.TryDeserialize(
                     System.MemoryExtensions.AsSpan(result.Buffer), out IPacket packet))
                 {
-                    Incoming.Push((TPacket)packet);
+                    this.Incoming.Push((TPacket)packet);
                 }
             }
             catch (System.OperationCanceledException)
