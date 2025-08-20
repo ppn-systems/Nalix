@@ -26,7 +26,7 @@ public partial interface IConnection
         /// </summary>
         /// <param name="packet">The packet to send.</param>
         /// <returns></returns>
-        System.Boolean Send(in IPacket packet);
+        System.Boolean Send(IPacket packet);
 
         /// <summary>
         /// Sends a message synchronously over the connection.
@@ -85,6 +85,25 @@ public partial interface IConnection
         /// Call this method to initiate listening for incoming data on the connection.
         /// </remarks>
         void BeginReceive(System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Sends a message synchronously over the connection.
+        /// </summary>
+        /// <param name="message">The message to send.</param>
+        System.Boolean Send(System.String message);
+
+        /// <summary>
+        /// Sends a message asynchronously over the connection.
+        /// </summary>
+        /// <param name="message">The message to send.</param>
+        /// <param name="cancellationToken">A token to cancel the sending operation.</param>
+        /// <returns>A task that represents the asynchronous sending operation.</returns>
+        /// <remarks>
+        /// If the connection has been authenticated, the data will be encrypted before sending.
+        /// </remarks>
+        System.Threading.Tasks.Task<System.Boolean> SendAsync(
+            System.String message,
+            System.Threading.CancellationToken cancellationToken = default);
     }
 
     /// <summary>

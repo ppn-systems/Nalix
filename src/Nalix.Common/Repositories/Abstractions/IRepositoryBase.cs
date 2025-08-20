@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Repositories;
+namespace Nalix.Common.Repositories.Abstractions;
 
 /// <summary>
 /// Generic repository interface for synchronous CRUD operations and querying entities.
