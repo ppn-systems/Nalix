@@ -1,4 +1,4 @@
-using Nalix.Common.Security.Cryptography.Enums;
+using Nalix.Common.Security.Enums;
 using Nalix.Cryptography.Symmetric.Stream;
 using System;
 using System.Text;

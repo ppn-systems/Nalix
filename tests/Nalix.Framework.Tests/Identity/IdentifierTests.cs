@@ -1,4 +1,4 @@
-﻿using Nalix.Common.Security.Identity;
+﻿using Nalix.Common.Security.Types;
 using Nalix.Framework.Identity;
 using System;
 using System.Collections.Generic;
