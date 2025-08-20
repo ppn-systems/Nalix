@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Security.Identity;
+using Nalix.Common.Security.Abstractions;
 
 namespace Nalix.Framework.Identity;
 
