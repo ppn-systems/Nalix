@@ -99,13 +99,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
     #region Constructors
 
-    static TcpListenerBase()
-    {
-        s_config.Validate();
-
-        InstanceManager.Instance.Register(new ObjectPoolManager());
-        InstanceManager.Instance.Register(new BufferPoolManager());
-    }
+    static TcpListenerBase() => s_config.Validate();
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
