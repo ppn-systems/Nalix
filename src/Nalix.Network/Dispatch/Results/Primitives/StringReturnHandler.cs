@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
@@ -73,6 +74,13 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
         {
             System.Int32 byteCount = System.Text.Encoding.UTF8.GetByteCount(data);
 
+#if DEBUG
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?.Trace(
+                $"[{nameof(StringReturnHandler<TPacket>)}] " +
+                $"Handling string return with {byteCount} bytes. " +
+                $"Using {Candidates.Length} candidates for serialization.");
+#endif
+
             // 1) Try to fit in a single packet (choose the smallest that fits).
             foreach (Candidate c in Candidates)
             {
@@ -112,6 +120,11 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
                 }
             }
         }
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[{nameof(StringReturnHandler<TPacket>)}] " +
+                                       $"Received unsupported result type '{result?.GetType().Name ?? "null"}'. " +
+                                       $"Result will not be processed, but stored in context properties.");
     }
 
     /// <summary>

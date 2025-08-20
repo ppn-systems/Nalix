@@ -13,9 +13,12 @@ internal sealed class MemoryReturnHandler<TPacket> : IReturnHandler<TPacket>
         System.Object? result,
         PacketContext<TPacket> context)
     {
-        if (result is System.Memory<System.Byte> memory)
+        if (result is not System.Memory<System.Byte> memory)
         {
-            _ = await context.Connection.Tcp.SendAsync(memory);
+            return;
         }
+
+        _ = await context.Connection.Tcp.SendAsync(memory)
+                                        .ConfigureAwait(false);
     }
 }

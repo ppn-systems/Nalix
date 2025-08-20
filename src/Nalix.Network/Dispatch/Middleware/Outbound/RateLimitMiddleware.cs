@@ -7,9 +7,6 @@ using Nalix.Network.Dispatch.Attributes;
 using Nalix.Network.Dispatch.Enums;
 using Nalix.Network.Throttling;
 using Nalix.Shared.Configuration;
-using Nalix.Shared.Injection;
-using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Messaging.Text;
 
 namespace Nalix.Network.Dispatch.Middleware.Outbound;
 
@@ -47,20 +44,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
     {
         if (!this._limiter.CheckLimit(context.Connection.RemoteEndPoint.ToString() ?? "unknown"))
         {
-            Text256 text = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                   .Get<Text256>();
-            try
-            {
-                text.Initialize("You have been rate limited.");
-                _ = await context.Connection.Tcp.SendAsync(text.Serialize());
-
-                return;
-            }
-            finally
-            {
-                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                        .Return(text);
-            }
+            _ = await context.Connection.Tcp.SendAsync("You have been rate limited.").ConfigureAwait(false);
         }
 
         await next();

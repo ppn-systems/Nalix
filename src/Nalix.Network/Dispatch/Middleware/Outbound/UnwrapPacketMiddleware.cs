@@ -9,8 +9,6 @@ using Nalix.Network.Dispatch.Attributes;
 using Nalix.Network.Dispatch.Catalog;
 using Nalix.Network.Dispatch.Enums;
 using Nalix.Shared.Injection;
-using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Messaging.Text;
 
 namespace Nalix.Network.Dispatch.Middleware.Outbound;
 
@@ -42,7 +40,8 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
             if (catalog is null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(UnwrapPacketMiddleware)}] Missing PacketCatalog.");
+                                        .Error($"[{nameof(UnwrapPacketMiddleware)}] Missing PacketCatalog." +
+                                               $"OpCode={context.Attributes.OpCode}, From={context.Connection.RemoteEndPoint}");
                 return;
             }
 
@@ -68,36 +67,18 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
             }
             else
             {
-                Text256 text = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                   .Get<Text256>();
-                try
-                {
-                    text.Initialize("Unsupported packet type for decryption/decompression.");
-                    _ = await context.Connection.Tcp.SendAsync(text.Serialize());
-                    return;
-                }
-                finally
-                {
-                    InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                            .Return(text);
-                }
+                _ = await context.Connection.Tcp.SendAsync("Unsupported packet type for decryption/decompression.")
+                                                .ConfigureAwait(false);
             }
         }
-        catch (System.Exception)
+        catch (System.Exception ex)
         {
-            Text256 text = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                               .Get<Text256>();
-            try
-            {
-                text.Initialize("Packet transform failed.");
-                _ = await context.Connection.Tcp.SendAsync(text.Serialize());
-                return;
-            }
-            finally
-            {
-                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                        .Return(text);
-            }
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
+                $"[{nameof(UnwrapPacketMiddleware)}] No transformer found for {current.GetType().Name}. " +
+                $"OpCode={context.Attributes.OpCode}, From={context.Connection.RemoteEndPoint}, Error={ex}");
+
+            _ = await context.Connection.Tcp.SendAsync("Packet transform failed.")
+                                            .ConfigureAwait(false);
         }
 
         await next();

@@ -49,8 +49,8 @@ public class PacketMiddlewarePipeline<TPacket>
     {
         return ExecuteMiddlewareChain(this._pre, context, async () =>
         {
-            await handler();
-            await ExecuteMiddlewareChain(this._post, context, () => System.Threading.Tasks.Task.CompletedTask);
+            await handler().ConfigureAwait(false);
+            await ExecuteMiddlewareChain(this._post, context, () => System.Threading.Tasks.Task.CompletedTask).ConfigureAwait(false);
         });
     }
 
