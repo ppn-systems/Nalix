@@ -1,17 +1,15 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Network.Dispatch.Core.Context;
-
-namespace Nalix.Network.Dispatch.Core.Metadata;
+namespace Nalix.Network.Dispatch.Delegates;
 
 /// <summary>
-/// Enhanced version of <c>PacketHandlerDelegate</c> using compiled delegates for zero-allocation execution.
+/// Enhanced version of <c>PacketHandler</c> using compiled delegates for zero-allocation execution.
 /// </summary>
 /// <typeparam name="TPacket">The packet type handled by this delegate.</typeparam>
 [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
 [method: System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-public readonly struct PacketHandlerDelegate<TPacket>(
+public readonly struct PacketHandler<TPacket>(
     System.UInt16 opCode,
     PacketMetadata attributes,
     System.Object controllerInstance,

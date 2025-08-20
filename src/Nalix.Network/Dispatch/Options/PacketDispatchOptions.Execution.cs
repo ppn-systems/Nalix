@@ -1,7 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Network.Dispatch.Core.Context;
-using Nalix.Network.Dispatch.Core.Metadata;
+using Nalix.Network.Dispatch.Delegates;
 using Nalix.Network.Dispatch.Results;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
@@ -14,7 +13,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     #region Private Methods
 
     private async System.Threading.Tasks.ValueTask ExecuteHandler(
-        PacketHandlerDelegate<TPacket> descriptor,
+        PacketHandler<TPacket> descriptor,
         PacketContext<TPacket> context)
     {
         if (this._pipeline is not null)
@@ -45,7 +44,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     private async System.Threading.Tasks.ValueTask HandleExecutionException(
-        PacketHandlerDelegate<TPacket> descriptor,
+        PacketHandler<TPacket> descriptor,
         PacketContext<TPacket> context,
         System.Exception exception)
     {

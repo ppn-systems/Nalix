@@ -1,12 +1,11 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
-using Nalix.Common.Logging;
+using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Attributes;
-using Nalix.Network.Dispatch.Core.Context;
-using Nalix.Network.Dispatch.Core.Metadata;
-using Nalix.Network.Dispatch.Inspection;
-using Nalix.Network.Dispatch.Middleware.Core.Interfaces;
+using Nalix.Network.Dispatch.Abstractions;
+using Nalix.Network.Dispatch.Delegates;
+using Nalix.Network.Dispatch.Internal;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
@@ -180,10 +179,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
             ?? throw new System.InvalidOperationException(
                 $"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
-        PacketHandlerDelegate<TPacket>[] handlerDescriptors =
+        PacketHandler<TPacket>[] handlerDescriptors =
             PacketAnalyzer<TController, TPacket>.ScanController(factory);
 
-        foreach (PacketHandlerDelegate<TPacket> descriptor in handlerDescriptors)
+        foreach (PacketHandler<TPacket> descriptor in handlerDescriptors)
         {
             if (this._handlerCache.ContainsKey(descriptor.OpCode))
             {
@@ -194,8 +193,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             this._handlerCache[descriptor.OpCode] = descriptor;
         }
 
-        this.Logger?.Info("Registered {0} handlers for controller {1}",
-            handlerDescriptors.Length, controllerType.Name);
+        this.Logger?.Info($"Registered {handlerDescriptors.Length} handlers for controller {controllerType.Name}");
 
         return this;
     }
@@ -212,7 +210,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         out System.Func<TPacket, IConnection, System.Threading.Tasks.Task>? handler)
     {
         if (TryResolveHandlerDescriptor(opCode,
-            out PacketHandlerDelegate<TPacket> descriptor))
+            out PacketHandler<TPacket> descriptor))
         {
             handler = async (packet, connection) =>
             {
@@ -245,7 +243,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public System.Boolean TryResolveHandlerDescriptor(
         System.UInt16 opCode,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out PacketHandlerDelegate<TPacket> descriptor)
+        out PacketHandler<TPacket> descriptor)
     {
         if (this._handlerCache.TryGetValue(opCode, out descriptor))
         {

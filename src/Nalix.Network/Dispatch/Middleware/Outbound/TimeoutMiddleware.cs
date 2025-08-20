@@ -1,10 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Packets.Abstractions;
-using Nalix.Network.Dispatch.Core.Context;
-using Nalix.Network.Dispatch.Middleware.Core.Attributes;
-using Nalix.Network.Dispatch.Middleware.Core.Enums;
-using Nalix.Network.Dispatch.Middleware.Core.Interfaces;
+using Nalix.Network.Dispatch.Abstractions;
+using Nalix.Network.Dispatch.Attributes;
+using Nalix.Network.Dispatch.Enums;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging.Text;

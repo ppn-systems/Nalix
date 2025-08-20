@@ -1,11 +1,11 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
-using Nalix.Common.Logging;
+using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Models;
-using Nalix.Common.Security.Cryptography.Enums;
-using Nalix.Network.Dispatch.Catalog.Internal;
+using Nalix.Common.Security.Enums;
+using Nalix.Network.Dispatch.Internal;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Messaging.Binary;
 using Nalix.Shared.Messaging.Control;

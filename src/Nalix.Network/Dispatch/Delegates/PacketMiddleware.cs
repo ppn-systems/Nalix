@@ -1,11 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-
-using Nalix.Network.Dispatch.Core.Context;
-
-namespace Nalix.Network.Dispatch.Middleware.Core.Delegates;
+namespace Nalix.Network.Dispatch.Delegates;
 
 /// <summary>
 /// Delegate type representing a middleware handler for processing packets.
@@ -19,6 +14,6 @@ namespace Nalix.Network.Dispatch.Middleware.Core.Delegates;
 /// <param name="next">
 /// Delegate to invoke the next middleware component.
 /// </param>
-public delegate System.Threading.Tasks.Task PacketMiddlewareDelegate<TPacket>(
+public delegate System.Threading.Tasks.Task PacketMiddleware<TPacket>(
     PacketContext<TPacket> context,
     System.Func<System.Threading.Tasks.Task> next);

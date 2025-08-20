@@ -3,7 +3,7 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Packets.Abstractions;
 
-namespace Nalix.Network.Dispatch.Channel;
+namespace Nalix.Network.Dispatch.Abstractions;
 
 /// <summary>
 /// Defines the contract for a dispatch channel that manages the queuing, retrieval,

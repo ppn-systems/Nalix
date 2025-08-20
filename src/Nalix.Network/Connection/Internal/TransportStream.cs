@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Logging;
+using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets;
 using Nalix.Framework.Time;
 using Nalix.Network.Internal;

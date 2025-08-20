@@ -2,8 +2,9 @@
 
 using Nalix.Common.Caching;
 using Nalix.Common.Connection;
-using Nalix.Common.Logging;
+using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
+using Nalix.Network.Dispatch.Results.Primitives;
 using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Connection;
@@ -125,6 +126,9 @@ public sealed partial class Connection : IConnection
                 System.Net.Sockets.ProtocolType.Udp);
         }
 
+        /// <inheritdoc/>
+        public System.Boolean Send(IPacket packet) => throw new System.NotImplementedException();
+
         #endregion Asynchronous Methods
     }
 
@@ -151,7 +155,7 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public System.Boolean Send(in IPacket packet)
+        public System.Boolean Send(IPacket packet)
         {
             if (packet is null)
             {
@@ -179,6 +183,52 @@ public sealed partial class Connection : IConnection
             return false;
         }
 
+        /// <inheritdoc/>
+        public System.Boolean Send(System.String message)
+        {
+            System.Int32 byteCount = System.Text.Encoding.UTF8.GetByteCount(message);
+
+            // 1) Try to fit in a single packet (choose the smallest that fits).
+            foreach (StringReturnHandler<IPacket>.Candidate c in StringReturnHandler<IPacket>.Candidates)
+            {
+                if (byteCount <= c.MaxBytes)
+                {
+                    var pkt = c.Rent();
+                    try
+                    {
+                        c.Initialize(pkt, message);
+                        System.Byte[] buffer = c.Serialize(pkt);
+                        _ = this.Send(buffer);
+                        return true;
+                    }
+                    finally
+                    {
+                        c.Return(pkt);
+                    }
+                }
+            }
+
+            // 2) Fallback: chunk by UTF-8 byte limit using the largest candidate.
+            StringReturnHandler<IPacket>.Candidate max = StringReturnHandler<IPacket>.Candidates[^1];
+            foreach (System.String part in StringReturnHandler<IPacket>.SplitUtf8ByBytes(message, max.MaxBytes))
+            {
+                var pkt = max.Rent();
+                try
+                {
+                    max.Initialize(pkt, part);
+                    System.Byte[] buffer = max.Serialize(pkt);
+                    _ = this.Send(buffer);
+                    return true;
+                }
+                finally
+                {
+                    max.Return(pkt);
+                }
+            }
+
+            return false;
+        }
+
         #endregion Synchronous Methods
 
         #region Asynchronous Methods
@@ -202,6 +252,55 @@ public sealed partial class Connection : IConnection
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[{nameof(Connection)}] Failed to send message asynchronously.");
+            return false;
+        }
+
+        /// <inheritdoc/>
+        public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
+            System.String message,
+            System.Threading.CancellationToken cancellationToken = default)
+        {
+            System.Int32 byteCount = System.Text.Encoding.UTF8.GetByteCount(message);
+
+            // 1) Try to fit in a single packet (choose the smallest that fits).
+            foreach (StringReturnHandler<IPacket>.Candidate c in StringReturnHandler<IPacket>.Candidates)
+            {
+                if (byteCount <= c.MaxBytes)
+                {
+                    var pkt = c.Rent();
+                    try
+                    {
+                        c.Initialize(pkt, message);
+                        System.Byte[] buffer = c.Serialize(pkt);
+                        _ = this.Send(buffer);
+                        return await this.SendAsync(buffer, cancellationToken)
+                                         .ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        c.Return(pkt);
+                    }
+                }
+            }
+
+            // 2) Fallback: chunk by UTF-8 byte limit using the largest candidate.
+            StringReturnHandler<IPacket>.Candidate max = StringReturnHandler<IPacket>.Candidates[^1];
+            foreach (System.String part in StringReturnHandler<IPacket>.SplitUtf8ByBytes(message, max.MaxBytes))
+            {
+                var pkt = max.Rent();
+                try
+                {
+                    max.Initialize(pkt, part);
+                    System.Byte[] buffer = max.Serialize(pkt);
+                    return await this.SendAsync(buffer, cancellationToken)
+                                     .ConfigureAwait(false);
+                }
+                finally
+                {
+                    max.Return(pkt);
+                }
+            }
+
             return false;
         }
 
