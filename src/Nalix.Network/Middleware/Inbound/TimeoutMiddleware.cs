@@ -48,11 +48,15 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
                 // ignore
             }
 
+            System.UInt32 sequenceId = context.Packet is IPacketSequenced sequenced
+                ? sequenced.SequenceId
+                : 0;
+
             await context.Connection.SendAsync(
                 ControlType.TIMEOUT,
                 ProtocolReason.TIMEOUT,
                 ProtocolAdvice.RETRY,
-                sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                sequenceId: sequenceId,
                 flags: ControlFlags.IS_TRANSIENT,
                 arg0: (System.UInt32)(timeout / 100),
                 arg1: 0, arg2: 0).ConfigureAwait(false);
