@@ -3,7 +3,7 @@
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets;
 using Nalix.Framework.Time;
-using Nalix.Network.Internal;
+using Nalix.Network.Internal.Pooled;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
