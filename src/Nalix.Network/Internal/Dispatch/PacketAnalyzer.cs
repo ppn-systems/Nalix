@@ -190,7 +190,7 @@ internal sealed class PacketAnalyzer<
         {
             throw new System.InvalidOperationException(
                 $"Handler {method.DeclaringType?.Name}.{method.Name} must have exactly 2 parameters " +
-                "(packet, connection). Found: {parms.Length}.");
+                $"(packet, connection). Found: {parms.Length}.");
         }
 
         var pktArgType = parms[0].ParameterType;   // ex: Handshake

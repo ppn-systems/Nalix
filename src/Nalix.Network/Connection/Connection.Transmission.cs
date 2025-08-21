@@ -50,7 +50,7 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public System.Boolean Send(in IPacket packet) => packet is not null && this.Send(packet.Serialize());
+        public System.Boolean Send(IPacket packet) => packet is not null && this.Send(packet.Serialize());
 
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
@@ -92,7 +92,9 @@ public sealed partial class Connection : IConnection
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             IPacket packet,
             System.Threading.CancellationToken cancellationToken = default)
-            => packet is not null && await this.SendAsync(packet.Serialize(), cancellationToken);
+            => packet is not null && await this.SendAsync(packet
+                                               .Serialize(), cancellationToken)
+                                               .ConfigureAwait(false);
 
         /// <inheritdoc />
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
@@ -109,9 +111,8 @@ public sealed partial class Connection : IConnection
                 return false;
             }
 
-            System.Int32 sentBytes = await _socket.SendToAsync(
-                message.ToArray(), this._endPoint, cancellationToken);
-
+            System.Int32 sentBytes = await _socket.SendToAsync(message, this._endPoint, cancellationToken)
+                                                  .ConfigureAwait(false);
             return sentBytes == message.Length;
         }
 
@@ -125,9 +126,6 @@ public sealed partial class Connection : IConnection
                 System.Net.Sockets.SocketType.Dgram,
                 System.Net.Sockets.ProtocolType.Udp);
         }
-
-        /// <inheritdoc/>
-        public System.Boolean Send(IPacket packet) => throw new System.NotImplementedException();
 
         #endregion Asynchronous Methods
     }
@@ -237,14 +235,16 @@ public sealed partial class Connection : IConnection
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             IPacket packet,
             System.Threading.CancellationToken cancellationToken = default)
-            => await this.SendAsync(packet.Serialize(), cancellationToken);
+            => await this.SendAsync(packet
+                         .Serialize(), cancellationToken)
+                         .ConfigureAwait(false);
 
         /// <inheritdoc />
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             System.ReadOnlyMemory<System.Byte> message,
             System.Threading.CancellationToken cancellationToken = default)
         {
-            if (await this._outer._cstream.SendAsync(message, cancellationToken))
+            if (await this._outer._cstream.SendAsync(message, cancellationToken).ConfigureAwait(false))
             {
                 this._outer._onPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this._outer));
                 return true;
