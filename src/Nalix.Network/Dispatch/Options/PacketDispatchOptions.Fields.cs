@@ -3,7 +3,7 @@
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Network.Dispatch.Delegates;
-using Nalix.Network.Dispatch.Middleware.Pipeline;
+using Nalix.Network.Middleware.Pipeline;
 
 namespace Nalix.Network.Dispatch.Options;
 
