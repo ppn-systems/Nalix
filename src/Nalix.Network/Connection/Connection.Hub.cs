@@ -9,9 +9,12 @@ using Nalix.Shared.Injection;
 namespace Nalix.Network.Connection;
 
 /// <summary>
-/// High-performance connection manager optimized for MMORPG servers.
-/// Thread-safe with minimal allocations and efficient lookup operations.
+/// Manages connections for servers, optimized for high performance and thread safety.
 /// </summary>
+/// <remarks>
+/// This class provides efficient connection management with minimal allocations and fast lookup operations.
+/// It is thread-safe and uses concurrent collections to handle multiple connections simultaneously.
+/// </remarks>
 public sealed class ConnectionHub : IConnectionHub, System.IDisposable
 {
     #region Fields
@@ -40,7 +43,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
     #region Properties
 
     /// <summary>
-    /// Current number of active connections
+    /// Gets the current number of active connections.
     /// </summary>
     public System.Int32 ConnectionCount => this._connectionCount;
 
@@ -48,13 +51,24 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
 
     #region Constructor
 
-    static ConnectionHub() => s_connectionPool = System.Buffers.ArrayPool<IConnection>.Shared;
+    /// <summary>
+    /// Initializes static members of the <see cref="ConnectionHub"/> class.
+    /// </summary>
+    static ConnectionHub() =>
+        // Static constructor initializes the shared ArrayPool
+        s_connectionPool = System.Buffers.ArrayPool<IConnection>.Shared;
 
     #endregion Constructor
 
     #region APIs
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
+    /// <summary>
+    /// Registers a new connection with the hub.
+    /// </summary>
+    /// <param name="connection">The connection to register.</param>
+    /// <returns><c>true</c> if the connection was successfully registered; otherwise, <c>false</c>.</returns>
+    /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="connection"/> is null.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean RegisterConnection(IConnection connection)
@@ -80,7 +94,13 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
         return false;
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
+    /// <summary>
+    /// Unregisters a connection from the hub.
+    /// </summary>
+    /// <param name="id">The identifier of the connection to unregister.</param>
+    /// <returns><c>true</c> if the connection was successfully unregistered; otherwise, <c>false</c>.</returns>
+    /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="id"/> is null.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean UnregisterConnection(IIdentifier id)
@@ -112,7 +132,14 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
         return false;
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
+    /// <summary>
+    /// Associates a username with a connection.
+    /// </summary>
+    /// <param name="connection">The connection to associate with the username.</param>
+    /// <param name="username">The username to associate.</param>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown if <paramref name="connection"/> or <paramref name="username"/> is null or empty.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void AssociateUsername(IConnection connection, System.String username)
@@ -138,21 +165,33 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
                                 .Debug($"[{nameof(ConnectionHub)}] Username associated: {username} -> {id}");
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
+    /// <summary>
+    /// Retrieves a connection by its identifier.
+    /// </summary>
+    /// <param name="id">The identifier of the connection to retrieve.</param>
+    /// <returns>The connection associated with the identifier, or <c>null</c> if not found.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public IConnection? GetConnection(IIdentifier id)
         => this._connections.TryGetValue(id, out IConnection? connection) ? connection : null;
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Retrieves a connection by its serialized identifier.
+    /// </summary>
+    /// <param name="id">The serialized identifier of the connection.</param>
+    /// <returns>The connection associated with the identifier, or <c>null</c> if not found.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public IConnection? GetConnection(System.ReadOnlySpan<System.Byte> id)
         => this._connections.TryGetValue(Identifier.Deserialize(id), out IConnection? connection) ? connection : null;
 
     /// <summary>
-    /// Get connection by username (fast lookup)
+    /// Retrieves a connection by its associated username.
     /// </summary>
+    /// <param name="username">The username associated with the connection.</param>
+    /// <returns>The connection associated with the username, or <c>null</c> if not found.</returns>
+    /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="username"/> is null or empty.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public IConnection? GetConnectionByUsername(System.String username)
@@ -163,14 +202,20 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
     }
 
     /// <summary>
-    /// Get username for connection ID
+    /// Retrieves the username associated with a connection identifier.
     /// </summary>
+    /// <param name="id">The identifier of the connection.</param>
+    /// <returns>The username associated with the connection, or <c>null</c> if not found.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.String? GetUsername(IIdentifier id)
         => this._usernames.TryGetValue(id, out System.String? username) ? username : null;
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
+    /// <summary>
+    /// Retrieves a read-only collection of all active connections.
+    /// </summary>
+    /// <returns>A read-only collection of active connections.</returns>
     public System.Collections.Generic.IReadOnlyCollection<IConnection> ListConnections()
     {
         System.Int32 count = this._connectionCount;
@@ -204,8 +249,15 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
     }
 
     /// <summary>
-    /// Broadcast message to all connections efficiently
+    /// Broadcasts a message to all active connections.
     /// </summary>
+    /// <typeparam name="T">The type of the message to broadcast.</typeparam>
+    /// <param name="message">The message to broadcast.</param>
+    /// <param name="sendFunc">The function to send the message to a connection.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous broadcast operation.</returns>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown if <paramref name="message"/> or <paramref name="sendFunc"/> is null.</exception>
     public async System.Threading.Tasks.Task BroadcastAsync<T>(
         T message,
         System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
@@ -235,18 +287,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
                 break;
             }
 
-            tasks[index++] = System.Threading.Tasks.Task.Run(async () =>
-            {
-                try
-                {
-                    await sendFunc(connection, message).ConfigureAwait(false);
-                }
-                catch (System.Exception ex)
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(ConnectionHub)}] Broadcast error for {connection.Id}: {ex.Message}");
-                }
-            }, cancellationToken);
+            tasks[index++] = sendFunc(connection, message);
         }
 
         try
@@ -265,8 +306,16 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
     }
 
     /// <summary>
-    /// Broadcast to connections matching a predicate
+    /// Broadcasts a message to connections that match a specified predicate.
     /// </summary>
+    /// <typeparam name="T">The type of the message to broadcast.</typeparam>
+    /// <param name="message">The message to broadcast.</param>
+    /// <param name="sendFunc">The function to send the message to a connection.</param>
+    /// <param name="predicate">The predicate to filter connections.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous broadcast operation.</returns>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown if <paramref name="message"/>, <paramref name="sendFunc"/>, or <paramref name="predicate"/> is null.</exception>
     public async System.Threading.Tasks.Task BroadcastWhereAsync<T>(
         T message,
         System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
@@ -312,7 +361,10 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
         }
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Closes all active connections with an optional reason.
+    /// </summary>
+    /// <param name="reason">The reason for closing the connections, if any.</param>
     public void CloseAllConnections(System.String? reason = null)
     {
         if (this._disposed)
@@ -346,8 +398,9 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
     }
 
     /// <summary>
-    /// Get connection statistics
+    /// Retrieves current connection statistics.
     /// </summary>
+    /// <returns>A <see cref="ConnectionStats"/> object containing connection metrics.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public ConnectionStats GetStats()
@@ -360,8 +413,9 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
         };
     }
 
+    /// <inheritdoc />
     /// <summary>
-    /// Releases unmanaged resources and performs other cleanup operations.
+    /// Releases all resources used by the <see cref="ConnectionHub"/> and closes all connections.
     /// </summary>
     public void Dispose()
     {
@@ -387,6 +441,11 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
 
     #region Private Methods
 
+    /// <summary>
+    /// Handles the disconnection of a client by unregistering it from the hub.
+    /// </summary>
+    /// <param name="sender">The source of the event.</param>
+    /// <param name="args">The event arguments containing the connection.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnClientDisconnected(System.Object? sender, IConnectEventArgs args)

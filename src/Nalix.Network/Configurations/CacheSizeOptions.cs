@@ -14,15 +14,15 @@ public sealed class CacheSizeOptions : ConfigurationLoader
 
     /// <summary>
     /// Gets or sets the maximum TransportProtocol of incoming cache entries.
-    /// The default value is 20.
+    /// The default value is 3.
     /// </summary>
-    public System.Int32 Incoming { get; set; } = 20;
+    public System.Int32 Incoming { get; set; } = 3;
 
     /// <summary>
     /// Gets or sets the maximum TransportProtocol of outgoing cache entries.
-    /// The default value is 10.
+    /// The default value is 5.
     /// </summary>
-    public System.Int32 Outgoing { get; set; } = 10;
+    public System.Int32 Outgoing { get; set; } = 5;
 
     #endregion Properties
 }

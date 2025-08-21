@@ -28,7 +28,6 @@ internal class TransportStream(
 
     private System.Boolean _disposed;
     private volatile System.Boolean _keepReading;
-    private System.Threading.Tasks.Task? _rxLoopTask;
     private System.Threading.CancellationToken _rxToken;                    // cached linked token
     private System.Threading.CancellationTokenSource? _rxCts;               // linked CTS reused for the whole loop
     private System.Threading.CancellationToken _lastExternalToken;          // remember last external to avoid relinking
@@ -393,7 +392,7 @@ internal class TransportStream(
         "Reliability", "CA2016:Forward the 'CancellationToken' parameter to methods", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    private async System.Threading.Tasks.Task OnReceiveCompleted(
+    private async System.Threading.Tasks.ValueTask OnReceiveCompleted(
         System.Threading.Tasks.Task<System.Int32> task,
         System.Threading.CancellationToken _)
     {
@@ -461,9 +460,10 @@ internal class TransportStream(
 
             // Read size (includes the 2-byte header)
             System.UInt16 size = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(this._buffer);
+#if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[{nameof(TransportStream)}] Packet size: {size} bytes.");
-
+#endif
             if (size < 2)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -483,9 +483,10 @@ internal class TransportStream(
             // If need a bigger buffer
             if (size > _buffer.Length)
             {
+#if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug($"[{nameof(TransportStream)}] Renting larger buffer");
-
+#endif
                 InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
                                         .Return(_buffer);
 
@@ -530,9 +531,10 @@ internal class TransportStream(
 
                 if (bytesRead == 0)
                 {
+#if DEBUG
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Debug($"[{nameof(TransportStream)}] Clients closed during read");
-
+#endif
                     this.OnDisconnected();
                     return;
                 }
@@ -542,9 +544,10 @@ internal class TransportStream(
 
             if (totalBytesRead == size)
             {
+#if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug($"[{nameof(TransportStream)}] Packet received");
-
+#endif
                 this._cache.LastPingTime = Clock.UnixMillisecondsNow();
 
                 this._cache.PushIncoming(System.MemoryExtensions
@@ -560,9 +563,10 @@ internal class TransportStream(
               (ex.SocketErrorCode is System.Net.Sockets.SocketError.ConnectionReset or
                                      System.Net.Sockets.SocketError.OperationAborted)
         {
+#if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[{nameof(TransportStream)}] connection reset/aborted");
-
+#endif
             this.OnDisconnected();
         }
         catch (System.ObjectDisposedException)
@@ -632,8 +636,10 @@ internal class TransportStream(
         }
 
         this._disposed = true;
+#if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(TransportStream)}] disposed");
+#endif
     }
 
     // Ensure linked token once; recreate only when necessary
