@@ -67,87 +67,6 @@ public sealed partial class TaskManager : ITaskManager
     #region APIs
 
     /// <summary>
-    /// Schedules a recurring background task.
-    /// </summary>
-    /// <param name="name">The unique name of the recurring task.</param>
-    /// <param name="interval">The interval between executions.</param>
-    /// <param name="work">The delegate representing the work to be performed.</param>
-    /// <param name="options">Optional recurring options.</param>
-    /// <returns>A handle to the scheduled recurring task.</returns>
-    /// <exception cref="System.ArgumentException">Thrown if the name is null or whitespace.</exception>
-    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if the interval is less than or equal to zero.</exception>
-    /// <exception cref="System.ArgumentNullException">Thrown if the work delegate is null.</exception>
-    /// <exception cref="System.InvalidOperationException">Thrown if a recurring task with the same name already exists.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public IRecurringHandle ScheduleRecurring(
-        [System.Diagnostics.CodeAnalysis.StringSyntax("identifier")]
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.TimeSpan interval,
-        [System.Diagnostics.CodeAnalysis.NotNull]
-        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] IRecurringOptions? options = null)
-    {
-        System.ArgumentNullException.ThrowIfNull(work);
-        System.ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
-        System.ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, System.TimeSpan.Zero);
-
-        options ??= new RecurringOptions();
-        System.Threading.CancellationTokenSource cts = new();
-        RecurringState st = new(name, interval, options, cts);
-
-        if (!_recurring.TryAdd(name, st))
-        {
-            throw new System.InvalidOperationException($"[{nameof(TaskManager)}] duplicate recurring name: {name}");
-        }
-
-        st.Task = System.Threading.Tasks.Task.Run(() => RECURRING_LOOP_ASYNC(st, work), cts.Token);
-
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(TaskManager)}:{nameof(ScheduleRecurring)}] start-recurring name={name} iv={interval.TotalMilliseconds:F0}ms nonReentrant={options.NonReentrant} tag={options.Tag ?? "-"}");
-        return st;
-    }
-
-    /// <summary>
-    /// Runs a single background job.
-    /// </summary>
-    /// <param name="name">The name of the job.</param>
-    /// <param name="work">The delegate representing the work to be performed.</param>
-    /// <param name="ct">A cancellation token.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="System.ArgumentException">Thrown if the name is null or whitespace.</exception>
-    /// <exception cref="System.ArgumentNullException">Thrown if the work delegate is null.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public async System.Threading.Tasks.ValueTask RunOnceAsync(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
-        [System.Diagnostics.CodeAnalysis.NotNull]
-        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken ct = default)
-    {
-        System.ArgumentNullException.ThrowIfNull(work);
-        System.ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
-
-        try
-        {
-            await work(ct).ConfigureAwait(false);
-        }
-        catch (System.OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (System.Exception ex)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[FW.{nameof(TaskManager)}:{nameof(RunOnceAsync)}] run-once-error name={name} msg={ex.Message}");
-            throw;
-        }
-    }
-
-    /// <summary>
     /// Starts a worker task in the background.
     /// </summary>
     /// <param name="name">The name of the worker.</param>
@@ -161,7 +80,7 @@ public sealed partial class TaskManager : ITaskManager
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public IWorkerHandle StartWorker(
+    public IWorkerHandle ScheduleWorker(
         [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String group,
         [System.Diagnostics.CodeAnalysis.NotNull]
@@ -188,7 +107,7 @@ public sealed partial class TaskManager : ITaskManager
 
         if (!_workers.TryAdd(id, st))
         {
-            throw new System.InvalidOperationException($"[{nameof(TaskManager)}:{nameof(StartWorker)}] cannot add worker");
+            throw new System.InvalidOperationException($"[{nameof(TaskManager)}:{nameof(ScheduleWorker)}] cannot add worker");
         }
 
         // Optional concurrency cap per-group
@@ -311,75 +230,112 @@ public sealed partial class TaskManager : ITaskManager
     }
 
     /// <summary>
-    /// Cancels a recurring background task by its name.
+    /// Schedules a recurring background task.
     /// </summary>
-    /// <param name="name">The name of the recurring task.</param>
-    /// <returns><c>true</c> if the recurring task was found and cancelled; otherwise, <c>false</c>.</returns>
+    /// <param name="name">The unique name of the recurring task.</param>
+    /// <param name="interval">The interval between executions.</param>
+    /// <param name="work">The delegate representing the work to be performed.</param>
+    /// <param name="options">Optional recurring options.</param>
+    /// <returns>A handle to the scheduled recurring task.</returns>
+    /// <exception cref="System.ArgumentException">Thrown if the name is null or whitespace.</exception>
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if the interval is less than or equal to zero.</exception>
+    /// <exception cref="System.ArgumentNullException">Thrown if the work delegate is null.</exception>
+    /// <exception cref="System.InvalidOperationException">Thrown if a recurring task with the same name already exists.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Boolean CancelRecurring([System.Diagnostics.CodeAnalysis.MaybeNull] System.String? name)
+    public IRecurringHandle ScheduleRecurring(
+        [System.Diagnostics.CodeAnalysis.StringSyntax("identifier")]
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.TimeSpan interval,
+        [System.Diagnostics.CodeAnalysis.NotNull]
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] IRecurringOptions? options = null)
     {
-        if (name is null)
+        System.ArgumentNullException.ThrowIfNull(work);
+        System.ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
+        System.ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, System.TimeSpan.Zero);
+
+        options ??= new RecurringOptions();
+        System.Threading.CancellationTokenSource cts = new();
+        RecurringState st = new(name, interval, options, cts);
+
+        if (!_recurring.TryAdd(name, st))
         {
-            return false;
+            throw new System.InvalidOperationException($"[{nameof(TaskManager)}] duplicate recurring name: {name}");
         }
 
-        if (_recurring.TryRemove(name, out RecurringState? st))
+        st.Task = System.Threading.Tasks.Task.Run(() => RECURRING_LOOP_ASYNC(st, work), cts.Token);
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[FW.{nameof(TaskManager)}:{nameof(ScheduleRecurring)}] start-recurring name={name} " +
+                                       $"iv={interval.TotalMilliseconds:F0}ms nonReentrant={options.NonReentrant} tag={options.Tag ?? "-"}");
+        return st;
+    }
+
+    /// <summary>
+    /// Runs a single background job.
+    /// </summary>
+    /// <param name="name">The name of the job.</param>
+    /// <param name="work">The delegate representing the work to be performed.</param>
+    /// <param name="ct">A cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="System.ArgumentException">Thrown if the name is null or whitespace.</exception>
+    /// <exception cref="System.ArgumentNullException">Thrown if the work delegate is null.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public async System.Threading.Tasks.ValueTask RunOnceAsync(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
+        [System.Diagnostics.CodeAnalysis.NotNull]
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken ct = default)
+    {
+        System.ArgumentNullException.ThrowIfNull(work);
+        System.ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
+
+        try
         {
-            st.Cancel();
-
-            System.Threading.Tasks.Task? t = st.Task;
-            if (t is not null)
-            {
-                _ = t.ContinueWith(_ =>
-                    {
-                        try { st.CancellationTokenSource.Dispose(); }
-                        catch (System.Exception ex)
-                        {
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error name={name} msg={ex.Message}");
-                        }
-                        try { st.Gate.Dispose(); }
-                        catch (System.Exception ex)
-                        {
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error name={name} msg={ex.Message}");
-                        }
-                    },
-                    System.Threading.CancellationToken.None,
-                    System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously,
-                    System.Threading.Tasks.TaskScheduler.Default
-                );
-            }
-            else
-            {
-                try
-                {
-                    st.CancellationTokenSource.Dispose();
-                }
-                catch (System.Exception ex)
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error-sync name={name} msg={ex.Message}");
-                }
-                try
-                {
-                    st.Gate.Dispose();
-                }
-                catch (System.Exception ex)
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error-sync name={name} msg={ex.Message}");
-                }
-            }
-
+            await work(ct).ConfigureAwait(false);
+        }
+        catch (System.OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (System.Exception ex)
+        {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cancel recurring name={name}");
-            return true;
+                                    .Error($"[FW.{nameof(TaskManager)}:{nameof(RunOnceAsync)}] run-once-error name={name} msg={ex.Message}");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Cancels all running workers.
+    /// </summary>
+    /// <returns>The number of workers cancelled.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public System.Int32 CancelAllWorkers()
+    {
+        System.Int32 n = 0;
+        foreach (System.Collections.Generic.KeyValuePair<ISnowflake, WorkerState> kv in _workers)
+        {
+            if (!kv.Value.Cts.IsCancellationRequested)
+            {
+                kv.Value.Cancel(); n++;
+            }
+        }
+        if (n > 0)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelAllWorkers)}] cancel-all-workers count={n}");
         }
 
-        return false;
+        return n;
     }
 
     /// <summary>
@@ -450,30 +406,126 @@ public sealed partial class TaskManager : ITaskManager
     }
 
     /// <summary>
-    /// Cancels all running workers.
+    /// Cancels a recurring background task by its name.
     /// </summary>
-    /// <returns>The number of workers cancelled.</returns>
-    [System.Diagnostics.Contracts.Pure]
+    /// <param name="name">The name of the recurring task.</param>
+    /// <returns><c>true</c> if the recurring task was found and cancelled; otherwise, <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Int32 CancelAllWorkers()
+    public System.Boolean CancelRecurring([System.Diagnostics.CodeAnalysis.MaybeNull] System.String? name)
     {
-        System.Int32 n = 0;
-        foreach (System.Collections.Generic.KeyValuePair<ISnowflake, WorkerState> kv in _workers)
+        if (name is null)
         {
-            if (!kv.Value.Cts.IsCancellationRequested)
-            {
-                kv.Value.Cancel(); n++;
-            }
-        }
-        if (n > 0)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelAllWorkers)}] cancel-all-workers count={n}");
+            return false;
         }
 
-        return n;
+        if (_recurring.TryRemove(name, out RecurringState? st))
+        {
+            st.Cancel();
+
+            System.Threading.Tasks.Task? t = st.Task;
+            if (t is not null)
+            {
+                _ = t.ContinueWith(_ =>
+                {
+                    try { st.CancellationTokenSource.Dispose(); }
+                    catch (System.Exception ex)
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error name={name} msg={ex.Message}");
+                    }
+                    try { st.Gate.Dispose(); }
+                    catch (System.Exception ex)
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error name={name} msg={ex.Message}");
+                    }
+                },
+                    System.Threading.CancellationToken.None,
+                    System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously,
+                    System.Threading.Tasks.TaskScheduler.Default
+                );
+            }
+            else
+            {
+                try
+                {
+                    st.CancellationTokenSource.Dispose();
+                }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error-sync name={name} msg={ex.Message}");
+                }
+                try
+                {
+                    st.Gate.Dispose();
+                }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error-sync name={name} msg={ex.Message}");
+                }
+            }
+
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cancel recurring name={name}");
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Lists all worker handles.
+    /// </summary>
+    /// <param name="runningOnly">If <c>true</c>, only running workers are listed.</param>
+    /// <param name="group">Optional group name to filter workers.</param>
+    /// <returns>A read-only collection of worker handles.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public System.Collections.Generic.IReadOnlyCollection<IWorkerHandle> GetWorkers(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean runningOnly = true,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String? group = null)
+    {
+        System.Collections.Generic.List<IWorkerHandle> list = new(_workers.Count);
+        foreach (System.Collections.Generic.KeyValuePair<ISnowflake, WorkerState> kv in _workers)
+        {
+            WorkerState st = kv.Value;
+            if (runningOnly && !st.IsRunning)
+            {
+                continue;
+            }
+
+            if (group is not null && !System.String.Equals(st.Group, group, System.StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            list.Add(st);
+        }
+        return list;
+    }
+
+    /// <summary>
+    /// Lists all scheduled recurring tasks.
+    /// </summary>
+    /// <returns>A read-only collection of recurring handles.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public System.Collections.Generic.IReadOnlyCollection<IRecurringHandle> GetRecurring()
+    {
+        System.Collections.Generic.List<IRecurringHandle> list = new(_recurring.Count);
+        foreach (System.Collections.Generic.KeyValuePair<System.String, RecurringState> kv in _recurring)
+        {
+            list.Add(kv.Value);
+        }
+
+        return list;
     }
 
     /// <summary>
@@ -510,57 +562,6 @@ public sealed partial class TaskManager : ITaskManager
     {
         if (_recurring.TryGetValue(name, out var st)) { handle = st; return true; }
         handle = null; return false;
-    }
-
-    /// <summary>
-    /// Lists all scheduled recurring tasks.
-    /// </summary>
-    /// <returns>A read-only collection of recurring handles.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Collections.Generic.IReadOnlyCollection<IRecurringHandle> ListRecurring()
-    {
-        System.Collections.Generic.List<IRecurringHandle> list = new(_recurring.Count);
-        foreach (System.Collections.Generic.KeyValuePair<System.String, RecurringState> kv in _recurring)
-        {
-            list.Add(kv.Value);
-        }
-
-        return list;
-    }
-
-    /// <summary>
-    /// Lists all worker handles.
-    /// </summary>
-    /// <param name="runningOnly">If <c>true</c>, only running workers are listed.</param>
-    /// <param name="group">Optional group name to filter workers.</param>
-    /// <returns>A read-only collection of worker handles.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Collections.Generic.IReadOnlyCollection<IWorkerHandle> ListWorkers(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean runningOnly = true,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String? group = null)
-    {
-        System.Collections.Generic.List<IWorkerHandle> list = new(_workers.Count);
-        foreach (System.Collections.Generic.KeyValuePair<ISnowflake, WorkerState> kv in _workers)
-        {
-            WorkerState st = kv.Value;
-            if (runningOnly && !st.IsRunning)
-            {
-                continue;
-            }
-
-            if (group is not null && !System.String.Equals(st.Group, group, System.StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            list.Add(st);
-        }
-        return list;
     }
 
     #endregion APIs

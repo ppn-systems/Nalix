@@ -198,7 +198,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
             linkedToken = _cts.Token;
         }
 
-        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
             name: NetTaskNames.TimeSyncWorker(Period),
             group: NetTaskNames.TimeSyncGroup,
             work: async (ctx, ct) =>
