@@ -269,7 +269,8 @@ internal class TransportStream(
         }
         finally
         {
-            InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Return(buffer);
+            InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                    .Return(buffer);
         }
     }
 
@@ -294,7 +295,8 @@ internal class TransportStream(
         }
 
         System.UInt16 totalLength = (System.UInt16)(data.Length + sizeof(System.UInt16));
-        System.Byte[] buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Rent(totalLength);
+        System.Byte[] buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                                       .Rent(totalLength);
 
         try
         {
