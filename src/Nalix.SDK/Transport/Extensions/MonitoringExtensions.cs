@@ -46,7 +46,7 @@ public static class MonitoringExtensions
         }
         catch (System.Exception ex)
         {
-            TcpSession.s_log?.Warn($"[SDK.{nameof(TcpSession)}.{nameof(RateSamplerTickAsync)}] sampler-error: {ex.Message}");
+            TcpSession.Logging?.Warn($"[SDK.{nameof(TcpSession)}.{nameof(RateSamplerTickAsync)}] sampler-error: {ex.Message}");
         }
 
         return System.Threading.Tasks.Task.CompletedTask;
@@ -97,7 +97,7 @@ public static class MonitoringExtensions
             }
             catch (System.Exception ex)
             {
-                TcpSession.s_log?.Warn($"[SDK.{nameof(TcpSession)}.{nameof(HeartbeatLoopAsync)}] heartbeat-error: {ex.Message}");
+                TcpSession.Logging?.Warn($"[SDK.{nameof(TcpSession)}.{nameof(HeartbeatLoopAsync)}] heartbeat-error: {ex.Message}");
 
                 _ = client.HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
                 break;

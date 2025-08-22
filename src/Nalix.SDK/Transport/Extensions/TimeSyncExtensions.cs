@@ -1,10 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Transport;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.Shared.Frames.Controls;
 
@@ -26,9 +24,6 @@ namespace Nalix.SDK.Transport.Extensions;
 [System.Runtime.CompilerServices.SkipLocalsInit]
 public static class TimeSyncExtensions
 {
-    // Lazy logger resolution: avoids hard startup failure if ILogger is registered after this type loads.
-    private static ILogger? Log => InstanceManager.Instance.GetExistingInstance<ILogger>();
-
     /// <summary>
     /// Performs a one-shot time synchronization with the server.
     /// </summary>
@@ -80,7 +75,7 @@ public static class TimeSyncExtensions
             reasonCode: ProtocolReason.NONE,
             transport: ProtocolType.TCP);
 
-        Log?.Debug("[SDK.TimeSyncAsync] Sending time sync request.");
+        TcpSession.Logging?.Debug("[SDK.TimeSyncAsync] Sending time sync request.");
 
         try
         {
@@ -101,17 +96,17 @@ public static class TimeSyncExtensions
                 maxAllowedDriftMs: maxAllowedDriftMs,
                 maxHardAdjustMs: maxHardAdjustMs);
 
-            Log?.Info($"[SDK.TimeSyncAsync] Completed. RTT={rttMs:F2} ms, Adjust={adjustMs:F2} ms.");
+            TcpSession.Logging?.Info($"[SDK.TimeSyncAsync] Completed. RTT={rttMs:F2} ms, Adjust={adjustMs:F2} ms.");
             return true;
         }
         catch (System.OperationCanceledException oce)
         {
-            Log?.Debug($"[SDK.TimeSyncAsync] Canceled: {oce.Message}.");
+            TcpSession.Logging?.Debug($"[SDK.TimeSyncAsync] Canceled: {oce.Message}.");
             return false;
         }
         catch (System.Exception ex)
         {
-            Log?.Error($"[SDK.TimeSyncAsync] Failed: {ex}.");
+            TcpSession.Logging?.Error($"[SDK.TimeSyncAsync] Failed: {ex}.");
             return false;
         }
     }
