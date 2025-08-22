@@ -74,8 +74,10 @@ internal class TransportStream(
     {
         if (this._disposed)
         {
+#if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[{nameof(TransportStream)}] BeginReceive called on disposed");
+#endif
             return;
         }
 
@@ -92,8 +94,10 @@ internal class TransportStream(
 
         try
         {
+#if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[{nameof(TransportStream)}] Starting asynchronous read operation");
+#endif
 
             System.Net.Sockets.SocketAsyncEventArgs args = new();
             args.SetBuffer(this._buffer, 0, 2);
@@ -211,8 +215,10 @@ internal class TransportStream(
         {
             try
             {
+#if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug($"[{nameof(TransportStream)}] Sending data (stackalloc)");
+#endif
 
                 System.Span<System.Byte> bufferS = stackalloc System.Byte[totalLength];
                 System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(bufferS, totalLength);
@@ -243,8 +249,10 @@ internal class TransportStream(
 
         try
         {
+#if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[{nameof(TransportStream)}] Sending data (pooled)");
+#endif
 
             System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(System.MemoryExtensions
                                                   .AsSpan(buffer), totalLength);
@@ -306,8 +314,10 @@ internal class TransportStream(
             data.Span.CopyTo(System.MemoryExtensions
                      .AsSpan(buffer, sizeof(System.UInt16)));
 
+#if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[{nameof(TransportStream)}] Sending data async");
+#endif
 
             _ = await this._socket.SendAsync(System.MemoryExtensions
                                   .AsMemory(buffer, 0, totalLength), System.Net.Sockets.SocketFlags.None, cancellationToken)
@@ -361,8 +371,10 @@ internal class TransportStream(
         this._cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
         this._cache.PushIncoming(new System.ReadOnlyMemory<System.Byte>(data));
 
+#if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(TransportStream)}] Injected {data.Length} bytes into incoming cache.");
+#endif
     }
 
     /// <summary>
@@ -408,9 +420,10 @@ internal class TransportStream(
             System.Int32 totalBytesRead = await task;
             if (totalBytesRead == 0)
             {
+#if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug($"[{nameof(TransportStream)}] Clients closed");
-
+#endif
                 this.OnDisconnected();
                 return;
             }
