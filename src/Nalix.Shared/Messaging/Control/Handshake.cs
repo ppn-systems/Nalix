@@ -2,6 +2,7 @@
 
 using Nalix.Common.Attributes;
 using Nalix.Common.Connection.Protocols;
+using Nalix.Common.Enums;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
@@ -18,6 +19,7 @@ namespace Nalix.Shared.Messaging.Control;
 /// <summary>
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
+[PipelineManagedTransform]
 [MagicNumber(MagicNumbers.Control)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]

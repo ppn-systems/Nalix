@@ -1,5 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Enums;
+
 namespace Nalix.Common.Attributes;
 
 /// <summary>
