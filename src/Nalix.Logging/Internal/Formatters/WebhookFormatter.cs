@@ -1,4 +1,4 @@
-﻿using Nalix.Common.Logging;
+﻿using Nalix.Common.Diagnostics;
 using Nalix.Logging.Internal.Webhook.Models;
 using Nalix.Logging.Options;
 
