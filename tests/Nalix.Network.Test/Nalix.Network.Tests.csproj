@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+		<PackageReference Include="xunit" Version="2.9.3" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="Nalix.Network">
+			<HintPath>..\..\build\bin\Debug\net9.0\Nalix.Network.dll</HintPath>
+		</Reference>
+		<Reference Include="Nalix.Shared">
+			<HintPath>..\..\build\bin\Debug\net9.0\Nalix.Shared.dll</HintPath>
+		</Reference>
+		<Reference Include="Nalix.Common">
+			<HintPath>..\..\build\bin\Debug\net9.0\Nalix.Common.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+</Project>
