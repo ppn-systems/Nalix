@@ -18,9 +18,65 @@ public sealed class BufferLease : IBufferLease
     // ====== Static ======
 
     /// <summary>
-    /// Gets the shared <see cref="BufferPoolManager"/> instance used for buffer pooling.
+    /// Provides a centralized buffer pooling abstraction.
+    /// Falls back to <see cref="System.Buffers.ArrayPool{T}.Shared"/> if no <see cref="BufferPoolManager"/> is registered.
     /// </summary>
-    internal static readonly BufferPoolManager BufferPool = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
+    /// <remarks>
+    /// This class is optimized for high-performance scenarios by resolving the underlying pool implementation once
+    /// during static initialization, avoiding runtime branching on each call.
+    /// </remarks>
+    public static class ByteArrayPool
+    {
+        private static readonly System.Func<System.Int32, System.Byte[]> RentFunc;
+        private static readonly System.Action<System.Byte[], System.Boolean> ReturnFunc;
+
+        static ByteArrayPool()
+        {
+            BufferPoolManager? pool = InstanceManager.Instance.GetExistingInstance<BufferPoolManager>();
+
+            if (pool != null)
+            {
+                RentFunc = pool.Rent;
+                ReturnFunc = pool.Return;
+            }
+            else
+            {
+                System.Buffers.ArrayPool<System.Byte> shared = System.Buffers.ArrayPool<System.Byte>.Shared;
+                RentFunc = shared.Rent;
+                ReturnFunc = shared.Return;
+            }
+        }
+
+        /// <summary>
+        /// Rents a buffer with at least the specified capacity from the underlying pool.
+        /// </summary>
+        /// <param name="capacity">
+        /// The minimum required length of the returned buffer.
+        /// </param>
+        /// <returns>
+        /// A byte array that is at least <paramref name="capacity"/> in length.
+        /// </returns>
+        /// <remarks>
+        /// The returned buffer may be larger than requested. The content of the buffer is undefined.
+        /// </remarks>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static System.Byte[] Rent(System.Int32 capacity = 256) => RentFunc(capacity);
+
+        /// <summary>
+        /// Returns a previously rented buffer to the pool.
+        /// </summary>
+        /// <param name="array">
+        /// The buffer to return. Must not be <see langword="null"/>.
+        /// </param>
+        /// <remarks>
+        /// The buffer must have been obtained via <see cref="Rent(System.Int32)"/>. 
+        /// After calling this method, the buffer should not be used again.
+        /// </remarks>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static void Return(System.Byte[] array) => ReturnFunc(array, false);
+    }
 
     /// <summary>
     /// Maximum buffer size for stack allocation in <see cref="CopyFrom"/>. Larger buffers will be heap-allocated.
@@ -215,7 +271,7 @@ public sealed class BufferLease : IBufferLease
 #endif
             }
 
-            BufferPool.Return(buf);
+            ByteArrayPool.Return(buf);
         }
     }
 
@@ -268,7 +324,7 @@ public sealed class BufferLease : IBufferLease
         [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 capacity,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean zeroOnDispose = false)
     {
-        System.Byte[] arr = BufferPool.Rent(capacity);
+        System.Byte[] arr = ByteArrayPool.Rent(capacity);
         return new BufferLease(arr, start: 0, length: 0, zeroOnDispose: zeroOnDispose);
     }
 
@@ -280,7 +336,7 @@ public sealed class BufferLease : IBufferLease
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean zeroOnDispose = false)
     {
-        System.Byte[] arr = BufferPool.Rent(src.Length);
+        System.Byte[] arr = ByteArrayPool.Rent(src.Length);
         src.CopyTo(System.MemoryExtensions.AsSpan(arr, 0, src.Length));
         return new BufferLease(arr, start: 0, length: src.Length, zeroOnDispose: zeroOnDispose);
     }

@@ -61,7 +61,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket> where TPacket
                     ProtocolReason.CRYPTO_UNSUPPORTED,
                     ProtocolAdvice.NONE,
                     flags: ControlFlags.NONE,
-                    arg0: _context.Attributes.OpCode.OpCode).ConfigureAwait(false);
+                    arg0: _context.Attributes.PacketOpcode.OpCode).ConfigureAwait(false);
 
                 return;
             }

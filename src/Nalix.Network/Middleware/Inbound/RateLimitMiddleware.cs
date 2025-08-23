@@ -90,7 +90,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
                 action: ProtocolAdvice.RETRY,
                 sequenceId: sequenceId,
                 flags: ControlFlags.IS_TRANSIENT,
-                arg0: context.Attributes.OpCode?.OpCode ?? 0u,
+                arg0: context.Attributes.PacketOpcode?.OpCode ?? 0u,
                 arg1: (System.UInt32)decision.RetryAfterMs,
                 arg2: decision.Credit
             ).ConfigureAwait(false);

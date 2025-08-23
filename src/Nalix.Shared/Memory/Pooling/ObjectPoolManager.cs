@@ -533,7 +533,7 @@ public sealed class ObjectPoolManager : IReportable
 
         // Pool Details
         _ = sb.AppendLine("==============================================================================================");
-        _ = sb.AppendLine("Pool Details:");
+        _ = sb.AppendLine("s_pool Details:");
         _ = sb.AppendLine("==============================================================================================");
         _ = sb.AppendLine("TYPE                     | Available | Max Cap | Gets    | Hits    | Misses  | Hit%    | Status");
         _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
@@ -600,7 +600,7 @@ public sealed class ObjectPoolManager : IReportable
 
         // Configuration
         _ = sb.AppendLine("Configuration:");
-        _ = sb.AppendLine($"Default Max Pool Size  : {DefaultMaxPoolSize}");
+        _ = sb.AppendLine($"Default Max s_pool Size  : {DefaultMaxPoolSize}");
         _ = sb.AppendLine();
 
         return sb.ToString();

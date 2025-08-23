@@ -151,7 +151,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
                 action: ProtocolAdvice.NONE,
                 sequenceId: sequenceId,
                 flags: flags,
-                arg0: context.Attributes.OpCode.OpCode,
+                arg0: context.Attributes.PacketOpcode.OpCode,
                 arg1: (System.UInt32)context.Packet.Flags,
                 arg2: 0).ConfigureAwait(false);
         }
