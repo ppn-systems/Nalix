@@ -12,7 +12,8 @@ public static partial class Directories
     /// <param name="handler">
     /// The handler to invoke when a directory is created.
     /// </param>
-    public static void RegisterDirectoryCreationHandler([System.Diagnostics.CodeAnalysis.DisallowNull] System.Action<System.String> handler)
+    public static void RegisterDirectoryCreationHandler(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Action<System.String> handler)
     {
         System.ArgumentNullException.ThrowIfNull(handler);
         Directories.DirectoryCreated += handler;
@@ -24,7 +25,8 @@ public static partial class Directories
     /// <param name="handler">
     /// The handler to remove.
     /// </param>
-    public static void UnregisterDirectoryCreationHandler([System.Diagnostics.CodeAnalysis.DisallowNull] System.Action<System.String> handler)
+    public static void UnregisterDirectoryCreationHandler(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Action<System.String> handler)
     {
         System.ArgumentNullException.ThrowIfNull(handler);
         Directories.DirectoryCreated -= handler;
@@ -96,7 +98,8 @@ public static partial class Directories
     /// <summary>
     /// Returns a temp file path under <see cref="TemporaryDirectory"/>.
     /// </summary>
-    public static System.String GetTempFilePath([System.Diagnostics.CodeAnalysis.DisallowNull] System.String fileName)
+    public static System.String GetTempFilePath(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String fileName)
         => GetFilePath(TemporaryDirectory, fileName);
 
     /// <summary>

@@ -198,8 +198,7 @@ public static partial class Directories
         System.String baseFull = System.IO.Path.GetFullPath(baseDir);
 
         return !full.StartsWith(baseFull, System.StringComparison.Ordinal)
-            ? throw new System.UnauthorizedAccessException("Path '" + name + "' escapes base directory.")
-            : full;
+            ? throw new System.UnauthorizedAccessException("Path '" + name + "' escapes base directory.") : full;
     }
 
     [System.ComponentModel.EditorBrowsable(
@@ -212,13 +211,10 @@ public static partial class Directories
     {
         try
         {
-            System.Reflection.MethodInfo m =
-                typeof(System.IO.Directory).GetMethod(
-                    "SetUnixFileMode",
-                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static,
-                    null,
-                    [typeof(System.String), typeof(System.IO.UnixFileMode)],
-                    null);
+            System.Reflection.MethodInfo m = typeof(System.IO.Directory).GetMethod(
+                "SetUnixFileMode",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static,
+                null, [typeof(System.String), typeof(System.IO.UnixFileMode)], null);
 
             if (m != null)
             {
