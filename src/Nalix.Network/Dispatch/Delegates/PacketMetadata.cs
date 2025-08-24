@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Packets.Attributes;
+using Nalix.Common.Messaging.Packets.Attributes;
 
 namespace Nalix.Network.Dispatch.Delegates;
 
