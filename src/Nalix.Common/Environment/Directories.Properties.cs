@@ -22,7 +22,11 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.Boolean IsRunningInContainer => IsContainerLazy.Value;
+    public static System.Boolean IsRunningInContainer
+    {
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        get => IsContainerLazy.Value;
+    }
 
     /// <summary>
     /// Gets the resolved base directory for application assets.
@@ -42,7 +46,11 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String BaseAssetsDirectory => BasePathLazy.Value;
+    public static System.String BaseAssetsDirectory
+    {
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        get => BasePathLazy.Value;
+    }
 
     /// <summary>
     /// Gets the directory used for application logs.
@@ -59,7 +67,11 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String LogsDirectory => LogsPathLazy.Value;
+    public static System.String LogsDirectory
+    {
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        get => LogsPathLazy.Value;
+    }
 
     /// <summary>
     /// Gets the directory used for application data.
@@ -75,7 +87,11 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String DataDirectory => DataPathLazy.Value;
+    public static System.String DataDirectory
+    {
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        get => DataPathLazy.Value;
+    }
 
     /// <summary>
     /// Gets the directory used for configuration files.
@@ -92,7 +108,11 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String ConfigurationDirectory => ConfigPathLazy.Value;
+    public static System.String ConfigurationDirectory
+    {
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        get => ConfigPathLazy.Value;
+    }
 
     /// <summary>
     /// Gets the directory used for temporary files.
@@ -111,7 +131,11 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String TemporaryDirectory => TempPathLazy.Value;
+    public static System.String TemporaryDirectory
+    {
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        get => TempPathLazy.Value;
+    }
 
     /// <summary>
     /// Gets the directory used for persistent storage.
@@ -128,7 +152,11 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String StoragePath => StoragePathLazy.Value;
+    public static System.String StorageDirectory
+    {
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        get => StoragePathLazy.Value;
+    }
 
     /// <summary>
     /// Gets the directory used for database files.
@@ -145,7 +173,11 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String DatabaseDirectory => DatabasePathLazy.Value;
+    public static System.String DatabaseDirectory
+    {
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        get => DatabasePathLazy.Value;
+    }
 
     /// <summary>
     /// Gets the directory used for cache files.
@@ -156,7 +188,11 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String CacheDirectory => CachesPathLazy.Value;
+    public static System.String CacheDirectory
+    {
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        get => CachesPathLazy.Value;
+    }
 
     /// <summary>
     /// Gets the directory used for uploaded files.
@@ -167,7 +203,11 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String UploadsDirectory => UploadsPathLazy.Value;
+    public static System.String UploadsDirectory
+    {
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        get => UploadsPathLazy.Value;
+    }
 
     /// <summary>
     /// Gets the directory used for backups.
@@ -178,5 +218,9 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String BackupsDirectory => BackupsPathLazy.Value;
+    public static System.String BackupsDirectory
+    {
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        get => BackupsPathLazy.Value;
+    }
 }
