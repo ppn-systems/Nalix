@@ -39,7 +39,7 @@ public class Binary1024 : FrameBase, IPacketTransformer<Binary1024>
     /// <summary>
     /// Gets or sets the binary content of the packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.End)]
+    [SerializeOrder(PacketHeaderOffset.DataRegion)]
     [SerializeDynamicSize(DynamicSize)]
     public System.Byte[] Data { get; set; }
 

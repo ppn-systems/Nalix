@@ -184,20 +184,4 @@ public static partial class Directories
     });
 
     #endregion Private Properties
-
-    // ---------- Static Constructor ----------
-
-    /// <summary>Initializes all directories on first load to ensure they exist and are accessible.</summary>
-    static Directories()
-    {
-        _ = LogsDirectory;
-        _ = DataDirectory;
-        _ = ConfigurationDirectory;
-        _ = TemporaryDirectory;
-        _ = StoragePath;
-        _ = DatabaseDirectory;
-        _ = CacheDirectory;
-        _ = UploadsDirectory;
-        _ = BackupsDirectory;
-    }
 }

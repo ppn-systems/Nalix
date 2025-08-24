@@ -39,7 +39,7 @@ public class Text256 : FrameBase, IPacketTransformer<Text256>
     /// Gets or sets the UTF-8 string content of the packet.
     /// </summary>
     [SerializeDynamicSize(DynamicSize)]
-    [SerializeOrder(PacketHeaderOffset.End)]
+    [SerializeOrder(PacketHeaderOffset.DataRegion)]
     public System.String Content { get; set; }
 
     /// <summary>Initializes a new <see cref="Text256"/> with empty content.</summary>

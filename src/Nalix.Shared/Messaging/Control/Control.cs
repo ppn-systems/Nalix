@@ -42,31 +42,31 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
     /// <summary>
     /// Gets or sets the sequence identifier for this packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.End + 0)]
+    [SerializeOrder(PacketHeaderOffset.DataRegion + 0)]
     public System.UInt32 SequenceId { get; set; }
 
     /// <summary>
     /// Gets or sets the reason code associated with this control packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.End + 1)]
+    [SerializeOrder(PacketHeaderOffset.DataRegion + 1)]
     public System.UInt16 ReasonCode { get; set; }
 
     /// <summary>
     /// Gets or sets the binary content of the packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.End + 2)]
+    [SerializeOrder(PacketHeaderOffset.DataRegion + 2)]
     public ControlType Type { get; set; }
 
     /// <summary>
     /// Gets or sets the timestamp associated with this packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.End + 3)]
+    [SerializeOrder(PacketHeaderOffset.DataRegion + 3)]
     public System.Int64 Timestamp { get; set; }
 
     /// <summary>
     /// Gets or sets the monotonic timestamp (in ticks) for RTT measurement.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.End + 4)]
+    [SerializeOrder(PacketHeaderOffset.DataRegion + 4)]
     public System.Int64 MonoTicks { get; set; }
 
     /// <summary>
