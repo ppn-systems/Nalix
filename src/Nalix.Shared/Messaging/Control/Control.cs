@@ -33,11 +33,11 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
     [SerializeIgnore]
     public override System.UInt16 Length =>
         PacketConstants.HeaderSize
-        + sizeof(System.UInt32)  // SequenceId
-        + sizeof(System.UInt16)  // ReasonCode
         + sizeof(ControlType)    // ControlType
         + sizeof(System.Int64)   // Timestamp
-        + sizeof(System.Int64);  // MonoTicks
+        + sizeof(System.Int64)   // MonoTicks
+        + sizeof(System.UInt32)  // SequenceId
+        + sizeof(System.UInt16); // ReasonCode
 
     /// <summary>
     /// Gets or sets the sequence identifier for this packet.
