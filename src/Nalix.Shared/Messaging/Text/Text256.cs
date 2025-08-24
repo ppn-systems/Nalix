@@ -24,40 +24,20 @@ namespace Nalix.Shared.Messaging.Text;
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Text256 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public class Text256 : IPacket, IPacketTransformer<Text256>
+public class Text256 : FrameBase, IPacketTransformer<Text256>
 {
     /// <inheritdoc/>
     public const System.Int32 DynamicSize = 256;
 
-    /// <inheritdoc/>
-    public static System.Int32 Size => PacketConstants.HeaderSize + DynamicSize;
-
     /// <summary>Gets the total serialized length in bytes, including header and content.</summary>
     [SerializeIgnore]
-    public System.UInt16 Length =>
+    public override System.UInt16 Length =>
         (System.UInt16)(PacketConstants.HeaderSize + System.Text.Encoding.UTF8.GetByteCount(Content ?? System.String.Empty));
 
-    /// <summary>Gets the magic number used to identify the packet format.</summary>
-    [SerializeOrder(PacketHeaderOffset.MagicNumber)]
-    public System.UInt32 MagicNumber { get; set; }
 
-    /// <summary>Gets the operation code (OpCode) of this packet.</summary>
-    [SerializeOrder(PacketHeaderOffset.OpCode)]
-    public System.UInt16 OpCode { get; set; }
-
-    /// <summary>Gets the flags associated with this packet.</summary>
-    [SerializeOrder(PacketHeaderOffset.Flags)]
-    public PacketFlags Flags { get; set; }
-
-    /// <summary>Gets the packet priority.</summary>
-    [SerializeOrder(PacketHeaderOffset.Priority)]
-    public PacketPriority Priority { get; set; }
-
-    /// <summary>Gets the transport protocol (e.g., TCP/UDP) this packet targets.</summary>
-    [SerializeOrder(PacketHeaderOffset.Transport)]
-    public TransportProtocol Transport { get; set; }
-
-    /// <summary>Gets or sets the UTF-8 string content of the packet.</summary>
+    /// <summary>
+    /// Gets or sets the UTF-8 string content of the packet.
+    /// </summary>
     [SerializeDynamicSize(DynamicSize)]
     [SerializeOrder(PacketHeaderOffset.End)]
     public System.String Content { get; set; }
@@ -88,13 +68,6 @@ public class Text256 : IPacket, IPacketTransformer<Text256>
         this.Transport = transport;
         this.Content = content ?? System.String.Empty;
     }
-
-    /// <summary>Serializes this packet to a newly allocated byte array.</summary>
-    public System.Byte[] Serialize() => LiteSerializer.Serialize(this);
-
-    /// <summary>Serializes this packet into the provided destination buffer.</summary>
-    /// <param name="buffer">The destination buffer. Must be large enough.</param>
-    public void Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
 
     /// <summary>
     /// Deserializes a <see cref="Text256"/> from the specified buffer.
@@ -165,8 +138,10 @@ public class Text256 : IPacket, IPacketTransformer<Text256>
         return packet;
     }
 
-    /// <summary>Resets this instance to its default state for pooling reuse.</summary>
-    public void ResetForPool()
+    /// <summary>
+    /// Resets this instance to its default state for pooling reuse.
+    /// </summary>
+    public override void ResetForPool()
     {
         this.Flags = PacketFlags.None;
         this.Content = System.String.Empty;

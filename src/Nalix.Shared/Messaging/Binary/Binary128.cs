@@ -24,50 +24,17 @@ namespace Nalix.Shared.Messaging.Binary;
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Binary128 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public class Binary128 : IPacket, IPacketTransformer<Binary128>
+public class Binary128 : FrameBase, IPacketTransformer<Binary128>
 {
     /// <inheritdoc/>
     public const System.Int32 DynamicSize = 128;
-
-    /// <inheritdoc/>
-    public static System.Int32 Size => PacketConstants.HeaderSize + DynamicSize;
 
     /// <summary>
     /// Gets the total length of the serialized packet in bytes, including header and content.
     /// </summary>
     [SerializeIgnore]
-    public System.UInt16 Length =>
+    public override System.UInt16 Length =>
         (System.UInt16)(PacketConstants.HeaderSize + (Data?.Length ?? 0));
-
-    /// <summary>
-    /// Gets the magic number used to identify the packet format.
-    /// </summary>
-    [SerializeOrder(PacketHeaderOffset.MagicNumber)]
-    public System.UInt32 MagicNumber { get; set; }
-
-    /// <summary>
-    /// Gets the operation code (OpCode) of this packet.
-    /// </summary>
-    [SerializeOrder(PacketHeaderOffset.OpCode)]
-    public System.UInt16 OpCode { get; set; }
-
-    /// <summary>
-    /// Gets the flags associated with this packet.
-    /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Flags)]
-    public PacketFlags Flags { get; set; }
-
-    /// <summary>
-    /// Gets the packet priority.
-    /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Priority)]
-    public PacketPriority Priority { get; set; }
-
-    /// <summary>
-    /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
-    /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Transport)]
-    public TransportProtocol Transport { get; set; }
 
     /// <summary>
     /// Gets or sets the binary content of the packet.
@@ -106,23 +73,6 @@ public class Binary128 : IPacket, IPacketTransformer<Binary128>
         this.Data = data ?? [];
         this.Transport = transport;
     }
-
-    /// <summary>
-    /// Serializes the packet to a newly allocated byte array.
-    /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Byte[] Serialize() => LiteSerializer.Serialize(this);
-
-    /// <summary>
-    /// Serializes the packet into the provided destination buffer.
-    /// </summary>
-    /// <param name="buffer">The destination buffer. Must be large enough.</param>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
 
     /// <summary>
     /// Deserializes a <see cref="Binary128"/> from the specified buffer.
@@ -215,7 +165,7 @@ public class Binary128 : IPacket, IPacketTransformer<Binary128>
     /// <summary>
     /// Resets this instance to its default state for pooling reuse.
     /// </summary>
-    public void ResetForPool()
+    public override void ResetForPool()
     {
         this.Data = [];
         this.Flags = PacketFlags.None;
