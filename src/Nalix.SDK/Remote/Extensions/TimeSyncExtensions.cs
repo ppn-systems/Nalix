@@ -1,9 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Client;
-using Nalix.Common.Logging;
-using Nalix.Common.Packets.Abstractions;
-using Nalix.Common.Protocols;                     // ProtocolType
+using Nalix.Common.Diagnostics;
+using Nalix.Common.Infrastructure.Client;
+using Nalix.Common.Messaging.Packets.Abstractions;
+using Nalix.Common.Messaging.Protocols;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.Shared.Extensions;
