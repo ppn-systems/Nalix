@@ -3,6 +3,7 @@
 
 using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Hashing;
+using Nalix.Shared.Security.Internal;
 using Nalix.Shared.Security.Primitives;
 using Nalix.Shared.Security.Symmetric;
 

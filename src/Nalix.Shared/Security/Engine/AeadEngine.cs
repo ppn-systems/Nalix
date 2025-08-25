@@ -4,6 +4,7 @@
 using Nalix.Common.Security.Enums;
 using Nalix.Framework.Random;
 using Nalix.Shared.Security.Aead;
+using Nalix.Shared.Security.Internal;
 
 namespace Nalix.Shared.Security.Engine;
 
