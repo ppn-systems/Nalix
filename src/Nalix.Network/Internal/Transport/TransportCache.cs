@@ -4,6 +4,11 @@ using Nalix.Framework.Time;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Caches;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+#endif
+
 namespace Nalix.Network.Internal.Transport;
 
 /// <summary>
@@ -105,7 +110,7 @@ internal sealed class TransportCache : System.IDisposable
         const System.UInt64 s = 0xc70f6907UL;
         const System.UInt64 m = 0xc6a4a7935bd1e995UL;
 
-        System.UInt64 h = s ^ (System.UInt64)data.Length * m;
+        System.UInt64 h = s ^ ((System.UInt64)data.Length * m);
 
         fixed (System.Byte* pBase = data)
         {
@@ -139,7 +144,7 @@ internal sealed class TransportCache : System.IDisposable
                 System.UInt64 k = 0;
                 for (System.Int32 i = 0; i < len; i++)
                 {
-                    k |= (System.UInt64)p[i] << 8 * i;
+                    k |= (System.UInt64)p[i] << (8 * i);
                 }
 
                 h ^= k;
