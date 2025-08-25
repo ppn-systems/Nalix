@@ -35,7 +35,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
 
     private volatile System.Boolean _disposed;
 
-    // PreDispatch-allocated collections for bulk operations
+    // Outbound-allocated collections for bulk operations
     private static readonly System.Buffers.ArrayPool<IConnection> s_connectionPool;
 
     #endregion Fields

@@ -70,7 +70,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
     /// <remarks>
-    /// PreDispatch-processing middleware allows for custom logic such as validation, authorization, logging,
+    /// Outbound-processing middleware allows for custom logic such as validation, authorization, logging,
     /// or modification of packet data before it reaches the main handler. Middleware is executed in the
     /// order it is added.
     /// </remarks>
@@ -93,7 +93,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
     /// <remarks>
-    /// PostDispatch-processing middleware is useful for tasks such as auditing, cleanup, metrics collection,
+    /// Inbound-processing middleware is useful for tasks such as auditing, cleanup, metrics collection,
     /// or response transformation. Middleware is executed in the order it is added.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
