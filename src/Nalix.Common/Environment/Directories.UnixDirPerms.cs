@@ -26,8 +26,8 @@ public static partial class Directories
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String path,
         UnixDirPerms perms = UnixDirPerms.Default755)
     {
-        EnsureDirectoryExists(path);
-        TryHardenPermissions(path, perms);
+        Directories.EnsureDirectoryExists(path);
+        Directories.TryHardenPermissions(path, perms);
         return path;
     }
 
@@ -156,7 +156,7 @@ public static partial class Directories
                         System.IO.UnixFileMode.OtherExecute,
                 };
 
-                _ = SetUnixFileModeCompat(path, mode);
+                _ = Directories.SetUnixFileModeCompat(path, mode);
             }
         }
         catch { }
