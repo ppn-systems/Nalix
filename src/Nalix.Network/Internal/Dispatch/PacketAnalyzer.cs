@@ -8,9 +8,6 @@ using Nalix.Network.Dispatch;
 using Nalix.Network.Dispatch.Delegates;
 using Nalix.Shared.Injection;
 
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
-
 namespace Nalix.Network.Internal.Dispatch;
 
 /// <summary>

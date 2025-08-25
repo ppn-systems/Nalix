@@ -91,7 +91,7 @@ public sealed class FileLogOptions
     {
         get => _logFileName;
         set => _logFileName = System.String.IsNullOrWhiteSpace(value)
-            ? $"log_{System.Environment.MachineName}_.log"
+            ? $"log_{System.DateTime.Now:yyyy-MM-dd_HH-mm-ss-fff}_.log"
             : value;
     }
 
