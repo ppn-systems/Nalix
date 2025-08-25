@@ -1,20 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-
 using Nalix.Common.Core.Abstractions;
 
 namespace Nalix.Common.Core.Enums;
 
 /// <summary>
-/// Defines the category of an <see cref="ISnowflake"/> value,  
+/// Defines the category of an <see cref="ISnowflake"/> value,
 /// used to distinguish between different purposes or entities in the system.
 /// </summary>
 public enum SnowflakeType : System.Byte
