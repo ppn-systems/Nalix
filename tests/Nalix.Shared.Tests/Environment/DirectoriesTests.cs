@@ -31,7 +31,7 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
         Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Environment.Directories.LogsDirectory));
         Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Environment.Directories.TemporaryDirectory));
         Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Environment.Directories.ConfigurationDirectory));
-        Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Environment.Directories.StoragePath));
+        Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Environment.Directories.StorageDirectory));
         Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Environment.Directories.DatabaseDirectory));
         Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Environment.Directories.CacheDirectory));
         Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Environment.Directories.UploadsDirectory));
