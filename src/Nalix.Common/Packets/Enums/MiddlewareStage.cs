@@ -10,10 +10,10 @@ public enum MiddlewareStage : System.Byte
     /// <summary>
     /// Indicates the middleware is executed before the main operation.
     /// </summary>
-    PreDispatch = 1,
+    Outbound = 1,
 
     /// <summary>
     /// Indicates the middleware is executed after the main operation.
     /// </summary>
-    PostDispatch = 2
+    Inbound = 2
 }

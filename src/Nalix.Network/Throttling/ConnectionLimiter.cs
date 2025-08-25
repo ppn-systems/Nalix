@@ -240,7 +240,7 @@ public sealed class ConnectionLimiter : System.IDisposable
     {
         System.ObjectDisposedException.ThrowIf(this._disposed, this);
 
-        // PreDispatch-allocate dictionary with capacity to avoid resizing
+        // Outbound-allocate dictionary with capacity to avoid resizing
         System.Collections.Generic.Dictionary<
             System.Net.IPAddress, (System.Int32 Current, System.Int32 Total)> result = new(this._connectionInfo.Count);
 

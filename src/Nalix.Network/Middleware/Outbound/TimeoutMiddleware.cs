@@ -12,7 +12,7 @@ namespace Nalix.Network.Middleware.Outbound;
 /// Middleware that enforces a timeout for packet processing. If the next middleware or handler does not complete within the specified timeout,
 /// a timeout response is sent to the client.
 /// </summary>
-[PacketMiddleware(MiddlewareStage.PreDispatch, order: 1, name: "Timeout")]
+[PacketMiddleware(MiddlewareStage.Outbound, order: 1, name: "Timeout")]
 public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
 {
     /// <inheritdoc/>

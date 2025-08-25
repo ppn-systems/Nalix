@@ -42,7 +42,7 @@ public abstract partial class Protocol : IProtocol
     { }
 
     /// <summary>
-    /// PostDispatch-processes a message after it has been handled.
+    /// Inbound-processes a message after it has been handled.
     /// If the connection should not remain open, it will be disconnected.
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
