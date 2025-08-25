@@ -2,6 +2,11 @@
 
 using Nalix.Common.Caching;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+#endif
+
 namespace Nalix.Network.Internal.Pooled;
 
 /// <summary>
