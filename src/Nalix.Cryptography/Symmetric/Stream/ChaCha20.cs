@@ -97,6 +97,43 @@ public sealed class ChaCha20 : System.IDisposable
         this.IvSetup(nonce.ToArray(), counter);
     }
 
+    /// <summary>
+    /// Generates one 64-byte keystream block into <paramref name="dst"/> at the current counter,
+    /// then advances the internal counter by 1 (per RFC 7539).
+    /// If dst.Length &lt; 64, only writes the first dst.Length bytes.
+    /// </summary>
+    /// <param name="dst">Destination span to receive the keystream block.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void GenerateKeyBlock(System.Span<System.Byte> dst)
+    {
+        if (_isDisposed)
+        {
+            throw new System.ObjectDisposedException("state", "The ChaCha state has been disposed");
+        }
+
+        // Reuse existing state update logic to produce a 64-byte block.
+        var x = new System.UInt32[StateLength];
+        var tmp = new System.Byte[BlockSize];
+
+        UpdateStateAndGenerateTemporaryBuffer(State, x, tmp);
+
+        System.Int32 n = dst.Length < BlockSize ? dst.Length : BlockSize;
+        System.Buffer.BlockCopy(tmp, 0, dst.ToArray(), 0, n); // copy via temp array view
+
+        // Note:
+        // BlockCopy needs arrays; to avoid extra alloc, copy manually when dst.Length < 64.
+        // So we do an explicit fast path:
+        if (n > 0)
+        {
+            for (System.Int32 i = 0; i < n; i++)
+            {
+                dst[i] = tmp[i];
+            }
+        }
+    }
+
+
     #endregion Constructors
 
     #region Encryption methods
@@ -283,6 +320,22 @@ public sealed class ChaCha20 : System.IDisposable
 
         this.WorkBytes(returnArray, utf8Bytes, utf8Bytes.Length, simdMode);
         return returnArray;
+    }
+
+    /// <summary>
+    /// Encrypts <paramref name="src"/> into <paramref name="dst"/> using the current state (XOR with keystream).
+    /// </summary>
+    /// <remarks>dst.Length must equal src.Length.</remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Encrypt(System.ReadOnlySpan<System.Byte> src, System.Span<System.Byte> dst)
+    {
+        if (dst.Length != src.Length)
+        {
+            throw new System.ArgumentException("Output length must match input length.");
+        }
+
+        WorkBytes(src, dst, src.Length);
     }
 
     #endregion Encryption methods
@@ -477,6 +530,64 @@ public sealed class ChaCha20 : System.IDisposable
         return System.Text.Encoding.UTF8.GetString(tempArray);
     }
 
+    /// <summary>
+    /// Decrypts <paramref name="src"/> into <paramref name="dst"/>. For ChaCha20, this is identical to Encrypt.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Decrypt(System.ReadOnlySpan<System.Byte> src, System.Span<System.Byte> dst)
+        => Encrypt(src, dst);
+
+    /// <summary>
+    /// In-place encryption (XOR) of <paramref name="buffer"/>.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void EncryptInPlace(System.Span<System.Byte> buffer, SimdMode simdMode = SimdMode.AutoDetect)
+    {
+        // Use a small stack buffer to avoid allocating a second array the same size as 'buffer'.
+        // We process in 64-byte blocks.
+        if (simdMode == SimdMode.AutoDetect)
+        {
+            _ = DetectSimdMode();
+        }
+
+        var tmpKeystream = new System.Byte[BlockSize];
+        var x = new System.UInt32[StateLength];
+
+        System.Int32 offset = 0;
+        System.Int32 remaining = buffer.Length;
+
+        while (remaining >= BlockSize)
+        {
+            UpdateStateAndGenerateTemporaryBuffer(State, x, tmpKeystream);
+            for (System.Int32 i = 0; i < BlockSize; i++)
+            {
+                buffer[offset + i] = (System.Byte)(buffer[offset + i] ^ tmpKeystream[i]);
+            }
+
+            offset += BlockSize;
+            remaining -= BlockSize;
+        }
+
+        if (remaining > 0)
+        {
+            UpdateStateAndGenerateTemporaryBuffer(State, x, tmpKeystream);
+            for (System.Int32 i = 0; i < remaining; i++)
+            {
+                buffer[offset + i] = (System.Byte)(buffer[offset + i] ^ tmpKeystream[i]);
+            }
+        }
+    }
+
+    /// <summary>
+    /// In-place decryption of <paramref name="buffer"/> (same as EncryptInPlace).
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void DecryptInPlace(System.Span<System.Byte> buffer, SimdMode simdMode = SimdMode.AutoDetect)
+        => EncryptInPlace(buffer, simdMode);
+
     #endregion Decryption methods
 
     #region Private Methods
@@ -596,6 +707,52 @@ public sealed class ChaCha20 : System.IDisposable
             // Read more
             howManyBytesWereRead = await input.ReadAsync(System.MemoryExtensions
                                               .AsMemory(readBytesBuffer, 0, howManyBytesToProcessAtTime));
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void WorkBytes(
+        System.ReadOnlySpan<System.Byte> input, System.Span<System.Byte> output, System.Int32 numBytes)
+    {
+        if (_isDisposed)
+        {
+            throw new System.ObjectDisposedException("state", "The ChaCha state has been disposed");
+        }
+
+        if (numBytes < 0 || numBytes > input.Length || numBytes > output.Length)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(numBytes));
+        }
+
+        // We keep this simple and robust: scalar XOR with generated blocks.
+        // (Your array-based overload already has SIMD paths.)
+        var x = new System.UInt32[StateLength];
+        var tmp = new System.Byte[BlockSize];
+
+        System.Int32 offset = 0;
+        System.Int32 full = numBytes / BlockSize;
+        System.Int32 tail = numBytes - (full * BlockSize);
+
+        for (System.Int32 loop = 0; loop < full; loop++)
+        {
+            UpdateStateAndGenerateTemporaryBuffer(State, x, tmp);
+
+            // XOR 64 bytes
+            for (System.Int32 i = 0; i < BlockSize; i++)
+            {
+                output[offset + i] = (System.Byte)(input[offset + i] ^ tmp[i]);
+            }
+            offset += BlockSize;
+        }
+
+        if (tail > 0)
+        {
+            UpdateStateAndGenerateTemporaryBuffer(State, x, tmp);
+            for (System.Int32 i = 0; i < tail; i++)
+            {
+                output[offset + i] = (System.Byte)(input[offset + i] ^ tmp[i]);
+            }
         }
     }
 
