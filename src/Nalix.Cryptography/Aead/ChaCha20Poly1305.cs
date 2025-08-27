@@ -46,6 +46,8 @@ namespace Nalix.Cryptography.Aead;
 /// <seealso href="https://www.rfc-editor.org/rfc/rfc8439">RFC 8439</seealso>
 public static class ChaCha20Poly1305
 {
+    #region Constants
+
     /// <summary>
     /// The size, in bytes, of the authentication tag (MAC). Value: <c>16</c>.
     /// </summary>
@@ -60,6 +62,10 @@ public static class ChaCha20Poly1305
     /// The size, in bytes, of the nonce. Value: <c>12</c>.
     /// </summary>
     private const System.Byte NonceSize = 12;
+
+    #endregion Constants
+
+    #region API
 
     /// <summary>
     /// Encrypts plaintext and produces ciphertext and authentication tag (detached).
@@ -296,7 +302,9 @@ public static class ChaCha20Poly1305
         return !ok ? throw new System.InvalidOperationException("Authentication failed") : pt;
     }
 
-    // --- helpers ---
+    #endregion API
+
+    #region Private Methods
 
     /// <summary>
     /// Updates <paramref name="poly"/> with the AEAD transcript
@@ -455,4 +463,6 @@ public static class ChaCha20Poly1305
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
         public static void ThrowCipherSize() => throw new System.ArgumentException("Ciphertext+Tag is too short.", "cipherWithTag");
     }
+
+    #endregion Private Methods
 }

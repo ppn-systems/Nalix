@@ -8,7 +8,7 @@ namespace Nalix.Cryptography.Asymmetric;
 /// <summary>
 /// Represents the Ed25519 cryptographic algorithm for public key signing and verification.
 /// </summary>
-public sealed class Ed25519
+public static class Ed25519
 {
     #region Constants
 
@@ -159,7 +159,7 @@ public sealed class Ed25519
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data)
-        => (Sha256.Value ?? new SHA256()).ComputeHash(data);
+        => (Sha512.Value ?? new SHA512()).ComputeHash(data);
 
     /// <summary>
     /// Computes the modular inverse of the given value using Fermat's little theorem.
@@ -250,20 +250,41 @@ public sealed class Ed25519
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Numerics.BigInteger HashToScalar(System.ReadOnlySpan<System.Byte> data)
-        => new System.Numerics.BigInteger(ComputeHash(data), isUnsigned: true, isBigEndian: true) % L;
+    {
+        System.Byte[] h = ComputeHash(data);
+        return new System.Numerics.BigInteger(h, isUnsigned: true, isBigEndian: false) % L;
+    }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Numerics.BigInteger HashToScalar(
         System.ReadOnlySpan<System.Byte> prefix, System.Byte[] message)
     {
-        System.Span<System.Byte> buffer = message.Length <= 1024
-            ? stackalloc System.Byte[prefix.Length + message.Length]
-            : new System.Byte[prefix.Length + message.Length];
-
-        prefix.CopyTo(buffer);
-        System.MemoryExtensions.CopyTo(message, buffer[prefix.Length..]);
-        return new System.Numerics.BigInteger(ComputeHash(buffer), isUnsigned: true, isBigEndian: true) % L;
+        System.Int32 len = prefix.Length + message.Length;
+        if (len <= 1024)
+        {
+            System.Span<System.Byte> buf = stackalloc System.Byte[len];
+            prefix.CopyTo(buf);
+            System.MemoryExtensions.CopyTo(message, buf[prefix.Length..]);
+            var h = ComputeHash(buf);
+            // Little-endian!
+            return new System.Numerics.BigInteger(h, isUnsigned: true, isBigEndian: false) % L;
+        }
+        else
+        {
+            // Use pooled array to avoid LOH
+            var pool = System.Buffers.ArrayPool<System.Byte>.Shared;
+            System.Byte[] rented = pool.Rent(len);
+            try
+            {
+                var span = System.MemoryExtensions.AsSpan(rented, 0, len);
+                prefix.CopyTo(span);
+                System.MemoryExtensions.CopyTo(message, span[prefix.Length..]);
+                var h = ComputeHash(span);
+                return new System.Numerics.BigInteger(h, isUnsigned: true, isBigEndian: false) % L;
+            }
+            finally { pool.Return(rented, clearArray: true); }
+        }
     }
 
     /// <summary>
@@ -357,7 +378,7 @@ public sealed class Ed25519
     }
 
     // Optimized SHA-512 with buffer reuse (thread-local instance)
-    private static readonly System.Threading.ThreadLocal<SHA256> Sha256 = new();
+    private static readonly System.Threading.ThreadLocal<SHA512> Sha512 = new();
 
     // Precomputed constants
 
