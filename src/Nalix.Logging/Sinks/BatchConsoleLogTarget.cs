@@ -42,9 +42,9 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
     /// Optionally configures the batch console log options.
     /// </summary>
     /// <param name="options">
-    /// An optional delegate to configure <see cref="BatchConsoleLogOptions"/> for this log target.
+    /// An optional delegate to configure <see cref="ConsoleLogOptions"/> for this log target.
     /// </param>
-    public BatchConsoleLogTarget(BatchConsoleLogOptions options)
+    public BatchConsoleLogTarget(ConsoleLogOptions options)
     {
         System.ArgumentNullException.ThrowIfNull(options);
 
@@ -56,7 +56,7 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
     /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with custom configuration logic.
     /// </summary>
     /// <param name="options">An action that configures the <see cref="FileLogOptions"/> before use.</param>
-    public BatchConsoleLogTarget(System.Action<BatchConsoleLogOptions> options)
+    public BatchConsoleLogTarget(System.Action<ConsoleLogOptions> options)
         : this(Configure(options))
     {
     }
@@ -64,7 +64,7 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="BatchConsoleLogTarget"/> class with default options.
     /// </summary>
-    public BatchConsoleLogTarget() : this(new BatchConsoleLogOptions())
+    public BatchConsoleLogTarget() : this(new ConsoleLogOptions())
     {
     }
 
@@ -94,17 +94,17 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
     #region Private Methods
 
     /// <summary>
-    /// Configures the <see cref="BatchConsoleLogOptions"/> by invoking the provided action.
+    /// Configures the <see cref="ConsoleLogOptions"/> by invoking the provided action.
     /// </summary>
     /// <param name="configureOptions">The action used to configure the options.</param>
-    /// <returns>The configured <see cref="BatchConsoleLogOptions"/>.</returns>
+    /// <returns>The configured <see cref="ConsoleLogOptions"/>.</returns>
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static BatchConsoleLogOptions Configure(System.Action<BatchConsoleLogOptions> configureOptions)
+    private static ConsoleLogOptions Configure(System.Action<ConsoleLogOptions> configureOptions)
     {
-        BatchConsoleLogOptions options = new();
+        ConsoleLogOptions options = new();
         configureOptions(options);
         return options;
     }
