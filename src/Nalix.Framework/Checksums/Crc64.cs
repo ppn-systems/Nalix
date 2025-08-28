@@ -5,6 +5,8 @@ namespace Nalix.Framework.Checksums;
 /// <summary>
 /// Provides methods for computing CRC-64 checksums using the ISO (0xD800000000000000) or ECMA (0xC96C5795D7870F42) polynomials.
 /// </summary>
+[System.Diagnostics.StackTraceHidden]
+[System.Diagnostics.DebuggerStepThrough]
 public static class Crc64
 {
     #region Constants

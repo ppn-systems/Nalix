@@ -8,6 +8,8 @@ namespace Nalix.Framework.Checksums;
 /// <remarks>
 /// This implementation supports scalar, SIMD, and SSE4.2 accelerated code paths for optimal performance.
 /// </remarks>
+[System.Diagnostics.StackTraceHidden]
+[System.Diagnostics.DebuggerStepThrough]
 public static class Crc08
 {
     #region Constants

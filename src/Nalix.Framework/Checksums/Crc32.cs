@@ -9,6 +9,8 @@ namespace Nalix.Framework.Checksums;
 /// This implementation supports hardware acceleration using SSE4.2 and SIMD instructions
 /// for optimal performance on supported platforms.
 /// </remarks>
+[System.Diagnostics.StackTraceHidden]
+[System.Diagnostics.DebuggerStepThrough]
 public static class Crc32
 {
     #region Constants

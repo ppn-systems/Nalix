@@ -9,6 +9,8 @@ namespace Nalix.Framework.Checksums;
 /// This utility is used internally by CRC implementations to precompute
 /// values for fast checksum calculations.
 /// </remarks>
+[System.Diagnostics.StackTraceHidden]
+[System.Diagnostics.DebuggerStepThrough]
 internal static class Crc00
 {
     /// <summary>
