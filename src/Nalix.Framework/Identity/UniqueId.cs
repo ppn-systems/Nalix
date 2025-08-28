@@ -7,6 +7,8 @@ namespace Nalix.Framework.Identity;
 /// Provides high-performance 64-bit identity generation for session, cache keys, or tokens.
 /// Combines timestamp, machineId, and random sequence to ensure uniqueness across servers.
 /// </summary>
+[System.Diagnostics.StackTraceHidden]
+[System.Diagnostics.DebuggerStepThrough]
 [System.Obsolete("This API is for internal use only.")]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class UniqueId

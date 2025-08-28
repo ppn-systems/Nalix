@@ -5,6 +5,8 @@ namespace Nalix.Framework.Checksums;
 /// <summary>
 /// Provides a highly optimized XOR checksum implementation using unsafe memory operations.
 /// </summary>
+[System.Diagnostics.StackTraceHidden]
+[System.Diagnostics.DebuggerStepThrough]
 public static class Xor256
 {
     /// <summary>
