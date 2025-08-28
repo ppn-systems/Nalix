@@ -1,8 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Networking.Caching;
 using Nalix.Common.Networking.Transport;
+using Nalix.Common.Shared.Caching;
 
 namespace Nalix.Shared.Extensions;
 

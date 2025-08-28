@@ -3,7 +3,7 @@
 
 using Nalix.Common.Serialization.Attributes;
 
-namespace Nalix.Shared.Frames;
+namespace Nalix.Shared.Frames.Internal;
 
 /// <summary>
 /// Immutable cache of reflection metadata for a single serializable property on a packet type.

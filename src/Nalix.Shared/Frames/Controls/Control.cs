@@ -16,7 +16,7 @@ namespace Nalix.Shared.Frames.Controls;
 [PipelineManagedTransform]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("CONTROL OP_CODE={OpCode}, Length={Length}, FLAGS={Flags}")]
-public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketReasoned, IPacketSequenced
+public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketReasoned
 {
     /// <summary>
     /// Gets or sets the reason code associated with this control packet.
