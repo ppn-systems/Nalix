@@ -2,103 +2,81 @@
 
 namespace Nalix.Cryptography.Symmetric.Block;
 
+
 /// <summary>
-/// Provides an implementation of XTEA (eXtended Tiny Encryption Algorithm) cipher
-/// using unsafe code for performance.
+/// Provides an implementation of the XTEA (eXtended Tiny Encryption Algorithm) block cipher.
 /// </summary>
 /// <remarks>
-/// XTEA is a block cipher with 64-bit blocks and 128-bit keys.
-/// This implementation uses direct memory manipulation for enhanced performance.
+/// <para>
+/// XTEA operates on 64-bit blocks with a 128-bit key and typically uses 64 Feistel rounds
+/// (commonly referred to as 32 cycles). This implementation targets performance by using
+/// unsafe pointer arithmetic and direct 32-bit word operations.
+/// </para>
+/// <para>
+/// <strong>Padding:</strong> This API does not perform padding. Callers must ensure that
+/// input lengths are exact multiples of <see cref="BlockSize"/> (8 bytes).
+/// </para>
+/// <para>
+/// <strong>Endianness:</strong> The implementation treats two 32-bit words per block using the
+/// platform's native endianness. It assumes little-endian architectures (e.g., x86/x64/ARM64 on Windows/Linux).
+/// Interoperability with big-endian systems requires explicit byte-order handling by the caller.
+/// </para>
+/// <para>
+/// <strong>Thread Safety:</strong> All methods are static and stateless; the type is thread-safe
+/// as long as callers provide non-overlapping buffers for concurrent operations.
+/// </para>
+/// <para>
+/// <strong>Security Note:</strong> XTEA is considered a legacy cipher and is generally not recommended for
+/// new designs. Prefer modern, authenticated encryption such as
+/// <c>AES-GCM</c> or <c>ChaCha20-Poly1305</c> where possible.
+/// </para>
 /// </remarks>
-public static unsafe class Xtea
+public static class Xtea
 {
     #region Constants
 
     /// <summary>
-    /// Key size in bytes (128 bits)
+    /// Gets the key size in bytes (128 bits).
     /// </summary>
     public const System.Byte KeySize = 16;
 
     /// <summary>
-    /// Block size in bytes (64 bits)
+    /// Gets the block size in bytes (64 bits).
     /// </summary>
     public const System.Byte BlockSize = 8;
 
     /// <summary>
-    /// Default number of rounds in XTEA algorithm
+    /// Gets the default number of Feistel rounds for XTEA (commonly 64).
     /// </summary>
+    /// <remarks>
+    /// While XTEA is often described as 32 cycles, each cycle comprises two Feistel rounds.
+    /// This constant reflects the total rounds (64).
+    /// </remarks>
     public const System.Byte DefaultRounds = 64;
 
     /// <summary>
-    /// XTEA delta constant
+    /// The XTEA delta constant used to update the round sum.
     /// </summary>
     private const System.UInt32 Delta = 0x9E3779B9;
 
     #endregion Constants
 
-    #region Core Encryption/Decryption Methods
-
-    /// <summary>
-    /// Encrypts a single 64-bit block of data using XTEA algorithm
-    /// </summary>
-    /// <param name="v0">First 32-bit word</param>
-    /// <param name="v1">Second 32-bit word</param>
-    /// <param name="key">Pointer to 128-bit key (as 4 uint values)</param>
-    /// <param name="rounds">TransportProtocol of rounds (default is 32)</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void EncryptBlock(
-        ref System.UInt32 v0,
-        ref System.UInt32 v1,
-        System.UInt32* key,
-        System.Byte rounds = DefaultRounds)
-    {
-        System.UInt32 sum = 0;
-
-        for (System.Byte i = 0; i < rounds; i++)
-        {
-            v0 += (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[sum & 3]);
-            sum += Delta;
-            v1 += (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(sum >> 11) & 3]);
-        }
-    }
-
-    /// <summary>
-    /// Decrypts a single 64-bit block of data using XTEA algorithm
-    /// </summary>
-    /// <param name="v0">First 32-bit word</param>
-    /// <param name="v1">Second 32-bit word</param>
-    /// <param name="key">Pointer to 128-bit key (as 4 uint values)</param>
-    /// <param name="rounds">TransportProtocol of rounds (default is 32)</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void DecryptBlock(
-        ref System.UInt32 v0,
-        ref System.UInt32 v1,
-        System.UInt32* key,
-        System.Byte rounds = DefaultRounds)
-    {
-        System.UInt32 sum = rounds * Delta;
-
-        for (System.Byte i = 0; i < rounds; i++)
-        {
-            v1 -= (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(sum >> 11) & 3]);
-            sum -= Delta;
-            v0 -= (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[sum & 3]);
-        }
-    }
-
-    #endregion Core Encryption/Decryption Methods
-
     #region Public API Methods
 
     /// <summary>
-    /// Encrypts data using the XTEA algorithm.
+    /// Encrypts data using the XTEA algorithm and returns a new array containing the ciphertext.
     /// </summary>
-    /// <param name="plaintext">The data to encrypt. Must be a multiple of 8 bytes.</param>
-    /// <param name="key">The 128-bit encryption key (16 bytes).</param>
-    /// <param name="rounds">The number of encryption rounds. Default is 32.</param>
-    /// <returns>The encrypted data as a byte array.</returns>
+    /// <param name="plaintext">The input data to encrypt. Length must be a multiple of <see cref="BlockSize"/>.</param>
+    /// <param name="key">The 128-bit encryption key (exactly <see cref="KeySize"/> bytes).</param>
+    /// <param name="rounds">The number of Feistel rounds. Default is <see cref="DefaultRounds"/>.</param>
+    /// <returns>A new array containing the ciphertext. Its length equals <paramref name="plaintext"/> length.</returns>
+    /// <exception cref="System.ArgumentException">
+    /// Thrown when <paramref name="plaintext"/> length is not a multiple of <see cref="BlockSize"/>,
+    /// or when <paramref name="key"/> length is not exactly <see cref="KeySize"/>.
+    /// </exception>
+    /// <remarks>
+    /// This overload internally rents a temporary buffer to perform the operation, then returns a right-sized array.
+    /// </remarks>
     public static System.Byte[] Encrypt(
         System.ReadOnlySpan<System.Byte> plaintext,
         System.ReadOnlySpan<System.Byte> key,
@@ -125,15 +103,19 @@ public static unsafe class Xtea
     }
 
     /// <summary>
-    /// Decrypts data using XTEA algorithm
+    /// Decrypts data using the XTEA algorithm and returns a new array containing the plaintext.
     /// </summary>
-    /// <param name="ciphertext">Data to decrypt (must be multiple of 8 bytes)</param>
-    /// <param name="key">128-bit key (16 bytes)</param>
-    /// <param name="rounds">TransportProtocol of rounds (default is 32)</param>
-    /// <returns>Decrypted data</returns>
+    /// <param name="ciphertext">The data to decrypt. Length must be a multiple of <see cref="BlockSize"/>.</param>
+    /// <param name="key">The 128-bit decryption key (exactly <see cref="KeySize"/> bytes).</param>
+    /// <param name="rounds">The number of Feistel rounds. Default is <see cref="DefaultRounds"/>.</param>
+    /// <returns>A new array containing the plaintext. Its length equals <paramref name="ciphertext"/> length.</returns>
+    /// <exception cref="System.ArgumentException">
+    /// Thrown when <paramref name="ciphertext"/> length is not a multiple of <see cref="BlockSize"/>,
+    /// or when <paramref name="key"/> length is not exactly <see cref="KeySize"/>.
+    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Byte[] Decrypt(
+    public static unsafe System.Byte[] Decrypt(
         System.ReadOnlySpan<System.Byte> ciphertext,
         System.ReadOnlySpan<System.Byte> key,
         System.Byte rounds = DefaultRounds)
@@ -171,16 +153,21 @@ public static unsafe class Xtea
     }
 
     /// <summary>
-    /// Encrypts data using XTEA algorithm and writes the result to a buffer
+    /// Encrypts data using the XTEA algorithm and writes the ciphertext into the provided output buffer.
     /// </summary>
-    /// <param name="plaintext">Data to encrypt (must be multiple of 8 bytes)</param>
-    /// <param name="key">128-bit key (16 bytes)</param>
-    /// <param name="output">Output buffer (must be at least as large as plaintext)</param>
-    /// <param name="rounds">TransportProtocol of rounds (default is 32)</param>
-    /// <returns>TransportProtocol of bytes written</returns>
+    /// <param name="plaintext">The input data to encrypt. Length must be a multiple of <see cref="BlockSize"/>.</param>
+    /// <param name="key">The 128-bit encryption key (exactly <see cref="KeySize"/> bytes).</param>
+    /// <param name="output">The destination buffer for the ciphertext. Must be at least <c>plaintext.Length</c> bytes.</param>
+    /// <param name="rounds">The number of Feistel rounds. Default is <see cref="DefaultRounds"/>.</param>
+    /// <returns>The number of bytes written to <paramref name="output"/>; equals <c>plaintext.Length</c>.</returns>
+    /// <exception cref="System.ArgumentException">
+    /// Thrown when <paramref name="plaintext"/> length is not a multiple of <see cref="BlockSize"/>,
+    /// when <paramref name="key"/> length is not exactly <see cref="KeySize"/>,
+    /// or when <paramref name="output"/> is smaller than <c>plaintext.Length</c>.
+    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 Encrypt(
+    public static unsafe System.Int32 Encrypt(
         System.ReadOnlySpan<System.Byte> plaintext,
         System.ReadOnlySpan<System.Byte> key,
         System.Span<System.Byte> output,
@@ -223,16 +210,21 @@ public static unsafe class Xtea
     }
 
     /// <summary>
-    /// Decrypts data using XTEA algorithm and writes the result to a buffer
+    /// Decrypts data using the XTEA algorithm and writes the plaintext into the provided output buffer.
     /// </summary>
-    /// <param name="ciphertext">Data to decrypt (must be multiple of 8 bytes)</param>
-    /// <param name="key">128-bit key (16 bytes)</param>
-    /// <param name="output">Output buffer (must be at least as large as ciphertext)</param>
-    /// <param name="rounds">TransportProtocol of rounds (default is 32)</param>
-    /// <returns>TransportProtocol of bytes written</returns>
+    /// <param name="ciphertext">The input data to decrypt. Length must be a multiple of <see cref="BlockSize"/>.</param>
+    /// <param name="key">The 128-bit decryption key (exactly <see cref="KeySize"/> bytes).</param>
+    /// <param name="output">The destination buffer for the plaintext. Must be at least <c>ciphertext.Length</c> bytes.</param>
+    /// <param name="rounds">The number of Feistel rounds. Default is <see cref="DefaultRounds"/>.</param>
+    /// <returns>The number of bytes written to <paramref name="output"/>; equals <c>ciphertext.Length</c>.</returns>
+    /// <exception cref="System.ArgumentException">
+    /// Thrown when <paramref name="ciphertext"/> length is not a multiple of <see cref="BlockSize"/>,
+    /// when <paramref name="key"/> length is not exactly <see cref="KeySize"/>,
+    /// or when <paramref name="output"/> is smaller than <c>ciphertext.Length</c>.
+    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 Decrypt(
+    public static unsafe System.Int32 Decrypt(
         System.ReadOnlySpan<System.Byte> ciphertext,
         System.ReadOnlySpan<System.Byte> key,
         System.Span<System.Byte> output,
@@ -275,6 +267,60 @@ public static unsafe class Xtea
     }
 
     #endregion Public API Methods
+
+    #region Core Encryption/Decryption Methods
+
+    /// <summary>
+    /// Encrypts a single 64-bit block of data using XTEA algorithm
+    /// </summary>
+    /// <param name="v0">First 32-bit word</param>
+    /// <param name="v1">Second 32-bit word</param>
+    /// <param name="key">Pointer to 128-bit key (as 4 uint values)</param>
+    /// <param name="rounds">TransportProtocol of rounds (default is 32)</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe void EncryptBlock(
+        ref System.UInt32 v0,
+        ref System.UInt32 v1,
+        System.UInt32* key,
+        System.Byte rounds = DefaultRounds)
+    {
+        System.UInt32 sum = 0;
+
+        for (System.Byte i = 0; i < rounds; i++)
+        {
+            v0 += (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[sum & 3]);
+            sum += Delta;
+            v1 += (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(sum >> 11) & 3]);
+        }
+    }
+
+    /// <summary>
+    /// Decrypts a single 64-bit block of data using XTEA algorithm
+    /// </summary>
+    /// <param name="v0">First 32-bit word</param>
+    /// <param name="v1">Second 32-bit word</param>
+    /// <param name="key">Pointer to 128-bit key (as 4 uint values)</param>
+    /// <param name="rounds">TransportProtocol of rounds (default is 32)</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe void DecryptBlock(
+        ref System.UInt32 v0,
+        ref System.UInt32 v1,
+        System.UInt32* key,
+        System.Byte rounds = DefaultRounds)
+    {
+        System.UInt32 sum = rounds * Delta;
+
+        for (System.Byte i = 0; i < rounds; i++)
+        {
+            v1 -= (((v0 << 4) ^ (v0 >> 5)) + v0) ^ (sum + key[(sum >> 11) & 3]);
+            sum -= Delta;
+            v0 -= (((v1 << 4) ^ (v1 >> 5)) + v1) ^ (sum + key[sum & 3]);
+        }
+    }
+
+    #endregion Core Encryption/Decryption Methods
 
     #region Helper Methods
 
