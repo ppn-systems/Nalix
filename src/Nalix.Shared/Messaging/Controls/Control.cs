@@ -119,7 +119,7 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
     /// </summary>
     /// <param name="buffer">The source buffer.</param>
     /// <returns>A pooled <see cref="Binary128"/> instance.</returns>
-    public static Control Deserialize(in System.ReadOnlySpan<System.Byte> buffer)
+    public static Control Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
         Control packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                  .Get<Control>();
