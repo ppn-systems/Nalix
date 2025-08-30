@@ -7,8 +7,8 @@ using Nalix.Common.Packets.Enums;
 using Nalix.Common.Packets.Models;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch;
-using Nalix.Network.Dispatch.Catalog;
 using Nalix.Shared.Injection;
+using Nalix.Shared.Messaging.Catalog;
 
 namespace Nalix.Network.Middleware.Outbound;
 

@@ -4,7 +4,7 @@ using Nalix.Common.Packets.Abstractions;
 using Nalix.SDK.Remote.Internal;
 using Nalix.Shared.Configuration;
 
-namespace Nalix.SDK.Remote.Core;
+namespace Nalix.SDK.Remote;
 
 /// <summary>
 /// Represents a network client that connects to a remote server using Reliable.
