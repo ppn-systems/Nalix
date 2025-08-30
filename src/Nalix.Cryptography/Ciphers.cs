@@ -208,22 +208,14 @@ public static class Ciphers
         System.Span<System.Byte> nonce = stackalloc System.Byte[ChaCha20NonceSize];
         SecureRandom.Fill(nonce);
 
-        System.Span<System.Byte> ciphertext = stackalloc System.Byte[data.Length];
-        System.Span<System.Byte> tag = stackalloc System.Byte[ChaCha20Poly1305.TagSize];
+        System.Byte[] result = new System.Byte[ChaCha20NonceSize + data.Length + ChaCha20Poly1305.TagSize];
 
-        ChaCha20Poly1305.Encrypt(
-            key,
-            nonce,
-            data.Span,
-            [],
-            ciphertext,
-            tag);
+        // layout: [ nonce | ciphertext | tag ]
+        nonce.CopyTo(System.MemoryExtensions.AsSpan(result, 0, ChaCha20NonceSize));
+        System.Span<System.Byte> ctSpan = System.MemoryExtensions.AsSpan(result, ChaCha20NonceSize, data.Length);
+        System.Span<System.Byte> tagSpan = System.MemoryExtensions.AsSpan(result, ChaCha20NonceSize + data.Length, ChaCha20Poly1305.TagSize);
 
-        // Pack = nonce || ciphertext || tag
-        System.Byte[] result = new System.Byte[ChaCha20NonceSize + ciphertext.Length + ChaCha20Poly1305.TagSize];
-        nonce.CopyTo(result);
-        System.Array.Copy(ciphertext.ToArray(), 0, result, ChaCha20NonceSize, ciphertext.Length);
-        System.Array.Copy(tag.ToArray(), 0, result, ChaCha20NonceSize + ciphertext.Length, ChaCha20Poly1305.TagSize);
+        ChaCha20Poly1305.Encrypt(key, nonce, data.Span, [], ctSpan, tagSpan);
 
         return result;
     }
@@ -233,10 +225,13 @@ public static class Ciphers
     {
         const System.UInt64 counter = 0;
         System.Span<System.Byte> nonce = new System.Byte[Salsa20NonceSize];
-        var ciphertext = new System.Byte[data.Length];
+        SecureRandom.Fill(nonce);
 
-        _ = Salsa20.Encrypt(key, nonce, counter, data.Span, ciphertext);
-        return ciphertext;
+        System.Byte[] result = new System.Byte[Salsa20NonceSize + data.Length];
+        nonce.CopyTo(result);
+
+        _ = Salsa20.Encrypt(key, nonce, counter, data.Span, System.MemoryExtensions.AsSpan(result));
+        return result;
     }
 
     private static System.ReadOnlyMemory<System.Byte> EncryptSpeck(
@@ -258,9 +253,10 @@ public static class Ciphers
                 SecureRandom.Fill(workSpan[originalLength..bufferSize]);
             }
 
-            System.ReadOnlySpan<System.Byte> fixedKey = BitwiseUtils.FixedSize(key);
-            EncryptBlocks(workSpan, fixedKey, SpeckBlockSize, (block, k, output) =>
-                Speck.Encrypt(block, k, output));
+            EncryptBlocks(
+                workSpan,
+                BitwiseUtils.FixedSize(key), SpeckBlockSize,
+                (block, k, output) => Speck.Encrypt(block, k, output));
 
             return System.MemoryExtensions.AsSpan(output, 0, LengthPrefixSize + bufferSize).ToArray();
         }
@@ -407,8 +403,13 @@ public static class Ciphers
         System.ReadOnlyMemory<System.Byte> data, System.Byte[] key)
     {
         const System.UInt64 counter = 0;
-        System.Span<System.Byte> nonce = new System.Byte[Salsa20NonceSize];
-        var plaintext = new System.Byte[data.Length];
+
+        System.ReadOnlySpan<System.Byte> input = data.Span;
+
+        System.ReadOnlySpan<System.Byte> nonce = input[..Salsa20NonceSize];
+        System.ReadOnlySpan<System.Byte> ciphertext = input[Salsa20NonceSize..];
+
+        System.Byte[] plaintext = new System.Byte[ciphertext.Length];
 
         _ = Salsa20.Decrypt(key, nonce, counter, data.Span, plaintext);
         return plaintext;
@@ -434,9 +435,10 @@ public static class Ciphers
             System.ReadOnlySpan<System.Byte> encrypted = input[LengthPrefixSize..];
             encrypted.CopyTo(workSpan);
 
-            System.ReadOnlySpan<System.Byte> fixedKey = BitwiseUtils.FixedSize(key);
-            DecryptBlocks(workSpan, fixedKey, SpeckBlockSize, (block, k, output) =>
-                Speck.Decrypt(block, k, output));
+            DecryptBlocks(
+                workSpan,
+                BitwiseUtils.FixedSize(key), SpeckBlockSize,
+                (block, k, output) => Speck.Decrypt(block, k, output));
 
             return workSpan[..originalLength].ToArray();
         }
@@ -519,14 +521,18 @@ public static class Ciphers
 
     #region Helper Methods
 
-    private static System.Int32 AlignToBlockSize(System.Int32 length, System.Int32 blockSize) =>
-        (length + blockSize - 1) & ~(blockSize - 1);
+    private static System.Int32 AlignToBlockSize(System.Int32 length, System.Int32 blockSize)
+    {
+        return (blockSize & (blockSize - 1)) != 0
+            ? throw new System.ArgumentOutOfRangeException(nameof(blockSize), "Block size must be a power of two.")
+            : (length + blockSize - 1) & ~(blockSize - 1);
+    }
 
-    private static void WriteLengthPrefix(System.Span<System.Byte> buffer, System.Int32 length) =>
-        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(buffer[..LengthPrefixSize], length);
+    private static void WriteLengthPrefix(System.Span<System.Byte> buffer, System.Int32 length)
+        => System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(buffer[..LengthPrefixSize], length);
 
-    private static System.Int32 ReadLengthPrefix(System.ReadOnlySpan<System.Byte> buffer) =>
-        System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(buffer[..LengthPrefixSize]);
+    private static System.Int32 ReadLengthPrefix(System.ReadOnlySpan<System.Byte> buffer)
+        => System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(buffer[..LengthPrefixSize]);
 
     private static void ValidateDataWithLengthPrefix(System.ReadOnlyMemory<System.Byte> data, System.Int32 blockSize = 1)
     {

@@ -139,14 +139,14 @@ public static class Salsa20
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ValidateParameters(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> nonce)
     {
-        if (key.Length != 32)
+        if (key.Length is not 16 and not 32)
         {
-            throw new ArgumentException("Key must be 32 bytes (256 bits)", nameof(key));
+            throw new ArgumentException("Key must be 16 or 32 bytes (128 or 256 bits).", nameof(key));
         }
 
         if (nonce.Length != 8)
         {
-            throw new ArgumentException("Nonce must be 8 bytes (64 bits)", nameof(nonce));
+            throw new ArgumentException("Nonce must be 8 bytes (64 bits). For 24-byte nonce, use XSalsa20.", nameof(nonce));
         }
     }
 
@@ -181,64 +181,92 @@ public static class Salsa20
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void GenerateSalsaBlock(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> nonce, UInt64 counter, Span<Byte> output)
     {
-        // Initialize the state with constants, key, counter, and nonce
-        Span<UInt32> state = stackalloc UInt32[16];
+        // state & working share 1 buffer
+        Span<UInt32> s = stackalloc UInt32[16];
 
-        // Performance "expand 32-byte k"
-        state[0] = 0x61707865; // "expa"
-        state[5] = 0x3320646e; // "nd 3"
-        state[10] = 0x79622d32; // "2-by"
-        state[15] = 0x6b206574; // "te k"
+        UInt32 c0, c5, c10, c15;
+        Boolean k256 = key.Length == 32;
 
-        // Key (first half)
-        state[1] = BinaryPrimitives.ReadUInt32LittleEndian(key[..4]);
-        state[2] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(4, 4));
-        state[3] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(8, 4));
-        state[4] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(12, 4));
+        if (k256)
+        {
+            // "expand 32-byte k"
+            c0 = 0x61707865; // "expa"
+            c5 = 0x3320646e; // "nd 3"
+            c10 = 0x79622d32; // "2-by"
+            c15 = 0x6b206574; // "te k"
+            s[1] = BinaryPrimitives.ReadUInt32LittleEndian(key[..4]);
+            s[2] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(4, 4));
+            s[3] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(8, 4));
+            s[4] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(12, 4));
+            s[11] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(16, 4));
+            s[12] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(20, 4));
+            s[13] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(24, 4));
+            s[14] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(28, 4));
+        }
+        else
+        {
+            // "expand 16-byte k"
+            c0 = 0x61707865; // "expa"
+            c5 = 0x3120646e; // "nd 1"
+            c10 = 0x79622d36; // "6-by"
+            c15 = 0x6b206574; // "te k"
+                              // key 16B
+            s[1] = BinaryPrimitives.ReadUInt32LittleEndian(key[..4]);
+            s[2] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(4, 4));
+            s[3] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(8, 4));
+            s[4] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(12, 4));
+            s[11] = s[1];
+            s[12] = s[2];
+            s[13] = s[3];
+            s[14] = s[4];
+        }
 
-        // Key (second half)
-        state[11] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(16, 4));
-        state[12] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(20, 4));
-        state[13] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(24, 4));
-        state[14] = BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(28, 4));
+        s[0] = c0; s[5] = c5; s[10] = c10; s[15] = c15;
+        s[6] = BinaryPrimitives.ReadUInt32LittleEndian(nonce[..4]);
+        s[7] = BinaryPrimitives.ReadUInt32LittleEndian(nonce.Slice(4, 4));
+        s[8] = (UInt32)(counter & 0xFFFF_FFFFu);
+        s[9] = (UInt32)(counter >> 32);
 
-        // Counter (64 bits split into two 32-bit words)
-        state[8] = (UInt32)(counter & 0xFFFFFFFF);
-        state[9] = (UInt32)(counter >> 32);
+        // working copy
+        UInt32 x0 = s[0], x1 = s[1], x2 = s[2], x3 = s[3],
+             x4 = s[4], x5 = s[5], x6 = s[6], x7 = s[7],
+             x8 = s[8], x9 = s[9], x10 = s[10], x11 = s[11],
+             x12 = s[12], x13 = s[13], x14 = s[14], x15 = s[15];
 
-        // Nonce (64 bits split into two 32-bit words)
-        state[6] = BinaryPrimitives.ReadUInt32LittleEndian(nonce[..4]);
-        state[7] = BinaryPrimitives.ReadUInt32LittleEndian(nonce.Slice(4, 4));
-
-        // Create a working copy of the state
-        Span<UInt32> workingState = stackalloc UInt32[16];
-        state.CopyTo(workingState);
-
-        // Apply the Salsa20 core function (20 rounds)
         for (Int32 i = 0; i < 10; i++)
         {
-            // Column rounds
-            QuarterRound(ref workingState[0], ref workingState[4], ref workingState[8], ref workingState[12]);
-            QuarterRound(ref workingState[5], ref workingState[9], ref workingState[13], ref workingState[1]);
-            QuarterRound(ref workingState[10], ref workingState[14], ref workingState[2], ref workingState[6]);
-            QuarterRound(ref workingState[15], ref workingState[3], ref workingState[7], ref workingState[11]);
-
-            // Row rounds
-            QuarterRound(ref workingState[0], ref workingState[1], ref workingState[2], ref workingState[3]);
-            QuarterRound(ref workingState[5], ref workingState[6], ref workingState[7], ref workingState[4]);
-            QuarterRound(ref workingState[10], ref workingState[11], ref workingState[8], ref workingState[9]);
-            QuarterRound(ref workingState[15], ref workingState[12], ref workingState[13], ref workingState[14]);
+            // column
+            QuarterRound(ref x0, ref x4, ref x8, ref x12);
+            QuarterRound(ref x5, ref x9, ref x13, ref x1);
+            QuarterRound(ref x10, ref x14, ref x2, ref x6);
+            QuarterRound(ref x15, ref x3, ref x7, ref x11);
+            // row
+            QuarterRound(ref x0, ref x1, ref x2, ref x3);
+            QuarterRound(ref x5, ref x6, ref x7, ref x4);
+            QuarterRound(ref x10, ref x11, ref x8, ref x9);
+            QuarterRound(ref x15, ref x12, ref x13, ref x14);
         }
 
-        // Push the original state to the worked state and serialize to output
-        for (Int32 i = 0; i < 16; i++)
-        {
-            UInt32 result = workingState[i] + state[i];
-            BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(i * 4, 4), result);
-        }
+        // add & serialize
+        BinaryPrimitives.WriteUInt32LittleEndian(output[..4], x0 + s[0]);
+        BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(4, 4), x1 + s[1]);
+        BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(8, 4), x2 + s[2]);
+        BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(12, 4), x3 + s[3]);
+        BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(16, 4), x4 + s[4]);
+        BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(20, 4), x5 + s[5]);
+        BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(24, 4), x6 + s[6]);
+        BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(28, 4), x7 + s[7]);
+        BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(32, 4), x8 + s[8]);
+        BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(36, 4), x9 + s[9]);
+        BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(40, 4), x10 + s[10]);
+        BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(44, 4), x11 + s[11]);
+        BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(48, 4), x12 + s[12]);
+        BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(52, 4), x13 + s[13]);
+        BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(56, 4), x14 + s[14]);
+        BinaryPrimitives.WriteUInt32LittleEndian(output.Slice(60, 4), x15 + s[15]);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static void QuarterRound(ref UInt32 a, ref UInt32 b, ref UInt32 c, ref UInt32 d)
     {
         b ^= BitwiseUtils.RotateLeft(a + d, 7);
