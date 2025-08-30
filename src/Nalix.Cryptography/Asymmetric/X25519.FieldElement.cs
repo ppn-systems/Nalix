@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Cryptography.Primitives;
+namespace Nalix.Cryptography.Asymmetric;
 
 // Just a note:
 // I tried to keep this library as close as I can to Golang one. Even I tired to implement some
@@ -47,35 +47,35 @@ internal class FieldElement
         System.Int64 h9 = (Load3(SubArray(src, 29, 3)) & 0x7fffff) << 2;
 
         var carry = new System.Int64[10];
-        carry[9] = h9 + (1 << 24) >> 25;
+        carry[9] = (h9 + (1 << 24)) >> 25;
         h0 += carry[9] * 19;
         h9 -= carry[9] << 25;
-        carry[1] = h1 + (1 << 24) >> 25;
+        carry[1] = (h1 + (1 << 24)) >> 25;
         h2 += carry[1];
         h1 -= carry[1] << 25;
-        carry[3] = h3 + (1 << 24) >> 25;
+        carry[3] = (h3 + (1 << 24)) >> 25;
         h4 += carry[3];
         h3 -= carry[3] << 25;
-        carry[5] = h5 + (1 << 24) >> 25;
+        carry[5] = (h5 + (1 << 24)) >> 25;
         h6 += carry[5];
         h5 -= carry[5] << 25;
-        carry[7] = h7 + (1 << 24) >> 25;
+        carry[7] = (h7 + (1 << 24)) >> 25;
         h8 += carry[7];
         h7 -= carry[7] << 25;
 
-        carry[0] = h0 + (1 << 25) >> 26;
+        carry[0] = (h0 + (1 << 25)) >> 26;
         h1 += carry[0];
         h0 -= carry[0] << 26;
-        carry[2] = h2 + (1 << 25) >> 26;
+        carry[2] = (h2 + (1 << 25)) >> 26;
         h3 += carry[2];
         h2 -= carry[2] << 26;
-        carry[4] = h4 + (1 << 25) >> 26;
+        carry[4] = (h4 + (1 << 25)) >> 26;
         h5 += carry[4];
         h4 -= carry[4] << 26;
-        carry[6] = h6 + (1 << 25) >> 26;
+        carry[6] = (h6 + (1 << 25)) >> 26;
         h7 += carry[6];
         h6 -= carry[6] << 26;
-        carry[8] = h8 + (1 << 25) >> 26;
+        carry[8] = (h8 + (1 << 25)) >> 26;
         h9 += carry[8];
         h8 -= carry[8] << 26;
 
@@ -156,17 +156,17 @@ internal class FieldElement
     {
         var carry = new System.Int32[10];
 
-        System.Int32 q = 19 * _elements[9] + (1 << 24) >> 25;
-        q = _elements[0] + q >> 26;
-        q = _elements[1] + q >> 25;
-        q = _elements[2] + q >> 26;
-        q = _elements[3] + q >> 25;
-        q = _elements[4] + q >> 26;
-        q = _elements[5] + q >> 25;
-        q = _elements[6] + q >> 26;
-        q = _elements[7] + q >> 25;
-        q = _elements[8] + q >> 26;
-        q = _elements[9] + q >> 25;
+        System.Int32 q = ((19 * _elements[9]) + (1 << 24)) >> 25;
+        q = (_elements[0] + q) >> 26;
+        q = (_elements[1] + q) >> 25;
+        q = (_elements[2] + q) >> 26;
+        q = (_elements[3] + q) >> 25;
+        q = (_elements[4] + q) >> 26;
+        q = (_elements[5] + q) >> 25;
+        q = (_elements[6] + q) >> 26;
+        q = (_elements[7] + q) >> 25;
+        q = (_elements[8] + q) >> 26;
+        q = (_elements[9] + q) >> 25;
 
         // Goal: Output h-(2^255-19)q, which is between 0 and 2^255-20.
         _elements[0] += 19 * q;
@@ -212,32 +212,32 @@ internal class FieldElement
         s[0] = (System.Byte)(_elements[0] >> 0);
         s[1] = (System.Byte)(_elements[0] >> 8);
         s[2] = (System.Byte)(_elements[0] >> 16);
-        s[3] = (System.Byte)(_elements[0] >> 24 | _elements[1] << 2);
+        s[3] = (System.Byte)((_elements[0] >> 24) | (_elements[1] << 2));
         s[4] = (System.Byte)(_elements[1] >> 6);
         s[5] = (System.Byte)(_elements[1] >> 14);
-        s[6] = (System.Byte)(_elements[1] >> 22 | _elements[2] << 3);
+        s[6] = (System.Byte)((_elements[1] >> 22) | (_elements[2] << 3));
         s[7] = (System.Byte)(_elements[2] >> 5);
         s[8] = (System.Byte)(_elements[2] >> 13);
-        s[9] = (System.Byte)(_elements[2] >> 21 | _elements[3] << 5);
+        s[9] = (System.Byte)((_elements[2] >> 21) | (_elements[3] << 5));
         s[10] = (System.Byte)(_elements[3] >> 3);
         s[11] = (System.Byte)(_elements[3] >> 11);
-        s[12] = (System.Byte)(_elements[3] >> 19 | _elements[4] << 6);
+        s[12] = (System.Byte)((_elements[3] >> 19) | (_elements[4] << 6));
         s[13] = (System.Byte)(_elements[4] >> 2);
         s[14] = (System.Byte)(_elements[4] >> 10);
         s[15] = (System.Byte)(_elements[4] >> 18);
         s[16] = (System.Byte)(_elements[5] >> 0);
         s[17] = (System.Byte)(_elements[5] >> 8);
         s[18] = (System.Byte)(_elements[5] >> 16);
-        s[19] = (System.Byte)(_elements[5] >> 24 | _elements[6] << 1);
+        s[19] = (System.Byte)((_elements[5] >> 24) | (_elements[6] << 1));
         s[20] = (System.Byte)(_elements[6] >> 7);
         s[21] = (System.Byte)(_elements[6] >> 15);
-        s[22] = (System.Byte)(_elements[6] >> 23 | _elements[7] << 3);
+        s[22] = (System.Byte)((_elements[6] >> 23) | (_elements[7] << 3));
         s[23] = (System.Byte)(_elements[7] >> 5);
         s[24] = (System.Byte)(_elements[7] >> 13);
-        s[25] = (System.Byte)(_elements[7] >> 21 | _elements[8] << 4);
+        s[25] = (System.Byte)((_elements[7] >> 21) | (_elements[8] << 4));
         s[26] = (System.Byte)(_elements[8] >> 4);
         s[27] = (System.Byte)(_elements[8] >> 12);
-        s[28] = (System.Byte)(_elements[8] >> 20 | _elements[9] << 6);
+        s[28] = (System.Byte)((_elements[8] >> 20) | (_elements[9] << 6));
         s[29] = (System.Byte)(_elements[9] >> 2);
         s[30] = (System.Byte)(_elements[9] >> 10);
         s[31] = (System.Byte)(_elements[9] >> 18);
@@ -432,10 +432,10 @@ internal class FieldElement
         // |h1| <= (1.1*1.1*2^51*(1+1+19+19+19+19+19+19+19+19))
         //   i.e. |h1| <= 1.5*2^58; narrower ranges for h3, h5, h7, h9
 
-        carry[0] = h0 + (1 << 25) >> 26;
+        carry[0] = (h0 + (1 << 25)) >> 26;
         h1 += carry[0];
         h0 -= carry[0] << 26;
-        carry[4] = h4 + (1 << 25) >> 26;
+        carry[4] = (h4 + (1 << 25)) >> 26;
         h5 += carry[4];
         h4 -= carry[4] << 26;
         // |h0| <= 2^25
@@ -443,10 +443,10 @@ internal class FieldElement
         // |h1| <= 1.51*2^58
         // |h5| <= 1.51*2^58
 
-        carry[1] = h1 + (1 << 24) >> 25;
+        carry[1] = (h1 + (1 << 24)) >> 25;
         h2 += carry[1];
         h1 -= carry[1] << 25;
-        carry[5] = h5 + (1 << 24) >> 25;
+        carry[5] = (h5 + (1 << 24)) >> 25;
         h6 += carry[5];
         h5 -= carry[5] << 25;
         // |h1| <= 2^24; from now on fits into int32
@@ -454,10 +454,10 @@ internal class FieldElement
         // |h2| <= 1.21*2^59
         // |h6| <= 1.21*2^59
 
-        carry[2] = h2 + (1 << 25) >> 26;
+        carry[2] = (h2 + (1 << 25)) >> 26;
         h3 += carry[2];
         h2 -= carry[2] << 26;
-        carry[6] = h6 + (1 << 25) >> 26;
+        carry[6] = (h6 + (1 << 25)) >> 26;
         h7 += carry[6];
         h6 -= carry[6] << 26;
         // |h2| <= 2^25; from now on fits into int32 unchanged
@@ -465,10 +465,10 @@ internal class FieldElement
         // |h3| <= 1.51*2^58
         // |h7| <= 1.51*2^58
 
-        carry[3] = h3 + (1 << 24) >> 25;
+        carry[3] = (h3 + (1 << 24)) >> 25;
         h4 += carry[3];
         h3 -= carry[3] << 25;
-        carry[7] = h7 + (1 << 24) >> 25;
+        carry[7] = (h7 + (1 << 24)) >> 25;
         h8 += carry[7];
         h7 -= carry[7] << 25;
         // |h3| <= 2^24; from now on fits into int32 unchanged
@@ -476,10 +476,10 @@ internal class FieldElement
         // |h4| <= 1.52*2^33
         // |h8| <= 1.52*2^33
 
-        carry[4] = h4 + (1 << 25) >> 26;
+        carry[4] = (h4 + (1 << 25)) >> 26;
         h5 += carry[4];
         h4 -= carry[4] << 26;
-        carry[8] = h8 + (1 << 25) >> 26;
+        carry[8] = (h8 + (1 << 25)) >> 26;
         h9 += carry[8];
         h8 -= carry[8] << 26;
         // |h4| <= 2^25; from now on fits into int32 unchanged
@@ -487,13 +487,13 @@ internal class FieldElement
         // |h5| <= 1.01*2^24
         // |h9| <= 1.51*2^58
 
-        carry[9] = h9 + (1 << 24) >> 25;
+        carry[9] = (h9 + (1 << 24)) >> 25;
         h0 += carry[9] * 19;
         h9 -= carry[9] << 25;
         // |h9| <= 2^24; from now on fits into int32 unchanged
         // |h0| <= 1.8*2^37
 
-        carry[0] = h0 + (1 << 25) >> 26;
+        carry[0] = (h0 + (1 << 25)) >> 26;
         h1 += carry[0];
         h0 -= carry[0] << 26;
         // |h0| <= 2^25; from now on fits into int32 unchanged
@@ -614,46 +614,46 @@ internal class FieldElement
         System.Int64 h9 = f0f9_2 + f1f8_2 + f2f7_2 + f3f6_2 + f4f5_2;
         var carry = new System.Int64[10];
 
-        carry[0] = h0 + (1 << 25) >> 26;
+        carry[0] = (h0 + (1 << 25)) >> 26;
         h1 += carry[0];
         h0 -= carry[0] << 26;
-        carry[4] = h4 + (1 << 25) >> 26;
+        carry[4] = (h4 + (1 << 25)) >> 26;
         h5 += carry[4];
         h4 -= carry[4] << 26;
 
-        carry[1] = h1 + (1 << 24) >> 25;
+        carry[1] = (h1 + (1 << 24)) >> 25;
         h2 += carry[1];
         h1 -= carry[1] << 25;
-        carry[5] = h5 + (1 << 24) >> 25;
+        carry[5] = (h5 + (1 << 24)) >> 25;
         h6 += carry[5];
         h5 -= carry[5] << 25;
 
-        carry[2] = h2 + (1 << 25) >> 26;
+        carry[2] = (h2 + (1 << 25)) >> 26;
         h3 += carry[2];
         h2 -= carry[2] << 26;
-        carry[6] = h6 + (1 << 25) >> 26;
+        carry[6] = (h6 + (1 << 25)) >> 26;
         h7 += carry[6];
         h6 -= carry[6] << 26;
 
-        carry[3] = h3 + (1 << 24) >> 25;
+        carry[3] = (h3 + (1 << 24)) >> 25;
         h4 += carry[3];
         h3 -= carry[3] << 25;
-        carry[7] = h7 + (1 << 24) >> 25;
+        carry[7] = (h7 + (1 << 24)) >> 25;
         h8 += carry[7];
         h7 -= carry[7] << 25;
 
-        carry[4] = h4 + (1 << 25) >> 26;
+        carry[4] = (h4 + (1 << 25)) >> 26;
         h5 += carry[4];
         h4 -= carry[4] << 26;
-        carry[8] = h8 + (1 << 25) >> 26;
+        carry[8] = (h8 + (1 << 25)) >> 26;
         h9 += carry[8];
         h8 -= carry[8] << 26;
 
-        carry[9] = h9 + (1 << 24) >> 25;
+        carry[9] = (h9 + (1 << 24)) >> 25;
         h0 += carry[9] * 19;
         h9 -= carry[9] << 25;
 
-        carry[0] = h0 + (1 << 25) >> 26;
+        carry[0] = (h0 + (1 << 25)) >> 26;
         h1 += carry[0];
         h0 -= carry[0] << 26;
 
@@ -699,35 +699,35 @@ internal class FieldElement
         System.Int64 h9 = (System.Int64)_elements[9] * 121666;
         var carry = new System.Int64[10];
 
-        carry[9] = h9 + (1 << 24) >> 25;
+        carry[9] = (h9 + (1 << 24)) >> 25;
         h0 += carry[9] * 19;
         h9 -= carry[9] << 25;
-        carry[1] = h1 + (1 << 24) >> 25;
+        carry[1] = (h1 + (1 << 24)) >> 25;
         h2 += carry[1];
         h1 -= carry[1] << 25;
-        carry[3] = h3 + (1 << 24) >> 25;
+        carry[3] = (h3 + (1 << 24)) >> 25;
         h4 += carry[3];
         h3 -= carry[3] << 25;
-        carry[5] = h5 + (1 << 24) >> 25;
+        carry[5] = (h5 + (1 << 24)) >> 25;
         h6 += carry[5];
         h5 -= carry[5] << 25;
-        carry[7] = h7 + (1 << 24) >> 25;
+        carry[7] = (h7 + (1 << 24)) >> 25;
         h8 += carry[7];
         h7 -= carry[7] << 25;
 
-        carry[0] = h0 + (1 << 25) >> 26;
+        carry[0] = (h0 + (1 << 25)) >> 26;
         h1 += carry[0];
         h0 -= carry[0] << 26;
-        carry[2] = h2 + (1 << 25) >> 26;
+        carry[2] = (h2 + (1 << 25)) >> 26;
         h3 += carry[2];
         h2 -= carry[2] << 26;
-        carry[4] = h4 + (1 << 25) >> 26;
+        carry[4] = (h4 + (1 << 25)) >> 26;
         h5 += carry[4];
         h4 -= carry[4] << 26;
-        carry[6] = h6 + (1 << 25) >> 26;
+        carry[6] = (h6 + (1 << 25)) >> 26;
         h7 += carry[6];
         h6 -= carry[6] << 26;
-        carry[8] = h8 + (1 << 25) >> 26;
+        carry[8] = (h8 + (1 << 25)) >> 26;
         h9 += carry[8];
         h8 -= carry[8] << 26;
 
@@ -972,7 +972,7 @@ internal class FieldElement
     {
         fixed (System.Byte* ptr = bytes)
         {
-            return ptr[0] | ptr[1] << 8 | ptr[2] << 16;
+            return ptr[0] | (ptr[1] << 8) | (ptr[2] << 16);
         }
     }
 

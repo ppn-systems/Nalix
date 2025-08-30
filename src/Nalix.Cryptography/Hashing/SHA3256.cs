@@ -338,16 +338,16 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
 
     // Rotation offsets r[x,y] as a flat table, and round constants RC
     private static readonly System.Int32[] R =
-    {
+    [
         0,  36, 3,  41, 18,
         1,  44, 10, 45, 2,
         62, 6,  43, 15, 61,
         28, 55, 25, 21, 56,
         27, 20, 39, 8,  14
-    };
+    ];
 
     private static readonly System.UInt64[] RC =
-    {
+    [
         0x0000000000000001UL, 0x0000000000008082UL,
         0x800000000000808aUL, 0x8000000080008000UL,
         0x000000000000808bUL, 0x0000000080000001UL,
@@ -360,7 +360,7 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
         0x000000000000800aUL, 0x800000008000000aUL,
         0x8000000080008081UL, 0x8000000000008080UL,
         0x0000000080000001UL, 0x8000000080008008UL
-    };
+    ];
 
     [System.Diagnostics.DebuggerStepThrough]
     private static void KeccakF1600(System.UInt64[] A)
