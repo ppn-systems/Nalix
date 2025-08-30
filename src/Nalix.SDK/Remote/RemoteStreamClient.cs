@@ -10,19 +10,19 @@ namespace Nalix.SDK.Remote;
 /// Represents a network client that connects to a remote server using Reliable.
 /// </summary>
 /// <remarks>
-/// The <see cref="RemoteStreamClient{TPacket}"/> class is a singleton that manages the connection,
+/// The <see cref="RemoteStreamClient"/> class is a singleton that manages the connection,
 /// network stream, and client disposal. It supports both synchronous and asynchronous connection.
 /// </remarks>
 [System.Diagnostics.DebuggerDisplay("Remote={Options.Address}:{Options.Port}, Connected={IsConnected}")]
-public class RemoteStreamClient<TPacket> : System.IDisposable where TPacket : IPacket
+public class RemoteStreamClient : System.IDisposable
 {
     #region Fields
 
     private System.Net.Sockets.TcpClient _client;
     private System.Net.Sockets.NetworkStream _stream;
 
-    private RemoteStreamSender<TPacket> _outbound;
-    private RemoteStreamReceiver<TPacket> _inbound;
+    private RemoteStreamSender<IPacket> _outbound;
+    private RemoteStreamReceiver<IPacket> _inbound;
 
     #endregion Fields
 
@@ -43,7 +43,7 @@ public class RemoteStreamClient<TPacket> : System.IDisposable where TPacket : IP
     #region Constructor
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RemoteStreamClient{TPacket}"/> class.
+    /// Initializes a new instance of the <see cref="RemoteStreamClient"/> class.
     /// </summary>
     private RemoteStreamClient()
     {
@@ -81,8 +81,8 @@ public class RemoteStreamClient<TPacket> : System.IDisposable where TPacket : IP
             await _client.ConnectAsync(Options.Address, Options.Port, cts.Token);
 
             _stream = _client.GetStream();
-            _outbound = new RemoteStreamSender<TPacket>(_stream);
-            _inbound = new RemoteStreamReceiver<TPacket>(_stream);
+            _outbound = new RemoteStreamSender<IPacket>(_stream);
+            _inbound = new RemoteStreamReceiver<IPacket>(_stream);
         }
         catch (System.Exception ex)
         {
@@ -107,7 +107,7 @@ public class RemoteStreamClient<TPacket> : System.IDisposable where TPacket : IP
     /// Thrown if an I/O error occurs while writing to the underlying stream.
     /// </exception>
     public System.Threading.Tasks.Task SendAsync(
-        TPacket packet,
+        IPacket packet,
         System.Threading.CancellationToken ct = default)
         => (_outbound ?? throw new System.InvalidOperationException("Not connected.")).SendAsync(packet, ct);
 
@@ -128,7 +128,7 @@ public class RemoteStreamClient<TPacket> : System.IDisposable where TPacket : IP
     /// <exception cref="System.IO.IOException">
     /// Thrown if an I/O error occurs while reading from the underlying stream.
     /// </exception>
-    public System.Threading.Tasks.Task<TPacket> ReceiveAsync(System.Threading.CancellationToken ct = default)
+    public System.Threading.Tasks.Task<IPacket> ReceiveAsync(System.Threading.CancellationToken ct = default)
         => (_inbound ?? throw new System.InvalidOperationException("Not connected.")).ReceiveAsync(ct);
 
     /// <summary>
@@ -138,7 +138,7 @@ public class RemoteStreamClient<TPacket> : System.IDisposable where TPacket : IP
     public void Disconnect() => this.Dispose();
 
     /// <summary>
-    /// Releases the resources used by the <see cref="RemoteStreamClient{TPacket}"/> instance.
+    /// Releases the resources used by the <see cref="RemoteStreamClient"/> instance.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
     public void Dispose()
