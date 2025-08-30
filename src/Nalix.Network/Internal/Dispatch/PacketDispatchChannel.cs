@@ -5,11 +5,11 @@ using Nalix.Common.Connection;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch;
-using Nalix.Network.Dispatch.Catalog;
 using Nalix.Network.Dispatch.Channel;
 using Nalix.Network.Dispatch.Options;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Injection;
+using Nalix.Shared.Messaging.Catalog;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]

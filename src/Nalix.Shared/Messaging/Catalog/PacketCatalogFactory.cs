@@ -5,13 +5,13 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Models;
 using Nalix.Common.Security.Enums;
-using Nalix.Network.Internal.Dispatch;
+using Nalix.Shared.Extensions;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Messaging.Binary;
-using Nalix.Shared.Messaging.Control;
+using Nalix.Shared.Messaging.Controls;
 using Nalix.Shared.Messaging.Text;
 
-namespace Nalix.Network.Dispatch.Catalog;
+namespace Nalix.Shared.Messaging.Catalog;
 
 /// <summary>
 /// Provides a fluent builder to compose a <see cref="PacketCatalog"/> from
@@ -168,7 +168,7 @@ public sealed class PacketCatalogFactory
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[{nameof(PacketCatalogFactory)}] Scanning: {asm.FullName}");
 
-            foreach (System.Type type in ReflectionHelpers.SafeGetTypes(asm))
+            foreach (System.Type type in SafeGetTypes(asm))
             {
                 if (type is null || !type.IsClass || type.IsAbstract)
                 {
@@ -224,7 +224,7 @@ public sealed class PacketCatalogFactory
                 type.GetInterfaces(),
                 i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPacketTransformer<>));
 
-            var closed = (transformerIface is not null)
+            var closed = transformerIface is not null
                 ? typeof(IPacketTransformer<>).MakeGenericType(type)
                 : null;
 
@@ -301,5 +301,21 @@ public sealed class PacketCatalogFactory
             System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(transformers),
             System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(deserializers)
         );
+    }
+
+    private static System.Collections.Generic.IEnumerable<System.Type> SafeGetTypes(System.Reflection.Assembly asm)
+    {
+        try
+        {
+            return asm.GetTypes();
+        }
+        catch (System.Reflection.ReflectionTypeLoadException ex)
+        {
+            return System.Linq.Enumerable.OfType<System.Type>(ex.Types);
+        }
+        catch
+        {
+            return [];
+        }
     }
 }
