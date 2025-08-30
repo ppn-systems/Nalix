@@ -11,6 +11,7 @@ using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Injection;
+using Nalix.Shared.LZ4.Extensions;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Serialization;
 
@@ -76,7 +77,7 @@ public class Text256 : FrameBase, IPacketTransformer<Text256>
     /// </remarks>
     /// <param name="buffer">The source buffer.</param>
     /// <returns>A pooled <see cref="Text256"/> instance.</returns>
-    public static Text256 Deserialize(in System.ReadOnlySpan<System.Byte> buffer)
+    public static Text256 Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
         Text256 packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                  .Get<Text256>();

@@ -5,7 +5,6 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Models;
 using Nalix.Common.Security.Enums;
-using Nalix.Shared.Extensions;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Messaging.Binary;
 using Nalix.Shared.Messaging.Controls;
@@ -14,295 +13,56 @@ using Nalix.Shared.Messaging.Text;
 namespace Nalix.Shared.Messaging.Catalog;
 
 /// <summary>
-/// Provides a fluent builder to compose a <see cref="PacketCatalog"/> from
-/// explicit packet types and/or assemblies scanned via reflection.
+/// Builds an immutable <see cref="PacketCatalog"/> by scanning packet types and
+/// binding their static transformation functions with maximum performance.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The builder discovers packet types that implement <see cref="IPacket"/> and
-/// are decorated with <see cref="MagicNumberAttribute"/>. For each discovered type,
-/// it expects a matching <c>IPacketTransformer&lt;TPacket&gt;</c> implementation that
-/// exposes static methods for <c>Deserialize</c>, <c>Compress</c>, <c>Decompress</c>,
-/// <c>Encrypt</c>, and <c>Decrypt</c>.
+/// This implementation binds packet transformation methods using <b>unsafe function
+/// pointers</b> (i.e., <c>delegate*</c>) to eliminate delegate allocation and reduce
+/// indirection in the hot path. Public-facing delegates are created only once at
+/// build time as thin facades that jump directly to these function pointers.
 /// </para>
 /// <para>
-/// The resulting catalog is immutable and safe for concurrent read access.
-/// Ensure transformer methods are preserved under trimming/AOT if applicable.
+/// Requirements for a packet type:
+/// <list type="bullet">
+///   <item>Implements <see cref="IPacket"/>.</item>
+///   <item>Decorated with <see cref="MagicNumberAttribute"/>.</item>
+///   <item>Implements the static abstract members defined by
+///         <see cref="IPacketTransformer{TPacket}"/> on the concrete packet type:
+///         <c>Deserialize(ReadOnlySpan&lt;byte&gt;)</c>, <c>Compress(TPacket)</c>,
+///         <c>Decompress(TPacket)</c>, <c>Encrypt(TPacket, byte[], SymmetricAlgorithmType)</c>,
+///         <c>Decrypt(TPacket, byte[], SymmetricAlgorithmType)</c>.</item>
+/// </list>
+/// </para>
+/// <para>
+/// If <see cref="PipelineManagedTransformAttribute"/> is present on a packet type,
+/// transformer binding is skipped (deserialize may still be bound).
+/// </para>
+/// <para>
+/// When trimming or AOT compiling, ensure these static methods are preserved using
+/// <c>DynamicDependency</c> or <c>DynamicallyAccessedMembers</c> as appropriate.
 /// </para>
 /// </remarks>
-/// <example>
-/// <code>
-/// var builder = new PacketCatalogFactory()
-///     .IncludeAssembly(typeof(MyPacket).Assembly)
-///     .RegisterPacket&lt;HealthCheckPacket&gt;();
-///
-/// PacketCatalog catalog = builder.CreateCatalog();
-///
-/// if (catalog.TryGetDeserializer(magic, out var deser) &amp;&amp;
-///     catalog.TryGetTransformer(typeof(MyPacket), out var xform))
-/// {
-///     if (catalog.TryDeserialize(raw, out var pkt))
-///     {
-///         // Encrypt with AES-256
-///         var encrypted = xform.Encrypt(pkt, keyBytes, SymmetricAlgorithmType.Aes256Cbc);
-///     }
-/// }
-/// </code>
-/// </example>
 public sealed class PacketCatalogFactory
 {
+    #region Static: Defaults & Utilities
+
+    /// <summary>
+    /// Default namespaces to skip when scanning assemblies (built-in packet types).
+    /// </summary>
     private static readonly System.Collections.Generic.HashSet<System.String> Namespaces = new(
         System.Linq.Enumerable.Where(
         [
-            typeof(Text256).Namespace,
-            typeof(Control).Namespace,
-            typeof(Binary128).Namespace
-        ], ns => ns is not null)!,
-        System.StringComparer.Ordinal
-    );
-
-    private readonly System.Collections.Generic.HashSet<System.Type> _explicitPacketTypes = [];
-    private readonly System.Collections.Generic.HashSet<System.Reflection.Assembly> _assemblies = [];
+            typeof(Text256).Namespace!,
+            typeof(Control).Namespace!,
+            typeof(Binary128).Namespace!
+        ], ns => ns is not null),
+        System.StringComparer.Ordinal);
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PacketCatalogFactory"/> class.
-    /// Registers the <see cref="Binary128"/> packet type by default.
+    /// Safely iterates types of an assembly, even if some fail to load.
     /// </summary>
-    public PacketCatalogFactory()
-    {
-        _ = this.RegisterPacket<Binary128>()
-                .RegisterPacket<Binary256>()
-                .RegisterPacket<Binary512>()
-                .RegisterPacket<Binary1024>();
-
-        _ = this.RegisterPacket<Text256>()
-                .RegisterPacket<Text512>()
-                .RegisterPacket<Text1024>();
-
-        _ = this.RegisterPacket<Control>()
-                .RegisterPacket<Handshake>();
-    }
-
-    /// <summary>
-    /// Adds an assembly to the discovery set for packet types.
-    /// </summary>
-    /// <param name="asm">
-    /// The assembly to scan. If <see langword="null"/>, the call is ignored.
-    /// </param>
-    /// <returns>
-    /// The current <see cref="PacketCatalogFactory"/> instance for method chaining.
-    /// </returns>
-    public PacketCatalogFactory IncludeAssembly(System.Reflection.Assembly asm)
-    {
-        if (asm is null)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[{nameof(PacketCatalogFactory)}] IncludeAssembly ignored: assembly is null.");
-            return this;
-        }
-
-        if (_assemblies.Add(asm))
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(PacketCatalogFactory)}] Assembly registered for scan: {asm.FullName}");
-        }
-        else
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(PacketCatalogFactory)}] Assembly already registered, skipping: {asm.FullName}");
-        }
-        return this;
-    }
-
-    /// <summary>
-    /// Adds an explicit packet type and skips scanning for it.
-    /// </summary>
-    /// <typeparam name="TPacket">The packet type implementing <see cref="IPacket"/>.</typeparam>
-    /// <returns>
-    /// The current <see cref="PacketCatalogFactory"/> instance for method chaining.
-    /// </returns>
-    public PacketCatalogFactory RegisterPacket<TPacket>() where TPacket : IPacket
-    {
-        if (_explicitPacketTypes.Add(typeof(TPacket)))
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(PacketCatalogFactory)}] Explicit packet type registered: {typeof(TPacket).FullName}");
-        }
-        else
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(PacketCatalogFactory)}] Explicit packet type already " +
-                                           $"registered, skipping: {typeof(TPacket).FullName}");
-        }
-        return this;
-    }
-
-    /// <summary>
-    /// Builds a frozen <see cref="PacketCatalog"/> by scanning configured assemblies
-    /// and explicit packet types, binding deserializers and transformers.
-    /// </summary>
-    /// <remarks>
-    /// Uses reflection to locate static transformer methods. Ensure these are preserved
-    /// when trimming or compiling AOT.
-    /// </remarks>
-    /// <returns>
-    /// An immutable <see cref="PacketCatalog"/> with deserializer and transformer lookups.
-    /// </returns>
-    /// <exception cref="System.InvalidOperationException">
-    /// Thrown if multiple packet types declare the same <see cref="MagicNumberAttribute.MagicNumber"/>.
-    /// </exception>
-    public PacketCatalog CreateCatalog()
-    {
-        System.Collections.Generic.Dictionary<System.Type, PacketTransformer> transformers = [];
-        System.Collections.Generic.Dictionary<System.UInt32, PacketDeserializer> deserializers = [];
-
-        // 1) Aggregate candidate packet types
-        System.Collections.Generic.HashSet<System.Type> candidates = [.. _explicitPacketTypes];
-
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(PacketCatalogFactory)}] " +
-                                      $"assemblies={_assemblies.Count}, explicitTypes={_explicitPacketTypes.Count}");
-
-        foreach (System.Reflection.Assembly asm in _assemblies)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(PacketCatalogFactory)}] Scanning: {asm.FullName}");
-
-            foreach (System.Type type in SafeGetTypes(asm))
-            {
-                if (type is null || !type.IsClass || type.IsAbstract)
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[{nameof(PacketCatalogFactory)}] Skipped type (not concrete class): {type?.FullName}");
-                    continue;
-                }
-
-                if (type.Namespace is not null && Namespaces.Contains(type.Namespace))
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[{nameof(PacketCatalogFactory)}] Skipped default packet type: {type.FullName}");
-                    continue;
-                }
-
-                if (!typeof(IPacket).IsAssignableFrom(type))
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[{nameof(PacketCatalogFactory)}] Skipped type (not IPacket): {type?.FullName}");
-                    continue;
-                }
-
-                _ = candidates.Add(type);
-            }
-        }
-
-        if (candidates.Count == 0)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[{nameof(PacketCatalogFactory)}] No candidate packet types were discovered. " +
-                                          $"The resulting catalog will be empty.");
-        }
-
-        // 2) CreateCatalog maps
-        foreach (System.Type type in candidates)
-        {
-            var magicAttr = System.Reflection.CustomAttributeExtensions
-                .GetCustomAttribute<MagicNumberAttribute>(type);
-
-            if (magicAttr is null)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(PacketCatalogFactory)}] Type has no MagicNumberAttribute, skipping: {type.FullName}");
-                continue;
-            }
-
-            // NEW: detect pipeline-managed transform
-            System.Boolean pipelineManaged = System.Reflection.CustomAttributeExtensions
-                .IsDefined(type, typeof(PipelineManagedTransformAttribute), inherit: false);
-
-            // Find IPacketTransformer<TPacket> (if any)
-            System.Type? transformerIface = System.Linq.Enumerable.FirstOrDefault(
-                type.GetInterfaces(),
-                i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPacketTransformer<>));
-
-            var closed = transformerIface is not null
-                ? typeof(IPacketTransformer<>).MakeGenericType(type)
-                : null;
-
-            // Always try to register deserializer if present
-            System.Reflection.MethodInfo? deserialize = closed?.PublicStatic(nameof(IPacketTransformer<IPacket>.Deserialize));
-            if (deserialize != null)
-            {
-                if (deserializers.ContainsKey(magicAttr.MagicNumber))
-                {
-                    if (InstanceManager.Instance.GetExistingInstance<ILogger>() is not null)
-                    {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()!
-                                                .Error($"[{nameof(PacketCatalogFactory)}] " +
-                                                       $"Duplicate MagicNumber 0x{magicAttr.MagicNumber:X8} on {type.FullName}");
-                        continue;
-                    }
-                    else
-                    {
-                        throw new System.InvalidOperationException(
-                            $"[{nameof(PacketCatalogFactory)}] Duplicate MagicNumber 0x{magicAttr.MagicNumber:X8} on {type.FullName}");
-                    }
-                }
-
-                PacketDeserializer del = deserialize.CreateDelegate<PacketDeserializer>();
-                deserializers[magicAttr.MagicNumber] = del;
-            }
-
-            // NEW: if pipeline-managed, skip transformer binding entirely
-            if (pipelineManaged)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[{nameof(PacketCatalogFactory)}] " +
-                                               $"Pipeline-managed transform: skipping transformer binding for {type.FullName}");
-                continue;
-            }
-
-            // Otherwise, bind transformer methods as before
-            if (closed is null)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(PacketCatalogFactory)}] " +
-                                               $"Packet type has MagicNumber but no IPacketTransformer<>: " +
-                                               $"{type.FullName}, magic=0x{magicAttr.MagicNumber:X8}");
-                continue;
-            }
-
-            var encrypt = closed.PublicStatic(nameof(IPacketTransformer<IPacket>.Encrypt));
-            var decrypt = closed.PublicStatic(nameof(IPacketTransformer<IPacket>.Decrypt));
-            var compress = closed.PublicStatic(nameof(IPacketTransformer<IPacket>.Compress));
-            var decompress = closed.PublicStatic(nameof(IPacketTransformer<IPacket>.Decompress));
-
-            // Enforce availability when not pipeline-managed
-            if (compress == null || decompress == null || encrypt == null || decrypt == null)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[{nameof(PacketCatalogFactory)}] " +
-                                              $"Missing transformer methods for {type.FullName}. " +
-                                              $"Skipping transformers.");
-                continue;
-            }
-
-            transformers[type] = new PacketTransformer(
-                compress.CreateDelegate<System.Func<IPacket, IPacket>>(),
-                decompress.CreateDelegate<System.Func<IPacket, IPacket>>(),
-                encrypt.CreateDelegate<System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>>(),
-                decrypt.CreateDelegate<System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>>());
-        }
-
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                        .Info($"[{nameof(PacketCatalogFactory)}] " +
-                              $"Built: {deserializers.Count} packets, {transformers.Count} transformers.");
-
-        return new PacketCatalog(
-            System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(transformers),
-            System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(deserializers)
-        );
-    }
-
     private static System.Collections.Generic.IEnumerable<System.Type> SafeGetTypes(System.Reflection.Assembly asm)
     {
         try
@@ -318,4 +78,344 @@ public sealed class PacketCatalogFactory
             return [];
         }
     }
+
+    #endregion
+
+    #region Fields
+
+    private readonly System.Collections.Generic.HashSet<System.Type> _explicitPacketTypes = [];
+    private readonly System.Collections.Generic.HashSet<System.Reflection.Assembly> _assemblies = [];
+
+    #endregion
+
+    #region Ctor & Registration
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="PacketCatalogFactory"/> and registers
+    /// built-in packet types.
+    /// </summary>
+    public PacketCatalogFactory()
+    {
+        // Binary packets
+        _ = this.RegisterPacket<Binary128>()
+                .RegisterPacket<Binary256>()
+                .RegisterPacket<Binary512>()
+                .RegisterPacket<Binary1024>();
+
+        // Text packets
+        _ = this.RegisterPacket<Text256>()
+                .RegisterPacket<Text512>()
+                .RegisterPacket<Text1024>();
+
+        // Control / handshake packets
+        _ = this.RegisterPacket<Control>()
+                .RegisterPacket<Handshake>();
+    }
+
+    /// <summary>
+    /// Adds an assembly to be scanned for packet types.
+    /// </summary>
+    public PacketCatalogFactory IncludeAssembly(System.Reflection.Assembly? asm)
+    {
+        if (asm is null)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                .Warn($"[{nameof(PacketCatalogFactory)}] IncludeAssembly ignored: assembly is null.");
+            return this;
+        }
+
+        if (_assemblies.Add(asm))
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                .Debug($"[{nameof(PacketCatalogFactory)}] Assembly registered for scan: {asm.FullName}");
+        }
+        else
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                .Debug($"[{nameof(PacketCatalogFactory)}] Assembly already registered, skipping: {asm.FullName}");
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Registers a concrete packet type explicitly (skipped from scanning).
+    /// </summary>
+    public PacketCatalogFactory RegisterPacket<TPacket>() where TPacket : IPacket
+    {
+        if (_explicitPacketTypes.Add(typeof(TPacket)))
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                .Debug($"[{nameof(PacketCatalogFactory)}] Explicit packet type registered: {typeof(TPacket).FullName}");
+        }
+        else
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                .Debug($"[{nameof(PacketCatalogFactory)}] Explicit packet type already registered, skipping: {typeof(TPacket).FullName}");
+        }
+
+        return this;
+    }
+
+    #endregion
+
+    #region Unsafe Trampoline & Binders
+
+    /// <summary>
+    /// Generic trampoline that stores function pointers for a specific <typeparamref name="TPacket"/>.
+    /// The public static methods act as thin facades converting <see cref="IPacket"/> to/from
+    /// <typeparamref name="TPacket"/> and then invoking the function pointer.
+    /// </summary>
+    private static unsafe class Fn<TPacket> where TPacket : IPacket
+    {
+        // Note: The 'in' modifier on ReadOnlySpan is optional in the consumer; the function pointer
+        // signature must match the actual static method on TPacket. If your methods use
+        // 'in ReadOnlySpan<byte>' exactly, it remains ABI-compatible to call with a plain argument.
+        public static delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> Deserialize;
+        public static delegate* managed<TPacket, TPacket> Compress;
+        public static delegate* managed<TPacket, TPacket> Decompress;
+        public static delegate* managed<TPacket, System.Byte[], SymmetricAlgorithmType, TPacket> Encrypt;
+        public static delegate* managed<TPacket, System.Byte[], SymmetricAlgorithmType, TPacket> Decrypt;
+
+        /// <summary>Facade for <see cref="PacketDeserializer"/>.</summary>
+        public static IPacket DoDeserialize(System.ReadOnlySpan<System.Byte> raw) => Deserialize(raw);
+        /// <summary>Facade for <see cref="PacketTransformer.Compress"/>.</summary>
+        public static IPacket DoCompress(IPacket p) => Compress((TPacket)p);
+        /// <summary>Facade for <see cref="PacketTransformer.Decompress"/>.</summary>
+        public static IPacket DoDecompress(IPacket p) => Decompress((TPacket)p);
+        /// <summary>Facade for <see cref="PacketTransformer.Encrypt"/>.</summary>
+        public static IPacket DoEncrypt(IPacket p, System.Byte[] key, SymmetricAlgorithmType alg) => Encrypt((TPacket)p, key, alg);
+        /// <summary>Facade for <see cref="PacketTransformer.Decrypt"/>.</summary>
+        public static IPacket DoDecrypt(IPacket p, System.Byte[] key, SymmetricAlgorithmType alg) => Decrypt((TPacket)p, key, alg);
+    }
+
+    private static unsafe delegate* managed<TPacket, TPacket> ToUnaryPtr<TPacket>(System.Reflection.MethodInfo mi)
+    {
+        System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
+        return (delegate* managed<TPacket, TPacket>)ptr;
+    }
+
+    private static unsafe delegate* managed<TPacket, System.Byte[], SymmetricAlgorithmType, TPacket>
+        ToCryptoPtr<TPacket>(System.Reflection.MethodInfo mi)
+    {
+        System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
+        return (delegate* managed<TPacket, System.Byte[], SymmetricAlgorithmType, TPacket>)ptr;
+    }
+
+    private static unsafe delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket>
+        ToDeserializePtr<TPacket>(System.Reflection.MethodInfo mi)
+    {
+        System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
+        return (delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket>)ptr;
+    }
+
+    /// <summary>
+    /// Assigns function pointers to <see cref="Fn{TPacket}"/> for a specific packet type.
+    /// Any null <paramref name="miDeserialize"/>, <paramref name="miCompress"/>, 
+    /// <paramref name="miDecompress"/>, <paramref name="miEncrypt"/>, or <paramref name="miDecrypt"/> parameters are skipped.
+    /// </summary>
+    private static unsafe void BindAllPtrsGeneric<TPacket>(
+        System.Reflection.MethodInfo? miDeserialize,
+        System.Reflection.MethodInfo? miCompress,
+        System.Reflection.MethodInfo? miDecompress,
+        System.Reflection.MethodInfo? miEncrypt,
+        System.Reflection.MethodInfo? miDecrypt)
+        where TPacket : IPacket
+    {
+        if (miDeserialize is not null)
+        {
+            Fn<TPacket>.Deserialize = ToDeserializePtr<TPacket>(miDeserialize);
+        }
+
+        if (miCompress is not null)
+        {
+            Fn<TPacket>.Compress = ToUnaryPtr<TPacket>(miCompress);
+        }
+
+        if (miDecompress is not null)
+        {
+            Fn<TPacket>.Decompress = ToUnaryPtr<TPacket>(miDecompress);
+        }
+
+        if (miEncrypt is not null)
+        {
+            Fn<TPacket>.Encrypt = ToCryptoPtr<TPacket>(miEncrypt);
+        }
+
+        if (miDecrypt is not null)
+        {
+            Fn<TPacket>.Decrypt = ToCryptoPtr<TPacket>(miDecrypt);
+        }
+    }
+
+    #endregion
+
+    #region Build
+
+    /// <summary>
+    /// Builds an immutable catalog of packet deserializers and transformers.
+    /// </summary>
+    /// <exception cref="System.InvalidOperationException">
+    /// Thrown when duplicate magic numbers are detected.
+    /// </exception>
+    public PacketCatalog CreateCatalog()
+    {
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+        // Pre-allocate to reduce rehashing.
+        System.Int32 estimated =
+            System.Math.Max(16, _explicitPacketTypes.Count + System.Math.Min(64, _assemblies.Count * 8));
+
+        System.Collections.Generic.Dictionary<System.Type, PacketTransformer> transformers = new(estimated);
+        System.Collections.Generic.Dictionary<System.UInt32, PacketDeserializer> deserializers = new(estimated);
+
+        // 1) Collect candidate packet types
+        System.Collections.Generic.HashSet<System.Type> candidates = [.. _explicitPacketTypes];
+
+        logger?.Info($"[{nameof(PacketCatalogFactory)}] assemblies={_assemblies.Count}, explicitTypes={_explicitPacketTypes.Count}");
+
+        foreach (System.Reflection.Assembly asm in _assemblies)
+        {
+            logger?.Debug($"[{nameof(PacketCatalogFactory)}] Scanning: {asm.FullName}");
+
+            foreach (System.Type? type in SafeGetTypes(asm))
+            {
+                if (type is null || !type.IsClass || type.IsAbstract)
+                {
+                    logger?.Trace($"[{nameof(PacketCatalogFactory)}] Skip (not concrete class): {type?.FullName}");
+                    continue;
+                }
+
+                if (type.Namespace is not null && Namespaces.Contains(type.Namespace))
+                {
+                    logger?.Trace($"[{nameof(PacketCatalogFactory)}] Skip default packet type: {type.FullName}");
+                    continue;
+                }
+
+                if (!typeof(IPacket).IsAssignableFrom(type))
+                {
+                    logger?.Trace($"[{nameof(PacketCatalogFactory)}] Skip (not IPacket): {type.FullName}");
+                    continue;
+                }
+
+                _ = candidates.Add(type);
+            }
+        }
+
+        if (candidates.Count == 0)
+        {
+            logger?.Warn($"[{nameof(PacketCatalogFactory)}] No candidate packet types discovered. Resulting catalog may be empty.");
+        }
+
+        // 2) Bind per type
+        const System.Reflection.BindingFlags FLAGS = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static;
+
+        foreach (System.Type type in candidates)
+        {
+            // Magic number
+            var magicAttr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<MagicNumberAttribute>(type, inherit: false);
+            if (magicAttr is null)
+            {
+                logger?.Trace($"[{nameof(PacketCatalogFactory)}] No MagicNumberAttribute, skip: {type.FullName}");
+                continue;
+            }
+
+            // Pipeline-managed?
+            System.Boolean pipelineManaged = type.IsDefined(typeof(PipelineManagedTransformAttribute), inherit: false);
+
+            // Locate static abstract implementations on the concrete packet type
+            System.Reflection.MethodInfo? miDeserialize = type.GetMethod(nameof(IPacketTransformer<IPacket>.Deserialize), FLAGS);
+            System.Reflection.MethodInfo? miCompress = type.GetMethod(nameof(IPacketTransformer<IPacket>.Compress), FLAGS);
+            System.Reflection.MethodInfo? miDecompress = type.GetMethod(nameof(IPacketTransformer<IPacket>.Decompress), FLAGS);
+            System.Reflection.MethodInfo? miEncrypt = type.GetMethod(nameof(IPacketTransformer<IPacket>.Encrypt), FLAGS);
+            System.Reflection.MethodInfo? miDecrypt = type.GetMethod(nameof(IPacketTransformer<IPacket>.Decrypt), FLAGS);
+
+            // ---- Deserializer binding (required if magic exists) ----
+            if (miDeserialize is not null)
+            {
+                if (deserializers.ContainsKey(magicAttr.MagicNumber))
+                {
+                    if (logger is not null)
+                    {
+                        logger.Error($"[{nameof(PacketCatalogFactory)}] Duplicate MagicNumber 0x{magicAttr.MagicNumber:X8} on {type.FullName}");
+                        continue;
+                    }
+                    else
+                    {
+                        throw new System.InvalidOperationException(
+                            $"[{nameof(PacketCatalogFactory)}] Duplicate MagicNumber 0x{magicAttr.MagicNumber:X8} on {type.FullName}");
+                    }
+                }
+
+                // Assign Deserialize pointer into Fn<TPacket>
+                _ = typeof(PacketCatalogFactory)
+                    .GetMethod(nameof(BindAllPtrsGeneric), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                    .MakeGenericMethod(type)
+                    .Invoke(null, [miDeserialize, null, null, null, null]);
+
+                // Build a stable PacketDeserializer that jumps to Fn<T>.Deserialize
+                var tGeneric = typeof(Fn<>).MakeGenericType(type);
+                var doDeserializeMi = tGeneric.GetMethod(nameof(Fn<IPacket>.DoDeserialize), FLAGS)!;
+
+                // Create an actual delegate instance once (no reflection in hot path)
+                var deserFacade = (PacketDeserializer)System.Delegate.CreateDelegate(
+                    typeof(PacketDeserializer), doDeserializeMi);
+
+                deserializers[magicAttr.MagicNumber] = deserFacade;
+            }
+            else
+            {
+                logger?.Warn($"[{nameof(PacketCatalogFactory)}] Missing Deserialize() on {type.FullName}. Skipping.");
+                continue;
+            }
+
+            // ---- Transformer binding ----
+            if (pipelineManaged)
+            {
+                logger?.Debug($"[{nameof(PacketCatalogFactory)}] Pipeline-managed transform, skip transformers: {type.FullName}");
+                continue;
+            }
+
+            if (miCompress is null || miDecompress is null || miEncrypt is null || miDecrypt is null)
+            {
+                logger?.Warn($"[{nameof(PacketCatalogFactory)}] Missing transformer methods on {type.FullName}. Skipping transformers.");
+                continue;
+            }
+
+            // Assign all pointers into Fn<TPacket>
+            _ = typeof(PacketCatalogFactory)
+                .GetMethod(nameof(BindAllPtrsGeneric), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                .MakeGenericMethod(type)
+                .Invoke(null, [null, miCompress, miDecompress, miEncrypt, miDecrypt]);
+
+            // Create public-facing delegates once (jump to Fn<T>.DoXXX)
+            var fnType = typeof(Fn<>).MakeGenericType(type);
+            var doCompressMi = fnType.GetMethod(nameof(Fn<IPacket>.DoCompress), FLAGS)!;
+            var doDecompressMi = fnType.GetMethod(nameof(Fn<IPacket>.DoDecompress), FLAGS)!;
+            var doEncryptMi = fnType.GetMethod(nameof(Fn<IPacket>.DoEncrypt), FLAGS)!;
+            var doDecryptMi = fnType.GetMethod(nameof(Fn<IPacket>.DoDecrypt), FLAGS)!;
+
+            var compressDel = (System.Func<IPacket, IPacket>)
+                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, IPacket>), doCompressMi);
+            var decompressDel = (System.Func<IPacket, IPacket>)
+                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, IPacket>), doDecompressMi);
+
+            var encryptDel = (System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>)
+                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>), doEncryptMi);
+
+            var decryptDel = (System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>)
+                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>), doDecryptMi);
+
+            transformers[type] = new PacketTransformer(compressDel, decompressDel, encryptDel, decryptDel);
+        }
+
+        logger?.Info($"[{nameof(PacketCatalogFactory)}] Built: {deserializers.Count} packets, {transformers.Count} transformers.");
+
+        // Freeze for thread-safe, allocation-free lookups
+        return new PacketCatalog(
+            System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(transformers),
+            System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(deserializers));
+    }
+
+    #endregion
 }

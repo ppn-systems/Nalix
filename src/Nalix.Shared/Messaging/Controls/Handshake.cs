@@ -78,7 +78,7 @@ public class Handshake : FrameBase, IPacketTransformer<Handshake>
     /// </summary>
     /// <param name="buffer">The source buffer.</param>
     /// <returns>A pooled <see cref="Binary128"/> instance.</returns>
-    public static Handshake Deserialize(in System.ReadOnlySpan<System.Byte> buffer)
+    public static Handshake Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
         Handshake packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                    .Get<Handshake>();
