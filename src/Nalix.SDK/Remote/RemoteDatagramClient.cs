@@ -10,20 +10,15 @@ using Nalix.Shared.Memory.Caches;
 namespace Nalix.SDK.Remote;
 
 /// <summary>
-/// Represents a singleton UDP client transport used for sending and receiving packets of type <typeparamref name="TPacket"/>.
+/// Represents a singleton UDP client transport used for sending and receiving packets of type IPacket.
 /// This client is designed to communicate with a predefined remote endpoint using the UDP protocol.
 /// </summary>
-/// <typeparam name="TPacket">
-/// The packet type that must implement <see cref="IPacket"/>.
-/// </typeparam>
 [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)]
 [System.Diagnostics.DebuggerDisplay("Remote={Options.Address}:{Options.Port}, IsReceiving={IsReceiving}")]
-public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TPacket>
-    : SingletonBase<RemoteDatagramClient<TPacket>>, System.IDisposable where TPacket : IPacket, IAsyncActivatable
+public class RemoteDatagramClient
+    : SingletonBase<RemoteDatagramClient>, System.IDisposable, IAsyncActivatable
 {
     #region Fields
 
@@ -51,12 +46,12 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
     /// <summary>
     /// Gets the cache that stores recently received (incoming) packets.
     /// </summary>
-    public readonly FifoCache<TPacket> Incoming = new(200);
+    public readonly FifoCache<IPacket> Incoming = new(200);
 
     #endregion Propierties
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RemoteDatagramClient{TPacket}"/> class.
+    /// Initializes a new instance of the <see cref="RemoteDatagramClient"/> class.
     /// Automatically binds to a random local port and resolves the remote endpoint from configuration.
     /// </summary>
     private RemoteDatagramClient()
@@ -88,7 +83,7 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
                 if (_catalog.TryDeserialize(
                     System.MemoryExtensions.AsSpan(result.Buffer), out IPacket packet))
                 {
-                    this.Incoming.Push((TPacket)packet);
+                    this.Incoming.Push(packet);
                 }
             }
             catch (System.OperationCanceledException)
@@ -107,7 +102,8 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
     /// Stops the UDP client, cancels receiving operations, and disposes internal resources.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    public async System.Threading.Tasks.Task DeactivateAsync()
+    public async System.Threading.Tasks.Task DeactivateAsync(
+        System.Threading.CancellationToken token = default)
     {
         _udpClient?.Dispose();
 
@@ -121,7 +117,7 @@ public class RemoteDatagramClient<[System.Diagnostics.CodeAnalysis.DynamicallyAc
     /// </summary>
     /// <param name="packet">The packet to send.</param>
     [System.Runtime.CompilerServices.SkipLocalsInit]
-    public async System.Threading.Tasks.Task SendAsync(TPacket packet)
+    public async System.Threading.Tasks.Task SendAsync(IPacket packet)
     {
         System.Memory<System.Byte> memory = packet.Serialize();
         _ = await _udpClient.SendAsync(memory.ToArray(), memory.Length, _remoteEndPoint);
