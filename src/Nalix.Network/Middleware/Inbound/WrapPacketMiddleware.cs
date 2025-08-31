@@ -50,15 +50,32 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
             {
                 if (needCompress)
                 {
+                    if (!t.HasCompress)
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Error($"[{nameof(WrapPacketMiddleware)}] " +
+                                                       $"No compression delegate found for packet type {current.GetType().Name}.");
+
+                        _ = await context.Connection.Tcp.SendAsync("Unsupported packet type for compression.")
+                                                        .ConfigureAwait(false);
+                        return;
+                    }
                     current = t.Compress(current);
                 }
 
                 if (needEncrypt)
                 {
-                    current = t.Encrypt(
-                        current,
-                        context.Connection.EncryptionKey,
-                        context.Connection.Encryption);
+                    if (!t.HasEncrypt)
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Error($"[{nameof(WrapPacketMiddleware)}] " +
+                                                       $"No encryption delegate found for packet type {current.GetType().Name}.");
+
+                        _ = await context.Connection.Tcp.SendAsync("Unsupported packet type for encryption.")
+                                                        .ConfigureAwait(false);
+                        return;
+                    }
+                    current = t.Encrypt(current, context.Connection.EncryptionKey, context.Connection.Encryption);
                 }
 
                 if (!ReferenceEquals(current, context.Packet))

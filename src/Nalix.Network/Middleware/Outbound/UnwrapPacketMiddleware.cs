@@ -49,14 +49,32 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
             {
                 if (needDecrypt)
                 {
-                    current = t.Decrypt(
-                        current,
-                        context.Connection.EncryptionKey,
-                        context.Connection.Encryption);
+                    if (!t.HasDecrypt)
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
+                            $"[{nameof(UnwrapPacketMiddleware)}] No decrypt function for {current.GetType().Name}. " +
+                            $"OpCode={context.Attributes.OpCode}, From={context.Connection.RemoteEndPoint}");
+
+                        _ = await context.Connection.Tcp.SendAsync("Packet decryption not supported.")
+                                                        .ConfigureAwait(false);
+
+                        return;
+                    }
+                    current = t.Decrypt(current, context.Connection.EncryptionKey, context.Connection.Encryption);
                 }
 
                 if (needDecompress)
                 {
+                    if (!t.HasDecompress)
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
+                            $"[{nameof(UnwrapPacketMiddleware)}] No decompress function for {current.GetType().Name}. " +
+                            $"OpCode={context.Attributes.OpCode}, From={context.Connection.RemoteEndPoint}");
+
+                        _ = await context.Connection.Tcp.SendAsync("Packet decompression not supported.")
+                                                        .ConfigureAwait(false);
+                        return;
+                    }
                     current = t.Decompress(current);
                 }
 
