@@ -12,6 +12,8 @@ namespace Nalix.Shared.LZ4.Engine;
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal static class LZ4Decoder
 {
+    #region APIs
+
     /// <summary>
     /// Decompresses the provided compressed data into the specified output buffer.
     /// </summary>
@@ -78,6 +80,10 @@ internal static class LZ4Decoder
         }
         return true;
     }
+
+    #endregion APIs
+
+    #region Private Methods
 
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -207,4 +213,6 @@ internal static class LZ4Decoder
             }
         }
     }
+
+    #endregion Private Methods
 }
