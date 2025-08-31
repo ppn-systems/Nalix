@@ -12,4 +12,5 @@ namespace Nalix.Common.Packets.Models;
 /// <returns>
 /// An <see cref="IPacket"/> instance created from the provided buffer.
 /// </returns>
+[System.Diagnostics.DebuggerDisplay("PacketDeserializer Delegate")]
 public delegate IPacket PacketDeserializer(System.ReadOnlySpan<System.Byte> raw);

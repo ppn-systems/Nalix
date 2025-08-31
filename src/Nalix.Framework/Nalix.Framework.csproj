@@ -7,9 +7,12 @@
 		<IsTrimmable>false</IsTrimmable>
 		<Deterministic>true</Deterministic>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		
-		<Version>4.2.2</Version>
-		<PackageVersion>4.2.2</PackageVersion>
+
+		<!-- Versions -->
+		<Version>4.2.3</Version>
+		<FileVersion>4.2.3.0</FileVersion>
+		<PackageVersion>4.2.3</PackageVersion>
+		<InformationalVersion>4.2.3+$(SourceRevisionId)</InformationalVersion>
 	</PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />

@@ -1,27 +1,41 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   
-  <PropertyGroup>
-    <License>Apache</License>
-    <Platforms>AnyCPU</Platforms>
-    <Authors>PhucNguyen</Authors>
-    <LangVersion>13.0</LangVersion>
-    <ProductName>Nalix® .NET</ProductName>
-    <Deterministic>true</Deterministic>
-    <Copyright>© Nalix Corporation. All rights reserved.</Copyright>
-    <TargetFramework>net9.0</TargetFramework>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/phcnguyen/Nalix</RepositoryUrl>
-  </PropertyGroup>
+	<PropertyGroup>
+		<License>Apache</License>
+		<Platforms>AnyCPU</Platforms>
+		<Authors>PPN Corporation</Authors>
+		<LangVersion>13.0</LangVersion>
+		<ProductName>Nalix® .NET</ProductName>
+		<Deterministic>true</Deterministic>
+		<Copyright>© PPN Corporation. All rights reserved.</Copyright>
+		<TargetFramework>net9.0</TargetFramework>
 
-  <PropertyGroup Label="Assembly Properties">
-    <AssemblyVersion>$(Version)</AssemblyVersion>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>embedded</DebugType>
-    <FileVersion>$(Version)</FileVersion>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NeutralLanguage>en-US</NeutralLanguage>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <ProduceReferenceAssembly>True</ProduceReferenceAssembly>
-  </PropertyGroup>
+		<!-- Repo -->
+		<RepositoryUrl>https://github.com/ppn-systems/Nalix</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+		<!-- Docs/Symbols -->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+		<!-- Build quality -->
+		<Deterministic>true</Deterministic>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+		
+	</PropertyGroup>
+
+	<PropertyGroup Label="Assembly Properties">
+		<AssemblyVersion>$(Version)</AssemblyVersion>
+		<DebugSymbols>true</DebugSymbols>
+		<DebugType>embedded</DebugType>
+		<FileVersion>$(Version)</FileVersion>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<PlatformTarget>AnyCPU</PlatformTarget>
+		<ProduceReferenceAssembly>True</ProduceReferenceAssembly>
+	</PropertyGroup>
   
 </Project>

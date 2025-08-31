@@ -5,9 +5,7 @@
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/phcnguyen/Nalix</PackageProjectUrl>
 
-    <PackageTags>
-      Nalix, .NET 9, library, TCP, networking, security, performance
-    </PackageTags>
+    <PackageTags>Nalix, .NET 9, library, network, security</PackageTags>
 
     <SignAssembly Condition="'$(Configuration)' == 'Release'">true</SignAssembly>
     <AssemblyOriginatorKeyFile Condition="'$(Configuration)' == 'Release'">..\Nalix.snk</AssemblyOriginatorKeyFile>
