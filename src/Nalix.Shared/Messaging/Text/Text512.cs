@@ -6,7 +6,6 @@ using Nalix.Common.Enums;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
-using Nalix.Common.Security.Enums;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Extensions;
@@ -23,8 +22,8 @@ namespace Nalix.Shared.Messaging.Text;
 [MagicNumber(MagicNumbers.Text512)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Text256 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public class Text512 : FrameBase, IPacketTransformer<Text512>
+[System.Diagnostics.DebuggerDisplay("Text512 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+public class Text512 : FrameBase, IPacketDeserializer<Text512>, IPacketCompressor<Text512>
 {
     /// <inheritdoc/>
     public const System.Int32 DynamicSize = 512;
@@ -44,7 +43,7 @@ public class Text512 : FrameBase, IPacketTransformer<Text512>
     public System.String Content { get; set; }
 
     /// <summary>
-    /// Initializes a new <see cref="Text256"/> with empty content.
+    /// Initializes a new <see cref="Text512"/> with empty content.
     /// </summary>
     public Text512()
     {
@@ -53,7 +52,7 @@ public class Text512 : FrameBase, IPacketTransformer<Text512>
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.Null;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)MagicNumbers.Text256;
+        MagicNumber = (System.UInt32)MagicNumbers.Text512;
     }
 
     /// <summary>Initializes the packet with content and transport protocol.</summary>
@@ -73,13 +72,13 @@ public class Text512 : FrameBase, IPacketTransformer<Text512>
     }
 
     /// <summary>
-    /// Deserializes a <see cref="Text256"/> from the specified buffer.
+    /// Deserializes a <see cref="Text512"/> from the specified buffer.
     /// </summary>
     /// <remarks>
     /// <b>Internal infrastructure API.</b> Do not call directly—use the dispatcher/serializer.
     /// </remarks>
     /// <param name="buffer">The source buffer.</param>
-    /// <returns>A pooled <see cref="Text256"/> instance.</returns>
+    /// <returns>A pooled <see cref="Text512"/> instance.</returns>
     public static Text512 Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
         Text512 packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
@@ -92,18 +91,6 @@ public class Text512 : FrameBase, IPacketTransformer<Text512>
                 "Failed to deserialize packet: No bytes were read.")
             : packet;
     }
-
-    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Obsolete("Internal infrastructure API. Encryption is handled by the pipeline.", error: true)]
-    public static Text512 Encrypt(Text512 packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
-        => throw new System.NotImplementedException();
-
-    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Obsolete("Internal infrastructure API. Decryption is handled by the pipeline.", error: true)]
-    public static Text512 Decrypt(Text512 packet, System.Byte[] key, SymmetricAlgorithmType algorithm)
-        => throw new System.NotImplementedException();
 
     /// <summary>
     /// Compresses the packet content (UTF-8 → LZ4 → Base64).
@@ -152,6 +139,6 @@ public class Text512 : FrameBase, IPacketTransformer<Text512>
 
     /// <inheritdoc/>
     public override System.String ToString()
-        => $"Text256(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+        => $"Text512(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
            $"Priority={Priority}, Transport={Transport}, Content={System.Text.Encoding.UTF8.GetByteCount(Content)} bytes)";
 }

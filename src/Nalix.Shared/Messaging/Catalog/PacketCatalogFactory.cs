@@ -79,6 +79,10 @@ public sealed class PacketCatalogFactory
         }
     }
 
+    private static readonly System.Reflection.MethodInfo BindAllPtrsMi = typeof(PacketCatalogFactory).GetMethod(
+        nameof(BindAllPtrsGeneric),
+        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+
     #endregion
 
     #region Fields
@@ -172,20 +176,35 @@ public sealed class PacketCatalogFactory
         // signature must match the actual static method on TPacket. If your methods use
         // 'in ReadOnlySpan<byte>' exactly, it remains ABI-compatible to call with a plain argument.
         public static delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> Deserialize;
+
         public static delegate* managed<TPacket, TPacket> Compress;
         public static delegate* managed<TPacket, TPacket> Decompress;
         public static delegate* managed<TPacket, System.Byte[], SymmetricAlgorithmType, TPacket> Encrypt;
         public static delegate* managed<TPacket, System.Byte[], SymmetricAlgorithmType, TPacket> Decrypt;
 
-        /// <summary>Facade for <see cref="PacketDeserializer"/>.</summary>
+        /// <summary>
+        /// Facade for <see cref="PacketDeserializer"/>.
+        /// </summary>
         public static IPacket DoDeserialize(System.ReadOnlySpan<System.Byte> raw) => Deserialize(raw);
-        /// <summary>Facade for <see cref="PacketTransformer.Compress"/>.</summary>
+
+        /// <summary>
+        /// Facade for <see cref="PacketTransformer.Compress"/>.
+        /// </summary>
         public static IPacket DoCompress(IPacket p) => Compress((TPacket)p);
-        /// <summary>Facade for <see cref="PacketTransformer.Decompress"/>.</summary>
+
+        /// <summary>
+        /// Facade for <see cref="PacketTransformer.Decompress"/>.
+        /// </summary>
         public static IPacket DoDecompress(IPacket p) => Decompress((TPacket)p);
-        /// <summary>Facade for <see cref="PacketTransformer.Encrypt"/>.</summary>
+
+        /// <summary>
+        /// Facade for <see cref="PacketTransformer.Encrypt"/>.
+        /// </summary>
         public static IPacket DoEncrypt(IPacket p, System.Byte[] key, SymmetricAlgorithmType alg) => Encrypt((TPacket)p, key, alg);
-        /// <summary>Facade for <see cref="PacketTransformer.Decrypt"/>.</summary>
+
+        /// <summary>
+        /// Facade for <see cref="PacketTransformer.Decrypt"/>.
+        /// </summary>
         public static IPacket DoDecrypt(IPacket p, System.Byte[] key, SymmetricAlgorithmType alg) => Decrypt((TPacket)p, key, alg);
     }
 
@@ -324,11 +343,40 @@ public sealed class PacketCatalogFactory
             System.Boolean pipelineManaged = type.IsDefined(typeof(PipelineManagedTransformAttribute), inherit: false);
 
             // Locate static abstract implementations on the concrete packet type
-            System.Reflection.MethodInfo? miDeserialize = type.GetMethod(nameof(IPacketTransformer<IPacket>.Deserialize), FLAGS);
-            System.Reflection.MethodInfo? miCompress = type.GetMethod(nameof(IPacketTransformer<IPacket>.Compress), FLAGS);
-            System.Reflection.MethodInfo? miDecompress = type.GetMethod(nameof(IPacketTransformer<IPacket>.Decompress), FLAGS);
-            System.Reflection.MethodInfo? miEncrypt = type.GetMethod(nameof(IPacketTransformer<IPacket>.Encrypt), FLAGS);
-            System.Reflection.MethodInfo? miDecrypt = type.GetMethod(nameof(IPacketTransformer<IPacket>.Decrypt), FLAGS);
+            System.Reflection.MethodInfo? miDeserialize = type.GetMethod(
+                name: nameof(IPacketDeserializer<IPacket>.Deserialize),
+                bindingAttr: FLAGS,
+                binder: null,
+                types: [typeof(System.ReadOnlySpan<System.Byte>)],
+                modifiers: null);
+
+            System.Reflection.MethodInfo? miCompress = type.GetMethod(
+                name: nameof(IPacketCompressor<IPacket>.Compress),
+                bindingAttr: FLAGS,
+                binder: null,
+                types: [type],
+                modifiers: null);
+
+            System.Reflection.MethodInfo? miDecompress = type.GetMethod(
+                name: nameof(IPacketCompressor<IPacket>.Decompress),
+                bindingAttr: FLAGS,
+                binder: null,
+                types: [type],
+                modifiers: null);
+
+            System.Reflection.MethodInfo? miEncrypt = type.GetMethod(
+                name: nameof(IPacketEncryptor<IPacket>.Encrypt),
+                bindingAttr: FLAGS,
+                binder: null,
+                types: [type, typeof(System.Byte[]), typeof(SymmetricAlgorithmType)],
+                modifiers: null);
+
+            System.Reflection.MethodInfo? miDecrypt = type.GetMethod(
+                name: nameof(IPacketEncryptor<IPacket>.Decrypt),
+                bindingAttr: FLAGS,
+                binder: null,
+                types: [type, typeof(System.Byte[]), typeof(SymmetricAlgorithmType)],
+                modifiers: null);
 
             // ---- Deserializer binding (required if magic exists) ----
             if (miDeserialize is not null)
@@ -348,10 +396,7 @@ public sealed class PacketCatalogFactory
                 }
 
                 // Assign Deserialize pointer into Fn<TPacket>
-                _ = typeof(PacketCatalogFactory)
-                    .GetMethod(nameof(BindAllPtrsGeneric), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
-                    .MakeGenericMethod(type)
-                    .Invoke(null, [miDeserialize, null, null, null, null]);
+                _ = BindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [miDeserialize, null, null, null, null]);
 
                 // Build a stable PacketDeserializer that jumps to Fn<T>.Deserialize
                 var tGeneric = typeof(Fn<>).MakeGenericType(type);
@@ -373,38 +418,54 @@ public sealed class PacketCatalogFactory
             if (pipelineManaged)
             {
                 logger?.Debug($"[{nameof(PacketCatalogFactory)}] Pipeline-managed transform, skip transformers: {type.FullName}");
+                transformers[type] = new PacketTransformer(null, null, null, null);
+
                 continue;
             }
 
-            if (miCompress is null || miDecompress is null || miEncrypt is null || miDecrypt is null)
-            {
-                logger?.Warn($"[{nameof(PacketCatalogFactory)}] Missing transformer methods on {type.FullName}. Skipping transformers.");
-                continue;
-            }
+            //if (miCompress is null || miDecompress is null || miEncrypt is null || miDecrypt is null)
+            //{
+            //    logger?.Warn($"[{nameof(PacketCatalogFactory)}] Missing transformer methods on {type.FullName}. Skipping transformers.");
+            //    continue;
+            //}
 
             // Assign all pointers into Fn<TPacket>
-            _ = typeof(PacketCatalogFactory)
-                .GetMethod(nameof(BindAllPtrsGeneric), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
-                .MakeGenericMethod(type)
-                .Invoke(null, [null, miCompress, miDecompress, miEncrypt, miDecrypt]);
+            _ = BindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [null, miCompress, miDecompress, miEncrypt, miDecrypt]);
 
             // Create public-facing delegates once (jump to Fn<T>.DoXXX)
-            var fnType = typeof(Fn<>).MakeGenericType(type);
-            var doCompressMi = fnType.GetMethod(nameof(Fn<IPacket>.DoCompress), FLAGS)!;
-            var doDecompressMi = fnType.GetMethod(nameof(Fn<IPacket>.DoDecompress), FLAGS)!;
-            var doEncryptMi = fnType.GetMethod(nameof(Fn<IPacket>.DoEncrypt), FLAGS)!;
-            var doDecryptMi = fnType.GetMethod(nameof(Fn<IPacket>.DoDecrypt), FLAGS)!;
+            System.Type fnType = typeof(Fn<>).MakeGenericType(type);
 
-            var compressDel = (System.Func<IPacket, IPacket>)
-                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, IPacket>), doCompressMi);
-            var decompressDel = (System.Func<IPacket, IPacket>)
-                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, IPacket>), doDecompressMi);
+            System.Func<IPacket, IPacket>? compressDel = null;
+            System.Func<IPacket, IPacket>? decompressDel = null;
+            System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>? encryptDel = null;
+            System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>? decryptDel = null;
 
-            var encryptDel = (System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>)
+            System.Reflection.MethodInfo doEncryptMi = fnType.GetMethod(nameof(Fn<IPacket>.DoEncrypt), FLAGS)!;
+            System.Reflection.MethodInfo doDecryptMi = fnType.GetMethod(nameof(Fn<IPacket>.DoDecrypt), FLAGS)!;
+            System.Reflection.MethodInfo doCompressMi = fnType.GetMethod(nameof(Fn<IPacket>.DoCompress), FLAGS)!;
+            System.Reflection.MethodInfo doDecompressMi = fnType.GetMethod(nameof(Fn<IPacket>.DoDecompress), FLAGS)!;
+
+            if (miCompress is not null)
+            {
+                compressDel = (System.Func<IPacket, IPacket>)System.Delegate.CreateDelegate(typeof(System.Func<IPacket, IPacket>), doCompressMi);
+            }
+
+            if (miDecompress is not null)
+            {
+                decompressDel = (System.Func<IPacket, IPacket>)System.Delegate.CreateDelegate(typeof(System.Func<IPacket, IPacket>), doDecompressMi);
+            }
+
+            if (miEncrypt is not null)
+            {
+                encryptDel = (System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>)
                 System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>), doEncryptMi);
+            }
 
-            var decryptDel = (System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>)
+            if (miDecrypt is not null)
+            {
+                decryptDel = (System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>)
                 System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], SymmetricAlgorithmType, IPacket>), doDecryptMi);
+            }
 
             transformers[type] = new PacketTransformer(compressDel, decompressDel, encryptDel, decryptDel);
         }
