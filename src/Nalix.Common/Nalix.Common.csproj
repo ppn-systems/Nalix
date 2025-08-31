@@ -1,13 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
+		<!-- Build & Lang -->
 		<IsPackable>true</IsPackable>
 		<OutputType>Library</OutputType>
 		<IsTrimmable>false</IsTrimmable>
 		<Deterministic>true</Deterministic>
 
-		<Version>4.2.2</Version>
-		<PackageVersion>4.2.2</PackageVersion>
+		<!-- Versions -->
+		<Version>4.2.3</Version>
+		<FileVersion>4.2.3.0</FileVersion>
+		<PackageVersion>4.2.3</PackageVersion>
+		<InformationalVersion>4.2.3+$(SourceRevisionId)</InformationalVersion>
 
         <Description>
 Nalix.Common is a foundational .NET library that provides essential utilities for logging, memory management, cryptography, security, exception handling, and system operations. It serves as a core dependency for the Nalix ecosystem, offering reusable and high-performance components to enhance application development.
