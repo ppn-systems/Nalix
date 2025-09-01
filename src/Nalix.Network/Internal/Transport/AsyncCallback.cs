@@ -6,6 +6,8 @@ using Nalix.Common.Networking.Abstractions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
+using Nalix.Network.Connections;
+using Nalix.Network.Internal.Pooled;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
@@ -65,13 +67,10 @@ internal static class AsyncCallback
     // Entries are removed when the counter reaches zero to avoid unbounded growth.
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, System.Int32> s_perIpPending = new();
 
-    // ── Object pool ────────────────────────────────────────────────────────────
-    private static readonly System.Collections.Concurrent.ConcurrentBag<StateWrapper> s_statePool = [];
-
     // ── Static delegates — no closures, no per-invocation allocations ──────────
     private static readonly System.Action<System.Object> s_invokeNormal = static stateObj =>
     {
-        if (stateObj is not StateWrapper w)
+        if (stateObj is not PooledConnectEventContext w)
         {
             return;
         }
@@ -80,19 +79,15 @@ internal static class AsyncCallback
         System.Threading.Interlocked.Decrement(ref s_pendingNormal);
 
         // Decrement per-IP counter; remove key when it hits zero.
-        if (w.RemoteIp is not null)
+        if (w.Args.NetworkEndpoint is not null)
         {
-            s_perIpPending.AddOrUpdate(
-                w.RemoteIp,
-                addValueFactory: static (_, __) => 0,
-                updateValueFactory: static (_, current, __) =>
-                    current > 1 ? current - 1 : 0,
-                factoryArgument: (System.Object)null!);
+            s_perIpPending.AddOrUpdate(w.Args.NetworkEndpoint, addValueFactory: static (_, __) => 0,
+                updateValueFactory: static (_, current, __) => current > 1 ? current - 1 : 0, factoryArgument: (System.Object)null!);
 
             // Clean up zero-valued entries to prevent dictionary growth.
-            if (s_perIpPending.TryGetValue(w.RemoteIp, out System.Int32 v) && v == 0)
+            if (s_perIpPending.TryGetValue(w.Args.NetworkEndpoint, out System.Int32 v) && v == 0)
             {
-                s_perIpPending.TryRemove(new System.Collections.Generic.KeyValuePair<INetworkEndpoint, System.Int32>(w.RemoteIp, 0));
+                s_perIpPending.TryRemove(new System.Collections.Generic.KeyValuePair<INetworkEndpoint, System.Int32>(w.Args.NetworkEndpoint, 0));
             }
         }
 
@@ -101,7 +96,7 @@ internal static class AsyncCallback
 
     private static readonly System.Action<System.Object> s_invokeHigh = static stateObj =>
     {
-        if (stateObj is not StateWrapper w)
+        if (stateObj is not PooledConnectEventContext w)
         {
             return;
         }
@@ -120,10 +115,6 @@ internal static class AsyncCallback
     /// <param name="callback">The event handler to invoke.</param>
     /// <param name="sender">The sender object (typically an <see cref="IConnection"/>).</param>
     /// <param name="args">The event arguments.</param>
-    /// <param name="remoteIp">
-    /// The remote IP string of the connection originating this callback.
-    /// Pass <see langword="null"/> to skip per-IP tracking (e.g. for internal events).
-    /// </param>
     /// <returns><see langword="true"/> if the callback was queued; <see langword="false"/> if dropped.</returns>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -131,8 +122,7 @@ internal static class AsyncCallback
     public static System.Boolean Invoke(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.EventHandler<IConnectEventArgs> callback,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Object sender,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args,
-        [System.Diagnostics.CodeAnalysis.AllowNull] INetworkEndpoint remoteIp = null)
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
     {
         if (callback is null)
         {
@@ -148,25 +138,25 @@ internal static class AsyncCallback
         if (globalPending >= s_opts.MaxPendingNormalCallbacks)
         {
             System.Threading.Interlocked.Increment(ref s_droppedCallbacks);
-            s_logger?.Error($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] global-backpressure pending={globalPending} dropped={s_droppedCallbacks} ip={remoteIp}");
+            s_logger?.Error($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] global-backpressure pending={globalPending} dropped={s_droppedCallbacks} ip={args.NetworkEndpoint}");
             return false;
         }
 
         // ── Per-IP backpressure check ──────────────────────────────────────────
-        if (remoteIp is not null)
+        if (args.NetworkEndpoint is not null)
         {
-            System.Int32 ipPending = s_perIpPending.GetOrAdd(remoteIp, 0);
+            System.Int32 ipPending = s_perIpPending.GetOrAdd(args.NetworkEndpoint, 0);
 
             if (ipPending >= s_opts.MaxPendingPerIp)
             {
                 System.Threading.Interlocked.Increment(ref s_droppedCallbacks);
-                s_logger?.Warn($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={remoteIp} pending={ipPending} max={s_opts.MaxPendingPerIp}");
+                s_logger?.Warn($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={args.NetworkEndpoint} pending={ipPending} max={s_opts.MaxPendingPerIp}");
                 return false;
             }
 
             // Reserve the per-IP slot atomically.
             s_perIpPending.AddOrUpdate(
-                remoteIp,
+                args.NetworkEndpoint,
                 addValueFactory: static (_, __) => 1,
                 updateValueFactory: static (_, current, __) => current + 1,
                 factoryArgument: (System.Object)null!);
@@ -182,7 +172,7 @@ internal static class AsyncCallback
         System.Threading.Interlocked.Increment(ref s_pendingNormal);
         System.Threading.Interlocked.Increment(ref s_totalInvoked);
 
-        return QUEUE(s_invokeNormal, callback, sender, args, remoteIp, isHigh: false);
+        return QUEUE(s_invokeNormal, callback, sender, args, isHigh: false);
     }
 
     /// <summary>
@@ -208,12 +198,11 @@ internal static class AsyncCallback
 
         System.Threading.Interlocked.Increment(ref s_totalInvoked);
 
-        return QUEUE(s_invokeHigh, callback, sender, args, remoteIp: null, isHigh: true);
+        return QUEUE(s_invokeHigh, callback, sender, args, isHigh: true);
     }
 
     /// <summary>Gets diagnostic statistics about callback processing.</summary>
-    public static (System.Int32 PendingNormal, System.Int64 Dropped, System.Int64 Total)
-        GetStatistics()
+    public static (System.Int32 PendingNormal, System.Int64 Dropped, System.Int64 Total) GetStatistics()
         => (System.Threading.Volatile.Read(ref s_pendingNormal),
             System.Threading.Volatile.Read(ref s_droppedCallbacks),
             System.Threading.Volatile.Read(ref s_totalInvoked));
@@ -237,15 +226,10 @@ internal static class AsyncCallback
         System.EventHandler<IConnectEventArgs> callback,
         System.Object sender,
         IConnectEventArgs args,
-        INetworkEndpoint remoteIp,
         System.Boolean isHigh)
     {
-        if (!s_statePool.TryTake(out StateWrapper wrapper))
-        {
-            wrapper = new StateWrapper();
-        }
-
-        wrapper.Set(callback, sender, args, remoteIp);
+        PooledConnectEventContext wrapper = PooledConnectEventContext.Get();
+        wrapper.Initialize(callback, sender, args);
 
         if (!System.Threading.ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal: false))
         {
@@ -254,10 +238,10 @@ internal static class AsyncCallback
             {
                 System.Threading.Interlocked.Decrement(ref s_pendingNormal);
 
-                if (remoteIp is not null)
+                if (args.NetworkEndpoint is not null)
                 {
                     s_perIpPending.AddOrUpdate(
-                        remoteIp,
+                        args.NetworkEndpoint,
                         addValueFactory: static (_, __) => 0,
                         updateValueFactory: static (_, current, __) =>
                             current > 1 ? current - 1 : 0,
@@ -266,13 +250,9 @@ internal static class AsyncCallback
             }
 
             System.Threading.Interlocked.Increment(ref s_droppedCallbacks);
-            s_logger?.Error($"[NW.{nameof(AsyncCallback)}] failed-queue-work-item ip={remoteIp}");
-            wrapper.Clear();
+            s_logger?.Error($"[NW.{nameof(AsyncCallback)}] failed-queue-work-item ip={args.NetworkEndpoint}");
 
-            if (s_statePool.Count < s_opts.MaxPooledCallbackStates)
-            {
-                s_statePool.Add(wrapper);
-            }
+            wrapper.Dispose();
 
             return false;
         }
@@ -282,8 +262,11 @@ internal static class AsyncCallback
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void EXECUTE_AND_RETURN(StateWrapper w)
+    private static void EXECUTE_AND_RETURN(PooledConnectEventContext w)
     {
+#if DEBUG
+        s_logger?.Trace($"[NW.{nameof(AsyncCallback)}:{nameof(EXECUTE_AND_RETURN)}] executing callback ip={w.Args.NetworkEndpoint} sender={w.Sender}");
+#endif
         try
         {
             w.Callback?.Invoke(w.Sender, w.Args);
@@ -294,50 +277,14 @@ internal static class AsyncCallback
         }
         finally
         {
-            w.Clear();
-            if (s_statePool.Count < s_opts.MaxPooledCallbackStates)
+            if (w.Sender is Connection conn)
             {
-                s_statePool.Add(w);
+                conn.ReleasePendingPacket();
             }
+
+            w.Dispose();
         }
     }
 
     #endregion Private Helpers
-
-    #region Nested Types
-
-    [System.Runtime.CompilerServices.SkipLocalsInit]
-    private sealed class StateWrapper
-    {
-        public System.EventHandler<IConnectEventArgs> Callback;
-        public System.Object Sender;
-        public IConnectEventArgs Args;
-        public INetworkEndpoint RemoteIp;
-
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public void Set(
-            System.EventHandler<IConnectEventArgs> callback,
-            System.Object sender,
-            IConnectEventArgs args,
-            INetworkEndpoint remoteIp)
-        {
-            Callback = callback;
-            Sender = sender;
-            Args = args;
-            RemoteIp = remoteIp;
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public void Clear()
-        {
-            Callback = null;
-            Sender = null;
-            Args = null;
-            RemoteIp = null;
-        }
-    }
-
-    #endregion Nested Types
 }
