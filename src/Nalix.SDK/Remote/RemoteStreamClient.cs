@@ -45,7 +45,7 @@ public sealed class RemoteStreamClient : System.IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="RemoteStreamClient"/> class.
     /// </summary>
-    private RemoteStreamClient()
+    public RemoteStreamClient()
     {
         this.Options = ConfigurationManager.Instance.Get<RemoteTransportOptions>();
 
