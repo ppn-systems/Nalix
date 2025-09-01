@@ -54,7 +54,7 @@ public sealed class RemoteDatagramClient
     /// Initializes a new instance of the <see cref="RemoteDatagramClient"/> class.
     /// Automatically binds to a random local port and resolves the remote endpoint from configuration.
     /// </summary>
-    private RemoteDatagramClient()
+    public RemoteDatagramClient()
     {
         Options = ConfigurationManager.Instance.Get<RemoteTransportOptions>();
 

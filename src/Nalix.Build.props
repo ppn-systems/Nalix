@@ -1,37 +1,32 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   
 	<PropertyGroup>
-		<License>Apache</License>
-		<Platforms>AnyCPU</Platforms>
-		<Authors>PPN Corporation</Authors>
-		<LangVersion>13.0</LangVersion>
-		<ProductName>Nalix® .NET</ProductName>
-		<Deterministic>true</Deterministic>
-		<Copyright>© PPN Corporation. All rights reserved.</Copyright>
 		<TargetFramework>net9.0</TargetFramework>
 
-		<!-- Repo -->
+		<!-- Packing -->
+		<IsPackable>true</IsPackable>
+		<OutputType>Library</OutputType>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<Deterministic>true</Deterministic>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+
+		<!-- Package metadata -->
+		<Authors>PPN Corporation</Authors>
+		<Product>Nalix® .NET</Product>
+		<Company>PPN Corporation</Company>
+		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
 		<RepositoryUrl>https://github.com/ppn-systems/Nalix</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
-
-		<!-- Docs/Symbols -->
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<IncludeSymbols>true</IncludeSymbols>
-		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-
-		<!-- Build quality -->
-		<Deterministic>true</Deterministic>
-		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-		
+		<NeutralLanguage>en-US</NeutralLanguage>
 	</PropertyGroup>
 
 	<PropertyGroup Label="Assembly Properties">
 		<AssemblyVersion>$(Version)</AssemblyVersion>
 		<DebugSymbols>true</DebugSymbols>
 		<DebugType>embedded</DebugType>
-		<FileVersion>$(Version)</FileVersion>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<PlatformTarget>AnyCPU</PlatformTarget>
