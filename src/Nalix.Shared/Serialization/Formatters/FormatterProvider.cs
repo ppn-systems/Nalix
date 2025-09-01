@@ -25,6 +25,8 @@ public static class FormatterProvider
 
     #endregion Fields
 
+    #region Constructors
+
     /// <summary>
     /// Initializes the static <see cref="FormatterProvider"/> class by registering formatters.
     /// </summary>
@@ -119,7 +121,7 @@ public static class FormatterProvider
         Register<UInt56?[]>(new NullableArrayFormatter<UInt56>());
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info(
-        "[SH.FormatterProvider] init-ok in {0} ms. Total={1}, Primitives={2}, Nullables={3}, Arrays={4}, NullableArrays={5}, Lists={6}, Enums={7}, Strings={8}",
+        "[SH.FormatterProvider] init-ok in {} ms. Total={}, Primitives={}, Nullables={}, Arrays={}, NullableArrays={}, Lists={}, Enums={}, Strings={}",
         [
             FormatterProvider._sw.ElapsedMilliseconds,
             FormatterProvider._cntTotal,
@@ -132,6 +134,10 @@ public static class FormatterProvider
             FormatterProvider._cntStrings
         ]);
     }
+
+    #endregion Constructors
+
+    #region APIs
 
     /// <summary>
     /// Registers a formatter for the specified type.
@@ -146,8 +152,8 @@ public static class FormatterProvider
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Register<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
         [System.Diagnostics.CodeAnalysis.NotNull] IFormatter<T> formatter)
     {
@@ -169,14 +175,9 @@ public static class FormatterProvider
         if (isArray)
         {
             System.Type elem = ut.GetElementType()!;
-            if (elem.IsGenericType && elem.GetGenericTypeDefinition() == typeof(System.Nullable<>))
-            {
-                _ = System.Threading.Interlocked.Increment(ref _cntNullableArrays);
-            }
-            else
-            {
-                _ = System.Threading.Interlocked.Increment(ref _cntArrays);
-            }
+            _ = elem.IsGenericType && elem.GetGenericTypeDefinition() == typeof(System.Nullable<>)
+                ? System.Threading.Interlocked.Increment(ref _cntNullableArrays)
+                : System.Threading.Interlocked.Increment(ref _cntArrays);
 
             return;
         }
@@ -222,8 +223,8 @@ public static class FormatterProvider
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void RegisterComplex<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
         [System.Diagnostics.CodeAnalysis.NotNull] IFormatter<T> formatter)
     {
@@ -257,8 +258,8 @@ public static class FormatterProvider
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static IFormatter<T> Get<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         // Fast path: cached
@@ -333,8 +334,8 @@ public static class FormatterProvider
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static IFormatter<T> GetComplex<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         IFormatter<T> formatter;
@@ -381,6 +382,8 @@ public static class FormatterProvider
         throw new System.InvalidOperationException($"No formatter registered for type {typeof(T)}.");
     }
 
+    #endregion APIs
+
     #region Private Methods
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -395,8 +398,8 @@ public static class FormatterProvider
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static EnumFormatter<T>? TryCreateEnumFormatter<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         if (typeof(T).IsEnum)
@@ -415,8 +418,8 @@ public static class FormatterProvider
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T>? TryCreateArrayFormatter<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         System.Type type = typeof(T);
@@ -460,8 +463,8 @@ public static class FormatterProvider
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T>? TryCreateListFormatter<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         System.Type t = typeof(T);
