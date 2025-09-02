@@ -224,22 +224,18 @@ public static class EnvelopeCipher
             case CipherSuiteType.CHACHA20:
                 {
                     // Assume SymmetricEngine.Encrypt uses an out parameter for written
-                    SymmetricEngine.Encrypt(key, plaintext, ciphertext, nonce, seq, algorithm, out written);
-                    break;
+                    return SymmetricEngine.Encrypt(key, plaintext, ciphertext, nonce, seq, algorithm, out written);
                 }
 
             case CipherSuiteType.SALSA20_POLY1305:
             case CipherSuiteType.CHACHA20_POLY1305:
                 {
-                    AeadEngine.Encrypt(key, plaintext, ciphertext, nonce, aad, seq, algorithm, out written);
-                    break;
+                    return AeadEngine.Encrypt(key, plaintext, ciphertext, nonce, aad, seq, algorithm, out written);
                 }
 
             default:
                 throw new System.ArgumentException("Unsupported cipher type", nameof(algorithm));
         }
-
-        return true;
     }
 
     /// <summary>
