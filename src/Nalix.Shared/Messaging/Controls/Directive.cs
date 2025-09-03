@@ -35,35 +35,51 @@ public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IP
         + sizeof(System.UInt32)     // Arg1
         + sizeof(System.UInt16);    // Arg2
 
-    /// <summary>Round-trip correlation to the triggering request.</summary>
+    /// <summary>
+    /// Round-trip correlation to the triggering request.
+    /// </summary>
     [SerializeOrder(PacketHeaderOffset.DataRegion + 0)]
     public System.UInt32 SequenceId { get; set; }
 
-    /// <summary>Directive type (shared ControlType). Example: NACK, THROTTLE, REDIRECT, NOTICE.</summary>
+    /// <summary>
+    /// Directive type (shared ControlType). Example: NACK, THROTTLE, REDIRECT, NOTICE.
+    /// </summary>
     [SerializeOrder(PacketHeaderOffset.DataRegion + 1)]
     public ControlType Type { get; set; }
 
-    /// <summary>Reason taxonomy explaining why this directive is sent.</summary>
+    /// <summary>
+    /// Reason taxonomy explaining why this directive is sent.
+    /// </summary>
     [SerializeOrder(PacketHeaderOffset.DataRegion + 2)]
     public ReasonCode Reason { get; set; }
 
-    /// <summary>Suggested client action for this reason.</summary>
+    /// <summary>
+    /// Suggested client action for this reason.
+    /// </summary>
     [SerializeOrder(PacketHeaderOffset.DataRegion + 3)]
     public SuggestedAction Action { get; set; }
 
-    /// <summary>Fast-path decision flags (see <see cref="ControlFlags"/>).</summary>
+    /// <summary>
+    /// Fast-path decision flags (see <see cref="ControlFlags"/>).
+    /// </summary>
     [SerializeOrder(PacketHeaderOffset.DataRegion + 4)]
     public ControlFlags Control { get; set; }
 
-    /// <summary>Multi-purpose argument #0. Ex: RetryAfterSteps (100ms units) or RedirectHostHash.</summary>
+    /// <summary>
+    /// Multi-purpose argument #0. Ex: RetryAfterSteps (100ms units) or RedirectHostHash.
+    /// </summary>
     [SerializeOrder(PacketHeaderOffset.DataRegion + 5)]
     public System.UInt32 Arg0 { get; set; }
 
-    /// <summary>Multi-purpose argument #1. Ex: DetailId (client i18n) or ResourceIdHash.</summary>
+    /// <summary>
+    /// Multi-purpose argument #1. Ex: DetailId (client i18n) or ResourceIdHash.
+    /// </summary>
     [SerializeOrder(PacketHeaderOffset.DataRegion + 6)]
     public System.UInt32 Arg1 { get; set; }
 
-    /// <summary>Multi-purpose argument #2. Ex: RedirectPort or credit/window size.</summary>
+    /// <summary>
+    /// Multi-purpose argument #2. Ex: RedirectPort or credit/window size.
+    /// </summary>
     [SerializeOrder(PacketHeaderOffset.DataRegion + 7)]
     public System.UInt16 Arg2 { get; set; }
 
@@ -102,7 +118,9 @@ public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IP
         Transport = TransportProtocol.TCP;
     }
 
-    /// <summary>Deserialize from the given buffer using the common serializer.</summary>
+    /// <summary>
+    /// Deserialize from the given buffer using the common serializer.
+    /// </summary>
     public static Directive Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
         var pkt = InstanceManager.Instance

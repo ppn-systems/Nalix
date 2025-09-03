@@ -35,10 +35,17 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
 
             if (completed == delay)
             {
+                System.UInt32 sequenceId = 0;
+                if (context.Packet is IPacketSequenced s)
+                {
+                    sequenceId = s.SequenceId;
+                }
+
                 await context.Connection.SendAsync(
                     ControlType.TIMEOUT,
                     ReasonCode.TIMEOUT,
                     SuggestedAction.RETRY,
+                    sequenceId: sequenceId,
                     flags: ControlFlags.IS_TRANSIENT,
                     // encode as steps of 100ms
                     arg0: (System.UInt32)(timeout / 100), arg1: 0, arg2: 0).ConfigureAwait(false);

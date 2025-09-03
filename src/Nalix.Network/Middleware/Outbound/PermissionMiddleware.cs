@@ -28,10 +28,17 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         if (context.Attributes.Permission is not null &&
             context.Attributes.Permission.Level > context.Connection.Level)
         {
+            System.UInt32 sequenceId = 0;
+            if (context.Packet is IPacketSequenced s)
+            {
+                sequenceId = s.SequenceId;
+            }
+
             await context.Connection.SendAsync(
                 controlType: ControlType.FAIL,
                 reason: ReasonCode.UNAUTHENTICATED,
                 action: SuggestedAction.NONE,
+                sequenceId: sequenceId,
                 flags: ControlFlags.NONE,
                 arg0: (System.Byte)context.Attributes.Permission.Level,
                 arg1: (System.Byte)context.Connection.Level,
