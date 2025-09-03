@@ -24,7 +24,7 @@ public sealed class Binary256Tests
     [Fact]
     public void Initialize_With_200_Bytes_Throws_Because_Base_Still_128()
     {
-        var pkt = new Binary256();
+        var pkt = new Binary128();
         var data = new Byte[200];
 
         // EXPECTED: throws, since Binary128.Initialize checks against 128
