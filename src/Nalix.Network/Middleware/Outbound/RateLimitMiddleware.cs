@@ -50,10 +50,17 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 
         if (!decision.Allowed)
         {
+            System.UInt32 sequenceId = 0;
+            if (context.Packet is IPacketSequenced s)
+            {
+                sequenceId = s.SequenceId;
+            }
+
             await context.Connection.SendAsync(
                 ControlType.THROTTLE,
                 ReasonCode.RATE_LIMITED,
                 SuggestedAction.BACKOFF_RETRY,
+                sequenceId: sequenceId,
                 flags: ControlFlags.SLOW_DOWN | ControlFlags.IS_TRANSIENT,
                 arg0: (System.UInt32)System.Math.Max(0, (decision.RetryAfterMs + 99) / 100), // steps of 100ms
                 arg1: 0, arg2: decision.Credit).ConfigureAwait(false);

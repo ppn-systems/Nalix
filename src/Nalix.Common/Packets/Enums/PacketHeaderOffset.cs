@@ -49,7 +49,7 @@ public enum PacketHeaderOffset : System.Byte
     /// Represents the end offset of the packet header fields in the serialized data.
     /// This value is equal to the offset of the last field and can be used to determine the total header size.
     /// </summary>
-    DataRegion = Transport + +sizeof(System.Byte),
+    DataRegion = Transport + sizeof(System.Byte),
 
     /// <inheritdoc/>
     Data_1 = DataRegion + sizeof(System.Byte),

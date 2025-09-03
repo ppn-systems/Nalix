@@ -36,6 +36,12 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
+        System.UInt32 sequenceId = 0;
+        if (context.Packet is IPacketSequenced s)
+        {
+            sequenceId = s.SequenceId;
+        }
+
         try
         {
             PacketCatalog? catalog = InstanceManager.Instance.GetExistingInstance<PacketCatalog>();
@@ -49,6 +55,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                     ControlType.FAIL,
                     ReasonCode.INTERNAL_ERROR,
                     SuggestedAction.NONE,
+                    sequenceId: sequenceId,
                     flags: ControlFlags.NONE,
                     arg0: context.Attributes.OpCode.OpCode,
                     arg1: (System.Byte)current.Flags,
@@ -63,6 +70,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                     ControlType.FAIL,
                     ReasonCode.UNSUPPORTED_PACKET,
                     SuggestedAction.NONE,
+                    sequenceId: sequenceId,
                     flags: ControlFlags.NONE,
                     arg0: context.Attributes.OpCode.OpCode,
                     arg1: (System.Byte)current.Flags,
@@ -83,6 +91,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                         ControlType.FAIL,
                         ReasonCode.CRYPTO_UNSUPPORTED,
                         SuggestedAction.NONE,
+                        sequenceId: sequenceId,
                         flags: ControlFlags.NONE,
                         arg0: context.Attributes.OpCode.OpCode,
                         arg1: (System.Byte)current.Flags,
@@ -105,6 +114,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                         ControlType.FAIL,
                         ReasonCode.COMPRESSION_UNSUPPORTED,
                         SuggestedAction.NONE,
+                        sequenceId: sequenceId,
                         flags: ControlFlags.NONE,
                         arg0: context.Attributes.OpCode.OpCode,
                         arg1: (System.UInt32)current.Flags,
@@ -130,6 +140,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                 ControlType.FAIL,
                 ReasonCode.TRANSFORM_FAILED,
                 SuggestedAction.RETRY,
+                sequenceId: sequenceId,
                 flags: ControlFlags.IS_TRANSIENT,
                 arg0: context.Attributes.OpCode.OpCode,
                 arg1: (System.Byte)current.Flags,

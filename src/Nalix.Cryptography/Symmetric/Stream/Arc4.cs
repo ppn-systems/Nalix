@@ -6,6 +6,7 @@ namespace Nalix.Cryptography.Symmetric.Stream;
 /// Implements the ARC4 (Alleged RC4) symmetric stream cipher.
 /// <para><b>WARNING</b>: ARC4 is considered cryptographically weak. Prefer ChaCha20 or AES-GCM for new code.</para>
 /// </summary>
+[System.Obsolete("ARC4 is considered cryptographically weak. Prefer ChaCha20 or AES-GCM for new code.", false)]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 public sealed class Arc4 : System.IDisposable
 {
@@ -194,13 +195,13 @@ public sealed class Arc4 : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void Initialize(System.ReadOnlySpan<System.Byte> key)
     {
-        // Initialize S
+        // 1) Init S
         for (System.Int32 k = 0; k < PermutationSize; k++)
         {
             _s[k] = (System.Byte)k;
         }
 
-        // Key Scheduling Algorithm (KSA) without '%' on every iteration
+        // 2) KSA
         System.Byte j = 0;
         System.Int32 keyLen = key.Length;
         System.Int32 keyIndex = 0;
@@ -220,13 +221,16 @@ public sealed class Arc4 : System.IDisposable
         _i = 0;
         _j = 0;
 
-        // Drop weak initial keystream bytes
+        // 3) RC4-drop[n] — burn keystream WITHOUT calling Process()
         if (WeakKeyMitigationBytes > 0)
         {
-            System.Span<System.Byte> dummy = stackalloc System.Byte[WeakKeyMitigationBytes];
-            Process(dummy);
+            for (System.Int32 n = 0; n < WeakKeyMitigationBytes; n++)
+            {
+                _ = NextKeystreamByte();
+            }
         }
 
+        // 4) Mark ready
         _initialized = true;
     }
 

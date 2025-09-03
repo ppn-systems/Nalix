@@ -1,12 +1,10 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection.Protocols;
+using Nalix.Common.Packets.Abstractions;
 using Nalix.Network.Connection;
 using Nalix.Network.Dispatch.Delegates;
 using Nalix.Network.Dispatch.Results;
-using System;
-using System.IO;
-using System.Net.Sockets;
 
 namespace Nalix.Network.Dispatch.Options;
 
@@ -59,10 +57,17 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         var (reason, action, flags) = ClassifyException(exception);
 
+        System.UInt32 sequenceId = 0;
+        if (context.Packet is IPacketSequenced s)
+        {
+            sequenceId = s.SequenceId;
+        }
+
         await context.Connection.SendAsync(
               controlType: ControlType.FAIL,
               reason: reason,
               action: action,
+              sequenceId: sequenceId,
               flags: flags,
               arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
     }
@@ -76,28 +81,28 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// Map exception types to ReasonCode/SuggestedAction/ControlFlags.
     /// Adjust mappings to match your enum set.
     /// </summary>
-    private static (ReasonCode reason, SuggestedAction action, ControlFlags flags) ClassifyException(Exception ex)
+    private static (ReasonCode reason, SuggestedAction action, ControlFlags flags) ClassifyException(System.Exception ex)
     {
         // Timeouts / cancellations -> transient, client can retry
-        if (ex is OperationCanceledException or TimeoutException)
+        if (ex is System.OperationCanceledException or System.TimeoutException)
         {
             return (ReasonCode.TIMEOUT, SuggestedAction.RETRY, ControlFlags.IS_TRANSIENT);
         }
 
         // Validation / bad input -> client should fix
-        if (ex is ArgumentException || ex.GetType().Name.Contains("Validation", StringComparison.OrdinalIgnoreCase))
+        if (ex is System.ArgumentException || ex.GetType().Name.Contains("Validation", System.StringComparison.OrdinalIgnoreCase))
         {
             return (ReasonCode.REQUEST_INVALID, SuggestedAction.FIX_AND_RETRY, ControlFlags.NONE);
         }
 
         // Unsupported features at runtime
-        if (ex is NotSupportedException)
+        if (ex is System.NotSupportedException)
         {
             return (ReasonCode.OPERATION_UNSUPPORTED, SuggestedAction.NONE, ControlFlags.NONE);
         }
 
         // I/O / network glitches -> transient
-        if (ex is IOException or SocketException)
+        if (ex is System.IO.IOException or System.Net.Sockets.SocketException)
         {
             return (ReasonCode.NETWORK_ERROR, SuggestedAction.RETRY, ControlFlags.IS_TRANSIENT);
         }
