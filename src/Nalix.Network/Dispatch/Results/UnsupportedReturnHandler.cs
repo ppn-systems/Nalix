@@ -28,7 +28,6 @@ internal sealed class UnsupportedReturnHandler<TPacket>(System.Type returnType) 
                 $"Result will not be processed, but stored in context properties.");
         }
 
-        context.SetProperty("UnsupportedReturnType", returnType.Name);
         return System.Threading.Tasks.ValueTask.CompletedTask;
     }
 }
