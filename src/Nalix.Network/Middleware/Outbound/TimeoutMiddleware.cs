@@ -1,9 +1,11 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Attributes;
 using Nalix.Common.Packets.Enums;
 using Nalix.Network.Abstractions;
+using Nalix.Network.Connection;
 using Nalix.Network.Dispatch;
 
 namespace Nalix.Network.Middleware.Outbound;
@@ -33,8 +35,13 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
 
             if (completed == delay)
             {
-                _ = await context.Connection.Tcp.SendAsync($"Request timeout ({timeout}ms).")
-                                                .ConfigureAwait(false);
+                await context.Connection.SendAsync(
+                    ControlType.TIMEOUT,
+                    ReasonCode.TIMEOUT,
+                    SuggestedAction.RETRY,
+                    flags: ControlFlags.IS_TRANSIENT,
+                    // encode as steps of 100ms
+                    arg0: (System.UInt32)(timeout / 100), arg1: 0, arg2: 0).ConfigureAwait(false);
             }
             else
             {

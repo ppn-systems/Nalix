@@ -1,14 +1,18 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
+using Nalix.Common.Connection.Protocols;
 using Nalix.Network.Throttling;
+using Nalix.Shared.Injection;
+using Nalix.Shared.Memory.Pooling;
+using Nalix.Shared.Messaging.Controls;
 
 namespace Nalix.Network.Connection;
 
 /// <summary>
 /// Provides extension methods for the <see cref="IConnection"/> interface to support connection management operations.
 /// </summary>
-internal static class ConnectionExtensions
+public static class ConnectionExtensions
 {
     /// <summary>
     /// Registers a callback to enforce a connection limiter when the specified connection is closed.
@@ -58,5 +62,54 @@ internal static class ConnectionExtensions
                 ?? throw new System.InvalidOperationException($"Unable to resolve IP address for host {dnsEndPoint.Host}"),
             _ => throw new System.ArgumentException($"EndPoint type not supported: {endPoint.GetType()}")
         };
+    }
+
+
+    /// <summary>
+    /// Sends a control directive asynchronously over the connection.
+    /// </summary>
+    /// <param name="connection">The connection to send the directive on.</param>
+    /// <param name="controlType">The type of control message to send.</param>
+    /// <param name="reason">The reason code associated with the control message.</param>
+    /// <param name="action">The suggested action for the recipient.</param>
+    /// <param name="flags">Optional control flags to include with the message.</param>
+    /// <param name="arg0">Optional argument 0 for the directive (default is 0).</param>
+    /// <param name="arg1">Optional argument 1 for the directive (default is 0).</param>
+    /// <param name="arg2">Optional argument 2 for the directive (default is 0).</param>
+    /// <returns>A task representing the asynchronous send operation.</returns>
+    public static async System.Threading.Tasks.Task SendAsync(
+        this IConnection connection,
+        ControlType controlType,
+        ReasonCode reason,
+        SuggestedAction action,
+        ControlFlags flags = ControlFlags.NONE,
+        System.UInt32 arg0 = 0,
+        System.UInt32 arg1 = 0,
+        System.UInt16 arg2 = 0)
+    {
+        ObjectPoolManager pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        Directive pkt = pool.Get<Directive>();
+        System.Byte[] payload = [];
+
+        try
+        {
+            pkt.Initialize(
+                controlType,
+                reason,
+                action,
+                sequenceId: 0,
+                flags: flags,
+                arg0: arg0,
+                arg1: arg1,
+                arg2: arg2);
+
+            payload = pkt.Serialize();
+        }
+        finally
+        {
+            pool.Return(pkt);
+        }
+
+        _ = await connection.Tcp.SendAsync(payload).ConfigureAwait(false);
     }
 }

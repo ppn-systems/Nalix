@@ -1,11 +1,13 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Attributes;
 using Nalix.Common.Packets.Enums;
 using Nalix.Common.Packets.Models;
 using Nalix.Network.Abstractions;
+using Nalix.Network.Connection;
 using Nalix.Network.Dispatch;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Messaging.Catalog;
@@ -42,51 +44,80 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"[{nameof(UnwrapPacketMiddleware)}] Missing PacketCatalog." +
                                                $"OpCode={context.Attributes.OpCode}, From={context.Connection.RemoteEndPoint}");
+
+                await context.Connection.SendAsync(
+                    ControlType.FAIL,
+                    ReasonCode.CANCELLED,
+                    SuggestedAction.NONE,
+                    flags: ControlFlags.NONE,
+                    arg0: context.Attributes.OpCode.OpCode,
+                    arg1: (System.Byte)current.Flags,
+                    arg2: 0).ConfigureAwait(false);
+
                 return;
             }
 
-            if (catalog.TryGetTransformer(current.GetType(), out PacketTransformer t))
+            if (!catalog.TryGetTransformer(current.GetType(), out PacketTransformer t))
             {
-                if (needDecrypt)
-                {
-                    if (!t.HasDecrypt)
-                    {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
-                            $"[{nameof(UnwrapPacketMiddleware)}] No decrypt function for {current.GetType().Name}. " +
-                            $"OpCode={context.Attributes.OpCode}, From={context.Connection.RemoteEndPoint}");
+                await context.Connection.SendAsync(
+                    ControlType.FAIL,
+                    ReasonCode.UNSUPPORTED_PACKET,
+                    SuggestedAction.NONE,
+                    flags: ControlFlags.NONE,
+                    arg0: context.Attributes.OpCode.OpCode,
+                    arg1: (System.Byte)current.Flags,
+                    arg2: 0).ConfigureAwait(false);
 
-                        _ = await context.Connection.Tcp.SendAsync("Packet decryption not supported.")
-                                                        .ConfigureAwait(false);
-
-                        return;
-                    }
-                    current = t.Decrypt(current, context.Connection.EncryptionKey, context.Connection.Encryption);
-                }
-
-                if (needDecompress)
-                {
-                    if (!t.HasDecompress)
-                    {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
-                            $"[{nameof(UnwrapPacketMiddleware)}] No decompress function for {current.GetType().Name}. " +
-                            $"OpCode={context.Attributes.OpCode}, From={context.Connection.RemoteEndPoint}");
-
-                        _ = await context.Connection.Tcp.SendAsync("Packet decompression not supported.")
-                                                        .ConfigureAwait(false);
-                        return;
-                    }
-                    current = t.Decompress(current);
-                }
-
-                if (!ReferenceEquals(current, context.Packet))
-                {
-                    context.SetPacket(current);
-                }
+                return;
             }
-            else
+
+            if (needDecrypt)
             {
-                _ = await context.Connection.Tcp.SendAsync("Unsupported packet type for decryption/decompression.")
-                                                .ConfigureAwait(false);
+                if (!t.HasDecrypt)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
+                        $"[{nameof(UnwrapPacketMiddleware)}] No decrypt function for {current.GetType().Name}. " +
+                        $"OpCode={context.Attributes.OpCode}, From={context.Connection.RemoteEndPoint}");
+
+                    await context.Connection.SendAsync(
+                        ControlType.FAIL,
+                        ReasonCode.CRYPTO_UNSUPPORTED,
+                        SuggestedAction.NONE,
+                        flags: ControlFlags.NONE,
+                        arg0: context.Attributes.OpCode.OpCode,
+                        arg1: (System.Byte)current.Flags,
+                        arg2: 0).ConfigureAwait(false);
+
+                    return;
+                }
+                current = t.Decrypt(current, context.Connection.EncryptionKey, context.Connection.Encryption);
+            }
+
+            if (needDecompress)
+            {
+                if (!t.HasDecompress)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
+                        $"[{nameof(UnwrapPacketMiddleware)}] No decompress function for {current.GetType().Name}. " +
+                        $"OpCode={context.Attributes.OpCode}, From={context.Connection.RemoteEndPoint}");
+
+                    await context.Connection.SendAsync(
+                        ControlType.FAIL,
+                        ReasonCode.COMPRESSION_UNSUPPORTED,
+                        SuggestedAction.NONE,
+                        flags: ControlFlags.NONE,
+                        arg0: context.Attributes.OpCode.OpCode,
+                        arg1: (System.UInt32)current.Flags,
+                        arg2: 0).ConfigureAwait(false);
+
+                    return;
+                }
+                current = t.Decompress(current);
+            }
+
+            if (!ReferenceEquals(current, context.Packet))
+            {
+                context.SetPacket(current);
             }
         }
         catch (System.Exception ex)
@@ -95,8 +126,14 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                 $"[{nameof(UnwrapPacketMiddleware)}] No transformer found for {current.GetType().Name}. " +
                 $"OpCode={context.Attributes.OpCode}, From={context.Connection.RemoteEndPoint}, ERROR={ex}");
 
-            _ = await context.Connection.Tcp.SendAsync("Packet transform failed.")
-                                            .ConfigureAwait(false);
+            await context.Connection.SendAsync(
+                ControlType.FAIL,
+                ReasonCode.TRANSFORM_FAILED,
+                SuggestedAction.RETRY,
+                flags: ControlFlags.IS_TRANSIENT,
+                arg0: context.Attributes.OpCode.OpCode,
+                arg1: (System.Byte)current.Flags,
+                arg2: 0).ConfigureAwait(false);
         }
 
         await next();
