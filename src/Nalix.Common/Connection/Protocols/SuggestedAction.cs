@@ -39,5 +39,10 @@ public enum SuggestedAction : System.Byte
     /// <summary>
     /// Reconnect or switch transport/route.
     /// </summary>
-    RECONNECT = 6
+    RECONNECT = 6,
+
+    /// <summary>
+    /// Fix the issue and retry the operation.
+    /// </summary>
+    FIX_AND_RETRY = 7,
 }

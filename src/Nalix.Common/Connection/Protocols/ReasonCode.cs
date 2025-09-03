@@ -41,6 +41,16 @@ public enum ReasonCode : System.UInt16
     /// </summary>
     DEPRECATED = 5,
 
+    /// <summary>
+    /// Request is malformed or invalid.
+    /// </summary>
+    REQUEST_INVALID = 6,
+
+    /// <summary>
+    /// Internal server error.
+    /// </summary>
+    INTERNAL_ERROR = 7,
+
     #endregion
 
     #region 100–149: Transport / Network
@@ -148,6 +158,11 @@ public enum ReasonCode : System.UInt16
     /// Compression algorithm not supported.
     /// </summary>
     COMPRESSION_UNSUPPORTED = 159,
+
+    /// <summary>
+    /// Represents the error code for an unsupported operation.
+    /// </summary>
+    OPERATION_UNSUPPORTED = 160,
 
     #endregion
 
