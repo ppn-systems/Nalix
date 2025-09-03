@@ -1,4 +1,6 @@
-﻿namespace Nalix.Common.Packets.Abstractions;
+﻿using Nalix.Common.Connection.Protocols;
+
+namespace Nalix.Common.Packets.Abstractions;
 
 /// <summary>
 /// Defines a contract for packets that carry a reason code, 
@@ -9,5 +11,5 @@ public interface IPacketReasoned
     /// <summary>
     /// Gets the reason code that explains the purpose or error for this packet.
     /// </summary>
-    System.UInt16 ReasonCode { get; }
+    ReasonCode Reason { get; }
 }
