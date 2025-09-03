@@ -175,5 +175,39 @@ public class LiteSerializer_ClassTest
         Assert.Equal(original.Length, deserialized.Length);
         Assert.Equal(original.OpCode, deserialized.OpCode);
         Assert.Equal(original.Data, deserialized.Data);
+
+        //        Serialized Bytes: 01 - 03 - 00 - 00 - FF - 80
+        //MN: 769 - 40963
+        //OP: 33023 - 127
+        //OP: 0 - 127
     }
+
+    [Fact]
+    public void Binary128_Debug_MagicNumber()
+    {
+        var original = new Binary128
+        {
+            OpCode = 127,
+            Data = new Byte[] { 0, 255, 128 }
+        };
+
+        // Debug ngay sau khi tạo object
+        System.Diagnostics.Debug.WriteLine($"[INIT] MagicNumber = 0x{original.MagicNumber:X}");
+
+        var bytes = LiteSerializer.Serialize(original);
+
+        // Debug sau khi serialize
+        System.Diagnostics.Debug.WriteLine($"[SERIALIZED] Bytes: {BitConverter.ToString(bytes)}");
+        System.Diagnostics.Debug.WriteLine($"[SERIALIZED] Magic (LE) = 0x{bytes.ReadMagicNumberLE():X}");
+        System.Diagnostics.Debug.WriteLine($"[SERIALIZED] OpCode (LE) = {bytes.ReadOpCodeLE()}");
+
+        Binary128 deserialized = null!;
+        _ = LiteSerializer.Deserialize(bytes, ref deserialized);
+
+        // Debug sau khi deserialize
+        System.Diagnostics.Debug.WriteLine($"[DESERIALIZED] MagicNumber = 0x{deserialized.MagicNumber:X}");
+        System.Diagnostics.Debug.WriteLine($"[DESERIALIZED] OpCode = {deserialized.OpCode}");
+    }
+
+
 }

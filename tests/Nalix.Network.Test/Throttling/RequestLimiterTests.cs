@@ -14,11 +14,11 @@ public sealed class RequestLimiterTests
     [Fact]
     public void Ctor_ShouldThrow_ForInvalidConfiguration()
     {
-        var invalid = new RateLimitOptions
+        var invalid = new TokenBucketOptions
         {
-            MaxAllowedRequests = 0, // invalid
-            TimeWindowInMilliseconds = 1000,
-            LockoutDurationSeconds = 1
+            CapacityTokens = 0,
+            RefillTokensPerSecond = 1000,
+            HardLockoutSeconds = 1
         };
 
         _ = Assert.Throws<InternalErrorException>(() => new RequestLimiter(invalid));
@@ -27,14 +27,14 @@ public sealed class RequestLimiterTests
     [Fact]
     public async Task CheckLimitAsync_ShouldThrow_ForNullOrWhitespaceEndpoint()
     {
-        var valid = new RateLimitOptions
+        var valid = new TokenBucketOptions
         {
-            MaxAllowedRequests = 10,
-            TimeWindowInMilliseconds = 1000,
-            LockoutDurationSeconds = 1
+            CapacityTokens = 10,
+            RefillTokensPerSecond = 1000,
+            HardLockoutSeconds = 1
         };
 
         var limiter = new RequestLimiter(valid);
-        _ = await Assert.ThrowsAsync<InternalErrorException>(() => limiter.CheckLimitAsync("   ").AsTask());
+        _ = await Assert.ThrowsAsync<InternalErrorException>(() => limiter.CheckAsync("   ").AsTask());
     }
 }

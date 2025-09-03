@@ -27,5 +27,5 @@ public class SerializeOrderAttribute : System.Attribute
     /// Initializes a new instance of the <see cref="SerializeOrderAttribute"/> class using an enum value for serialization order.
     /// </summary>
     /// <param name="position">The enum value that defines the order of serialization.</param>
-    public SerializeOrderAttribute(PacketHeaderOffset position) : this((System.Byte)position) { }
+    public SerializeOrderAttribute(PacketHeaderOffset position) : this((System.Int32)position) { }
 }

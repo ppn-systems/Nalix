@@ -40,11 +40,12 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public unsafe void Serialize(ref DataWriter writer, T value)
     {
+        System.Diagnostics.Debug.WriteLine($"[{typeof(T)}] Before write: WrittenCount={writer.WrittenCount}, Value={value:X}");
         System.Int32 size = TypeMetadata.SizeOf<T>();
 
         // Pin the span to get a pointer and write unaligned
-        ref System.Byte dest = ref writer.GetFreeBufferReference();
-        System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref dest, value);
+        System.Span<System.Byte> span = writer.FreeBuffer[..size];
+        System.Runtime.InteropServices.MemoryMarshal.Write(span, in value);
 
         writer.Advance(size);
     }
