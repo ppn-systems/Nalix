@@ -40,7 +40,9 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public unsafe void Serialize(ref DataWriter writer, T value)
     {
+#if DEBUG
         System.Diagnostics.Debug.WriteLine($"[{typeof(T)}] Before write: WrittenCount={writer.WrittenCount}, Value={value:X}");
+#endif
         System.Int32 size = TypeMetadata.SizeOf<T>();
 
         // Pin the span to get a pointer and write unaligned
