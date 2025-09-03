@@ -296,7 +296,7 @@ public sealed class BufferPoolManager : System.IDisposable
             {
                 throw new System.ArgumentException(
                     $"[{nameof(BufferPoolManager)}] The input string is malformed or contains invalid values. " +
-                    $"Expected format: '<size>,<ratio>;<size>,<ratio>' (e.g., '1024,0.40;2048,0.60'). Error: {ex.Message}");
+                    $"Expected format: '<size>,<ratio>;<size>,<ratio>' (e.g., '1024,0.40;2048,0.60'). ERROR: {ex.Message}");
             }
         });
     }

@@ -2,7 +2,7 @@
 
 /// <summary>
 /// Defines a contract for packets that are sequence-aware, 
-/// typically used for request/response correlation (e.g., Ping/Pong, Ack/Nack).
+/// typically used for request/response correlation (e.g., PING/PONG, ACK/NACK).
 /// </summary>
 public interface IPacketSequenced
 {

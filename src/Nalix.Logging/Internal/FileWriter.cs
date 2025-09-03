@@ -163,7 +163,7 @@ internal sealed class FileWriter : System.IDisposable
             catch (System.Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine(
-                    $"Error closing log file: {ex.Message}");
+                    $"ERROR closing log file: {ex.Message}");
             }
             finally
             {
@@ -214,7 +214,7 @@ internal sealed class FileWriter : System.IDisposable
         catch (System.Exception ex)
         {
             System.Diagnostics.Debug.WriteLine(
-                $"Error creating log directory: {ex.Message}");
+                $"ERROR creating log directory: {ex.Message}");
 
             // Try to use a fallback directory in case of permission issues
             try
@@ -256,7 +256,7 @@ internal sealed class FileWriter : System.IDisposable
             catch (System.Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine(
-                    $"Error applying custom file name formatter: {ex.Message}");
+                    $"ERROR applying custom file name formatter: {ex.Message}");
             }
         }
         // Otherwise apply the default date-based naming

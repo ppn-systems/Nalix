@@ -81,7 +81,7 @@ public static unsafe class SpanOps
             }
         }
 
-        value = -1; // Error: reached end without termination
+        value = -1; // ERROR: reached end without termination
         return bytesRead;
     }
 }

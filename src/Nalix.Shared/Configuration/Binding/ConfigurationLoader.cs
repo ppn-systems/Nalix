@@ -160,7 +160,7 @@ public abstract partial class ConfigurationLoader
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Warn($"[{nameof(ConfigurationLoader)}] " +
-                                              $"Error setting value for {section}:{propertyInfo.Name} - {ex.Message}");
+                                              $"ERROR setting value for {section}:{propertyInfo.Name} - {ex.Message}");
             }
         }
 

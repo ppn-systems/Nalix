@@ -447,7 +447,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
             }
             else if (args[i] == null && !paramType.IsValueType)
             {
-                score += 25;  // Null for reference type
+                score += 25;  // NONE for reference type
             }
         }
 
