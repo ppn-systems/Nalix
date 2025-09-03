@@ -36,7 +36,7 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
         + sizeof(System.Int64)   // Timestamp
         + sizeof(System.Int64)   // MonoTicks
         + sizeof(System.UInt32)  // SequenceId
-        + sizeof(System.UInt16); // ReasonCode
+        + sizeof(ReasonCode); // ReasonCode
 
     /// <summary>
     /// Gets or sets the sequence identifier for this packet.
@@ -48,7 +48,7 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
     /// Gets or sets the reason code associated with this control packet.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.DataRegion + 1)]
-    public System.UInt16 ReasonCode { get; set; }
+    public ReasonCode ReasonCode { get; set; }
 
     /// <summary>
     /// Gets or sets the binary content of the packet.
@@ -77,10 +77,10 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
         this.MonoTicks = 0;
         this.SequenceId = 0;
         this.ReasonCode = 0;
-        this.Type = ControlType.Null; // Default type, can be changed later
+        this.Type = ControlType.NONE; // Default type, can be changed later
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.Urgent;
-        this.Transport = TransportProtocol.Null;
+        this.Transport = TransportProtocol.NONE;
         this.OpCode = PacketConstants.OpCodeDefault;
         this.MagicNumber = (System.UInt32)MagicNumbers.Control;
     }
@@ -96,7 +96,7 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
         ControlType type,
         System.UInt32 sequenceId = 0,
         System.UInt16 reasonCode = 0,
-        TransportProtocol transport = TransportProtocol.Tcp)
+        TransportProtocol transport = TransportProtocol.TCP)
     {
         this.Type = type;
         this.Transport = transport;
@@ -111,7 +111,7 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
     /// </summary>
     /// <param name="type">Binary content of the packet.</param>
     /// <param name="transport">The target transport protocol.</param>
-    public void Initialize(ControlType type, TransportProtocol transport = TransportProtocol.Tcp) => Initialize(type, 0, 0, transport);
+    public void Initialize(ControlType type, TransportProtocol transport = TransportProtocol.TCP) => Initialize(type, 0, 0, transport);
 
     /// <summary>
     /// Deserializes a <see cref="Binary128"/> from the specified buffer.
@@ -140,10 +140,10 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
         this.MonoTicks = 0;
         this.SequenceId = 0;
         this.ReasonCode = 0;
-        this.Type = ControlType.Null;
+        this.Type = ControlType.NONE;
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.Urgent;
-        this.Transport = TransportProtocol.Null;
+        this.Transport = TransportProtocol.NONE;
     }
 
     /// <inheritdoc/>

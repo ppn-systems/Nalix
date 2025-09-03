@@ -383,7 +383,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(ConnectionHub)}] Error disconnecting {connection.Id}: {ex.Message}");
+                                        .Error($"[{nameof(ConnectionHub)}] ERROR disconnecting {connection.Id}: {ex.Message}");
             }
         });
 

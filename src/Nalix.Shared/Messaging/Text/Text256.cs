@@ -47,7 +47,7 @@ public class Text256 : FrameBase, IPacketDeserializer<Text256>, IPacketCompresso
         Flags = PacketFlags.None;
         Content = System.String.Empty;
         Priority = PacketPriority.Normal;
-        Transport = TransportProtocol.Null;
+        Transport = TransportProtocol.NONE;
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)MagicNumbers.Text256;
     }
@@ -57,7 +57,7 @@ public class Text256 : FrameBase, IPacketDeserializer<Text256>, IPacketCompresso
     /// <param name="transport">The target transport protocol.</param>
     public void Initialize(
         System.String content,
-        TransportProtocol transport = TransportProtocol.Tcp)
+        TransportProtocol transport = TransportProtocol.TCP)
     {
         if (content.Length > DynamicSize)
         {
@@ -133,7 +133,7 @@ public class Text256 : FrameBase, IPacketDeserializer<Text256>, IPacketCompresso
         this.Flags = PacketFlags.None;
         this.Content = System.String.Empty;
         this.Priority = PacketPriority.Normal;
-        this.Transport = TransportProtocol.Null;
+        this.Transport = TransportProtocol.NONE;
     }
 
     /// <inheritdoc/>

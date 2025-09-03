@@ -22,7 +22,7 @@ namespace Nalix.Shared.Messaging.Controls;
 [MagicNumber(MagicNumbers.Handshake)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Handshake OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+[System.Diagnostics.DebuggerDisplay("HANDSHAKE OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public class Handshake : FrameBase, IPacketDeserializer<Handshake>
 {
     /// <inheritdoc/>
@@ -50,7 +50,7 @@ public class Handshake : FrameBase, IPacketDeserializer<Handshake>
         Data = [];
         Flags = PacketFlags.None;
         Priority = PacketPriority.Normal;
-        Transport = TransportProtocol.Null;
+        Transport = TransportProtocol.NONE;
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)MagicNumbers.Handshake;
     }
@@ -59,14 +59,14 @@ public class Handshake : FrameBase, IPacketDeserializer<Handshake>
     /// Initializes the packet with binary data.
     /// </summary>
     /// <param name="data">Binary content of the packet.</param>
-    public void Initialize(System.Byte[] data) => Initialize(data, TransportProtocol.Null);
+    public void Initialize(System.Byte[] data) => Initialize(data, TransportProtocol.NONE);
 
     /// <summary>
     /// Initializes the packet with binary data and a transport protocol.
     /// </summary>
     /// <param name="data">Binary content of the packet.</param>
     /// <param name="transport">The target transport protocol.</param>
-    public void Initialize(System.Byte[] data, TransportProtocol transport = TransportProtocol.Tcp)
+    public void Initialize(System.Byte[] data, TransportProtocol transport = TransportProtocol.TCP)
     {
         this.Data = data ?? [];
         this.Transport = transport;
@@ -98,11 +98,11 @@ public class Handshake : FrameBase, IPacketDeserializer<Handshake>
         this.Data = [];
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.Normal;
-        this.Transport = TransportProtocol.Null;
+        this.Transport = TransportProtocol.NONE;
     }
 
     /// <inheritdoc/>
     public override System.String ToString() =>
-        $"Handshake(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+        $"HANDSHAKE(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
         $"Priority={Priority}, Transport={Transport}, Data={Data?.Length ?? 0} bytes)";
 }

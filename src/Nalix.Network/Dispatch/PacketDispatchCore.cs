@@ -120,7 +120,7 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket
                 this.Logger?.Error(
                     $"[DispatchCore] Exception occurred while handling packet OpCode: " +
                     $"{packet.OpCode} from {connection.RemoteEndPoint}. " +
-                    $"Error: {ex.GetType().Name} - {ex.Message}", ex);
+                    $"ERROR: {ex.GetType().Name} - {ex.Message}", ex);
             }
 
             return;
