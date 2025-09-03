@@ -1,43 +1,37 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Exceptions;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Network.Configurations;
-using Nalix.Network.Throttling.Metadata;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Throttling;
 
 /// <summary>
-/// A high-performance connection limiter that restricts simultaneous connections from IP addresses
-/// to prevent abuse and resource exhaustion.
+/// High-performance per-IP concurrent connection limiter.
+/// Uses lock-free CAS updates on a ConcurrentDictionary to avoid lost updates under contention.
+/// Supports cleanup of stale entries to bound memory usage.
 /// </summary>
 public sealed class ConnectionLimiter : System.IDisposable
 {
     #region Constants
 
-    // LZ4CompressionConstants for optimization
-    private const System.Int32 MaxCleanupKeys = 1000;
-
-    private const System.Int32 EstimatedCollectionCapacity = 256;
+    private const System.Int32 MaxCleanupKeysPerRun = 1000;
+    private static readonly System.DateTime UnixEpochUtc = new(1970, 1, 1, 0, 0, 0, System.DateTimeKind.Utc);
 
     #endregion Constants
 
     #region Fields
 
-    private static readonly System.DateTime DateTimeUnixEpoch = new(1970, 1, 1, 0, 0, 0, System.DateTimeKind.Utc);
-
     private readonly ConnLimitOptions _config;
-
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Net.IPAddress, ConnectionLimitInfo> _map;
     private readonly System.Threading.Timer _cleanupTimer;
-    private readonly System.Threading.SemaphoreSlim _cleanupLock;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<
-        System.Net.IPAddress, ConnectionLimitInfo> _connectionInfo;
+    private readonly System.Threading.SemaphoreSlim _cleanupGate = new(1, 1);
 
-    // Cache frequently accessed configuration values
-    private readonly System.Int32 _maxConnectionsPerIp;
-
+    private readonly System.Int32 _maxPerIp;
     private readonly System.TimeSpan _inactivityThreshold;
+    private readonly System.TimeSpan _cleanupInterval;
 
     private System.Boolean _disposed;
 
@@ -46,367 +40,406 @@ public sealed class ConnectionLimiter : System.IDisposable
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConnectionLimiter"/> class.
-    /// </summary>
-    /// <param name="connectionConfig">The connection configuration. If null, default config is used.</param>
-    /// <exception cref="System.ArgumentException">Thrown when configuration has invalid values.</exception>
-    public ConnectionLimiter(ConnLimitOptions? connectionConfig = null)
-    {
-        this._config = connectionConfig ?? ConfigurationManager.Instance.Get<ConnLimitOptions>();
-
-        if (this._config.MaxConnectionsPerIpAddress <= 0)
-        {
-            throw new System.ArgumentException("MaxConnectionsPerIpAddress must be greater than 0",
-                nameof(connectionConfig));
-        }
-
-        // Cache configuration values for performance
-        this._maxConnectionsPerIp = this._config.MaxConnectionsPerIpAddress;
-        this._inactivityThreshold = this._config.InactivityThreshold;
-
-        // Initialize with case-insensitive string comparer for IP addresses
-        this._cleanupLock = new System.Threading.SemaphoreSlim(1, 1);
-        this._connectionInfo = new System.Collections.Concurrent.ConcurrentDictionary<
-            System.Net.IPAddress, ConnectionLimitInfo>();
-
-        // StartTickLoopAsync cleanup timer with configured interval
-        this._cleanupTimer = new System.Threading.Timer(
-            async _ => await this.CleanupStaleConnectionsAsync().ConfigureAwait(false),
-            null,
-            this._config.CleanupInterval,
-            this._config.CleanupInterval
-        );
-
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(ConnectionLimiter)}] Initialized: " +
-                                       $"max={_maxConnectionsPerIp}, inactivity={_inactivityThreshold.TotalSeconds}s");
-    }
-
-    /// <summary>
-    /// Initializes with custom configuration via action callback.
-    /// </summary>
-    public ConnectionLimiter(System.Action<ConnLimitOptions>? configure = null)
-        : this(CreateConfiguredConfig(configure))
-    {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ConnectionLimiter"/> class with default configuration and logger.
+    /// Initializes a new <see cref="ConnectionLimiter"/> using configuration from <see cref="ConfigurationManager"/>.
     /// </summary>
     public ConnectionLimiter()
         : this((ConnLimitOptions?)null)
     {
     }
 
-    #endregion Constructors
-
-    #region Public Methods
-
     /// <summary>
-    /// Determines whether a new connection is allowed for the specified IP address.
+    /// Initializes a new <see cref="ConnectionLimiter"/> with an optional config. If <paramref name="config"/> is null, global config is used.
     /// </summary>
-    /// <param name="endPoint">The IP address or endpoint to check.</param>
-    /// <returns><c>true</c> if the connection is allowed; otherwise, <c>false</c>.</returns>
-    /// <exception cref="System.ArgumentException">Thrown if endpoint is null or empty.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean IsConnectionAllowed(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress endPoint)
+    public ConnectionLimiter(ConnLimitOptions? config)
     {
-        System.ObjectDisposedException.ThrowIf(this._disposed, this);
+        _config = config ?? ConfigurationManager.Instance.Get<ConnLimitOptions>();
+        Validate(_config);
 
-        if (endPoint is null)
+        _maxPerIp = _config.MaxConnectionsPerIpAddress;
+        _inactivityThreshold = _config.InactivityThreshold;
+        _cleanupInterval = _config.CleanupInterval;
+
+        _map = new System.Collections.Concurrent.ConcurrentDictionary<System.Net.IPAddress, ConnectionLimitInfo>();
+
+        _cleanupTimer = new System.Threading.Timer(static s =>
         {
-            throw new System.ArgumentException($"[{nameof(ConnectionLimiter)}] EndPoint cannot be null", nameof(endPoint));
-        }
+            ((ConnectionLimiter)s!).RunCleanupTick();
+        }, this, _cleanupInterval, _cleanupInterval);
 
-        System.DateTime now = System.DateTime.UtcNow;
-        System.DateTime currentDate = now.Date;
-
-        // CheckLimit if endpoint already exists
-        if (this._connectionInfo.TryGetValue(endPoint, out var existingInfo))
-        {
-            // Fast path for already at limit
-            if (existingInfo.CurrentConnections >= this._maxConnectionsPerIp)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(ConnectionLimiter)}] Limit exceeded for {endPoint}: " +
-                                               $"{existingInfo.CurrentConnections}/{this._maxConnectionsPerIp}");
-
-                return false;
-            }
-
-            // Fast path for typical case
-            System.Int32 totalToday = currentDate > existingInfo.LastConnectionTime.Date ?
-                1 : existingInfo.TotalConnectionsToday + 1;
-
-            ConnectionLimitInfo newInfo = existingInfo with
-            {
-                CurrentConnections = existingInfo.CurrentConnections + 1,
-                LastConnectionTime = now,
-                TotalConnectionsToday = totalToday
-            };
-
-            this._connectionInfo[endPoint] = newInfo;
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(ConnectionLimiter)}] Allowed {endPoint}");
-
-            return true;
-        }
-
-        // New endpoint
-        ConnectionLimitInfo info = new(1, now, 1, now);
-        this._connectionInfo[endPoint] = info;
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[{nameof(ConnectionLimiter)}] Allowed {endPoint}");
-
-        return true;
+            .Debug($"[{nameof(ConnectionLimiter)}] init: maxPerIp={_maxPerIp}, inactivity={_inactivityThreshold.TotalSeconds:F0}s, cleanup={_cleanupInterval.TotalSeconds:F0}s");
     }
 
     /// <summary>
-    /// Marks a connection as closed for the specified IP address.
+    /// Initializes a new <see cref="ConnectionLimiter"/> and allows caller to mutate the config prior to use.
     /// </summary>
-    /// <param name="endPoint">The IP address or endpoint.</param>
-    /// <returns>True if successfully marked as closed.</returns>
-    /// <exception cref="System.ArgumentException">Thrown if endpoint is null or empty.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean ConnectionClosed(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress endPoint)
+    public ConnectionLimiter(System.Action<ConnLimitOptions>? configure)
+        : this(CreateConfigured(configure))
     {
-        System.ObjectDisposedException.ThrowIf(this._disposed, this);
+    }
 
+    #endregion Constructors
+
+    #region Public API
+
+    /// <summary>
+    /// Attempts to acquire a connection slot for the given IP address.
+    /// Returns <c>true</c> if allowed (and increments counters), otherwise <c>false</c>.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean IsConnectionAllowed([System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress endPoint)
+    {
+        System.ObjectDisposedException.ThrowIf(_disposed, this);
         if (endPoint is null)
         {
-            throw new System.ArgumentException($"[{nameof(ConnectionLimiter)}] EndPoint cannot be null", nameof(endPoint));
+            throw new InternalErrorException($"[{nameof(ConnectionLimiter)}] EndPoint cannot be null", nameof(endPoint));
         }
 
-        // Fast path if entry doesn't exist
-        if (!this._connectionInfo.TryGetValue(endPoint, out ConnectionLimitInfo existingInfo))
+        // Normalize IPv4-mapped IPv6 as IPv4 to avoid duplicate keys for the same client.
+        if (endPoint.IsIPv4MappedToIPv6)
+        {
+            endPoint = endPoint.MapToIPv4();
+        }
+
+        var nowUtc = System.DateTime.UtcNow;
+        var todayUtc = nowUtc.Date;
+
+        // Ensure an entry exists
+        _ = _map.TryAdd(endPoint, new ConnectionLimitInfo(
+            currentConnections: 0,
+            lastConnectionTime: nowUtc,
+            totalConnectionsToday: 0));
+
+        // CAS loop: read → compute → TryUpdate until success
+        while (true)
+        {
+            if (!_map.TryGetValue(endPoint, out var existing))
+            {
+                continue; // transient; try again
+            }
+
+            if (existing.CurrentConnections >= _maxPerIp)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                    .Trace($"[{nameof(ConnectionLimiter)}] over limit {endPoint}: {existing.CurrentConnections}/{_maxPerIp}");
+                return false;
+            }
+
+            var totalToday = (todayUtc > existing.LastConnectionTime.Date)
+                ? 1
+                : existing.TotalConnectionsToday + 1;
+
+            var proposed = existing with
+            {
+                CurrentConnections = existing.CurrentConnections + 1,
+                LastConnectionTime = nowUtc,
+                TotalConnectionsToday = totalToday
+            };
+
+            if (_map.TryUpdate(endPoint, proposed, existing))
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                    .Trace($"[{nameof(ConnectionLimiter)}] allow {endPoint}: now={proposed.CurrentConnections}/{_maxPerIp}");
+                return true;
+            }
+            // else: raced, retry
+        }
+    }
+
+    /// <summary>
+    /// Marks a connection as closed for the given IP address. Returns <c>true</c> if the counter was decremented.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean ConnectionClosed([System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress endPoint)
+    {
+        System.ObjectDisposedException.ThrowIf(_disposed, this);
+        if (endPoint is null)
+        {
+            throw new InternalErrorException($"[{nameof(ConnectionLimiter)}] EndPoint cannot be null", nameof(endPoint));
+        }
+
+        if (endPoint.IsIPv4MappedToIPv6)
+        {
+            endPoint = endPoint.MapToIPv4();
+        }
+
+        var nowUtc = System.DateTime.UtcNow;
+
+        if (!_map.TryGetValue(endPoint, out _))
         {
             return false;
         }
 
-        // SynchronizeTime the current connections count
-        ConnectionLimitInfo newInfo = existingInfo with
+        while (true)
         {
-            CurrentConnections = System.Math.Max(0, existingInfo.CurrentConnections - 1),
-            LastConnectionTime = System.DateTime.UtcNow
-        };
+            if (!_map.TryGetValue(endPoint, out var existing))
+            {
+                return false;
+            }
 
-        this._connectionInfo[endPoint] = newInfo;
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[{nameof(ConnectionLimiter)}] Closed {endPoint}");
+            var proposed = existing with
+            {
+                CurrentConnections = System.Math.Max(0, existing.CurrentConnections - 1),
+                LastConnectionTime = nowUtc
+            };
 
-        return true;
+            if (_map.TryUpdate(endPoint, proposed, existing))
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                    .Trace($"[{nameof(ConnectionLimiter)}] close {endPoint}: now={proposed.CurrentConnections}/{_maxPerIp}");
+                return true;
+            }
+        }
     }
 
     /// <summary>
-    /// Gets connection information for the specified IP address.
+    /// Gets per-IP counters. If IP is unknown, returns zeros and <see cref="UnixEpochUtc"/>.
     /// </summary>
-    /// <param name="endPoint">The IP address or endpoint.</param>
-    /// <returns>Connection statistics tuple.</returns>
-    /// <exception cref="System.ArgumentException">Thrown if endpoint is null or empty.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public (System.Int32 CurrentConnections, System.Int32 TotalToday, System.DateTime LastConnection) GetConnectionInfo(
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public (System.Int32 Current, System.Int32 TotalToday, System.DateTime LastUtc) GetConnectionInfo(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress endPoint)
     {
-        System.ObjectDisposedException.ThrowIf(this._disposed, this);
-
+        System.ObjectDisposedException.ThrowIf(_disposed, this);
         if (endPoint is null)
         {
-            throw new System.ArgumentException($"[{nameof(ConnectionLimiter)}] EndPoint cannot be null", nameof(endPoint));
+            throw new InternalErrorException($"[{nameof(ConnectionLimiter)}] EndPoint cannot be null", nameof(endPoint));
         }
 
-        if (this._connectionInfo.TryGetValue(endPoint, out var stats))
+        if (endPoint.IsIPv4MappedToIPv6)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(ConnectionLimiter)}] Observability for {endPoint}: " +
-                                           $"{stats.CurrentConnections} current, {stats.TotalConnectionsToday} today");
-
-            return (stats.CurrentConnections, stats.TotalConnectionsToday, stats.LastConnectionTime);
+            endPoint = endPoint.MapToIPv4();
         }
 
-        return (0, 0, DateTimeUnixEpoch);
+        if (_map.TryGetValue(endPoint, out var info))
+        {
+            return (info.CurrentConnections, info.TotalConnectionsToday, info.LastConnectionTime);
+        }
+        return (0, 0, UnixEpochUtc);
     }
 
     /// <summary>
-    /// Gets connection statistics for all tracked IP addresses.
+    /// Returns a snapshot of all tracked IPs and their (Current, TotalToday) counters.
     /// </summary>
-    /// <returns>Dictionary of IP addresses and their statistics.</returns>
-    public System.Collections.Generic.Dictionary<
-        System.Net.IPAddress, (System.Int32 Current, System.Int32 Total)> GetAllConnections()
+    public System.Collections.Generic.Dictionary<System.Net.IPAddress, (System.Int32 Current, System.Int32 TotalToday)> GetAllConnections()
     {
-        System.ObjectDisposedException.ThrowIf(this._disposed, this);
+        System.ObjectDisposedException.ThrowIf(_disposed, this);
 
-        // Outbound-allocate dictionary with capacity to avoid resizing
-        System.Collections.Generic.Dictionary<
-            System.Net.IPAddress, (System.Int32 Current, System.Int32 Total)> result = new(this._connectionInfo.Count);
-
-        foreach (var kvp in this._connectionInfo)
+        var result = new System.Collections.Generic.Dictionary<System.Net.IPAddress, (System.Int32, System.Int32)>(_map.Count);
+        foreach (var kv in _map)
         {
-            result[kvp.Key] = (kvp.Value.CurrentConnections, kvp.Value.TotalConnectionsToday);
+            result[kv.Key] = (kv.Value.CurrentConnections, kv.Value.TotalConnectionsToday);
         }
-
         return result;
     }
 
     /// <summary>
-    /// Gets the total TransportProtocol of concurrent connections across all IPs.
+    /// Returns the total number of concurrently open connections across all IPs.
     /// </summary>
-    /// <returns>The total connection count.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Int32 GetTotalConnectionCount()
     {
-        System.ObjectDisposedException.ThrowIf(this._disposed, this);
-
+        System.ObjectDisposedException.ThrowIf(_disposed, this);
         System.Int32 total = 0;
-        foreach (var info in this._connectionInfo.Values)
+        foreach (var v in _map.Values)
         {
-            total += info.CurrentConnections;
+            total += v.CurrentConnections;
         }
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(ConnectionLimiter)}] Total connections: {total}");
 
         return total;
     }
 
     /// <summary>
-    /// Forcibly resets all connection counters.
+    /// Resets all counters and clears the internal map.
     /// </summary>
-    /// <remarks>
-    /// This method is intended for use during system maintenance or after error recovery.
-    /// </remarks>
     public void ResetAllCounters()
     {
-        System.ObjectDisposedException.ThrowIf(this._disposed, this);
-
-        this._connectionInfo.Clear();
+        System.ObjectDisposedException.ThrowIf(_disposed, this);
+        _map.Clear();
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(ConnectionLimiter)}] Counters reset");
+            .Info($"[{nameof(ConnectionLimiter)}] reset all counters");
     }
 
-    #endregion Public Methods
+    /// <summary>
+    /// RAII-style helper: acquire on success and auto-decrement on dispose.
+    /// </summary>
+    public ConnectionLease TryAcquire([System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress endPoint, out System.Boolean allowed)
+    {
+        allowed = IsConnectionAllowed(endPoint);
+        return new ConnectionLease(this, endPoint, allowed);
+    }
 
-    #region Private Methods
+    #endregion Public API
+
+    #region Cleanup
 
     /// <summary>
-    /// Cleans up stale connection records to prevent memory leaks.
+    /// Timer tick entry: non-reentrant, best-effort cleanup of stale entries.
     /// </summary>
-    private async System.Threading.Tasks.Task CleanupStaleConnectionsAsync()
+    private async void RunCleanupTick()
     {
-        if (this._disposed)
+        if (_disposed)
         {
             return;
         }
 
-        // Non-blocking attempt to acquire lock
-        if (!await this._cleanupLock.WaitAsync(0).ConfigureAwait(false))
+        // Try non-blocking; skip if a previous cleanup is still running.
+        if (!await _cleanupGate.WaitAsync(0).ConfigureAwait(false))
         {
             return;
         }
 
         try
         {
-            // Get current time once to avoid multiple calls
-            System.DateTime now = System.DateTime.UtcNow;
-            System.DateTime cutoffTime = now.Subtract(this._inactivityThreshold);
+            var nowUtc = System.DateTime.UtcNow;
+            var cutoff = nowUtc - _inactivityThreshold;
 
-            System.Collections.Generic.List<System.Net.IPAddress>? keysToRemove = null;
-            System.Int32 processedCount = 0;
+            System.Int32 scanned = 0, removed = 0;
 
-            // Process connections in batches for better performance
-            foreach (var kvp in this._connectionInfo)
+            foreach (var kv in _map)
             {
-                // Limit the TransportProtocol of entries processed in a single run
-                if (processedCount >= MaxCleanupKeys)
+                if (scanned++ >= MaxCleanupKeysPerRun)
                 {
                     break;
                 }
 
-                var (key, info) = kvp;
-
-                // Remove only if there are no active connections and it's been inactive
-                if (info.CurrentConnections <= 0 && info.LastConnectionTime < cutoffTime)
+                var info = kv.Value;
+                if (info.CurrentConnections <= 0 && info.LastConnectionTime < cutoff)
                 {
-                    keysToRemove ??= new System.Collections.Generic.List<System.Net.IPAddress>(
-                        System.Math.Min(EstimatedCollectionCapacity, this._connectionInfo.Count));
-
-                    keysToRemove.Add(key);
-
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[{nameof(ConnectionLimiter)}] Removed stale {key}");
+                    _ = _map.TryRemove(kv.Key, out _);
+                    removed++;
                 }
-
-                processedCount++;
             }
 
-            // Remove entries in batch
-            if (keysToRemove != null)
+            if (removed > 0)
             {
-                foreach (System.Net.IPAddress key in keysToRemove)
-                {
-                    _ = this._connectionInfo.TryRemove(key, out _);
-                }
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                    .Debug($"[{nameof(ConnectionLimiter)}] cleanup: scanned={scanned}, removed={removed}");
             }
         }
         catch (System.Exception ex) when (ex is not System.ObjectDisposedException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(ConnectionLimiter)}] Cleanup error: {ex.Message}");
+                .Error($"[{nameof(ConnectionLimiter)}] cleanup error: {ex.Message}");
         }
         finally
         {
-            _ = this._cleanupLock.Release();
+            _ = _cleanupGate.Release();
         }
     }
 
-    /// <summary>
-    /// Creates a configured connection configuration.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static ConnLimitOptions CreateConfiguredConfig(
-        System.Action<ConnLimitOptions>? configure)
-    {
-        var config = ConfigurationManager.Instance.Get<ConnLimitOptions>();
-        configure?.Invoke(config);
-        return config;
-    }
-
-    #endregion Private Methods
+    #endregion Cleanup
 
     #region IDisposable
 
-    /// <summary>
-    /// Releases all resources used by the <see cref="ConnectionLimiter"/> instance.
-    /// </summary>
+    /// <inheritdoc />
     public void Dispose()
     {
-        if (this._disposed)
+        if (_disposed)
         {
             return;
         }
 
-        this._disposed = true;
+        _disposed = true;
 
         try
         {
-            this._connectionInfo.Clear();
-
-            this._cleanupLock?.Dispose();
-            this._cleanupTimer?.Dispose();
+            _cleanupTimer.Dispose();
+            _cleanupGate.Dispose();
+            _map.Clear();
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(ConnectionLimiter)}] Dispose error: {ex.Message}");
+                .Error($"[{nameof(ConnectionLimiter)}] dispose error: {ex.Message}");
         }
 
         System.GC.SuppressFinalize(this);
     }
 
     #endregion IDisposable
+
+    #region Helpers
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void Validate(ConnLimitOptions opt)
+    {
+        if (opt.MaxConnectionsPerIpAddress <= 0)
+        {
+            throw new InternalErrorException($"{nameof(ConnLimitOptions.MaxConnectionsPerIpAddress)} must be > 0");
+        }
+
+        if (opt.InactivityThreshold <= System.TimeSpan.Zero)
+        {
+            throw new InternalErrorException($"{nameof(ConnLimitOptions.InactivityThreshold)} must be > 0");
+        }
+
+        if (opt.CleanupInterval <= System.TimeSpan.Zero)
+        {
+            throw new InternalErrorException($"{nameof(ConnLimitOptions.CleanupInterval)} must be > 0");
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static ConnLimitOptions CreateConfigured(System.Action<ConnLimitOptions>? configure)
+    {
+        var cfg = ConfigurationManager.Instance.Get<ConnLimitOptions>();
+        configure?.Invoke(cfg);
+        return cfg;
+    }
+
+    /// <summary>
+    /// Disposable lease to auto-decrement <see cref="ConnectionClosed"/> when disposed.
+    /// </summary>
+    public readonly struct ConnectionLease(ConnectionLimiter owner, System.Net.IPAddress ip, System.Boolean valid) : System.IDisposable
+    {
+        private readonly System.Net.IPAddress _ip = ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4() : ip;
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            if (valid)
+            {
+                _ = owner.ConnectionClosed(_ip);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Stores connection tracking data for an IP address.
+    /// Optimized as a readonly record struct for performance and memory usage.
+    /// </summary>
+    [System.Diagnostics.DebuggerDisplay(
+        "Current: {CurrentConnections}, Total: {TotalConnectionsToday}, Last: {LastConnectionTime}")]
+    internal readonly record struct ConnectionLimitInfo
+    {
+        /// <summary>
+        /// The current TransportProtocol of active connections.
+        /// </summary>
+        public readonly System.Int32 CurrentConnections { get; init; }
+
+        /// <summary>
+        /// When the most recent connection was established.
+        /// </summary>
+        public readonly System.DateTime LastConnectionTime { get; init; }
+
+        /// <summary>
+        /// The total TransportProtocol of connections made today.
+        /// </summary>
+        public readonly System.Int32 TotalConnectionsToday { get; init; }
+
+        /// <summary>
+        /// Creates a new connection info record.
+        /// </summary>
+        public ConnectionLimitInfo(
+            System.Int32 currentConnections,
+            System.DateTime lastConnectionTime,
+            System.Int32 totalConnectionsToday)
+        {
+            this.CurrentConnections = currentConnections;
+            this.LastConnectionTime = lastConnectionTime;
+            this.TotalConnectionsToday = totalConnectionsToday;
+        }
+    }
+
+    #endregion Helpers
 }
