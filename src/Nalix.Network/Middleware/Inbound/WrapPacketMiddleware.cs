@@ -47,7 +47,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                 await context.Connection.SendAsync(
                       controlType: ControlType.FAIL,
-                      reason: ReasonCode.CANCELLED,
+                      reason: ReasonCode.INTERNAL_ERROR,
                       action: SuggestedAction.NONE,
                       flags: ControlFlags.NONE,
                       arg0: context.Attributes.OpCode.OpCode,
