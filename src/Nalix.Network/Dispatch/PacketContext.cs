@@ -145,7 +145,7 @@ public sealed class PacketContext<TPacket> : IPoolable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void SetPacket(TPacket packet) => this.Packet = packet;
+    public void AssignPacket(TPacket packet) => this.Packet = packet;
 
     #endregion Methods
 

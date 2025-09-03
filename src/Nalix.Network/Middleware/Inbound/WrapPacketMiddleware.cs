@@ -131,7 +131,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
             if (!ReferenceEquals(current, context.Packet))
             {
-                context.SetPacket(current);
+                context.AssignPacket(current);
             }
         }
         catch (System.Exception)
