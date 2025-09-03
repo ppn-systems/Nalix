@@ -139,6 +139,16 @@ public enum ReasonCode : System.UInt16
     /// </summary>
     STATE_VIOLATION = 157,
 
+    /// <summary>
+    /// Cryptographic algorithm or parameters not supported.
+    /// </summary>
+    CRYPTO_UNSUPPORTED = 158,
+
+    /// <summary>
+    /// Compression algorithm not supported.
+    /// </summary>
+    COMPRESSION_UNSUPPORTED = 159,
+
     #endregion
 
     #region 200–259: Security / AuthN / AuthZ
@@ -324,6 +334,16 @@ public enum ReasonCode : System.UInt16
     /// Serialization/formatting failed.
     /// </summary>
     SERIALIZATION_FAILED = 356,
+
+    /// <summary>
+    /// Unsupported packet type or version.
+    /// </summary>
+    UNSUPPORTED_PACKET = 357,
+
+    /// <summary>
+    /// Transformation/processing failed.
+    /// </summary>
+    TRANSFORM_FAILED = 358,
 
     #endregion
 

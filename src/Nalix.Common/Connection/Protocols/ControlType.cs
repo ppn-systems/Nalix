@@ -60,5 +60,40 @@ public enum ControlType : System.Byte
     /// <summary>
     /// Represents a shutdown message indicating a request to gracefully terminate the connection or service.
     /// </summary>
-    SHUTDOWN = 0x0A
+    SHUTDOWN = 0x0A,
+
+    /// <summary>
+    /// Represents a message instructing the client to redirect to another endpoint.
+    /// </summary>
+    REDIRECT = 0x0B,
+
+    /// <summary>
+    /// Represents a throttling message requesting the client to reduce its rate.
+    /// </summary>
+    THROTTLE = 0x0C,
+
+    /// <summary>
+    /// Represents a maintenance notice sent by the server.
+    /// </summary>
+    NOTICE = 0x0D,
+
+    /// <summary>
+    /// Reserved for future extension.
+    /// </summary>
+    RESERVED1 = 0xFE,
+
+    /// <summary>
+    /// Reserved for future extension.
+    /// </summary>
+    RESERVED2 = 0xFF,
+
+    /// <summary>
+    /// The operation has timed out.
+    /// </summary>
+    TIMEOUT = 0x10,
+
+    /// <summary>
+    /// Failure in processing the operation.
+    /// </summary>
+    FAIL = 0x11
 }
