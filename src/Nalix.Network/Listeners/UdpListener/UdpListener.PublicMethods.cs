@@ -99,7 +99,7 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
                 catch (System.Exception ex)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(UdpListenerBase)}] Error during shutdown: {ex.Message}");
+                                            .Error($"[{nameof(UdpListenerBase)}] ERROR during shutdown: {ex.Message}");
                 }
                 finally
                 {
@@ -133,7 +133,7 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(UdpListenerBase)}] Error closing listener: {ex.Message}.");
+                                    .Error($"[{nameof(UdpListenerBase)}] ERROR closing listener: {ex.Message}.");
         }
         finally
         {

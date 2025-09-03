@@ -50,7 +50,7 @@ public class Binary128 : FrameBase, IPacketDeserializer<Binary128>, IPacketCompr
         Data = [];
         Flags = PacketFlags.None;
         Priority = PacketPriority.Normal;
-        Transport = TransportProtocol.Null;
+        Transport = TransportProtocol.NONE;
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)MagicNumbers.Binary128;
     }
@@ -62,7 +62,7 @@ public class Binary128 : FrameBase, IPacketDeserializer<Binary128>, IPacketCompr
     /// <param name="transport">The target transport protocol.</param>
     public void Initialize(
         System.Byte[] data,
-        TransportProtocol transport = TransportProtocol.Tcp)
+        TransportProtocol transport = TransportProtocol.TCP)
     {
         if (data.Length > DynamicSize)
         {
@@ -157,7 +157,7 @@ public class Binary128 : FrameBase, IPacketDeserializer<Binary128>, IPacketCompr
         this.Data = [];
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.Normal;
-        this.Transport = TransportProtocol.Null;
+        this.Transport = TransportProtocol.NONE;
     }
 
     /// <inheritdoc/>

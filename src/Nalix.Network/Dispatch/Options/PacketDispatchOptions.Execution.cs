@@ -49,13 +49,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
         PacketContext<TPacket> context,
         System.Exception exception)
     {
-        this.Logger?.Error("Handler execution failed for OpCode={0}: {1}",
-            descriptor.OpCode, exception.Message);
-
+        this.Logger?.Error($"Handler execution failed for OpCode={descriptor.OpCode}: {exception.Message}");
         this._errorHandler?.Invoke(exception, descriptor.OpCode);
 
         _ = await context.Connection.Tcp.SendAsync("Internal server error")
-                                    .ConfigureAwait(false);
+                                        .ConfigureAwait(false);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(

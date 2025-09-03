@@ -93,7 +93,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
                 $"[{nameof(UnwrapPacketMiddleware)}] No transformer found for {current.GetType().Name}. " +
-                $"OpCode={context.Attributes.OpCode}, From={context.Connection.RemoteEndPoint}, Error={ex}");
+                $"OpCode={context.Attributes.OpCode}, From={context.Connection.RemoteEndPoint}, ERROR={ex}");
 
             _ = await context.Connection.Tcp.SendAsync("Packet transform failed.")
                                             .ConfigureAwait(false);

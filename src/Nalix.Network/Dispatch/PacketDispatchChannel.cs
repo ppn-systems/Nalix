@@ -133,7 +133,7 @@ public sealed class PacketDispatchChannel
         }
         catch (System.Exception ex)
         {
-            Logger?.Error($"[{nameof(PacketDispatchChannel)}] Error while stopping dispatcher: {ex.Message}", ex);
+            Logger?.Error($"[{nameof(PacketDispatchChannel)}] ERROR while stopping dispatcher: {ex.Message}", ex);
         }
     }
 
@@ -145,7 +145,7 @@ public sealed class PacketDispatchChannel
     {
         if (raw == null)
         {
-            Logger?.Warn($"[{nameof(PacketDispatchChannel)}] Null byte[] received from {connection.RemoteEndPoint}. Packet dropped.");
+            Logger?.Warn($"[{nameof(PacketDispatchChannel)}] NONE byte[] received from {connection.RemoteEndPoint}. Packet dropped.");
             return;
         }
 
@@ -162,7 +162,7 @@ public sealed class PacketDispatchChannel
         {
             Logger?.Warn(
                 $"[{nameof(PacketDispatchChannel)}] " +
-                $"Null ReadOnlyMemory<byte> received from {connection.RemoteEndPoint}. Packet dropped.");
+                $"NONE ReadOnlyMemory<byte> received from {connection.RemoteEndPoint}. Packet dropped.");
             return;
         }
 
@@ -250,7 +250,7 @@ public sealed class PacketDispatchChannel
         }
         catch (System.Exception ex)
         {
-            Logger?.Error($"[{nameof(PacketDispatchChannel)}] Error in raw processing loop.", ex);
+            Logger?.Error($"[{nameof(PacketDispatchChannel)}] ERROR in raw processing loop.", ex);
         }
         finally
         {
