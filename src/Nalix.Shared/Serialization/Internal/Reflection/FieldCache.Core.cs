@@ -41,7 +41,7 @@ internal static partial class FieldCache<T>
         var original = new Binary128
         {
             OpCode = 127,
-            Data = new System.Byte[] { 0, 255, 128 }
+            Data = [0, 255, 128]
         };
 
         System.Diagnostics.Debug.WriteLine(
