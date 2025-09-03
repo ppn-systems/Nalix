@@ -192,7 +192,7 @@ public sealed class LogDistributor : ILogDistributor
         {
             // Log to debug output at minimum
             System.Diagnostics.Debug.WriteLine(
-                $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Error publishing to " +
+                $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ERROR publishing to " +
                 $"{target.GetType().Name}: {exception.Message}");
 
             // Check if target implements error handling
@@ -235,7 +235,7 @@ public sealed class LogDistributor : ILogDistributor
                 {
                     // Log disposal errors to debug output
                     System.Diagnostics.Debug.WriteLine(
-                        $"Error disposing logging target: {ex.Message}");
+                        $"ERROR disposing logging target: {ex.Message}");
                 }
             }
 
@@ -245,7 +245,7 @@ public sealed class LogDistributor : ILogDistributor
         {
             // Log final disposal errors to debug output
             System.Diagnostics.Debug.WriteLine(
-                $"Error during LogDistributor disposal: {ex.Message}");
+                $"ERROR during LogDistributor disposal: {ex.Message}");
         }
     }
 

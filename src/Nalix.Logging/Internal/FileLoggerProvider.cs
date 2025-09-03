@@ -198,7 +198,7 @@ internal sealed class FileLoggerProvider : System.IDisposable
         catch (System.Exception ex)
         {
             System.Diagnostics.Debug.WriteLine(
-                $"Error during FileLoggerProvider disposal: {ex.Message}");
+                $"ERROR during FileLoggerProvider disposal: {ex.Message}");
         }
 
         System.GC.SuppressFinalize(this);
@@ -298,7 +298,7 @@ internal sealed class FileLoggerProvider : System.IDisposable
         catch (System.Exception ex)
         {
             System.Diagnostics.Debug.WriteLine(
-                $"Error flushing file logger queue: {ex}");
+                $"ERROR flushing file logger queue: {ex}");
         }
     }
 
@@ -434,7 +434,7 @@ internal sealed class FileLoggerProvider : System.IDisposable
         catch (System.Exception handlerEx)
         {
             System.Diagnostics.Debug.WriteLine(
-                $"Error in FileLoggerProvider error handler: {handlerEx}");
+                $"ERROR in FileLoggerProvider error handler: {handlerEx}");
         }
 
         return false;

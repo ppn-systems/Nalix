@@ -93,7 +93,7 @@ public sealed class RemoteDatagramClient
             catch (System.Exception ex)
             {
                 // Optional logging
-                System.Diagnostics.Debug.WriteLine($"UDP Receive Error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"UDP Receive ERROR: {ex.Message}");
             }
         }
     }
