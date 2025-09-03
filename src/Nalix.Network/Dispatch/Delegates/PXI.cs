@@ -7,7 +7,7 @@ namespace Nalix.Network.Dispatch.Delegates;
 /// This avoids runtime reflection by precompiling the method invoker.
 /// </summary>
 /// <typeparam name="TPacket">The packet type this handler processes.</typeparam>
-internal readonly record struct PacketHandlerInvoker<TPacket>(
+internal readonly record struct PXI<TPacket>(
     System.Reflection.MethodInfo MethodInfo,
     System.Type ReturnType,
     System.Func<System.Object, PacketContext<TPacket>,
