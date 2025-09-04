@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
+using Nalix.Common.Caching;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
@@ -22,7 +23,7 @@ namespace Nalix.Shared.Messaging.Text;
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("TEXT1024 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public class Text1024 : FrameBase, IPacketDeserializer<Text1024>, IPacketCompressor<Text1024>
+public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>, IPacketCompressor<Text1024>
 {
     /// <inheritdoc/>
     public const System.Int32 DynamicSize = 1024;

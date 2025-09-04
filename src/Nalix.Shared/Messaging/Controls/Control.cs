@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
+using Nalix.Common.Caching;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
@@ -23,7 +24,7 @@ namespace Nalix.Shared.Messaging.Controls;
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("CONTROL OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPacketDeserializer<Control>
+public sealed class Control : FrameBase, IPoolable, IPacketReasoned, IPacketSequenced, IPacketDeserializer<Control>
 {
     /// <summary>
     /// Gets the total length of the serialized packet in bytes, including header and content.

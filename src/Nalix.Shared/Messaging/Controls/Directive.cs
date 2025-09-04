@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
+using Nalix.Common.Caching;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
@@ -19,7 +20,7 @@ namespace Nalix.Shared.Messaging.Controls;
 [SerializePackable(SerializeLayout.Explicit)]
 [MagicNumber(FrameMagicCode.DIRECTIVE)]
 [System.Diagnostics.DebuggerDisplay("DIRECTIVE Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
-public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IPacketDeserializer<Directive>
+public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSequenced, IPacketDeserializer<Directive>
 {
     /// <inheritdoc/>
     [SerializeIgnore]
