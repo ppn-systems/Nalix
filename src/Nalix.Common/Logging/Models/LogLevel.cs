@@ -12,6 +12,12 @@ namespace Nalix.Common.Logging.Models;
 public enum LogLevel : System.Byte
 {
     /// <summary>
+    /// Represents an undefined or disabled logging level.
+    /// No log output will be generated for this level.
+    /// </summary>
+    None = 0,
+
+    /// <summary>
     /// Metric-level logging.
     /// Used for statistical or measurement data (e.g., performance metrics, counters).
     /// </summary>
@@ -52,10 +58,4 @@ public enum LogLevel : System.Byte
     /// Indicates a serious failure that may cause the application to stop or become unstable.
     /// </summary>
     Critical = 7,
-
-    /// <summary>
-    /// Represents an undefined or disabled logging level.
-    /// No log output will be generated for this level.
-    /// </summary>
-    None = 255
 }
