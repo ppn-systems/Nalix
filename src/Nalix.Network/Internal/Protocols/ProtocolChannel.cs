@@ -28,7 +28,6 @@ internal class ProtocolChannel(
 {
     #region Fields
 
-    private readonly ProtocolSessionCache _cache = new();
     private readonly System.Net.Sockets.Socket _socket = socket;
     private readonly System.Threading.CancellationTokenSource _cts = cts;
 
@@ -51,14 +50,9 @@ internal class ProtocolChannel(
     public event System.Action? Disconnected;
 
     /// <summary>
-    /// Gets the last ping time in milliseconds.
+    /// Caches incoming packets.
     /// </summary>
-    public System.Int64 UpTime => this._cache.Uptime;
-
-    /// <summary>
-    /// Gets the last ping time in milliseconds.
-    /// </summary>
-    public System.Int64 LastPingTime => this._cache.LastPingTime;
+    public ProtocolSessionCache Cache { get; } = new();
 
     #endregion Properties
 
@@ -353,59 +347,6 @@ internal class ProtocolChannel(
         }
     }
 
-    /// <summary>
-    /// Gets a copy of incoming packets.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public BufferLease? PopIncoming()
-    {
-        if (this._cache.Incoming.TryPop(out BufferLease? data))
-        {
-            return data;
-        }
-
-        return null; // Avoid null
-    }
-
-    /// <summary>
-    /// Injects raw packet bytes into the incoming cache manually.
-    /// </summary>
-    /// <param name="data">The raw byte data to inject.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void InjectIncoming(System.Byte[] data)
-    {
-        if (data.Length == 0 || this._disposed)
-        {
-            return;
-        }
-
-        this._cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
-        this._cache.PushIncoming(BufferLease.CopyFrom(data));
-
-#if DEBUG
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(ProtocolChannel)}] Injected {data.Length} bytes into incoming cache.");
-#endif
-    }
-
-    /// <summary>
-    /// Registers a callback to be invoked when a packet is cached.
-    /// </summary>
-    /// <param name="handler">The callback method to register.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void SetPacketCached(System.Action handler) => this._cache.PacketCached += handler;
-
-    /// <summary>
-    /// Unregisters a previously registered callback from the packet cached event.
-    /// </summary>
-    /// <param name="handler">The callback method to remove.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void RemovePacketCached(System.Action handler) => this._cache.PacketCached -= handler;
-
     #endregion Public Methods
 
     #region Private Methods
@@ -576,9 +517,9 @@ internal class ProtocolChannel(
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug($"[{nameof(ProtocolChannel)}] Packet received");
 #endif
-                this._cache.LastPingTime = Clock.UnixMillisecondsNow();
+                this.Cache.LastPingTime = Clock.UnixMillisecondsNow();
 
-                this._cache.PushIncoming(BufferLease
+                this.Cache.PushIncoming(BufferLease
                            .CopyFrom(System.MemoryExtensions
                            .AsSpan(this._buffer, 2, size - 2)));
             }
@@ -660,7 +601,7 @@ internal class ProtocolChannel(
             InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
                                     .Return(this._buffer);
 
-            this._cache.Dispose();
+            this.Cache.Dispose();
             this._socket.Dispose();
         }
 
@@ -739,6 +680,6 @@ internal class ProtocolChannel(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override System.String ToString()
         => $"ProtocolChannel (Clients = {this._socket.RemoteEndPoint}, " +
-           $"Disposed = {this._disposed}, UpTime = {this.UpTime}ms, LastPing = {this.LastPingTime}ms)" +
-           $"IncomingCount = {this._cache.Incoming.Count}";
+           $"Disposed = {this._disposed}, UpTime = {Cache.Uptime}ms, LastPing = {Cache.LastPingTime}ms)" +
+           $"IncomingCount = {this.Cache.Incoming.Count}";
 }
