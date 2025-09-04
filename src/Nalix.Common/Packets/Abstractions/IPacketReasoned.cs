@@ -1,4 +1,4 @@
-﻿using Nalix.Common.Connection.Protocols;
+﻿using Nalix.Common.Protocols;
 
 namespace Nalix.Common.Packets.Abstractions;
 

@@ -1,11 +1,10 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
-using Nalix.Common.Connection.Protocols;
-using Nalix.Common.Enums;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
+using Nalix.Common.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Injection;
@@ -18,7 +17,7 @@ namespace Nalix.Shared.Messaging.Controls;
 /// A compact, generic server-to-client directive frame for common control scenarios.
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
-[MagicNumber(MagicNumbers.Directive)]
+[MagicNumber(FrameMagic.Directive)]
 [System.Diagnostics.DebuggerDisplay("Directive Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
 public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IPacketDeserializer<Directive>
 {
@@ -89,7 +88,7 @@ public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IP
         Priority = PacketPriority.Urgent;
         Transport = TransportProtocol.TCP;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)MagicNumbers.Directive;
+        MagicNumber = (System.UInt32)FrameMagic.Directive;
     }
 
     /// <summary>

@@ -1,9 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Attributes;
 using Nalix.Common.Packets.Enums;
+using Nalix.Common.Protocols;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Connection;
 using Nalix.Network.Dispatch;

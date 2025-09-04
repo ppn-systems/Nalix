@@ -1,11 +1,10 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
-using Nalix.Common.Connection.Protocols;
-using Nalix.Common.Enums;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
+using Nalix.Common.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Injection;
@@ -19,10 +18,10 @@ namespace Nalix.Shared.Messaging.Controls;
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
 [PipelineManagedTransform]
-[MagicNumber(MagicNumbers.Handshake)]
+[MagicNumber(FrameMagic.Handshake)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("HANDSHAKE OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+[System.Diagnostics.DebuggerDisplay("Handshake OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public class Handshake : FrameBase, IPacketDeserializer<Handshake>
 {
     /// <inheritdoc/>
@@ -52,7 +51,7 @@ public class Handshake : FrameBase, IPacketDeserializer<Handshake>
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.NONE;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)MagicNumbers.Handshake;
+        MagicNumber = (System.UInt32)FrameMagic.Handshake;
     }
 
     /// <summary>

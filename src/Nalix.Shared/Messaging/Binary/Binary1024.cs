@@ -1,11 +1,10 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
-using Nalix.Common.Connection.Protocols;
-using Nalix.Common.Enums;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
+using Nalix.Common.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Extensions;
@@ -19,7 +18,7 @@ namespace Nalix.Shared.Messaging.Binary;
 /// <summary>
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
-[MagicNumber(MagicNumbers.Binary1024)]
+[MagicNumber(FrameMagic.Binary1024)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Binary1024 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
@@ -52,7 +51,7 @@ public class Binary1024 : FrameBase, IPacketDeserializer<Binary1024>, IPacketCom
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.NONE;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)MagicNumbers.Binary1024;
+        MagicNumber = (System.UInt32)FrameMagic.Binary1024;
     }
 
     /// <summary>

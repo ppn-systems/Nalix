@@ -1,4 +1,4 @@
-﻿namespace Nalix.Common.Connection.Protocols;
+﻿namespace Nalix.Common.Protocols;
 
 /// <summary>
 /// High-level client actions suggested by the server for a given reason.
