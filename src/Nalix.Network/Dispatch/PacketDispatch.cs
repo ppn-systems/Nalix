@@ -96,7 +96,7 @@ public sealed class PacketDispatch : PacketDispatchCore<IPacket>, IPacketDispatc
             // Log only a small head preview to avoid leaking large/secret data
             System.String head = System.Convert.ToHexString(raw[..System.Math.Min(16, len)]);
             Logger?.Warn(
-                $"[{nameof(PacketDispatch)}] Unknown packet. " +
+                $"[{nameof(PacketDispatch)}] UNKNOWN packet. " +
                 $"Remote={connection.RemoteEndPoint}, Len={len}, Magic=0x{magic:X8}, Head={head}. Dropped.");
             return;
         }

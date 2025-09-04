@@ -112,7 +112,7 @@ public sealed class PacketCatalogFactory
                 .RegisterPacket<Text512>()
                 .RegisterPacket<Text1024>();
 
-        // Control / handshake packets
+        // CONTROL / handshake packets
         _ = this.RegisterPacket<Control>()
                 .RegisterPacket<Handshake>()
                 .RegisterPacket<Directive>();

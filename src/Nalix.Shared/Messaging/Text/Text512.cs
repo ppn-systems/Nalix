@@ -18,10 +18,10 @@ namespace Nalix.Shared.Messaging.Text;
 /// <summary>
 /// Represents a simple text-based packet used for transmitting UTF-8 string content over the network.
 /// </summary>
-[MagicNumber(FrameMagic.Text512)]
+[MagicNumber(FrameMagic.TEXT512)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Text512 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+[System.Diagnostics.DebuggerDisplay("TEXT512 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public class Text512 : FrameBase, IPacketDeserializer<Text512>, IPacketCompressor<Text512>
 {
     /// <inheritdoc/>
@@ -51,7 +51,7 @@ public class Text512 : FrameBase, IPacketDeserializer<Text512>, IPacketCompresso
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.NONE;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)FrameMagic.Text512;
+        MagicNumber = (System.UInt32)FrameMagic.TEXT512;
     }
 
     /// <summary>Initializes the packet with content and transport protocol.</summary>
@@ -138,6 +138,6 @@ public class Text512 : FrameBase, IPacketDeserializer<Text512>, IPacketCompresso
 
     /// <inheritdoc/>
     public override System.String ToString()
-        => $"Text512(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+        => $"TEXT512(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
            $"Priority={Priority}, Transport={Transport}, Content={System.Text.Encoding.UTF8.GetByteCount(Content)} bytes)";
 }

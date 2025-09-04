@@ -18,10 +18,10 @@ namespace Nalix.Shared.Messaging.Controls;
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
 [PipelineManagedTransform]
-[MagicNumber(FrameMagic.Handshake)]
+[MagicNumber(FrameMagic.HANDSHAKE)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Handshake OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+[System.Diagnostics.DebuggerDisplay("HANDSHAKE OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public class Handshake : FrameBase, IPacketDeserializer<Handshake>
 {
     /// <inheritdoc/>
@@ -51,7 +51,7 @@ public class Handshake : FrameBase, IPacketDeserializer<Handshake>
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.NONE;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)FrameMagic.Handshake;
+        MagicNumber = (System.UInt32)FrameMagic.HANDSHAKE;
     }
 
     /// <summary>

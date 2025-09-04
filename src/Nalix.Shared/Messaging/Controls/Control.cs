@@ -19,10 +19,10 @@ namespace Nalix.Shared.Messaging.Controls;
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
 [PipelineManagedTransform]
-[MagicNumber(FrameMagic.Control)]
+[MagicNumber(FrameMagic.CONTROL)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Control OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+[System.Diagnostics.DebuggerDisplay("CONTROL OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPacketDeserializer<Control>
 {
     /// <summary>
@@ -81,7 +81,7 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
         this.Priority = PacketPriority.Urgent;
         this.Transport = TransportProtocol.NONE;
         this.OpCode = PacketConstants.OpCodeDefault;
-        this.MagicNumber = (System.UInt32)FrameMagic.Control;
+        this.MagicNumber = (System.UInt32)FrameMagic.CONTROL;
     }
 
     /// <summary>
@@ -147,6 +147,6 @@ public sealed class Control : FrameBase, IPacketReasoned, IPacketSequenced, IPac
 
     /// <inheritdoc/>
     public override System.String ToString() =>
-        $"Control(Op={OpCode}, Len={Length}, Flg={Flags}, Pri={Priority}, " +
+        $"CONTROL(Op={OpCode}, Len={Length}, Flg={Flags}, Pri={Priority}, " +
         $"Tr={Transport}, Seq={SequenceId}, Rsn={Reason}, Typ={Type}, Ts={Timestamp}, Mono={MonoTicks})";
 }
