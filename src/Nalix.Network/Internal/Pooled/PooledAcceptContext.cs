@@ -18,82 +18,114 @@ namespace Nalix.Network.Internal.Pooled;
 [System.Diagnostics.DebuggerDisplay("Args={Args}")]
 internal sealed class PooledAcceptContext : IPoolable
 {
-    /// <summary>
-    /// Static cached event handler that resolves the 
-    /// <see cref="System.Threading.Tasks.TaskCompletionSource{Socket}"/> 
-    /// stored in <see cref="System.Net.Sockets.SocketAsyncEventArgs.UserToken"/>.
-    /// </summary>
     private static readonly System.EventHandler<System.Net.Sockets.SocketAsyncEventArgs> AsyncAcceptCompleted = static (s, e) =>
     {
-        System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket> tcs =
-            (System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>)e.UserToken!;
-
+        var tcs = (System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>)e.UserToken!;
         _ = e.SocketError == System.Net.Sockets.SocketError.Success
             ? tcs.TrySetResult(e.AcceptSocket!)
             : tcs.TrySetException(new System.Net.Sockets.SocketException((System.Int32)e.SocketError));
     };
 
-    /// <summary>
-    /// Gets the reusable <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> used for the accept operation.
-    /// </summary>
-    public System.Net.Sockets.SocketAsyncEventArgs Args;
+    // Always access through BindArgs(...) to keep handler wiring correct.
+    private System.Net.Sockets.SocketAsyncEventArgs? _args;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PooledAcceptContext"/> class.
-    /// Acquires a pooled <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> and registers a shared event handler.
+    /// The SAEA currently bound to this context.
     /// </summary>
+    public System.Net.Sockets.SocketAsyncEventArgs Args
+        => _args ?? throw new System.InvalidOperationException("Args not bound.");
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PooledAcceptContext"/> class and binds to a pooled args.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0270:Use coalesce expression", Justification = "<Pending>")]
     public PooledAcceptContext()
     {
-        this.Args = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                            .Get<PooledSocketAsyncEventArgs>();
-
-        if (this.Args == null)
+        PooledSocketAsyncEventArgs pooledArgs = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                                        .Get<PooledSocketAsyncEventArgs>();
+        if (pooledArgs == null)
         {
             throw new System.InvalidOperationException("Failed to acquire a pooled SocketAsyncEventArgs instance.");
         }
 
-        this.Args.Completed += AsyncAcceptCompleted;
+        this.BindArgs(pooledArgs);
     }
 
     /// <summary>
-    /// Prepares the context for a new asynchronous accept operation.
-    /// Returns a task that completes when the accept is done.
+    /// Rebinds this context to a new <see cref="System.Net.Sockets.SocketAsyncEventArgs"/>:
+    /// detaches from old args (if any) and attaches the shared completion handler to the new args.
     /// </summary>
-    /// <returns>
-    /// A <see cref="System.Threading.Tasks.ValueTask{Socket}"/> that completes with 
-    /// the accepted <see cref="System.Net.Sockets.Socket"/>, or throws an exception on error.
-    /// </returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(Args))]
-    public System.Threading.Tasks.ValueTask<System.Net.Sockets.Socket> PrepareAsync()
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void BindArgs(System.Net.Sockets.SocketAsyncEventArgs newArgs)
     {
-        if (this.Args == null)
+        if (_args != null)
         {
-            throw new System.InvalidOperationException("SocketAsyncEventArgs instance is not initialized.");
+            _args.Completed -= AsyncAcceptCompleted;
         }
 
-        System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket> tcs =
-            new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+        _args = newArgs ?? throw new System.ArgumentNullException(nameof(newArgs));
+        _args.Completed += AsyncAcceptCompleted;
+    }
 
-        this.Args.UserToken = tcs;
-        this.Args.AcceptSocket = null; // reset previous
+    /// <summary>
+    /// Binds this context to a new <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> without attaching the completion handler.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void BindArgsForSync(System.Net.Sockets.SocketAsyncEventArgs newArgs)
+    {
+        if (_args != null)
+        {
+            _args.Completed -= AsyncAcceptCompleted;
+        }
+
+        _args = newArgs ?? throw new System.ArgumentNullException(nameof(newArgs));
+    }
+
+    /// <summary>
+    /// Starts an accept with the correct order: prepare TCS first, then call AcceptAsync.
+    /// Works for both sync and async completion.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Threading.Tasks.ValueTask<System.Net.Sockets.Socket> BeginAcceptAsync(System.Net.Sockets.Socket listener)
+    {
+        var tcs = new System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>(
+            System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var args = this.Args;          // throws if not bound
+        args.UserToken = tcs;
+        args.AcceptSocket = null;
+
+        if (!listener.AcceptAsync(args))
+        {
+            if (args.SocketError != System.Net.Sockets.SocketError.Success)
+            {
+                args.AcceptSocket = null;
+                _ = tcs.TrySetException(new System.Net.Sockets.SocketException((System.Int32)args.SocketError));
+            }
+            else
+            {
+                var s = args.AcceptSocket!;
+                args.AcceptSocket = null;
+                _ = tcs.TrySetResult(s);
+            }
+        }
+
         return new System.Threading.Tasks.ValueTask<System.Net.Sockets.Socket>(tcs.Task);
     }
 
     /// <summary>
-    /// Resets the internal state of the accept context for reuse in the object pool.
-    /// Clears <see cref="System.Net.Sockets.SocketAsyncEventArgs.UserToken"/> 
-    /// and <see cref="System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket"/>.
+    /// Resets the internal state of this context before returning to the pool.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()
     {
-        if (this.Args != null)
+        if (_args != null)
         {
-            this.Args.UserToken = null;
-            this.Args.AcceptSocket = null;
+            _args.Completed -= AsyncAcceptCompleted; // detach to avoid duplicate callbacks on reuse
+            _args.UserToken = null;
+            _args.AcceptSocket = null;
         }
+        // Keep _args reference; the SAEA instance itself may be reused elsewhere.
+        // If your PooledSocketAsyncEventArgs also clears Buffer/RemoteEndPoint/Context, that is fine.
     }
 }
