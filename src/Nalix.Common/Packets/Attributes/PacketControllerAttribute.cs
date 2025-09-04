@@ -11,7 +11,7 @@ namespace Nalix.Common.Packets.Attributes;
 /// </remarks>
 /// <param name="name">
 /// The human-readable name of the packet controller.
-/// Defaults to <c>"UNKNOWN"</c> if not provided.
+/// Defaults to <c>"NONE"</c> if not provided.
 /// </param>
 /// <param name="isActive">
 /// Indicates whether the controller is active and should handle packets.
@@ -23,7 +23,7 @@ namespace Nalix.Common.Packets.Attributes;
 /// </param>
 [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 public sealed class PacketControllerAttribute(
-    System.String name = "UNKNOWN",
+    System.String name = "NONE",
     System.Boolean isActive = true,
     System.String version = "1.0") : System.Attribute
 {

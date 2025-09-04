@@ -7,7 +7,7 @@ namespace Nalix.Common.Protocols;
 /// Grouped by ranges to ease logging, analytics, and client decisioning.
 /// Inspired by WebSocket close codes, MQTT v5 reason codes, gRPC, HTTP, and QUIC.
 /// </summary>
-public enum ReasonCode : System.UInt16
+public enum ProtocolCode : System.UInt16
 {
     #region 0–49: General
 
@@ -17,7 +17,7 @@ public enum ReasonCode : System.UInt16
     NONE = 0,
 
     /// <summary>
-    /// UNKNOWN or unspecified error.
+    /// NONE or unspecified error.
     /// </summary>
     UNKNOWN = 1,
 

@@ -17,7 +17,7 @@ namespace Nalix.Shared.Messaging.Controls;
 /// A compact, generic server-to-client directive frame for common control scenarios.
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
-[MagicNumber(FrameMagic.DIRECTIVE)]
+[MagicNumber(FrameMagicCode.DIRECTIVE)]
 [System.Diagnostics.DebuggerDisplay("DIRECTIVE Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
 public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IPacketDeserializer<Directive>
 {
@@ -27,8 +27,8 @@ public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IP
         PacketConstants.HeaderSize
         + sizeof(System.UInt32)     // SequenceId
         + sizeof(ControlType)       // Type (ControlType)
-        + sizeof(ReasonCode)        // Reason (Reason)
-        + sizeof(SuggestedAction)   // Action (SuggestedAction)
+        + sizeof(ProtocolCode)        // Reason (Reason)
+        + sizeof(ProtocolAction)   // Action (ProtocolAction)
         + sizeof(ControlFlags)      // Flags (CONTROL)
         + sizeof(System.UInt32)     // Arg0
         + sizeof(System.UInt32)     // Arg1
@@ -50,13 +50,13 @@ public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IP
     /// Reason taxonomy explaining why this directive is sent.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.DataRegion + 2)]
-    public ReasonCode Reason { get; set; }
+    public ProtocolCode Reason { get; set; }
 
     /// <summary>
     /// Suggested client action for this reason.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.DataRegion + 3)]
-    public SuggestedAction Action { get; set; }
+    public ProtocolAction Action { get; set; }
 
     /// <summary>
     /// Fast-path decision flags (see <see cref="ControlFlags"/>).
@@ -86,9 +86,9 @@ public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IP
     public Directive()
     {
         Priority = PacketPriority.Urgent;
-        Transport = TransportProtocol.TCP;
+        Transport = ProtocolType.TCP;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)FrameMagic.DIRECTIVE;
+        MagicNumber = (System.UInt32)FrameMagicCode.DIRECTIVE;
     }
 
     /// <summary>
@@ -96,8 +96,8 @@ public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IP
     /// </summary>
     public void Initialize(
         ControlType type,
-        ReasonCode reason,
-        SuggestedAction action,
+        ProtocolCode reason,
+        ProtocolAction action,
         System.UInt32 sequenceId,
         ControlFlags flags = ControlFlags.NONE,
         System.UInt32 arg0 = 0,
@@ -114,7 +114,7 @@ public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IP
         SequenceId = sequenceId;
 
         Priority = PacketPriority.Urgent;
-        Transport = TransportProtocol.TCP;
+        Transport = ProtocolType.TCP;
     }
 
     /// <summary>
@@ -139,10 +139,10 @@ public sealed class Directive : FrameBase, IPacketReasoned, IPacketSequenced, IP
         Arg2 = 0;
         SequenceId = 0;
         Type = ControlType.NONE;
-        Reason = ReasonCode.NONE;
+        Reason = ProtocolCode.NONE;
         Control = ControlFlags.NONE;
-        Action = SuggestedAction.NONE;
+        Action = ProtocolAction.NONE;
         Priority = PacketPriority.Urgent;
-        Transport = TransportProtocol.NONE;
+        Transport = ProtocolType.NONE;
     }
 }

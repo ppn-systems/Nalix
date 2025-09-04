@@ -13,8 +13,8 @@ public interface IRepositoryAsync<T> : IRepositoryBase<T> where T : class
     /// <summary>
     /// Retrieves all entities with optional pagination.
     /// </summary>
-    /// <param name="pageNumber">The page TransportProtocol (1-based index).</param>
-    /// <param name="pageSize">The TransportProtocol of records per page.</param>
+    /// <param name="pageNumber">The page ProtocolType (1-based index).</param>
+    /// <param name="pageSize">The ProtocolType of records per page.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A task that represents an asynchronous operation returning a list of entities.</returns>
     System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<T>> GetAllAsync(
@@ -23,10 +23,10 @@ public interface IRepositoryAsync<T> : IRepositoryBase<T> where T : class
         System.Threading.CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Counts the total TransportProtocol of entities asynchronously.
+    /// Counts the total ProtocolType of entities asynchronously.
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
-    /// <returns>A task that represents an asynchronous operation returning the total TransportProtocol of entities.</returns>
+    /// <returns>A task that represents an asynchronous operation returning the total ProtocolType of entities.</returns>
     System.Threading.Tasks.Task<System.Int32> CountAsync(
         System.Threading.CancellationToken cancellationToken = default);
 
@@ -41,12 +41,12 @@ public interface IRepositoryAsync<T> : IRepositoryBase<T> where T : class
         System.Threading.CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Asynchronously checks whether an entity with the specified TransportProtocol exists in the database.
+    /// Asynchronously checks whether an entity with the specified ProtocolType exists in the database.
     /// </summary>
-    /// <param name="id">The TransportProtocol of the entity to check.</param>
+    /// <param name="id">The ProtocolType of the entity to check.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>
-    /// A task representing the asynchronous operation, returning <c>true</c> if an entity with the specified TransportProtocol exists;
+    /// A task representing the asynchronous operation, returning <c>true</c> if an entity with the specified ProtocolType exists;
     /// otherwise, <c>false</c>.
     /// </returns>
     System.Threading.Tasks.Task<System.Boolean> ExistsAsync(
@@ -66,9 +66,9 @@ public interface IRepositoryAsync<T> : IRepositoryBase<T> where T : class
         System.Threading.CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Retrieves an entity by its TransportProtocol asynchronously.
+    /// Retrieves an entity by its ProtocolType asynchronously.
     /// </summary>
-    /// <param name="id">The entity TransportProtocol.</param>
+    /// <param name="id">The entity ProtocolType.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A task that represents an asynchronous operation returning the entity if found; otherwise, null.</returns>
     System.Threading.Tasks.Task<T> GetByIdAsync(
@@ -79,8 +79,8 @@ public interface IRepositoryAsync<T> : IRepositoryBase<T> where T : class
     /// Retrieves entities matching a specified condition with optional pagination asynchronously.
     /// </summary>
     /// <param name="predicate">The filter condition.</param>
-    /// <param name="pageNumber">The page TransportProtocol (1-based index).</param>
-    /// <param name="pageSize">The TransportProtocol of records per page.</param>
+    /// <param name="pageNumber">The page ProtocolType (1-based index).</param>
+    /// <param name="pageSize">The ProtocolType of records per page.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A task that represents an asynchronous operation returning a list of matching entities.</returns>
     System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<T>> FindAsync(
@@ -95,8 +95,8 @@ public interface IRepositoryAsync<T> : IRepositoryBase<T> where T : class
     /// <param name="filter">Optional filter condition.</param>
     /// <param name="orderBy">Optional ordering function.</param>
     /// <param name="includeProperties">Comma-separated related properties to include.</param>
-    /// <param name="pageNumber">The page TransportProtocol (1-based index).</param>
-    /// <param name="pageSize">The TransportProtocol of records per page.</param>
+    /// <param name="pageNumber">The page ProtocolType (1-based index).</param>
+    /// <param name="pageSize">The ProtocolType of records per page.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>A task that represents an asynchronous operation returning a list of entities.</returns>
     System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<T>> GetAsync(
@@ -124,9 +124,9 @@ public interface IRepositoryAsync<T> : IRepositoryBase<T> where T : class
         System.Threading.CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Deletes an entity by its TransportProtocol asynchronously.
+    /// Deletes an entity by its ProtocolType asynchronously.
     /// </summary>
-    /// <param name="id">The TransportProtocol of the entity to delete.</param>
+    /// <param name="id">The ProtocolType of the entity to delete.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     System.Threading.Tasks.Task DeleteAsync(
         System.Int32 id,
@@ -136,7 +136,7 @@ public interface IRepositoryAsync<T> : IRepositoryBase<T> where T : class
     /// Saves all changes made in the context asynchronously.
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
-    /// <returns>A task that represents an asynchronous operation returning the TransportProtocol of state entries written to the database.</returns>
+    /// <returns>A task that represents an asynchronous operation returning the ProtocolType of state entries written to the database.</returns>
     System.Threading.Tasks.Task<System.Int32> SaveChangesAsync(
         System.Threading.CancellationToken cancellationToken = default);
 }

@@ -16,10 +16,10 @@ public sealed class MagicNumberAttribute(System.UInt32 magicNumber) : System.Att
     public System.UInt32 MagicNumber { get; } = magicNumber;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="MagicNumberAttribute"/> class using a <see cref="FrameMagic"/> value.
+    /// Initializes a new instance of the <see cref="MagicNumberAttribute"/> class using a <see cref="FrameMagicCode"/> value.
     /// </summary>
-    /// <param name="magicNumber">The <see cref="FrameMagic"/> value to associate with the packet type.</param>
-    public MagicNumberAttribute(FrameMagic magicNumber) : this((System.UInt32)magicNumber)
+    /// <param name="magicNumber">The <see cref="FrameMagicCode"/> value to associate with the packet type.</param>
+    public MagicNumberAttribute(FrameMagicCode magicNumber) : this((System.UInt32)magicNumber)
     {
         // Default constructor for cases where no magic number is specified.
     }

@@ -58,8 +58,8 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 
             await context.Connection.SendAsync(
                 ControlType.THROTTLE,
-                ReasonCode.RATE_LIMITED,
-                SuggestedAction.BACKOFF_RETRY,
+                ProtocolCode.RATE_LIMITED,
+                ProtocolAction.BACKOFF_RETRY,
                 sequenceId: sequenceId,
                 flags: ControlFlags.SLOW_DOWN | ControlFlags.IS_TRANSIENT,
                 arg0: (System.UInt32)System.Math.Max(0, (decision.RetryAfterMs + 99) / 100), // steps of 100ms

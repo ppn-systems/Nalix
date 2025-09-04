@@ -78,37 +78,37 @@ public sealed partial class PacketDispatchOptions<TPacket>
         => value ?? throw new System.ArgumentNullException(paramName);
 
     /// <summary>
-    /// Map exception types to ReasonCode/SuggestedAction/ControlFlags.
+    /// Map exception types to ProtocolCode/ProtocolAction/ControlFlags.
     /// Adjust mappings to match your enum set.
     /// </summary>
-    private static (ReasonCode reason, SuggestedAction action, ControlFlags flags) ClassifyException(System.Exception ex)
+    private static (ProtocolCode reason, ProtocolAction action, ControlFlags flags) ClassifyException(System.Exception ex)
     {
         // Timeouts / cancellations -> transient, client can retry
         if (ex is System.OperationCanceledException or System.TimeoutException)
         {
-            return (ReasonCode.TIMEOUT, SuggestedAction.RETRY, ControlFlags.IS_TRANSIENT);
+            return (ProtocolCode.TIMEOUT, ProtocolAction.RETRY, ControlFlags.IS_TRANSIENT);
         }
 
         // Validation / bad input -> client should fix
         if (ex is System.ArgumentException || ex.GetType().Name.Contains("Validation", System.StringComparison.OrdinalIgnoreCase))
         {
-            return (ReasonCode.REQUEST_INVALID, SuggestedAction.FIX_AND_RETRY, ControlFlags.NONE);
+            return (ProtocolCode.REQUEST_INVALID, ProtocolAction.FIX_AND_RETRY, ControlFlags.NONE);
         }
 
         // Unsupported features at runtime
         if (ex is System.NotSupportedException)
         {
-            return (ReasonCode.OPERATION_UNSUPPORTED, SuggestedAction.NONE, ControlFlags.NONE);
+            return (ProtocolCode.OPERATION_UNSUPPORTED, ProtocolAction.NONE, ControlFlags.NONE);
         }
 
         // I/O / network glitches -> transient
         if (ex is System.IO.IOException or System.Net.Sockets.SocketException)
         {
-            return (ReasonCode.NETWORK_ERROR, SuggestedAction.RETRY, ControlFlags.IS_TRANSIENT);
+            return (ProtocolCode.NETWORK_ERROR, ProtocolAction.RETRY, ControlFlags.IS_TRANSIENT);
         }
 
         // Default: internal error (could be non-transient)
-        return (ReasonCode.INTERNAL_ERROR, SuggestedAction.NONE, ControlFlags.NONE);
+        return (ProtocolCode.INTERNAL_ERROR, ProtocolAction.NONE, ControlFlags.NONE);
     }
 
     #endregion Private Methods

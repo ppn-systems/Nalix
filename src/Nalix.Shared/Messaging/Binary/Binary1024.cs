@@ -18,7 +18,7 @@ namespace Nalix.Shared.Messaging.Binary;
 /// <summary>
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
-[MagicNumber(FrameMagic.BINARY1024)]
+[MagicNumber(FrameMagicCode.BINARY1024)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("BINARY1024 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
@@ -49,9 +49,9 @@ public class Binary1024 : FrameBase, IPacketDeserializer<Binary1024>, IPacketCom
         Data = [];
         Flags = PacketFlags.None;
         Priority = PacketPriority.Normal;
-        Transport = TransportProtocol.NONE;
+        Transport = ProtocolType.NONE;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)FrameMagic.BINARY1024;
+        MagicNumber = (System.UInt32)FrameMagicCode.BINARY1024;
     }
 
     /// <summary>
@@ -61,7 +61,7 @@ public class Binary1024 : FrameBase, IPacketDeserializer<Binary1024>, IPacketCom
     /// <param name="transport">The target transport protocol.</param>
     public void Initialize(
         System.Byte[] data,
-        TransportProtocol transport = TransportProtocol.TCP)
+        ProtocolType transport = ProtocolType.TCP)
     {
         if (data.Length > DynamicSize)
         {
@@ -156,7 +156,7 @@ public class Binary1024 : FrameBase, IPacketDeserializer<Binary1024>, IPacketCom
         this.Data = [];
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.Normal;
-        this.Transport = TransportProtocol.NONE;
+        this.Transport = ProtocolType.NONE;
     }
 
     /// <inheritdoc/>

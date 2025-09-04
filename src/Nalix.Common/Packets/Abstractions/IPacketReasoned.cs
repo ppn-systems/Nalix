@@ -11,5 +11,5 @@ public interface IPacketReasoned
     /// <summary>
     /// Gets the reason code that explains the purpose or error for this packet.
     /// </summary>
-    ReasonCode Reason { get; }
+    ProtocolCode Reason { get; }
 }

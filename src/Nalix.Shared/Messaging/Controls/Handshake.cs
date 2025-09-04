@@ -18,7 +18,7 @@ namespace Nalix.Shared.Messaging.Controls;
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
 [PipelineManagedTransform]
-[MagicNumber(FrameMagic.HANDSHAKE)]
+[MagicNumber(FrameMagicCode.HANDSHAKE)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("HANDSHAKE OpCode={OpCode}, Length={Length}, Flags={Flags}")]
@@ -49,23 +49,23 @@ public class Handshake : FrameBase, IPacketDeserializer<Handshake>
         Data = [];
         Flags = PacketFlags.None;
         Priority = PacketPriority.Normal;
-        Transport = TransportProtocol.NONE;
+        Transport = ProtocolType.NONE;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)FrameMagic.HANDSHAKE;
+        MagicNumber = (System.UInt32)FrameMagicCode.HANDSHAKE;
     }
 
     /// <summary>
     /// Initializes the packet with binary data.
     /// </summary>
     /// <param name="data">Binary content of the packet.</param>
-    public void Initialize(System.Byte[] data) => Initialize(data, TransportProtocol.NONE);
+    public void Initialize(System.Byte[] data) => Initialize(data, ProtocolType.NONE);
 
     /// <summary>
     /// Initializes the packet with binary data and a transport protocol.
     /// </summary>
     /// <param name="data">Binary content of the packet.</param>
     /// <param name="transport">The target transport protocol.</param>
-    public void Initialize(System.Byte[] data, TransportProtocol transport = TransportProtocol.TCP)
+    public void Initialize(System.Byte[] data, ProtocolType transport = ProtocolType.TCP)
     {
         this.Data = data ?? [];
         this.Transport = transport;
@@ -97,7 +97,7 @@ public class Handshake : FrameBase, IPacketDeserializer<Handshake>
         this.Data = [];
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.Normal;
-        this.Transport = TransportProtocol.NONE;
+        this.Transport = ProtocolType.NONE;
     }
 
     /// <inheritdoc/>
