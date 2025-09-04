@@ -7,8 +7,10 @@ using Nalix.Common.Security.Abstractions;
 using Nalix.Common.Security.Enums;
 using Nalix.Common.Security.Types;
 using Nalix.Framework.Identity;
+using Nalix.Framework.Time;
 using Nalix.Network.Internal.Protocols;
 using Nalix.Shared.Injection;
+using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Connection;
@@ -45,15 +47,17 @@ public sealed partial class Connection : IConnection
         _lock = new System.Threading.Lock();
         _ctokens = new System.Threading.CancellationTokenSource();
 
+        ConnectionEventArgs args = new(this);
+
         _cstream = new ProtocolChannel(socket, _ctokens);
         _cstream.Disconnected += () =>
         {
-            _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
+            _onCloseEvent?.Invoke(this, args);
         };
 
         _disposed = false;
         _encryptionKey = new System.Byte[0x01];
-        _cstream.SetPacketCached(() => _onProcessEvent?.Invoke(this, new ConnectionEventArgs(this)));
+        _cstream.Cache.SetCallback(OnProcessEventBridge, this, args);
 
         this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
         this.Id = Identifier.NewId(IdentifierType.Session);
@@ -83,10 +87,10 @@ public sealed partial class Connection : IConnection
     public System.Net.EndPoint RemoteEndPoint { get; }
 
     /// <inheritdoc />
-    public System.Int64 UpTime => this._cstream.UpTime;
+    public System.Int64 UpTime => this._cstream.Cache.Uptime;
 
     /// <inheritdoc />
-    public System.Int64 LastPingTime => this._cstream.LastPingTime;
+    public System.Int64 LastPingTime => this._cstream.Cache.LastPingTime;
 
     /// <inheritdoc />
     public PermissionLevel Level { get; set; } = PermissionLevel.Guest;
@@ -95,7 +99,7 @@ public sealed partial class Connection : IConnection
     public SymmetricAlgorithmType Encryption { get; set; } = SymmetricAlgorithmType.XTEA;
 
     /// <inheritdoc />
-    public IBufferLease? IncomingPacket => this._cstream.PopIncoming();
+    public IBufferLease? IncomingPacket => _cstream.Cache.Incoming.Pop();
 
     /// <inheritdoc />
     public System.Byte[] EncryptionKey
@@ -152,7 +156,21 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal void InjectIncoming(System.Byte[] bytes) => _cstream.InjectIncoming(bytes);
+    internal void InjectIncoming(System.Byte[] bytes)
+    {
+        if (bytes.Length == 0 || this._disposed)
+        {
+            return;
+        }
+
+        _cstream.Cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
+        _cstream.Cache.PushIncoming(BufferLease.CopyFrom(bytes));
+
+#if DEBUG
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[{nameof(ProtocolChannel)}] Injected {bytes.Length} bytes into incoming cache.");
+#endif
+    }
 
     /// <inheritdoc />
     public void Close(System.Boolean force = false)
@@ -178,6 +196,19 @@ public sealed partial class Connection : IConnection
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Disconnect(System.String? reason = null) => this.Close(force: true);
+
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void OnProcessEventBridge(System.Object? sender, IConnectEventArgs e)
+    {
+        if (sender is not Connection self)
+        {
+            return;
+        }
+
+        self._onProcessEvent?.Invoke(self, e);
+    }
 
     #endregion Methods
 
