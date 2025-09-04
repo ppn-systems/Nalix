@@ -15,10 +15,10 @@ public abstract class LogEngine : System.IDisposable
 {
     #region Fields
 
-    private readonly LogLevel _minLevel;
     private readonly LogOptions _logOptions;
     private readonly LogDistributor _distributor;
 
+    private LogLevel _minLevel;
     private System.Int32 _isDisposed;
 
     #endregion Fields
@@ -72,7 +72,11 @@ public abstract class LogEngine : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     protected void Configure(System.Action<LogOptions> configureOptions)
-        => configureOptions?.Invoke(_logOptions);
+    {
+        configureOptions?.Invoke(_logOptions);
+
+        _minLevel = _logOptions.MinLevel;
+    }
 
     /// <summary>
     /// Checks if the log level meets the minimum required level for logging.
@@ -102,7 +106,7 @@ public abstract class LogEngine : System.IDisposable
         LogLevel level, EventId eventId,
         System.String message, System.Exception? error = null)
     {
-        if (_isDisposed != 0 || level < _minLevel)
+        if (_isDisposed != 0 || !IsEnabled(level))
         {
             return;
         }
@@ -126,7 +130,7 @@ public abstract class LogEngine : System.IDisposable
         System.String format, params System.Object[] args)
     {
         // Skip expensive string formatting if the log level is disabled
-        if (_isDisposed != 0 || level < _minLevel)
+        if (_isDisposed != 0 || !IsEnabled(level))
         {
             return;
         }
