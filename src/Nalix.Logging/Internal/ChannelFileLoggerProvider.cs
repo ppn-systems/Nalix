@@ -125,23 +125,31 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     internal void WriteEntry(System.String message)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, this);
-        if (System.String.IsNullOrEmpty(message))
+        if (_disposed || System.String.IsNullOrEmpty(message))
         {
             return;
         }
 
         if (_blockWhenFull)
         {
-            // Backpressure: block producers
-            _ = _writer.WriteAsync(message, _cts.Token).AsTask().ConfigureAwait(false);
-            _ = Interlocked.Increment(ref _queued);
+            try
+            {
+                _ = _writer.WriteAsync(message, _cts.Token).AsTask().ConfigureAwait(false);
+                _ = Interlocked.Increment(ref _queued);
+            }
+            catch
+            {
+                // swallow: don't throw from logger
+                _ = Interlocked.Increment(ref _entriesDroppedCount);
+            }
         }
         else
         {
-            _ = _writer.TryWrite(message) ? Interlocked.Increment(ref _queued) : Interlocked.Increment(ref _entriesDroppedCount);
+            _ = _writer.TryWrite(message) ? Interlocked.Increment(ref _queued)
+                                          : Interlocked.Increment(ref _entriesDroppedCount);
         }
     }
+
 
     /// <summary>
     /// Force a flush of current buffers to disk.

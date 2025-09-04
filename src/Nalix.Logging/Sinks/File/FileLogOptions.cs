@@ -2,6 +2,7 @@
 
 using Nalix.Common.Environment;
 using Nalix.Logging.Internal.Exceptions;
+using System;
 
 namespace Nalix.Logging.Sinks.File;
 
@@ -50,7 +51,7 @@ public sealed class FileLogOptions
         set
         {
             const System.Int32 min = 1024; // 1 KB minimum
-            const System.Int32 max = System.Int32.MaxValue; // 2 GB maximum
+            const System.Int32 max = 32 * 1024 * 1024; // 2 GB maximum
 
             if (value is < min or > max)
             {
@@ -140,6 +141,11 @@ public sealed class FileLogOptions
     /// </remarks>
     public System.Boolean BlockWhenQueueFull { get; set; } = false;
 
+    /// <summary>
+    /// Optional: also suffix by process to avoid cross-process collisions.
+    /// </summary>
+    public Boolean UsePerProcessSuffix { get; set; } = false;
+
     #endregion Properties
 
     #region Methods
@@ -152,6 +158,23 @@ public sealed class FileLogOptions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.String GetFullLogFilePath() => System.IO.Path.Combine(Directories.LogsDirectory, LogFileName);
+
+    // Helper to build exact file name for a given day/index
+    public String BuildFileName(DateTime date, Int32 index)
+    {
+        var datePart = date.ToString("yy_MM_dd", System.Globalization.CultureInfo.InvariantCulture);
+        var name = $"Nalix_{datePart}_{index}.log";
+
+        if (UsePerProcessSuffix)
+        {
+            using var p = System.Diagnostics.Process.GetCurrentProcess();
+            var ext = System.IO.Path.GetExtension(name); // ".log"
+            var stem = System.IO.Path.GetFileNameWithoutExtension(name);
+            name = $"{stem}_{p.ProcessName}_{p.Id}{ext}";
+        }
+
+        return name;
+    }
 
     #endregion Methods
 }

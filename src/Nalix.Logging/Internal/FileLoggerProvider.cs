@@ -214,38 +214,32 @@ internal sealed class FileLoggerProvider : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal void WriteEntry(System.String message)
     {
-        System.ObjectDisposedException.ThrowIf(_isDisposed, this);
+        if (_isDisposed || System.String.IsNullOrEmpty(message))
+        {
+            return;
+        }
 
         if (Options.UseBackgroundThread)
         {
-            // Asynchronous mode - add to queue
-            if (!_entryQueue.IsAddingCompleted)
+            try
             {
-                try
+                if (_blockWhenQueueFull)
                 {
-                    if (_blockWhenQueueFull)
-                    {
-                        // Block until space is available
-                        _entryQueue.Add(message);
-                    }
-                    else
-                    {
-                        // Try to add without blocking
-                        if (!_entryQueue.TryAdd(message))
-                        {
-                            _ = System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
-                        }
-                    }
+                    _entryQueue.Add(message);
                 }
-                catch (System.InvalidOperationException)
+                else if (!_entryQueue.TryAdd(message))
                 {
-                    // Queue is completed or disposed
+                    _ = System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
                 }
+            }
+            catch
+            {
+                // queue closed or canceled: swallow
+                _ = System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
             }
         }
         else
         {
-            // Synchronous mode - write directly
             try
             {
                 _fileWriter.WriteMessage(message, true);

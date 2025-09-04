@@ -36,9 +36,9 @@ public static partial class Directories
     /// <list type="number">
     ///   <item>Internal test override (when set).</item>
     ///   <item>Environment variable <c>NALIX_BASE_PATH</c>.</item>
-    ///   <item>Container defaults (<c>/assets</c>, <c>/app/assets</c>, or <c>/data/assets</c>).</item>
-    ///   <item>OS-specific default (Windows: <c>%ProgramData%\Nalix\assets</c>;
-    ///       Unix: <c>$XDG_DATA_HOME</c> or <c>~/.local/share/Nalix/assets</c>).</item>
+    ///   <item>Container defaults (<c>/app/</c>, or <c>/data/</c>).</item>
+    ///   <item>OS-specific default (Windows: <c>%ProgramData%\Nalix\</c>;
+    ///       Unix: <c>$XDG_DATA_HOME</c> or <c>~/.local/share/Nalix/</c>).</item>
     /// </list>
     /// The returned path is absolute.
     /// </remarks>
@@ -60,7 +60,7 @@ public static partial class Directories
     /// <list type="number">
     ///   <item><c>NALIX_LOGS_PATH</c> environment variable.</item>
     ///   <item>Container default: <c>/logs</c> (when present).</item>
-    ///   <item><see cref="BaseAssetsDirectory"/>/<c>data/logs</c>.</item>
+    ///   <item><see cref="BaseAssetsDirectory"/>/<c>logs</c>.</item>
     /// </list>
     /// On Unix-like systems, permissions are set to be world-readable.
     /// </remarks>
