@@ -84,8 +84,8 @@ public static class ConnectionExtensions
     public static async System.Threading.Tasks.Task SendAsync(
         this IConnection connection,
         ControlType controlType,
-        ReasonCode reason,
-        SuggestedAction action,
+        ProtocolCode reason,
+        ProtocolAction action,
         System.UInt32 sequenceId = 0,
         ControlFlags flags = ControlFlags.NONE,
         System.UInt32 arg0 = 0,
@@ -133,8 +133,8 @@ public static class ConnectionExtensions
     public static System.Threading.Tasks.Task SendAsync(
         this IConnection connection,
         ControlType controlType,
-        ReasonCode reason,
-        SuggestedAction action,
+        ProtocolCode reason,
+        ProtocolAction action,
         ControlFlags flags = ControlFlags.NONE,
         System.UInt32 arg0 = 0,
         System.UInt32 arg1 = 0,
@@ -156,8 +156,8 @@ public static class ConnectionExtensions
     public static System.Threading.Tasks.Task SendAsync(
         this IConnection connection,
         ControlType controlType,
-        ReasonCode reason,
-        SuggestedAction action,
+        ProtocolCode reason,
+        ProtocolAction action,
         IPacketSequenced request,
         ControlFlags flags = ControlFlags.NONE,
         System.UInt32 arg0 = 0,

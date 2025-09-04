@@ -53,8 +53,8 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                 await context.Connection.SendAsync(
                     ControlType.FAIL,
-                    ReasonCode.INTERNAL_ERROR,
-                    SuggestedAction.NONE,
+                    ProtocolCode.INTERNAL_ERROR,
+                    ProtocolAction.NONE,
                     sequenceId: sequenceId,
                     flags: ControlFlags.NONE,
                     arg0: context.Attributes.OpCode.OpCode,
@@ -68,8 +68,8 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
             {
                 await context.Connection.SendAsync(
                     ControlType.FAIL,
-                    ReasonCode.UNSUPPORTED_PACKET,
-                    SuggestedAction.NONE,
+                    ProtocolCode.UNSUPPORTED_PACKET,
+                    ProtocolAction.NONE,
                     sequenceId: sequenceId,
                     flags: ControlFlags.NONE,
                     arg0: context.Attributes.OpCode.OpCode,
@@ -89,8 +89,8 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                     await context.Connection.SendAsync(
                         ControlType.FAIL,
-                        ReasonCode.CRYPTO_UNSUPPORTED,
-                        SuggestedAction.NONE,
+                        ProtocolCode.CRYPTO_UNSUPPORTED,
+                        ProtocolAction.NONE,
                         sequenceId: sequenceId,
                         flags: ControlFlags.NONE,
                         arg0: context.Attributes.OpCode.OpCode,
@@ -112,8 +112,8 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                     await context.Connection.SendAsync(
                         ControlType.FAIL,
-                        ReasonCode.COMPRESSION_UNSUPPORTED,
-                        SuggestedAction.NONE,
+                        ProtocolCode.COMPRESSION_UNSUPPORTED,
+                        ProtocolAction.NONE,
                         sequenceId: sequenceId,
                         flags: ControlFlags.NONE,
                         arg0: context.Attributes.OpCode.OpCode,
@@ -138,8 +138,8 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
             await context.Connection.SendAsync(
                 ControlType.FAIL,
-                ReasonCode.TRANSFORM_FAILED,
-                SuggestedAction.RETRY,
+                ProtocolCode.TRANSFORM_FAILED,
+                ProtocolAction.RETRY,
                 sequenceId: sequenceId,
                 flags: ControlFlags.IS_TRANSIENT,
                 arg0: context.Attributes.OpCode.OpCode,

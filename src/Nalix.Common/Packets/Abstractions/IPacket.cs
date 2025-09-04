@@ -55,7 +55,7 @@ public interface IPacket : IPoolable
     /// Gets the transport protocol (for example, TCP or UDP) used to transmit the packet.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.Transport)]
-    TransportProtocol Transport { get; }
+    ProtocolType Transport { get; }
 
     #endregion Metadata
 

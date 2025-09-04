@@ -47,7 +47,7 @@ public static class Salsa20
     /// <param name="counter">Initial counter value, typically 0 for first use.</param>
     /// <param name="plaintext">The data to encrypt.</param>
     /// <param name="ciphertext">Buffer to receive the encrypted data.</param>
-    /// <returns>TransportProtocol of bytes written.</returns>
+    /// <returns>ProtocolType of bytes written.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Int32 Encrypt(
         ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> nonce, UInt64 counter,
@@ -84,7 +84,7 @@ public static class Salsa20
     /// <param name="counter">Initial counter value, must be same as used for encryption.</param>
     /// <param name="ciphertext">The data to decrypt.</param>
     /// <param name="plaintext">Buffer to receive the decrypted data.</param>
-    /// <returns>TransportProtocol of bytes written.</returns>
+    /// <returns>ProtocolType of bytes written.</returns>
     // Salsa20 decryption is identical to encryption since it's just XOR with the keystream
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Int32 Decrypt(ReadOnlySpan<Byte> key, ReadOnlySpan<Byte> nonce, UInt64 counter,

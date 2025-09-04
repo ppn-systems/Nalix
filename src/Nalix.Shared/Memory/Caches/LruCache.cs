@@ -69,12 +69,12 @@ public class LruCache<TKey, TValue> : System.IDisposable where TKey : notnull
     }
 
     /// <summary>
-    /// Gets the TransportProtocol of cache hits.
+    /// Gets the ProtocolType of cache hits.
     /// </summary>
     public System.Int64 Hits => System.Threading.Interlocked.Read(ref _hits);
 
     /// <summary>
-    /// Gets the TransportProtocol of cache misses.
+    /// Gets the ProtocolType of cache misses.
     /// </summary>
     public System.Int64 Misses => System.Threading.Interlocked.Read(ref _misses);
 
@@ -93,17 +93,17 @@ public class LruCache<TKey, TValue> : System.IDisposable where TKey : notnull
     }
 
     /// <summary>
-    /// Gets the TransportProtocol of items evicted from the cache.
+    /// Gets the ProtocolType of items evicted from the cache.
     /// </summary>
     public System.Int64 Evictions => System.Threading.Interlocked.Read(ref _evictions);
 
     /// <summary>
-    /// Gets the TransportProtocol of items added to the cache.
+    /// Gets the ProtocolType of items added to the cache.
     /// </summary>
     public System.Int64 Additions => System.Threading.Interlocked.Read(ref _additions);
 
     /// <summary>
-    /// Gets the TransportProtocol of items updated in the cache.
+    /// Gets the ProtocolType of items updated in the cache.
     /// </summary>
     public System.Int64 Updates => System.Threading.Interlocked.Read(ref _updates);
 
@@ -143,7 +143,7 @@ public class LruCache<TKey, TValue> : System.IDisposable where TKey : notnull
     /// <summary>
     /// Initializes a new instance of the <see cref="LruCache{TKey, TValue}"/> class.
     /// </summary>
-    /// <param name="capacity">The maximum TransportProtocol of items in the cache.</param>
+    /// <param name="capacity">The maximum ProtocolType of items in the cache.</param>
     /// <param name="comparer">Optional custom equality comparer for keys.</param>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown when capacity is less than 1.</exception>
     public LruCache(System.Int32 capacity,

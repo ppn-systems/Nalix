@@ -4,7 +4,7 @@
 /// High-level client actions suggested by the server for a given reason.
 /// Clients should treat these as hints to guide behavior.
 /// </summary>
-public enum SuggestedAction : System.Byte
+public enum ProtocolAction : System.Byte
 {
     /// <summary>
     /// No specific action. Log and continue.

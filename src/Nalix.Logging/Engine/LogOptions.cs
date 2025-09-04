@@ -38,7 +38,7 @@ public sealed class LogOptions : System.IDisposable
     public System.Boolean IncludeMachineName { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets whether to include process TransportProtocol in log entries.
+    /// Gets or sets whether to include process ProtocolType in log entries.
     /// </summary>
     public System.Boolean IncludeProcessId { get; set; } = true;
 

@@ -67,17 +67,17 @@ internal sealed class FileLoggerProvider : System.IDisposable
     }
 
     /// <summary>
-    /// Gets the TransportProtocol of entries currently in the queue waiting to be written.
+    /// Gets the ProtocolType of entries currently in the queue waiting to be written.
     /// </summary>
     public System.Int32 QueuedEntryCount => _entryQueue.Count;
 
     /// <summary>
-    /// Gets the total TransportProtocol of log entries written since this provider was created.
+    /// Gets the total ProtocolType of log entries written since this provider was created.
     /// </summary>
     public System.Int64 TotalEntriesWritten => System.Threading.Interlocked.Read(ref _totalEntriesWritten);
 
     /// <summary>
-    /// Gets the TransportProtocol of entries that were dropped due to queue capacity constraints.
+    /// Gets the ProtocolType of entries that were dropped due to queue capacity constraints.
     /// </summary>
     public System.Int64 EntriesDroppedCount => System.Threading.Interlocked.Read(ref _entriesDroppedCount);
 

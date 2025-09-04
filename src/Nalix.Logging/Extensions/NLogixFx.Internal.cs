@@ -38,7 +38,7 @@ public static partial class NLogixFx
         System.String extendedDataString = extendedData != null ? $"ExtendedData: {extendedData}" : "";
 
         return $"[Message]: {message}\n" +
-               $"[Source]: {sourceName ?? "UNKNOWN"}\n" +
+               $"[Source]: {sourceName ?? "NONE"}\n" +
                $"[Caller]: {callerMemberName} in {callerFilePath} at line {callerLineNumber}\n" +
                $"{extendedDataString.Trim()}";
     }

@@ -18,7 +18,7 @@ namespace Nalix.Shared.Memory.Pools;
 /// <remarks>
 /// Initializes a new instance of the <see cref="ObjectPool"/> class with the specified maximum items per type.
 /// </remarks>
-/// <param name="defaultMaxItemsPerType">The default maximum TransportProtocol of items to store per type.</param>
+/// <param name="defaultMaxItemsPerType">The default maximum ProtocolType of items to store per type.</param>
 public sealed class ObjectPool(Int32 defaultMaxItemsPerType)
 {
     #region Constants
@@ -60,12 +60,12 @@ public sealed class ObjectPool(Int32 defaultMaxItemsPerType)
     public event Action<String>? TraceOccurred;
 
     /// <summary>
-    /// Gets the total TransportProtocol of objects created across all types.
+    /// Gets the total ProtocolType of objects created across all types.
     /// </summary>
     public Int64 TotalCreatedCount => Interlocked.Read(ref _totalCreated);
 
     /// <summary>
-    /// Gets the total TransportProtocol of currently pooled objects across all types.
+    /// Gets the total ProtocolType of currently pooled objects across all types.
     /// </summary>
     public Int32 TotalAvailableCount
     {
@@ -81,17 +81,17 @@ public sealed class ObjectPool(Int32 defaultMaxItemsPerType)
     }
 
     /// <summary>
-    /// Gets the TransportProtocol of object types currently being pooled.
+    /// Gets the ProtocolType of object types currently being pooled.
     /// </summary>
     public Int32 TypeCount => _typePools.Count;
 
     /// <summary>
-    /// Gets the total TransportProtocol of objects returned to the pool.
+    /// Gets the total ProtocolType of objects returned to the pool.
     /// </summary>
     public Int64 TotalReturnedCount => Interlocked.Read(ref _totalReturned);
 
     /// <summary>
-    /// Gets the total TransportProtocol of objects rented from the pool.
+    /// Gets the total ProtocolType of objects rented from the pool.
     /// </summary>
     public Int64 TotalRentedCount => Interlocked.Read(ref _totalRented);
 
@@ -183,8 +183,8 @@ public sealed class ObjectPool(Int32 defaultMaxItemsPerType)
     /// Creates and adds multiple new instances of <typeparamref name="T"/> to the pool.
     /// </summary>
     /// <typeparam name="T">The type of objects to preallocate.</typeparam>
-    /// <param name="count">The TransportProtocol of instances to preallocate.</param>
-    /// <returns>The TransportProtocol of instances successfully preallocated.</returns>
+    /// <param name="count">The ProtocolType of instances to preallocate.</param>
+    /// <returns>The ProtocolType of instances successfully preallocated.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Int32 Prealloc<T>(Int32 count) where T : IPoolable, new()
     {
@@ -299,7 +299,7 @@ public sealed class ObjectPool(Int32 defaultMaxItemsPerType)
     /// <summary>
     /// Clears all objects from the pool.
     /// </summary>
-    /// <returns>The total TransportProtocol of objects removed.</returns>
+    /// <returns>The total ProtocolType of objects removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Int32 Clear()
     {
@@ -317,7 +317,7 @@ public sealed class ObjectPool(Int32 defaultMaxItemsPerType)
     /// Clears a specific type's pool.
     /// </summary>
     /// <typeparam name="T">The type to clear from the pool.</typeparam>
-    /// <returns>The TransportProtocol of objects removed.</returns>
+    /// <returns>The ProtocolType of objects removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Int32 ClearType<T>() where T : IPoolable
     {
@@ -336,7 +336,7 @@ public sealed class ObjectPool(Int32 defaultMaxItemsPerType)
     /// Trims all type pools to their target sizes.
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to trim to (0-100).</param>
-    /// <returns>The total TransportProtocol of objects removed.</returns>
+    /// <returns>The total ProtocolType of objects removed.</returns>
     public Int32 Trim(Int32 percentage = 50)
     {
         if (percentage < 0)
@@ -406,7 +406,7 @@ public sealed class ObjectPool(Int32 defaultMaxItemsPerType)
     /// </summary>
     /// <typeparam name="T">The type of objects to return.</typeparam>
     /// <param name="objects">The objects to return to the pool.</param>
-    /// <returns>The TransportProtocol of objects successfully returned to the pool.</returns>
+    /// <returns>The ProtocolType of objects successfully returned to the pool.</returns>
     /// <exception cref="ArgumentNullException">Thrown when objects is null.</exception>
     public Int32 ReturnMultiple<T>(IEnumerable<T> objects) where T : IPoolable, new()
     {
@@ -444,7 +444,7 @@ public sealed class ObjectPool(Int32 defaultMaxItemsPerType)
     /// Gets multiple objects from the pool at once.
     /// </summary>
     /// <typeparam name="T">The type of objects to get.</typeparam>
-    /// <param name="count">The TransportProtocol of objects to get.</param>
+    /// <param name="count">The ProtocolType of objects to get.</param>
     /// <returns>A list containing the requested objects.</returns>
     /// <exception cref="ArgumentException">Thrown when count is less than or equal to zero.</exception>
     public List<T> GetMultiple<T>(Int32 count) where T : IPoolable, new()

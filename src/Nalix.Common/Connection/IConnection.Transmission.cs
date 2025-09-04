@@ -7,12 +7,12 @@ namespace Nalix.Common.Connection;
 public partial interface IConnection
 {
     /// <summary>
-    /// Gets the Transmission CONTROL TransportProtocol (TCP) transmission interface
+    /// Gets the Transmission CONTROL ProtocolType (TCP) transmission interface
     /// </summary>
     ITcp Tcp { get; }
 
     /// <summary>
-    /// Gets the User Datagram TransportProtocol (UDP) transmission interface
+    /// Gets the User Datagram ProtocolType (UDP) transmission interface
     /// </summary>
     IUdp Udp { get; }
 
@@ -62,7 +62,7 @@ public partial interface IConnection
     }
 
     /// <summary>
-    /// Represents the Transmission CONTROL TransportProtocol (TCP) transmission interface
+    /// Represents the Transmission CONTROL ProtocolType (TCP) transmission interface
     /// for a network connection.
     /// </summary>
     /// <remarks>
@@ -107,7 +107,7 @@ public partial interface IConnection
     }
 
     /// <summary>
-    /// Represents the User Datagram TransportProtocol (UDP) transmission interface
+    /// Represents the User Datagram ProtocolType (UDP) transmission interface
     /// for a network connection.
     /// </summary>
     /// <remarks>

@@ -34,7 +34,7 @@ public abstract partial class Protocol
     #endregion Properties
 
     /// <summary>
-    /// Disposes resources used by this TransportProtocol.
+    /// Disposes resources used by this ProtocolType.
     /// </summary>
     public void Dispose()
     {

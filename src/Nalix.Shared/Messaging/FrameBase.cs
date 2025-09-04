@@ -14,7 +14,7 @@ namespace Nalix.Shared.Messaging;
 /// Represents the base class for all packet frames in the messaging system.
 /// Provides common header fields and serialization logic for derived packet types.
 /// </summary>
-[MagicNumber(FrameMagic.UNKNOWN)]
+[MagicNumber(FrameMagicCode.NONE)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public abstract class FrameBase : IPacket
@@ -53,7 +53,7 @@ public abstract class FrameBase : IPacket
     /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.Transport)]
-    public TransportProtocol Transport { get; set; }
+    public ProtocolType Transport { get; set; }
 
     /// <inheritdoc/>
     public abstract void ResetForPool();

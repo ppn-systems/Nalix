@@ -3,7 +3,7 @@
 namespace Nalix.Common.Logging.Models;
 
 /// <summary>
-/// Identifies a logging event. The primary identifier is the "TransportProtocol" property, with the "Name" property providing a short description of this type of event.
+/// Identifies a logging event. The primary identifier is the "ProtocolType" property, with the "Name" property providing a short description of this type of event.
 /// </summary>
 /// <remarks>
 /// Initializes an instance of the <see cref="EventId"/> struct.
@@ -13,7 +13,7 @@ namespace Nalix.Common.Logging.Models;
 public readonly struct EventId(System.Int32 id, System.String name = null) : System.IEquatable<EventId>
 {
     /// <summary>
-    /// Represents an empty or uninitialized <see cref="EventId"/> with an TransportProtocol of 0.
+    /// Represents an empty or uninitialized <see cref="EventId"/> with an ProtocolType of 0.
     /// This value is commonly used to represent a default or missing event.
     /// </summary>
     public static readonly EventId Empty = new(0);
@@ -25,7 +25,7 @@ public readonly struct EventId(System.Int32 id, System.String name = null) : Sys
     public static implicit operator EventId(System.Int32 i) => new(i);
 
     /// <summary>
-    /// Checks if two specified <see cref="EventId"/> instances have the same value. They are equal if they have the same TransportProtocol.
+    /// Checks if two specified <see cref="EventId"/> instances have the same value. They are equal if they have the same ProtocolType.
     /// </summary>
     /// <param name="left">The first <see cref="EventId"/>.</param>
     /// <param name="right">The second <see cref="EventId"/>.</param>
@@ -54,7 +54,7 @@ public readonly struct EventId(System.Int32 id, System.String name = null) : Sys
     public override System.String ToString() => Name ?? Id.ToString();
 
     /// <summary>
-    /// Compares the current instance to another object of the same type. Two events are equal if they have the same TransportProtocol.
+    /// Compares the current instance to another object of the same type. Two events are equal if they have the same ProtocolType.
     /// </summary>
     /// <param name="other">An object to compare with this object.</param>
     /// <returns><see langword="true" /> if the current object is equal to <paramref name="other" />; otherwise, <see langword="false" />.</returns>

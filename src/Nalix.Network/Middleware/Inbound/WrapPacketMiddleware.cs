@@ -53,8 +53,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                 await context.Connection.SendAsync(
                       controlType: ControlType.FAIL,
-                      reason: ReasonCode.INTERNAL_ERROR,
-                      action: SuggestedAction.NONE,
+                      reason: ProtocolCode.INTERNAL_ERROR,
+                      action: ProtocolAction.NONE,
                       sequenceId: sequenceId,
                       flags: ControlFlags.NONE,
                       arg0: context.Attributes.OpCode.OpCode,
@@ -72,8 +72,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                 await context.Connection.SendAsync(
                       controlType: ControlType.FAIL,
-                      reason: ReasonCode.UNSUPPORTED_PACKET,
-                      action: SuggestedAction.NONE,
+                      reason: ProtocolCode.UNSUPPORTED_PACKET,
+                      action: ProtocolAction.NONE,
                       sequenceId: sequenceId,
                       flags: ControlFlags.NONE,
                       arg0: context.Attributes.OpCode.OpCode,
@@ -93,8 +93,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                     await context.Connection.SendAsync(
                           controlType: ControlType.FAIL,
-                          reason: ReasonCode.COMPRESSION_UNSUPPORTED,
-                          action: SuggestedAction.NONE,
+                          reason: ProtocolCode.COMPRESSION_UNSUPPORTED,
+                          action: ProtocolAction.NONE,
                           sequenceId: sequenceId,
                           flags: ControlFlags.NONE,
                           arg0: context.Attributes.OpCode.OpCode,
@@ -116,8 +116,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                     await context.Connection.SendAsync(
                           controlType: ControlType.FAIL,
-                          reason: ReasonCode.CRYPTO_UNSUPPORTED,
-                          action: SuggestedAction.NONE,
+                          reason: ProtocolCode.CRYPTO_UNSUPPORTED,
+                          action: ProtocolAction.NONE,
                           sequenceId: sequenceId,
                           flags: ControlFlags.NONE,
                           arg0: context.Attributes.OpCode.OpCode,
@@ -138,8 +138,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
         {
             await context.Connection.SendAsync(
                   controlType: ControlType.FAIL,
-                  reason: ReasonCode.TRANSFORM_FAILED,
-                  action: SuggestedAction.RETRY,
+                  reason: ProtocolCode.TRANSFORM_FAILED,
+                  action: ProtocolAction.RETRY,
                   sequenceId: sequenceId,
                   flags: ControlFlags.IS_TRANSIENT,
                   arg0: context.Attributes.OpCode.OpCode,
@@ -152,9 +152,9 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
     private static System.Boolean ShouldCompress(in PacketContext<IPacket> context)
     {
-        return context.Packet.Transport == TransportProtocol.TCP
+        return context.Packet.Transport == ProtocolType.TCP
             ? context.Packet.Length - PacketConstants.CompressionThreshold > PacketConstants.CompressionThreshold
-            : context.Packet.Transport == TransportProtocol.UDP &&
+            : context.Packet.Transport == ProtocolType.UDP &&
               context.Packet.Length - PacketConstants.CompressionThreshold is > 600 and < 1200;
     }
 }
