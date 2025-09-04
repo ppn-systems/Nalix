@@ -1,6 +1,5 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Caching;
 using Nalix.Common.Packets.Enums;
 using Nalix.Common.Protocols;
 using Nalix.Common.Serialization;
@@ -14,10 +13,9 @@ namespace Nalix.Common.Packets.Abstractions;
 /// <remarks>
 /// An <see cref="IPacket"/> implementation represents a unit of data that can be serialized
 /// for transmission or storage and later deserialized for processing.
-/// This interface also inherits from <see cref="IPoolable"/> to allow packet pooling.
 /// </remarks>
 [SerializePackable(SerializeLayout.Explicit)]
-public interface IPacket : IPoolable
+public interface IPacket
 {
     #region Metadata
 
