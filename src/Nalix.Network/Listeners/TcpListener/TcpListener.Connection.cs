@@ -168,25 +168,8 @@ public abstract partial class TcpListenerBase
                 throw new System.InvalidOperationException($"[{nameof(TcpListenerBase)}] socket is not initialized.");
             }
 
-            if (!_listener.AcceptAsync(context.Args))
-            {
-                socket = context.Args.AcceptSocket!;
-
-                if (!_connectionLimiter.IsConnectionAllowed(
-                    ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
-                {
-                    SafeCloseSocket(socket);
-                    throw new System.OperationCanceledException();
-                }
-
-                return context.Args.SocketError != System.Net.Sockets.SocketError.Success
-                    ? throw new System.Net.Sockets.SocketException((System.Int32)context.Args.SocketError)
-                    : InitializeConnection(socket, context);
-            }
-
             // Wait async accept:
-            socket = await context.PrepareAsync()
-                                  .ConfigureAwait(false);
+            socket = await context.BeginAcceptAsync(_listener).ConfigureAwait(false);
 
             if (!this._connectionLimiter.IsConnectionAllowed(
                 ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
@@ -219,6 +202,11 @@ public abstract partial class TcpListenerBase
         }
         finally
         {
+            // Unsubscribe before returning to pool to prevent duplicate callbacks
+            e.Completed -= this.OnSyncAcceptCompleted;
+
+            // Ensure the args is clean before returning to pool
+            e.AcceptSocket = null;
             InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Return((PooledSocketAsyncEventArgs)e);
         }
@@ -230,7 +218,7 @@ public abstract partial class TcpListenerBase
                                                                      .Get<PooledSocketAsyncEventArgs>();
 
         newArgs.Context = context;
-        context.Args = newArgs;
+        context.BindArgsForSync(newArgs);
 
         newArgs.Completed += this.OnSyncAcceptCompleted;
 
@@ -240,35 +228,41 @@ public abstract partial class TcpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     private void AcceptNext(System.Net.Sockets.SocketAsyncEventArgs args)
     {
-        while (!_cancellationToken.IsCancellationRequested &&
-                _listener?.IsBound == true)
+        while (!_cancellationToken.IsCancellationRequested)
         {
-            try
-            {
-                if (_listener.IsBound)
-                {
-                    // Try accepting the connection asynchronously
-                    if (_listener.AcceptAsync(args))
-                    {
-                        break;
-                    }
-
-                    // If the connection has been received synchronously, process it immediately.
-                    this.HandleAccept(args);
-                }
-                else
-                {
-                    break;
-                }
-            }
-            catch (System.Net.Sockets.SocketException ex) when (
-                ex.SocketErrorCode is System.Net.Sockets.SocketError.Interrupted or
-                System.Net.Sockets.SocketError.ConnectionAborted)
+            // Take a stable local copy to reduce races
+            System.Net.Sockets.Socket? s = System.Threading.Volatile.Read(ref _listener);
+            if (s is null || !s.IsBound)
             {
                 break;
             }
+
+            // Re-arm args before each use
+            args.AcceptSocket = null;
+
+            try
+            {
+                // Async path: will continue in Completed handler
+                if (s.AcceptAsync(args))
+                {
+                    break;
+                }
+
+                // Sync completion
+                HandleAccept(args);
+            }
             catch (System.ObjectDisposedException)
             {
+                // Listener closed during/just before AcceptAsync
+                break;
+            }
+            catch (System.Net.Sockets.SocketException ex) when (
+                ex.SocketErrorCode is
+                System.Net.Sockets.SocketError.Interrupted or
+                System.Net.Sockets.SocketError.OperationAborted or
+                System.Net.Sockets.SocketError.ConnectionAborted)
+            {
+                // Expected during shutdown
                 break;
             }
             catch (System.Exception ex) when (!_cancellationToken.IsCancellationRequested)
@@ -277,8 +271,12 @@ public abstract partial class TcpListenerBase
                                         .Error($"[{nameof(TcpListenerBase)}] Accept error on {Config.Port}: {ex.Message}");
 
                 // Brief delay to prevent CPU spinning on repeated errors
-                _ = System.Threading.Tasks.Task.Delay(100, _cancellationToken)
-                                               .ConfigureAwait(false);
+                System.Threading.Thread.Sleep(50);
+            }
+            finally
+            {
+                // Ensure args reusable
+                args.AcceptSocket = null;
             }
         }
     }
@@ -286,71 +284,104 @@ public abstract partial class TcpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     private void HandleAccept(System.Net.Sockets.SocketAsyncEventArgs e)
     {
-        if (e.SocketError == System.Net.Sockets.SocketError.Success &&
-            e.AcceptSocket is System.Net.Sockets.Socket socket)
+        try
         {
-            try
+            if (e.SocketError == System.Net.Sockets.SocketError.Success &&
+           e.AcceptSocket is System.Net.Sockets.Socket socket)
             {
-                if (!socket.Connected || socket.Handle.ToInt64() == -1)
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[{nameof(TcpListenerBase)}] Socket is invalid or disconnected");
-
-                    SafeCloseSocket(socket);
-                    return;
-                }
-
-                if (!_connectionLimiter.IsConnectionAllowed(
-                    ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
-                {
-                    SafeCloseSocket(socket);
-                    return;
-                }
-
-                // Create and process connection similar to async version
-                PooledAcceptContext context = ((PooledSocketAsyncEventArgs)e).Context!;
-                IConnection connection = this.InitializeConnection(socket, context);
-
-                // Process the connection
-                _ = System.Threading.ThreadPool.UnsafeQueueUserWorkItem(
-                    ProcessConnectionCallback, (this, connection));
-            }
-            catch (System.ObjectDisposedException)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[{nameof(TcpListenerBase)}] Socket was disposed during accept");
-
-                SafeCloseSocket(socket);
-                if (e is PooledSocketAsyncEventArgs pooled && pooled.Context != null)
-                {
-                    InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                            .Return<PooledAcceptContext>(pooled.Context);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(TcpListenerBase)}] Process accept error: {ex.Message}");
-
                 try
                 {
-                    socket.Close();
+                    if (!socket.Connected || socket.Handle.ToInt64() == -1)
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Warn($"[{nameof(TcpListenerBase)}] Socket is invalid or disconnected");
+
+                        SafeCloseSocket(socket);
+                        return;
+                    }
+
+                    if (!_connectionLimiter.IsConnectionAllowed(
+                        ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
+                    {
+                        SafeCloseSocket(socket);
+                        return;
+                    }
+
+                    // Create and process connection similar to async version
+                    PooledAcceptContext context = ((PooledSocketAsyncEventArgs)e).Context!;
+                    IConnection connection = this.InitializeConnection(socket, context);
+
+                    // Process the connection
+                    _ = System.Threading.ThreadPool.UnsafeQueueUserWorkItem(
+                        ProcessConnectionCallback, (this, connection));
+
+                    // Rebind a fresh context for the next accept on this args
+                    PooledAcceptContext nextCtx = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                                          .Get<PooledAcceptContext>();
+                    ((PooledSocketAsyncEventArgs)e).Context = nextCtx;
+                    nextCtx.BindArgsForSync((PooledSocketAsyncEventArgs)e);
                 }
-                catch { }
-                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                        .Return<PooledAcceptContext>(((PooledSocketAsyncEventArgs)e).Context!);
+                catch (System.ObjectDisposedException)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[{nameof(TcpListenerBase)}] Socket was disposed during accept");
+
+                    SafeCloseSocket(socket);
+                    if (e is PooledSocketAsyncEventArgs pooled && pooled.Context != null)
+                    {
+                        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                .Return<PooledAcceptContext>(pooled.Context);
+
+                        // Rebind a fresh context for next accepts on this args
+                        PooledAcceptContext newCtx = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                                             .Get<PooledAcceptContext>();
+                        pooled.Context = newCtx;
+                        newCtx.BindArgsForSync(pooled);
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Error($"[{nameof(TcpListenerBase)}] Process accept error: {ex.Message}");
+
+                    try
+                    {
+                        socket.Close();
+                    }
+                    catch { }
+                    InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                            .Return<PooledAcceptContext>(((PooledSocketAsyncEventArgs)e).Context!);
+
+                    PooledAcceptContext newCtx = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                                         .Get<PooledAcceptContext>();
+                    ((PooledSocketAsyncEventArgs)e).Context = newCtx;
+                    newCtx.BindArgsForSync((PooledSocketAsyncEventArgs)e);
+                }
+            }
+            else
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[{nameof(TcpListenerBase)}] Accept failed: {e.SocketError}");
+
+                if (e is PooledSocketAsyncEventArgs pooled)
+                {
+                    ObjectPoolManager pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+                    PooledAcceptContext? oldCtx = pooled.Context;
+                    if (oldCtx is not null)
+                    {
+                        pool.Return<PooledAcceptContext>(oldCtx);
+                    }
+
+                    PooledAcceptContext newCtx = pool.Get<PooledAcceptContext>();
+                    pooled.Context = newCtx;
+                    newCtx.BindArgsForSync(pooled);
+                }
             }
         }
-        else
+        finally
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[{nameof(TcpListenerBase)}] Accept failed: {e.SocketError}");
-
-            if (e is PooledSocketAsyncEventArgs pooled)
-            {
-                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                        .Return<PooledAcceptContext>(pooled.Context!); // 💥 TH AcceptSocket == null
-            }
+            // Always clear to make the args reusable safely
+            e.AcceptSocket = null;
         }
     }
 
