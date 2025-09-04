@@ -267,7 +267,7 @@ public sealed class BufferPoolManager : System.IDisposable
         System.Int32 deepEvery = System.Math.Max(1, _deepTrimIntervalMinutes / System.Math.Max(1, _trimIntervalMinutes));
         System.Boolean deepTrim = (cycle % deepEvery) == 0;
 
-        var logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
         logger?.Debug($"[{nameof(BufferPoolManager)}] Running automatic buffer trimming (Deep trim: {deepTrim})");
 
         // 1) Memory budget check

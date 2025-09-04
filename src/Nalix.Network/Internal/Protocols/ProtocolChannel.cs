@@ -32,6 +32,7 @@ internal class ProtocolChannel(
     private readonly System.Threading.CancellationTokenSource _cts = cts;
 
     private System.Boolean _disposed;
+    private System.Int32 _disconnectSignaled; // 0 = not yet, 1 = signaled
     private volatile System.Boolean _keepReading;
     private System.Threading.CancellationToken _rxToken;                    // cached linked token
     private System.Threading.CancellationTokenSource? _rxCts;               // linked CTS reused for the whole loop
@@ -72,11 +73,11 @@ internal class ProtocolChannel(
     /// <param name="cancellationToken">The cancellation token.</param>
     public void BeginReceive(System.Threading.CancellationToken cancellationToken = default)
     {
-        if (this._disposed)
+        if (System.Threading.Volatile.Read(ref _disconnectSignaled) != 0 || _disposed)
         {
 #if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(ProtocolChannel)}] BeginReceive called on disposed");
+                                    .Debug($"[{nameof(ProtocolChannel)}] BeginReceive ignored (disposed/disconnected)");
 #endif
             return;
         }
@@ -132,9 +133,7 @@ internal class ProtocolChannel(
                     }
                     catch (System.OperationCanceledException) { }
                     catch (System.ObjectDisposedException) { }
-                    catch (System.Net.Sockets.SocketException ex) when
-                        (ex.SocketErrorCode is System.Net.Sockets.SocketError.ConnectionReset or
-                         System.Net.Sockets.SocketError.OperationAborted)
+                    catch (System.Net.Sockets.SocketException)
                     {
                         this.OnDisconnected();
                     }
@@ -142,6 +141,8 @@ internal class ProtocolChannel(
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                 .Error($"[{nameof(ProtocolChannel)}] BeginReceive error: {ex.Message}");
+
+                        this.OnDisconnected();
                     }
                 }, _rxToken);
             };
@@ -437,6 +438,8 @@ internal class ProtocolChannel(
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"[{nameof(ProtocolChannel)}] Invalid packet size: {size} (must be >= 2).");
+
+                this.OnDisconnected();
                 return;
             }
 
@@ -446,6 +449,7 @@ internal class ProtocolChannel(
                                         .Error($"[{nameof(ProtocolChannel)}] Size {size} exceeds max " +
                                                $"{InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().MaxBufferSize} bytes.");
 
+                this.OnDisconnected();
                 return;
             }
 
@@ -529,29 +533,11 @@ internal class ProtocolChannel(
                                         .Error($"[{nameof(ProtocolChannel)}] Incomplete packet: read {totalBytesRead}/{size} bytes.");
             }
         }
-        catch (System.Net.Sockets.SocketException ex) when
-              (ex.SocketErrorCode is System.Net.Sockets.SocketError.ConnectionReset or
-                                     System.Net.Sockets.SocketError.OperationAborted)
-        {
-#if DEBUG
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(ProtocolChannel)}] connection reset/aborted");
-#endif
-            this.OnDisconnected();
-        }
-        catch (System.ObjectDisposedException)
-        {
-            _keepReading = false;
-        }
-        catch (System.Exception ex)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error(ex);
-        }
         finally
         {
             // Only continue when still valid
-            if (_keepReading && !_disposed && !(_rxCts?.IsCancellationRequested ?? false))
+            if (_keepReading && !_disposed && _disconnectSignaled == 0 &&
+                !(_rxCts?.IsCancellationRequested ?? false))
             {
                 // Preserve external token link
                 this.BeginReceive(_lastExternalToken);
@@ -572,6 +558,8 @@ internal class ProtocolChannel(
 
         if (disposing)
         {
+            this.OnDisconnected();
+
             // stop loop & cancel token first
             _keepReading = false;
             try
@@ -637,6 +625,8 @@ internal class ProtocolChannel(
             {
                 try { _socket.Shutdown(System.Net.Sockets.SocketShutdown.Both); } catch { }
                 try { _socket.Close(); } catch { }
+
+                this.OnDisconnected();
             });
         }
     }
@@ -645,22 +635,36 @@ internal class ProtocolChannel(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnDisconnected()
     {
-        // Stop the receive loop exactly once
-        if (_keepReading)
+        // Ensure "exactly once" across threads
+        if (System.Threading.Interlocked.Exchange(ref _disconnectSignaled, 1) != 0)
         {
-            _keepReading = false;
-            try { _rxCts?.Cancel(); } catch { /* ignore */ }
+            return;
         }
 
-        // Notify subscribers (outside world)
-        try
+        // Stop the receive loop
+        _keepReading = false;
+
+        // Cancel CTS safely (may race with Dispose)
+        try { _rxCts?.Cancel(); } catch (System.ObjectDisposedException) { /* ignore */ }
+
+        // Notify subscribers; do not let one bad handler kill the rest
+        System.Action? handlers = Disconnected;
+        if (handlers is null)
         {
-            Disconnected?.Invoke();
+            return;
         }
-        catch (System.Exception ex)
+
+        foreach (System.Delegate d in handlers.GetInvocationList())
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Error($"[{nameof(ProtocolChannel)}] Disconnected handler error: {ex.Message}");
+            try
+            {
+                ((System.Action)d).Invoke();
+            }
+            catch (System.Exception ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[ProtocolChannel] Disconnected handler error: {ex.Message}");
+            }
         }
     }
 
