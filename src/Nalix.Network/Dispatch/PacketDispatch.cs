@@ -74,6 +74,7 @@ public sealed class PacketDispatch : PacketDispatchCore<IPacket>, IPacketDispatc
             $"Len={len}, Magic=0x{magic:X8}.");
 
         // 5) Dispatch to typed handler
+        raw.Dispose(); // raw buffer no longer needed
         this.HandlePacket(packet, connection);
     }
 
