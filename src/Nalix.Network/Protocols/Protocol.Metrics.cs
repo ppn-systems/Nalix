@@ -27,26 +27,7 @@ public abstract partial class Protocol : IReportable
 
     #endregion Properties
 
-    /// <summary>
-    /// Represents immutable statistics for a network protocol.
-    /// </summary>
-    public record ProtocolStats
-    {
-        /// <summary>
-        /// Gets a value indicating whether the protocol is currently accepting connections.
-        /// </summary>
-        public System.Boolean IsListening { get; init; }
-
-        /// <summary>
-        /// Gets the total number of connection errors encountered by the protocol.
-        /// </summary>
-        public System.UInt64 TotalErrors { get; init; }
-
-        /// <summary>
-        /// Gets the total number of messages processed by the protocol.
-        /// </summary>
-        public System.UInt64 TotalMessages { get; init; }
-    }
+    #region Public Methods
 
     /// <summary>
     /// Generates a diagnostic report on the current state of the protocol.
@@ -70,4 +51,6 @@ public abstract partial class Protocol : IReportable
 
         return sb.ToString();
     }
+
+    #endregion Public Methods
 }
