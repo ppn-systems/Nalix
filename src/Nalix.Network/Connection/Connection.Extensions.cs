@@ -1,8 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
-using Nalix.Common.Connection.Protocols;
 using Nalix.Common.Packets.Abstractions;
+using Nalix.Common.Protocols;
 using Nalix.Network.Throttling;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;

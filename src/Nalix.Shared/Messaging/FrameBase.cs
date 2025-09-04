@@ -1,10 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
-using Nalix.Common.Connection.Protocols;
-using Nalix.Common.Enums;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
+using Nalix.Common.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Shared.Serialization;
@@ -15,7 +14,7 @@ namespace Nalix.Shared.Messaging;
 /// Represents the base class for all packet frames in the messaging system.
 /// Provides common header fields and serialization logic for derived packet types.
 /// </summary>
-[MagicNumber(MagicNumbers.Unknown)]
+[MagicNumber(FrameMagic.Unknown)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public abstract class FrameBase : IPacket

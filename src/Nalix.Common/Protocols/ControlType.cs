@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Connection.Protocols;
+namespace Nalix.Common.Protocols;
 
 /// <summary>
 /// Represents the type of control message used in messaging operations.
