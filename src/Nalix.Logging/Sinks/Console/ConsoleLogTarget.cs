@@ -13,12 +13,10 @@ namespace Nalix.Logging.Sinks.Console;
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("ConsoleTarget Colors={_options?.EnableColors}")]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public sealed class ConsoleLogTarget : ILoggerTarget
 {
     #region Fields
 
-    private readonly ConsoleLogOptions? _options;
     private readonly ILoggerFormatter _loggerFormatter;
 
     #endregion Fields
@@ -43,13 +41,6 @@ public sealed class ConsoleLogTarget : ILoggerTarget
     {
     }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ConsoleLogTarget"/> class.
-    /// </summary>
-    /// <param name="options">The console logging options.</param>
-    public ConsoleLogTarget(ConsoleLogOptions options)
-        : this(new LoggingFormatter(options.EnableColors)) => _options = options;
-
     #endregion Constructors
 
     #region Public Methods
@@ -61,17 +52,7 @@ public sealed class ConsoleLogTarget : ILoggerTarget
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Publish(LogEntry logMessage)
-    {
-        if (_options?.UseStandardError == true)
-        {
-            System.Console.Error.WriteLine(_loggerFormatter.FormatLog(logMessage));
-        }
-        else
-        {
-            System.Console.WriteLine(_loggerFormatter.FormatLog(logMessage));
-        }
-    }
+    public void Publish(LogEntry logMessage) => System.Console.WriteLine(_loggerFormatter.FormatLog(logMessage));
 
     #endregion Public Methods
 }
