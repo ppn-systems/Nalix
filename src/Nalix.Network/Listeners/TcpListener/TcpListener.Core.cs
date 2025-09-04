@@ -189,7 +189,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
 
         this._isDisposed = true;
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(TcpListenerBase)}] disposed");
+                                .Debug($"[{nameof(TcpListenerBase)}] disposed");
     }
 
     #endregion IDispose
