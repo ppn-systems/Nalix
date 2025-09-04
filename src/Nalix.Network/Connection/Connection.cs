@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Security.Abstractions;
@@ -94,7 +95,7 @@ public sealed partial class Connection : IConnection
     public SymmetricAlgorithmType Encryption { get; set; } = SymmetricAlgorithmType.XTEA;
 
     /// <inheritdoc />
-    public System.ReadOnlyMemory<System.Byte> IncomingPacket => this._cstream.PopIncoming();
+    public IBufferLease? IncomingPacket => this._cstream.PopIncoming();
 
     /// <inheritdoc />
     public System.Byte[] EncryptionKey
