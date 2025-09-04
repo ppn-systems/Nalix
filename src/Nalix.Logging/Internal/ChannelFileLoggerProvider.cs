@@ -1,5 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Environment;
 using Nalix.Logging.Sinks.File;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -138,14 +139,7 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
         }
         else
         {
-            if (_writer.TryWrite(message))
-            {
-                _ = Interlocked.Increment(ref _queued);
-            }
-            else
-            {
-                _ = Interlocked.Increment(ref _entriesDroppedCount);
-            }
+            _ = _writer.TryWrite(message) ? Interlocked.Increment(ref _queued) : Interlocked.Increment(ref _entriesDroppedCount);
         }
     }
 
@@ -161,7 +155,7 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
     {
         return $"ChannelFileLoggerProvider [UTC: {System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]"
              + System.Environment.NewLine + $"- User: {System.Environment.UserName}"
-             + System.Environment.NewLine + $"- Log File: {System.IO.Path.Combine(Options.LogDirectory, Options.LogFileName)}"
+             + System.Environment.NewLine + $"- Log File: {System.IO.Path.Combine(Directories.LogsDirectory, Options.LogFileName)}"
              + System.Environment.NewLine + $"- Written: {TotalEntriesWritten:N0}"
              + System.Environment.NewLine + $"- Dropped: {EntriesDroppedCount:N0}"
              + System.Environment.NewLine + $"- Queue: ~{QueuedEntryCount:N0}/{_maxQueueSize}";

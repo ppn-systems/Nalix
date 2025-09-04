@@ -1,5 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Environment;
 using Nalix.Logging.Internal.Exceptions;
 using Nalix.Logging.Sinks.File;
 
@@ -314,7 +315,7 @@ internal sealed class FileLoggerProvider : System.IDisposable
                 System.Environment.NewLine +
                $"- Current User: {System.Environment.UserName}" +
                 System.Environment.NewLine +
-               $"- Log Files: {System.IO.Path.GetFullPath(System.IO.Path.Combine(Options.LogDirectory, Options.LogFileName))}" +
+               $"- Log Files: {System.IO.Path.GetFullPath(System.IO.Path.Combine(Directories.LogsDirectory, Options.LogFileName))}" +
                 System.Environment.NewLine +
                $"- Entries Written: {TotalEntriesWritten:N0}" +
                 System.Environment.NewLine +

@@ -103,14 +103,14 @@ public static partial class Directories
         // 3) Container defaults
         if (IsContainerLazy.Value)
         {
-            return System.IO.Directory.Exists("/assets") ? "/assets" : System.IO.Directory.Exists("/app") ? "/app/assets" : "/data/assets";
+            return "/data";
         }
 
         // 4) Non-container, OS-aware
         if (System.OperatingSystem.IsWindows())
         {
             System.String root = System.Environment.GetFolderPath(System.Environment.SpecialFolder.CommonApplicationData);
-            return System.IO.Path.Join(root, "Nalix", "assets");
+            return System.IO.Path.Join(root, "Nalix");
         }
         else
         {
@@ -119,7 +119,7 @@ public static partial class Directories
             System.String dataHome = !System.String.IsNullOrEmpty(xdg)
                 ? xdg
                 : System.IO.Path.Join(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), ".local", "share");
-            return System.IO.Path.Join(dataHome, "Nalix", "assets");
+            return System.IO.Path.Join(dataHome, "Nalix");
         }
     });
 
@@ -144,16 +144,16 @@ public static partial class Directories
         EnsureAndHarden(ResolveOrEnv("NALIX_DATA_PATH", "/data", "data")));
 
     private static readonly System.Lazy<System.String> LogsPathLazy = new(() =>
-        EnsureAndHarden(ResolveOrEnv("NALIX_LOGS_PATH", "/logs", System.IO.Path.Join("data", "logs")), UnixDirPerms.WorldReadable));
+        EnsureAndHarden(ResolveOrEnv("NALIX_LOGS_PATH", "/logs", "logs"), UnixDirPerms.WorldReadable));
 
     private static readonly System.Lazy<System.String> ConfigPathLazy = new(() =>
-        EnsureAndHarden(ResolveOrEnv("NALIX_CONFIG_PATH", "/config", System.IO.Path.Join("data", "config")), UnixDirPerms.Private700));
+        EnsureAndHarden(ResolveOrEnv("NALIX_CONFIG_PATH", "/config", "config"), UnixDirPerms.Private700));
 
     private static readonly System.Lazy<System.String> StoragePathLazy = new(() =>
-        EnsureAndHarden(ResolveOrEnv("NALIX_STORAGE_PATH", "/storage", System.IO.Path.Join("data", "storage")), UnixDirPerms.Shared750));
+        EnsureAndHarden(ResolveOrEnv("NALIX_STORAGE_PATH", "/storage", "storage"), UnixDirPerms.Shared750));
 
     private static readonly System.Lazy<System.String> DatabasePathLazy = new(() =>
-        EnsureAndHarden(ResolveOrEnv("NALIX_DB_PATH", "/db", System.IO.Path.Join("data", "db")), UnixDirPerms.Private700));
+        EnsureAndHarden(ResolveOrEnv("NALIX_DB_PATH", "/db", "db"), UnixDirPerms.Private700));
 
     private static readonly System.Lazy<System.String> CachesPathLazy = new(() =>
         EnsureAndHarden(System.IO.Path.Join(DataPathLazy.Value, "caches")));

@@ -1,5 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Environment;
 using Nalix.Logging.Internal.Exceptions;
 using System.Diagnostics;
 using System.IO;
@@ -29,7 +30,6 @@ internal sealed class ChannelFileWriter : System.IDisposable
     public ChannelFileWriter(ChannelFileLoggerProvider provider)
     {
         _provider = provider ?? throw new System.ArgumentNullException(nameof(provider));
-        EnsureDirectoryExists();
         OpenFile(_provider.Options.Append);
     }
 
@@ -103,33 +103,6 @@ internal sealed class ChannelFileWriter : System.IDisposable
     #region Private helpers
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private void EnsureDirectoryExists()
-    {
-        try
-        {
-            var dir = _provider.Options.LogDirectory;
-            if (!Directory.Exists(dir))
-            {
-                _ = Directory.CreateDirectory(dir);
-            }
-        }
-        catch (System.Exception ex)
-        {
-            Debug.WriteLine($"Create log dir failed: {ex.Message}");
-            try
-            {
-                var temp = Path.Combine(Path.GetTempPath(), "assets", "logs");
-                _ = Directory.CreateDirectory(temp);
-                _provider.Options.LogDirectory = temp;
-            }
-            catch
-            {
-                _provider.Options.LogDirectory = ".";
-            }
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private void OpenFile(System.Boolean append)
     {
         lock (_fileLock)
@@ -141,7 +114,7 @@ internal sealed class ChannelFileWriter : System.IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private void CreateLogFileStream_NoLock(System.Boolean append)
     {
-        var path = Path.Combine(_provider.Options.LogDirectory, _provider.Options.LogFileName);
+        var path = Path.Combine(Directories.LogsDirectory, _provider.Options.LogFileName);
 
         try
         {
@@ -221,18 +194,19 @@ internal sealed class ChannelFileWriter : System.IDisposable
             file = $"{noext}_{now:yyyy-MM-dd}_{System.Environment.TickCount & 0xFFFF}{ext}";
         }
 
-        System.String dir = _provider.Options.LogDirectory;
-        System.String full = Path.Combine(dir, file);
+        System.String full = Path.Combine(Directories.LogsDirectory, file);
         System.Int32 unique = 0;
         while (File.Exists(full) && unique < 10000)
         {
             unique++;
             System.String candidate = $"{noext}_{System.DateTime.Now:yyyy-MM-dd}_{unique}{ext}";
-            full = Path.Combine(dir, candidate);
+            full = Path.Combine(Directories.LogsDirectory, candidate);
         }
         if (unique >= 10000)
         {
-            full = Path.Combine(dir, $"{noext}_{System.DateTime.Now:yyyy-MM-dd_HH-mm-ss-fff}_{System.Guid.NewGuid().ToString()[..8]}{ext}");
+            full = Path.Combine(
+                Directories.LogsDirectory,
+                $"{noext}_{System.DateTime.Now:yyyy-MM-dd_HH-mm-ss-fff}_{System.Guid.NewGuid().ToString()[..8]}{ext}");
         }
         return Path.GetFileName(full);
     }
