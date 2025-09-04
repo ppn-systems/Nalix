@@ -14,7 +14,7 @@ public enum TransportProtocol : System.Byte
     NONE = 0x00,
 
     /// <summary>
-    /// Transmission Control Protocol (reliable, connection-based).
+    /// Transmission CONTROL Protocol (reliable, connection-based).
     /// </summary>
     TCP = 0x3A,
 

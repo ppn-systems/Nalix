@@ -18,10 +18,10 @@ namespace Nalix.Shared.Messaging.Binary;
 /// <summary>
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
-[MagicNumber(FrameMagic.Binary1024)]
+[MagicNumber(FrameMagic.BINARY1024)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Binary1024 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+[System.Diagnostics.DebuggerDisplay("BINARY1024 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public class Binary1024 : FrameBase, IPacketDeserializer<Binary1024>, IPacketCompressor<Binary1024>
 {
     /// <inheritdoc/>
@@ -51,7 +51,7 @@ public class Binary1024 : FrameBase, IPacketDeserializer<Binary1024>, IPacketCom
         Priority = PacketPriority.Normal;
         Transport = TransportProtocol.NONE;
         OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)FrameMagic.Binary1024;
+        MagicNumber = (System.UInt32)FrameMagic.BINARY1024;
     }
 
     /// <summary>
@@ -161,6 +161,6 @@ public class Binary1024 : FrameBase, IPacketDeserializer<Binary1024>, IPacketCom
 
     /// <inheritdoc/>
     public override System.String ToString() =>
-        $"Binary1024(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+        $"BINARY1024(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
         $"Priority={Priority}, Transport={Transport}, Data={Data?.Length ?? 0} bytes)";
 }
