@@ -6,7 +6,7 @@ using Nalix.Common.Security.Abstractions;
 using Nalix.Common.Security.Enums;
 using Nalix.Common.Security.Types;
 using Nalix.Framework.Identity;
-using Nalix.Network.Internal.Transport;
+using Nalix.Network.Internal.Protocols;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
@@ -19,7 +19,7 @@ public sealed partial class Connection : IConnection
 {
     #region Fields
 
-    private readonly TransportStream _cstream;
+    private readonly ProtocolChannel _cstream;
     private readonly System.Threading.Lock _lock;
     private readonly System.Threading.CancellationTokenSource _ctokens;
 
@@ -44,7 +44,7 @@ public sealed partial class Connection : IConnection
         _lock = new System.Threading.Lock();
         _ctokens = new System.Threading.CancellationTokenSource();
 
-        _cstream = new TransportStream(socket, _ctokens);
+        _cstream = new ProtocolChannel(socket, _ctokens);
         _cstream.Disconnected += () =>
         {
             _onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
