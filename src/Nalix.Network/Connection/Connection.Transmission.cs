@@ -191,7 +191,7 @@ public sealed partial class Connection : IConnection
             {
                 if (byteCount <= c.MaxBytes)
                 {
-                    var pkt = c.Rent();
+                    System.Object pkt = c.Rent();
                     try
                     {
                         c.Initialize(pkt, message);
@@ -210,7 +210,7 @@ public sealed partial class Connection : IConnection
             StringReturnHandler<IPacket>.Candidate max = StringReturnHandler<IPacket>.Candidates[^1];
             foreach (System.String part in StringReturnHandler<IPacket>.SplitUtf8ByBytes(message, max.MaxBytes))
             {
-                var pkt = max.Rent();
+                System.Object pkt = max.Rent();
                 try
                 {
                     max.Initialize(pkt, part);
@@ -267,12 +267,11 @@ public sealed partial class Connection : IConnection
             {
                 if (byteCount <= c.MaxBytes)
                 {
-                    var pkt = c.Rent();
+                    System.Object pkt = c.Rent();
                     try
                     {
                         c.Initialize(pkt, message);
                         System.Byte[] buffer = c.Serialize(pkt);
-                        _ = this.Send(buffer);
                         return await this.SendAsync(buffer, cancellationToken)
                                          .ConfigureAwait(false);
                     }
@@ -287,7 +286,7 @@ public sealed partial class Connection : IConnection
             StringReturnHandler<IPacket>.Candidate max = StringReturnHandler<IPacket>.Candidates[^1];
             foreach (System.String part in StringReturnHandler<IPacket>.SplitUtf8ByBytes(message, max.MaxBytes))
             {
-                var pkt = max.Rent();
+                System.Object pkt = max.Rent();
                 try
                 {
                     max.Initialize(pkt, part);
