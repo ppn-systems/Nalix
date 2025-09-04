@@ -103,29 +103,29 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
         // Optimized for _udpListener.IOControlCode on Windows
         if (Config.IsWindows)
         {
-            System.Int32 parallelismLevel = System.Environment.ProcessorCount * MinWorkerThreads;
+            System.Int32 parallelismLevel = System.Math.Max(System.Environment.ProcessorCount * MinWorkerThreads, 16);
             // Thread pool optimization for IOCP
             System.Threading.ThreadPool.GetMinThreads(out System.Int32 workerThreads, out System.Int32 completionPortThreads);
             _ = System.Threading.ThreadPool.SetMinThreads(
                  System.Math.Max(workerThreads, parallelismLevel),
                  System.Math.Max(completionPortThreads, parallelismLevel));
 
-            System.Threading.ThreadPool.GetMinThreads(out var afterWorker, out var afterIOCP);
+            System.Threading.ThreadPool.GetMinThreads(out System.Int32 afterWorker, out System.Int32 afterIOCP);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(TcpListenerBase)}] SetMinThreads: worker={0}, IOCP={1}", afterWorker, afterIOCP);
+                                    .Info($"[{nameof(TcpListenerBase)}] SetMinThreads: worker={afterWorker}, IOCP={afterIOCP}");
         }
 
         InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().TimeSynchronized += this.SynchronizeTime;
 
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PooledSocketAsyncEventArgs>(60);
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PooledAcceptContext>(30);
-
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .SetMaxCapacity<PooledAcceptContext>(1024);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .SetMaxCapacity<PooledSocketAsyncEventArgs>(1024);
+
+        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .Prealloc<PooledSocketAsyncEventArgs>(60);
+        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .Prealloc<PooledAcceptContext>(30);
 
         Config.Port = this._port;
     }
