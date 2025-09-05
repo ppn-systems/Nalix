@@ -7,82 +7,121 @@ using Nalix.Shared.Memory.Pooling;
 namespace Nalix.Shared.Memory.Buffers;
 
 /// <summary>
-/// Represents an owned lease of a pooled System.Byte[] rented from <see cref="BufferPoolManager"/>.
-/// Use <see cref="Rent"/> for auto-rent, <see cref="CopyFrom"/> to copy data into a new lease,
-/// or <see cref="FromRented(System.Byte[], System.Int32, System.Boolean)"/> to wrap an already rented array.
-/// The lease is reference-counted via <see cref="Retain"/>/<see cref="Dispose"/> and returns
-/// the buffer to the pool on the final dispose, unless <see cref="TryDetach(out System.Byte[], out System.Int32)"/> is used.
+/// Represents an owned lease of a pooled byte[] rented from <see cref="BufferPoolManager"/>.
+/// Supports slice ownership (start + length) to enable zero-copy handoffs.
 /// </summary>
-[System.Diagnostics.DebuggerDisplay("BufferLease Len={Length}, Cap={Capacity}, Detached={_detached != 0}")]
+[System.Diagnostics.DebuggerDisplay("BufferLease Start={_start}, Len={Length}, Cap={Capacity}, Detached={_detached != 0}")]
 public sealed class BufferLease : IBufferLease
 {
-    private System.Byte[]? _buffer;
-    private System.Int32 _refCount;
-    private System.Int32 _detached; // 0 = no, 1 = yes
+    // ====== Static ======
 
     /// <summary>
-    /// Creates a new lease wrapping <paramref name="buffer"/>.
+    /// Gets the shared <see cref="BufferPoolManager"/> instance used for buffer pooling.
     /// </summary>
-    private BufferLease(System.Byte[] buffer, System.Int32 length, System.Boolean zeroOnDispose)
+    public static readonly BufferPoolManager Pool = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
+
+    // ====== Fields ======
+    private System.Byte[]? _buffer;
+    private System.Int32 _start;                    // slice start (>= 0, <= RawCapacity)
+    private System.Int32 _refCount;                 // reference count (>= 0)
+    private System.Int32 _detached;                 // 0 = no, 1 = yes
+
+    // ====== Ctor ======
+    private BufferLease(System.Byte[] buffer, System.Int32 start, System.Int32 length, System.Boolean zeroOnDispose)
     {
-        _buffer = buffer ?? throw new System.ArgumentNullException(nameof(buffer));
-        if ((System.UInt32)length > (System.UInt32)buffer.Length)
+        System.ArgumentNullException.ThrowIfNull(buffer);
+
+        if ((System.UInt32)start > (System.UInt32)buffer.Length)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(length), "Length cannot exceed buffer length.");
+            throw new System.ArgumentOutOfRangeException(nameof(start));
         }
 
-        Length = length;
-        Capacity = buffer.Length;
-        ZeroOnDispose = zeroOnDispose;
+        if ((System.UInt32)length > (System.UInt32)(buffer.Length - start))
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(length));
+        }
 
+        _buffer = buffer;
+        _start = start;
+        Length = length;
+        ZeroOnDispose = zeroOnDispose;
         _refCount = 1;
         _detached = 0;
     }
 
+    #region Properties
+
     /// <summary>
-    /// Gets or sets the valid payload length within the underlying buffer.
+    /// Gets or sets the valid payload length within the owned slice.
     /// </summary>
     public System.Int32 Length { get; private set; }
 
     /// <summary>
-    /// Gets the capacity (array length) of the underlying buffer.
+    /// Gets the capacity of the owned slice (from <c>_start</c> to end of the array).
     /// </summary>
-    public System.Int32 Capacity { get; }
+    public System.Int32 Capacity => _buffer is null ? 0 : _buffer.Length - _start;
 
     /// <summary>
-    /// Gets or sets whether the buffer should be zeroed before returning to the pool.
+    /// Gets the total capacity (underlying array length).
+    /// </summary>
+    public System.Int32 RawCapacity => _buffer?.Length ?? 0;
+
+    /// <summary>
+    /// Gets or sets whether the slice should be zeroed before returning to the pool.
     /// </summary>
     public System.Boolean ZeroOnDispose { get; set; }
 
     /// <summary>
-    /// Gets a read-only view of the valid payload.
-    /// </summary>
-    public System.ReadOnlyMemory<System.Byte> Memory => new(_buffer!, 0, Length);
-
-    /// <summary>
-    /// Gets a writable span covering <see cref="Length"/> bytes. 
-    /// For writing beyond <see cref="Length"/>, call <see cref="SpanFull"/> then <see cref="SetLength(System.Int32)"/>.
-    /// </summary>
-    public System.Span<System.Byte> Span => new(_buffer, 0, Length);
-
-    /// <summary>
-    /// Gets a writable span covering the entire capacity.
-    /// </summary>
-    public System.Span<System.Byte> SpanFull => new(_buffer, 0, Capacity);
-
-    /// <summary>
-    /// The raw array (may be larger than <see cref="Length"/>). Prefer using <see cref="Span"/> and <see cref="Memory"/>.
+    /// The raw array (may be null after dispose/detach). Prefer using <see cref="Span"/>/<see cref="Memory"/>.
     /// </summary>
     public System.Byte[]? RawArray => _buffer;
 
     /// <summary>
+    /// Read-only view of the valid payload slice.
+    /// </summary>
+    public System.ReadOnlyMemory<System.Byte> Memory
+        => _buffer is null ? System.ReadOnlyMemory<System.Byte>.Empty : new System.ReadOnlyMemory<System.Byte>(_buffer, _start, Length);
+
+    /// <summary>
+    /// Writable span over the valid payload slice.
+    /// </summary>
+    public System.Span<System.Byte> Span
+        => _buffer is null ? System.Span<System.Byte>.Empty : new System.Span<System.Byte>(_buffer, _start, Length);
+
+    /// <summary>
+    /// Writable span over the full owned slice (capacity).
+    /// </summary>
+    public System.Span<System.Byte> SpanFull
+        => _buffer is null ? System.Span<System.Byte>.Empty : new System.Span<System.Byte>(_buffer, _start, Capacity);
+
+    #endregion Properties
+
+    #region APIs
+
+    /// <summary>
+    /// Convenient ArraySegment over the valid payload slice.
+    /// </summary>
+    public System.ArraySegment<System.Byte> AsSegment()
+        => _buffer is null ? default : new System.ArraySegment<System.Byte>(_buffer, _start, Length);
+
+    /// <summary>
     /// Increases the reference count so multiple consumers can hold this lease safely.
     /// </summary>
-    public void Retain() => System.Threading.Interlocked.Increment(ref _refCount);
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Retain()
+    {
+        if (_buffer is null)
+        {
+            throw new System.ObjectDisposedException(nameof(BufferLease));
+        }
+
+        _ = System.Threading.Interlocked.Increment(ref _refCount);
+    }
 
     /// <summary>
     /// Sets the valid payload length (must be 0..Capacity).
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetLength(System.Int32 length)
     {
         if ((System.UInt32)length > (System.UInt32)Capacity)
@@ -103,75 +142,100 @@ public sealed class BufferLease : IBufferLease
             return;
         }
 
-        // Detached => ownership handed off elsewhere; drop reference only.
+        // If detached, drop reference only
         if (System.Threading.Volatile.Read(ref _detached) == 1)
         {
             _buffer = null;
+            _start = 0;
             Length = 0;
             return;
         }
 
         var buf = System.Threading.Interlocked.Exchange(ref _buffer, null);
+        var start = _start;
+        var len = Length;
+        _start = 0;
+        Length = 0;
+
         if (buf is not null)
         {
-            if (ZeroOnDispose && Length > 0)
+            if (ZeroOnDispose && len > 0)
             {
-                // Clear only the used portion for speed; set to Capacity if you prefer clearing full array.
-                System.MemoryExtensions.AsSpan(buf, 0, Length).Clear();
+                // Clear only the used region of the slice for speed.
+                new System.Span<System.Byte>(buf, start, len).Clear();
             }
-
-            InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
-                                    .Return(buf);
+            Pool.Return(buf);
         }
-        Length = 0;
     }
 
     /// <summary>
-    /// Transfers ownership of the underlying array to the caller (no pool return on Dispose).
+    /// Transfers ownership of the underlying array slice to the caller (no pool return on Dispose).
     /// After a successful detach, this instance becomes empty and disposing it is a no-op.
+    /// Only allowed when this is the last reference (refCount == 1).
     /// </summary>
-    public System.Boolean TryDetach(out System.Byte[]? buffer, out System.Int32 length)
+    public System.Boolean TryDetach(out System.Byte[]? buffer, out System.Int32 start, out System.Int32 length)
     {
+        // Ensure single-owner detach (avoid breaking other holders)
+        if (System.Threading.Volatile.Read(ref _refCount) != 1)
+        {
+            buffer = null; start = 0; length = 0;
+            return false;
+        }
+
         if (System.Threading.Interlocked.Exchange(ref _detached, 1) == 1)
         {
-            buffer = null; length = 0;
+            buffer = null; start = 0; length = 0;
             return false; // Already detached
         }
 
         buffer = System.Threading.Interlocked.Exchange(ref _buffer, null);
+        start = _start;
         length = Length;
-        Length = 0;
 
+        _start = 0;
+        Length = 0;
         return buffer is not null;
     }
 
     /// <summary>
-    /// Auto-rents a buffer from <see cref="BufferPoolManager"/> and returns a new lease.
-    /// The lease starts with <see cref="Length"/> = 0 and <see cref="Capacity"/> = <paramref name="capacity"/>.
+    /// Auto-rents a buffer from <see cref="BufferPoolManager"/> and returns a new empty slice [start=0, length=0].
+    /// Caller writes to <see cref="SpanFull"/> then calls <see cref="SetLength(System.Int32)"/>.
     /// </summary>
     public static BufferLease Rent(System.Int32 capacity, System.Boolean zeroOnDispose = false)
     {
-        var pool = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
-        var arr = pool.Rent(capacity);
-        // Start “empty”: caller writes to SpanFull and then SetLength()
-        return new BufferLease(arr, length: 0, zeroOnDispose: zeroOnDispose);
+        var arr = Pool.Rent(capacity);
+        return new BufferLease(arr, start: 0, length: 0, zeroOnDispose: zeroOnDispose);
     }
 
     /// <summary>
-    /// Creates a <see cref="BufferLease"/> by copying the source into a newly rented pooled array.
+    /// Creates a <see cref="BufferLease"/> by copying the source into a newly rented buffer.
     /// </summary>
     public static BufferLease CopyFrom(System.ReadOnlySpan<System.Byte> src, System.Boolean zeroOnDispose = false)
     {
-        var pool = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
-        var arr = pool.Rent(src.Length);
+        var arr = Pool.Rent(src.Length);
         src.CopyTo(System.MemoryExtensions.AsSpan(arr, 0, src.Length));
-        return new BufferLease(arr, src.Length, zeroOnDispose);
+        return new BufferLease(arr, start: 0, length: src.Length, zeroOnDispose: zeroOnDispose);
     }
 
     /// <summary>
-    /// Wraps an array that was previously rented from <see cref="BufferPoolManager"/>.
+    /// Wraps an array that was previously rented from <see cref="BufferPoolManager"/> (payload starts at 0).
     /// Caller asserts the array comes from the same pool and is safe to own here.
     /// </summary>
-    public static BufferLease FromRented(System.Byte[] buffer, System.Int32 length,
-        System.Boolean zeroOnDispose = false) => new(buffer, length, zeroOnDispose);
+    public static BufferLease FromRented(System.Byte[] buffer, System.Int32 length, System.Boolean zeroOnDispose = false)
+        => new(buffer, start: 0, length: length, zeroOnDispose: zeroOnDispose);
+
+    /// <summary>
+    /// Wraps a slice [<paramref name="start"/>..&lt;start+length&gt;) of a previously rented array from <see cref="BufferPoolManager"/>.
+    /// This is the key API for zero-copy handoff of a payload located after a protocol header.
+    /// </summary>
+    public static BufferLease FromRentedSlice(System.Byte[] buffer, System.Int32 start, System.Int32 length, System.Boolean zeroOnDispose = false)
+        => new(buffer, start, length, zeroOnDispose);
+
+    /// <summary>
+    /// Alias for <see cref="FromRentedSlice"/> for readability at call sites performing ownership transfer.
+    /// </summary>
+    public static BufferLease TakeOwnership(System.Byte[] buffer, System.Int32 start, System.Int32 length, System.Boolean zeroOnDispose = false)
+        => new(buffer, start, length, zeroOnDispose);
+
+    #endregion Properties
 }

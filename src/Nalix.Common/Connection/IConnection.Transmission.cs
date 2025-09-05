@@ -9,12 +9,12 @@ public partial interface IConnection
     /// <summary>
     /// Gets the Transmission CONTROL ProtocolType (TCP) transmission interface
     /// </summary>
-    ITcp Tcp { get; }
+    ITcp TCP { get; }
 
     /// <summary>
     /// Gets the User Datagram ProtocolType (UDP) transmission interface
     /// </summary>
-    IUdp Udp { get; }
+    IUdp UDP { get; }
 
     /// <summary>
     /// Represents a transport interface for sending data packets.

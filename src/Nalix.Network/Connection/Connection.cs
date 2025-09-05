@@ -8,7 +8,7 @@ using Nalix.Common.Security.Enums;
 using Nalix.Common.Security.Types;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Time;
-using Nalix.Network.Internal.Protocols;
+using Nalix.Network.Internal.Transport;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Memory.Pooling;
@@ -22,9 +22,8 @@ public sealed partial class Connection : IConnection
 {
     #region Fields
 
-    private readonly ProtocolChannel _cstream;
+    private readonly FramedSocketChannel _cstream;
     private readonly System.Threading.Lock _lock;
-    private readonly System.Threading.CancellationTokenSource _ctokens;
 
     private System.Boolean _disposed;
     private System.Byte[] _encryptionKey;
@@ -45,26 +44,22 @@ public sealed partial class Connection : IConnection
     public Connection(System.Net.Sockets.Socket socket)
     {
         _lock = new System.Threading.Lock();
-        _ctokens = new System.Threading.CancellationTokenSource();
 
         ConnectionEventArgs args = new(this);
 
-        _cstream = new ProtocolChannel(socket, _ctokens);
-        _cstream.Disconnected += () =>
-        {
-            _onCloseEvent?.Invoke(this, args);
-        };
-
         _disposed = false;
-        _encryptionKey = new System.Byte[0x01];
+        _encryptionKey = [];
+
+        _cstream = new FramedSocketChannel(socket);
+        _cstream.SetCallback(OnCloseEventBridge, this, args);
         _cstream.Cache.SetCallback(OnProcessEventBridge, this, args);
 
         this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
-        this.Id = Identifier.NewId(IdentifierType.Session);
-        this.Udp = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+        this.ID = Identifier.NewId(IdentifierType.Session);
+        this.UDP = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                            .Get<UdpTransport>();
-        this.Udp.Initialize(this);
-        this.Tcp = new TcpTransport(this);
+        this.UDP.Initialize(this);
+        this.TCP = new TcpTransport(this);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(Connection)}] Connection created for {this.RemoteEndPoint}");
@@ -75,19 +70,22 @@ public sealed partial class Connection : IConnection
     #region Properties
 
     /// <inheritdoc />
-    public IIdentifier Id { get; }
+    public IIdentifier ID { get; }
 
     /// <inheritdoc/>
-    public IConnection.ITcp Tcp { get; }
+    public IConnection.ITcp TCP { get; }
 
     /// <inheritdoc/>
-    public IConnection.IUdp Udp { get; }
+    public IConnection.IUdp UDP { get; }
 
     /// <inheritdoc />
     public System.Net.EndPoint RemoteEndPoint { get; }
 
     /// <inheritdoc />
     public System.Int64 UpTime => this._cstream.Cache.Uptime;
+
+    /// <inheritdoc />
+    public IBufferLease? IncomingPacket => _cstream.Cache.Incoming.Pop();
 
     /// <inheritdoc />
     public System.Int64 LastPingTime => this._cstream.Cache.LastPingTime;
@@ -97,9 +95,6 @@ public sealed partial class Connection : IConnection
 
     /// <inheritdoc />
     public SymmetricAlgorithmType Encryption { get; set; } = SymmetricAlgorithmType.XTEA;
-
-    /// <inheritdoc />
-    public IBufferLease? IncomingPacket => _cstream.Cache.Incoming.Pop();
 
     /// <inheritdoc />
     public System.Byte[] EncryptionKey
@@ -168,7 +163,7 @@ public sealed partial class Connection : IConnection
 
 #if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(ProtocolChannel)}] Injected {bytes.Length} bytes into incoming cache.");
+                                .Debug($"[{nameof(FramedSocketChannel)}] Injected {bytes.Length} bytes into incoming cache.");
 #endif
     }
 
@@ -182,7 +177,6 @@ public sealed partial class Connection : IConnection
                 return;
             }
 
-            this._ctokens.Cancel();
             this._onCloseEvent?.Invoke(this, new ConnectionEventArgs(this));
         }
         catch (System.Exception ex)
@@ -196,19 +190,6 @@ public sealed partial class Connection : IConnection
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Disconnect(System.String? reason = null) => this.Close(force: true);
-
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void OnProcessEventBridge(System.Object? sender, IConnectEventArgs e)
-    {
-        if (sender is not Connection self)
-        {
-            return;
-        }
-
-        self._onProcessEvent?.Invoke(self, e);
-    }
 
     #endregion Methods
 
@@ -231,11 +212,10 @@ public sealed partial class Connection : IConnection
         {
             this.Disconnect();
 
-            this._ctokens.Dispose();
             this._cstream.Dispose();
 
             InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Return<UdpTransport>((UdpTransport)this.Udp);
+                                    .Return<UdpTransport>((UdpTransport)this.UDP);
         }
         catch (System.Exception ex)
         {
@@ -247,4 +227,32 @@ public sealed partial class Connection : IConnection
     }
 
     #endregion Dispose Pattern
+
+    #region Event Bridges
+
+    [System.Runtime.CompilerServices.MethodImpl(
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void OnProcessEventBridge(System.Object? sender, IConnectEventArgs e)
+    {
+        if (sender is not Connection self)
+        {
+            return;
+        }
+
+        self._onProcessEvent?.Invoke(self, e);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void OnCloseEventBridge(System.Object? sender, IConnectEventArgs e)
+    {
+        if (sender is not Connection self)
+        {
+            return;
+        }
+
+        self._onCloseEvent?.Invoke(self, e);
+    }
+
+    #endregion Event Bridges
 }

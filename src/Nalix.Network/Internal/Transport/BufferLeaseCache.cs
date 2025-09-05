@@ -6,17 +6,12 @@ using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Memory.Caches;
 
-#if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
-
-namespace Nalix.Network.Internal.Protocols;
+namespace Nalix.Network.Internal.Transport;
 
 /// <summary>
 /// Provides a caching layer for network packets, supporting both outgoing and incoming traffic.
 /// </summary>
-internal sealed class ProtocolSessionCache : System.IDisposable
+internal sealed class BufferLeaseCache : System.IDisposable
 {
     #region Fields
 
@@ -52,7 +47,7 @@ internal sealed class ProtocolSessionCache : System.IDisposable
 
     #region Constructors
 
-    public ProtocolSessionCache() => this.Incoming = new(Config.Incoming);
+    public BufferLeaseCache() => this.Incoming = new(Config.Incoming);
 
     #endregion Constructors
 
@@ -63,8 +58,7 @@ internal sealed class ProtocolSessionCache : System.IDisposable
     /// </summary>
     public void SetCallback(
         System.EventHandler<IConnectEventArgs>? callback,
-        IConnection sender,
-        IConnectEventArgs args)
+        IConnection sender, IConnectEventArgs args)
     {
         _callback = callback;
         _sender = sender ?? throw new System.ArgumentNullException(nameof(sender));
@@ -80,13 +74,11 @@ internal sealed class ProtocolSessionCache : System.IDisposable
     public void PushIncoming(BufferLease data)
     {
         this.Incoming.Push(data);
-
-        // No-alloc hot path: dùng sẵn sender + cached args
         _callback?.Invoke(_sender!, _cachedArgs!);
     }
 
     /// <summary>
-    /// Releases all resources used by this <see cref="ProtocolSessionCache"/> instance.
+    /// Releases all resources used by this <see cref="BufferLeaseCache"/> instance.
     /// Clears and disposes both incoming and outgoing caches.
     /// </summary>
     public void Dispose()

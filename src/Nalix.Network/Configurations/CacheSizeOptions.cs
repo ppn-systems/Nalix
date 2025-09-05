@@ -16,7 +16,7 @@ public sealed class CacheSizeOptions : ConfigurationLoader
     /// Gets or sets the maximum ProtocolType of incoming cache entries.
     /// The default value is 3.
     /// </summary>
-    public System.Int32 Incoming { get; set; } = 3;
+    public System.Int32 Incoming { get; set; } = 20;
 
     /// <summary>
     /// Gets or sets the maximum ProtocolType of outgoing cache entries.

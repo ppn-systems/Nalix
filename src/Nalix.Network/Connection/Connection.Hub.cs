@@ -78,19 +78,19 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
             return false;
         }
 
-        if (this._connections.TryAdd(connection.Id, connection))
+        if (this._connections.TryAdd(connection.ID, connection))
         {
             connection.OnCloseEvent += this.OnClientDisconnected;
             _ = System.Threading.Interlocked.Increment(ref this._connectionCount);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(ConnectionHub)}] Connection registered: {connection.Id} (Total: {this._connectionCount})");
+                                    .Debug($"[{nameof(ConnectionHub)}] Connection registered: {connection.ID} (Total: {this._connectionCount})");
 
             return true;
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Warn($"[{nameof(ConnectionHub)}] Connection already exists: {connection.Id}");
+                                .Warn($"[{nameof(ConnectionHub)}] Connection already exists: {connection.ID}");
         return false;
     }
 
@@ -149,7 +149,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
             return;
         }
 
-        var id = connection.Id;
+        var id = connection.ID;
 
         // Remove old association if exists
         if (this._usernames.TryGetValue(id, out System.String? oldUsername))
@@ -383,7 +383,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(ConnectionHub)}] ERROR disconnecting {connection.Id}: {ex.Message}");
+                                        .Error($"[{nameof(ConnectionHub)}] ERROR disconnecting {connection.ID}: {ex.Message}");
             }
         });
 
@@ -452,7 +452,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
     {
         if (args.Connection is not null && !this._disposed)
         {
-            _ = this.UnregisterConnection(args.Connection.Id);
+            _ = this.UnregisterConnection(args.Connection.ID);
         }
     }
 

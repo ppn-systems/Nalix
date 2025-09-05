@@ -96,7 +96,7 @@ public abstract partial class TcpListenerBase
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[{nameof(TcpListenerBase)}] New connection from {connection.RemoteEndPoint}");
-            this._protocol.OnAccept(connection);
+            this._protocol.OnAccept(connection, _cancellationToken);
         }
         catch (System.Exception ex)
         {
