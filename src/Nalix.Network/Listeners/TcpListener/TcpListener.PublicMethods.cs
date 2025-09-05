@@ -3,6 +3,7 @@
 using Nalix.Common.Exceptions;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Time;
+using Nalix.Network.Connection;
 using Nalix.Network.Timing;
 using Nalix.Shared.Injection;
 
@@ -170,6 +171,10 @@ public abstract partial class TcpListenerBase
                 this._listener?.Close();
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Info($"[{nameof(TcpListenerBase)}] TcpListenerBase on {Config.Port} stopped");
+
+                // Close all active connections gracefully
+                InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
+                                        .CloseAllConnections();
             }
         }
         catch (System.Exception ex)
