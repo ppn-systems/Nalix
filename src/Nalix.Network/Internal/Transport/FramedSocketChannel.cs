@@ -320,7 +320,10 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             }
         }
         catch (System.OperationCanceledException) { /* normal shutdown */ }
-        catch (System.ObjectDisposedException) { /* normal on shutdown */ }
+        catch (System.ObjectDisposedException)
+        {
+            this.OnDisconnected();
+        }
         catch (System.Net.Sockets.SocketException)
         {
             this.OnDisconnected();
