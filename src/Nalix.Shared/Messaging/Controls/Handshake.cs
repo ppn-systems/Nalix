@@ -39,7 +39,7 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     /// Gets or sets the binary content of the packet.
     /// </summary>
     [SerializeDynamicSize(DynamicSize)]
-    [SerializeOrder(PacketHeaderOffset.DataRegion)]
+    [SerializeOrder(PacketHeaderOffset.DataRegion + 1)]
     public System.Byte[] Data { get; set; }
 
     /// <summary>
@@ -56,16 +56,21 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     }
 
     /// <summary>
-    /// Initializes the packet with binary data.
+    /// Initializes a new instance of the <see cref="Handshake"/> class with the specified binary data and transport protocol.
     /// </summary>
-    /// <param name="data">Binary content of the packet.</param>
-    public void Initialize(System.Byte[] data) => Initialize(data, ProtocolType.NONE);
+    /// <param name="data">The binary content of the packet.</param>
+    /// <param name="transport">The transport protocol to use.</param>
+    public Handshake(System.Byte[] data, ProtocolType transport) : base()
+    {
+        this.Data = data;
+        this.Transport = transport;
+    }
 
     /// <summary>
-    /// Initializes the packet with binary data and a transport protocol.
+    /// Initializes the packet with a sequence ID, binary data, and an optional transport protocol.
     /// </summary>
     /// <param name="data">Binary content of the packet.</param>
-    /// <param name="transport">The target transport protocol.</param>
+    /// <param name="transport">The transport protocol to use (default is TCP).</param>
     public void Initialize(System.Byte[] data, ProtocolType transport = ProtocolType.TCP)
     {
         this.Data = data ?? [];
