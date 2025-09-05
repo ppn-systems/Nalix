@@ -2,6 +2,7 @@
 
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Logging.Models;
+using System.Diagnostics;
 
 namespace Nalix.Logging.Engine;
 
@@ -98,6 +99,7 @@ public sealed class LogDistributor : ILogDistributor
         {
             try
             {
+                Debug.WriteLine($"Publishing to target: {target.GetType().Name}");
                 target.Publish(entry.Value);
                 _ = System.Threading.Interlocked.Increment(ref _targetsProcessed);
             }
@@ -106,6 +108,7 @@ public sealed class LogDistributor : ILogDistributor
                 // Count the error but continue with other targets
                 _ = System.Threading.Interlocked.Increment(ref _publishErrorCount);
                 HandleTargetError(target, ex, entry.Value);
+                Debug.WriteLine($"Error publishing to target {target.GetType().Name}: {ex.Message}");
             }
         }
     }

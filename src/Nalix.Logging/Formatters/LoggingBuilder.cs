@@ -59,15 +59,30 @@ internal static class LoggingBuilder
         System.Int32 estimatedLength = CalculateEstimatedLength(message, eventId, exception, colors);
 
         // Ensure the builder has enough capacity
-        EnsureCapacity(builder, estimatedLength + initialLength + 9);
+        if (colors)
+        {
+            _ = builder.Append(ColorAnsi.White);
+            EnsureCapacity(builder, estimatedLength + initialLength + 9);
+            AppendTimestamp(builder, timeStamp, customTimestampFormat, true);
+            AppendLogLevel(builder, logLevel, true);
+            AppendEventId(builder, eventId, true);
+            AppendMessage(builder, message);
+            AppendException(builder, exception, true);
+            _ = builder.Append(ColorAnsi.Reset);
+        }
+        else
+        {
+            EnsureCapacity(builder, estimatedLength + initialLength + 9);
 
-        // Append each part efficiently
-        AppendNumber(builder, colors);
-        AppendTimestamp(builder, timeStamp, customTimestampFormat, colors);
-        AppendLogLevel(builder, logLevel, colors);
-        AppendEventId(builder, eventId, colors);
-        AppendMessage(builder, message, colors);
-        AppendException(builder, exception, colors);
+            // Append each part efficiently
+            //AppendNumber(builder, colors);
+            AppendTimestamp(builder, timeStamp, customTimestampFormat, false);
+            AppendLogLevel(builder, logLevel, false);
+            AppendEventId(builder, eventId, false);
+            AppendMessage(builder, message);
+            AppendException(builder, exception, false);
+        }
+
     }
 
     #endregion Public Methods
@@ -86,9 +101,9 @@ internal static class LoggingBuilder
         }
 
         _ = builder.Append(LogConstants.LogBracketOpen)
-               .Append(System.Threading.Interlocked.Increment(ref LogCounter).ToString("D6"))
-               .Append(LogConstants.LogBracketClose)
-               .Append(LogConstants.LogSpaceSeparator);
+                   .Append(System.Threading.Interlocked.Increment(ref LogCounter).ToString("D6"))
+                   .Append(LogConstants.LogBracketClose)
+                   .Append(LogConstants.LogSpaceSeparator);
     }
 
     /// <summary>
@@ -101,10 +116,10 @@ internal static class LoggingBuilder
         System.Text.StringBuilder builder,
         in System.DateTime timeStamp, System.String? format, System.Boolean colors)
     {
-        System.String timestampFormat = format ?? "yyyy-MM-dd HH:mm:ss.fff";
+        System.String timestampFormat = format ?? "HH:mm:ss.fff";
 
         // Allocate buffer on the stack for datetime formatting
-        System.Span<System.Char> dateBuffer = stackalloc System.Char[timestampFormat.Length + 10];
+        System.Span<System.Char> dateBuffer = stackalloc System.Char[timestampFormat.Length];
 
         // Format timestamp directly into stack-allocated buffer
         if (timeStamp.TryFormat(dateBuffer, out System.Int32 charsWritten, timestampFormat))
@@ -114,14 +129,12 @@ internal static class LoggingBuilder
             if (colors)
             {
                 _ = builder.Append(ColorAnsi.Blue);
-            }
-
-            // Append directly from the span to avoid string allocation
-            _ = builder.Append(dateBuffer[..charsWritten]);
-
-            if (colors)
-            {
+                _ = builder.Append(dateBuffer[..charsWritten]);
                 _ = builder.Append(ColorAnsi.White);
+            }
+            else
+            {
+                _ = builder.Append(dateBuffer[..charsWritten]);
             }
 
             _ = builder.Append(LogConstants.LogBracketClose);
@@ -139,20 +152,19 @@ internal static class LoggingBuilder
         LogLevel logLevel, System.Boolean colors)
     {
         _ = builder.Append(LogConstants.LogSpaceSeparator)
-               .Append(LogConstants.LogBracketOpen);
+                   .Append(LogConstants.LogBracketOpen);
+
+        System.ReadOnlySpan<System.Char> levelText = LoggingLevelFormatter.GetShortLogLevel(logLevel);
 
         if (colors)
         {
             _ = builder.Append(ColorAnsi.GetColorCode(logLevel));
-        }
-
-        // Use span-based API for log level text to avoid string allocation
-        System.ReadOnlySpan<System.Char> levelText = LoggingLevelFormatter.GetShortLogLevel(logLevel);
-        _ = builder.Append(levelText);
-
-        if (colors)
-        {
+            _ = builder.Append(levelText);
             _ = builder.Append(ColorAnsi.White);
+        }
+        else
+        {
+            _ = builder.Append(levelText);
         }
 
         _ = builder.Append(LogConstants.LogBracketClose);
@@ -165,10 +177,9 @@ internal static class LoggingBuilder
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void AppendEventId(
-        System.Text.StringBuilder builder,
-        in EventId eventId, System.Boolean colors)
+    System.Text.StringBuilder builder,
+    in EventId eventId, System.Boolean colors)
     {
-        // Skip if it's the empty event ProtocolType
         if (eventId.Id == 0)
         {
             return;
@@ -177,24 +188,31 @@ internal static class LoggingBuilder
         _ = builder.Append(LogConstants.LogSpaceSeparator)
                .Append(LogConstants.LogBracketOpen);
 
-        if (colors && eventId.Name != null)
+        if (colors)
         {
-            _ = builder.Append(ColorAnsi.Blue);
-        }
+            // Colored path
+            _ = builder.Append(ColorAnsi.Cyan)
+                       .Append(eventId.Id);
 
-        // Append ProtocolType
-        _ = builder.Append(eventId.Id);
+            if (!System.String.IsNullOrEmpty(eventId.Name))
+            {
+                _ = builder.Append(ColorAnsi.White)
+                           .Append(':')
+                           .Append(ColorAnsi.DarkGray)
+                           .Append(eventId.Name);
+            }
 
-        // Append name if present
-        if (eventId.Name != null)
-        {
-            _ = builder.Append(':')
-                   .Append(eventId.Name);
-        }
-
-        if (colors && eventId.Name != null)
-        {
             _ = builder.Append(ColorAnsi.White);
+        }
+        else
+        {
+            // Plain path
+            _ = builder.Append(eventId.Id);
+            if (!System.String.IsNullOrEmpty(eventId.Name))
+            {
+                _ = builder.Append(':')
+                           .Append(eventId.Name);
+            }
         }
 
         _ = builder.Append(LogConstants.LogBracketClose);
@@ -206,130 +224,144 @@ internal static class LoggingBuilder
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void AppendMessage(
-        System.Text.StringBuilder builder,
-        System.String message, System.Boolean colors)
+    private static void AppendMessage(System.Text.StringBuilder builder, System.String message)
     {
         _ = builder.Append(LogConstants.LogSpaceSeparator);
 
         // Use span-based append for standard separators
         _ = builder.Append(DashWithSpaces);
-
-        if (colors)
-        {
-            _ = builder.Append(ColorAnsi.DarkGray);
-        }
-
         _ = builder.Append(message);
-
-        if (colors)
-        {
-            _ = builder.Append(ColorAnsi.White);
-        }
     }
 
     /// <summary>
-    /// Appends exception details to the string builder if an exception exists.
+    /// Appends an exception to the builder. Never throws (best-effort).
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void AppendException(
         System.Text.StringBuilder builder,
-        System.Exception? exception, System.Boolean colors)
+        System.Exception? exception,
+        System.Boolean colors)
     {
-        if (exception == null)
+        if (exception is null)
         {
             return;
         }
 
-        _ = builder.Append(LogConstants.LogSpaceSeparator);
-        _ = builder.Append(DashWithSpaces);
-        _ = builder.AppendLine();
-
-        if (colors)
+        try
         {
-            _ = builder.Append(ColorAnsi.Red);
+            _ = builder.Append(LogConstants.LogSpaceSeparator)
+                       .Append(DashWithSpaces)
+                       .AppendLine();
+
+            if (colors)
+            {
+                // Header in red, details in white, then reset once.
+                _ = builder.Append(ColorAnsi.Red);
+                WriteHeader(builder, exception);
+                _ = builder.Append(ColorAnsi.White);
+
+                // Details: skip header at level 0 to avoid duplication.
+                FormatExceptionDetails(builder, exception, level: 0, includeHeader: false);
+            }
+            else
+            {
+                WriteHeader(builder, exception);
+                FormatExceptionDetails(builder, exception, level: 0, includeHeader: false);
+            }
         }
-
-        // For complex exceptions, build a structured representation
-        FormatExceptionDetails(builder, exception);
-
-        if (colors)
+        catch
         {
-            _ = builder.Append(ColorAnsi.White);
+            // Swallow to guarantee logger never crashes the app.
+            // Minimal fallback (no colors).
+            try
+            {
+                _ = builder.Append("Logger failed to format exception: ")
+                           .Append(exception?.GetType().Name)
+                           .Append(": ")
+                           .AppendLine(exception?.Message);
+            }
+            catch { /* last resort: ignore */ }
         }
     }
 
     /// <summary>
-    /// Formats exception details with a structured approach for better readability.
+    /// Writes the exception header: "Type: Message".
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void WriteHeader(System.Text.StringBuilder builder, System.Exception ex)
+    {
+        _ = builder.Append(ex.GetType().Name)
+                   .Append(": ")
+                   .AppendLine(ex.Message);
+    }
+
+    /// <summary>
+    /// Formats stack trace and inner exceptions. Optionally writes header per level.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void FormatExceptionDetails(
         System.Text.StringBuilder builder,
-        System.Exception exception, System.Int32 level = 0)
+        System.Exception exception,
+        System.Int32 level = 0,
+        System.Boolean includeHeader = true)
     {
-        // Indent based on level for inner exceptions
+        // Indent for inner exceptions
         if (level > 0)
         {
-            _ = builder.Append(' ', level * 2)
-                   .Append("> ");
+            _ = builder.Append(' ', level * 2).Append("> ");
         }
 
-        // Append exception type and message
-        _ = builder.Append(exception.GetType().Name)
-               .Append(": ")
-               .AppendLine(exception.Message);
-
-        // Add stack trace with indentation
-        if (!System.String.IsNullOrEmpty(exception.StackTrace))
+        if (includeHeader)
         {
-            System.String[] stackFrames = exception.StackTrace.Split('\n');
-            foreach (System.String frame in stackFrames)
+            WriteHeader(builder, exception);
+        }
+
+        // Stack trace (handle both \n and \r\n; skip empty lines)
+        System.String? stack = exception.StackTrace;
+        if (!System.String.IsNullOrEmpty(stack))
+        {
+            var lines = stack.Split(["\r\n", "\n"], System.StringSplitOptions.RemoveEmptyEntries);
+            for (System.Int32 i = 0; i < lines.Length; i++)
             {
-                if (System.String.IsNullOrWhiteSpace(frame))
+                System.String line = lines[i].TrimStart();
+                if (line.Length == 0)
                 {
                     continue;
                 }
 
                 _ = builder.Append(' ', (level + 1) * 2)
-                       .AppendLine(frame.TrimStart());
+                           .AppendLine(line);
             }
         }
 
-        // Handle inner exceptions recursively
-        if (exception.InnerException != null)
+        // AggregateException: enumerate all inner exceptions explicitly
+        if (exception is System.AggregateException agg && agg.InnerExceptions.Count > 0)
+        {
+            for (System.Int32 i = 0; i < agg.InnerExceptions.Count; i++)
+            {
+                _ = builder.AppendLine()
+                           .Append(' ', level * 2)
+                           .Append("Caused by [")
+                           .Append(i + 1)
+                           .Append('/')
+                           .Append(agg.InnerExceptions.Count)
+                           .AppendLine("]:");
+
+                FormatExceptionDetails(builder, agg.InnerExceptions[i], level + 1, includeHeader: true);
+            }
+            return;
+        }
+
+        // Single InnerException (non-aggregate)
+        if (exception.InnerException is not null)
         {
             _ = builder.AppendLine()
-                   .Append(' ', level * 2)
-                   .AppendLine("Caused by: ");
-
-            FormatExceptionDetails(builder, exception.InnerException, level + 1);
-        }
-
-        // Handle aggregate exceptions
-        if (exception is System.AggregateException aggregateException &&
-            aggregateException.InnerExceptions.Count > 1)
-        {
-            for (System.Int32 i = 0; i < aggregateException.InnerExceptions.Count; i++)
-            {
-                if (i == 0)
-                {
-                    continue; // Skip first one as it's already handled as InnerException
-                }
-
-                _ = builder.AppendLine()
                        .Append(' ', level * 2)
-                       .Append("Contains ")
-                       .Append(i + 1)
-                       .Append(" of ")
-                       .Append(aggregateException.InnerExceptions.Count)
-                       .AppendLine(": ");
+                       .AppendLine("Caused by:");
 
-                FormatExceptionDetails(builder, aggregateException.InnerExceptions[i], level + 1);
-            }
+            FormatExceptionDetails(builder, exception.InnerException, level + 1, includeHeader: true);
         }
     }
 
