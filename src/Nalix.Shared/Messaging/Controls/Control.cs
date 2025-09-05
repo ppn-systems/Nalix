@@ -114,10 +114,10 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
     public void Initialize(ControlType type, ProtocolType transport = ProtocolType.TCP) => Initialize(type, 0, 0, transport);
 
     /// <summary>
-    /// Deserializes a <see cref="Binary128"/> from the specified buffer.
+    /// Deserializes a <see cref="Control"/> from the specified buffer.
     /// </summary>
     /// <param name="buffer">The source buffer.</param>
-    /// <returns>A pooled <see cref="Binary128"/> instance.</returns>
+    /// <returns>A pooled <see cref="Control"/> instance.</returns>
     public static Control Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
         Control packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
