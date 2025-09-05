@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 
 using Nalix.Framework.Configuration.Binding;
 
@@ -14,6 +14,8 @@ namespace Nalix.Network.Configurations;
 /// </remarks>
 public sealed class TokenBucketOptions : ConfigurationLoader
 {
+    #region Properties
+
     /// <summary>
     /// Gets or sets the maximum number of tokens (bucket capacity).
     /// </summary>
@@ -138,6 +140,8 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// Set to 0 to start empty (cold-start mode for aggressive rate limiting).
     /// </summary>
     public System.Int32 InitialTokens { get; set; } = -1;
+
+    #endregion Properties
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
