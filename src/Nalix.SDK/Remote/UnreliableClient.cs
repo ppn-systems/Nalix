@@ -2,10 +2,10 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Packets.Abstractions;
+using Nalix.SDK.Remote.Configuration;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Injection.DI;
-using Nalix.Shared.Memory.Caches;
 
 namespace Nalix.SDK.Remote;
 
@@ -17,8 +17,8 @@ namespace Nalix.SDK.Remote;
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)]
 [System.Diagnostics.DebuggerDisplay("Remote={Options.Address}:{Options.Port}, IsReceiving={IsReceiving}")]
-public sealed class RemoteDatagramClient
-    : SingletonBase<RemoteDatagramClient>, System.IDisposable, IAsyncActivatable
+public sealed class UnreliableClient
+    : SingletonBase<UnreliableClient>, System.IDisposable, IAsyncActivatable
 {
     #region Fields
 
@@ -36,27 +36,22 @@ public sealed class RemoteDatagramClient
     /// <summary>
     /// Gets the configuration context for the remote transport options, including remote IP and port.
     /// </summary>
-    public RemoteTransportOptions Options { get; }
+    public TransportOptions Options { get; }
 
     /// <summary>
     /// Indicates whether the UDP client is actively running and receiving data.
     /// </summary>
     public System.Boolean IsReceiving { get; private set; }
 
-    /// <summary>
-    /// Gets the cache that stores recently received (incoming) packets.
-    /// </summary>
-    public readonly FifoCache<IPacket> Incoming = new(200);
-
     #endregion Propierties
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RemoteDatagramClient"/> class.
+    /// Initializes a new instance of the <see cref="UnreliableClient"/> class.
     /// Automatically binds to a random local port and resolves the remote endpoint from configuration.
     /// </summary>
-    public RemoteDatagramClient()
+    public UnreliableClient()
     {
-        Options = ConfigurationManager.Instance.Get<RemoteTransportOptions>();
+        Options = ConfigurationManager.Instance.Get<TransportOptions>();
 
         _udpClient = new System.Net.Sockets.UdpClient(0); // Binds to random local port
         _udpClient.Client.DontFragment = true;
@@ -83,7 +78,8 @@ public sealed class RemoteDatagramClient
                 if (_catalog.TryDeserialize(
                     System.MemoryExtensions.AsSpan(result.Buffer), out IPacket packet))
                 {
-                    this.Incoming.Push(packet);
+                    InstanceManager.Instance.GetExistingInstance<ReliableClient>()?
+                                   .Incoming.Push(packet);
                 }
             }
             catch (System.OperationCanceledException)

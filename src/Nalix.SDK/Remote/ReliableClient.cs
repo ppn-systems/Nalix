@@ -1,8 +1,10 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Packets.Abstractions;
+using Nalix.SDK.Remote.Configuration;
 using Nalix.SDK.Remote.Internal;
 using Nalix.Shared.Configuration;
+using Nalix.Shared.Memory.Caches;
 
 namespace Nalix.SDK.Remote;
 
@@ -10,19 +12,19 @@ namespace Nalix.SDK.Remote;
 /// Represents a network client that connects to a remote server using Reliable.
 /// </summary>
 /// <remarks>
-/// The <see cref="RemoteStreamClient"/> class is a singleton that manages the connection,
+/// The <see cref="ReliableClient"/> class is a singleton that manages the connection,
 /// network stream, and client disposal. It supports both synchronous and asynchronous connection.
 /// </remarks>
 [System.Diagnostics.DebuggerDisplay("Remote={Options.Address}:{Options.Port}, Connected={IsConnected}")]
-public sealed class RemoteStreamClient : System.IDisposable
+public sealed class ReliableClient : System.IDisposable
 {
     #region Fields
 
     private System.Net.Sockets.TcpClient _client;
     private System.Net.Sockets.NetworkStream _stream;
 
-    private RemoteStreamSender<IPacket> _outbound;
-    private RemoteStreamReceiver<IPacket> _inbound;
+    private StreamSender<IPacket> _outbound;
+    private StreamReceiver<IPacket> _inbound;
 
     #endregion Fields
 
@@ -31,7 +33,12 @@ public sealed class RemoteStreamClient : System.IDisposable
     /// <summary>
     /// Gets the context associated with the network connection.
     /// </summary>
-    public RemoteTransportOptions Options { get; }
+    public TransportOptions Options { get; }
+
+    /// <summary>
+    /// Gets the FIFO cache that stores incoming packets received from the remote server.
+    /// </summary>
+    public FifoCache<IPacket> Incoming { get; }
 
     /// <summary>
     /// Gets a value indicating whether the client is connected to the server.
@@ -43,11 +50,12 @@ public sealed class RemoteStreamClient : System.IDisposable
     #region Constructor
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RemoteStreamClient"/> class.
+    /// Initializes a new instance of the <see cref="ReliableClient"/> class.
     /// </summary>
-    public RemoteStreamClient()
+    public ReliableClient()
     {
-        this.Options = ConfigurationManager.Instance.Get<RemoteTransportOptions>();
+        this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
+        this.Incoming = new FifoCache<IPacket>(Options.IncomingSize);
 
         _client = new System.Net.Sockets.TcpClient { NoDelay = true };
     }
@@ -81,8 +89,8 @@ public sealed class RemoteStreamClient : System.IDisposable
             await _client.ConnectAsync(Options.Address, Options.Port, cts.Token);
 
             _stream = _client.GetStream();
-            _outbound = new RemoteStreamSender<IPacket>(_stream);
-            _inbound = new RemoteStreamReceiver<IPacket>(_stream);
+            _outbound = new StreamSender<IPacket>(_stream);
+            _inbound = new StreamReceiver<IPacket>(_stream);
         }
         catch (System.Exception ex)
         {
@@ -138,7 +146,7 @@ public sealed class RemoteStreamClient : System.IDisposable
     public void Disconnect() => this.Dispose();
 
     /// <summary>
-    /// Releases the resources used by the <see cref="RemoteStreamClient"/> instance.
+    /// Releases the resources used by the <see cref="ReliableClient"/> instance.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
     public void Dispose()
