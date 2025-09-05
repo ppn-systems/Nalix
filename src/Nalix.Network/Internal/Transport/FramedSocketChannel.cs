@@ -71,6 +71,9 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     /// Starts the receive loop. The optional <paramref name="cancellationToken"/> can be used
     /// to stop this connection or for coordinated server shutdown. No linked tokens or callbacks.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Reliability", "CA2016:Forward the 'CancellationToken' parameter to methods", Justification = "<Pending>")]
     public void BeginReceive(System.Threading.CancellationToken cancellationToken = default)
     {
         if (System.Threading.Volatile.Read(ref _disposed) != 0 ||
@@ -89,7 +92,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             System.Threading.CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
 
         _ = this.ReceiveLoopAsync(linked.Token)
-                .ContinueWith(static (t, state) => ((System.Threading.CancellationTokenSource)state!).Dispose(), linked, cancellationToken);
+                .ContinueWith(static (t, state) => ((System.Threading.CancellationTokenSource)state!).Dispose(), linked);
     }
 
     /// <summary>
@@ -319,16 +322,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                 _buffer = BufferLease.Pool.Rent(256); // prepare for next read
             }
         }
-        catch (System.OperationCanceledException) { /* normal shutdown */ }
-        catch (System.ObjectDisposedException)
-        {
-            this.OnDisconnected();
-        }
-        catch (System.Net.Sockets.SocketException)
-        {
-            this.OnDisconnected();
-        }
-        catch (System.Exception)
+        finally
         {
             this.OnDisconnected();
         }
