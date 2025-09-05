@@ -2,7 +2,6 @@
 
 using Nalix.Common.Environment;
 using Nalix.Logging.Internal.Exceptions;
-using System;
 
 namespace Nalix.Logging.Sinks.File;
 
@@ -144,7 +143,7 @@ public sealed class FileLogOptions
     /// <summary>
     /// Optional: also suffix by process to avoid cross-process collisions.
     /// </summary>
-    public Boolean UsePerProcessSuffix { get; set; } = false;
+    public System.Boolean UsePerProcessSuffix { get; set; } = false;
 
     #endregion Properties
 
@@ -159,8 +158,13 @@ public sealed class FileLogOptions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.String GetFullLogFilePath() => System.IO.Path.Combine(Directories.LogsDirectory, LogFileName);
 
-    // Helper to build exact file name for a given day/index
-    public String BuildFileName(DateTime date, Int32 index)
+    /// <summary>
+    /// Builds the exact log file name for a given day and index.
+    /// </summary>
+    /// <param name="date">The date to include in the file name.</param>
+    /// <param name="index">The sequence index for the file on the given date.</param>
+    /// <returns>The constructed log file name.</returns>
+    public System.String BuildFileName(System.DateTime date, System.Int32 index)
     {
         var datePart = date.ToString("yy_MM_dd", System.Globalization.CultureInfo.InvariantCulture);
         var name = $"Nalix_{datePart}_{index}.log";

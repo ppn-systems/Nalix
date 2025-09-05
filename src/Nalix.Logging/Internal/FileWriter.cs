@@ -24,9 +24,6 @@ internal sealed class FileWriter : System.IDisposable
 
     private System.Boolean _isDisposed;
 
-    // Old fields kept for compatibility but no longer used for naming
-    private readonly System.Int32 _fileCounter;
-
     // New rolling state
     private System.DateTime _currentDayLocal = System.DateTime.MinValue;
     private System.Int32 _currentIndex = 0;
