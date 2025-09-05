@@ -18,7 +18,7 @@ internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket>
             return;
         }
 
-        _ = await context.Connection.Tcp.SendAsync(packet
+        _ = await context.Connection.TCP.SendAsync(packet
                                         .Serialize())
                                         .ConfigureAwait(false);
     }

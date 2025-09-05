@@ -114,7 +114,7 @@ public static class ConnectionExtensions
             try
             {
                 pkt.Serialize(System.MemoryExtensions.AsSpan(rented, 0, len));
-                _ = await connection.Tcp.SendAsync(System.MemoryExtensions.AsMemory(rented, 0, len)).ConfigureAwait(false);
+                _ = await connection.TCP.SendAsync(System.MemoryExtensions.AsMemory(rented, 0, len)).ConfigureAwait(false);
             }
             finally
             {

@@ -91,7 +91,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
                     {
                         c.Initialize(pkt, data);
                         System.Byte[] buffer = c.Serialize(pkt);
-                        _ = await context.Connection.Tcp.SendAsync(buffer)
+                        _ = await context.Connection.TCP.SendAsync(buffer)
                                                         .ConfigureAwait(false);
                         return;
                     }
@@ -111,7 +111,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
                 {
                     max.Initialize(pkt, part);
                     System.Byte[] buffer = max.Serialize(pkt);
-                    _ = await context.Connection.Tcp.SendAsync(buffer)
+                    _ = await context.Connection.TCP.SendAsync(buffer)
                                                     .ConfigureAwait(false);
                 }
                 finally

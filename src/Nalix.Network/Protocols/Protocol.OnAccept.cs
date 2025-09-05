@@ -76,7 +76,7 @@ public abstract partial class Protocol
         {
             if (this.ValidateConnection(connection))
             {
-                connection.Tcp.BeginReceive(cancellationToken);
+                connection.TCP.BeginReceive(cancellationToken);
                 return;
             }
 
@@ -87,13 +87,13 @@ public abstract partial class Protocol
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[{nameof(Protocol)}:{OnAccept}] " +
-                                           $"Canceled for {connection.RemoteEndPoint} (Id={connection.Id}).");
+                                           $"Canceled for {connection.RemoteEndPoint} (ID={connection.ID}).");
         }
         catch (System.ObjectDisposedException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[{nameof(Protocol)}:{OnAccept}] " +
-                                          $"Dispatcher disposed while accepting {connection.RemoteEndPoint} (Id={connection.Id}).");
+                                          $"Dispatcher disposed while accepting {connection.RemoteEndPoint} (ID={connection.ID}).");
         }
         catch (System.Exception ex)
         {
@@ -103,7 +103,7 @@ public abstract partial class Protocol
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[{nameof(Protocol)}:{OnAccept}] " +
-                                           $"ERROR while accepting from {connection.RemoteEndPoint} (Id={connection.Id}): {ex.Message}", ex);
+                                           $"ERROR while accepting from {connection.RemoteEndPoint} (ID={connection.ID}): {ex.Message}", ex);
         }
     }
 

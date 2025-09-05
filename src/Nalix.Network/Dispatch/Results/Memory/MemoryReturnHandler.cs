@@ -18,7 +18,7 @@ internal sealed class MemoryReturnHandler<TPacket> : IReturnHandler<TPacket>
             return;
         }
 
-        _ = await context.Connection.Tcp.SendAsync(memory)
+        _ = await context.Connection.TCP.SendAsync(memory)
                                         .ConfigureAwait(false);
     }
 }
