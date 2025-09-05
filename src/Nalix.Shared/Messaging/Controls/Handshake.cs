@@ -56,12 +56,16 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Handshake"/> class with the specified binary data and transport protocol.
+    /// Initializes a new instance of the <see cref="Handshake"/> class with the specified operation code, binary data, and transport protocol.
     /// </summary>
+    /// <param name="opCode">The operation code for the handshake packet.</param>
     /// <param name="data">The binary content of the packet.</param>
     /// <param name="transport">The transport protocol to use.</param>
-    public Handshake(System.Byte[] data, ProtocolType transport) : base()
+    public Handshake(
+        System.UInt16 opCode,
+        System.Byte[] data, ProtocolType transport) : base()
     {
+        this.OpCode = opCode;
         this.Data = data;
         this.Transport = transport;
     }

@@ -1,7 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
-using Nalix.Common.Packets.Abstractions;
+using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Protocols;
 using Nalix.Network.Throttling;
 using Nalix.Shared.Injection;
@@ -116,6 +116,12 @@ public static class ConnectionExtensions
                 pkt.Serialize(System.MemoryExtensions.AsSpan(rented, 0, len));
                 _ = await connection.TCP.SendAsync(System.MemoryExtensions.AsMemory(rented, 0, len)).ConfigureAwait(false);
             }
+            catch (System.Exception ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"DIRECTIVE send failed " +
+                                               $"(Type={controlType}, Reason={reason}, Action={action}, Seq={sequenceId}): {ex.Message}");
+            }
             finally
             {
                 System.Buffers.ArrayPool<System.Byte>.Shared.Return(rented);
@@ -126,55 +132,4 @@ public static class ConnectionExtensions
             pool.Return(pkt);
         }
     }
-
-    /// <summary>
-    /// Sends a control directive asynchronously over the connection (no correlation).
-    /// </summary>
-    public static System.Threading.Tasks.Task SendAsync(
-        this IConnection connection,
-        ControlType controlType,
-        ProtocolCode reason,
-        ProtocolAction action,
-        ControlFlags flags = ControlFlags.NONE,
-        System.UInt32 arg0 = 0,
-        System.UInt32 arg1 = 0,
-        System.UInt16 arg2 = 0)
-        => SendAsync(
-            connection,
-            controlType,
-            reason,
-            action,
-            sequenceId: 0,
-            flags: flags,
-            arg0: arg0,
-            arg1: arg1,
-            arg2: arg2);
-
-    /// <summary>
-    /// Sends a control directive echoing the SequenceId from a sequenced request.
-    /// </summary>
-    public static System.Threading.Tasks.Task SendAsync(
-        this IConnection connection,
-        ControlType controlType,
-        ProtocolCode reason,
-        ProtocolAction action,
-        IPacketSequenced request,
-        ControlFlags flags = ControlFlags.NONE,
-        System.UInt32 arg0 = 0,
-        System.UInt32 arg1 = 0,
-        System.UInt16 arg2 = 0)
-    {
-        System.ArgumentNullException.ThrowIfNull(request);
-        return SendAsync(
-            connection,
-            controlType,
-            reason,
-            action,
-            sequenceId: request.SequenceId,
-            flags: flags,
-            arg0: arg0,
-            arg1: arg1,
-            arg2: arg2);
-    }
-
 }
