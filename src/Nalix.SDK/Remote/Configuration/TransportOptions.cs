@@ -4,14 +4,14 @@ using Nalix.Common.Attributes;
 using Nalix.Common.Security.Enums;
 using Nalix.Shared.Configuration.Binding;
 
-namespace Nalix.SDK.Remote;
+namespace Nalix.SDK.Remote.Configuration;
 
 /// <summary>
 /// Represents the configuration settings for establishing a network connection.
 /// </summary>
-public sealed class RemoteTransportOptions : ConfigurationLoader
+public sealed class TransportOptions : ConfigurationLoader
 {
-    private System.Byte[] _key = new System.Byte[32];
+    private System.Byte[] _key = [];
 
     /// <summary>
     /// Gets or sets the port number for the connection.
@@ -34,7 +34,13 @@ public sealed class RemoteTransportOptions : ConfigurationLoader
     /// Gets or sets the server address or hostname.
     /// Default value is "0.0.0.0".
     /// </summary>
-    public System.String Address { get; set; } = "0.0.0.0";
+    public System.String Address { get; set; } = "127.0.0.1";
+
+    /// <summary>
+    /// Gets or sets the maximum size (in bytes) allowed for incoming data packets.
+    /// Default value is 3000.
+    /// </summary>
+    public System.Int32 IncomingSize { get; set; } = 3000;
 
     /// <summary>
     /// Gets or sets the encryption key used for secure communication.
@@ -68,5 +74,5 @@ public sealed class RemoteTransportOptions : ConfigurationLoader
     /// This property is ignored during configuration binding.
     /// </summary>
     [ConfiguredIgnore]
-    public SymmetricAlgorithmType EncryptionMode { get; set; }
+    public SymmetricAlgorithmType EncryptionMode { get; set; } = SymmetricAlgorithmType.ChaCha20Poly1305;
 }
