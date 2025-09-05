@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Core.Enums;
+namespace Nalix.Common.Enums;
 
 /// <summary>
 /// Defines the supported symmetric and AEAD (Authenticated Encryption with Associated Data)

@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Core.Primitives;
+namespace Nalix.Common.Primitives;
 
 /// <summary>
 /// Represents an unsigned 56-bit integer.

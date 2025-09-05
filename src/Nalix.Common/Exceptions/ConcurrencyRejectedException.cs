@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Core.Exceptions;
+namespace Nalix.Common.Exceptions;
 
 /// <summary>
 /// Exception thrown when a concurrency conflict is detected and the operation is rejected.
