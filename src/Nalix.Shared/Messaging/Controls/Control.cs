@@ -107,6 +107,30 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
     }
 
     /// <summary>
+    /// Initializes the control packet with full metadata.
+    /// </summary>
+    /// <param name="opCode">The operation code.</param>
+    /// <param name="type">The control message type.</param>
+    /// <param name="sequenceId">The sequence identifier (optional, default = 0).</param>
+    /// <param name="reasonCode">The reason code (optional, default = 0).</param>
+    /// <param name="transport">The transport protocol (default = TCP).</param>
+    public void Initialize(
+        System.UInt16 opCode,
+        ControlType type,
+        System.UInt32 sequenceId = 0,
+        ProtocolCode reasonCode = ProtocolCode.NONE,
+        ProtocolType transport = ProtocolType.TCP)
+    {
+        this.Type = type;
+        this.OpCode = opCode;
+        this.Transport = transport;
+        this.SequenceId = sequenceId;
+        this.Reason = reasonCode;
+        this.MonoTicks = Clock.MonoTicksNow();
+        this.Timestamp = Clock.UnixMillisecondsNow();
+    }
+
+    /// <summary>
     /// Initializes the packet with binary data and a transport protocol.
     /// </summary>
     /// <param name="type">Binary content of the packet.</param>

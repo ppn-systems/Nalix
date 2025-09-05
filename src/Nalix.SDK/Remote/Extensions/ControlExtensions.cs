@@ -22,7 +22,7 @@ public static class ControlExtensions
 {
     /// <summary>
     /// A fluent builder for <see cref="Control"/> frames.
-    /// Use <see cref="NewControl(ReliableClient, ControlType, ProtocolType)"/> to create an instance,
+    /// Use <see cref="NewControl(ReliableClient, System.UInt16, ControlType, ProtocolType)"/> to create an instance,
     /// then chain configuration methods before calling <see cref="Build"/>.
     /// </summary>
     public readonly ref struct ControlBuilder(Control c)
@@ -65,6 +65,7 @@ public static class ControlExtensions
     /// Creates a new CONTROL frame with the specified type and default metadata.
     /// </summary>
     /// <param name="_">The client (unused; provided for fluent extension syntax).</param>
+    /// <param name="opCode">The operation code.</param>
     /// <param name="type">The control type.</param>
     /// <param name="transport">The transport type. Default is <see cref="ProtocolType.TCP"/>.</param>
     /// <returns>A <see cref="ControlBuilder"/> initialized with the requested type.</returns>
@@ -73,10 +74,10 @@ public static class ControlExtensions
     /// ControlBuilder c = client.NewControl(ControlType.PING).WithSeq(123).StampNow().Build();
     /// </code>
     /// </example>
-    public static ControlBuilder NewControl(this ReliableClient _, ControlType type, ProtocolType transport = ProtocolType.TCP)
+    public static ControlBuilder NewControl(this ReliableClient _, System.UInt16 opCode, ControlType type, ProtocolType transport = ProtocolType.TCP)
     {
         Control c = new();
-        c.Initialize(type, sequenceId: 0, reasonCode: ProtocolCode.NONE, transport: transport);
+        c.Initialize(opCode, type, sequenceId: 0, reasonCode: ProtocolCode.NONE, transport: transport);
         return new ControlBuilder(c);
     }
 
@@ -84,6 +85,7 @@ public static class ControlExtensions
     /// Sends a PING and awaits the matching PONG (same <see cref="Control.SequenceId"/>).
     /// </summary>
     /// <param name="client">The connected reliable client.</param>
+    /// <param name="opCode">The operation code.</param>
     /// <param name="sequenceId">Optional sequence id; if <c>null</c>, a value is generated.</param>
     /// <param name="timeoutMs">Overall timeout in milliseconds for send and wait operations.</param>
     /// <param name="syncClock">
@@ -112,6 +114,7 @@ public static class ControlExtensions
     /// </example>
     public static async System.Threading.Tasks.Task<(System.Double rttMs, Control pong)> PingAsync(
         this ReliableClient client,
+        System.UInt16 opCode,
         System.UInt32? sequenceId = null,
         System.Int32 timeoutMs = 3000,
         System.Boolean syncClock = false,
@@ -127,7 +130,7 @@ public static class ControlExtensions
         System.UInt32 seq = sequenceId ?? unchecked((System.UInt32)System.Environment.TickCount);
 
         // Build + send PING (ControlType.PING)  (enum: PING/PONG)  :contentReference[oaicite:2]{index=2}
-        var ping = client.NewControl(ControlType.PING)
+        var ping = client.NewControl(opCode, ControlType.PING)
                          .WithSeq(seq)
                          .StampNow()
                          .Build();
@@ -213,6 +216,7 @@ public static class ControlExtensions
     /// Sends a CONTROL frame with a single call using a fluent configuration callback.
     /// </summary>
     /// <param name="client">The connected reliable client.</param>
+    /// <param name="opCode">The operation code.</param>
     /// <param name="type">The control type to send.</param>
     /// <param name="configure">An optional configuration callback to customize the control being sent.</param>
     /// <param name="ct">A token to cancel the operation.</param>
@@ -227,12 +231,14 @@ public static class ControlExtensions
     /// </code>
     /// </example>
     public static System.Threading.Tasks.Task SendControlAsync(
-        this ReliableClient client, ControlType type,
+        this ReliableClient client,
+        System.UInt16 opCode,
+        ControlType type,
         System.Action<ControlBuilder> configure = null,
         System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(client);
-        var b = client.NewControl(type);
+        var b = client.NewControl(opCode, type);
         configure?.Invoke(b);
         return client.SendAsync(b.Build(), ct);
     }
@@ -242,6 +248,7 @@ public static class ControlExtensions
     /// Builds and sends a DISCONNECT control (TCP by default).
     /// </summary>
     /// <param name="client">The connected reliable client.</param>
+    /// <param name="opCode">The operation code.</param>
     /// <param name="seq">The optional sequence identifier.</param>
     /// <param name="tr">The transport type. Default is <see cref="ProtocolType.TCP"/>.</param>
     /// <param name="ct">A token to cancel the operation.</param>
@@ -253,8 +260,9 @@ public static class ControlExtensions
     /// </example>
     public static System.Threading.Tasks.Task SendDisconnectAsync(
         this ReliableClient client,
+        System.UInt16 opCode,
         System.UInt32 seq = 0,
         ProtocolType tr = ProtocolType.TCP,
         System.Threading.CancellationToken ct = default)
-        => client.SendControlAsync(ControlType.DISCONNECT, b => b.WithSeq(seq).WithTransport(tr).StampNow(), ct);
+        => client.SendControlAsync(opCode, ControlType.DISCONNECT, b => b.WithSeq(seq).WithTransport(tr).StampNow(), ct);
 }
