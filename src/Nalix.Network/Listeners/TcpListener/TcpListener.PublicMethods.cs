@@ -79,6 +79,12 @@ public abstract partial class TcpListenerBase
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Info($"[{nameof(TcpListenerBase)}] start protocol={_protocol} port={_port}");
 
+            if (Config.TimeoutOnConnect)
+            {
+                InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
+                                        .Activate();
+            }
+
             var tasks = new System.Collections.Generic.List<System.Threading.Tasks.Task>(1 + Config.MaxParallel)
             {
                 InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
@@ -186,6 +192,12 @@ public abstract partial class TcpListenerBase
                                         .Warn($"[{nameof(TcpListenerBase)}] ignored-deactivate state={State}");
                 return;
             }
+        }
+
+        if (Config.TimeoutOnConnect)
+        {
+            InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
+                                    .Deactivate();
         }
 
         var cts = System.Threading.Interlocked.Exchange(ref _cts, null);
