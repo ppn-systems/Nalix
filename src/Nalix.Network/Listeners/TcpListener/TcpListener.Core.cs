@@ -106,7 +106,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
 
             System.Threading.ThreadPool.GetMinThreads(out System.Int32 afterWorker, out System.Int32 afterIOCP);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(TcpListenerBase)}] SetMinThreads: worker={afterWorker}, IOCP={afterIOCP}");
+                                    .Info($"[{nameof(TcpListenerBase)}] set-min-threads worker={afterWorker} iocp={afterIOCP}");
         }
     }
 
