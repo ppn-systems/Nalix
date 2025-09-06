@@ -45,14 +45,14 @@ public sealed class StructFormatter<T> : IFormatter<T> where T : struct
         {
             _accessors = StructFormatter<T>.CreateAccessors();
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[StructFormatter<{typeof(T).Name}>] " +
-                                           $"Initialized: {_accessors.Length} fields, {FieldCache<T>.GetLayout()} layout");
+                                    .Trace($"[StructFormatter<{typeof(T).Name}>] " +
+                                           $"init-ok fields={_accessors.Length} layout={FieldCache<T>.GetLayout()}");
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error($"[StructFormatter<{typeof(T).Name}>] " +
-                                           $"Failed to initialize StructFormatter<{typeof(T).Name}>: {ex.Message}");
+                                           $"init-fail msg={ex.Message}");
 
             throw new SerializationException($"Formatter initialization failed for {typeof(T).Name}", ex);
         }
