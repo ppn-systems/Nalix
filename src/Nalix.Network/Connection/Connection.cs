@@ -61,7 +61,7 @@ public sealed partial class Connection : IConnection
         this.TCP = new TcpTransport(this);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(Connection)}] Connection created for {this.RemoteEndPoint}");
+                                .Debug($"[{nameof(Connection)}] created remote={this.RemoteEndPoint} id={this.ID}");
     }
 
     #endregion Constructor
@@ -162,27 +162,22 @@ public sealed partial class Connection : IConnection
 
 #if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(FramedSocketChannel)}] Injected {bytes.Length} bytes into incoming cache.");
+                                .Debug($"[{nameof(FramedSocketChannel)}] inject-bytes len={bytes.Length}");
 #endif
     }
 
     /// <inheritdoc />
     public void Close(System.Boolean force = false)
     {
-        try
+        if (this._disposed)
         {
-            if (this._disposed)
-            {
-                return;
-            }
+            return;
+        }
 
-            this.RaiseClosedOnce(this, new ConnectionEventArgs(this));
-        }
-        catch (System.Exception ex)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(Connection)}] Close error: {ex.Message}");
-        }
+        this.RaiseClosedOnce(this, new ConnectionEventArgs(this));
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[{nameof(Connection)}] close request id={this.ID} remote={this.RemoteEndPoint}");
     }
 
     /// <inheritdoc />
@@ -219,7 +214,7 @@ public sealed partial class Connection : IConnection
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(Connection)}] Dispose error: {ex.Message}");
+                                    .Error($"[{nameof(Connection)}] dispose-error msg={ex.Message}");
         }
 
         System.GC.SuppressFinalize(this);
@@ -248,7 +243,7 @@ public sealed partial class Connection : IConnection
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(Connection)}] OnCloseEvent handler threw: {ex}");
+                                        .Error($"[{nameof(Connection)}] on-close-handler-throw ex={ex.Message}");
             }
         }
     }
