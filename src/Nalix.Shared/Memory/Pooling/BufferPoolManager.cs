@@ -112,7 +112,8 @@ public sealed class BufferPoolManager : System.IDisposable
     /// <summary>
     /// Rents a buffer of at least the requested size with optimized caching and optional fallback.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] Rent(System.Int32 size = 256)
     {
         // Fast path for exact matches to common sizes
@@ -130,6 +131,12 @@ public sealed class BufferPoolManager : System.IDisposable
         {
             System.Byte[] buffer = _poolManager.RentBuffer(size);
 
+            if (_enableAnalytics)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[{nameof(BufferPoolManager)}] rent-fast size={size}");
+            }
+
             if (size > 64 && size < 1_000_000 && _suitablePoolSizeCache.Count < 1000)
             {
                 _ = _suitablePoolSizeCache.TryAdd(size, buffer.Length);
@@ -143,13 +150,13 @@ public sealed class BufferPoolManager : System.IDisposable
             if (_fallbackToArrayPool)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Warn($"[{nameof(BufferPoolManager)}] Falling back to ArrayPool for size {size}: {ex.Message}");
+                    .Warn($"[{nameof(BufferPoolManager)}] fallback size={size} msg={ex.Message}");
 
                 return _fallbackArrayPool.Rent(size);
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Error($"[{nameof(BufferPoolManager)}] Failed to rent buffer of size {size}: {ex.Message}");
+                .Error($"[{nameof(BufferPoolManager)}] rent-fail size={size} msg={ex.Message}", ex);
             throw;
         }
     }
@@ -157,7 +164,8 @@ public sealed class BufferPoolManager : System.IDisposable
     /// <summary>
     /// Returns the buffer to the appropriate pool with safety checks and fallback.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Return(System.Byte[]? buffer)
     {
         if (buffer is null)
@@ -168,6 +176,12 @@ public sealed class BufferPoolManager : System.IDisposable
         try
         {
             _poolManager.ReturnBuffer(buffer);
+
+            if (_enableAnalytics)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[{nameof(BufferPoolManager)}] return size={buffer.Length}");
+            }
         }
         catch (System.ArgumentException ex)
         {
@@ -182,12 +196,12 @@ public sealed class BufferPoolManager : System.IDisposable
 
                 _fallbackArrayPool.Return(buffer, clearArray: false);
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Debug($"[{nameof(BufferPoolManager)}] Returned fallback buffer of size {buffer.Length} to ArrayPool: {ex.Message}");
+                                        .Debug($"[{nameof(BufferPoolManager)}] return-fallback size={buffer.Length}");
                 return;
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Warn($"[{nameof(BufferPoolManager)}] Failed to return buffer of size {buffer.Length}: {ex.Message}");
+                                    .Warn($"[{nameof(BufferPoolManager)}] return-fail size={buffer.Length} msg={ex.Message}");
         }
     }
 
@@ -240,12 +254,13 @@ public sealed class BufferPoolManager : System.IDisposable
     /// <summary>
     /// Allocates buffers based on the configuration settings.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void AllocateBuffers()
     {
         if (_isInitialized)
         {
-            throw new System.InvalidOperationException($"[{nameof(BufferPoolManager)}] Buffers already allocated.");
+            return;
         }
 
         foreach (var (bufferSize, allocation) in _bufferAllocations)
@@ -255,6 +270,9 @@ public sealed class BufferPoolManager : System.IDisposable
         }
 
         _isInitialized = true;
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Info($"[{nameof(BufferPoolManager)}] " +
+                                      $"init-ok total={_totalBuffers} pools={_bufferAllocations.Length} min={MinBufferSize} max={MaxBufferSize}");
     }
 
     /// <summary>
@@ -267,8 +285,8 @@ public sealed class BufferPoolManager : System.IDisposable
         System.Int32 deepEvery = System.Math.Max(1, _deepTrimIntervalMinutes / System.Math.Max(1, _trimIntervalMinutes));
         System.Boolean deepTrim = (cycle % deepEvery) == 0;
 
-        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        logger?.Debug($"[{nameof(BufferPoolManager)}] Running automatic buffer trimming (Deep trim: {deepTrim})");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Trace($"[{nameof(BufferPoolManager)}] trim-run deep={deepTrim}");
 
         // 1) Memory budget check
         System.Int64 totalAvailable = System.GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
@@ -300,7 +318,9 @@ public sealed class BufferPoolManager : System.IDisposable
                 if (shrinkStep > 0)
                 {
                     pool.DecreaseCapacity(shrinkStep);
-                    logger?.Debug($"[{nameof(BufferPoolManager)}] Trimmed pool size={info.BufferSize} by {shrinkStep}, usage={usage:F2}.");
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Meta($"[{nameof(BufferPoolManager)}] " +
+                                                  $"trim-shrink size={info.BufferSize} step={shrinkStep} usage={usage:F2}");
                 }
             }
         }
@@ -341,7 +361,7 @@ public sealed class BufferPoolManager : System.IDisposable
                     pool.DecreaseCapacity(buffersToShrink);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                        .Debug($"[{nameof(BufferPoolManager)}] Shrunk pool {poolInfo.BufferSize} by {buffersToShrink}.");
+                                            .Trace($"[{nameof(BufferPoolManager)}] shrink size={poolInfo.BufferSize} by={buffersToShrink}");
                 }
             }
             finally
@@ -387,7 +407,8 @@ public sealed class BufferPoolManager : System.IDisposable
                     pool.IncreaseCapacity(maxIncrease);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                        .Debug($"[{nameof(BufferPoolManager)}] Increased pool {poolInfo.BufferSize} by {maxIncrease}, miss ratio={missRatio:F2}.");
+                                            .Trace($"[{nameof(BufferPoolManager)}] " +
+                                                   $"increase size={poolInfo.BufferSize} by={maxIncrease} miss={missRatio:F2}");
                 }
             }
             finally
@@ -424,9 +445,11 @@ public sealed class BufferPoolManager : System.IDisposable
                         return parts.Length != 2
                             ? throw new System.FormatException($"[{nameof(BufferPoolManager)}] Incorrectly formatted pair: '{pair}'.")
                             : !System.Int32.TryParse(parts[0].Trim(), out System.Int32 allocationSize) || allocationSize <= 0
-                            ? throw new System.ArgumentOutOfRangeException(nameof(bufferAllocationsString), $"[{nameof(BufferPoolManager)}] Size must be > 0.")
+                            ? throw new System.ArgumentOutOfRangeException(
+                                nameof(bufferAllocationsString), $"[{nameof(BufferPoolManager)}] Size must be > 0.")
                             : !System.Double.TryParse(parts[1].Trim(), out System.Double ratio) || ratio <= 0 || ratio > 1
-                            ? throw new System.ArgumentOutOfRangeException(nameof(bufferAllocationsString), $"[{nameof(BufferPoolManager)}] Ratio must be (0,1].")
+                            ? throw new System.ArgumentOutOfRangeException(
+                                nameof(bufferAllocationsString), $"[{nameof(BufferPoolManager)}] Ratio must be (0,1].")
                             : (allocationSize, ratio);
                     })
                     .OrderBy(tuple => tuple.allocationSize)
@@ -439,6 +462,10 @@ public sealed class BufferPoolManager : System.IDisposable
             }
             catch (System.Exception ex) when (ex is System.FormatException or System.ArgumentException or System.OverflowException or System.ArgumentOutOfRangeException)
             {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[{nameof(BufferPoolManager)}] " +
+                                               $"alloc-parse-fail str='{bufferAllocationsString}' msg={ex.Message}");
+
                 throw new System.ArgumentException(
                     $"[{nameof(BufferPoolManager)}] Malformed allocation string. Expected '<size>,<ratio>;...'. ERROR: {ex.Message}");
             }
@@ -459,6 +486,9 @@ public sealed class BufferPoolManager : System.IDisposable
 
         _suitablePoolSizeCache.Clear();
         _poolManager.Dispose();
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Info($"[{nameof(BufferPoolManager)}] disposed");
 
         System.GC.SuppressFinalize(this);
     }
