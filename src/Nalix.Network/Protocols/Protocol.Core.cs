@@ -53,6 +53,9 @@ public abstract partial class Protocol : IProtocol
         {
             this.OnPostProcess(args);
 
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[{nameof(Protocol)}] post-ok id={args.Connection.ID}");
+
             if (!this.KeepConnectionOpen)
             {
                 args.Connection.Disconnect();
@@ -63,6 +66,9 @@ public abstract partial class Protocol : IProtocol
         }
         catch (System.Exception ex)
         {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"[{nameof(Protocol)}] post-fail id={args.Connection.ID}", ex);
+
             this.OnConnectionError(args.Connection, ex);
             args.Connection.Disconnect();
         }

@@ -41,7 +41,7 @@ public abstract partial class UdpListenerBase
             {
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(UdpListenerBase)}] Receive error on {Config.Port}: {ex.Message}");
+                                        .Error($"[{nameof(UdpListenerBase)}] recv-error port={_port}", ex);
 
                 await System.Threading.Tasks.Task.Delay(50, cancellationToken)
                                                  .ConfigureAwait(false);
@@ -55,15 +55,14 @@ public abstract partial class UdpListenerBase
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[{nameof(UdpListenerBase)}] " +
-                                           $"Packet too short from {result.RemoteEndPoint}: {result.Buffer.Length} bytes");
+                                           $"short-packet len={result.Buffer.Length} from={result.RemoteEndPoint}");
             return;
         }
 
         if (InstanceManager.Instance.GetExistingInstance<ConnectionHub>() is null)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(UdpListenerBase)}] " +
-                                           $"ConnectionHub is not registered in InstanceManager");
+                                    .Error($"[{nameof(UdpListenerBase)}] ConnectionHub=null");
             return;
         }
 
@@ -73,18 +72,21 @@ public abstract partial class UdpListenerBase
                                     .GetConnection(identifier) is not Connection.Connection connection)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(UdpListenerBase)}] Unidentified packet from {result.RemoteEndPoint}");
+                                    .Debug($"[{nameof(UdpListenerBase)}] unknown-packet from={result.RemoteEndPoint}");
             return;
         }
 
         if (!this.IsAuthenticated(connection, result))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[{nameof(UdpListenerBase)}] Unauthenticated packet from {result.RemoteEndPoint}");
+                                    .Warn($"[{nameof(UdpListenerBase)}] unauth from={result.RemoteEndPoint}");
             return;
         }
 
         connection.InjectIncoming(result.Buffer[..^Identifier.Size]);
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Meta($"[{nameof(UdpListenerBase)}] inject id={connection.ID} size={result.Buffer.Length}");
     }
 
     private struct CallbackState

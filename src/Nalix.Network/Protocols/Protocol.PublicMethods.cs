@@ -36,7 +36,7 @@ public abstract partial class Protocol
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual void OnConnectionError(IConnection connection, System.Exception exception)
-        => System.Threading.Interlocked.Increment(ref this._totalErrors);
+        => _ = System.Threading.Interlocked.Increment(ref this._totalErrors);
 
     /// <summary>
     /// Validates the incoming connection before accepting it.
@@ -79,6 +79,9 @@ public abstract partial class Protocol
         {
             if (this.ValidateConnection(connection))
             {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[{nameof(Protocol)}:{nameof(OnAccept)}] accepted id={connection.ID}");
+
                 connection.TCP.BeginReceive(cancellationToken);
                 return;
             }
@@ -119,5 +122,11 @@ public abstract partial class Protocol
     /// </param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void SetConnectionAcceptance(System.Boolean isEnabled) => this._accepting = isEnabled ? 1 : 0;
+    public void SetConnectionAcceptance(System.Boolean isEnabled)
+    {
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Info($"[{nameof(Protocol)}] accepting={(isEnabled ? "enabled" : "disabled")}");
+
+        this._accepting = isEnabled ? 1 : 0;
+    }
 }

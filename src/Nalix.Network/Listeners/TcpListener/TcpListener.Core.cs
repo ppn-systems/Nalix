@@ -69,6 +69,9 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
             }
 
             InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled = value;
+
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Info($"[{nameof(TcpListenerBase)}] timesync={value}");
         }
     }
 

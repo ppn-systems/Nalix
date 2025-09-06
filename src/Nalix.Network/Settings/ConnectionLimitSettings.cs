@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Network.Throttling.Settings;
+namespace Nalix.Network.Settings;
 
 /// <summary>
 /// Represents settings for connection limits, including maximum connections, cleanup interval, and inactivity threshold.

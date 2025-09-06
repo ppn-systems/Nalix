@@ -12,14 +12,16 @@ public abstract partial class UdpListenerBase
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void Initialize()
     {
-        _udpClient = new System.Net.Sockets.UdpClient(Config.Port)
+        _udpClient = new System.Net.Sockets.UdpClient(_port)
         {
             Client = { ExclusiveAddressUse = !Config.ReuseAddress }
         };
 
         ConfigureHighPerformanceSocket(_udpClient.Client);
+
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(UdpListenerBase)}] UDP client bound to port {Config.Port}");
+                                .Debug($"[{nameof(UdpListenerBase)}] init-ok port={_port} " +
+                                       $"reuse={Config.ReuseAddress} buf={Config.BufferSize}");
     }
 
     [System.Diagnostics.DebuggerStepThrough]
