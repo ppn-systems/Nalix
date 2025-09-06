@@ -22,10 +22,9 @@ internal sealed class UnsupportedReturnHandler<TPacket>(System.Type returnType) 
     {
         if (_loggedTypes.TryAdd(returnType, true))
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
-                $"[{nameof(UnsupportedReturnHandler<TPacket>)}] " +
-                $"Unsupported return type '{returnType.Name}' encountered. " +
-                $"Result will not be processed, but stored in context properties.");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[{nameof(UnsupportedReturnHandler<TPacket>)}] " +
+                                          $"unsupported-return type={returnType.Name}");
         }
 
         return System.Threading.Tasks.ValueTask.CompletedTask;
