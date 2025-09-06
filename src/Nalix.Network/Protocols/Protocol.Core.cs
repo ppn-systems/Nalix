@@ -1,7 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
+using Nalix.Common.Logging.Abstractions;
 using Nalix.Network.Abstractions;
+using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Protocols;
 
@@ -54,6 +56,11 @@ public abstract partial class Protocol : IProtocol
             if (!this.KeepConnectionOpen)
             {
                 args.Connection.Disconnect();
+
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[{nameof(Protocol)}:{PostProcessMessage}] " +
+                                               $"Disconnected connection from {args.Connection.RemoteEndPoint} (ID={args.Connection.ID}) " +
+                                               $"- KeepConnectionOpen is false.");
             }
         }
         catch (System.Exception ex)

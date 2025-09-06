@@ -63,6 +63,11 @@ public abstract partial class Protocol
         // Check if accepting connections is enabled
         if (!this.IsAccepting)
         {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[{nameof(Protocol)}:{OnAccept}] " +
+                                           $"Rejected connection from {connection.RemoteEndPoint} (ID={connection.ID}) " +
+                                           $"- not accepting new connections.");
+
             return;
         }
 
@@ -79,6 +84,11 @@ public abstract partial class Protocol
                 connection.TCP.BeginReceive(cancellationToken);
                 return;
             }
+
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[{nameof(Protocol)}:{OnAccept}] " +
+                                           $"Rejected connection from {connection.RemoteEndPoint} (ID={connection.ID}) " +
+                                           $"- failed validation.");
 
             // Connection failed validation, close immediately
             connection.Close();
