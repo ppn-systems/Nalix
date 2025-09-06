@@ -1,7 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging.Abstractions;
-using Nalix.Network.Configurations;
 using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Listeners.Tcp;
@@ -29,8 +28,9 @@ public abstract partial class TcpListenerBase
         // When you want to disconnect immediately without making sure the data has been sent.
         // socket.LingerState = new LingerOption(true, SocketOptions.False);
 
-        // if using async or non-blocking I/O.
-        socket.Blocking = false;
+        // Keep the accepted socket in blocking mode; Task-based async works fine with blocking sockets.
+        // If you really want non-blocking I/O, ensure your Accept/Receive loops expect WouldBlock.
+        socket.Blocking = true;
 
         if (Config.KeepAlive)
         {
@@ -40,6 +40,7 @@ public abstract partial class TcpListenerBase
 
             if (Config.IsWindows)
             {
+                // Win32 SIO_KEEPALIVE_VALS: [on(4)][time(4 ms)][interval(4 ms)]
                 // 1. Turning on Keep-Alive
                 // 2. 3 seconds without data, send Keep-Alive
                 // 3. Send every 1 second if there is no response
@@ -57,44 +58,112 @@ public abstract partial class TcpListenerBase
                 // Windows specific settings
                 _ = socket.IOControl(System.Net.Sockets.IOControlCode.KeepAliveValues, keepAlive.ToArray(), null);
             }
+            else if (!Config.IsWindows)
+            {
+                try
+                {
+                    // These may be supported on modern .NET / kernels:
+                    // TcpKeepAliveTime (seconds), value example: 3
+                    // TcpKeepAliveInterval (seconds), value example: 1
+                    // TcpKeepAliveRetryCount, value example: 5
+
+                    socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp, (System.Net.Sockets.SocketOptionName)0x10, 3);
+                    socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp, (System.Net.Sockets.SocketOptionName)0x12, 1);
+                    socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp, (System.Net.Sockets.SocketOptionName)0x11, 5);
+                }
+                catch { /* best-effort, ignore if not supported */ }
+            }
         }
     }
-
 
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void Initialize()
     {
-        // Create the optimal socket listener.
+        if (Config.EnableIPv6)
+        {
+            // Try IPv6 + DualMode first
+            System.Net.Sockets.Socket? listener = null;
+            try
+            {
+                listener = new System.Net.Sockets.Socket(
+                    System.Net.Sockets.AddressFamily.InterNetworkV6,
+                    System.Net.Sockets.SocketType.Stream,
+                    System.Net.Sockets.ProtocolType.Tcp)
+                {
+                    ExclusiveAddressUse = !Config.ReuseAddress,                  // fast rebind combo with ReuseAddress
+                    LingerState = new System.Net.Sockets.LingerOption(false, 0),
+                    Blocking = true,
+                    // Must set before Bind
+                    DualMode = true
+                };
+
+                // Reuse BEFORE bind
+                listener.SetSocketOption(
+                    System.Net.Sockets.SocketOptionLevel.Socket,
+                    System.Net.Sockets.SocketOptionName.ReuseAddress,
+                    Config.ReuseAddress ? 1 : 0);
+
+                // Optional: larger listen buffer (per-connection tuning is more important)
+                listener.SetSocketOption(
+                    System.Net.Sockets.SocketOptionLevel.Socket,
+                    System.Net.Sockets.SocketOptionName.ReceiveBuffer,
+                    Config.BufferSize);
+
+                var epV6Any = new System.Net.IPEndPoint(System.Net.IPAddress.IPv6Any, this._port);
+
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                    .Debug($"[{nameof(TcpListenerBase)}] TCP socket binding to {epV6Any} (IPv6 DualMode)");
+
+                listener.Bind(epV6Any);
+                listener.Listen(SocketBacklog > 0 ? SocketBacklog : 128);
+
+                this._listener = listener;
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                    .Info($"[{nameof(TcpListenerBase)}] Listening on {this._listener.LocalEndPoint} (DualStack)");
+                return;
+            }
+            catch
+            {
+                // Clean up the half-initialized IPv6 socket before falling back
+                try { listener?.Close(); } catch { }
+                try { listener?.Dispose(); } catch { }
+                listener = null;
+            }
+        }
+
+        // Fallback: IPv4-only
         this._listener = new System.Net.Sockets.Socket(
             System.Net.Sockets.AddressFamily.InterNetwork,
             System.Net.Sockets.SocketType.Stream,
             System.Net.Sockets.ProtocolType.Tcp)
         {
             ExclusiveAddressUse = !Config.ReuseAddress,
-            // No need for LingerState if not close soon
-            LingerState = new System.Net.Sockets.LingerOption(false, SocketOptions.False)
+            LingerState = new System.Net.Sockets.LingerOption(false, 0),
+            Blocking = true
         };
-
-        // Increase the queue size on the socket listener.
-        this._listener.SetSocketOption(
-            System.Net.Sockets.SocketOptionLevel.Socket,
-            System.Net.Sockets.SocketOptionName.ReceiveBuffer, Config.BufferSize);
 
         this._listener.SetSocketOption(
             System.Net.Sockets.SocketOptionLevel.Socket,
             System.Net.Sockets.SocketOptionName.ReuseAddress,
-            Config.ReuseAddress ? SocketOptions.True : SocketOptions.False);
+            Config.ReuseAddress ? 1 : 0);
 
-        System.Net.EndPoint remote = new System.Net.IPEndPoint(System.Net.IPAddress.Any, this._port);
+        this._listener.SetSocketOption(
+            System.Net.Sockets.SocketOptionLevel.Socket,
+            System.Net.Sockets.SocketOptionName.ReceiveBuffer,
+            Config.BufferSize);
+
+        var epV4Any = new System.Net.IPEndPoint(System.Net.IPAddress.Any, this._port);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(TcpListenerBase)}] TCP socket bound to {0}", remote);
+                                .Debug($"[{nameof(TcpListenerBase)}] TCP socket binding to {epV4Any} (IPv4 fallback)");
 
-        // Bind and Listen
-        this._listener.Bind(remote);
-        this._listener.Listen(SocketBacklog);
+        this._listener.Bind(epV4Any);
+        this._listener.Listen(SocketBacklog > 0 ? SocketBacklog : 128);
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Info($"[{nameof(TcpListenerBase)}] Listening on {this._listener.LocalEndPoint} (IPv4)");
     }
 
     /// <summary>
@@ -105,8 +174,7 @@ public abstract partial class TcpListenerBase
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Boolean IsIgnorableAcceptError(System.Net.Sockets.SocketError code, System.Threading.CancellationToken token)
         => token.IsCancellationRequested || code is System.Net.Sockets.SocketError.OperationAborted
-            or System.Net.Sockets.SocketError.Interrupted
-            or System.Net.Sockets.SocketError.NotSocket
-            or System.Net.Sockets.SocketError.InvalidArgument
-            or System.Net.Sockets.SocketError.TimedOut;
+        or System.Net.Sockets.SocketError.Interrupted or System.Net.Sockets.SocketError.NotSocket
+        or System.Net.Sockets.SocketError.InvalidArgument or System.Net.Sockets.SocketError.TimedOut
+        or System.Net.Sockets.SocketError.WouldBlock or System.Net.Sockets.SocketError.Shutdown;
 }

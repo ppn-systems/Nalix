@@ -30,15 +30,13 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
     private readonly System.UInt16 _port;
     private readonly IProtocol _protocol;
     private readonly System.Threading.Lock _socketLock;
-
     private readonly System.Threading.SemaphoreSlim _lock;
     private readonly ConnectionLimiter _connectionLimiter;
 
+    private System.Boolean _isDisposed;
     private System.Net.Sockets.Socket? _listener;
     private System.Threading.CancellationTokenSource? _cts;
     private System.Threading.CancellationToken _cancellationToken;
-
-    private volatile System.Boolean _isDisposed = false;
     private System.Int32 _state = (System.Int32)ListenerState.Stopped;
 
     #endregion Fields
@@ -92,25 +90,9 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    static TcpListenerBase() => Config = ConfigurationManager.Instance.Get<SocketOptions>();
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TcpListenerBase"/> class using the port defined in the configuration,
-    /// and the specified protocol, buffer pool, and logger.
-    /// </summary>
-    /// <param name="port">Gets or sets the port number for the network connection.</param>
-    /// <param name="protocol">The protocol to handle the connections.</param>
-    [System.Diagnostics.DebuggerStepThrough]
-    protected TcpListenerBase(System.UInt16 port, IProtocol protocol)
+    static TcpListenerBase()
     {
-        System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
-
-        this._port = port;
-        this._protocol = protocol;
-
-        this._socketLock = new();
-        this._connectionLimiter = new ConnectionLimiter();
-        this._lock = new System.Threading.SemaphoreSlim(1, 1);
+        Config = ConfigurationManager.Instance.Get<SocketOptions>();
 
         // Optimized for _udpListener.IOControlCode on Windows
         if (Config.IsWindows)
@@ -126,6 +108,28 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Info($"[{nameof(TcpListenerBase)}] SetMinThreads: worker={afterWorker}, IOCP={afterIOCP}");
         }
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TcpListenerBase"/> class using the port defined in the configuration,
+    /// and the specified protocol, buffer pool, and logger.
+    /// </summary>
+    /// <param name="port">Gets or sets the port number for the network connection.</param>
+    /// <param name="protocol">The protocol to handle the connections.</param>
+    [System.Diagnostics.DebuggerStepThrough]
+    protected TcpListenerBase(System.UInt16 port, IProtocol protocol)
+    {
+        System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
+
+        _port = port;
+        _protocol = protocol;
+        _isDisposed = false;
+
+        _socketLock = new();
+        _connectionLimiter = new ConnectionLimiter();
+        _lock = new System.Threading.SemaphoreSlim(1, 1);
+
+
 
         InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().TimeSynchronized += this.SynchronizeTime;
 
@@ -138,8 +142,6 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
                                     .Prealloc<PooledSocketAsyncEventArgs>(60);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<PooledAcceptContext>(30);
-
-        Config.Port = this._port;
     }
 
     /// <summary>
@@ -183,18 +185,32 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable
 
         if (disposing)
         {
-            this._cts?.Cancel();
-            this._cts?.Dispose();
+
 
             try
             {
-                this._listener?.Close();
-                this._listener?.Dispose();
+                this._cts?.Cancel();
+                this._cts?.Dispose();
+
+                _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Stopping);
+
+                try
+                {
+                    _listener?.Close();
+                    _listener?.Dispose();
+                }
+                catch { }
+                finally
+                {
+                    _listener = null;
+                }
 
                 InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
                                .TimeSynchronized -= this.SynchronizeTime;
             }
             catch { }
+
+            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Stopped);
 
             this._lock.Dispose();
         }

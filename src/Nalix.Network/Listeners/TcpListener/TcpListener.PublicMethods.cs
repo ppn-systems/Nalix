@@ -31,6 +31,10 @@ public abstract partial class TcpListenerBase
             throw new System.InvalidOperationException($"[{nameof(TcpListenerBase)}] Config.MaxParallel must be at least 1.");
         }
 
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[{nameof(TcpListenerBase)}] Activate requested.");
+
         // Create/refresh CTS early
         _cts?.Dispose();
         _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -48,14 +52,14 @@ public abstract partial class TcpListenerBase
         });
 
         // IMPORTANT: Acquire the lifecycle lock BEFORE transitioning state
-        await _lock.WaitAsync(linkedToken).ConfigureAwait(false);
+        await _lock.WaitAsync(System.Threading.CancellationToken.None).ConfigureAwait(false);
         try
         {
             // If someone already started (or is running), exit early
             if ((ListenerState)System.Threading.Volatile.Read(ref _state) != ListenerState.Stopped)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[{nameof(TcpListenerBase)}] Activate called but state = {State}");
+                                        .Warn($"[{nameof(TcpListenerBase)}] Activate called but state = {State}.");
                 return;
             }
 
@@ -73,9 +77,6 @@ public abstract partial class TcpListenerBase
             {
                 Initialize();
             }
-
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(TcpListenerBase)}] Starting listener");
 
             _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Running);
 
@@ -133,6 +134,8 @@ public abstract partial class TcpListenerBase
             {
                 _cts?.Cancel();
                 _listener?.Close();
+                _listener = null;
+
                 // Do NOT pass an external token here to avoid OCE during shutdown
                 await System.Threading.Tasks.Task.Delay(200, System.Threading.CancellationToken.None)
                                                  .ConfigureAwait(false);
@@ -161,8 +164,9 @@ public abstract partial class TcpListenerBase
     public async System.Threading.Tasks.Task DeactivateAsync(System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
-        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        logger?.Debug($"[{nameof(TcpListenerBase)}] Deactivate requested on port {Config.Port}");
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[{nameof(TcpListenerBase)}] Deactivate requested.");
 
         // Try Running->Stopping; if not, try Starting->Stopping
         System.Int32 prev = System.Threading.Interlocked.CompareExchange(ref _state,
@@ -175,7 +179,8 @@ public abstract partial class TcpListenerBase
 
             if (prev != (System.Int32)ListenerState.Starting)
             {
-                logger?.Warn($"[{nameof(TcpListenerBase)}] Deactivate called but state = {State}");
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[{nameof(TcpListenerBase)}] Deactivate called but state = {State}");
                 return;
             }
         }
@@ -183,11 +188,14 @@ public abstract partial class TcpListenerBase
         var cts = System.Threading.Interlocked.Exchange(ref _cts, null);
         try
         {
-            try { cts?.Cancel(); logger?.Debug($"[{nameof(TcpListenerBase)}] CTS cancelled for {Config.Port}"); } catch { }
-            try { _listener?.Close(); logger?.Debug($"[{nameof(TcpListenerBase)}] Listener socket closed {Config.Port}"); } catch { }
+            try { cts?.Cancel(); } catch { }
+            try { _listener?.Close(); } catch { }
+
+            _listener = null;
 
             InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?.CloseAllConnections();
-            logger?.Info($"[{nameof(TcpListenerBase)}] TCP on {Config.Port} stopped");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Info($"[{nameof(TcpListenerBase)}] TCP on {Config.Port} stopped");
         }
         finally
         {
