@@ -138,7 +138,7 @@ public sealed class ObjectPoolManager : IReportable
         ObjectPool pool = GetOrCreatePool<T>();
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(ObjectPoolManager)}] prealloc type={typeof(T).Namespace}.{typeof(T).Name} count={count}");
+                                .Debug($"[{nameof(ObjectPoolManager)}] prealloc type={typeof(T).Name} count={count}");
 
         return pool.Prealloc<T>(count);
     }
@@ -168,7 +168,7 @@ public sealed class ObjectPoolManager : IReportable
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                         .Info($"[{nameof(ObjectPoolManager)}] " +
-                              $"set-max type={typeof(T).Namespace}.{typeof(T).Name} cap={maxCapacity}");
+                              $"set-max type={typeof(T).Name} cap={maxCapacity}");
 
         return true;
     }
