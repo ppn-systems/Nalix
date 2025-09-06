@@ -74,12 +74,9 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
         {
             System.Int32 byteCount = System.Text.Encoding.UTF8.GetByteCount(data);
 
-#if DEBUG
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?.Trace(
-                $"[{nameof(StringReturnHandler<TPacket>)}] " +
-                $"Handling string return with {byteCount} bytes. " +
-                $"Using {Candidates.Length} candidates for serialization.");
-#endif
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[{nameof(StringReturnHandler<TPacket>)}] " +
+                                           $"handle-string bytes={byteCount} candidates={Candidates.Length}");
 
             // 1) Try to fit in a single packet (choose the smallest that fits).
             foreach (Candidate c in Candidates)
@@ -123,8 +120,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(StringReturnHandler<TPacket>)}] " +
-                                       $"Received unsupported result type '{result?.GetType().Name ?? "null"}'. " +
-                                       $"Result will not be processed, but stored in context properties.");
+                                       $"unsupported-result type={result?.GetType().Name ?? "null"}");
     }
 
     /// <summary>

@@ -69,9 +69,7 @@ public sealed class PacketDispatchChannel
                        $"Make sure to build and register IPacketCatalog before starting dispatcher.");
 
         // Push any additional initialization here if needed
-#if DEBUG
-        Logger?.Debug($"[{nameof(PacketDispatchChannel)}] Initialized with custom options");
-#endif
+        Logger?.Debug($"[{nameof(PacketDispatchChannel)}] init");
     }
 
     #endregion Constructors
@@ -87,13 +85,11 @@ public sealed class PacketDispatchChannel
     {
         if (System.Threading.Interlocked.CompareExchange(ref _running, 1, 0) != 0)
         {
-#if DEBUG
-            Logger?.Debug($"[{nameof(PacketDispatchChannel)}] StartTickLoopAsync() called but dispatcher is already running.");
-#endif
+            Logger?.Debug($"[{nameof(PacketDispatchChannel)}] already-running");
             return;
         }
 
-        Logger?.Info($"[{nameof(PacketDispatchChannel)}] Dispatch loop starting...");
+        Logger?.Trace($"[{nameof(PacketDispatchChannel)}] start");
         _loopTask = System.Threading.Tasks.Task.Run(this.RunDispatchLoopAsync);
     }
 
@@ -114,27 +110,25 @@ public sealed class PacketDispatchChannel
             if (!this._cts.IsCancellationRequested)
             {
                 this._cts.Cancel();
-#if DEBUG
-                Logger?.Trace($"[{nameof(PacketDispatchChannel)}] Dispatch loop stopped gracefully.");
-#endif
+                Logger?.Trace($"[{nameof(PacketDispatchChannel)}] stop");
             }
 
-            try { _semaphore.Release(); } catch { /* ignore over-release */ }
+            try { _ = _semaphore.Release(); } catch { /* ignore over-release */ }
 
             System.Threading.Tasks.Task? t = _loopTask;
             if (t is not null)
             {
-                try { t.Wait(System.TimeSpan.FromSeconds(2)); }
+                try { _ = t.Wait(System.TimeSpan.FromSeconds(2)); }
                 catch { /* ignore */ }
             }
         }
         catch (System.ObjectDisposedException)
         {
-            Logger?.Warn($"[{nameof(PacketDispatchChannel)}] Attempted to cancel a disposed CancellationTokenSource.");
+            Logger?.Warn($"[{nameof(PacketDispatchChannel)}] stop-on-disposed-cts");
         }
         catch (System.Exception ex)
         {
-            Logger?.Error($"[{nameof(PacketDispatchChannel)}] ERROR while stopping dispatcher: {ex.Message}", ex);
+            Logger?.Error($"[{nameof(PacketDispatchChannel)}] stop-error", ex);
         }
     }
 
@@ -147,8 +141,7 @@ public sealed class PacketDispatchChannel
         // 1) Fast-fail: empty payload
         if (raw == null)
         {
-            Logger?.Warn(
-                $"[{nameof(PacketDispatchChannel)}] Empty payload from {connection.RemoteEndPoint}. Dropped.");
+            Logger?.Warn($"[{nameof(PacketDispatchChannel)}] empty-payload");
             return;
         }
 
@@ -161,16 +154,12 @@ public sealed class PacketDispatchChannel
         {
             // Log only a small head preview to avoid leaking large/secret data
             System.String head = System.Convert.ToHexString(raw.Span[..System.Math.Min(16, len)]);
-            Logger?.Warn(
-                $"[{nameof(PacketDispatchChannel)}] " +
-                $"NONE packet. Remote={connection.RemoteEndPoint}, Len={len}, Magic=0x{magic:X8}, Head={head}. Dropped.");
+            Logger?.Warn($"[{nameof(PacketDispatchChannel)}] deserialize-none len={len} magic=0x{magic:X8} head={head}");
             return;
         }
 
         // 4) Success trace (can be disabled in production)
-        Logger?.Trace(
-            $"[{nameof(PacketDispatchChannel)}] " +
-            $"Deserialized {packet.GetType().Name} from {connection.RemoteEndPoint}. Len={len}, Magic=0x{magic:X8}.");
+        Logger?.Trace($"[{nameof(PacketDispatchChannel)}] deserialized type={packet.GetType().Name} len={len} magic=0x{magic:X8}");
 
         // 5) Dispatch to typed handler
         raw.Dispose(); // raw buffer no longer needed
@@ -207,7 +196,7 @@ public sealed class PacketDispatchChannel
                 // Dequeue and process raw
                 if (!_dispatch.Pull(out IPacket packet, out IConnection connection))
                 {
-                    Logger?.Warn($"[{nameof(PacketDispatch)}] Failed to dequeue packet from dispatch channel.");
+                    Logger?.Warn($"[{nameof(PacketDispatch)}] dequeue-failed");
                     continue;
                 }
 
@@ -220,7 +209,7 @@ public sealed class PacketDispatchChannel
         }
         catch (System.Exception ex)
         {
-            Logger?.Error($"[{nameof(PacketDispatchChannel)}] ERROR in raw processing loop.", ex);
+            Logger?.Error($"[{nameof(PacketDispatchChannel)}] loop-error", ex);
         }
         finally
         {

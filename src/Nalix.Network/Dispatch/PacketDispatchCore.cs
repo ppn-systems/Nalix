@@ -107,9 +107,7 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket
         if (this.Options.TryResolveHandler(packet.OpCode,
             out System.Func<TPacket, IConnection, System.Threading.Tasks.Task>? handler))
         {
-#if DEBUG
-            this.Logger?.Debug($"[DispatchCore] Processing packet OpCode: {packet.OpCode} from {connection.RemoteEndPoint}...");
-#endif
+            this.Logger?.Meta($"[{nameof(PacketDispatchCore<TPacket>)}] handle opcode={packet.OpCode}");
             try
             {
                 await this.ExecuteHandlerAsync(packet, connection, handler)
@@ -117,16 +115,13 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket
             }
             catch (System.Exception ex)
             {
-                this.Logger?.Error(
-                    $"[DispatchCore] Exception occurred while handling packet OpCode: " +
-                    $"{packet.OpCode} from {connection.RemoteEndPoint}. " +
-                    $"ERROR: {ex.GetType().Name} - {ex.Message}", ex);
+                this.Logger?.Error($"[{nameof(PacketDispatchCore<TPacket>)}] handler-error opcode={packet.OpCode}", ex);
             }
 
             return;
         }
 
-        this.Logger?.Warn($"[DispatchCore] No handler found for packet OpCode: {packet.OpCode} from {connection.RemoteEndPoint}.");
+        this.Logger?.Warn($"[{nameof(PacketDispatchCore<TPacket>)}] no-handler opcode={packet.OpCode}");
     }
 
     #endregion Protected Methods
