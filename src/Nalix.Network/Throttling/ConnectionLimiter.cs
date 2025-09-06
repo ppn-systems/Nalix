@@ -67,7 +67,9 @@ public sealed class ConnectionLimiter : System.IDisposable
         }, this, _cleanupInterval, _cleanupInterval);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-            .Debug($"[{nameof(ConnectionLimiter)}] init: maxPerIp={_maxPerIp}, inactivity={_inactivityThreshold.TotalSeconds:F0}s, cleanup={_cleanupInterval.TotalSeconds:F0}s");
+                                .Debug($"[{nameof(ConnectionLimiter)}] init maxPerIp={_maxPerIp} " +
+                                       $"inactivity={_inactivityThreshold.TotalSeconds:F0}s " +
+                                       $"cleanup={_cleanupInterval.TotalSeconds:F0}s");
     }
 
     /// <summary>
@@ -121,7 +123,8 @@ public sealed class ConnectionLimiter : System.IDisposable
             if (existing.CurrentConnections >= _maxPerIp)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Trace($"[{nameof(ConnectionLimiter)}] over limit {endPoint}: {existing.CurrentConnections}/{_maxPerIp}");
+                                        .Trace($"[{nameof(ConnectionLimiter)}] over-limit ip={endPoint} " +
+                                               $"now={existing.CurrentConnections} limit={_maxPerIp}");
                 return false;
             }
 
@@ -139,7 +142,8 @@ public sealed class ConnectionLimiter : System.IDisposable
             if (_map.TryUpdate(endPoint, proposed, existing))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Trace($"[{nameof(ConnectionLimiter)}] allow {endPoint}: now={proposed.CurrentConnections}/{_maxPerIp}");
+                                        .Trace($"[{nameof(ConnectionLimiter)}] allow ip={endPoint} " +
+                                               $"now={proposed.CurrentConnections} limit={_maxPerIp}");
                 return true;
             }
             // else: raced, retry
@@ -186,7 +190,8 @@ public sealed class ConnectionLimiter : System.IDisposable
             if (_map.TryUpdate(endPoint, proposed, existing))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Trace($"[{nameof(ConnectionLimiter)}] close {endPoint}: now={proposed.CurrentConnections}/{_maxPerIp}");
+                                        .Trace($"[{nameof(ConnectionLimiter)}] close ip={endPoint} " +
+                                               $"now={proposed.CurrentConnections} limit={_maxPerIp}");
                 return true;
             }
         }
@@ -256,7 +261,7 @@ public sealed class ConnectionLimiter : System.IDisposable
         System.ObjectDisposedException.ThrowIf(_disposed, this);
         _map.Clear();
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-            .Info($"[{nameof(ConnectionLimiter)}] reset all counters");
+            .Info($"[{nameof(ConnectionLimiter)}] reset-all");
     }
 
     /// <summary>
@@ -313,13 +318,13 @@ public sealed class ConnectionLimiter : System.IDisposable
             if (removed > 0)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Debug($"[{nameof(ConnectionLimiter)}] cleanup: scanned={scanned}, removed={removed}");
+                                        .Debug($"[{nameof(ConnectionLimiter)}] cleanup scanned={scanned} removed={removed}");
             }
         }
         catch (System.Exception ex) when (ex is not System.ObjectDisposedException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Error($"[{nameof(ConnectionLimiter)}] cleanup error: {ex.Message}");
+                                    .Error($"[{nameof(ConnectionLimiter)}] cleanup-error msg={ex.Message}");
         }
         finally
         {
@@ -350,7 +355,7 @@ public sealed class ConnectionLimiter : System.IDisposable
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Error($"[{nameof(ConnectionLimiter)}] dispose error: {ex.Message}");
+                                    .Error($"[{nameof(ConnectionLimiter)}] dispose-error msg={ex.Message}");
         }
 
         System.GC.SuppressFinalize(this);
@@ -390,7 +395,10 @@ public sealed class ConnectionLimiter : System.IDisposable
     /// <summary>
     /// Disposable lease to auto-decrement <see cref="ConnectionClosed"/> when disposed.
     /// </summary>
-    public readonly struct ConnectionLease(ConnectionLimiter owner, System.Net.IPAddress ip, System.Boolean valid) : System.IDisposable
+    public readonly struct ConnectionLease(
+        ConnectionLimiter owner,
+        System.Net.IPAddress ip,
+        System.Boolean valid) : System.IDisposable
     {
         private readonly System.Net.IPAddress _ip = ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4() : ip;
 
