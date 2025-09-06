@@ -52,6 +52,12 @@ public sealed class SocketOptions : ConfigurationLoader
     }
 
     /// <summary>
+    /// Gets or sets a value indicating whether a timeout should be applied when establishing a connection.
+    /// Standard is true.
+    /// </summary>
+    public System.Boolean TimeoutOnConnect { get; set; } = true;
+
+    /// <summary>
     /// Indicates whether to use IPv4 or IPv6.
     /// </summary>
     public System.Boolean EnableIPv6 { get; set; } = false;
