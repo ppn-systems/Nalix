@@ -64,9 +64,7 @@ public abstract partial class Protocol
         if (!this.IsAccepting)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(Protocol)}:{OnAccept}] " +
-                                           $"Rejected connection from {connection.RemoteEndPoint} (ID={connection.ID}) " +
-                                           $"- not accepting new connections.");
+                                    .Trace($"[{nameof(Protocol)}:{OnAccept}] reject id={connection.ID} reason=not-accepting");
 
             return;
         }
@@ -86,9 +84,7 @@ public abstract partial class Protocol
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(Protocol)}:{OnAccept}] " +
-                                           $"Rejected connection from {connection.RemoteEndPoint} (ID={connection.ID}) " +
-                                           $"- failed validation.");
+                                    .Trace($"[{nameof(Protocol)}:{OnAccept}] reject id={connection.ID} reason=validation-failed");
 
             // Connection failed validation, close immediately
             connection.Close();
@@ -96,14 +92,12 @@ public abstract partial class Protocol
         catch (System.OperationCanceledException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(Protocol)}:{OnAccept}] " +
-                                           $"Canceled for {connection.RemoteEndPoint} (ID={connection.ID}).");
+                                    .Trace($"[{nameof(Protocol)}:{OnAccept}] accept-canceled id={connection.ID}");
         }
         catch (System.ObjectDisposedException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[{nameof(Protocol)}:{OnAccept}] " +
-                                          $"Dispatcher disposed while accepting {connection.RemoteEndPoint} (ID={connection.ID}).");
+                                    .Warn($"[{nameof(Protocol)}:{OnAccept}] accept-disposed id={connection.ID}");
         }
         catch (System.Exception ex)
         {
@@ -112,8 +106,7 @@ public abstract partial class Protocol
             connection.Disconnect();
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(Protocol)}:{OnAccept}] " +
-                                           $"ERROR while accepting from {connection.RemoteEndPoint} (ID={connection.ID}): {ex.Message}", ex);
+                                    .Debug($"[{nameof(Protocol)}:{OnAccept}] accept-error id={connection.ID}", ex);
         }
     }
 

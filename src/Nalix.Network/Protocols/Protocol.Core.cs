@@ -58,9 +58,7 @@ public abstract partial class Protocol : IProtocol
                 args.Connection.Disconnect();
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(Protocol)}:{PostProcessMessage}] " +
-                                               $"Disconnected connection from {args.Connection.RemoteEndPoint} (ID={args.Connection.ID}) " +
-                                               $"- KeepConnectionOpen is false.");
+                                        .Trace($"[{nameof(Protocol)}] disconnect id={args.Connection.ID}");
             }
         }
         catch (System.Exception ex)
