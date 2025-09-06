@@ -45,7 +45,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
         PacketContext<IPacket> context,
         System.Func<System.Threading.Tasks.Task> next)
     {
-        System.String key = context.Connection.RemoteEndPoint.ToString() ?? "unknown";
+        System.String key = context.Connection.RemoteEndPoint.ToString() ?? "0.0.0.0";
         RequestLimiter.LimitDecision decision = this._limiter.Check(key);
 
         if (!decision.Allowed)

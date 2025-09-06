@@ -48,8 +48,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
             if (catalog is null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(UnwrapPacketMiddleware)}] Missing PacketCatalog." +
-                                               $"OpCode={context.Attributes.OpCode}, From={context.Connection.RemoteEndPoint}");
+                                        .Fatal($"[{nameof(UnwrapPacketMiddleware)}] missing-catalog");
 
                 await context.Connection.SendAsync(
                     ControlType.FAIL,
@@ -66,6 +65,9 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
             if (!catalog.TryGetTransformer(current.GetType(), out PacketTransformer t))
             {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[{nameof(UnwrapPacketMiddleware)}] no-transformer type={current.GetType().Name}");
+
                 await context.Connection.SendAsync(
                     ControlType.FAIL,
                     ProtocolCode.UNSUPPORTED_PACKET,
@@ -84,8 +86,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                 if (!t.HasDecrypt)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
-                        $"[{nameof(UnwrapPacketMiddleware)}] No decrypt function for {current.GetType().Name}. " +
-                        $"OpCode={context.Attributes.OpCode}, From={context.Connection.RemoteEndPoint}");
+                        $"[{nameof(UnwrapPacketMiddleware)}] no-decrypt type={current.GetType().Name}");
 
                     await context.Connection.SendAsync(
                         ControlType.FAIL,
@@ -107,8 +108,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                 if (!t.HasDecompress)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
-                        $"[{nameof(UnwrapPacketMiddleware)}] No decompress function for {current.GetType().Name}. " +
-                        $"OpCode={context.Attributes.OpCode}, From={context.Connection.RemoteEndPoint}");
+                        $"[{nameof(UnwrapPacketMiddleware)}] no-decompress type={current.GetType().Name}");
 
                     await context.Connection.SendAsync(
                         ControlType.FAIL,
@@ -132,9 +132,8 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
         }
         catch (System.Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
-                $"[{nameof(UnwrapPacketMiddleware)}] No transformer found for {current.GetType().Name}. " +
-                $"OpCode={context.Attributes.OpCode}, From={context.Connection.RemoteEndPoint}, ERROR={ex}");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[{nameof(UnwrapPacketMiddleware)}] transform-failed type={current.GetType().Name}", ex);
 
             await context.Connection.SendAsync(
                 ControlType.FAIL,
