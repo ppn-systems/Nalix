@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Core.Exceptions;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Serialization.Internal.Accessors;
