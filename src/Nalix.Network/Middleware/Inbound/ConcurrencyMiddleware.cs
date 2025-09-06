@@ -1,5 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Attributes;
+using Nalix.Common.Enums;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Common.Messaging.Protocols;
@@ -13,6 +15,8 @@ namespace Nalix.Network.Middleware.Inbound;
 /// <summary>
 /// Middleware that enforces concurrency limits on incoming packets.
 /// </summary>
+[MiddlewareOrder(50)] // Execute after security checks
+[MiddlewareStage(MiddlewareStage.Inbound)]
 public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
 {
     /// <summary>

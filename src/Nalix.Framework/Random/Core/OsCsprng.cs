@@ -1,5 +1,10 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Tests.")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Benchmarks")]
+#endif
+
 namespace Nalix.Framework.Random.Core;
 
 /// <summary>
@@ -33,13 +38,9 @@ internal static partial class OsCsprng
     {
         try
         {
-            if (System.OperatingSystem.IsWindows())
-            {
-                _f = W;
-            }
-            else
-            {
-                _f = System.OperatingSystem.IsLinux()
+            _f = System.OperatingSystem.IsWindows()
+                ? W
+                : System.OperatingSystem.IsLinux()
                     ? L
                     : System.OperatingSystem.IsMacOS() ||
                      System.OperatingSystem.IsIOS() ||
@@ -47,7 +48,6 @@ internal static partial class OsCsprng
                      System.OperatingSystem.IsWatchOS()
                     ? A
                     : D;
-            }
         }
         catch
         {
