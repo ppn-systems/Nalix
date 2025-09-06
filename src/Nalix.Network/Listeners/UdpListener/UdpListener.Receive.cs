@@ -62,7 +62,7 @@ public abstract partial class UdpListenerBase
         if (InstanceManager.Instance.GetExistingInstance<ConnectionHub>() is null)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(UdpListenerBase)}] ConnectionHub=null");
+                                    .Error($"[{nameof(UdpListenerBase)}] [{nameof(ConnectionHub)}] null");
             return;
         }
 

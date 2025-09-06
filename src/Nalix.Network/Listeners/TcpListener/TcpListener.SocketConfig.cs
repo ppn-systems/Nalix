@@ -114,14 +114,14 @@ public abstract partial class TcpListenerBase
                 var epV6Any = new System.Net.IPEndPoint(System.Net.IPAddress.IPv6Any, this._port);
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Debug($"[{nameof(TcpListenerBase)}] TCP socket binding to {epV6Any} (IPv6 DualMode)");
+                                        .Debug($"[{nameof(TcpListenerBase)}] config-bind {epV6Any} (v6)");
 
                 listener.Bind(epV6Any);
                 listener.Listen(SocketBacklog > 0 ? SocketBacklog : 128);
 
                 this._listener = listener;
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Info($"[{nameof(TcpListenerBase)}] Listening on {this._listener.LocalEndPoint} (DualStack)");
+                                        .Info($"[{nameof(TcpListenerBase)}] config-listen {this._listener.LocalEndPoint} (dual)");
                 return;
             }
             catch
@@ -157,13 +157,13 @@ public abstract partial class TcpListenerBase
         var epV4Any = new System.Net.IPEndPoint(System.Net.IPAddress.Any, this._port);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(TcpListenerBase)}] TCP socket binding to {epV4Any} (IPv4 fallback)");
+                                .Debug($"[{nameof(TcpListenerBase)}] config-bind {epV4Any} (v4)");
 
         this._listener.Bind(epV4Any);
         this._listener.Listen(SocketBacklog > 0 ? SocketBacklog : 128);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(TcpListenerBase)}] Listening on {this._listener.LocalEndPoint} (IPv4)");
+                                .Info($"[{nameof(TcpListenerBase)}] config-listen {this._listener.LocalEndPoint}");
     }
 
     /// <summary>
