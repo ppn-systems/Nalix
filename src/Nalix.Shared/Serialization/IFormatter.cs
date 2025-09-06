@@ -3,7 +3,7 @@
 
 using Nalix.Shared.Memory.Buffers;
 
-namespace Nalix.Shared.Serialization.Formatters;
+namespace Nalix.Shared.Serialization;
 
 /// <summary>
 /// Defines methods to serialize and deserialize a value of type <typeparamref name="T"/>.

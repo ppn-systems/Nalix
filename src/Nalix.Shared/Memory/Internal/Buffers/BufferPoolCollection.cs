@@ -1,7 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-namespace Nalix.Shared.Memory.Buffers;
+using Nalix.Shared.Memory.Buffers;
+
+namespace Nalix.Shared.Memory.Internal.Buffers;
 
 /// <summary>
 /// Manages shared buffer pools and emits resize signals based on observed usage.
