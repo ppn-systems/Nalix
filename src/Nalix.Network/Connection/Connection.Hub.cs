@@ -1,10 +1,12 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Abstractions;
 using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Security.Abstractions;
 using Nalix.Framework.Identity;
 using Nalix.Shared.Injection;
+using System.Text;
 
 namespace Nalix.Network.Connection;
 
@@ -15,7 +17,7 @@ namespace Nalix.Network.Connection;
 /// This class provides efficient connection management with minimal allocations and fast lookup operations.
 /// It is thread-safe and uses concurrent collections to handle multiple connections simultaneously.
 /// </remarks>
-public sealed class ConnectionHub : IConnectionHub, System.IDisposable
+public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReportable
 {
     #region Fields
 
@@ -411,6 +413,37 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable
             AuthenticatedConnections = this._usernames.Count,
             AnonymousConnections = this._connectionCount - this._usernames.Count
         };
+    }
+
+    /// <summary>
+    /// Generates a human-readable report of active connections and statistics.
+    /// </summary>
+    public System.String GenerateReport()
+    {
+        StringBuilder sb = new();
+
+        var stats = GetStats();
+        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionHub Status:");
+        _ = sb.AppendLine($"Total Connections   : {stats.TotalConnections}");
+        _ = sb.AppendLine($"Authenticated Users : {stats.AuthenticatedConnections}");
+        _ = sb.AppendLine($"Anonymous Users     : {stats.AnonymousConnections}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("Active Connections:");
+        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine("ID                                   | Username");
+        _ = sb.AppendLine("------------------------------------------------------------");
+
+        foreach (var kvp in _connections)
+        {
+            var id = kvp.Key;
+            var username = GetUsername(id) ?? "(anonymous)";
+            _ = sb.AppendLine($"{id,-15} | {username}");
+        }
+
+        _ = sb.AppendLine("------------------------------------------------------------");
+
+        return sb.ToString();
     }
 
     /// <inheritdoc />
