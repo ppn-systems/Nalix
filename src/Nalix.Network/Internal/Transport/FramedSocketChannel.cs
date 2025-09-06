@@ -122,7 +122,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             {
 #if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[{nameof(FramedSocketChannel)}] Sending data (stackalloc)");
+                                        .Debug($"[{nameof(FramedSocketChannel)}] send-stackalloc len={data.Length}");
 #endif
 
                 System.Span<System.Byte> bufferS = stackalloc System.Byte[totalLength];
@@ -146,7 +146,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(FramedSocketChannel)}] Send error (stackalloc): {ex}");
+                                        .Error($"[{nameof(FramedSocketChannel)}] send-stackalloc-error", ex);
                 return false;
             }
         }
@@ -155,10 +155,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
         try
         {
-#if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(FramedSocketChannel)}] Sending data (pooled)");
-#endif
+                                    .Meta($"[{nameof(FramedSocketChannel)}] send-pooled len={data.Length} id={_sender?.ID}");
 
             System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(System.MemoryExtensions
                                                   .AsSpan(buffer), totalLength);
@@ -181,7 +179,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(FramedSocketChannel)}] Send error (pooled): {ex}");
+                                    .Error($"[{nameof(FramedSocketChannel)}] send-pooled-error id={_sender?.ID}", ex);
             return false;
         }
         finally
@@ -221,10 +219,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             data.Span.CopyTo(System.MemoryExtensions
                      .AsSpan(buffer, HeaderSize));
 
-#if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(FramedSocketChannel)}] Sending data async");
-#endif
+                                    .Meta($"[{nameof(FramedSocketChannel)}] send-async len={data.Length} id={_sender?.ID}");
 
             System.Int32 sent = 0;
             while (sent < totalLength)
@@ -248,7 +244,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(FramedSocketChannel)}] SendAsync error: {ex.Message}");
+                                    .Error($"[{nameof(FramedSocketChannel)}] send-async-error id={_sender?.ID}", ex);
             return false;
         }
         finally

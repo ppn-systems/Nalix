@@ -62,15 +62,13 @@ internal sealed class PacketAnalyzer<
                 $"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
-                                      $"Scanning controller: {controllerType.FullName}");
+                                .Info($"[{nameof(PacketAnalyzer<TController, TPacket>)}] scan controller={controllerType.FullName}");
 
         // Get or compile all handler methods
         var compiledMethods = GetOrCompileMethodAccessors(controllerType);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
-                                       $"Found {compiledMethods.Count} method(s) with [PacketOpcode]");
+                                .Debug($"[{nameof(PacketAnalyzer<TController, TPacket>)}] found count={compiledMethods.Count}");
 
         // Create the controller instance
         TController controllerInstance = factory();
@@ -93,7 +91,7 @@ internal sealed class PacketAnalyzer<
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
-                                           $"Registered handler OpCode={opCode} Method={compiledMethod.MethodInfo.Name}");
+                                           $"reg opcode={opCode} method={compiledMethod.MethodInfo.Name}");
         }
 
         return descriptors;
@@ -126,15 +124,12 @@ internal sealed class PacketAnalyzer<
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
-                                          $"Controller {controllerType.Name} has no methods with [PacketOpcode]");
-
-            throw new System.InvalidOperationException(
-                $"Controller '{controllerType.Name}' does not define any methods with [PacketOpcode] attribute.");
+                                          $"no-method controller={controllerType.Name}");
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
-                                       $"Compiling {methodInfos.Length} handler(s) for {controllerType.Name}");
+                                       $"compile count={methodInfos.Length} controller={controllerType.Name}");
 
         return _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
         {
@@ -148,19 +143,28 @@ internal sealed class PacketAnalyzer<
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                        .Error($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
-                               $"Duplicate OpCode {opcodeAttr.OpCode} in {method.DeclaringType?.Name ?? "NONE"}");
+                                            .Error($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
+                                                   $"dup-opcode opcode={opcodeAttr.OpCode} " +
+                                                   $"controller={method.DeclaringType?.Name ?? "NONE"}");
 
-                    throw new System.InvalidOperationException(
-                        $"Duplicate OpCode {opcodeAttr.OpCode} in controller {method.DeclaringType?.Name ?? "NONE"}.");
+                    continue;
                 }
 
-                PXI<TPacket> compiledMethod = CompileMethodAccessor(method);
-                compiled[opcodeAttr.OpCode] = compiledMethod;
+                try
+                {
+                    PXI<TPacket> compiledMethod = CompileMethodAccessor(method);
+                    compiled[opcodeAttr.OpCode] = compiledMethod;
 
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
-                                               $"Compiled handler OpCode={opcodeAttr.OpCode} Method={method.Name}");
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Trace($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
+                                                   $"compiled opcode={opcodeAttr.OpCode} method={method.Name}");
+                }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Error($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
+                                                   $"failed-compile opcode={opcodeAttr.OpCode} method={method.Name}", ex);
+                }
             }
 
             return System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(compiled);
