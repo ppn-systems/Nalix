@@ -52,7 +52,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         PacketContext<TPacket> context,
         System.Exception exception)
     {
-        this.Logger?.Error($"Handler execution failed for OpCode={descriptor.OpCode}: {exception.Message}");
+        this.Logger?.Error($"[{nameof(PacketDispatchOptions<TPacket>)}] handler-failed opcode={descriptor.OpCode}", exception);
         this._errorHandler?.Invoke(exception, descriptor.OpCode);
 
         var (reason, action, flags) = ClassifyException(exception);

@@ -29,7 +29,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithLogging(ILogger logger)
     {
         this.Logger = logger;
-        this.Logger.Info("Logger instance successfully attached to PacketDispatch. Logging is now active.");
+        this.Logger.Info($"[{nameof(PacketDispatchOptions<TPacket>)}] logger-attached");
 
         return this;
     }
@@ -54,7 +54,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithErrorHandling(
         System.Action<System.Exception, System.UInt16> errorHandler)
     {
-        this.Logger?.Info("Custom error handler has been set. All unhandled exceptions during packet processing will be routed.");
+        this.Logger?.Info($"[{nameof(PacketDispatchOptions<TPacket>)}] error-handler-set");
         this._errorHandler = errorHandler;
 
         return this;
@@ -193,7 +193,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             this._handlerCache[descriptor.OpCode] = descriptor;
         }
 
-        this.Logger?.Info($"Registered {handlerDescriptors.Length} handlers for controller {controllerType.Name}");
+        this.Logger?.Info($"[{nameof(PacketDispatchOptions<TPacket>)}] reg-handlers count={handlerDescriptors.Length} controller={controllerType.Name}");
 
         return this;
     }
@@ -251,7 +251,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return true;
         }
 
-        this.Logger?.Warn("Handler not found for OpCode={0}", opCode);
+        this.Logger?.Warn($"[{nameof(PacketDispatchOptions<TPacket>)}] handler-not-found opcode={opCode}");
         return false;
     }
 }
