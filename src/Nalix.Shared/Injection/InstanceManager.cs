@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Abstractions;
 using Nalix.Shared.Injection.DI;
 
 namespace Nalix.Shared.Injection;
@@ -9,7 +10,7 @@ namespace Nalix.Shared.Injection;
 /// optimized for real-time server applications with thread safety and caching.
 /// </summary>
 [System.Diagnostics.DebuggerDisplay("CachedInstanceCount = {CachedInstanceCount}")]
-public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDisposable
+public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDisposable, IReportable
 {
     #region Fields
 
@@ -347,6 +348,48 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         _instanceCache.Clear();
         _constructorCache.Clear();
         _activatorCache.Clear();
+    }
+
+    /// <summary>
+    /// Generates a human-readable report of all cached instances.
+    /// </summary>
+    public System.String GenerateReport()
+    {
+        System.Text.StringBuilder sb = new();
+
+        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] InstanceManager Status:");
+        _ = sb.AppendLine($"CachedInstanceCount: {CachedInstanceCount}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("Instances:");
+        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine("Type                                   | Disposable | Source");
+        _ = sb.AppendLine("------------------------------------------------------------");
+
+        foreach (var kvp in System.Linq.Enumerable.OrderBy(_instanceCache, x => x.Key.FullName))
+        {
+            System.Type type = kvp.Key;
+            System.Object instance = kvp.Value;
+
+            System.String typeName = type.FullName ?? type.Name;
+            if (typeName.Length > 35)
+            {
+                typeName = typeName[..32] + "...";
+            }
+
+            System.Boolean isDisposable = instance is System.IDisposable;
+            System.String source = _constructorCache.ContainsKey(type)
+                ? "CtorCache"
+                : _activatorCache.ContainsKey(type)
+                    ? "ActivatorCache"
+                    : "ManualRegister";
+
+            _ = sb.AppendLine($"{typeName.PadRight(38)} | {(isDisposable ? "Yes" : "No "),10} | {source}");
+        }
+
+        _ = sb.AppendLine("------------------------------------------------------------");
+
+        return sb.ToString();
     }
 
     #endregion Public Methods
