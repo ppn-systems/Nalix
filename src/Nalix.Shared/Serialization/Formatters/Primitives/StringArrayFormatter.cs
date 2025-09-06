@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Core.Exceptions;
+using Nalix.Common.Exceptions;
 using Nalix.Shared.Memory.Buffers;
 
 namespace Nalix.Shared.Serialization.Formatters.Primitives;
