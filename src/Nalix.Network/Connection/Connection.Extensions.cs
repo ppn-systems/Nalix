@@ -94,8 +94,8 @@ public static class ConnectionExtensions
     {
         System.ArgumentNullException.ThrowIfNull(connection);
 
-        ObjectPoolManager pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-        Directive pkt = pool.Get<Directive>();
+        Directive pkt = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                .Get<Directive>();
 
         try
         {
@@ -129,7 +129,8 @@ public static class ConnectionExtensions
         }
         finally
         {
-            pool.Return(pkt);
+            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .Return(pkt);
         }
     }
 }
