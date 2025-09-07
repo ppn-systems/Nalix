@@ -19,7 +19,7 @@ public abstract partial class UdpListenerBase
 
     #region Fields
 
-    internal static readonly SocketOptions Config;
+    internal static readonly NetworkSocketOptions Config;
 
     private readonly System.UInt16 _port;
     private readonly IProtocol _protocol;
@@ -77,7 +77,7 @@ public abstract partial class UdpListenerBase
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    static UdpListenerBase() => Config = ConfigurationManager.Instance.Get<SocketOptions>();
+    static UdpListenerBase() => Config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
 
 
     /// <summary>

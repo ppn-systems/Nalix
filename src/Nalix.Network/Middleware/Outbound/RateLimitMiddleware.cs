@@ -21,7 +21,7 @@ namespace Nalix.Network.Middleware.Outbound;
 [PacketMiddleware(MiddlewareStage.Outbound, order: 0, name: "RateLimit")]
 public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 {
-    private readonly RequestLimiter _limiter;
+    private readonly TokenBucketLimiter _limiter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RateLimitMiddleware"/> class
@@ -30,7 +30,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
     public RateLimitMiddleware()
     {
         TokenBucketOptions option = ConfigurationManager.Instance.Get<TokenBucketOptions>();
-        this._limiter = new RequestLimiter(option);
+        this._limiter = new TokenBucketLimiter(option);
     }
 
     /// <summary>
@@ -46,7 +46,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
         System.Func<System.Threading.Tasks.Task> next)
     {
         System.String key = context.Connection.RemoteEndPoint.ToString() ?? "0.0.0.0";
-        RequestLimiter.LimitDecision decision = this._limiter.Check(key);
+        TokenBucketLimiter.LimitDecision decision = this._limiter.Check(key);
 
         if (!decision.Allowed)
         {
