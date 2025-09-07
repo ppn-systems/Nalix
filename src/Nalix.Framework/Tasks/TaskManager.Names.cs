@@ -18,6 +18,7 @@ namespace Nalix.Framework.Tasks;
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class TaskNaming
 {
     /// <summary>
