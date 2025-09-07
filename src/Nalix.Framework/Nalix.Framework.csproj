@@ -9,10 +9,10 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<!-- Versions -->
-		<Version>5.0.5</Version>
-		<FileVersion>5.0.5.0</FileVersion>
-		<PackageVersion>5.0.5</PackageVersion>
-		<InformationalVersion>5.0.5+$(SourceRevisionId)</InformationalVersion>
+		<Version>5.1.0</Version>
+		<FileVersion>5.1.0.0</FileVersion>
+		<PackageVersion>5.1.0</PackageVersion>
+		<InformationalVersion>5.1.0+$(SourceRevisionId)</InformationalVersion>
 	</PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />

@@ -345,7 +345,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(FramedSocketChannel)}] receive-loop error", ex);
+                                    .Debug($"[{nameof(FramedSocketChannel)}] receive-loop error ex={ex.Message}");
         }
         finally
         {
