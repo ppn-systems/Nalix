@@ -10,8 +10,6 @@ namespace Nalix.Network.Configurations;
 /// </summary>
 public sealed class TimingWheelOptions : ConfigurationLoader
 {
-    #region Properties
-
     /// <summary>
     /// Gets or sets the idle timeout for TCP connections in milliseconds.
     /// If a connection is inactive longer than this value, it will be closed automatically.
@@ -38,6 +36,4 @@ public sealed class TimingWheelOptions : ConfigurationLoader
     /// Default is 512.
     /// </summary>
     public System.Int32 WheelSize { get; set; } = 512;
-
-    #endregion Properties
 }

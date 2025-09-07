@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Network.Configurations;
@@ -13,7 +14,7 @@ namespace Nalix.Network.Throttling;
 /// using Stopwatch ticks for time arithmetic and fixed-point token precision.
 /// Provides precise Retry-After and Credit for client backoff and flow control.
 /// </summary>
-public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
+public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable, IReportable
 {
     #region Public Types
 
@@ -357,6 +358,159 @@ public sealed class RequestLimiter : System.IDisposable, System.IAsyncDisposable
             }
             return h.ToString("X8");
         }
+    }
+
+    /// <summary>
+    /// Generates a human-readable diagnostic report of the limiter state.
+    /// Includes config overview, shard stats, and top endpoints by pressure.
+    /// </summary>
+    /// <returns>Formatted string report.</returns>
+    public System.String GenerateReport()
+    {
+        // Snapshot all endpoints into a single list (allocation-bounded by map sizes).
+        var snapshot = new System.Collections.Generic.List<
+            System.Collections.Generic.KeyValuePair<System.String, EndpointState>>(1024);
+
+        System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
+        System.Int32 shardCount = _shards.Length;
+        System.Int32 totalEndpoints = 0;
+        System.Int32 hardBlockedCount = 0;
+
+        // Collect a consistent snapshot
+        for (System.Int32 i = 0; i < shardCount; i++)
+        {
+            var map = _shards[i].Map;
+            totalEndpoints += map.Count;
+
+            foreach (var kv in map)
+            {
+                // We only need a reference to the EndpointState for later read under lock
+                snapshot.Add(kv);
+            }
+        }
+
+        // Compute a “pressure” metric for sorting:
+        // - Prefer hard-blocked endpoints first
+        // - Then sort by token deficit (bigger deficit = heavier pressure)
+        // - Stable tie-breaker by endpoint hash
+        snapshot.Sort((a, b) =>
+        {
+            var sa = a.Value;
+            var sb = b.Value;
+
+            System.Boolean aBlocked = sa.HardBlockedUntilSw > now;
+            System.Boolean bBlocked = sb.HardBlockedUntilSw > now;
+            if (aBlocked != bBlocked)
+            {
+                return bBlocked.CompareTo(aBlocked); // blocked first
+            }
+
+            // Estimate micro-deficit = capacity - clamp(micro, [0, capacity])
+            System.Int64 aMicro, bMicro;
+            lock (sa.Gate)
+            {
+                aMicro = sa.MicroBalance;
+            }
+
+            lock (sb.Gate)
+            {
+                bMicro = sb.MicroBalance;
+            }
+
+            System.Int64 aDef = _capacityMicro - (aMicro < 0 ? 0 : (aMicro > _capacityMicro ? _capacityMicro : aMicro));
+            System.Int64 bDef = _capacityMicro - (bMicro < 0 ? 0 : (bMicro > _capacityMicro ? _capacityMicro : bMicro));
+
+            System.Int32 cmpDef = bDef.CompareTo(aDef);
+            if (cmpDef != 0)
+            {
+                return cmpDef;
+            }
+
+            // Fallback: ordinal string compare (cheap enough)
+            return System.String.CompareOrdinal(a.Key, b.Key);
+        });
+
+        // Count hard-blocked after sort pass
+        foreach (var kv in snapshot)
+        {
+            if (kv.Value.HardBlockedUntilSw > now)
+            {
+                hardBlockedCount++;
+            }
+        }
+
+        // Build report
+        System.Text.StringBuilder sb = new();
+        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] RequestLimiter Status:");
+        _ = sb.AppendLine($"CapacityTokens      : {_opt.CapacityTokens}");
+        _ = sb.AppendLine($"RefillPerSecond     : {_opt.RefillTokensPerSecond}");
+        _ = sb.AppendLine($"TokenScale          : {_opt.TokenScale}");
+        _ = sb.AppendLine($"Shards              : {_opt.ShardCount}");
+        _ = sb.AppendLine($"HardLockoutSeconds  : {_opt.HardLockoutSeconds}");
+        _ = sb.AppendLine($"StaleEntrySeconds   : {_opt.StaleEntrySeconds}");
+        _ = sb.AppendLine($"CleanupIntervalSecs : {_opt.CleanupIntervalSeconds}");
+        _ = sb.AppendLine($"TrackedEndpoints    : {totalEndpoints}");
+        _ = sb.AppendLine($"HardBlockedCount    : {hardBlockedCount}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("Top Endpoints by Pressure:");
+        _ = sb.AppendLine("-------------------------------------------------------------------------------");
+        _ = sb.AppendLine("Endpoint(Key)    | Blocked | Credit | MicroBalance/Capacity | RetryAfter(ms)");
+        _ = sb.AppendLine("-------------------------------------------------------------------------------");
+
+        System.Int32 shown = 0;
+        foreach (var kv in snapshot)
+        {
+            if (shown++ >= 20)
+            {
+                break;
+            }
+
+            var key = kv.Key;
+            var st = kv.Value;
+
+            System.Int64 micro;
+            System.Int64 blockedUntil;
+            System.Int64 lastRefill;
+            lock (st.Gate)
+            {
+                micro = st.MicroBalance;
+                blockedUntil = st.HardBlockedUntilSw;
+                lastRefill = st.LastRefillSwTicks; // not printed, but could be useful
+            }
+
+            System.Boolean isBlocked = blockedUntil > now;
+            // Remaining whole tokens (credit) derived from micro balance.
+            System.UInt16 credit = GetCredit(micro, _opt.TokenScale);
+
+            // If currently blocked, how long until unblocked?
+            System.Int32 retryMs = 0;
+            if (isBlocked)
+            {
+                retryMs = ComputeMs(now, blockedUntil);
+            }
+            else
+            {
+                // If not blocked but not enough for 1 token, estimate soft retry for 1 token.
+                System.Int64 needed = (micro >= _opt.TokenScale) ? 0 : (_opt.TokenScale - micro);
+                if (needed > 0)
+                {
+                    retryMs = ComputeRetryMsForMicro(needed);
+                }
+            }
+
+            System.String keyCol = key.Length > 15 ? (key[..15] + "…") : key.PadRight(15);
+            _ = sb.AppendLine(
+                $"{keyCol} | {(isBlocked ? "yes" : " no ")}   | {credit,6} | {micro,10}/{_capacityMicro,-10} | {retryMs,12}");
+        }
+
+        if (shown == 0)
+        {
+            _ = sb.AppendLine("(no endpoints tracked)");
+        }
+
+        _ = sb.AppendLine("-------------------------------------------------------------------------------");
+        return sb.ToString();
     }
 
     #endregion Private Helpers
