@@ -5,24 +5,27 @@ using Nalix.Shared.Configuration.Binding;
 namespace Nalix.Network.Configurations;
 
 /// <summary>
-/// Represents the configuration settings for caching in the network layer.
-/// This class defines the limits for outgoing and incoming cache sizes.
+/// Provides configuration options for caching in the network layer.
+/// Defines maximum sizes for incoming and outgoing caches,
+/// which control how many frames or packets can be buffered.
 /// </summary>
 public sealed class CacheSizeOptions : ConfigurationLoader
 {
-    #region Properties
-
     /// <summary>
-    /// Gets or sets the maximum ProtocolType of incoming cache entries.
-    /// The default value is 3.
+    /// Gets or sets the maximum number of incoming cache entries.
     /// </summary>
+    /// <remarks>
+    /// Controls how many incoming frames can be buffered before processing.  
+    /// Default is 20.
+    /// </remarks>
     public System.Int32 Incoming { get; set; } = 20;
 
     /// <summary>
-    /// Gets or sets the maximum ProtocolType of outgoing cache entries.
-    /// The default value is 5.
+    /// Gets or sets the maximum number of outgoing cache entries.
     /// </summary>
+    /// <remarks>
+    /// Controls how many outgoing frames can be queued before being sent.  
+    /// Default is 5.
+    /// </remarks>
     public System.Int32 Outgoing { get; set; } = 5;
-
-    #endregion Properties
 }
