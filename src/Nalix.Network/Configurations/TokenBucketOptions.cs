@@ -1,4 +1,6 @@
-﻿using Nalix.Shared.Configuration.Binding;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Shared.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;
 
