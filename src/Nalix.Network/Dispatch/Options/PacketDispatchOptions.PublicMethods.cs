@@ -180,7 +180,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 $"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         PacketHandler<TPacket>[] handlerDescriptors =
-            PacketHandlerCompiler<TController, TPacket>.ScanController(factory);
+            HandlerCompiler<TController, TPacket>.CompileHandlers(factory);
 
         foreach (PacketHandler<TPacket> descriptor in handlerDescriptors)
         {
