@@ -61,8 +61,9 @@ internal sealed class BufferLeaseCache : System.IDisposable
     /// <summary>
     /// Registers a callback to be invoked when a packet is cached. The state is passed back as the argument.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_callback), nameof(_sender), nameof(_cachedArgs))]
     public void SetCallback(
-        System.EventHandler<IConnectEventArgs>? callback,
+        System.EventHandler<IConnectEventArgs> callback,
         IConnection sender, IConnectEventArgs args)
     {
         _callback = callback;
@@ -79,7 +80,7 @@ internal sealed class BufferLeaseCache : System.IDisposable
     public void PushIncoming(BufferLease data)
     {
         this.Incoming.Push(data);
-        _callback?.Invoke(_sender!, _cachedArgs!);
+        AsyncCallback.InvokeAsync(_callback, _sender!, _cachedArgs!);
     }
 
     /// <summary>

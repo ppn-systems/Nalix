@@ -36,11 +36,12 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
     private IConnection? _sender;
     private IConnectEventArgs? _cachedArgs;
-    private System.EventHandler<IConnectEventArgs>? _callback;
+    private System.EventHandler<IConnectEventArgs>? _callbackPost;
+    private System.EventHandler<IConnectEventArgs>? _callbackClose;
 
     private System.Int32 _disposed;                 // 0 = no, 1 = yes
     private System.Int32 _receiveStarted;           // 0 = not yet, 1 = started
-    private System.Int32 _disconnectSignaled;       // 0 = not yet, 1 = signaled
+    private System.Int32 _cancelSignaled;           // 0 = not yet, 1 = started
     private System.Byte[] _buffer = BufferLease.Pool.Rent(256);
 
     #endregion Fields
@@ -57,13 +58,15 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     #region Public Methods
 
     /// <summary>
-    /// Registers a callback to be invoked when a packet is cached. The state is passed back as the argument.
+    /// Registers a process to be invoked when a packet is cached. The state is passed back as the argument.
     /// </summary>
     public void SetCallback(
-        System.EventHandler<IConnectEventArgs>? callback,
+        System.EventHandler<IConnectEventArgs>? close,
+        System.EventHandler<IConnectEventArgs>? post,
         IConnection sender, IConnectEventArgs args)
     {
-        _callback = callback;
+        _callbackPost = post;
+        _callbackClose = close;
         _sender = sender ?? throw new System.ArgumentNullException(nameof(sender));
         _cachedArgs = args ?? throw new System.ArgumentNullException(nameof(args));
     }
@@ -81,8 +84,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         "Reliability", "CA2016:Forward the 'CancellationToken' parameter to methods", Justification = "<Pending>")]
     public void BeginReceive(System.Threading.CancellationToken cancellationToken = default)
     {
-        if (System.Threading.Volatile.Read(ref _disposed) != 0 ||
-            System.Threading.Volatile.Read(ref _disconnectSignaled) != 0)
+        if (System.Threading.Volatile.Read(ref _disposed) != 0)
         {
             return;
         }
@@ -152,11 +154,14 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                     System.Int32 n = _socket.Send(bufferS[sent..]);
                     if (n == 0)
                     {
-                        this.OnDisconnected();
+                        this.CancelReceiveOnce();
+                        AsyncCallback.InvokeAsync(_callbackClose, _sender!, _cachedArgs!);
                         return false;
                     }
                     sent += n;
                 }
+
+                AsyncCallback.InvokeAsync(_callbackPost, _sender!, _cachedArgs!);
                 return true;
             }
             catch (System.Exception ex)
@@ -185,11 +190,14 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                 System.Int32 n = _socket.Send(buffer, sent, totalLength - sent, System.Net.Sockets.SocketFlags.None);
                 if (n == 0)
                 {
-                    this.OnDisconnected();
+                    this.CancelReceiveOnce();
+                    AsyncCallback.InvokeAsync(_callbackClose, _sender!, _cachedArgs!);
                     return false;
                 }
                 sent += n;
             }
+
+            AsyncCallback.InvokeAsync(_callbackPost, _sender!, _cachedArgs!);
             return true;
         }
         catch (System.Exception ex)
@@ -248,13 +256,15 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                 if (n == 0)
                 {
                     // peer closed / connection issue
-                    this.OnDisconnected();
+                    this.CancelReceiveOnce();
+                    AsyncCallback.InvokeAsync(_callbackClose, _sender!, _cachedArgs!);
                     return false;
                 }
 
                 sent += n;
             }
 
+            AsyncCallback.InvokeAsync(_callbackPost, _sender!, _cachedArgs!);
             return true;
         }
         catch (System.Exception ex)
@@ -344,7 +354,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         }
         finally
         {
-            this.OnDisconnected();
+            this.CancelReceiveOnce();
+            AsyncCallback.InvokeAsync(_callbackClose, _sender!, _cachedArgs!);
         }
     }
 
@@ -361,7 +372,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
         if (disposing)
         {
-            this.OnDisconnected();
+            AsyncCallback.InvokeAsync(_callbackClose, _sender!, _cachedArgs!);
 
             try
             {
@@ -390,19 +401,15 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void OnDisconnected()
+    private void CancelReceiveOnce()
     {
-        // Ensure "exactly once" across threads
-        if (System.Threading.Interlocked.Exchange(ref _disconnectSignaled, 1) != 0)
+        if (System.Threading.Interlocked.Exchange(ref _cancelSignaled, 1) != 0)
         {
             return;
         }
 
-        // Notify subscribers; do not let one bad handler kill the rest
-        _cts.Cancel();
-        _callback?.Invoke(_sender!, _cachedArgs!);
+        try { _cts.Cancel(); } catch { /* ignore */ }
     }
-
 
     #endregion Private Methods
 
