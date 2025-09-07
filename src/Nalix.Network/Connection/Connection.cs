@@ -25,9 +25,9 @@ public sealed partial class Connection : IConnection
     private readonly FramedSocketChannel _cstream;
     private readonly System.Threading.Lock _lock;
 
-    private System.Int32 _closeSignaled;
     private System.Boolean _disposed;
     private System.Byte[] _encryptionKey;
+    private System.Int32 _closeSignaled;
 
     private System.EventHandler<IConnectEventArgs>? _onCloseEvent;
     private System.EventHandler<IConnectEventArgs>? _onProcessEvent;
@@ -50,8 +50,8 @@ public sealed partial class Connection : IConnection
         _encryptionKey = [];
 
         _cstream = new FramedSocketChannel(socket);
-        _cstream.SetCallback(OnCloseEventBridge, this, new ConnectionEventArgs(this));
         _cstream.Cache.SetCallback(OnProcessEventBridge, this, new ConnectionEventArgs(this));
+        _cstream.SetCallback(OnCloseEventBridge, OnPostProcessEventBridge, this, new ConnectionEventArgs(this));
 
         this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
         this.ID = Identifier.NewId(IdentifierType.Session);
@@ -174,7 +174,7 @@ public sealed partial class Connection : IConnection
             return;
         }
 
-        this.RaiseClosedOnce(this, new ConnectionEventArgs(this));
+        this.OnCloseEventBridge(this, new ConnectionEventArgs(this));
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(Connection)}] close request id={this.ID} remote={this.RemoteEndPoint}");
@@ -225,27 +225,15 @@ public sealed partial class Connection : IConnection
     #region Event Bridges
 
     [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void RaiseClosedOnce(Connection sender, IConnectEventArgs e)
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void OnCloseEventBridge(System.Object? sender, IConnectEventArgs e)
     {
         if (System.Threading.Interlocked.Exchange(ref _closeSignaled, 1) != 0)
         {
             return;
         }
 
-        System.EventHandler<IConnectEventArgs>? handler = _onCloseEvent;
-        if (handler != null)
-        {
-            try
-            {
-                handler(sender, e);
-            }
-            catch (System.Exception ex)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(Connection)}] on-close-handler-throw ex={ex.Message}");
-            }
-        }
+        AsyncCallback.InvokeAsync(_onCloseEvent, e.Connection, e);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -257,17 +245,19 @@ public sealed partial class Connection : IConnection
             return;
         }
 
-        self._onProcessEvent?.Invoke(self, e);
+        AsyncCallback.InvokeAsync(self._onProcessEvent, self, e);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void OnCloseEventBridge(System.Object? sender, IConnectEventArgs e)
+    private static void OnPostProcessEventBridge(System.Object? sender, IConnectEventArgs e)
     {
-        if (sender is Connection connection)
+        if (sender is not Connection self)
         {
-            this.RaiseClosedOnce(connection, e);
+            return;
         }
+
+        AsyncCallback.InvokeAsync(self._onPostProcessEvent, self, e);
     }
 
     #endregion Event Bridges

@@ -47,6 +47,7 @@ public abstract partial class Protocol : IProtocol
     {
         System.ArgumentNullException.ThrowIfNull(args);
         System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
+
         _ = System.Threading.Interlocked.Increment(ref this._totalMessages);
 
         try
@@ -69,6 +70,7 @@ public abstract partial class Protocol : IProtocol
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error($"[{nameof(Protocol)}] post-fail id={args.Connection.ID}", ex);
 
+            // Notify protocol-level error handler
             this.OnConnectionError(args.Connection, ex);
             args.Connection.Disconnect();
         }
