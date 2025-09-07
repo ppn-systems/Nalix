@@ -1,6 +1,6 @@
-[submodule "example/Nalix.Garage"]
-	path = example/Nalix.Garage
-	url = https://github.com/phcnguyen/Nalix.Garage
-[submodule "example/Nalix.Game"]
-	path = example/Nalix.Game
-	url = https://github.com/phcnguyen/Nalix.Game
+[submodule "example/Nalix.Arena"]
+	path = example/Nalix.Arena
+	url = https://github.com/ppn-systems/Nalix.Arena
+[submodule "Nalix.Arena"]
+	path = Nalix.Arena
+	url = https://github.com/ppn-systems/Nalix.Arena
