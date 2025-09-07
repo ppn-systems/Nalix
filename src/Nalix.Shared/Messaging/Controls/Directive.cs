@@ -161,6 +161,12 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
     }
 
     /// <inheritdoc/>
+    public override System.Byte[] Serialize() => LiteSerializer.Serialize(this);
+
+    /// <inheritdoc/>
+    public override void Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
+
+    /// <inheritdoc/>
     public override void ResetForPool()
     {
         Arg0 = 0;
