@@ -253,4 +253,58 @@ public abstract partial class TcpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     public virtual void SynchronizeTime(System.Int64 milliseconds)
     { }
+
+    /// <summary>
+    /// Generates a diagnostic report of the TCP listener state and metrics.
+    /// </summary>
+    /// <returns>A formatted string report.</returns>
+    public virtual System.String GenerateReport()
+    {
+        System.Text.StringBuilder sb = new();
+        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TcpListenerBase Status:");
+        _ = sb.AppendLine($"Port                : {_port}");
+        _ = sb.AppendLine($"State               : {State}");
+        _ = sb.AppendLine($"Disposed            : {_isDisposed}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("Configuration:");
+        _ = sb.AppendLine("--------------------------------------------");
+        _ = sb.AppendLine($"TimeoutOnConnect    : {Config.TimeoutOnConnect}");
+        _ = sb.AppendLine($"MaxParallelAccepts  : {Config.MaxParallel}");
+        _ = sb.AppendLine($"BufferSize          : {Config.BufferSize}");
+        _ = sb.AppendLine($"KeepAlive           : {Config.KeepAlive}");
+        _ = sb.AppendLine($"ReuseAddress        : {Config.ReuseAddress}");
+        _ = sb.AppendLine($"EnableIPv6          : {Config.EnableIPv6}");
+        _ = sb.AppendLine($"Backlog             : {SocketBacklog}");
+        _ = sb.AppendLine($"AcceptDelay(ms)     : {AcceptDelay}");
+        _ = sb.AppendLine($"MaxSimulAccepts     : {MaxSimultaneousAccepts}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("Protocol:");
+        _ = sb.AppendLine("--------------------------------------------");
+        _ = sb.AppendLine($"BoundProtocol       : {_protocol.ToString() ?? "-"}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("Connections:");
+        _ = sb.AppendLine("--------------------------------------------");
+        _ = sb.AppendLine($"ActiveConnections   : {InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?.ConnectionCount}");
+        _ = sb.AppendLine($"LimiterEnabled      : {_connectionLimiter != null}");
+        _ = sb.AppendLine();
+
+        System.Threading.ThreadPool.GetMinThreads(out System.Int32 minWorker, out System.Int32 minIocp);
+
+        _ = sb.AppendLine("Threading:");
+        _ = sb.AppendLine("--------------------------------------------");
+        _ = sb.AppendLine($"ThreadPool MinWorker: {minWorker}");
+        _ = sb.AppendLine($"ThreadPool MinIOCP  : {minIocp}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("TimeSync:");
+        _ = sb.AppendLine("--------------------------------------------");
+        _ = sb.AppendLine($"IsTimeSyncEnabled   : {IsTimeSyncEnabled}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("--------------------------------------------");
+        return sb.ToString();
+    }
 }
