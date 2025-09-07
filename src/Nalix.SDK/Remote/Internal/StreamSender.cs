@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Packets.Abstractions;
+using System;
+using System.Buffers.Binary;
 
 namespace Nalix.SDK.Remote.Internal;
 
@@ -64,11 +66,9 @@ internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream str
             throw new System.InvalidOperationException("The network stream is not writable.");
         }
 
-        System.Byte[] header =
-        [
-            (System.Byte)((bytes.Length + sizeof(System.UInt16)) >> 8),
-            (System.Byte)((bytes.Length + sizeof(System.UInt16)) & 0xFF)
-        ];
+        var total = (UInt16)(bytes.Length + sizeof(UInt16));
+        System.Byte[] header = new Byte[2];
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(header, total);
 
         await _stream.WriteAsync(header, cancellationToken).ConfigureAwait(false);
         await _stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
@@ -102,14 +102,18 @@ internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream str
     {
         if (!_stream.CanWrite)
         {
-            throw new System.InvalidOperationException("The network stream is not writable.");
+            throw new InvalidOperationException("The network stream is not writable.");
         }
 
-        System.Span<System.Byte> header = stackalloc System.Byte[2];
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16BigEndian(header, (System.UInt16)(bytes.Length + sizeof(System.UInt16)));
+        if (bytes.Length > UInt16.MaxValue - sizeof(UInt16))
+        {
+            throw new ArgumentOutOfRangeException(nameof(bytes), "Packet too large");
+        }
+
+        Span<Byte> header = stackalloc Byte[2];
+        BinaryPrimitives.WriteUInt16LittleEndian(header, (UInt16)(bytes.Length + sizeof(UInt16)));
 
         _stream.Write(header);
         _stream.Write(bytes);
-        _stream.Flush();
     }
 }
