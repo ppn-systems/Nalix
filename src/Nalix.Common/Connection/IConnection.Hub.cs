@@ -20,9 +20,9 @@ public interface IConnectionHub
     /// <summary>
     /// Unregisters a client connection from the session manager using its unique identifier.
     /// </summary>
-    /// <param name="id">The unique identifier of the connection to unregister.</param>
+    /// <param name="connection">The connection to unregister.</param>
     /// <returns><c>true</c> if the connection was successfully unregistered; otherwise, <c>false</c>.</returns>
-    System.Boolean UnregisterConnection(IIdentifier id);
+    System.Boolean UnregisterConnection(IConnection connection);
 
     /// <summary>
     /// Associates a username with an existing client connection.

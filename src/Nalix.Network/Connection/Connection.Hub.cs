@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Connection;
@@ -6,7 +6,6 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Security.Abstractions;
 using Nalix.Framework.Identity;
 using Nalix.Shared.Injection;
-using System.Text;
 
 namespace Nalix.Network.Connection;
 
@@ -48,6 +47,11 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// Gets the current number of active connections.
     /// </summary>
     public System.Int32 ConnectionCount => this._connectionCount;
+
+    /// <summary>
+    /// Raised after a connection is successfully unregistered.
+    /// </summary>
+    public event System.Action<IConnection>? ConnectionUnregistered;
 
     #endregion Properties
 
@@ -100,38 +104,45 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <summary>
     /// Unregisters a connection from the hub.
     /// </summary>
-    /// <param name="id">The identifier of the connection to unregister.</param>
+    /// <param name="connection">The connection to unregister.</param>
     /// <returns><c>true</c> if the connection was successfully unregistered; otherwise, <c>false</c>.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="id"/> is null.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean UnregisterConnection(IIdentifier id)
+    public System.Boolean UnregisterConnection(IConnection connection)
     {
-        if (id is null || this._disposed)
+        if (connection is null || this._disposed)
         {
             return false;
         }
 
-        if (this._connections.TryRemove(id, out IConnection? connection))
+        if (!this._connections.TryRemove(connection.ID, out IConnection? existing))
         {
-            // Clean up username associations
-            if (this._usernames.TryRemove(id, out System.String? username))
+            if (this._usernames.TryRemove(connection.ID, out System.String? orphanUser) && orphanUser is not null)
             {
-                _ = this._usernameToId.TryRemove(username, out _);
+                _ = this._usernameToId.TryRemove(orphanUser, out _);
             }
 
-            connection.OnCloseEvent -= this.OnClientDisconnected;
-            _ = System.Threading.Interlocked.Decrement(ref this._connectionCount);
-
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(ConnectionHub)}] unregister id={id} total={this._connectionCount}");
-
-            return true;
+                                    .Warn($"[{nameof(ConnectionHub)}] unregister-miss id={connection.ID}");
+            return false;
         }
 
+        if (this._usernames.TryRemove(connection.ID, out System.String? username))
+        {
+            _ = this._usernameToId.TryRemove(username, out _);
+        }
+
+        (existing ?? connection).OnCloseEvent -= this.OnClientDisconnected;
+
+        _ = System.Threading.Interlocked.Decrement(ref this._connectionCount);
+
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Warn($"[{nameof(ConnectionHub)}] unregister-miss id={id}");
-        return false;
+                                .Debug($"[{nameof(ConnectionHub)}] " +
+                                       $"unregister id={connection.ID} total={this._connectionCount}");
+
+        ConnectionUnregistered?.Invoke(existing ?? connection);
+
+        return true;
     }
 
     /// <inheritdoc />
@@ -400,33 +411,16 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     }
 
     /// <summary>
-    /// Retrieves current connection statistics.
-    /// </summary>
-    /// <returns>A <see cref="ConnectionStats"/> object containing connection metrics.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public ConnectionStats GetStats()
-    {
-        return new ConnectionStats
-        {
-            TotalConnections = this._connectionCount,
-            AuthenticatedConnections = this._usernames.Count,
-            AnonymousConnections = this._connectionCount - this._usernames.Count
-        };
-    }
-
-    /// <summary>
     /// Generates a human-readable report of active connections and statistics.
     /// </summary>
     public System.String GenerateReport()
     {
-        StringBuilder sb = new();
+        System.Text.StringBuilder sb = new();
 
-        var stats = GetStats();
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionHub Status:");
-        _ = sb.AppendLine($"Total Connections   : {stats.TotalConnections}");
-        _ = sb.AppendLine($"Authenticated Users : {stats.AuthenticatedConnections}");
-        _ = sb.AppendLine($"Anonymous Users     : {stats.AnonymousConnections}");
+        _ = sb.AppendLine($"Total Connections   : {_connectionCount}");
+        _ = sb.AppendLine($"Authenticated Users : {_usernames.Count}");
+        _ = sb.AppendLine($"Anonymous Users     : {_connectionCount - _usernames.Count}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Active Connections:");
@@ -482,12 +476,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnClientDisconnected(System.Object? sender, IConnectEventArgs args)
-    {
-        if (args.Connection is not null && !this._disposed)
-        {
-            _ = this.UnregisterConnection(args.Connection.ID);
-        }
-    }
+        => this.UnregisterConnection(args.Connection);
 
     #endregion Private Methods
 }

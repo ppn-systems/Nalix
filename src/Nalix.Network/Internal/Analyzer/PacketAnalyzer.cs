@@ -63,7 +63,7 @@ internal sealed class PacketAnalyzer<
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Info($"[{nameof(PacketAnalyzer<TController, TPacket>)}] " +
-                                      $"scan controller={controllerType.Namespace}.{controllerType.Name}");
+                                      $"scan controller={controllerType.Name}");
 
         // Get or compile all handler methods
         var compiledMethods = GetOrCompileMethodAccessors(controllerType);
