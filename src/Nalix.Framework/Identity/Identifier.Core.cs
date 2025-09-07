@@ -43,17 +43,12 @@ public readonly partial struct Identifier : IIdentifier, System.IEquatable<Ident
 
     #endregion Const
 
-    #region Private Fields
+    #region Public Properties
 
     /// <summary>
-    /// The identifier type (8-bit unsigned integer).
+    /// Gets an empty <see cref="Identifier"/> instance with all components set to zero.
     /// </summary>
-    [System.Runtime.InteropServices.FieldOffset(6)]
-    private readonly System.Byte _type;
-
-    #endregion Private Fields
-
-    #region Public Properties
+    public static IIdentifier Empty => new Identifier(0, 0, 0);
 
     /// <summary>
     /// Gets the main identifier value.
@@ -68,6 +63,12 @@ public readonly partial struct Identifier : IIdentifier, System.IEquatable<Ident
     /// <value>A 16-bit unsigned integer representing the originating machine.</value>
     [field: System.Runtime.InteropServices.FieldOffset(4)]
     public System.UInt16 MachineId { get; }
+
+    /// <summary>
+    /// The identifier type (8-bit unsigned integer).
+    /// </summary>
+    [System.Runtime.InteropServices.FieldOffset(6)]
+    private readonly System.Byte _type;
 
     /// <summary>
     /// Gets the identifier type.
@@ -127,15 +128,6 @@ public readonly partial struct Identifier : IIdentifier, System.IEquatable<Ident
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Identifier NewId(IdentifierType type, System.UInt16 machineId = 1)
         => new(SecureRandom.NextUInt32(), machineId, type);
-
-    /// <summary>
-    /// Creates an empty <see cref="Identifier"/> with all components set to zero.
-    /// </summary>
-    /// <returns>An empty <see cref="Identifier"/> instance.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Identifier CreateEmpty()
-        => new(0, 0, 0);
 
     #endregion Constructors and Factory Methods
 }

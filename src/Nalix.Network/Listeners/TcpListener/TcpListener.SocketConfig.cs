@@ -26,7 +26,7 @@ public abstract partial class TcpListenerBase
         socket.ReceiveBufferSize = Config.BufferSize;
 
         // When you want to disconnect immediately without making sure the data has been sent.
-        // socket.LingerState = new LingerOption(true, SocketOptions.False);
+        // socket.LingerState = new LingerOption(true, NetworkSocketOptions.False);
 
         // Keep the accepted socket in blocking mode; Task-based async works fine with blocking sockets.
         // If you really want non-blocking I/O, ensure your Accept/Receive loops expect WouldBlock.

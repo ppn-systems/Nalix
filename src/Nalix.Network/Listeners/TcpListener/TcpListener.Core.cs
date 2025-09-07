@@ -5,7 +5,6 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Configurations;
 using Nalix.Network.Internal.Pooled;
-using Nalix.Network.Throttling;
 using Nalix.Network.Timing;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Injection;
@@ -26,13 +25,12 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable, I
 
     #region Fields
 
-    internal static readonly SocketOptions Config;
+    internal static readonly NetworkSocketOptions Config;
 
     private readonly System.UInt16 _port;
     private readonly IProtocol _protocol;
     private readonly System.Threading.Lock _socketLock;
     private readonly System.Threading.SemaphoreSlim _lock;
-    private readonly ConnectionLimiter _connectionLimiter;
 
     private System.Boolean _isDisposed;
     private System.Net.Sockets.Socket? _listener;
@@ -96,7 +94,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable, I
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     static TcpListenerBase()
     {
-        Config = ConfigurationManager.Instance.Get<SocketOptions>();
+        Config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
 
         // Optimized for _udpListener.IOControlCode on Windows
         if (Config.IsWindows)
@@ -130,7 +128,6 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable, I
         _isDisposed = false;
 
         _socketLock = new();
-        _connectionLimiter = new ConnectionLimiter();
         _lock = new System.Threading.SemaphoreSlim(1, 1);
 
 

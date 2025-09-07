@@ -2,8 +2,8 @@
 
 using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
-using Nalix.Network.Connection;
 using Nalix.Network.Internal.Pooled;
+using Nalix.Network.Throttling;
 using Nalix.Network.Timing;
 using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
@@ -50,12 +50,13 @@ public abstract partial class TcpListenerBase
         {
             IConnection connection = new Connection.Connection(socket);
 
-            connection.EnforceLimiterOnClose(_connectionLimiter);
             connection.OnCloseEvent += this.HandleConnectionClose;
-            connection.OnProcessEvent += _protocol.ProcessMessage!;
-            connection.OnPostProcessEvent += _protocol.PostProcessMessage!;
 
-            if (Config.TimeoutOnConnect)
+            connection.OnProcessEvent += _protocol.ProcessMessage;
+            connection.OnPostProcessEvent += _protocol.PostProcessMessage;
+            connection.OnCloseEvent += InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>().OnConnectionClosed;
+
+            if (Config.EnableTimeout)
             {
                 InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
                                         .Register(connection);
@@ -91,8 +92,9 @@ public abstract partial class TcpListenerBase
 
         // De-subscribe to prevent memory leaks
         args.Connection.OnCloseEvent -= this.HandleConnectionClose;
-        args.Connection.OnProcessEvent -= _protocol.ProcessMessage!;
-        args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage!;
+        args.Connection.OnProcessEvent -= _protocol.ProcessMessage;
+        args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage;
+        args.Connection.OnCloseEvent -= InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>().OnConnectionClosed;
 
         args.Connection.Dispose();
     }
@@ -201,8 +203,15 @@ public abstract partial class TcpListenerBase
             // Wait async accept:
             socket = await context.BeginAcceptAsync(_listener).ConfigureAwait(false);
 
-            if (!this._connectionLimiter.IsConnectionAllowed(
-                ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
+            if (socket.RemoteEndPoint is not System.Net.IPEndPoint ipEndPoint)
+            {
+                SafeCloseSocket(socket);
+
+                throw new NonFatalRejectedException();
+            }
+
+            if (!InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>()
+                                         .IsConnectionAllowed(ipEndPoint))
             {
                 SafeCloseSocket(socket);
 
@@ -336,8 +345,14 @@ public abstract partial class TcpListenerBase
                         return;
                     }
 
-                    if (!_connectionLimiter.IsConnectionAllowed(
-                        ((System.Net.IPEndPoint)socket.RemoteEndPoint!).Address))
+                    if (socket.RemoteEndPoint is not System.Net.IPEndPoint ipEndPoint)
+                    {
+                        SafeCloseSocket(socket);
+                        return;
+                    }
+
+                    if (!InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>()
+                                                 .IsConnectionAllowed(ipEndPoint))
                     {
                         SafeCloseSocket(socket);
                         return;

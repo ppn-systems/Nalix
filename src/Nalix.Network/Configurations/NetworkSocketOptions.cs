@@ -8,7 +8,7 @@ namespace Nalix.Network.Configurations;
 /// <summary>
 /// Represents network configuration settings for socket and Reliable connections.
 /// </summary>
-public sealed class SocketOptions : ConfigurationLoader
+public sealed class NetworkSocketOptions : ConfigurationLoader
 {
     #region Fields
 
@@ -52,10 +52,12 @@ public sealed class SocketOptions : ConfigurationLoader
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether a timeout should be applied when establishing a connection.
-    /// Standard is true.
+    /// Gets or sets a value indicating whether the idle timeout mechanism is enabled.
     /// </summary>
-    public System.Boolean TimeoutOnConnect { get; set; } = true;
+    /// <value>
+    /// <c>true</c> to enable idle timeout monitoring; otherwise, <c>false</c>.
+    /// </value>
+    public System.Boolean EnableTimeout { get; set; } = true;
 
     /// <summary>
     /// Indicates whether to use IPv4 or IPv6.
