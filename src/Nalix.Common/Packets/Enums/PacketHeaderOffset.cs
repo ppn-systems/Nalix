@@ -8,7 +8,7 @@ namespace Nalix.Common.Packets.Enums;
 /// Represents the positions of fields in the serialization order.
 /// Each value corresponds to a specific position in the serialized data.
 /// </summary>
-public enum PacketHeaderOffset : System.Byte
+public enum PacketHeaderOffset : System.UInt32
 {
     /// <summary>
     /// Represents the magic number field, which uniquely identifies the packet format or protocol.

@@ -60,7 +60,7 @@ public class DispatchChannel<TPacket>(ILogger? logger = null) : IDispatchChannel
 
         System.ArgumentNullException.ThrowIfNull(connection);
 
-        _activeConnections.TryAdd(connection, 0);
+        _ = _activeConnections.TryAdd(connection, 0);
 
         var queue = _connectionChannels.GetOrAdd(connection, conn =>
         {
@@ -69,11 +69,9 @@ public class DispatchChannel<TPacket>(ILogger? logger = null) : IDispatchChannel
         });
 
         queue.Enqueue(packet);
-        System.Threading.Interlocked.Increment(ref _totalPackets);
+        _ = System.Threading.Interlocked.Increment(ref _totalPackets);
 
-#if DEBUG
         _logger?.Trace($"[{nameof(DispatchChannel<TPacket>)}] enqueued packet={packet.GetType().Name} conn={connection}");
-#endif
     }
 
     /// <summary>

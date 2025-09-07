@@ -62,8 +62,10 @@ public static class HeaderExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.UInt32 ReadMagicNumberLE(this System.ReadOnlySpan<System.Byte> buffer)
     {
-        CheckSize(buffer, (System.Byte)PacketHeaderOffset.MagicNumber, sizeof(System.UInt32));
-        return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(buffer);
+        System.Int32 offs = (System.Int32)PacketHeaderOffset.MagicNumber;
+        CheckSize(buffer, offs, sizeof(System.UInt32));
+
+        return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(buffer.Slice(offs, sizeof(System.UInt32)));
     }
 
     /// <summary>
@@ -210,7 +212,8 @@ public static class HeaderExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void CheckSize(System.ReadOnlySpan<System.Byte> buffer, System.Int32 offset, System.Int32 size)
     {
-        if ((System.UInt32)(offset + size) > (System.UInt32)buffer.Length)
+        if ((System.UInt32)offset > (System.UInt32)buffer.Length ||
+            (System.UInt32)size > (System.UInt32)(buffer.Length - offset))
         {
             throw new System.ArgumentException($"Buffer is too small to read {size} bytes at offset {offset}.");
         }
