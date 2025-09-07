@@ -3,7 +3,7 @@
 using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch;
 
-namespace Nalix.Network.Middleware.Pipeline;
+namespace Nalix.Network.Middleware;
 
 /// <summary>
 /// Represents a middleware pipeline for processing packets.
