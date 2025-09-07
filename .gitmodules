@@ -1,6 +1,3 @@
 [submodule "example/Nalix.Arena"]
 	path = example/Nalix.Arena
 	url = https://github.com/ppn-systems/Nalix.Arena
-[submodule "Nalix.Arena"]
-	path = Nalix.Arena
-	url = https://github.com/ppn-systems/Nalix.Arena
