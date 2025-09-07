@@ -88,11 +88,22 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             return; // already started
         }
 
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Meta($"[{nameof(FramedSocketChannel)}] receive-loop started ep={_socket.RemoteEndPoint}");
+
         System.Threading.CancellationTokenSource linked =
             System.Threading.CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
 
-        _ = this.ReceiveLoopAsync(linked.Token)
-                .ContinueWith(static (t, state) => ((System.Threading.CancellationTokenSource)state!).Dispose(), linked);
+        _ = this.ReceiveLoopAsync(linked.Token).ContinueWith(static (t, state) =>
+        {
+            var (l, link) = ((ILogger?, System.Threading.CancellationTokenSource))state!;
+            if (t.IsFaulted)
+            {
+                l?.Error($"[{nameof(FramedSocketChannel)}] receive-loop faulted", t.Exception!);
+            }
+
+            link.Dispose();
+        }, (InstanceManager.Instance.GetExistingInstance<ILogger>(), linked));
     }
 
     /// <summary>
@@ -269,7 +280,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                                           .ConfigureAwait(false);
             if (n == 0)
             {
-                throw new System.Net.Sockets.SocketException((System.Int32)System.Net.Sockets.SocketError.ConnectionReset);
+                throw new System.OperationCanceledException("Peer closed the connection");
             }
 
             read += n;
@@ -289,6 +300,10 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
                 System.UInt16 size = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(System.MemoryExtensions
                                                                            .AsSpan(_buffer, 0, HeaderSize));
+
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Meta($"[{nameof(FramedSocketChannel)}] recv-header size(le)={size}");
+
                 if (size < HeaderSize)
                 {
                     throw new System.Net.Sockets.SocketException(
@@ -310,6 +325,10 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                           .AsMemory(_buffer, HeaderSize, payload), token)
                           .ConfigureAwait(false);
 
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Meta($"[{nameof(FramedSocketChannel)}] " +
+                                               $"recv-frame size={size} payload={payload} ep={_socket.RemoteEndPoint}");
+
                 // 4) Handoff to session cache
                 this.Cache.LastPingTime = Clock.UnixMillisecondsNow();
                 this.Cache.PushIncoming(BufferLease
@@ -317,6 +336,16 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
                 _buffer = BufferLease.Pool.Rent(256); // prepare for next read
             }
+        }
+        catch (System.OperationCanceledException)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Meta($"[{nameof(FramedSocketChannel)}] receive-loop cancelled");
+        }
+        catch (System.Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"[{nameof(FramedSocketChannel)}] receive-loop error", ex);
         }
         finally
         {
@@ -359,10 +388,9 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
             _cts.Dispose();
         }
-#if DEBUG
+
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(FramedSocketChannel)}] disposed");
-#endif
+                                .Meta($"[{nameof(FramedSocketChannel)}] disposed");
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
