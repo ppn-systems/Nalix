@@ -63,7 +63,7 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     /// <param name="transport">The transport protocol to use.</param>
     public Handshake(
         System.UInt16 opCode,
-        System.Byte[] data, ProtocolType transport) : base()
+        System.Byte[] data, ProtocolType transport) : this()
     {
         this.OpCode = opCode;
         this.Data = data;

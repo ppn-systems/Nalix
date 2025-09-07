@@ -138,32 +138,41 @@ public sealed class PacketDispatchChannel
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(IBufferLease? raw, IConnection connection)
     {
-        // 1) Fast-fail: empty payload
-        if (raw == null)
+        try
         {
-            Logger?.Warn($"[{nameof(PacketDispatchChannel)}] empty-payload");
-            return;
+            // 1) Fast-fail: empty payload
+            if (raw == null)
+            {
+                Logger?.Warn($"[{nameof(PacketDispatchChannel)}] empty-payload ep={connection.RemoteEndPoint}");
+                return;
+            }
+
+            // 2) Capture basic context once
+            System.Int32 len = raw.Length;
+            System.UInt32 magic = len >= 4 ? raw.Memory.Span.ReadMagicNumberLE() : 0u;
+
+            // 3) Try deserialize
+            if (!_catalog.TryDeserialize(raw.Span, out IPacket? packet) || packet is null)
+            {
+                // Log only a small head preview to avoid leaking large/secret data
+                System.String head = System.Convert.ToHexString(raw.Span[..System.Math.Min(16, len)]);
+                Logger?.Warn($"[{nameof(PacketDispatchChannel)}] " +
+                             $"deserialize-none ep={connection.RemoteEndPoint} len={len} magic=0x{magic:X8} head={head}");
+                return;
+            }
+
+            // 4) Success trace (can be disabled in production)
+            Logger?.Trace($"[{nameof(PacketDispatchChannel)}] " +
+                          $"deserialized ep={connection.RemoteEndPoint} type={packet.GetType().Name} len={len} magic=0x{magic:X8}");
+
+            // 5) Dispatch to typed handler
+
+            this.HandlePacket(packet, connection);
         }
-
-        // 2) Capture basic context once
-        System.Int32 len = raw.Length;
-        System.UInt32 magic = len >= 4 ? raw.Memory.Span.ReadMagicNumberLE() : 0u;
-
-        // 3) Try deserialize
-        if (!_catalog.TryDeserialize(raw.Span, out IPacket? packet) || packet is null)
+        finally
         {
-            // Log only a small head preview to avoid leaking large/secret data
-            System.String head = System.Convert.ToHexString(raw.Span[..System.Math.Min(16, len)]);
-            Logger?.Warn($"[{nameof(PacketDispatchChannel)}] deserialize-none len={len} magic=0x{magic:X8} head={head}");
-            return;
+            raw?.Dispose();
         }
-
-        // 4) Success trace (can be disabled in production)
-        Logger?.Trace($"[{nameof(PacketDispatchChannel)}] deserialized type={packet.GetType().Name} len={len} magic=0x{magic:X8}");
-
-        // 5) Dispatch to typed handler
-        raw.Dispose(); // raw buffer no longer needed
-        this.HandlePacket(packet, connection);
     }
 
     /// <inheritdoc />

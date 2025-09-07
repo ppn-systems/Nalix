@@ -1,5 +1,6 @@
 ﻿using Nalix.Shared.Extensions;
 using Nalix.Shared.Messaging.Binary;
+using Nalix.Shared.Messaging.Controls;
 using Nalix.Shared.Serialization;
 using System;
 using Xunit;
@@ -163,23 +164,20 @@ public class LiteSerializer_ClassTest
         System.Diagnostics.Debug.WriteLine($"Serialized Bytes: {BitConverter.ToString(bytes)}");
         System.Diagnostics.Debug.WriteLine($"MN: {bytes.ReadMagicNumberLE()} - {original.MagicNumber}");
         System.Diagnostics.Debug.WriteLine($"OP: {bytes.ReadOpCodeLE()} - {original.OpCode}");
-        //System.Diagnostics.Debug.WriteLine($"TP: {bytes.ReadTransportLE()}");
-        //System.Diagnostics.Debug.WriteLine($"PY: {bytes.ReadPriorityLE()}");
+        System.Diagnostics.Debug.WriteLine($"TP: {bytes.ReadTransportLE()}");
+        System.Diagnostics.Debug.WriteLine($"PY: {bytes.ReadPriorityLE()}");
 
         Binary128 deserialized = null;
         _ = LiteSerializer.Deserialize(bytes, ref deserialized);
 
         System.Diagnostics.Debug.WriteLine($"OP: {deserialized.OpCode} - {original.OpCode}");
+        System.Diagnostics.Debug.WriteLine($"MN: {deserialized.MagicNumber} - {original.MagicNumber}");
 
         Assert.NotNull(deserialized);
         Assert.Equal(original.Length, deserialized.Length);
         Assert.Equal(original.OpCode, deserialized.OpCode);
         Assert.Equal(original.Data, deserialized.Data);
-
-        //        Serialized Bytes: 01 - 03 - 00 - 00 - FF - 80
-        //MN: 769 - 40963
-        //OP: 33023 - 127
-        //OP: 0 - 127
+        Assert.Equal(original.MagicNumber, deserialized.MagicNumber);
     }
 
     [Fact]
@@ -209,5 +207,33 @@ public class LiteSerializer_ClassTest
         System.Diagnostics.Debug.WriteLine($"[DESERIALIZED] OpCode = {deserialized.OpCode}");
     }
 
+    [Fact]
+    public void Serialize_And_Deserialize_With_Max_Min_Values_Handsahke()
+    {
+        var original = new Handshake
+        {
+            OpCode = 127,
+            Data = [0, 255, 128, 0, 255, 128, 0, 255, 128, 0, 255, 128]
+        };
 
+        var bytes = LiteSerializer.Serialize(original);
+
+        System.Diagnostics.Debug.WriteLine($"Serialized Bytes: {BitConverter.ToString(bytes)}");
+        System.Diagnostics.Debug.WriteLine($"MN: {bytes.ReadMagicNumberLE()} - {original.MagicNumber}");
+        System.Diagnostics.Debug.WriteLine($"OP: {bytes.ReadOpCodeLE()} - {original.OpCode}");
+        System.Diagnostics.Debug.WriteLine($"TP: {bytes.ReadTransportLE()}");
+        System.Diagnostics.Debug.WriteLine($"PY: {bytes.ReadPriorityLE()}");
+
+        Handshake deserialized = null;
+        _ = LiteSerializer.Deserialize<Handshake>(bytes, ref deserialized);
+
+        System.Diagnostics.Debug.WriteLine($"OP: {deserialized.OpCode} - {original.OpCode}");
+        System.Diagnostics.Debug.WriteLine($"MN: {deserialized.MagicNumber} - {original.MagicNumber}");
+
+        Assert.NotNull(deserialized);
+        Assert.Equal(original.Length, deserialized.Length);
+        Assert.Equal(original.OpCode, deserialized.OpCode);
+        Assert.Equal(original.Data, deserialized.Data);
+        Assert.Equal(original.MagicNumber, deserialized.MagicNumber);
+    }
 }
