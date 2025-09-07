@@ -6,7 +6,6 @@ using Nalix.Common.Packets.Enums;
 using Nalix.Common.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
-using Nalix.Shared.Serialization;
 
 namespace Nalix.Shared.Messaging;
 
@@ -56,11 +55,11 @@ public abstract class FrameBase : IPacket
     public ProtocolType Transport { get; set; }
 
     /// <inheritdoc/>
+    public abstract System.Byte[] Serialize();
+
+    /// <inheritdoc/>
+    public abstract void Serialize(System.Span<System.Byte> buffer);
+
+    /// <inheritdoc/>
     public abstract void ResetForPool();
-
-    /// <inheritdoc/>
-    public virtual System.Byte[] Serialize() => LiteSerializer.Serialize(this);
-
-    /// <inheritdoc/>
-    public virtual void Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
 }

@@ -121,7 +121,7 @@ public abstract partial class TcpListenerBase
 
                 this._listener = listener;
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[{nameof(TcpListenerBase)}] config-listen {this._listener.LocalEndPoint} (dual)");
+                                        .Debug($"[{nameof(TcpListenerBase)}] config-listen {this._listener.LocalEndPoint} (dual)");
                 return;
             }
             catch
@@ -163,7 +163,7 @@ public abstract partial class TcpListenerBase
         this._listener.Listen(SocketBacklog > 0 ? SocketBacklog : 128);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(TcpListenerBase)}] config-listen {this._listener.LocalEndPoint}");
+                                .Debug($"[{nameof(TcpListenerBase)}] config-listen {this._listener.LocalEndPoint}");
     }
 
     /// <summary>
