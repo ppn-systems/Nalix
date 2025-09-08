@@ -1,8 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Security.Abstractions;
 
-namespace Nalix.Common.Security.Types;
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Abstractions;
+
+namespace Nalix.Common.Enums;
 
 /// <summary>
 /// Defines the category of an <see cref="IIdentifier"/> value,  
@@ -28,14 +31,9 @@ public enum IdentifierType : System.Byte
     Log = 2,
 
     /// <summary>
-    /// For tracking API keys and authentication tokens.
+    /// System-wide unique identifier.
     /// </summary>
-    ApiKey = 3,
-
-    /// <summary>
-    /// For network communication packets.
-    /// </summary>
-    Packet = 4,
+    System = 3,
 
     #endregion Core System
 
@@ -50,16 +48,6 @@ public enum IdentifierType : System.Byte
     /// For session management.
     /// </summary>
     Session = 11,
-
-    /// <summary>
-    /// For authentication-related tokens.
-    /// </summary>
-    AuthToken = 12,
-
-    /// <summary>
-    /// For permissions and role-based access control (RBAC).
-    /// </summary>
-    Permission = 13,
 
     #endregion User & Security
 
@@ -115,25 +103,6 @@ public enum IdentifierType : System.Byte
     SupportTicket = 34,
 
     #endregion Business & Transactions
-
-    #region External Integration
-
-    /// <summary>
-    /// For third-party API integration.
-    /// </summary>
-    ExternalApi = 40,
-
-    /// <summary>
-    /// For OAuth and social login connections.
-    /// </summary>
-    SocialLogin = 41,
-
-    /// <summary>
-    /// For tracking webhooks.
-    /// </summary>
-    Webhook = 42,
-
-    #endregion External Integration
 
     /// <summary>
     /// The maximum valid value for <see cref="IdentifierType"/>.
