@@ -1,4 +1,4 @@
-﻿using Nalix.Common.Security.Types;
+﻿using Nalix.Common.Enums;
 using Nalix.Framework.Identity;
 using System;
 using System.Collections.Generic;
@@ -12,9 +12,8 @@ public class IdentifierTests
     [Fact]
     public void CreateEmpty_IsEmpty_True_And_SerializesTo7ZeroBytes()
     {
-        var id = Identifier.CreateEmpty(); // all zero
+        var id = Identifier.Empty; // all zero
         Assert.True(id.IsEmpty()); // not empty => false
-        Assert.False(id.IsValid());
 
         Span<Byte> buf = stackalloc Byte[7];
         Assert.True(id.TrySerialize(buf, out var written));

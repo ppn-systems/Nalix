@@ -54,6 +54,7 @@ public sealed partial class TaskManager : ITaskManager
         IRecurringOptions? options = null)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
+
         System.ArgumentNullException.ThrowIfNull(work);
         System.ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
         System.ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, System.TimeSpan.Zero);
@@ -192,7 +193,7 @@ public sealed partial class TaskManager : ITaskManager
 
         if (!_workers.TryAdd(id, st))
         {
-            throw new System.InvalidOperationException("[BackgroundTask] cannot add worker");
+            throw new System.InvalidOperationException($"[{nameof(TaskManager)}] cannot add worker");
         }
 
         // Optional concurrency cap per-group
