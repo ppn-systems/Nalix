@@ -57,8 +57,6 @@ client-side/*
 #*.env
 
 # file config
-appsettings.json
-api.txt
-temp.txt
-nuget.key
 *.snk
+nuget.key
+appsettings.json
