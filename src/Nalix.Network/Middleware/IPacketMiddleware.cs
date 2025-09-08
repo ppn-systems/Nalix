@@ -4,7 +4,7 @@
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Network.Routing;
 
-namespace Nalix.Network.Abstractions;
+namespace Nalix.Network.Middleware;
 
 /// <summary>
 /// Interface that standardizes middleware implementations for packet handling.

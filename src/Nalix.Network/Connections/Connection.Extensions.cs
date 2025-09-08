@@ -1,13 +1,13 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Frames.Controls;
 using Nalix.Shared.Memory.Buffers;
-using Nalix.Shared.Memory.Pooling;
+using Nalix.Shared.Memory.Objects;
 
 namespace Nalix.Network.Connections;
 
