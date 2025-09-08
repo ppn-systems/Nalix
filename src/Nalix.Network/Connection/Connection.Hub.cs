@@ -3,7 +3,6 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
-using Nalix.Common.Security.Abstractions;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
 

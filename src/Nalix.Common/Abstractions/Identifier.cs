@@ -1,8 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Security.Types;
+using Nalix.Common.Enums;
 
-namespace Nalix.Common.Security.Abstractions;
+namespace Nalix.Common.Abstractions;
 
 /// <summary>
 /// Defines the core contract for a unique identifier, including type,
