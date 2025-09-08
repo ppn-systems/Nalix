@@ -2,7 +2,7 @@
 
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
-using Nalix.Shared.Injection;
+using Nalix.Framework.Injection;
 using System.Buffers.Binary;
 
 namespace Nalix.SDK.Remote.Internal;

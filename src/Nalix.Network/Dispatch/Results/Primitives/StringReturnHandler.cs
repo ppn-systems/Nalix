@@ -2,7 +2,7 @@
 
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
-using Nalix.Shared.Injection;
+using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging.Text;
 

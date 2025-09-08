@@ -2,8 +2,8 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Logging.Abstractions;
+using Nalix.Framework.Injection;
 using Nalix.Shared.Configuration;
-using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Buffers;
 using System.Linq;
 

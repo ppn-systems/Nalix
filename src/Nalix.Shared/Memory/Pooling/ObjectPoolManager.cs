@@ -3,7 +3,7 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Caching;
 using Nalix.Common.Logging.Abstractions;
-using Nalix.Shared.Injection;
+using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pools;
 using Nalix.Shared.Memory.PoolTypes;
 

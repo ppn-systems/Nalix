@@ -5,7 +5,7 @@ using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Protocols;            // ProtocolType
 using Nalix.Cryptography.Asymmetric;     // X25519
 using Nalix.Cryptography.Hashing;        // SHA256
-using Nalix.Shared.Injection;
+using Nalix.Framework.Injection;
 using Nalix.Shared.Messaging.Controls;   // Handshake
 
 namespace Nalix.SDK.Remote.Extensions;

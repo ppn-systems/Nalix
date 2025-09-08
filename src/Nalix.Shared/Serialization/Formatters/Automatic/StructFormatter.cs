@@ -2,7 +2,7 @@
 
 using Nalix.Common.Exceptions;
 using Nalix.Common.Logging.Abstractions;
-using Nalix.Shared.Injection;
+using Nalix.Framework.Injection;
 using Nalix.Shared.Serialization.Buffers;
 using Nalix.Shared.Serialization.Internal.Accessors;
 using Nalix.Shared.Serialization.Internal.Reflection;

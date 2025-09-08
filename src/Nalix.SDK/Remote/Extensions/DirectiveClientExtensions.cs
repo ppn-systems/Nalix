@@ -3,8 +3,8 @@
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Protocols;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
-using Nalix.Shared.Injection;
 using Nalix.Shared.Messaging.Controls;  // Directive
 
 namespace Nalix.SDK.Remote.Extensions;
