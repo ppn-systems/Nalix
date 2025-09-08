@@ -4,9 +4,9 @@ using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Attributes;
+using Nalix.Framework.Injection;
 using Nalix.Network.Dispatch;
 using Nalix.Network.Dispatch.Delegates;
-using Nalix.Shared.Injection;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]

@@ -5,7 +5,7 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Models;
 using Nalix.Common.Security.Enums;
-using Nalix.Shared.Injection;
+using Nalix.Framework.Injection;
 using Nalix.Shared.Messaging.Binary;
 using Nalix.Shared.Messaging.Controls;
 using Nalix.Shared.Messaging.Text;

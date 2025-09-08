@@ -3,8 +3,8 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Common.Packets.Enums;
+using Nalix.Framework.Injection;
 using Nalix.Network.Dispatch.Delegates;
-using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Dispatch;

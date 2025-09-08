@@ -4,8 +4,8 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets;
 using Nalix.Common.Security.Abstractions;
 using Nalix.Framework.Identity;
+using Nalix.Framework.Injection;
 using Nalix.Network.Connection;
-using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Listeners.Udp;
 

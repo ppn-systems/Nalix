@@ -4,10 +4,10 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
 using Nalix.Shared.Configuration;
-using Nalix.Shared.Injection;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Timing;

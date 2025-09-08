@@ -2,9 +2,9 @@
 
 using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.Network.Abstractions;
-using Nalix.Shared.Injection;
 
 namespace Nalix.Network.Listeners.Udp;
 

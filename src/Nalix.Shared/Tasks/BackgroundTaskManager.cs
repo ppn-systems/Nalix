@@ -2,7 +2,7 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Logging.Abstractions;
-using Nalix.Shared.Injection;
+using Nalix.Framework.Injection;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -16,7 +16,7 @@ namespace Nalix.Shared.Tasks;
 /// Unified manager for background jobs and long-running workers:
 /// - Recurring jobs: deadline-based ticks (Stopwatch), non-drift, non-reentrant (default), jitter, timeout, backoff.
 /// - Workers: track thousands of long-running tasks (e.g., TCP accept/read loops), query counts by group,
-///   cancellation by id/name/group, optional per-group concurrency cap, heartbeat & progress.
+///   cancellation by id/name/group, optional per-group concurrency cap, heartbeat and progress.
 /// - Thread-safe, low allocation, server-grade reporting.
 /// </summary>
 public interface IBackgroundTaskManager : IDisposable, IReportable

@@ -2,7 +2,7 @@
 
 using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
-using Nalix.Shared.Injection;
+using Nalix.Framework.Injection;
 
 namespace Nalix.Network.Internal.Transport;
 
