@@ -4,9 +4,13 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
+using Nalix.Common.Tasks;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Tasks;
+using Nalix.Framework.Tasks.Options;
 using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
+using Nalix.Network.Internal;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Pooling;
 
@@ -78,7 +82,6 @@ public sealed class TimingWheel : System.IDisposable, IActivatable
     private System.Int64 _tick;
 
     // Lifecycle
-    private System.Threading.Tasks.Task? _loopTask;
     private System.Threading.CancellationTokenSource? _cts; // null when not running
 
     #endregion Fields
@@ -155,15 +158,24 @@ public sealed class TimingWheel : System.IDisposable, IActivatable
             return;
         }
 
-        _cts = new System.Threading.CancellationTokenSource();
+        var linkedCts = cancellationToken.CanBeCanceled
+                    ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+                    : new System.Threading.CancellationTokenSource();
+
+        _cts = linkedCts;
+        var linkedToken = linkedCts.Token;
 
         // Prefer a dedicated thread to reduce pool jitter.
-        _loopTask = System.Threading.Tasks.TaskExtensions.Unwrap(
-            System.Threading.Tasks.Task.Factory.StartNew(s => RunLoop((System.Threading.CancellationToken)s!),
-                _cts.Token, _cts.Token,
-                System.Threading.Tasks.TaskCreationOptions.LongRunning,
-                System.Threading.Tasks.TaskScheduler.Default
-            )
+        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+            name: TaskNames.Workers.TimingWheel(TickMs, WheelSize),
+            group: TaskNames.Groups.TimingWeel,
+            work: async (ctx, ct) => { await RunLoop(ct, ctx).ConfigureAwait(false); },
+            options: new WorkerOptions
+            {
+                CancellationToken = linkedToken,
+                Tag = TaskNames.Tags.TimingWheel,
+                Retention = System.TimeSpan.Zero
+            }
         );
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -180,30 +192,16 @@ public sealed class TimingWheel : System.IDisposable, IActivatable
     /// </remarks>
     public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
     {
-        var cts = _cts;
+        var cts = System.Threading.Interlocked.Exchange(ref _cts, null);
         if (cts is null)
         {
             return;
         }
 
-        try
-        {
-            cts.Cancel();
-            _ = _loopTask?.Wait(System.TimeSpan.FromSeconds(2), cancellationToken);
-        }
-        catch
-        {
-            // ignored
-        }
-        finally
-        {
-            cts.Dispose();
-            _cts = null;
-            _loopTask = null;
+        try { cts.Cancel(); } catch { }
+        try { cts.Dispose(); } catch { }
 
-            // Drain all buckets to release pooled tasks promptly.
-            DrainAndReleaseAllBuckets();
-        }
+        DrainAndReleaseAllBuckets();
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Info($"[{nameof(TimingWheel)}] deactivate");
@@ -283,9 +281,10 @@ public sealed class TimingWheel : System.IDisposable, IActivatable
     #region Loop
 
     // Private loop; not part of the public API surface.
-    private async System.Threading.Tasks.Task RunLoop(System.Threading.CancellationToken ct)
+    private async System.Threading.Tasks.Task RunLoop(
+        System.Threading.CancellationToken ct,
+        IWorkerContext? ctx = null)
     {
-        // Start from zero each activation.
         _ = System.Threading.Interlocked.Exchange(ref _tick, 0);
 
         try
@@ -303,15 +302,12 @@ public sealed class TimingWheel : System.IDisposable, IActivatable
 
                 while (q.TryDequeue(out TimeoutTask? task))
                 {
-                    // Validate that this task is still the live one for its connection.
-                    if (!Active.TryGetValue(task.Conn, out var live) || !System.Object.ReferenceEquals(task, live))
+                    if (!Active.TryGetValue(task.Conn, out var live) || !ReferenceEquals(task, live))
                     {
-                        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                .Return(task);
+                        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Return(task);
                         continue;
                     }
 
-                    // Still waiting outer rounds → stay in same bucket.
                     if (task.Rounds > 0)
                     {
                         task.Rounds--;
@@ -319,33 +315,24 @@ public sealed class TimingWheel : System.IDisposable, IActivatable
                         continue;
                     }
 
-                    // Check idle duration.
                     System.Int64 idleMs = Clock.UnixMillisecondsNow() - task.Conn.LastPingTime;
 
                     if (idleMs >= IdleTimeoutMs)
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Debug($"[{nameof(TimingWheel)}] timeout " +
-                                                       $"remote={task.Conn.RemoteEndPoint}, idle={idleMs}ms");
+                            .Debug($"[{nameof(TimingWheel)}] timeout remote={task.Conn.RemoteEndPoint}, idle={idleMs}ms");
 
-                        // Force-close; OnCloseEvent will trigger Unregister().
-                        try
-                        {
-                            task.Conn.Close(force: true);
-                        }
+                        try { task.Conn.Close(force: true); }
                         catch (System.Exception ex)
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[{nameof(TimingWheel)}] close-error " +
-                                                          $"remote={task.Conn.RemoteEndPoint} ex={ex.Message}");
+                                .Warn($"[{nameof(TimingWheel)}] close-error remote={task.Conn.RemoteEndPoint} ex={ex.Message}");
                         }
 
-                        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                .Return(task);
+                        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Return(task);
                         continue;
                     }
 
-                    // Not yet timeout → reschedule the SAME task based on remaining time.
                     System.Int64 remainingMs = IdleTimeoutMs - idleMs;
                     System.Int64 ticksMore = System.Math.Max(1, remainingMs / TickMs);
 
@@ -359,16 +346,15 @@ public sealed class TimingWheel : System.IDisposable, IActivatable
                 }
 
                 _ = System.Threading.Interlocked.Increment(ref _tick);
+
+                ctx?.Heartbeat();
             }
         }
-        catch (System.OperationCanceledException)
-        {
-            // Normal shutdown.
-        }
+        catch (System.OperationCanceledException) { }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(TimingWheel)}] loop-error", ex);
+                .Error($"[{nameof(TimingWheel)}] loop-error", ex);
         }
     }
 

@@ -5,6 +5,8 @@ using Nalix.Common.Connection;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Tasks;
+using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Configurations;
 using Nalix.Network.Internal;
 using Nalix.Shared.Configuration;
@@ -28,10 +30,8 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
 
     private readonly System.Int32 _maxPerIp;
     private readonly ConnectionLimitOptions _config;
-    private readonly System.TimeSpan _inactivityThreshold;
     private readonly System.TimeSpan _cleanupInterval;
-    private readonly System.Threading.Timer _cleanupTimer;
-    private readonly System.Threading.SemaphoreSlim _cleanupGate = new(1, 1);
+    private readonly System.TimeSpan _inactivityThreshold;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<IpAddressKey, ConnectionLimitInfo> _map;
 
     private System.Boolean _disposed;
@@ -49,15 +49,28 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         Validate(_config);
 
         _maxPerIp = _config.MaxConnectionsPerIpAddress;
-        _inactivityThreshold = _config.InactivityThreshold;
         _cleanupInterval = _config.CleanupInterval;
+        _inactivityThreshold = _config.InactivityThreshold;
 
         _map = new System.Collections.Concurrent.ConcurrentDictionary<IpAddressKey, ConnectionLimitInfo>();
 
-        _cleanupTimer = new System.Threading.Timer(static s =>
-        {
-            ((ConnectionLimiter)s!).RunCleanupTick();
-        }, this, _cleanupInterval, _cleanupInterval);
+        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
+            name: TaskNames.Recurring.ConnLimiterCleanup(this.GetHashCode()),
+            interval: _cleanupInterval,
+            work: ct =>
+            {
+                RunCleanupOnce();
+                return System.Threading.Tasks.ValueTask.CompletedTask;
+            },
+            options: new RecurringOptions
+            {
+                Tag = "connlimit",
+                NonReentrant = true,
+                Jitter = System.TimeSpan.FromMilliseconds(250),
+                RunTimeout = System.TimeSpan.FromSeconds(2),
+                MaxBackoff = System.TimeSpan.FromSeconds(15)
+            }
+        );
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(ConnectionLimiter)}] init maxPerIp={_maxPerIp} " +
@@ -237,7 +250,6 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         System.Text.StringBuilder sb = new();
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionLimiter Status:");
         _ = sb.AppendLine($"MaxPerIp           : {_maxPerIp}");
-        _ = sb.AppendLine($"InactivityThreshold: {_inactivityThreshold.TotalSeconds:F0}s");
         _ = sb.AppendLine($"CleanupInterval    : {_cleanupInterval.TotalSeconds:F0}s");
         _ = sb.AppendLine($"TrackedIPs         : {totalIps}");
         _ = sb.AppendLine($"TotalConcurrent    : {totalConcurrent}");
@@ -281,15 +293,9 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
     /// <summary>
     /// Timer tick entry: non-reentrant, best-effort cleanup of stale entries.
     /// </summary>
-    private async void RunCleanupTick()
+    private void RunCleanupOnce()
     {
         if (_disposed)
-        {
-            return;
-        }
-
-        // Try non-blocking; skip if a previous cleanup is still running.
-        if (!await _cleanupGate.WaitAsync(0).ConfigureAwait(false))
         {
             return;
         }
@@ -319,17 +325,13 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
             if (removed > 0)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[{nameof(ConnectionLimiter)}] cleanup scanned={scanned} removed={removed}");
+                    .Debug($"[{nameof(ConnectionLimiter)}] cleanup scanned={scanned} removed={removed}");
             }
         }
         catch (System.Exception ex) when (ex is not System.ObjectDisposedException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(ConnectionLimiter)}] cleanup-error msg={ex.Message}");
-        }
-        finally
-        {
-            _ = _cleanupGate.Release();
+                .Error($"[{nameof(ConnectionLimiter)}] cleanup-error msg={ex.Message}");
         }
     }
 
@@ -349,8 +351,8 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
 
         try
         {
-            _cleanupTimer.Dispose();
-            _cleanupGate.Dispose();
+            _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
+                                        .CancelRecurring(TaskNames.Recurring.ConnLimiterCleanup(this.GetHashCode()));
             _map.Clear();
         }
         catch (System.Exception ex)

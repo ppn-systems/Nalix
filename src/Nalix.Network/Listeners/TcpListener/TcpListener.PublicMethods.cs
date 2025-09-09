@@ -8,6 +8,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Framework.Time;
 using Nalix.Network.Connection;
+using Nalix.Network.Internal;
 using Nalix.Network.Timing;
 
 namespace Nalix.Network.Listeners.Tcp;
@@ -83,7 +84,7 @@ public abstract partial class TcpListenerBase
             if (Config.EnableTimeout)
             {
                 InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
-                                        .Activate(cancellationToken);
+                                        .Activate(linkedToken);
             }
 
             _acceptWorkerIds.Clear();
@@ -91,8 +92,8 @@ public abstract partial class TcpListenerBase
             for (System.Int32 i = 0; i < Config.MaxParallel; i++)
             {
                 IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-                    name: $"tcp.accept.{_port}.{i}",
-                    group: this.GroupName,
+                    name: TaskNames.Workers.TcpAccept(_port, i),
+                    group: TaskNames.Groups.TcpAccept(_port),
                     work: async (ctx, ct) =>
                     {
                         await AcceptConnectionsAsync(ct).ConfigureAwait(false);
@@ -103,7 +104,8 @@ public abstract partial class TcpListenerBase
                         Retention = System.TimeSpan.FromSeconds(30),
                         IdType = IdentifierType.System,
                         Tag = "listener"
-                    });
+                    }
+                );
 
                 _acceptWorkerIds.Add(h.Id);
             }
@@ -114,16 +116,22 @@ public abstract partial class TcpListenerBase
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Info($"[{nameof(TcpListenerBase)}] cancel port={_port}");
+
+            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Stopped);
         }
         catch (System.Net.Sockets.SocketException ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error($"[{nameof(TcpListenerBase)}] start-failed port={_port} ex={ex.Message}", ex);
+
+            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Stopped);
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Fatal($"[{nameof(TcpListenerBase)}] critical-error port={_port}", ex);
+
+            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Stopped);
         }
         finally
         {
@@ -162,7 +170,7 @@ public abstract partial class TcpListenerBase
         if (Config.EnableTimeout)
         {
             InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
-                                    .Deactivate(cancellationToken);
+                                    .Deactivate(System.Threading.CancellationToken.None);
         }
 
         var cts = System.Threading.Interlocked.Exchange(ref _cts, null);
@@ -174,13 +182,16 @@ public abstract partial class TcpListenerBase
             _listener = null;
 
             _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                        .CancelGroup(this.GroupName);
+                                        .CancelGroup(TaskNames.Groups.TcpAccept(_port));
+
+            _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()?
+                                         .CancelGroup(TaskNames.Groups.TcpProcess(_port)));
 
             InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
                                     .CloseAllConnections();
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(TcpListenerBase)}] TCP on {Config.Port} stopped");
+                                    .Info($"[{nameof(TcpListenerBase)}] stopped protocol={_protocol} port={_port}");
         }
         finally
         {

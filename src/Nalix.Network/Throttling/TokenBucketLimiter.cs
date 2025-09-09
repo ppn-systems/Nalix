@@ -4,7 +4,10 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Tasks;
+using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Configurations;
+using Nalix.Network.Internal;
 using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Throttling;
@@ -85,13 +88,13 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
     #region Fields
 
+    private readonly System.Int32 _cleanupIntervalSec;
     private readonly TokenBucketOptions _opt;
     private readonly System.Int64 _capacityMicro;
     private readonly System.Int64 _refillPerSecMicro;
     private readonly System.Double _swFreq; // Stopwatch ticks per second
 
     private readonly Shard[] _shards;
-    private readonly System.Threading.Timer _cleanupTimer;
 
     private System.Boolean _disposed;
 
@@ -117,10 +120,25 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             _shards[i] = new Shard();
         }
 
-        _cleanupTimer = new System.Threading.Timer(static s =>
-        {
-            ((TokenBucketLimiter)s!).Cleanup();
-        }, this, System.TimeSpan.FromSeconds(_opt.CleanupIntervalSeconds), System.TimeSpan.FromSeconds(_opt.CleanupIntervalSeconds));
+        _cleanupIntervalSec = _opt.CleanupIntervalSeconds;
+
+        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
+            name: TaskNames.Recurring.TokenBucketCleanup(this.GetHashCode()),
+            interval: System.TimeSpan.FromSeconds(_cleanupIntervalSec),
+            work: ct =>
+            {
+                Cleanup();
+                return System.Threading.Tasks.ValueTask.CompletedTask;
+            },
+            options: new RecurringOptions
+            {
+                Tag = "limiter",
+                NonReentrant = true,
+                Jitter = System.TimeSpan.FromMilliseconds(250),
+                RunTimeout = System.TimeSpan.FromSeconds(2),
+                MaxBackoff = System.TimeSpan.FromSeconds(15)
+            }
+        );
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(TokenBucketLimiter)}] init cap={_opt.CapacityTokens} " +
@@ -585,7 +603,9 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         }
 
         _disposed = true;
-        _cleanupTimer.Dispose();
+        _ = (InstanceManager.Instance.GetOrCreateInstance<TaskManager>()?
+                                .CancelRecurring(TaskNames.Recurring.TokenBucketCleanup(this.GetHashCode())));
+
         await System.Threading.Tasks.Task.Yield();
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
