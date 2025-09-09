@@ -6,6 +6,7 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
+using Nalix.Framework.Tasks.Name;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Configurations;
 using Nalix.Network.Internal;
@@ -55,7 +56,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         _map = new System.Collections.Concurrent.ConcurrentDictionary<IpAddressKey, ConnectionLimitInfo>();
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-            name: TaskNames.Recurring.ConnLimiterCleanup(this.GetHashCode()),
+            name: TaskNames.Recurring.WithKey(nameof(ConnectionLimiter), this.GetHashCode()),
             interval: _cleanupInterval,
             work: ct =>
             {
@@ -64,7 +65,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
             },
             options: new RecurringOptions
             {
-                Tag = "connlimit",
+                Tag = nameof(ConnectionLimiter),
                 NonReentrant = true,
                 Jitter = System.TimeSpan.FromMilliseconds(250),
                 RunTimeout = System.TimeSpan.FromSeconds(2),
@@ -352,7 +353,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         try
         {
             _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                        .CancelRecurring(TaskNames.Recurring.ConnLimiterCleanup(this.GetHashCode()));
+                                        .CancelRecurring(TaskNames.Recurring.WithKey(nameof(ConnectionLimiter), this.GetHashCode()));
             _map.Clear();
         }
         catch (System.Exception ex)

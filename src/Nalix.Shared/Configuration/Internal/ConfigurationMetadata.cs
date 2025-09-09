@@ -6,7 +6,7 @@ namespace Nalix.Shared.Configuration.Internal;
 /// Stores metadata about a configuration type.
 /// </summary>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-[System.Diagnostics.DebuggerDisplay("{ConfigurationType?.Name,nq} ({BindableProperties?.Length ?? 0} props)")]
+[System.Diagnostics.DebuggerDisplay("{ConfigurationType?.Naming,nq} ({BindableProperties?.Length ?? 0} props)")]
 internal class ConfigurationMetadata
 {
     /// <summary>

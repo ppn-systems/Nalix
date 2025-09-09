@@ -5,9 +5,9 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
+using Nalix.Framework.Tasks.Name;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Configurations;
-using Nalix.Network.Internal;
 using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Throttling;
@@ -123,7 +123,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         _cleanupIntervalSec = _opt.CleanupIntervalSeconds;
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-            name: TaskNames.Recurring.TokenBucketCleanup(this.GetHashCode()),
+            name: TaskNames.Recurring.WithKey(nameof(TokenBucketLimiter), this.GetHashCode()),
             interval: System.TimeSpan.FromSeconds(_cleanupIntervalSec),
             work: ct =>
             {
@@ -132,7 +132,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             },
             options: new RecurringOptions
             {
-                Tag = "limiter",
+                Tag = nameof(TokenBucketLimiter),
                 NonReentrant = true,
                 Jitter = System.TimeSpan.FromMilliseconds(250),
                 RunTimeout = System.TimeSpan.FromSeconds(2),
@@ -604,7 +604,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         _disposed = true;
         _ = (InstanceManager.Instance.GetOrCreateInstance<TaskManager>()?
-                                .CancelRecurring(TaskNames.Recurring.TokenBucketCleanup(this.GetHashCode())));
+                                     .CancelRecurring(TaskNames.Recurring.WithKey(nameof(TokenBucketLimiter), this.GetHashCode())));
 
         await System.Threading.Tasks.Task.Yield();
 
