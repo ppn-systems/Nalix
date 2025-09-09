@@ -1,11 +1,12 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Tasks;
+using Nalix.Framework.Tasks.Options;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Buffers;
-using System.Linq;
 
 namespace Nalix.Shared.Memory.Pooling;
 
@@ -53,11 +54,20 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// <summary>Gets the smallest buffer size from the buffer allocations list.</summary>
     public System.Int32 MinBufferSize { get; }
 
+    /// <summary>
+    /// Gets the recurring name used for buffer trimming operations.
+    /// </summary>
+    public static readonly System.String RecurringName;
+
     #endregion Properties
 
     #region Constructors
 
-    static BufferPoolManager() => _allocationPatternCache = new();
+    static BufferPoolManager()
+    {
+        _allocationPatternCache = new();
+        RecurringName = $"buf.trim.{System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(typeof(BufferPoolManager)):X8}";
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferPoolManager"/> class with validation and trimming.
@@ -89,8 +99,8 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 
         _bufferAllocations = ParseBufferAllocations(config.BufferAllocations);
 
-        MinBufferSize = _bufferAllocations.Min(alloc => alloc.BufferSize);
-        MaxBufferSize = _bufferAllocations.Max(alloc => alloc.BufferSize);
+        MinBufferSize = System.Linq.Enumerable.Min(_bufferAllocations, alloc => alloc.BufferSize);
+        MaxBufferSize = System.Linq.Enumerable.Max(_bufferAllocations, alloc => alloc.BufferSize);
 
         _poolManager = new BufferPoolCollection(secureClear: _secureClear, autoTuneThreshold: _autoTuneOpThreshold);
         _poolManager.EventShrink += ShrinkBufferPoolSize;
@@ -100,9 +110,23 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 
         if (_enableTrimming)
         {
-            _trimTimer = new System.Threading.Timer(TrimExcessBuffers, null,
-                dueTime: System.TimeSpan.FromMinutes(System.Math.Max(1, _trimIntervalMinutes)),
-                period: System.TimeSpan.FromMinutes(System.Math.Max(1, _trimIntervalMinutes)));
+            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
+                name: RecurringName,
+                interval: System.TimeSpan.FromMinutes(System.Math.Max(1, _trimIntervalMinutes)),
+                work: ct =>
+                {
+                    TrimExcessBuffers(null);
+                    return System.Threading.Tasks.ValueTask.CompletedTask;
+                },
+                options: new RecurringOptions
+                {
+                    Tag = "bufpool",
+                    NonReentrant = true,                           // không chồng lần chạy
+                    Jitter = System.TimeSpan.FromSeconds(5),       // lệch nhịp nhẹ tránh đồng pha
+                    RunTimeout = System.TimeSpan.FromSeconds(3),   // bảo hiểm nếu trim lâu
+                    MaxBackoff = System.TimeSpan.FromMinutes(1)    // backoff khi lỗi liên tiếp
+                }
+            );
         }
     }
 
@@ -213,12 +237,12 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     {
         if (size > MaxBufferSize)
         {
-            return _bufferAllocations.Last().Allocation;
+            return System.Linq.Enumerable.Last(_bufferAllocations).Allocation;
         }
 
         if (size <= MinBufferSize)
         {
-            return _bufferAllocations.First().Allocation;
+            return System.Linq.Enumerable.First(_bufferAllocations).Allocation;
         }
 
         System.Int32 left = 0;
@@ -245,7 +269,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         }
 
         return left < _bufferAllocations.Length ? _bufferAllocations[left].Allocation
-                                                : _bufferAllocations.Last().Allocation;
+                                                : System.Linq.Enumerable.Last(_bufferAllocations).Allocation;
     }
 
     /// <summary>
@@ -276,7 +300,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         _ = sb.AppendLine("Size     | Total Buffers | Free Buffers | In Use | Usage % | MissRate");
         _ = sb.AppendLine("--------------------------------------------------------------------");
 
-        foreach (var pool in _poolManager.GetAllPools().OrderBy(p => p.GetPoolInfoRef().BufferSize))
+        foreach (var pool in System.Linq.Enumerable.OrderBy(_poolManager.GetAllPools(), p => p.GetPoolInfoRef().BufferSize))
         {
             ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
 
@@ -483,25 +507,9 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         {
             try
             {
-                var allocations = key
-                    .Split(';', System.StringSplitOptions.RemoveEmptyEntries)
-                    .Select(pair =>
-                    {
-                        System.String[] parts = pair.Split(',', System.StringSplitOptions.RemoveEmptyEntries);
-                        return parts.Length != 2
-                            ? throw new System.FormatException($"[{nameof(BufferPoolManager)}] Incorrectly formatted pair: '{pair}'.")
-                            : !System.Int32.TryParse(parts[0].Trim(), out System.Int32 allocationSize) || allocationSize <= 0
-                            ? throw new System.ArgumentOutOfRangeException(
-                                nameof(bufferAllocationsString), $"[{nameof(BufferPoolManager)}] Size must be > 0.")
-                            : !System.Double.TryParse(parts[1].Trim(), out System.Double ratio) || ratio <= 0 || ratio > 1
-                            ? throw new System.ArgumentOutOfRangeException(
-                                nameof(bufferAllocationsString), $"[{nameof(BufferPoolManager)}] Ratio must be (0,1].")
-                            : (allocationSize, ratio);
-                    })
-                    .OrderBy(tuple => tuple.allocationSize)
-                    .ToArray();
+                var allocations = ParseAllocations(key, bufferAllocationsString);
 
-                System.Double totalAllocation = allocations.Sum(a => a.ratio);
+                System.Double totalAllocation = System.Linq.Enumerable.Sum(allocations, a => a.ratio);
                 return totalAllocation > 1.1
                     ? throw new System.ArgumentException($"[{nameof(BufferPoolManager)}] Total allocation ratio ({totalAllocation:F2}) exceeds 1.0.")
                     : ((System.Int32, System.Double)[])allocations;
@@ -516,6 +524,47 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
                     $"[{nameof(BufferPoolManager)}] Malformed allocation string. Expected '<size>,<ratio>;...'. ERROR: {ex.Message}");
             }
         });
+    }
+
+    private static (System.Int32 allocationSize, System.Double ratio)[] ParseAllocations(System.String key, System.String bufferAllocationsString)
+    {
+        // Split by ';'
+        System.String[] pairs = key.Split(';', System.StringSplitOptions.RemoveEmptyEntries);
+
+        var list = new System.Collections.Generic.List<(System.Int32, System.Double)>();
+
+        foreach (System.String pair in pairs)
+        {
+            System.String[] parts = pair.Split(',', System.StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length != 2)
+            {
+                throw new System.FormatException(
+                    $"[{nameof(BufferPoolManager)}] Incorrectly formatted pair: '{pair}'.");
+            }
+
+            // Parse size
+            if (!System.Int32.TryParse(parts[0].Trim(), out System.Int32 allocationSize) || allocationSize <= 0)
+            {
+                throw new System.ArgumentOutOfRangeException(
+                    nameof(bufferAllocationsString),
+                    $"[{nameof(BufferPoolManager)}] Size must be > 0.");
+            }
+
+            // Parse ratio
+            if (!System.Double.TryParse(parts[1].Trim(), out System.Double ratio) || ratio <= 0 || ratio > 1)
+            {
+                throw new System.ArgumentOutOfRangeException(
+                    nameof(bufferAllocationsString),
+                    $"[{nameof(BufferPoolManager)}] Ratio must be (0,1].");
+            }
+
+            list.Add((allocationSize, ratio));
+        }
+
+        list.Sort((a, b) => a.Item1.CompareTo(b.Item1));
+
+        return [.. list];
     }
 
     #endregion Parsing

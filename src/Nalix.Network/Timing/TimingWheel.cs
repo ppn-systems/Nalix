@@ -169,7 +169,7 @@ public sealed class TimingWheel : System.IDisposable, IActivatable
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
             name: TaskNames.Workers.TimingWheel(TickMs, WheelSize),
             group: TaskNames.Groups.TimingWeel,
-            work: async (ctx, ct) => { await RunLoop(ct, ctx).ConfigureAwait(false); },
+            work: async (ctx, ct) => { await RunLoop(ctx, ct).ConfigureAwait(false); },
             options: new WorkerOptions
             {
                 CancellationToken = linkedToken,
@@ -282,8 +282,8 @@ public sealed class TimingWheel : System.IDisposable, IActivatable
 
     // Private loop; not part of the public API surface.
     private async System.Threading.Tasks.Task RunLoop(
-        System.Threading.CancellationToken ct,
-        IWorkerContext? ctx = null)
+        IWorkerContext? ctx = null,
+        System.Threading.CancellationToken ct = default)
     {
         _ = System.Threading.Interlocked.Exchange(ref _tick, 0);
 
