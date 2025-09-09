@@ -14,7 +14,7 @@ namespace Nalix.Shared.Configuration.Binding;
 /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
 /// The section and key names in the INI file are derived from the class and property names.
 /// </remarks>
-[System.Diagnostics.DebuggerDisplay("{GetType().Name,nq} (Initialized = {IsInitialized})")]
+[System.Diagnostics.DebuggerDisplay("{GetType().Naming,nq} (Initialized = {IsInitialized})")]
 public abstract partial class ConfigurationLoader
 {
     #region Fields

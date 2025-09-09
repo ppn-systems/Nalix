@@ -5,7 +5,7 @@ namespace Nalix.Shared.Configuration.Internal;
 /// <summary>
 /// Stores metadata about a configuration property.
 /// </summary>
-[System.Diagnostics.DebuggerDisplay("{Name,nq} ({PropertyType.Name})")]
+[System.Diagnostics.DebuggerDisplay("{Naming,nq} ({PropertyType.Naming})")]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal class PropertyMetadata
 {
