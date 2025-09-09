@@ -3,7 +3,10 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Tasks;
+using Nalix.Framework.Tasks.Options;
 using Nalix.Framework.Time;
+using Nalix.Network.Internal;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Timing;
@@ -25,7 +28,6 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
 
     private readonly System.Threading.Lock _gate = new();
     private System.Threading.CancellationTokenSource? _cts;
-    private System.Threading.Tasks.Task? _loopTask;
     private System.TimeSpan _period = DefaultPeriod;
 
     // Use int flags for thread-safe state (0 = false, 1 = true)
@@ -155,29 +157,113 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     {
         if (System.Threading.Interlocked.CompareExchange(ref _isRunning, 1, 0) == 1)
         {
-            return; // already running
+            return;
         }
 
+        System.Threading.CancellationToken linkedToken;
         lock (_gate)
         {
             if (_cts is not null)
             {
-                return; // double-check
+                return;
             }
 
             _cts = new System.Threading.CancellationTokenSource();
-            _loopTask = RunLoopAsync(_cts.Token);
+            linkedToken = _cts.Token;
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-            .Info($"[{nameof(TimeSynchronizer)}] start period={_period.TotalMilliseconds:0.#}ms");
+        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+            name: TaskNames.Workers.TimeSync(Period),
+            group: TaskNames.Groups.TimeSync,
+            work: async (ctx, ct) =>
+            {
+                try
+                {
+                    using var timer = new System.Threading.PeriodicTimer(_period);
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Info($"[{nameof(TimeSynchronizer)}] start period={_period.TotalMilliseconds:0.#}ms");
+
+                    while (!ct.IsCancellationRequested)
+                    {
+                        if (!await timer.WaitForNextTickAsync(ct).ConfigureAwait(false))
+                        {
+                            break;
+                        }
+
+                        if (!IsTimeSyncEnabled)
+                        {
+                            continue;
+                        }
+
+                        System.Int64 t0 = Clock.UnixMillisecondsNow();
+
+                        var handler = TimeSynchronized;
+                        if (handler is not null)
+                        {
+                            if (_fireAndForget)
+                            {
+                                _ = System.Threading.ThreadPool.UnsafeQueueUserWorkItem(static state =>
+                                {
+                                    var (h, ts) = ((System.Action<System.Int64>, System.Int64))state!;
+                                    try { h(ts); }
+                                    catch (System.Exception ex)
+                                    {
+                                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Error($"[{nameof(TimeSynchronizer)}] handler-error", ex);
+                                    }
+                                }, (handler, t0), preferLocal: false);
+                            }
+                            else
+                            {
+                                try { handler(t0); }
+                                catch (System.Exception ex)
+                                {
+                                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[{nameof(TimeSynchronizer)}] handler-error", ex);
+                                }
+                            }
+                        }
+
+                        System.Int64 elapsed = Clock.UnixMillisecondsNow() - t0;
+                        if (elapsed > _period.TotalMilliseconds * 1.5)
+                        {
+                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Warn($"[{nameof(TimeSynchronizer)}] overrun elapsed={elapsed}ms period={_period.TotalMilliseconds:0.#}ms");
+                        }
+
+                        ctx.Heartbeat();
+                    }
+                }
+                catch (System.OperationCanceledException)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                        .Debug($"[{nameof(TimeSynchronizer)}] cancelled");
+                }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                        .Error($"[{nameof(TimeSynchronizer)}] loop-error", ex);
+                }
+                finally
+                {
+                    System.Threading.Volatile.Write(ref _isRunning, 0);
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Info($"[{nameof(TimeSynchronizer)}] stop");
+                }
+            },
+            options: new WorkerOptions
+            {
+                CancellationToken = linkedToken,
+                Tag = "timesync",
+                Retention = System.TimeSpan.Zero
+            }
+        );
     }
 
     private void StopLoop()
     {
         if (System.Threading.Interlocked.Exchange(ref _isRunning, 0) == 0)
         {
-            return; // already stopped
         }
 
         System.Threading.CancellationTokenSource? toCancel;
@@ -187,93 +273,8 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
             _cts = null;
         }
 
-        try { toCancel?.Cancel(); } catch { /* ignore */ }
-        try { toCancel?.Dispose(); } catch { /* ignore */ }
-
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-            .Info($"[{nameof(TimeSynchronizer)}] stop");
-    }
-
-    #endregion
-
-    #region Core Loop
-
-    private async System.Threading.Tasks.Task RunLoopAsync(System.Threading.CancellationToken token)
-    {
-        try
-        {
-            // PeriodicTimer handles cadence more stably than ad-hoc delays.
-            using var timer = new System.Threading.PeriodicTimer(_period);
-
-            while (!token.IsCancellationRequested)
-            {
-                // Wait for next tick; break if cancelled.
-                if (!await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
-                {
-                    break;
-                }
-
-                // If disabled mid-flight, skip invoking but keep loop alive until StopLoop() is called.
-                if (!IsTimeSyncEnabled)
-                {
-                    continue;
-                }
-
-                System.Int64 t0 = Clock.UnixMillisecondsNow();
-
-                var handler = TimeSynchronized;
-                if (handler is null)
-                {
-                    continue;
-                }
-
-                if (_fireAndForget)
-                {
-                    // Dispatch without flowing ExecutionContext for minimal overhead
-                    _ = System.Threading.ThreadPool.UnsafeQueueUserWorkItem(static state =>
-                    {
-                        var (h, timestamp) = ((System.Action<System.Int64>, System.Int64))state!;
-                        try { h(timestamp); }
-                        catch (System.Exception ex)
-                        {
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Error($"[{nameof(TimeSynchronizer)}] handler-error", ex);
-                        }
-                    }, (handler, t0), preferLocal: false);
-                }
-                else
-                {
-                    try { handler(t0); }
-                    catch (System.Exception ex)
-                    {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                            .Error($"[{nameof(TimeSynchronizer)}] handler-error", ex);
-                    }
-                }
-
-                // Simple overrun detection
-                System.Int64 elapsed = Clock.UnixMillisecondsNow() - t0;
-                if (elapsed > _period.TotalMilliseconds * 1.5)
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                        .Warn($"[{nameof(TimeSynchronizer)}] overrun elapsed={elapsed}ms period={_period.TotalMilliseconds:0.#}ms");
-                }
-            }
-        }
-        catch (System.OperationCanceledException)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Debug($"[{nameof(TimeSynchronizer)}] cancelled");
-        }
-        catch (System.Exception ex)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Error($"[{nameof(TimeSynchronizer)}] loop-error", ex);
-        }
-        finally
-        {
-            System.Threading.Volatile.Write(ref _isRunning, 0);
-        }
+        try { toCancel?.Cancel(); } catch { }
+        try { toCancel?.Dispose(); } catch { }
     }
 
     #endregion
@@ -293,7 +294,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
         System.GC.SuppressFinalize(this);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-            .Meta($"[{nameof(TimeSynchronizer)}] disposed");
+                                .Meta($"[{nameof(TimeSynchronizer)}] disposed");
     }
 
     #endregion

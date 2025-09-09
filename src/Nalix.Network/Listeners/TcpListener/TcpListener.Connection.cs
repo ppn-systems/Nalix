@@ -1,8 +1,12 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
+using Nalix.Common.Enums;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Tasks;
+using Nalix.Framework.Tasks.Options;
+using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Throttling;
 using Nalix.Network.Timing;
@@ -12,25 +16,6 @@ namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
 {
-    #region Fields
-
-    private static readonly System.Threading.WaitCallback ProcessConnectionCallback = static state =>
-    {
-        if (state is (TcpListenerBase listener, IConnection conn))
-        {
-            listener.ProcessConnection(conn);
-        }
-        else
-        {
-            throw new System.InvalidCastException(
-                $"Invalid state object. " +
-                $"Expected a (TcpListenerBase, IConnection), but received {state?.GetType().Name ?? "null"}.");
-
-        }
-    };
-
-    #endregion Fields
-
     #region Internal
 
     internal sealed class NonFatalRejectedException : System.Exception { public NonFatalRejectedException() : base() { } }
@@ -137,8 +122,21 @@ public abstract partial class TcpListenerBase
                     .CreateConnectionAsync(cancellationToken)
                     .ConfigureAwait(false);
 
-                _ = System.Threading.ThreadPool.UnsafeQueueUserWorkItem(
-                    ProcessConnectionCallback, (this, connection));
+                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+                    name: TaskNames.Workers.TcpProcess(_port, connection.ID),
+                    group: TaskNames.Groups.TcpProcess(_port),
+                    work: async (ctx, workerCt) =>
+                    {
+                        ProcessConnection(connection);
+                        await System.Threading.Tasks.Task.CompletedTask;
+                    },
+                    options: new WorkerOptions
+                    {
+                        Retention = System.TimeSpan.Zero,
+                        IdType = IdentifierType.System,
+                        Tag = "conn"
+                    }
+                );
             }
             catch (NonFatalRejectedException)
             {
@@ -363,8 +361,21 @@ public abstract partial class TcpListenerBase
                     IConnection connection = this.InitializeConnection(socket, context);
 
                     // Process the connection
-                    _ = System.Threading.ThreadPool.UnsafeQueueUserWorkItem(
-                        ProcessConnectionCallback, (this, connection));
+                    _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+                        name: TaskNames.Workers.TcpProcess(_port, connection.ID),
+                        group: TaskNames.Groups.TcpProcess(_port),
+                        work: async (ctx, workerCt) =>
+                        {
+                            ProcessConnection(connection);
+                            await System.Threading.Tasks.Task.CompletedTask;
+                        },
+                        options: new WorkerOptions
+                        {
+                            Retention = System.TimeSpan.Zero,
+                            IdType = IdentifierType.System,
+                            Tag = "conn"
+                        }
+                    );
 
                     // Rebind a fresh context for the next accept on this args
                     PooledAcceptContext nextCtx = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
