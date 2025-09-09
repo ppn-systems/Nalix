@@ -81,7 +81,7 @@ public sealed class PacketDispatchChannel
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Activate()
+    public void Activate(System.Threading.CancellationToken cancellationToken = default)
     {
         if (System.Threading.Interlocked.CompareExchange(ref _running, 1, 0) != 0)
         {
@@ -98,7 +98,7 @@ public sealed class PacketDispatchChannel
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Deactivate()
+    public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
     {
         if (System.Threading.Interlocked.Exchange(ref _running, 0) == 0)
         {
@@ -118,7 +118,7 @@ public sealed class PacketDispatchChannel
             System.Threading.Tasks.Task? t = _loopTask;
             if (t is not null)
             {
-                try { _ = t.Wait(System.TimeSpan.FromSeconds(2)); }
+                try { _ = t.Wait(System.TimeSpan.FromSeconds(2), cancellationToken); }
                 catch { /* ignore */ }
             }
         }

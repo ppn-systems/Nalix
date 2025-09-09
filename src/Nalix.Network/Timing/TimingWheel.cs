@@ -147,7 +147,7 @@ public sealed class TimingWheel : System.IDisposable, IActivatable
     /// This method is idempotent. Subsequent calls have no effect while the timer is active.
     /// A dedicated long-running task is used to minimize scheduling jitter.
     /// </remarks>
-    public void Activate()
+    public void Activate(System.Threading.CancellationToken cancellationToken = default)
     {
         // If already running, skip.
         if (_cts is { IsCancellationRequested: false })
@@ -178,7 +178,7 @@ public sealed class TimingWheel : System.IDisposable, IActivatable
     /// The method waits briefly for the loop to finish (<c>~2s</c>) and then drains all buckets
     /// to release pooled items early.
     /// </remarks>
-    public void Deactivate()
+    public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
     {
         var cts = _cts;
         if (cts is null)
@@ -189,7 +189,7 @@ public sealed class TimingWheel : System.IDisposable, IActivatable
         try
         {
             cts.Cancel();
-            _ = _loopTask?.Wait(System.TimeSpan.FromSeconds(2));
+            _ = _loopTask?.Wait(System.TimeSpan.FromSeconds(2), cancellationToken);
         }
         catch
         {

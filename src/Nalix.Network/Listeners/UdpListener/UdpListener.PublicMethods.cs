@@ -23,7 +23,7 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
     /// </summary>
     /// <param name="cancellationToken">A <see cref="System.Threading.CancellationToken"/> to cancel the listening process.</param>
     [System.Diagnostics.DebuggerStepThrough]
-    public async System.Threading.Tasks.Task ActivateAsync(
+    public void Activate(
         System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
@@ -52,8 +52,7 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
             this._cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             this._cancellationToken = this._cts.Token;
 
-            await this._lock.WaitAsync(this._cancellationToken)
-                            .ConfigureAwait(false);
+            _ = this._lock.WaitAsync(this._cancellationToken).ConfigureAwait(false);
 
             try
             {
@@ -61,7 +60,7 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
                                         .Info($"[{nameof(UdpListenerBase)}] listening port={_port}");
 
                 System.Threading.Tasks.Task receiveTask = this.ReceiveDatagramsAsync(this._cancellationToken);
-                await receiveTask.ConfigureAwait(false);
+                _ = receiveTask.ConfigureAwait(false);
             }
             finally
             {
@@ -95,8 +94,7 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
                     if (this._udpClient != null)
                     {
                         this._udpClient.Close();
-                        await System.Threading.Tasks.Task.Delay(200, cancellationToken)
-                                                        .ConfigureAwait(false);
+                        _ = System.Threading.Tasks.Task.Delay(200, cancellationToken).ConfigureAwait(false);
                     }
                 }
                 catch (System.Exception ex)
@@ -117,7 +115,7 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
     /// Stops the listener from receiving further UDP datagrams.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    public async System.Threading.Tasks.Task DeactivateAsync(
+    public void Deactivate(
         System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
@@ -144,8 +142,6 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
             this._cts?.Dispose();
             this._cts = null;
         }
-
-        await System.Threading.Tasks.Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <summary>
