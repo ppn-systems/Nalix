@@ -12,6 +12,9 @@
 	  <Reference Include="Nalix.Logging">
 	    <HintPath>..\..\build\bin\Debug\net9.0\Nalix.Logging.dll</HintPath>
 	  </Reference>
+		<Reference Include="Nalix.Framework">
+			<HintPath>..\..\build\bin\Debug\net9.0\Nalix.Framework.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 </Project>
