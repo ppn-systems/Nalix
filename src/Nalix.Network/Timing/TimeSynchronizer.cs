@@ -2,6 +2,7 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Enums;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -287,6 +288,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
             {
                 CancellationToken = linkedToken,
                 Tag = "timesync",
+                IdType = SnowflakeType.System,
                 RetainFor = System.TimeSpan.Zero
             }
         );
