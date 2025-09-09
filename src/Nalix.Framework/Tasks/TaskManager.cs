@@ -297,7 +297,11 @@ public sealed partial class TaskManager : ITaskManager
             var st = kv.Value;
             if (System.String.Equals(st.Group, group, System.StringComparison.Ordinal))
             {
-                st.Cancel(); n++;
+                if (!st.Cts.IsCancellationRequested)
+                {
+                    st.Cancel();
+                    n++;
+                }
             }
         }
         if (n > 0)
@@ -316,7 +320,13 @@ public sealed partial class TaskManager : ITaskManager
     public System.Int32 CancelAllWorkers()
     {
         System.Int32 n = 0;
-        foreach (var kv in _workers) { kv.Value.Cancel(); n++; }
+        foreach (var kv in _workers)
+        {
+            if (!kv.Value.Cts.IsCancellationRequested)
+            {
+                kv.Value.Cancel(); n++;
+            }
+        }
         if (n > 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
