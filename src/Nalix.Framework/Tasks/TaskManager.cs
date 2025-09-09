@@ -1,7 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Abstractions;
-using Nalix.Common.Enums;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Tasks;
 using Nalix.Common.Tasks.Options;
@@ -187,8 +186,11 @@ public sealed partial class TaskManager : ITaskManager
         System.ArgumentNullException.ThrowIfNull(work);
 
         options ??= new WorkerOptions();
-        IIdentifier id = Identifier.NewId(IdentifierType.System, 1);
-        System.Threading.CancellationTokenSource cts = new();
+        IIdentifier id = Identifier.NewId(options.IdType, options.MachineId);
+        System.Threading.CancellationTokenSource cts = options.CancellationToken.CanBeCanceled
+            ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(options.CancellationToken)
+            : new System.Threading.CancellationTokenSource();
+
         WorkerState st = new(id, name, group, options, cts);
 
         if (!_workers.TryAdd(id, st))

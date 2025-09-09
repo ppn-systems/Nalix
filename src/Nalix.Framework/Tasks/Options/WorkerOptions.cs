@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Enums;
 using Nalix.Common.Tasks.Options;
 
 namespace Nalix.Framework.Tasks.Options;
@@ -9,6 +10,21 @@ namespace Nalix.Framework.Tasks.Options;
 /// </summary>
 public sealed class WorkerOptions : IWorkerOptions
 {
+    /// <summary>
+    /// Gets an optional tag for identifying the worker.
+    /// </summary>
+    public System.String? Tag { get; init; }
+
+    /// <summary>
+    /// Gets the optional machine identifier for the worker instance.
+    /// </summary>
+    public System.UInt16 MachineId { get; init; } = 1;
+
+    /// <summary>
+    /// Gets the optional identifier type for the worker instance.
+    /// </summary>
+    public IdentifierType IdType { get; init; } = IdentifierType.System;
+
     /// <summary>
     /// Gets the duration for which finished workers are retained for diagnostics.
     /// Set to <c>null</c> or <see cref="System.TimeSpan.Zero"/> to auto-remove.
@@ -26,7 +42,7 @@ public sealed class WorkerOptions : IWorkerOptions
     public System.Boolean TryAcquireGroupSlotImmediately { get; init; } = false;
 
     /// <summary>
-    /// Gets an optional tag for identifying the worker.
+    /// Gets the cancellation token that is linked to the worker's execution.
     /// </summary>
-    public System.String? Tag { get; init; }
+    public System.Threading.CancellationToken CancellationToken { get; init; } = default;
 }

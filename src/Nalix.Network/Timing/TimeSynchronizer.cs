@@ -116,7 +116,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     }
 
     /// <summary>Enables synchronization and ensures the loop is running.</summary>
-    public void Activate()
+    public void Activate(System.Threading.CancellationToken cancellationToken = default)
     {
         if (System.Threading.Volatile.Read(ref _enabled) == 1)
         {
@@ -128,7 +128,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     }
 
     /// <summary>Disables synchronization and stops the loop.</summary>
-    public void Deactivate()
+    public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
     {
         if (System.Threading.Volatile.Read(ref _enabled) == 0)
         {
