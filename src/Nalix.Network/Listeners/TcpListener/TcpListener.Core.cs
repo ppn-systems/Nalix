@@ -6,7 +6,6 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Configurations;
-using Nalix.Network.Connection;
 using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Timing;
@@ -189,17 +188,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable, I
                 }
                 catch { }
 
-                try
-                {
-                    InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
-                                            .CloseAllConnections();
-                }
-                catch { }
-
                 _ = System.Threading.Interlocked.Exchange(ref self._state, (System.Int32)ListenerState.Stopped);
-
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[{nameof(TcpListenerBase)}] TCP on {Config.Port} stopped");
             }
             catch (System.Exception ex)
             {

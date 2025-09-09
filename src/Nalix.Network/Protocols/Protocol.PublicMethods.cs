@@ -91,6 +91,7 @@ public abstract partial class Protocol
 
             // Connection failed validation, close immediately
             connection.Close();
+            return;
         }
         catch (System.OperationCanceledException)
         {

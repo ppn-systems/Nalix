@@ -191,7 +191,7 @@ public abstract partial class TcpListenerBase
                                     .CloseAllConnections();
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(TcpListenerBase)}] stopped protocol={_protocol} port={_port}");
+                                    .Info($"[{nameof(TcpListenerBase)}] stop protocol={_protocol} port={_port}");
         }
         finally
         {
