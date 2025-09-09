@@ -15,11 +15,17 @@ namespace Nalix.Framework.Tasks;
 /// </summary>
 public sealed partial class TaskManager : ITaskManager
 {
+    #region Fields
+
     private readonly System.Collections.Concurrent.ConcurrentDictionary<IIdentifier, WorkerState> _workers;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, RecurringState> _recurring;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, System.Threading.SemaphoreSlim> _groupGates;
 
     private volatile System.Boolean _disposed;
+
+    #endregion Fields
+
+    #region Ctors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TaskManager"/> class.
@@ -33,6 +39,10 @@ public sealed partial class TaskManager : ITaskManager
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Meta($"[{nameof(TaskManager)}] init");
     }
+
+    #endregion Ctors
+
+    #region APIs
 
     /// <summary>
     /// Schedules a recurring background task.
@@ -379,6 +389,8 @@ public sealed partial class TaskManager : ITaskManager
         handle = null; return false;
     }
 
+    #endregion APIs
+
     #region IReportable
 
     /// <summary>
@@ -394,7 +406,7 @@ public sealed partial class TaskManager : ITaskManager
 
         // Recurring summary
         _ = sb.AppendLine("Recurring:");
-        _ = sb.AppendLine("Naming                          | Runs     | Fails | Running | Last UTC              | Next UTC              | Interval | Tag");
+        _ = sb.AppendLine("Naming                             | Runs     | Fails | Running | Last UTC              | Next UTC              | Interval | Tag");
         foreach (var kv in _recurring)
         {
             var s = kv.Value;
@@ -431,7 +443,7 @@ public sealed partial class TaskManager : ITaskManager
 
         // Top N long-running workers
         _ = sb.AppendLine("Top Running Workers (by age):");
-        _ = sb.AppendLine("Id                                 | Naming                        | Group                       | Age     | Progress | LastBeat");
+        _ = sb.AppendLine("Id         | Naming                        | Group                       | Age     | Progress | LastBeat");
         var top = new System.Collections.Generic.List<WorkerState>(_workers.Values);
         top.Sort(static (a, b) => a.StartedUtc.CompareTo(b.StartedUtc)); // oldest first
         System.Int32 show = 0;
@@ -453,7 +465,7 @@ public sealed partial class TaskManager : ITaskManager
         return sb.ToString();
 
         static System.String PadName(System.String s, System.Int32 width)
-            => s.Length > width ? System.String.Concat(System.MemoryExtensions.AsSpan(s, 0, width), "…") : s.PadRight(width);
+            => s.Length > width ? System.String.Concat(System.MemoryExtensions.AsSpan(s, 0, width - 1), "…") : s.PadRight(width);
 
         static System.Int32 GetUsed(System.Threading.SemaphoreSlim s) => System.Math.Max(0, s.CurrentCount - 0);
         static System.String FormatAge(System.DateTimeOffset start)
