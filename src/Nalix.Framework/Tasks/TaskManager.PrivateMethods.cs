@@ -3,7 +3,7 @@
 
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
-using Nalix.Common.Identity.Abstractions;
+using Nalix.Common.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Random;
