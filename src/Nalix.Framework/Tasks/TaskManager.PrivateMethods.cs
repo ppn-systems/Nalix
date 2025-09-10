@@ -8,18 +8,79 @@ namespace Nalix.Framework.Tasks;
 
 public partial class TaskManager
 {
+    #region Types
+
+    private sealed record Gate(System.Threading.SemaphoreSlim SemaphoreSlim, System.Int32 Capacity);
+
+    #endregion Types
+
+    #region Internal Cleanup
+
+    private void CleanupWorkers()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        try
+        {
+            System.DateTimeOffset now = System.DateTimeOffset.UtcNow;
+            foreach (var kv in _workers)
+            {
+                var st = kv.Value;
+                var keep = st.Options.Retention;
+
+                if (keep is null || keep <= System.TimeSpan.Zero)
+                {
+                    continue;
+                }
+
+                if (st.IsRunning)
+                {
+                    continue;
+                }
+
+                System.DateTimeOffset? completed = st.CompletedUtc;
+                if (completed is null)
+                {
+                    continue;
+                }
+
+                if (now - completed.Value >= keep.Value)
+                {
+                    if (_workers.TryRemove(st.Id, out _))
+                    {
+                        try { st.Cts.Dispose(); } catch { }
+                    }
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"[{nameof(TaskManager)}] cleanup-error msg={ex.Message}");
+        }
+    }
+
+    #endregion Internal Cleanup
+
     private async System.Threading.Tasks.Task RecurringLoopAsync(
         RecurringState s,
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work)
     {
-        var ct = s.Cts.Token;
+        System.Threading.CancellationToken ct = s.Cts.Token;
 
         // jitter
         if (s.Options.Jitter is { } j && j > System.TimeSpan.Zero)
         {
             try
             {
-                await System.Threading.Tasks.Task.Delay(SecureRandom.GetInt32(0, (System.Int32)j.TotalMilliseconds), ct)
+                // use TimeSpan to avoid truncation to int milliseconds
+                System.TimeSpan jitter = System.TimeSpan.FromMilliseconds(SecureRandom
+                                                        .GetInt32(0, (System.Int32)j.TotalMilliseconds));
+
+                await System.Threading.Tasks.Task.Delay(jitter, ct)
                                                  .ConfigureAwait(false);
             }
             catch (System.OperationCanceledException)
@@ -45,10 +106,13 @@ public partial class TaskManager
                 System.Int64 delayTicks = next - now;
                 if (delayTicks > 0)
                 {
-                    System.Int32 ms = (System.Int32)(delayTicks * 1000 / freq);
-                    if (ms > 1)
+                    // precise delay using TimeSpan, avoids sub-ms busy yielding
+                    System.Double delaySeconds = delayTicks / freq;
+                    var delayTs = System.TimeSpan.FromSeconds(delaySeconds);
+
+                    if (delayTs > System.TimeSpan.Zero)
                     {
-                        await System.Threading.Tasks.Task.Delay(ms, ct).ConfigureAwait(false);
+                        await System.Threading.Tasks.Task.Delay(delayTs, ct).ConfigureAwait(false);
                     }
                     else
                     {
@@ -57,6 +121,7 @@ public partial class TaskManager
                 }
                 else
                 {
+                    // catch up if we missed one or more intervals
                     System.Int64 missed = (-delayTicks + step - 1) / step;
                     next += (missed + 1) * step;
                 }
@@ -108,7 +173,11 @@ public partial class TaskManager
                 {
                     if (s.Options.NonReentrant)
                     {
-                        _ = s.Gate.Release();
+                        try
+                        {
+                            _ = s.Gate.Release();
+                        }
+                        catch { /* gate might be disposed on shutdown */ }
                     }
 
                     next += step;
@@ -151,6 +220,8 @@ public partial class TaskManager
         catch (System.OperationCanceledException) { }
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Int32 CountRunningWorkers()
     {
         System.Int32 n = 0; foreach (var kv in _workers)
@@ -164,24 +235,22 @@ public partial class TaskManager
         return n;
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void RetainOrRemove(WorkerState st)
     {
-        var keep = st.Options.Retention;
+        System.TimeSpan? keep = st.Options.Retention;
         if (keep is null || keep <= System.TimeSpan.Zero)
         {
+            // remove immediately + dispose CTS
             _ = _workers.TryRemove(st.Id, out _);
-            return;
-        }
-
-        // schedule delayed removal
-        _ = System.Threading.Tasks.Task.Run(async () =>
-        {
             try
             {
-                await System.Threading.Tasks.Task.Delay(keep.Value).ConfigureAwait(false);
+                st.Cts.Dispose();
             }
             catch { }
-            _ = _workers.TryRemove(st.Id, out _);
-        });
+
+            return;
+        }
     }
 }

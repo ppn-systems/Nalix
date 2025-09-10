@@ -17,9 +17,12 @@ public sealed partial class TaskManager : ITaskManager
 {
     #region Fields
 
+    private static readonly System.TimeSpan CleanupInterval = System.TimeSpan.FromSeconds(30);
+
+    private readonly System.Threading.Timer _cleanupTimer;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, Gate> _groupGates;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<IIdentifier, WorkerState> _workers;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, RecurringState> _recurring;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, System.Threading.SemaphoreSlim> _groupGates;
 
     private volatile System.Boolean _disposed;
 
@@ -35,6 +38,12 @@ public sealed partial class TaskManager : ITaskManager
         _workers = new();
         _recurring = new();
         _groupGates = new(System.StringComparer.Ordinal);
+
+        _cleanupTimer = new System.Threading.Timer(static s =>
+        {
+            var self = (TaskManager)s!;
+            self.CleanupWorkers();
+        }, this, CleanupInterval, CleanupInterval);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Meta($"[{nameof(TaskManager)}] init");
@@ -57,8 +66,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <exception cref="System.ArgumentNullException">Thrown if the work delegate is null.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown if a recurring task with the same name already exists.</exception>
     public IRecurringHandle ScheduleRecurring(
-        System.String name,
-        System.TimeSpan interval,
+        System.String name, System.TimeSpan interval,
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
         IRecurringOptions? options = null)
     {
@@ -74,15 +82,15 @@ public sealed partial class TaskManager : ITaskManager
 
         if (!_recurring.TryAdd(name, st))
         {
-            throw new System.InvalidOperationException($"[TaskManager] duplicate recurring name: {name}");
+            throw new System.InvalidOperationException($"[{nameof(TaskManager)}] duplicate recurring name: {name}");
         }
 
         st.Task = System.Threading.Tasks.Task.Run(() => RecurringLoopAsync(st, work), cts.Token);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(TaskManager)}] start-recurring name={name} " +
-                                      $"iv={interval.TotalMilliseconds:F0}ms " +
-                                      $"nonReentrant={options.NonReentrant} tag={options.Tag ?? "-"}");
+                                .Debug($"[{nameof(TaskManager)}] start-recurring name={name} " +
+                                       $"iv={interval.TotalMilliseconds:F0}ms " +
+                                       $"nonReentrant={options.NonReentrant} tag={options.Tag ?? "-"}");
         return st;
     }
 
@@ -121,54 +129,6 @@ public sealed partial class TaskManager : ITaskManager
     }
 
     /// <summary>
-    /// Cancels a recurring background task by its name.
-    /// </summary>
-    /// <param name="name">The name of the recurring task.</param>
-    /// <returns><c>true</c> if the recurring task was found and cancelled; otherwise, <c>false</c>.</returns>
-    public System.Boolean CancelRecurring(System.String name)
-    {
-        if (_recurring.TryRemove(name, out RecurringState? st))
-        {
-            st.Cancel();
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[{nameof(TaskManager)}] cancel recurring name={name}");
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Lists all scheduled recurring tasks.
-    /// </summary>
-    /// <returns>A read-only collection of recurring handles.</returns>
-    public System.Collections.Generic.IReadOnlyCollection<IRecurringHandle> ListRecurring()
-    {
-        System.Collections.Generic.List<IRecurringHandle> list = new(_recurring.Count);
-        foreach (var kv in _recurring)
-        {
-            list.Add(kv.Value);
-        }
-
-        return list;
-    }
-
-    /// <summary>
-    /// Tries to get a recurring handle by name.
-    /// </summary>
-    /// <param name="name">The name of the recurring task.</param>
-    /// <param name="handle">The handle of the recurring task, if found.</param>
-    /// <returns><c>true</c> if found; otherwise, <c>false</c>.</returns>
-    public System.Boolean TryGetRecurring(
-        System.String name,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out IRecurringHandle? handle)
-    {
-        if (_recurring.TryGetValue(name, out var st)) { handle = st; return true; }
-        handle = null; return false;
-    }
-
-    /// <summary>
     /// Starts a worker task in the background.
     /// </summary>
     /// <param name="name">The name of the worker.</param>
@@ -180,8 +140,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <exception cref="System.ArgumentNullException">Thrown if the work delegate is null.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown if the worker cannot be added.</exception>
     public IWorkerHandle StartWorker(
-        System.String name,
-        System.String group,
+        System.String name, System.String group,
         System.Func<IWorkerContext, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
         IWorkerOptions? options = null)
     {
@@ -209,10 +168,10 @@ public sealed partial class TaskManager : ITaskManager
         }
 
         // Optional concurrency cap per-group
-        System.Threading.SemaphoreSlim? gate = null;
+        Gate? gate = null;
         if (options.MaxGroupConcurrency is System.Int32 cap && cap > 0)
         {
-            gate = _groupGates.GetOrAdd(group, _ => new System.Threading.SemaphoreSlim(cap, cap));
+            gate = _groupGates.GetOrAdd(group, _ => new Gate(new System.Threading.SemaphoreSlim(cap, cap), cap));
         }
 
         // run
@@ -225,7 +184,7 @@ public sealed partial class TaskManager : ITaskManager
                 {
                     if (options.TryAcquireGroupSlotImmediately)
                     {
-                        if (!await gate.WaitAsync(0, ct).ConfigureAwait(false))
+                        if (!await gate.SemaphoreSlim.WaitAsync(0, ct).ConfigureAwait(false))
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                     .Warn($"[{nameof(TaskManager)}] " +
@@ -235,7 +194,7 @@ public sealed partial class TaskManager : ITaskManager
                     }
                     else
                     {
-                        await gate.WaitAsync(ct).ConfigureAwait(false);
+                        await gate.SemaphoreSlim.WaitAsync(ct).ConfigureAwait(false);
                     }
                 }
 
@@ -260,11 +219,7 @@ public sealed partial class TaskManager : ITaskManager
             {
                 if (gate is not null)
                 {
-                    try
-                    {
-                        _ = gate.Release();
-                    }
-                    catch { }
+                    try { _ = gate.SemaphoreSlim.Release(); } catch { }
                 }
 
                 this.RetainOrRemove(st);
@@ -278,6 +233,44 @@ public sealed partial class TaskManager : ITaskManager
     }
 
     /// <summary>
+    /// Cancels a recurring background task by its name.
+    /// </summary>
+    /// <param name="name">The name of the recurring task.</param>
+    /// <returns><c>true</c> if the recurring task was found and cancelled; otherwise, <c>false</c>.</returns>
+    public System.Boolean CancelRecurring(System.String name)
+    {
+        if (_recurring.TryRemove(name, out RecurringState? st))
+        {
+            st.Cancel();
+
+            var t = st.Task;
+            if (t is not null)
+            {
+                _ = t.ContinueWith(_ =>
+                    {
+                        try { st.Cts.Dispose(); } catch { }
+                        try { st.Gate.Dispose(); } catch { }
+                    },
+                    System.Threading.CancellationToken.None,
+                    System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously,
+                    System.Threading.Tasks.TaskScheduler.Default
+                );
+            }
+            else
+            {
+                try { st.Cts.Dispose(); } catch { }
+                try { st.Gate.Dispose(); } catch { }
+            }
+
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[{nameof(TaskManager)}] cancel recurring name={name}");
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Cancels a worker task by its identifier.
     /// </summary>
     /// <param name="id">The identifier of the worker.</param>
@@ -287,6 +280,13 @@ public sealed partial class TaskManager : ITaskManager
         if (_workers.TryGetValue(id, out var st))
         {
             st.Cancel();
+
+            var t = st.Task;
+            if (t is not null && t.IsCompleted)
+            {
+                try { st.Cts.Dispose(); } catch { }
+            }
+
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[{nameof(TaskManager)}] worker-cancel id={id} name={st.Name} group={st.Group}");
             return true;
@@ -347,6 +347,49 @@ public sealed partial class TaskManager : ITaskManager
     }
 
     /// <summary>
+    /// Tries to get a worker handle by identifier.
+    /// </summary>
+    /// <param name="id">The identifier of the worker.</param>
+    /// <param name="handle">The handle of the worker, if found.</param>
+    /// <returns><c>true</c> if found; otherwise, <c>false</c>.</returns>
+    public System.Boolean TryGetWorker(
+        IIdentifier id,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IWorkerHandle? handle)
+    {
+        if (_workers.TryGetValue(id, out var st)) { handle = st; return true; }
+        handle = null; return false;
+    }
+
+    /// <summary>
+    /// Tries to get a recurring handle by name.
+    /// </summary>
+    /// <param name="name">The name of the recurring task.</param>
+    /// <param name="handle">The handle of the recurring task, if found.</param>
+    /// <returns><c>true</c> if found; otherwise, <c>false</c>.</returns>
+    public System.Boolean TryGetRecurring(
+        System.String name,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IRecurringHandle? handle)
+    {
+        if (_recurring.TryGetValue(name, out var st)) { handle = st; return true; }
+        handle = null; return false;
+    }
+
+    /// <summary>
+    /// Lists all scheduled recurring tasks.
+    /// </summary>
+    /// <returns>A read-only collection of recurring handles.</returns>
+    public System.Collections.Generic.IReadOnlyCollection<IRecurringHandle> ListRecurring()
+    {
+        System.Collections.Generic.List<IRecurringHandle> list = new(_recurring.Count);
+        foreach (var kv in _recurring)
+        {
+            list.Add(kv.Value);
+        }
+
+        return list;
+    }
+
+    /// <summary>
     /// Lists all worker handles.
     /// </summary>
     /// <param name="runningOnly">If <c>true</c>, only running workers are listed.</param>
@@ -372,21 +415,6 @@ public sealed partial class TaskManager : ITaskManager
             list.Add(st);
         }
         return list;
-    }
-
-    /// <summary>
-    /// Tries to get a worker handle by identifier.
-    /// </summary>
-    /// <param name="id">The identifier of the worker.</param>
-    /// <param name="handle">The handle of the worker, if found.</param>
-    /// <returns><c>true</c> if found; otherwise, <c>false</c>.</returns>
-    public System.Boolean TryGetWorker(
-        IIdentifier id,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out IWorkerHandle? handle)
-    {
-        if (_workers.TryGetValue(id, out var st)) { handle = st; return true; }
-        handle = null; return false;
     }
 
     #endregion APIs
@@ -435,7 +463,7 @@ public sealed partial class TaskManager : ITaskManager
         foreach (var gkv in perGroup)
         {
             System.String gname = PadName(gkv.Key, 28);
-            System.Int32 cap = _groupGates.TryGetValue(gkv.Key, out var sem) ? sem.CurrentCount + GetUsed(sem) : 0;
+            System.Int32 cap = _groupGates.TryGetValue(gkv.Key, out var sem) ? sem.SemaphoreSlim.CurrentCount + GetUsed(sem.SemaphoreSlim) : 0;
             System.String capStr = cap == 0 ? "-" : $"{cap}";
             _ = sb.AppendLine($"{gname} | {gkv.Value.running,7} | {gkv.Value.total,5} | {capStr}");
         }
@@ -507,7 +535,7 @@ public sealed partial class TaskManager : ITaskManager
 
         foreach (var g in _groupGates)
         {
-            g.Value.Dispose();
+            g.Value.SemaphoreSlim.Dispose();
         }
 
         _groupGates.Clear();
