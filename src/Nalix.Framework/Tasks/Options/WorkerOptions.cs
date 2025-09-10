@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Enums;
+using Nalix.Common.Tasks;
 using Nalix.Common.Tasks.Options;
 
 namespace Nalix.Framework.Tasks.Options;
@@ -45,4 +46,15 @@ public sealed class WorkerOptions : IWorkerOptions
     /// Gets the cancellation token that is linked to the worker's execution.
     /// </summary>
     public System.Threading.CancellationToken CancellationToken { get; init; } = default;
+
+
+    /// <summary>
+    /// Gets the action to invoke when the worker has completed successfully.
+    /// </summary>
+    public System.Action<IWorkerHandle>? OnCompleted { get; set; }
+
+    /// <summary>
+    /// Gets the action to invoke when the worker has failed.
+    /// </summary>
+    public System.Action<IWorkerHandle, System.Exception>? OnFailed { get; set; }
 }

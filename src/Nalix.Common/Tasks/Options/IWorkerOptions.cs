@@ -28,6 +28,16 @@ public interface IWorkerOptions
     IdentifierType IdType { get; init; }
 
     /// <summary>
+    /// Gets the action to invoke when the worker has completed successfully.
+    /// </summary>
+    System.Action<IWorkerHandle> OnCompleted { get; }
+
+    /// <summary>
+    /// Gets the action to invoke when the worker has failed.
+    /// </summary>
+    System.Action<IWorkerHandle, System.Exception> OnFailed { get; }
+
+    /// <summary>
     /// Gets the duration for which finished workers are retained for diagnostics.
     /// Set to <c>null</c> or <c>TimeSpan.Zero</c> to auto-remove workers immediately.
     /// </summary>
