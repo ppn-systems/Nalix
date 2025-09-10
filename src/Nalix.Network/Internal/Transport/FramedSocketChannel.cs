@@ -32,6 +32,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     #region Fields
 
     private readonly System.Net.Sockets.Socket _socket = socket;
+    private readonly string _epText = FormatEndpoint(socket);
     private readonly System.Threading.CancellationTokenSource _cts = new();
 
     private IConnection? _sender;
@@ -284,6 +285,16 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     #region Private Methods
 
     /// <summary>
+    /// Safely formats the remote endpoint string without throwing if the socket is already disposed.
+    /// </summary>
+    private static string FormatEndpoint(System.Net.Sockets.Socket s)
+    {
+        try { return s.RemoteEndPoint?.ToString() ?? "<unknown>"; }
+        catch (System.ObjectDisposedException) { return "<disposed>"; }
+        catch { return "<unknown>"; }
+    }
+
+    /// <summary>
     /// Returns true when the exception indicates a peer-initiated close or shutdown flow
     /// that should be treated as a normal disconnect (not an error).
     /// </summary>
@@ -389,7 +400,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Meta($"[{nameof(FramedSocketChannel)}] " +
-                                               $"recv-frame size={size} payload={payload} ep={_socket.RemoteEndPoint}");
+                                              $"recv-frame size={size} payload={payload} ep={_epText}");
 
                 // 4) Handoff to session cache
                 this.Cache.LastPingTime = Clock.UnixMillisecondsNow();
@@ -403,7 +414,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[{nameof(FramedSocketChannel)}] " +
-                                           $"receive-loop ended (peer closed/shutdown) ep={_socket.RemoteEndPoint}");
+                                           $"receive-loop ended (peer closed/shutdown) ep={_epText}");
         }
         catch (System.OperationCanceledException)
         {
