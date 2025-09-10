@@ -225,8 +225,8 @@ public sealed class PacketDispatchChannel
 
                 await ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false);
 
-                ctx.AddProgress(1);
-                ctx.Heartbeat();
+                ctx.Advance(1);
+                ctx.Beat();
             }
         }
         catch (System.OperationCanceledException)

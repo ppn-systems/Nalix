@@ -9,17 +9,23 @@ namespace Nalix.Framework.Tasks;
 public partial class TaskManager
 {
     private sealed class WorkerState(
-    IIdentifier id,
-    System.String name,
-    System.String group,
-    IWorkerOptions opt,
-    System.Threading.CancellationTokenSource cts) : IWorkerHandle
+        IIdentifier id,
+        System.String name,
+        System.String group,
+        IWorkerOptions opt,
+        System.Threading.CancellationTokenSource cts) : IWorkerHandle
     {
-        #region Fields
+        #region Backing fields (thread-safe)
 
         private System.Int64 _progress;
+        private System.Int32 _isRunning;                  // 0/1
+        private System.Int64 _totalRuns;                  // count
+        private System.Int64 _startedUtcTicks;            // DateTimeOffset.UtcNow.Ticks
+        private System.Int64 _lastHeartbeatUtcTicks;      // 0 == null
+        private System.Int64 _completedUtcTicks;          // 0 == null
+        private System.String? _lastNote;                 // Volatile read/write
 
-        #endregion Fields
+        #endregion
 
         #region Properties
 
@@ -35,31 +41,69 @@ public partial class TaskManager
 
         public System.Threading.CancellationTokenSource Cts { get; } = cts;
 
-        public System.String? LastNote { get; private set; }
+        public System.String? LastNote
+        {
+            get => System.Threading.Volatile.Read(ref _lastNote);
+            private set => System.Threading.Volatile.Write(ref _lastNote, value);
+        }
 
-        public System.Boolean IsRunning { get; private set; }
+        public System.Boolean IsRunning
+        {
+            get => System.Threading.Volatile.Read(ref _isRunning) != 0;
+            private set => System.Threading.Volatile.Write(ref _isRunning, value ? 1 : 0);
+        }
 
-        public System.Int64 TotalRuns { get; private set; }
+        public System.Int64 TotalRuns
+        {
+            get => System.Threading.Interlocked.Read(ref _totalRuns);
+            private set => System.Threading.Interlocked.Exchange(ref _totalRuns, value);
+        }
 
-        public System.DateTimeOffset StartedUtc { get; private set; }
+        public System.DateTimeOffset StartedUtc
+            => new(System.Threading.Interlocked.Read(ref _startedUtcTicks), System.TimeSpan.Zero);
 
-        public System.DateTimeOffset? LastHeartbeatUtc { get; private set; }
+        public System.DateTimeOffset? LastHeartbeatUtc
+        {
+            get
+            {
+                var t = System.Threading.Interlocked.Read(ref _lastHeartbeatUtcTicks);
+                return t == 0 ? null : new System.DateTimeOffset(t, System.TimeSpan.Zero);
+            }
+            private set
+            {
+                var t = value?.UtcDateTime.Ticks ?? 0L;
+                _ = System.Threading.Interlocked.Exchange(ref _lastHeartbeatUtcTicks, t);
+            }
+        }
 
         // Mark khi worker kết thúc (thành công/huỷ/lỗi) để cleanup theo Retention
-        internal System.DateTimeOffset? CompletedUtc { get; private set; }
+        internal System.DateTimeOffset? CompletedUtc
+        {
+            get
+            {
+                var t = System.Threading.Interlocked.Read(ref _completedUtcTicks);
+                return t == 0 ? null : new System.DateTimeOffset(t, System.TimeSpan.Zero);
+            }
+            private set
+            {
+                var t = value?.UtcDateTime.Ticks ?? 0L;
+                _ = System.Threading.Interlocked.Exchange(ref _completedUtcTicks, t);
+            }
+        }
 
         #endregion Properties
 
-        #region Computed Properties
+        #region Computed Methods
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void MarkStart()
         {
+            var nowTicks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+            _ = System.Threading.Interlocked.Exchange(ref _startedUtcTicks, nowTicks);
+            _ = System.Threading.Interlocked.Exchange(ref _lastHeartbeatUtcTicks, nowTicks);
+            _ = System.Threading.Interlocked.Exchange(ref _completedUtcTicks, 0);
             IsRunning = true;
-            StartedUtc = System.DateTimeOffset.UtcNow;
-            LastHeartbeatUtc = StartedUtc;
-            CompletedUtc = null;
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
@@ -67,25 +111,31 @@ public partial class TaskManager
         public void MarkStop()
         {
             IsRunning = false;
-            TotalRuns++;
-            CompletedUtc = System.DateTimeOffset.UtcNow;
-            LastHeartbeatUtc = CompletedUtc;
+            _ = System.Threading.Interlocked.Increment(ref _totalRuns);
+            var nowTicks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+            _ = System.Threading.Interlocked.Exchange(ref _completedUtcTicks, nowTicks);
+            _ = System.Threading.Interlocked.Exchange(ref _lastHeartbeatUtcTicks, nowTicks);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public void MarkError(System.Exception _)
+        public void MarkError(System.Exception __)
         {
             IsRunning = false;
-            TotalRuns++;
-            CompletedUtc = System.DateTimeOffset.UtcNow;
-            // có thể lưu chi tiết lỗi sau nếu cần
+            System.Int64 ticks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+
+            _ = System.Threading.Interlocked.Increment(ref _totalRuns);
+            _ = System.Threading.Interlocked.Exchange(ref _completedUtcTicks, ticks);
+            _ = System.Threading.Interlocked.Exchange(ref _lastHeartbeatUtcTicks, ticks);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public void Beat() => LastHeartbeatUtc = System.DateTimeOffset.UtcNow;
-
+        public void Beat()
+        {
+            System.Int64 ticks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+            _ = System.Threading.Interlocked.Exchange(ref _lastHeartbeatUtcTicks, ticks);
+        }
 
         public System.Int64 Progress => System.Threading.Interlocked.Read(ref _progress);
 
@@ -101,14 +151,15 @@ public partial class TaskManager
                 LastNote = note;
             }
 
-            LastHeartbeatUtc = System.DateTimeOffset.UtcNow;
+            var nowTicks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+            _ = System.Threading.Interlocked.Exchange(ref _lastHeartbeatUtcTicks, nowTicks);
         }
 
         public void Cancel() => Cts.Cancel();
 
         void System.IDisposable.Dispose() => Cancel();
 
-        #endregion Computed Properties
+        #endregion Computed Methods
 
         #region IWorkerHandle
 
@@ -141,7 +192,7 @@ public partial class TaskManager
         IRecurringOptions opt,
         System.Threading.CancellationTokenSource cts) : IRecurringHandle
     {
-        #region Properties
+        #region Properties / fields
 
         public readonly System.Threading.SemaphoreSlim Gate = new(1, 1);
 
@@ -155,19 +206,49 @@ public partial class TaskManager
 
         public System.Threading.CancellationTokenSource Cts { get; } = cts;
 
-        public System.Int64 TotalRuns { get; private set; }
+        // backing fields
+        private System.Int64 _totalRuns;
+        private System.Int32 _consecutiveFailures;
+        private System.Int32 _isRunning;          // 0/1
+        private System.Int64 _lastRunUtcTicks;    // 0 == null
 
-        public System.Int32 ConsecutiveFailures { get; private set; }
+        public System.Int64 TotalRuns
+        {
+            get => System.Threading.Interlocked.Read(ref _totalRuns);
+            private set => System.Threading.Interlocked.Exchange(ref _totalRuns, value);
+        }
 
-        public System.Boolean IsRunning { get; private set; }
+        public System.Int32 ConsecutiveFailures
+        {
+            get => System.Threading.Volatile.Read(ref _consecutiveFailures);
+            private set => System.Threading.Volatile.Write(ref _consecutiveFailures, value);
+        }
 
-        public System.DateTimeOffset? LastRunUtc { get; private set; }
+        public System.Boolean IsRunning
+        {
+            get => System.Threading.Volatile.Read(ref _isRunning) != 0;
+            private set => System.Threading.Volatile.Write(ref _isRunning, value ? 1 : 0);
+        }
+
+        public System.DateTimeOffset? LastRunUtc
+        {
+            get
+            {
+                var t = System.Threading.Interlocked.Read(ref _lastRunUtcTicks);
+                return t == 0 ? null : new System.DateTimeOffset(t, System.TimeSpan.Zero);
+            }
+            private set
+            {
+                var t = value?.UtcDateTime.Ticks ?? 0L;
+                _ = System.Threading.Interlocked.Exchange(ref _lastRunUtcTicks, t);
+            }
+        }
 
         public System.DateTimeOffset? NextRunUtc => LastRunUtc?.Add(Interval);
 
-        #endregion Properties
+        #endregion Properties / fields
 
-        #region Computed Properties
+        #region Computed Methods
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -183,7 +264,7 @@ public partial class TaskManager
         {
             IsRunning = false;
             ConsecutiveFailures = 0;
-            TotalRuns++;
+            _ = System.Threading.Interlocked.Increment(ref _totalRuns);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
@@ -191,15 +272,15 @@ public partial class TaskManager
         public void MarkFailure()
         {
             IsRunning = false;
-            ConsecutiveFailures++;
-            TotalRuns++;
+            _ = System.Threading.Interlocked.Increment(ref _consecutiveFailures);
+            _ = System.Threading.Interlocked.Increment(ref _totalRuns);
         }
 
         public void Cancel() => Cts.Cancel();
 
         void System.IDisposable.Dispose() => Cancel();
 
-        #endregion Computed Properties
+        #endregion Computed Methods
 
         #region IRecurringHandle
 
@@ -233,11 +314,11 @@ public partial class TaskManager
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public void Heartbeat() => _st.Beat();
+        public void Beat() => _st.Beat();
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public void AddProgress(System.Int64 delta, System.String? note = null) => _st.Add(delta, note);
+        public void Advance(System.Int64 delta, System.String? note = null) => _st.Add(delta, note);
 
         public System.Boolean IsCancellationRequested => _st.Cts.IsCancellationRequested;
     }

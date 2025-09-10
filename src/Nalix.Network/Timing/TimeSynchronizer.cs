@@ -231,7 +231,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
                                 .Warn($"[{nameof(TimeSynchronizer)}] overrun elapsed={elapsed}ms period={_period.TotalMilliseconds:0.#}ms");
                         }
 
-                        ctx.Heartbeat();
+                        ctx.Beat();
                     }
                 }
                 catch (System.OperationCanceledException)
