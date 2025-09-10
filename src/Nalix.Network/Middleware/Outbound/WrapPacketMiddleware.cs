@@ -13,12 +13,12 @@ using Nalix.Network.Connection;
 using Nalix.Network.Dispatch;
 using Nalix.Shared.Messaging.Catalog;
 
-namespace Nalix.Network.Middleware.Inbound;
+namespace Nalix.Network.Middleware.Outbound;
 
 /// <summary>
 /// Middleware that wraps a packet with compression and encryption as needed before dispatch.
 /// </summary>
-[PacketMiddleware(MiddlewareStage.Inbound, order: 2, name: "Wrap")]
+[PacketMiddleware(MiddlewareStage.Outbound, order: 2, name: "Wrap")]
 public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 {
     /// <inheritdoc/>

@@ -12,12 +12,12 @@ using Nalix.Network.Connection;
 using Nalix.Network.Dispatch;
 using Nalix.Shared.Messaging.Catalog;
 
-namespace Nalix.Network.Middleware.Outbound;
+namespace Nalix.Network.Middleware.Inbound;
 
 /// <summary>
 /// Middleware that unwraps (decrypts and/or decompresses) packets before further processing.
 /// </summary>
-[PacketMiddleware(MiddlewareStage.Outbound, order: 3, name: "Unwrap")]
+[PacketMiddleware(MiddlewareStage.Inbound, order: 3, name: "Unwrap")]
 public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 {
     /// <inheritdoc/>
