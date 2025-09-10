@@ -169,6 +169,8 @@ public sealed partial class TaskManager : ITaskManager
 
         // Optional concurrency cap per-group
         Gate? gate = null;
+        System.Exception? failure = null;
+
         if (options.MaxGroupConcurrency is System.Int32 cap && cap > 0)
         {
             gate = _groupGates.GetOrAdd(group, _ => new Gate(new System.Threading.SemaphoreSlim(cap, cap), cap));
@@ -178,50 +180,75 @@ public sealed partial class TaskManager : ITaskManager
         st.Task = System.Threading.Tasks.Task.Run(async () =>
         {
             System.Threading.CancellationToken ct = cts.Token;
+            System.Boolean acquired = false;
             try
             {
                 if (gate is not null)
                 {
                     if (options.TryAcquireGroupSlotImmediately)
                     {
-                        if (!await gate.SemaphoreSlim.WaitAsync(0, ct).ConfigureAwait(false))
+                        acquired = await gate.SemaphoreSlim.WaitAsync(0, ct).ConfigureAwait(false);
+                        if (!acquired)
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                     .Warn($"[{nameof(TaskManager)}] " +
                                                           $"worker-reject name={name} group={group} reason=group-cap");
+
+                            _ = _workers.TryRemove(id, out _);
+                            try
+                            {
+                                cts.Dispose();
+                            }
+                            catch { }
+
                             return;
                         }
                     }
                     else
                     {
                         await gate.SemaphoreSlim.WaitAsync(ct).ConfigureAwait(false);
+                        acquired = true;
                     }
                 }
 
                 st.MarkStart();
 
-                WorkerContext ctx = new(st, this);
+                var ctx = new WorkerContext(st, this);
                 await work(ctx, ct).ConfigureAwait(false);
 
                 st.MarkStop();
             }
-            catch (System.OperationCanceledException) when (cts.IsCancellationRequested)
-            {
-                st.MarkStop();
-            }
+            catch (System.OperationCanceledException) when (cts.IsCancellationRequested) { st.MarkStop(); }
             catch (System.Exception ex)
             {
+                failure = ex;
                 st.MarkError(ex);
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"[{nameof(TaskManager)}] worker-error id={id} name={name} msg={ex.Message}");
             }
             finally
             {
-                if (gate is not null)
+                try
+                {
+                    if (failure is null)
+                    {
+                        (options as WorkerOptions)?.OnCompleted?.Invoke(st);
+                    }
+                    else
+                    {
+                        (options as WorkerOptions)?.OnFailed?.Invoke(st, failure);
+                    }
+                }
+                catch (System.Exception cbex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                        .Warn($"[{nameof(TaskManager)}] worker-callback-error id={id} msg={cbex.Message}");
+                }
+
+                if (gate is not null && acquired)
                 {
                     try { _ = gate.SemaphoreSlim.Release(); } catch { }
                 }
-
                 this.RetainOrRemove(st);
             }
         }, cts.Token);
@@ -463,9 +490,16 @@ public sealed partial class TaskManager : ITaskManager
         foreach (var gkv in perGroup)
         {
             System.String gname = PadName(gkv.Key, 28);
-            System.Int32 cap = _groupGates.TryGetValue(gkv.Key, out var sem) ? sem.SemaphoreSlim.CurrentCount + GetUsed(sem.SemaphoreSlim) : 0;
-            System.String capStr = cap == 0 ? "-" : $"{cap}";
-            _ = sb.AppendLine($"{gname} | {gkv.Value.running,7} | {gkv.Value.total,5} | {capStr}");
+            if (_groupGates.TryGetValue(gkv.Key, out Gate? gate))
+            {
+                System.Int32 total = gate.Capacity;
+                System.Int32 used = total - gate.SemaphoreSlim.CurrentCount;
+                _ = sb.AppendLine($"{gname} | {gkv.Value.running,7} | {gkv.Value.total,5} | {used}/{total}");
+            }
+            else
+            {
+                _ = sb.AppendLine($"{gname} | {gkv.Value.running,7} | {gkv.Value.total,5} | -");
+            }
         }
         _ = sb.AppendLine();
 
@@ -495,7 +529,6 @@ public sealed partial class TaskManager : ITaskManager
         static System.String PadName(System.String s, System.Int32 width)
             => s.Length > width ? System.String.Concat(System.MemoryExtensions.AsSpan(s, 0, width - 1), "…") : s.PadRight(width);
 
-        static System.Int32 GetUsed(System.Threading.SemaphoreSlim s) => System.Math.Max(0, s.CurrentCount - 0);
         static System.String FormatAge(System.DateTimeOffset start)
         {
             var ts = System.DateTimeOffset.UtcNow - start;
@@ -521,21 +554,63 @@ public sealed partial class TaskManager : ITaskManager
 
         _disposed = true;
 
+        try { _cleanupTimer?.Dispose(); } catch { }
+
         foreach (var kv in _recurring)
         {
-            kv.Value.Cancel();
+            var st = kv.Value;
+            st.Cancel();
+
+            var t = st.Task;
+            if (t is not null)
+            {
+                _ = t.ContinueWith(_ =>
+                    {
+                        try { st.Cts.Dispose(); } catch { }
+                        try { st.Gate.Dispose(); } catch { }
+                    },
+                    System.Threading.CancellationToken.None,
+                    System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously,
+                    System.Threading.Tasks.TaskScheduler.Default
+                );
+            }
+            else
+            {
+                try { st.Cts.Dispose(); } catch { }
+                try { st.Gate.Dispose(); } catch { }
+            }
         }
 
         foreach (var kv in _workers)
         {
-            kv.Value.Cancel();
+            var st = kv.Value;
+            st.Cancel();
+
+            var t = st.Task;
+            if (t is not null && t.IsCompleted)
+            {
+                try { st.Cts.Dispose(); } catch { }
+            }
+            else if (t is not null)
+            {
+                _ = t.ContinueWith(_ =>
+                {
+                    try { st.Cts.Dispose(); } catch { }
+                }, System.Threading.CancellationToken.None,
+                System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously,
+                System.Threading.Tasks.TaskScheduler.Default);
+            }
+            else
+            {
+                try { st.Cts.Dispose(); } catch { }
+            }
         }
 
         _recurring.Clear(); _workers.Clear();
 
         foreach (var g in _groupGates)
         {
-            g.Value.SemaphoreSlim.Dispose();
+            try { g.Value.SemaphoreSlim.Dispose(); } catch { }
         }
 
         _groupGates.Clear();

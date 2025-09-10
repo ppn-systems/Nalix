@@ -347,7 +347,7 @@ public sealed class TimingWheel : System.IDisposable, IActivatable
 
                 _ = System.Threading.Interlocked.Increment(ref _tick);
 
-                ctx?.Heartbeat();
+                ctx?.Beat();
             }
         }
         catch (System.OperationCanceledException) { }
