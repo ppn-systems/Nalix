@@ -7,11 +7,14 @@ using Nalix.Logging.Engine;
 namespace Nalix.Logging;
 
 /// <summary>
+/// <para>
 /// Provides a high-performance, extensible logging engine for applications,
 /// combining structured logging and customizable output targets.
-///
+/// </para>
+/// <para>
 /// This class is the core of the Nalix logging system, and implements <see cref="ILogger"/> for unified logging.
 /// Use this logger to write diagnostic messages, errors, warnings, or audit logs across the application.
+/// </para>
 /// </summary>
 /// <remarks>
 /// The <see cref="NLogix"/> logger supports dependency injection or can be accessed via <see cref="NLogix.Host"/>.
