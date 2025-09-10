@@ -9,6 +9,8 @@ namespace Nalix.Framework.Injection;
 /// High-performance manager that maintains single instances of different types,
 /// optimized for real-time server applications with thread safety and caching.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("CachedInstanceCount = {CachedInstanceCount}")]
 public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDisposable, IReportable
 {
