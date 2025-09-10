@@ -8,6 +8,7 @@ namespace Nalix.Framework.Tasks;
 
 public partial class TaskManager
 {
+    [System.Diagnostics.DebuggerDisplay("Worker {Name} (Running={IsRunning}, Runs={TotalRuns})")]
     private sealed class WorkerState(
         IIdentifier id,
         System.String name,
@@ -175,10 +176,12 @@ public partial class TaskManager
 
         System.DateTimeOffset IWorkerHandle.StartedUtc => StartedUtc;
 
+        [System.Diagnostics.CodeAnalysis.MaybeNull]
         System.DateTimeOffset? IWorkerHandle.LastHeartbeatUtc => LastHeartbeatUtc;
 
         System.Int64 IWorkerHandle.Progress => Progress;
 
+        [System.Diagnostics.CodeAnalysis.MaybeNull]
         System.String? IWorkerHandle.LastNote => LastNote;
 
         IWorkerOptions IWorkerHandle.Options => Options;
@@ -186,6 +189,7 @@ public partial class TaskManager
         #endregion IWorkerHandle
     }
 
+    [System.Diagnostics.DebuggerDisplay("Recurring {Name} (Every={Interval}, Runs={TotalRuns}, Failures={ConsecutiveFailures})")]
     private sealed class RecurringState(
         System.String name,
         System.TimeSpan iv,
@@ -292,8 +296,10 @@ public partial class TaskManager
 
         System.Int32 IRecurringHandle.ConsecutiveFailures => ConsecutiveFailures;
 
+        [System.Diagnostics.CodeAnalysis.MaybeNull]
         System.DateTimeOffset? IRecurringHandle.LastRunUtc => LastRunUtc;
 
+        [System.Diagnostics.CodeAnalysis.MaybeNull]
         System.DateTimeOffset? IRecurringHandle.NextRunUtc => NextRunUtc;
 
         System.TimeSpan IRecurringHandle.Interval => Interval;
@@ -303,9 +309,12 @@ public partial class TaskManager
         #endregion IRecurringHandle
     }
 
+    [System.Runtime.CompilerServices.SkipLocalsInit]
     private sealed class WorkerContext(WorkerState st, TaskManager owner) : IWorkerContext
     {
         private readonly WorkerState _st = st;
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
         private readonly TaskManager _owner = owner;
 
         public IIdentifier Id => _st.Id;

@@ -13,6 +13,8 @@ namespace Nalix.Framework.Tasks;
 /// <summary>
 /// Manages background recurring tasks and worker tasks, providing scheduling, cancellation, and reporting functionalities.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Diagnostics.DebuggerDisplay("TaskManager (Workers={_workers.Count}, Recurring={_recurring.Count})")]
 public sealed partial class TaskManager : ITaskManager
 {
     #region Fields
@@ -264,6 +266,7 @@ public sealed partial class TaskManager : ITaskManager
     /// </summary>
     /// <param name="name">The name of the recurring task.</param>
     /// <returns><c>true</c> if the recurring task was found and cancelled; otherwise, <c>false</c>.</returns>
+    [System.Diagnostics.Contracts.Pure]
     public System.Boolean CancelRecurring(System.String name)
     {
         if (_recurring.TryRemove(name, out RecurringState? st))
@@ -302,6 +305,7 @@ public sealed partial class TaskManager : ITaskManager
     /// </summary>
     /// <param name="id">The identifier of the worker.</param>
     /// <returns><c>true</c> if the worker was found and cancelled; otherwise, <c>false</c>.</returns>
+    [System.Diagnostics.Contracts.Pure]
     public System.Boolean CancelWorker(IIdentifier id)
     {
         if (_workers.TryGetValue(id, out var st))
@@ -326,6 +330,7 @@ public sealed partial class TaskManager : ITaskManager
     /// </summary>
     /// <param name="group">The group name.</param>
     /// <returns>The number of workers cancelled.</returns>
+    [System.Diagnostics.Contracts.Pure]
     public System.Int32 CancelGroup(System.String group)
     {
         System.Int32 n = 0;
@@ -354,6 +359,7 @@ public sealed partial class TaskManager : ITaskManager
     /// Cancels all running workers.
     /// </summary>
     /// <returns>The number of workers cancelled.</returns>
+    [System.Diagnostics.Contracts.Pure]
     public System.Int32 CancelAllWorkers()
     {
         System.Int32 n = 0;
@@ -452,6 +458,7 @@ public sealed partial class TaskManager : ITaskManager
     /// Generates a report summarizing all background tasks and workers.
     /// </summary>
     /// <returns>A formatted string containing report details.</returns>
+    [System.Diagnostics.Contracts.Pure]
     public System.String GenerateReport()
     {
         var sb = new System.Text.StringBuilder(1024);
