@@ -8,13 +8,13 @@ using Nalix.Network.Abstractions;
 using Nalix.Network.Connection;
 using Nalix.Network.Dispatch;
 
-namespace Nalix.Network.Middleware.Outbound;
+namespace Nalix.Network.Middleware.Inbound;
 
 /// <summary>
 /// Middleware that checks the permission level of the current connection
 /// before allowing the packet to proceed to the next handler.
 /// </summary>
-[PacketMiddleware(MiddlewareStage.Outbound, order: 2, name: "Permission")]
+[PacketMiddleware(MiddlewareStage.Inbound, order: 2, name: "Permission")]
 public class PermissionMiddleware : IPacketMiddleware<IPacket>
 {
     /// <summary>
