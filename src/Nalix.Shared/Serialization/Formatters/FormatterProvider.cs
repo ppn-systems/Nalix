@@ -61,25 +61,25 @@ public static class FormatterProvider
 
         // ============================================================ //
         // Nullable types
-        Register<System.Nullable<System.Char>>(new NullableFormatter<System.Char>());
-        Register<System.Nullable<System.Byte>>(new NullableFormatter<System.Byte>());
-        Register<System.Nullable<System.SByte>>(new NullableFormatter<System.SByte>());
-        Register<System.Nullable<System.Int16>>(new NullableFormatter<System.Int16>());
-        Register<System.Nullable<System.UInt16>>(new NullableFormatter<System.UInt16>());
-        Register<System.Nullable<System.Int32>>(new NullableFormatter<System.Int32>());
-        Register<System.Nullable<System.UInt32>>(new NullableFormatter<System.UInt32>());
-        Register<System.Nullable<System.Int64>>(new NullableFormatter<System.Int64>());
-        Register<System.Nullable<System.UInt64>>(new NullableFormatter<System.UInt64>());
-        Register<System.Nullable<System.Single>>(new NullableFormatter<System.Single>());
-        Register<System.Nullable<System.Double>>(new NullableFormatter<System.Double>());
-        Register<System.Nullable<System.Decimal>>(new NullableFormatter<System.Decimal>());
-        Register<System.Nullable<System.Boolean>>(new NullableFormatter<System.Boolean>());
+        Register<System.Char?>(new NullableFormatter<System.Char>());
+        Register<System.Byte?>(new NullableFormatter<System.Byte>());
+        Register<System.SByte?>(new NullableFormatter<System.SByte>());
+        Register<System.Int16?>(new NullableFormatter<System.Int16>());
+        Register<System.UInt16?>(new NullableFormatter<System.UInt16>());
+        Register<System.Int32?>(new NullableFormatter<System.Int32>());
+        Register<System.UInt32?>(new NullableFormatter<System.UInt32>());
+        Register<System.Int64?>(new NullableFormatter<System.Int64>());
+        Register<System.UInt64?>(new NullableFormatter<System.UInt64>());
+        Register<System.Single?>(new NullableFormatter<System.Single>());
+        Register<System.Double?>(new NullableFormatter<System.Double>());
+        Register<System.Decimal?>(new NullableFormatter<System.Decimal>());
+        Register<System.Boolean?>(new NullableFormatter<System.Boolean>());
 
         // Nullable complex types
-        Register<System.Nullable<System.Guid>>(new NullableFormatter<System.Guid>());
-        Register<System.Nullable<System.DateTime>>(new NullableFormatter<System.DateTime>());
-        Register<System.Nullable<System.DateTimeOffset>>(new NullableFormatter<System.DateTimeOffset>());
-        Register<System.Nullable<System.TimeSpan>>(new NullableFormatter<System.TimeSpan>());
+        Register<System.Guid?>(new NullableFormatter<System.Guid>());
+        Register<System.DateTime?>(new NullableFormatter<System.DateTime>());
+        Register<System.TimeSpan?>(new NullableFormatter<System.TimeSpan>());
+        Register<System.DateTimeOffset?>(new NullableFormatter<System.DateTimeOffset>());
     }
 
     /// <summary>
