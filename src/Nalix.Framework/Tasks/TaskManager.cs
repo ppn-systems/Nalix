@@ -313,7 +313,7 @@ public sealed partial class TaskManager : ITaskManager
             st.Cancel();
 
             var t = st.Task;
-            if (t is not null && t.IsCompleted)
+            if (t?.IsCompleted == true)
             {
                 try { st.Cts.Dispose(); } catch { }
             }
@@ -468,7 +468,7 @@ public sealed partial class TaskManager : ITaskManager
 
         // Recurring summary
         _ = sb.AppendLine("Recurring:");
-        _ = sb.AppendLine("Naming                             | Runs     | Fails | Running | Last UTC              | Next UTC              | Interval | Tag");
+        _ = sb.AppendLine("Naming                       | Runs     | Fails | Running | Last UTC              | Next UTC              | Interval | Tag");
         foreach (var kv in _recurring)
         {
             var s = kv.Value;
@@ -534,7 +534,7 @@ public sealed partial class TaskManager : ITaskManager
         return sb.ToString();
 
         static System.String PadName(System.String s, System.Int32 width)
-            => s.Length > width ? System.String.Concat(System.MemoryExtensions.AsSpan(s, 0, width - 1), "…") : s.PadRight(width);
+            => s.Length > width ? $"{System.MemoryExtensions.AsSpan(s, 0, width - 1)}…" : s.PadRight(width);
 
         static System.String FormatAge(System.DateTimeOffset start)
         {
@@ -594,7 +594,7 @@ public sealed partial class TaskManager : ITaskManager
             st.Cancel();
 
             var t = st.Task;
-            if (t is not null && t.IsCompleted)
+            if (t?.IsCompleted == true)
             {
                 try { st.Cts.Dispose(); } catch { }
             }

@@ -66,7 +66,7 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        IIdentifier identifier = Identifier.Deserialize(result.Buffer[^Identifier.Size..]);
+        IIdentifier identifier = Identifier.FromByteArray(result.Buffer[^Identifier.Size..]);
 
         if (InstanceManager.Instance.GetExistingInstance<ConnectionHub>()!
                                     .GetConnection(identifier) is not Connection.Connection connection)

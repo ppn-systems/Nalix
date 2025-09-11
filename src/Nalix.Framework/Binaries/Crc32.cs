@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Framework.Checksums;
+namespace Nalix.Framework.Binaries;
 
 /// <summary>
 /// Provides methods for computing the CRC-32 checksum using the reversed polynomial <c>0xEDB88320</c>.
@@ -133,14 +133,14 @@ public static class Crc32
     {
         ref System.Byte data = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(octet);
 
-        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ data];
-        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 1)];
-        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 2)];
-        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 3)];
-        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 4)];
-        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 5)];
-        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 6)];
-        crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 7)];
+        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ data];
+        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 1)];
+        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 2)];
+        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 3)];
+        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 4)];
+        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 5)];
+        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 6)];
+        crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 7)];
 
         return crc;
     }
@@ -164,14 +164,14 @@ public static class Crc32
 
             for (System.Int32 i = aligned; i < bytes.Length; i++)
             {
-                crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ bytes[i]];
+                crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ bytes[i]];
             }
         }
         else
         {
             for (System.Int32 i = 0; i < bytes.Length; i++)
             {
-                crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ bytes[i]];
+                crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ bytes[i]];
             }
         }
 
@@ -194,7 +194,7 @@ public static class Crc32
             {
                 for (System.Int32 j = 0; j < vectorSize; j++)
                 {
-                    crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ ptr[i + j]];
+                    crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ ptr[i + j]];
                 }
 
                 i += vectorSize;
@@ -202,7 +202,7 @@ public static class Crc32
 
             for (; i < length; i++)
             {
-                crc = (crc >> 8) ^ Crc32LookupTable[(crc & 0xFF) ^ ptr[i]];
+                crc = crc >> 8 ^ Crc32LookupTable[crc & 0xFF ^ ptr[i]];
             }
         }
 

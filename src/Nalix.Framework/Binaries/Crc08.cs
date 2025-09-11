@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Framework.Checksums;
+namespace Nalix.Framework.Binaries;
 
 /// <summary>
 /// Provides methods for computing CRC-8 checksum using the polynomial <c>x^8 + x^7 + x^6 + x^4 + x^2 + 1</c> (<c>0x31</c>).

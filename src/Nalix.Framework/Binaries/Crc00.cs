@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Framework.Checksums;
+namespace Nalix.Framework.Binaries;
 
 /// <summary>
 /// Provides methods for generating lookup tables for various CRC algorithms.
@@ -27,7 +27,7 @@ internal static class Crc00
             System.Byte crc = (System.Byte)i;
             for (System.Byte j = 0; j < 8; j++)
             {
-                crc = (System.Byte)((crc & 0x80) != 0 ? (crc << 1) ^ poly : crc << 1);
+                crc = (System.Byte)((crc & 0x80) != 0 ? crc << 1 ^ poly : crc << 1);
             }
 
             table[i] = crc;
@@ -50,7 +50,7 @@ internal static class Crc00
             System.UInt16 crc = (System.UInt16)i;
             for (System.Byte j = 0; j < 8; j++)
             {
-                crc = (System.UInt16)((crc & 1) != 0 ? (crc >> 1) ^ poly : crc >> 1);
+                crc = (System.UInt16)((crc & 1) != 0 ? crc >> 1 ^ poly : crc >> 1);
             }
 
             table[i] = crc;
@@ -73,7 +73,7 @@ internal static class Crc00
             System.UInt32 crc = i;
             for (System.Byte j = 0; j < 8; j++)
             {
-                crc = (crc & 1) != 0 ? (crc >> 1) ^ poly : crc >> 1;
+                crc = (crc & 1) != 0 ? crc >> 1 ^ poly : crc >> 1;
             }
 
             table[i] = crc;
@@ -96,7 +96,7 @@ internal static class Crc00
             System.UInt64 crc = (System.UInt64)i;
             for (System.Byte j = 0; j < 8; j++)
             {
-                crc = (crc & 1) != 0 ? (crc >> 1) ^ poly : crc >> 1;
+                crc = (crc & 1) != 0 ? crc >> 1 ^ poly : crc >> 1;
             }
 
             table[i] = crc;

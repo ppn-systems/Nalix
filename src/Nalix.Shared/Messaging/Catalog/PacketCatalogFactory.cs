@@ -30,7 +30,7 @@ namespace Nalix.Shared.Messaging.Catalog;
 ///   <item>Decorated with <see cref="MagicNumberAttribute"/>.</item>
 ///   <item>Implements the static abstract members defined by
 ///         <see cref="IPacketTransformer{TPacket}"/> on the concrete packet type:
-///         <c>Deserialize(ReadOnlySpan&lt;byte&gt;)</c>, <c>Compress(TPacket)</c>,
+///         <c>FromBytes(ReadOnlySpan&lt;byte&gt;)</c>, <c>Compress(TPacket)</c>,
 ///         <c>Decompress(TPacket)</c>, <c>Encrypt(TPacket, byte[], SymmetricAlgorithmType)</c>,
 ///         <c>Decrypt(TPacket, byte[], SymmetricAlgorithmType)</c>.</item>
 /// </list>
@@ -421,10 +421,10 @@ public sealed class PacketCatalogFactory
                                                    $"dup-magic val=0x{magicAttr.MagicNumber:X8} type={type?.Name}");
                 }
 
-                // Assign Deserialize pointer into Fn<TPacket>
+                // Assign FromBytes pointer into Fn<TPacket>
                 _ = BindAllPtrsMi.MakeGenericMethod(type!).Invoke(null, [miDeserialize, null, null, null, null]);
 
-                // Build a stable PacketDeserializer that jumps to Fn<T>.Deserialize
+                // Build a stable PacketDeserializer that jumps to Fn<T>.FromBytes
                 var tGeneric = typeof(Fn<>).MakeGenericType(type!);
                 var doDeserializeMi = tGeneric.GetMethod(nameof(Fn<IPacket>.DoDeserialize), FLAGS)!;
 

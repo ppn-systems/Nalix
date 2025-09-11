@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Framework.Checksums;
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+namespace Nalix.Framework.Binaries;
 
 /// <summary>
 /// Provides methods for computing CRC-64 checksums using the ISO (0xD800000000000000) or ECMA (0xC96C5795D7870F42) polynomials.
@@ -63,7 +66,7 @@ public static class Crc64
 
         foreach (System.Byte b in data)
         {
-            crc = table[(crc ^ b) & 0xFF] ^ (crc >> 8);
+            crc = table[(crc ^ b) & 0xFF] ^ crc >> 8;
         }
 
         return ~crc;
