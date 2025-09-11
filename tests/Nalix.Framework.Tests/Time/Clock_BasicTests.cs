@@ -74,7 +74,7 @@ public class Clock_BasicTests
         // Quan hệ gần đúng
         Assert.InRange(ms2 - ms1, 2, 1000);
         Assert.InRange(us2 - us1, 2000, 1_000_000);
-        Assert.True(ticks2 - ticks1 > 0);
+        Assert.True(ticks2 > ticks1);
     }
 
     [Fact]
