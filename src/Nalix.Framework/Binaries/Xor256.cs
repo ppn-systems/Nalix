@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Framework.Checksums;
+namespace Nalix.Framework.Binaries;
 
 /// <summary>
 /// Provides a highly optimized XOR checksum implementation using unsafe memory operations.
@@ -23,8 +23,6 @@ public static class Xor256
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte Compute(System.ReadOnlySpan<System.Byte> data)
     {
-
-
         if (data.IsEmpty)
         {
             throw new System.ArgumentException("Data cannot be empty", nameof(data));
@@ -55,13 +53,13 @@ public static class Xor256
 
                     // Fold ulong into byte
                     xor ^= (System.Byte)(accum & 0xFF);
-                    xor ^= (System.Byte)((accum >> 8) & 0xFF);
-                    xor ^= (System.Byte)((accum >> 16) & 0xFF);
-                    xor ^= (System.Byte)((accum >> 24) & 0xFF);
-                    xor ^= (System.Byte)((accum >> 32) & 0xFF);
-                    xor ^= (System.Byte)((accum >> 40) & 0xFF);
-                    xor ^= (System.Byte)((accum >> 48) & 0xFF);
-                    xor ^= (System.Byte)((accum >> 56) & 0xFF);
+                    xor ^= (System.Byte)(accum >> 8 & 0xFF);
+                    xor ^= (System.Byte)(accum >> 16 & 0xFF);
+                    xor ^= (System.Byte)(accum >> 24 & 0xFF);
+                    xor ^= (System.Byte)(accum >> 32 & 0xFF);
+                    xor ^= (System.Byte)(accum >> 40 & 0xFF);
+                    xor ^= (System.Byte)(accum >> 48 & 0xFF);
+                    xor ^= (System.Byte)(accum >> 56 & 0xFF);
 
                     i = ulongCount * sizeof(System.UInt64);
                 }

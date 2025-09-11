@@ -13,15 +13,18 @@ namespace Nalix.Framework.Identity;
 /// serialization capabilities.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Base36 string is encoded in big-endian order with digits [0-9][A-Z],
 /// representing the 56-bit token value as a compact string.
 /// The Identifier uses explicit layout to ensure consistent memory representation
 /// across different platforms and provides both hexadecimal and Base36 string representations.
-///
+/// </para>
+/// <para>
 /// Memory layout:
 /// - Bytes 0-3: Value (uint, little-endian)
 /// - Bytes 4-5: Machine ID (ushort, little-endian)
 /// - Byte 6: Identifier type (byte)
+/// </para>
 /// </remarks>
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
@@ -109,8 +112,7 @@ public readonly partial struct Identifier : IIdentifier, System.IEquatable<Ident
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Identifier NewId(System.UInt32 value, System.UInt16 machineId, IdentifierType type)
-        => new(value, machineId, type);
+    public static Identifier NewId(System.UInt32 value, System.UInt16 machineId, IdentifierType type) => new(value, machineId, type);
 
     /// <summary>
     /// Creates a new <see cref="Identifier"/> with the specified components.
@@ -126,8 +128,7 @@ public readonly partial struct Identifier : IIdentifier, System.IEquatable<Ident
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Identifier NewId(IdentifierType type, System.UInt16 machineId = 1)
-        => new(SecureRandom.NextUInt32(), machineId, type);
+    public static Identifier NewId(IdentifierType type, System.UInt16 machineId = 1) => new(SecureRandom.NextUInt32(), machineId, type);
 
     #endregion Constructors and Factory Methods
 }

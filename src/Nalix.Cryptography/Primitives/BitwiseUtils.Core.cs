@@ -129,7 +129,7 @@ internal static partial class BitwiseUtils
     }
 
     /// <summary>
-    /// Deserialize the input integer into the output buffer. The input integer will be split into 4 bytes
+    /// FromBytes the input integer into the output buffer. The input integer will be split into 4 bytes
     /// and put into four sequential places in the output buffer, starting at the outputOffset.
     /// </summary>
     /// <param name="output">The destination buffer.</param>
@@ -151,7 +151,7 @@ internal static partial class BitwiseUtils
     }
 
     /// <summary>
-    /// Deserialize the input integer into the output span. The input integer will be split into 4 bytes
+    /// FromBytes the input integer into the output span. The input integer will be split into 4 bytes
     /// and put into four sequential places in the output span, starting at the offset.
     /// </summary>
     /// <param name="output">The destination span.</param>

@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Framework.Checksums;
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+namespace Nalix.Framework.Binaries;
 
 /// <summary>
 /// Provides high-performance methods for calculating CRC-16 checksums using the MODBUS polynomial (0x8005).
@@ -139,14 +142,14 @@ public static class Crc16
     {
         ref System.Byte data = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(octet);
 
-        crc = (System.UInt16)((crc >> 8) ^ Crc16LookupTable[(crc ^ data) & 0xFF]);
-        crc = (System.UInt16)((crc >> 8) ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 1)) & 0xFF]);
-        crc = (System.UInt16)((crc >> 8) ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 2)) & 0xFF]);
-        crc = (System.UInt16)((crc >> 8) ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 3)) & 0xFF]);
-        crc = (System.UInt16)((crc >> 8) ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 4)) & 0xFF]);
-        crc = (System.UInt16)((crc >> 8) ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 5)) & 0xFF]);
-        crc = (System.UInt16)((crc >> 8) ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 6)) & 0xFF]);
-        crc = (System.UInt16)((crc >> 8) ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 7)) & 0xFF]);
+        crc = (System.UInt16)(crc >> 8 ^ Crc16LookupTable[(crc ^ data) & 0xFF]);
+        crc = (System.UInt16)(crc >> 8 ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 1)) & 0xFF]);
+        crc = (System.UInt16)(crc >> 8 ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 2)) & 0xFF]);
+        crc = (System.UInt16)(crc >> 8 ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 3)) & 0xFF]);
+        crc = (System.UInt16)(crc >> 8 ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 4)) & 0xFF]);
+        crc = (System.UInt16)(crc >> 8 ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 5)) & 0xFF]);
+        crc = (System.UInt16)(crc >> 8 ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 6)) & 0xFF]);
+        crc = (System.UInt16)(crc >> 8 ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref data, 7)) & 0xFF]);
 
         return crc;
     }
@@ -172,14 +175,14 @@ public static class Crc16
 
             for (System.Int32 i = bytes.Length - remaining; i < bytes.Length; i++)
             {
-                crc = (System.UInt16)((crc >> 8) ^ Crc16LookupTable[(crc ^ bytes[i]) & 0xFF]);
+                crc = (System.UInt16)(crc >> 8 ^ Crc16LookupTable[(crc ^ bytes[i]) & 0xFF]);
             }
         }
         else
         {
             for (System.Int32 i = 0; i < bytes.Length; i++)
             {
-                crc = (System.UInt16)((crc >> 8) ^ Crc16LookupTable[(crc ^ bytes[i]) & 0xFF]);
+                crc = (System.UInt16)(crc >> 8 ^ Crc16LookupTable[(crc ^ bytes[i]) & 0xFF]);
             }
         }
 
@@ -212,7 +215,7 @@ public static class Crc16
 
             for (; i < length; i++)
             {
-                crc = (System.UInt16)((crc >> 8) ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref start, i)) & 0xFF]);
+                crc = (System.UInt16)(crc >> 8 ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref start, i)) & 0xFF]);
             }
         }
         else
@@ -251,7 +254,7 @@ public static class Crc16
 
             for (; i < bytes.Length; i++)
             {
-                crc = (System.UInt16)((crc >> 8) ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref start, i)) & 0xFF]);
+                crc = (System.UInt16)(crc >> 8 ^ Crc16LookupTable[(crc ^ System.Runtime.CompilerServices.Unsafe.Add(ref start, i)) & 0xFF]);
             }
         }
         else
@@ -273,7 +276,7 @@ public static class Crc16
     {
         for (System.Int32 i = 0; i < System.Numerics.Vector<System.Byte>.Count; i++)
         {
-            crc = (System.UInt16)((crc >> 8) ^ Crc16LookupTable[(crc ^ vec[i]) & 0xFF]);
+            crc = (System.UInt16)(crc >> 8 ^ Crc16LookupTable[(crc ^ vec[i]) & 0xFF]);
         }
         return crc;
     }

@@ -17,7 +17,7 @@ public readonly partial struct Identifier
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static Identifier Deserialize(System.ReadOnlySpan<System.Byte> bytes)
+    public static Identifier FromBytes(System.ReadOnlySpan<System.Byte> bytes)
     {
         if (bytes.Length != 7)
         {
@@ -44,11 +44,11 @@ public readonly partial struct Identifier
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static Identifier Deserialize(System.Byte[] bytes)
+    public static Identifier FromByteArray(System.Byte[] bytes)
     {
         return bytes == null || bytes.Length != 7
             ? throw new System.ArgumentException("Input must be a non-null array of exactly 7 bytes.", nameof(bytes))
-            : Deserialize(System.MemoryExtensions.AsSpan(bytes));
+            : FromBytes(System.MemoryExtensions.AsSpan(bytes));
     }
 
     /// <summary>
@@ -62,9 +62,9 @@ public readonly partial struct Identifier
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static Identifier Deserialize(System.String text)
+    public static Identifier Parse(System.String text)
     {
-        return !TryDeserialize(System.MemoryExtensions.AsSpan(text), out Identifier result)
+        return !TryParse(System.MemoryExtensions.AsSpan(text), out Identifier result)
             ? throw new System.FormatException($"Invalid Base36 handle: '{text}'")
             : result;
     }
@@ -83,7 +83,7 @@ public readonly partial struct Identifier
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Boolean TryDeserialize(
+    public static System.Boolean TryParse(
         System.ReadOnlySpan<System.Char> text, out Identifier handle)
     {
         handle = default;
@@ -159,7 +159,7 @@ public readonly partial struct Identifier
     public System.Byte[] Serialize()
     {
         System.Byte[] result = new System.Byte[7];
-        _ = TrySerialize(result, out _);
+        _ = TryFormat(result, out _);
         return result;
     }
 
@@ -174,7 +174,7 @@ public readonly partial struct Identifier
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean TrySerialize(
+    public System.Boolean TryWriteBytes(
         System.Span<System.Char> destination, out System.Byte charsWritten)
     {
         System.UInt64 value = GetCombinedValue();
@@ -220,7 +220,7 @@ public readonly partial struct Identifier
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean TrySerialize(
+    public System.Boolean TryFormat(
         System.Span<System.Byte> destination, out System.Int32 bytesWritten)
     {
         if (destination.Length < 7)
@@ -284,7 +284,7 @@ public readonly partial struct Identifier
     public System.String ToHexString()
     {
         System.Span<System.Byte> buffer = stackalloc System.Byte[7];
-        _ = TrySerialize(buffer, out _);
+        _ = TryFormat(buffer, out _);
         return System.Convert.ToHexString(buffer);
     }
 
