@@ -70,7 +70,7 @@ public sealed class PacketDispatchChannel
         _catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
                    ?? throw new System.InvalidOperationException(
                        $"[{nameof(PacketDispatchChannel)}] IPacketCatalog not registered in InstanceManager. " +
-                       $"Make sure to build and register IPacketCatalog before starting dispatcher.");
+                       "Make sure to build and register IPacketCatalog before starting dispatcher.");
 
         // Push any additional initialization here if needed
         Logger?.Debug($"[{nameof(PacketDispatchChannel)}] init");
@@ -104,7 +104,7 @@ public sealed class PacketDispatchChannel
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
             name: NetNames.PacketDispatchGroup,
             group: NetNames.PacketDispatchWorker,
-            work: async (ctx, ct) => { await RunLoop(ctx, ct).ConfigureAwait(false); },
+            work: async (ctx, ct) => await RunLoop(ctx, ct).ConfigureAwait(false),
             options: new WorkerOptions
             {
                 CancellationToken = linkedToken,

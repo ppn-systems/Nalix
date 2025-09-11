@@ -18,7 +18,18 @@ public abstract partial class TcpListenerBase
 {
     #region Internal
 
-    internal sealed class NonFatalRejectedException : System.Exception { public NonFatalRejectedException() : base() { } }
+    internal sealed class NonFatalRejectedException : System.Exception
+    {
+        public NonFatalRejectedException() : base() { }
+
+        public NonFatalRejectedException(System.String? message) : base(message)
+        {
+        }
+
+        public NonFatalRejectedException(System.String? message, System.Exception? innerException) : base(message, innerException)
+        {
+        }
+    }
 
     #endregion Internal
 
@@ -125,7 +136,7 @@ public abstract partial class TcpListenerBase
                 _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
                     name: NetNames.TcpProcessWorker(_port, connection.ID.ToString(true)),
                     group: NetNames.TcpProcessGroup(_port),
-                    work: async (ctx, workerCt) =>
+                    work: async (_, _) =>
                     {
                         ProcessConnection(connection);
                         await System.Threading.Tasks.Task.CompletedTask;
@@ -185,8 +196,10 @@ public abstract partial class TcpListenerBase
     private async System.Threading.Tasks.ValueTask<IConnection> CreateConnectionAsync(
         System.Threading.CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         PooledAcceptContext context = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                              .Get<PooledAcceptContext>();
+                                                          .Get<PooledAcceptContext>();
 
         try
         {
@@ -275,7 +288,7 @@ public abstract partial class TcpListenerBase
         {
             // Take a stable local copy to reduce races
             System.Net.Sockets.Socket? s = System.Threading.Volatile.Read(ref _listener);
-            if (s is null || !s.IsBound)
+            if (s?.IsBound != true)
             {
                 break;
             }
@@ -366,7 +379,7 @@ public abstract partial class TcpListenerBase
                     _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
                         name: NetNames.TcpProcessWorker(_port, connection.ID.ToString(true)),
                         group: NetNames.TcpProcessGroup(_port),
-                        work: async (ctx, workerCt) =>
+                        work: async (_, _) =>
                         {
                             ProcessConnection(connection);
                             await System.Threading.Tasks.Task.CompletedTask;

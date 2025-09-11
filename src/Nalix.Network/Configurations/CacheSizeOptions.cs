@@ -15,7 +15,7 @@ public sealed class CacheSizeOptions : ConfigurationLoader
     /// Gets or sets the maximum number of incoming cache entries.
     /// </summary>
     /// <remarks>
-    /// Controls how many incoming frames can be buffered before processing.  
+    /// Controls how many incoming frames can be buffered before processing.
     /// Default is 20.
     /// </remarks>
     public System.Int32 Incoming { get; set; } = 20;
@@ -24,7 +24,7 @@ public sealed class CacheSizeOptions : ConfigurationLoader
     /// Gets or sets the maximum number of outgoing cache entries.
     /// </summary>
     /// <remarks>
-    /// Controls how many outgoing frames can be queued before being sent.  
+    /// Controls how many outgoing frames can be queued before being sent.
     /// Default is 5.
     /// </remarks>
     public System.Int32 Outgoing { get; set; } = 5;

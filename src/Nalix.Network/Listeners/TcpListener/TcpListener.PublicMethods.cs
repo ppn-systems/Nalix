@@ -65,7 +65,7 @@ public abstract partial class TcpListenerBase
             System.Boolean needInit;
             try
             {
-                needInit = _listener is null || !_listener.IsBound || _listener.SafeHandle.IsInvalid;
+                needInit = _listener?.IsBound != true || _listener.SafeHandle.IsInvalid;
             }
             catch
             {
@@ -94,10 +94,7 @@ public abstract partial class TcpListenerBase
                 IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
                     name: NetNames.TcpAcceptWorker(_port, i),
                     group: NetNames.TcpGroup(_port),
-                    work: async (ctx, ct) =>
-                    {
-                        await AcceptConnectionsAsync(ct).ConfigureAwait(false);
-                    },
+                    work: async (_, ct) => await AcceptConnectionsAsync(ct).ConfigureAwait(false),
                     options: new WorkerOptions
                     {
                         CancellationToken = linkedToken,

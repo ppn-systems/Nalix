@@ -88,7 +88,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public TClass Get<TClass>() where TClass : ConfigurationLoader, new()
     {
-        return (TClass)_configContainerDict.GetOrAdd(typeof(TClass), type =>
+        return (TClass)_configContainerDict.GetOrAdd(typeof(TClass), _ =>
         {
             var container = new TClass();
 

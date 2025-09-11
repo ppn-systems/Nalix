@@ -67,9 +67,9 @@ public abstract partial class TcpListenerBase
                     // TcpKeepAliveInterval (seconds), value example: 1
                     // TcpKeepAliveRetryCount, value example: 5
 
-                    socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp, (System.Net.Sockets.SocketOptionName)0x10, 3);
-                    socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp, (System.Net.Sockets.SocketOptionName)0x12, 1);
-                    socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp, (System.Net.Sockets.SocketOptionName)0x11, 5);
+                    socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp, System.Net.Sockets.SocketOptionName.DontRoute, 3);
+                    socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp, System.Net.Sockets.SocketOptionName.UnblockSource, 1);
+                    socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp, System.Net.Sockets.SocketOptionName.TcpKeepAliveInterval, 5);
                 }
                 catch { /* best-effort, ignore if not supported */ }
             }
