@@ -8,12 +8,12 @@ namespace Nalix.Logging;
 public sealed partial class NLogix
 {
     /// <summary>
-    /// Provides a globally accessible, lazily initialized singleton instance of the <see cref="NLogix"/> logger.
-    ///
+    /// <para>Provides a globally accessible, lazily initialized singleton instance of the <see cref="NLogix"/> logger.</para>
+    /// <para>
     /// This class ensures that the logger is initialized only once during the application lifetime,
     /// with default logging targets configured for both console and file output.
-    ///
-    /// Use <see cref="Instance"/> to retrieve the shared logger instance throughout the application.
+    /// </para>
+    /// <para>Use <see cref="Instance"/> to retrieve the shared logger instance throughout the application.</para>
     /// </summary>
     public sealed class Host
     {
