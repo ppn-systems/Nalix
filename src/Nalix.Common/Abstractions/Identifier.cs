@@ -49,7 +49,7 @@ public interface IIdentifier : System.IEquatable<IIdentifier>
     /// <returns>
     /// A byte array containing the serialized representation of the identifier.
     /// </returns>
-    System.Byte[] Serialize();
+    System.Byte[] Format();
 
     /// <summary>
     /// Attempts to serialize the identifier into the provided byte span.

@@ -16,7 +16,7 @@ public class IdentifierTests
         Assert.True(id.IsEmpty()); // not empty => false
 
         Span<Byte> buf = stackalloc Byte[7];
-        Assert.True(id.TrySerialize(buf, out var written));
+        Assert.True(id.TryFormat(buf, out var written));
         Assert.Equal(7, written);
         Assert.Equal(new Byte[7], buf.ToArray());
     }
@@ -26,7 +26,7 @@ public class IdentifierTests
     {
         const UInt32 value = 0x11223344;
         const UInt16 machine = 0x5566;
-        var type = (IdentifierType)0x77;
+        const IdentifierType type = (IdentifierType)0x77;
 
         var id = Identifier.NewId(value, machine, type);
         Assert.True(id.IsValid());
@@ -35,7 +35,7 @@ public class IdentifierTests
         Assert.Equal(type, id.Type);
 
         Span<Byte> buf = stackalloc Byte[7];
-        Assert.True(id.TrySerialize(buf, out var written));
+        Assert.True(id.TryFormat(buf, out var written));
         Assert.Equal(7, written);
 
         // little-endian layout: [0..3]=Value, [4..5]=Machine, [6]=Type  (core impl)
@@ -47,7 +47,7 @@ public class IdentifierTests
         Assert.Equal(0x55, buf[5]);
         Assert.Equal(0x77, buf[6]);
 
-        var back = Identifier.Deserialize(buf);
+        var back = Identifier.FromBytes(buf);
         Assert.Equal(id, back);
         Assert.True(id == back);
     }
@@ -57,7 +57,7 @@ public class IdentifierTests
     {
         var id = Identifier.NewId(0xAABBCCDD, 0xEEFF, (IdentifierType)0x12);
         Span<Byte> small = stackalloc Byte[6];
-        Assert.False(id.TrySerialize(small, out var written));
+        Assert.False(id.TryFormat(small, out var written));
         Assert.Equal(0, written);
     }
 
@@ -65,7 +65,7 @@ public class IdentifierTests
     public void Serialize_ReturnsNew7ByteArray()
     {
         var id = Identifier.NewId(0x01020304, 0x0506, (IdentifierType)0x07);
-        var arr = id.Serialize();
+        var arr = id.Format();
         Assert.Equal(7, arr.Length);
         Assert.Equal(new Byte[] { 0x04, 0x03, 0x02, 0x01, 0x06, 0x05, 0x07 }, arr);
     }
@@ -73,9 +73,9 @@ public class IdentifierTests
     [Fact]
     public void Deserialize_FromByteArray_InvalidLength_Throws()
     {
-        _ = Assert.Throws<ArgumentException>(() => Identifier.Deserialize([]));
-        _ = Assert.Throws<ArgumentException>(() => Identifier.Deserialize(new Byte[6]));
-        _ = Assert.Throws<ArgumentException>(() => Identifier.Deserialize(new Byte[8]));
+        _ = Assert.Throws<ArgumentException>(() => Identifier.FromBytes([]));
+        _ = Assert.Throws<ArgumentException>(() => Identifier.FromBytes(new Byte[6]));
+        _ = Assert.Throws<ArgumentException>(() => Identifier.FromBytes(new Byte[8]));
     }
 
     [Fact]
@@ -83,12 +83,12 @@ public class IdentifierTests
     {
         var id = Identifier.NewId(0xDEADBEEF, 0xBEEF, (IdentifierType)0xAB);
         String s1 = id.ToBase36String(); // Base36 [0-9A-Z], compact (impl)
-        var back1 = Identifier.Deserialize(s1);
+        var back1 = Identifier.Parse(s1);
         Assert.Equal(id, back1);
 
         // TrySerialize to char span
         Span<Char> dst = stackalloc Char[13];
-        Assert.True(id.TrySerialize(dst, out Byte len));
+        Assert.True(id.TryFormat(dst, out Byte len));
         Assert.InRange(len, 1, 13);
         Assert.Equal(s1, new String(dst[..len]));
     }
@@ -100,23 +100,23 @@ public class IdentifierTests
         String up = id.ToBase36String();
         String low = up.ToLowerInvariant();
 
-        Assert.True(Identifier.TryDeserialize(low.AsSpan(), out var lowerParsed));
+        Assert.True(Identifier.TryParse(low.AsSpan(), out var lowerParsed));
         Assert.Equal(id, lowerParsed);
 
-        Assert.False(Identifier.TryDeserialize("*$%".AsSpan(), out _));
+        Assert.False(Identifier.TryParse("*$%".AsSpan(), out _));
     }
 
     [Fact]
     public void TryDeserialize_TooLongOver13_ReturnsFalse() =>
         // 14 chars => invalid per implementation max 13 for 56-bit Base36
-        Assert.False(Identifier.TryDeserialize(new String('Z', 14).AsSpan(), out _));
+        Assert.False(Identifier.TryParse(new String('Z', 14).AsSpan(), out _));
 
     [Fact]
     public void HexString_MatchesSerializedBytes_Length14()
     {
         var id = Identifier.NewId(0x00112233, 0x4455, (IdentifierType)0x66);
         Span<Byte> buf = stackalloc Byte[7];
-        Assert.True(id.TrySerialize(buf, out _));
+        Assert.True(id.TryFormat(buf, out _));
         var hex = id.ToHexString(); // Convert.ToHexString(7 bytes) => 14 hex chars
         Assert.Equal(Convert.ToHexString(buf.ToArray()), hex);
         Assert.Equal(14, hex.Length);
@@ -149,9 +149,9 @@ public class IdentifierTests
     public void MaxSevenBytesValue_RoundTrip_Base36()
     {
         // Compose the absolute max allowed 56-bit value: FF_FFFF_FFFF_FFFF (56 bits)
-        var id = Identifier.NewId(0xFFFFFFFF, 0xFFFF, (IdentifierType)0xFF);
+        var id = Identifier.NewId(0xFFFFFFFF, 0xFFFF, IdentifierType.MaxValue);
         String s = id.ToBase36String();
-        Assert.True(Identifier.TryDeserialize(s.AsSpan(), out var back));
+        Assert.True(Identifier.TryParse(s.AsSpan(), out var back));
         Assert.Equal(id, back);
     }
 
@@ -161,8 +161,8 @@ public class IdentifierTests
         // NewId(type, machineId) uses SecureRandom for Value; we just check round-trip
         var id = Identifier.NewId((IdentifierType)0x11, machineId: 0x2222);
         Span<Byte> buf = stackalloc Byte[7];
-        Assert.True(id.TrySerialize(buf, out _));
-        var back = Identifier.Deserialize(buf);
+        Assert.True(id.TryFormat(buf, out _));
+        var back = Identifier.FromBytes(buf);
         Assert.Equal(id, back);
         Assert.True(id.IsValid());
     }

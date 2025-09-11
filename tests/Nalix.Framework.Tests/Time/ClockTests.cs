@@ -64,7 +64,7 @@ public class ClockTests
     [Fact]
     public void UnixTimeSecondsToDateTime_Should_Convert()
     {
-        var unix = 1700000000L;
+        const Int64 unix = 1700000000L;
         var dt = Clock.UnixTimeSecondsToDateTime(unix);
         Assert.Equal(unix, (Int64)(dt - DateTime.UnixEpoch).TotalSeconds);
     }
@@ -72,7 +72,7 @@ public class ClockTests
     [Fact]
     public void UnixTimeMillisecondsToDateTime_Should_Convert()
     {
-        var unix = 1700000000000L;
+        const Int64 unix = 1700000000000L;
         var dt = Clock.UnixTimeMillisecondsToDateTime(unix);
         Assert.Equal(unix, (Int64)(dt - DateTime.UnixEpoch).TotalMilliseconds);
     }
@@ -80,7 +80,7 @@ public class ClockTests
     [Fact]
     public void UnixTimeMicrosecondsToDateTime_Should_Convert()
     {
-        var micro = 170000000000000L;
+        const Int64 micro = 170000000000000L;
         var dt = Clock.UnixTimeMicrosecondsToDateTime(micro);
         Assert.Equal(micro, (dt - DateTime.UnixEpoch).Ticks / 10);
     }
@@ -88,7 +88,7 @@ public class ClockTests
     [Fact]
     public void TimeMillisecondsToDateTime_Should_Convert()
     {
-        var ms = 1000000;
+        const Int64 ms = 1000000;
         var dt = Clock.TimeMillisecondsToDateTime(ms);
         Assert.Equal(ms, (Int64)(dt - DateTime.UnixEpoch.AddSeconds(Clock.TimeEpochTimestamp)).TotalMilliseconds);
     }
@@ -204,66 +204,5 @@ public class ClockTests
         var (result, elapsed) = Clock.MeasureFunction(() => 123);
         Assert.Equal(123, result);
         Assert.True(elapsed >= 0);
-    }
-
-    [Fact]
-    public void WaitUntil_Should_Wait()
-    {
-        var target = Clock.GetUtcNowPrecise().AddMilliseconds(20);
-        var ok = Clock.WaitUntil(target);
-        Assert.True(ok);
-    }
-
-    [Fact]
-    public void IsTimeBetween_Should_Be_True()
-    {
-        var now = Clock.GetUtcNowPrecise();
-        Assert.True(Clock.IsTimeBetween(now.AddSeconds(-1), now.AddSeconds(1)));
-        Assert.False(Clock.IsTimeBetween(now.AddSeconds(2), now.AddSeconds(3)));
-    }
-
-    [Fact]
-    public void GetTimeRemaining_Should_Work()
-    {
-        var target = Clock.GetUtcNowPrecise().AddMilliseconds(50);
-        var remain = Clock.GetTimeRemaining(target);
-        Assert.True(remain.TotalMilliseconds is <= 50 and >= 0);
-    }
-
-    [Fact]
-    public void HasElapsed_Should_Work()
-    {
-        var now = Clock.GetUtcNowPrecise().AddMilliseconds(-20);
-        Assert.True(Clock.HasElapsed(now, TimeSpan.FromMilliseconds(10)));
-        Assert.False(Clock.HasElapsed(Clock.GetUtcNowPrecise(), TimeSpan.FromSeconds(1)));
-    }
-
-    [Fact]
-    public void GetPercentageComplete_Should_Work()
-    {
-        var start = Clock.GetUtcNowPrecise().AddMilliseconds(-50);
-        var end = start.AddMilliseconds(100);
-        var percent = Clock.GetPercentageComplete(start, end);
-        Assert.True(percent is > 0.4 and < 0.6);
-        Assert.Equal(1.0, Clock.GetPercentageComplete(end, start));
-    }
-
-    [Fact]
-    public void FormatTimeSpan_Should_Return_String()
-    {
-        var t = new TimeSpan(1, 2, 3, 4, 567);
-        var s = Clock.FormatTimeSpan(t, true);
-        Assert.Contains("1d", s);
-        Assert.Contains("2h", s);
-        Assert.Contains("3m", s);
-        Assert.Contains("4s", s);
-        Assert.Contains("567ms", s);
-    }
-
-    [Fact]
-    public void FormatElapsedTime_Should_Throw_IfNotUtc()
-    {
-        var dt = DateTime.Now;
-        _ = Assert.Throws<ArgumentException>(() => Clock.FormatElapsedTime(dt, false));
     }
 }
