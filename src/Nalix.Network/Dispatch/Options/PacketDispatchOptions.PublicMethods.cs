@@ -29,7 +29,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithLogging(ILogger logger)
     {
         this.Logger = logger;
-        this.Logger.Info($"[{nameof(PacketDispatchOptions<TPacket>)}] logger-attached");
+        this.Logger.Debug($"[{nameof(PacketDispatchOptions<TPacket>)}] logger-attached");
 
         return this;
     }
@@ -54,7 +54,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithErrorHandling(
         System.Action<System.Exception, System.UInt16> errorHandler)
     {
-        this.Logger?.Info($"[{nameof(PacketDispatchOptions<TPacket>)}] error-handler-set");
+        this.Logger?.Debug($"[{nameof(PacketDispatchOptions<TPacket>)}] error-handler-set");
         this._errorHandler = errorHandler;
 
         return this;
@@ -76,10 +76,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public PacketDispatchOptions<TPacket> WithPreDispatchMiddleware(
+    public PacketDispatchOptions<TPacket> WithInbound(
         IPacketMiddleware<TPacket> middleware)
     {
-        _ = this._pipeline.UsePre(middleware);
+        _pipeline.UseInbound(middleware);
         return this;
     }
 
@@ -98,10 +98,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public PacketDispatchOptions<TPacket> WithPostDispatchMiddleware(
+    public PacketDispatchOptions<TPacket> WithOutbound(
         IPacketMiddleware<TPacket> middleware)
     {
-        _ = this._pipeline.UsePost(middleware);
+        _pipeline.UseOutbound(middleware);
         return this;
     }
 
