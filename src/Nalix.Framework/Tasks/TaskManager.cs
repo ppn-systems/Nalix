@@ -468,7 +468,7 @@ public sealed partial class TaskManager : ITaskManager
 
         // Recurring summary
         _ = sb.AppendLine("Recurring:");
-        _ = sb.AppendLine("Naming                       | Runs     | Fails | Running | Last UTC              | Next UTC              | Interval | Tag");
+        _ = sb.AppendLine("Naming                       | Runs     | Fails | Running | Last UTC             | Next UTC              | Interval | Tag");
         foreach (var kv in _recurring)
         {
             var s = kv.Value;

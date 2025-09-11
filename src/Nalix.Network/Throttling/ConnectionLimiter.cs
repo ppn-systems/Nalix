@@ -273,7 +273,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
             ConnectionLimitInfo info = kv.Value;
 
             // Pad/truncate IP for neat column alignment (IPv6 can be long).
-            System.String ipCol = ip.Length > 27 ? System.String.Concat(System.MemoryExtensions.AsSpan(ip, 0, 27), "…") : ip.PadRight(27);
+            System.String ipCol = ip.Length > 27 ? $"{System.MemoryExtensions.AsSpan(ip, 0, 27)}…" : ip.PadRight(27);
 
             _ = sb.AppendLine($"{ipCol} | {info.CurrentConnections,7} | {info.TotalConnectionsToday,9} | {info.LastConnectionTime:u}");
         }

@@ -18,9 +18,9 @@ internal static class NetNames
 
     // Groups (path-style)
 
-    public static System.String TimeSyncGroup = TaskNames.Groups.Build(Seg.Time, "sync");
+    public static System.String TimeSyncGroup = TaskNames.Groups.Build(Seg.Net, Seg.Time, "sync");
 
-    public static System.String TimingWheelGroup = TaskNames.Groups.Build(Seg.Time, "wheel");
+    public static System.String TimingWheelGroup = TaskNames.Groups.Build(Seg.Net, Seg.Time, "wheel");
 
     public static readonly System.String PacketDispatchGroup = TaskNames.Groups.Build(Seg.Net, Seg.Pkt, Seg.Dispatch);
 
