@@ -9,10 +9,10 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<!-- Versions -->
-		<Version>5.4.0</Version>
-		<FileVersion>5.4.0.0</FileVersion>
-		<PackageVersion>5.4.0</PackageVersion>
-		<InformationalVersion>5.4.0+$(SourceRevisionId)</InformationalVersion>
+		<Version>5.4.5</Version>
+		<FileVersion>5.4.5.0</FileVersion>
+		<PackageVersion>5.4.5</PackageVersion>
+		<InformationalVersion>5.4.5+$(SourceRevisionId)</InformationalVersion>
 
         <Description>
 Nalix.Common is a foundational .NET library that provides essential utilities for logging, memory management, cryptography, security, exception handling, and system operations. It serves as a core dependency for the Nalix ecosystem, offering reusable and high-performance components to enhance application development.
