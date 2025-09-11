@@ -21,11 +21,11 @@ public sealed class ConnectionLimitOptions : ConfigurationLoader
     /// Gets or sets the maximum number of connections allowed per IP address.
     /// </summary>
     /// <remarks>
-    /// Default is 50.  
-    /// - Suitable for most client-to-server scenarios (e.g., games, chat, APIs).  
+    /// Default is 50.
+    /// - Suitable for most client-to-server scenarios (e.g., games, chat, APIs).
     /// - In environments where multiple users share the same IP
     ///   (e.g., NAT, proxies, ISPs), consider increasing this value
-    ///   to 100 or higher.  
+    ///   to 100 or higher.
     /// - Range: 1 to 10,000.
     /// </remarks>
     public System.Int32 MaxConnectionsPerIpAddress { get; set; } = 50;
@@ -44,7 +44,7 @@ public sealed class ConnectionLimitOptions : ConfigurationLoader
     /// </summary>
     /// <remarks>
     /// A connection entry is considered stale if it has been inactive longer
-    /// than this threshold.  
+    /// than this threshold.
     /// Default is 300,000 ms (5 minutes).
     /// </remarks>
     public System.Int32 InactivityThresholdMs { get; set; } = 300_000;

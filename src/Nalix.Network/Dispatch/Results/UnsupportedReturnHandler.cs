@@ -3,7 +3,6 @@
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Injection;
 
-
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]

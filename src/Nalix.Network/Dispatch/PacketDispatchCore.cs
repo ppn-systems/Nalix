@@ -63,15 +63,15 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket
     /// <summary>
     /// Executes the registered packet handler asynchronously using the provided packet and connection context.
     /// </summary>
-    /// <param name="handler">
-    /// A delegate that processes the packet. This delegate should implement the packet-specific logic,
-    /// such as validation, response preparation, or triggering related workflows.
-    /// </param>
     /// <param name="packet">
     /// The deserialized packet instance containing the data to be handled. Assumed to be already validated and routed.
     /// </param>
     /// <param name="connection">
     /// The connection instance representing the client that sent the packet.
+    /// </param>
+    /// <param name="handler">
+    /// A delegate that processes the packet. This delegate should implement the packet-specific logic,
+    /// such as validation, response preparation, or triggering related workflows.
     /// </param>
     /// <returns>
     /// A <see cref="System.Threading.Tasks.ValueTask"/> that represents the asynchronous execution of the handler logic.
