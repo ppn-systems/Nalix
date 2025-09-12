@@ -3,7 +3,7 @@
 using Nalix.Common.Environment;
 using Nalix.Logging.Internal.Exceptions;
 
-namespace Nalix.Logging.Internal;
+namespace Nalix.Logging.Internal.File;
 
 /// <summary>
 /// Manages writing logs to a file with support for daily+index rotation,

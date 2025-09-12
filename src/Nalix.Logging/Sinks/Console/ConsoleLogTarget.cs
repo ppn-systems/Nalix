@@ -37,7 +37,7 @@ public sealed class ConsoleLogTarget : ILoggerTarget
     /// <summary>
     /// Initializes a new instance of the <see cref="ConsoleLogTarget"/> class with a default log formatter.
     /// </summary>
-    public ConsoleLogTarget() : this(new LoggingFormatter(true))
+    public ConsoleLogTarget() : this(new LogFormatter(true))
     {
     }
 

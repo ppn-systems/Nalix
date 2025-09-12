@@ -11,7 +11,7 @@ namespace Nalix.Common.Abstractions;
 /// process involves asynchronous operations such as I/O, networking,
 /// or long-running initialization/cleanup tasks.
 /// </remarks>
-public interface IAsyncActivatable
+public interface IAsyncActivatable : System.IAsyncDisposable
 {
     /// <summary>
     /// Asynchronously activates the component, transitioning it into an operational state.

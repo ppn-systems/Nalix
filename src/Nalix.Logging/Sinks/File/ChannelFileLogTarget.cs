@@ -3,7 +3,7 @@
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Logging.Models;
 using Nalix.Logging.Formatters;
-using Nalix.Logging.Internal;
+using Nalix.Logging.Internal.File;
 
 namespace Nalix.Logging.Sinks.File;
 
@@ -18,8 +18,8 @@ namespace Nalix.Logging.Sinks.File;
 /// </remarks>
 public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
 {
-    private readonly ChannelFileLoggerProvider _provider;
     private readonly ILoggerFormatter _formatter;
+    private readonly ChannelFileLoggerProvider _provider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ChannelFileLogTarget"/> class with the specified formatter and options.
@@ -40,9 +40,9 @@ public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
     /// Initializes a new instance of the <see cref="ChannelFileLogTarget"/> class with default options.
     /// </summary>
     /// <remarks>
-    /// Uses the default <see cref="LoggingFormatter"/> and <see cref="FileLogOptions"/>.
+    /// Uses the default <see cref="LogFormatter"/> and <see cref="FileLogOptions"/>.
     /// </remarks>
-    public ChannelFileLogTarget() : this(new LoggingFormatter(false), new FileLogOptions())
+    public ChannelFileLogTarget() : this(new LogFormatter(false), new FileLogOptions())
     {
     }
 
@@ -50,7 +50,7 @@ public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
     /// Initializes a new instance of the <see cref="ChannelFileLogTarget"/> class with the specified options.
     /// </summary>
     /// <param name="options">The file log options to configure file paths, size limits, and rolling behavior.</param>
-    public ChannelFileLogTarget(FileLogOptions options) : this(new LoggingFormatter(false), options)
+    public ChannelFileLogTarget(FileLogOptions options) : this(new LogFormatter(false), options)
     {
     }
 
@@ -59,7 +59,7 @@ public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     /// <param name="configureOptions">An action that configures the <see cref="FileLogOptions"/> before use.</param>
     public ChannelFileLogTarget(System.Action<FileLogOptions> configureOptions)
-        : this(new LoggingFormatter(false), Configure(configureOptions))
+        : this(new LogFormatter(false), Configure(configureOptions))
     {
     }
 
@@ -90,7 +90,7 @@ public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
     /// <returns>A configured <see cref="FileLogOptions"/> instance.</returns>
     private static FileLogOptions Configure(System.Action<FileLogOptions> configure)
     {
-        var opts = new FileLogOptions();
+        FileLogOptions opts = new();
         configure?.Invoke(opts);
         return opts;
     }

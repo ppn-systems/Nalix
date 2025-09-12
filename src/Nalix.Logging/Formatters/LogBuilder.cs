@@ -2,7 +2,7 @@
 
 using Nalix.Common.Logging.Models;
 using Nalix.Logging.Engine;
-using Nalix.Logging.Internal;
+using Nalix.Logging.Internal.Format;
 
 namespace Nalix.Logging.Formatters;
 
@@ -11,7 +11,7 @@ namespace Nalix.Logging.Formatters;
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-internal static class LoggingBuilder
+internal static class LogBuilder
 {
     #region Constants
 
@@ -154,7 +154,7 @@ internal static class LoggingBuilder
         _ = builder.Append(LogConstants.LogSpaceSeparator)
                    .Append(LogConstants.LogBracketOpen);
 
-        System.ReadOnlySpan<System.Char> levelText = LoggingLevelFormatter.GetShortLogLevel(logLevel);
+        System.ReadOnlySpan<System.Char> levelText = LogLevelFormatter.GetShortLogLevel(logLevel);
 
         if (colors)
         {

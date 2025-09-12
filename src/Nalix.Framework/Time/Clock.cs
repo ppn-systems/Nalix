@@ -38,41 +38,6 @@ public static partial class Clock
 
     #endregion Constants and Fields
 
-    #region Properties
-
-    /// <summary>
-    /// Gets a value indicating whether the system clock is using high-resolution timing.
-    /// </summary>
-    public static System.Boolean IsHighResolution { get; private set; }
-
-    /// <summary>
-    /// Gets the tick frequency in seconds (the duration of a single tick).
-    /// </summary>
-    public static System.Double TickFrequency { get; private set; }
-
-    /// <summary>
-    /// Gets the frequency of the high-resolution timer in ticks per second.
-    /// </summary>
-    public static System.Int64 TicksPerSecond => System.Diagnostics.Stopwatch.Frequency;
-
-    /// <summary>
-    /// Gets a value indicating whether the clock has been synchronized with an external time source.
-    /// </summary>
-    public static System.Boolean IsSynchronized { get; private set; }
-
-    /// <summary>
-    /// Gets the time when the last synchronization occurred.
-    /// </summary>
-    public static System.DateTime LastSyncTime { get; private set; }
-
-    /// <summary>
-    /// Gets the current offset in milliseconds between the system time and the synchronized time.
-    /// </summary>
-    public static System.Double CurrentOffsetMs
-        => System.TimeSpan.FromTicks(_timeOffset).TotalMilliseconds;
-
-    #endregion Properties
-
     #region Constructors
 
     static Clock()
@@ -95,106 +60,6 @@ public static partial class Clock
     }
 
     #endregion Constructors
-
-    #region Basic Time Functions
-
-    /// <summary>
-    /// Returns the current UTC time with high accuracy.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.DateTime GetUtcNowPrecise()
-    {
-        System.TimeSpan elapsed = UtcStopwatch.Elapsed;
-        if (IsSynchronized)
-        {
-            // Apply drift correction and offset
-            System.Int64 correctedTicks = (System.Int64)(elapsed.Ticks * _driftCorrection) + _timeOffset;
-            return UtcBase.AddTicks(correctedTicks);
-        }
-        return UtcBase.Add(elapsed);
-    }
-
-    /// <summary>
-    /// Returns the current UTC time with high accuracy, formatted as a string.
-    /// </summary>
-    /// <param name="format">The format string to use for formatting the date and time.</param>
-    /// <returns>A string representation of the current UTC time.</returns>
-    public static System.String GetUtcNowString(System.String format = "yyyy-MM-dd HH:mm:ss.fff")
-        => GetUtcNowPrecise().ToString(format);
-
-    /// <summary>
-    /// Current Unix timestamp (seconds) as long.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int64 UnixSecondsNow()
-        => (System.Int64)(GetUtcNowPrecise() - System.DateTime.UnixEpoch).TotalSeconds;
-
-    /// <summary>
-    /// Current Unix timestamp (milliseconds) as long.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int64 UnixMillisecondsNow()
-        => (System.Int64)(GetUtcNowPrecise() - System.DateTime.UnixEpoch).TotalMilliseconds;
-
-    /// <summary>
-    /// Current Unix timestamp (microseconds) as long.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int64 UnixMicrosecondsNow()
-        => (GetUtcNowPrecise() - System.DateTime.UnixEpoch).Ticks / 10;
-
-    /// <summary>
-    /// Current Unix timestamp (ticks) as long.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int64 UnixTicksNow()
-        => (GetUtcNowPrecise() - System.DateTime.UnixEpoch).Ticks;
-
-    /// <summary>
-    /// Returns the current Unix time as TimeSpan.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.TimeSpan UnixTime() => GetUtcNowPrecise() - System.DateTime.UnixEpoch;
-
-    /// <summary>
-    /// Returns the current application-specific time as TimeSpan (relative to TimeEpoch).
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.TimeSpan ApplicationTime() => GetUtcNowPrecise() - TimeEpoch;
-
-    /// <summary>
-    /// Returns the raw, unadjusted system time without synchronization or drift correction.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.DateTime GetRawUtcNow() => System.DateTime.UtcNow;
-
-    /// <summary>
-    /// Returns the current monotonic tick count using <see cref="System.Diagnostics.Stopwatch"/>.
-    /// These ticks are monotonic (not affected by system clock changes),
-    /// suitable for latency/RTT measurement.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int64 MonoTicksNow()
-        => System.Diagnostics.Stopwatch.GetTimestamp();
-
-    /// <summary>
-    /// Converts a monotonic tick delta into milliseconds.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Double MonoTicksToMilliseconds(System.Int64 tickDelta)
-        => tickDelta * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-
-    #endregion Basic Time Functions
 
     #region Conversion Methods
 
@@ -457,14 +322,6 @@ public static partial class Clock
     public static void StartMeasurement() => _threadStopwatch.Value!.Restart();
 
     /// <summary>
-    /// Gets the elapsed time since the last call to StartMeasurement() for the current thread.
-    /// </summary>
-    /// <returns>The elapsed time as a TimeSpan.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.TimeSpan GetElapsed() => _threadStopwatch.Value!.Elapsed;
-
-    /// <summary>
     /// Gets the elapsed time in milliseconds since the last call to StartMeasurement() for the current thread.
     /// </summary>
     /// <returns>The elapsed time in milliseconds.</returns>
@@ -472,40 +329,6 @@ public static partial class Clock
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Double GetElapsedMilliseconds()
         => _threadStopwatch.Value!.Elapsed.TotalMilliseconds;
-
-    /// <summary>
-    /// Gets the elapsed time in microseconds since the last call to StartMeasurement() for the current thread.
-    /// </summary>
-    /// <returns>The elapsed time in microseconds.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Double GetElapsedMicroseconds()
-        => _threadStopwatch.Value!.Elapsed.Ticks / 10.0;
-
-    /// <summary>
-    /// Measures the execution time of an action.
-    /// </summary>
-    /// <param name="action">The action to measure.</param>
-    /// <returns>The elapsed time in milliseconds.</returns>
-    public static System.Double MeasureExecutionTime(System.Action action)
-    {
-        StartMeasurement();
-        action();
-        return GetElapsedMilliseconds();
-    }
-
-    /// <summary>
-    /// Executes an action and returns both the result and the execution time.
-    /// </summary>
-    /// <typeparam name="T">The type of the result.</typeparam>
-    /// <param name="func">The function to execute and measure.</param>
-    /// <returns>A tuple containing the result and the elapsed time in milliseconds.</returns>
-    public static (T Result, System.Double ElapsedMs) MeasureFunction<T>(System.Func<T> func)
-    {
-        StartMeasurement();
-        T result = func();
-        return (result, GetElapsedMilliseconds());
-    }
 
     #endregion Performance Measurement
 }
