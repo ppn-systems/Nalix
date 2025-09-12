@@ -134,8 +134,8 @@ public abstract partial class TcpListenerBase
                     .ConfigureAwait(false);
 
                 _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-                    name: NetNames.TcpProcessWorker(_port, connection.ID.ToString(true)),
-                    group: NetNames.TcpProcessGroup(_port),
+                    name: NetTaskNames.TcpProcessWorker(_port, connection.ID.ToString(true)),
+                    group: NetTaskNames.TcpProcessGroup(_port),
                     work: async (_, _) =>
                     {
                         ProcessConnection(connection);
@@ -145,7 +145,7 @@ public abstract partial class TcpListenerBase
                     {
                         Retention = System.TimeSpan.Zero,
                         IdType = IdentifierType.System,
-                        Tag = nameof(IConnection)
+                        Tag = NetTaskNames.Segments.Net
                     }
                 );
 
@@ -374,8 +374,8 @@ public abstract partial class TcpListenerBase
 
                     // Process the connection
                     _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-                        name: NetNames.TcpProcessWorker(_port, connection.ID.ToString(true)),
-                        group: NetNames.TcpProcessGroup(_port),
+                        name: NetTaskNames.TcpProcessWorker(_port, connection.ID.ToString(true)),
+                        group: NetTaskNames.TcpProcessGroup(_port),
                         work: async (_, _) =>
                         {
                             ProcessConnection(connection);
@@ -385,7 +385,7 @@ public abstract partial class TcpListenerBase
                         {
                             Retention = System.TimeSpan.Zero,
                             IdType = IdentifierType.System,
-                            Tag = "conn"
+                            Tag = NetTaskNames.Segments.Net
                         }
                     );
 

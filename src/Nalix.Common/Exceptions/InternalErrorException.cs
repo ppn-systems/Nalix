@@ -18,7 +18,7 @@ public class InternalErrorException : BaseException
     /// Gets additional diagnostic information related to this exception.
     /// </summary>
     /// <remarks>
-    /// This property may contain debugging details such as a stack trace, 
+    /// This property may contain debugging details such as a stack trace,
     /// failure context, or other relevant internal state.
     /// </remarks>
     public System.String Details { get; }

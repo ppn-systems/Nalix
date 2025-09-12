@@ -184,7 +184,7 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable, I
                 try
                 {
                     _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                                .CancelGroup(NetNames.TcpGroup(self._port));
+                                                .CancelGroup(NetTaskNames.TcpGroup(self._port));
                 }
                 catch { }
 
