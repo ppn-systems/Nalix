@@ -18,9 +18,13 @@ namespace Nalix.Shared.Security;
 [System.Diagnostics.DebuggerNonUserCode]
 internal static class EnvelopeFormat
 {
+    #region Constants
+
     public const System.Int32 TagSize = 16;
     public const System.Byte CurrentVersion = 1;
     public const System.Int32 HeaderSize = EnvelopeHeader.SIZE;
+
+    #endregion Constants
 
     /// <summary>
     /// Parse envelope into constituent spans without allocations.
