@@ -58,7 +58,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
             name: TaskNames.Recurring.WithKey(nameof(ConnectionLimiter), this.GetHashCode()),
             interval: _cleanupInterval,
-            work: ct =>
+            work: _ =>
             {
                 RunCleanupOnce();
                 return System.Threading.Tasks.ValueTask.CompletedTask;
@@ -107,8 +107,8 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
 
         IpAddressKey key = IpAddressKey.FromEndPoint(endPoint);
 
-        var now = System.DateTime.UtcNow;
-        var today = now.Date;
+        System.DateTime now = System.DateTime.UtcNow;
+        System.DateTime today = now.Date;
 
         // Ensure an entry exists
         _ = _map.TryAdd(key, new ConnectionLimitInfo(0, now, 0));
@@ -158,7 +158,6 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
                                                $"now={proposed.CurrentConnections} limit={_maxPerIp}");
                 return true;
             }
-            // else: raced, retry
         }
     }
 
@@ -182,7 +181,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
 
         IpAddressKey key = IpAddressKey.FromEndPoint(endPoint);
 
-        var now = System.DateTime.UtcNow;
+        System.DateTime now = System.DateTime.UtcNow;
 
         if (!_map.TryGetValue(key, out _))
         {
@@ -227,10 +226,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         var snapshot = new System.Collections.Generic.List<
             System.Collections.Generic.KeyValuePair<IpAddressKey, ConnectionLimitInfo>>(_map.Count);
 
-        foreach (var kv in _map)
-        {
-            snapshot.Add(kv);
-        }
+        snapshot.AddRange(_map);
 
         // Sort by current connections (desc), then by TotalToday (desc)
         snapshot.Sort(static (a, b) =>
@@ -303,8 +299,8 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
 
         try
         {
-            var nowUtc = System.DateTime.UtcNow;
-            var cutoff = nowUtc - _inactivityThreshold;
+            System.DateTime nowUtc = System.DateTime.UtcNow;
+            System.DateTime cutoff = nowUtc - _inactivityThreshold;
 
             System.Int32 scanned = 0, removed = 0;
 
