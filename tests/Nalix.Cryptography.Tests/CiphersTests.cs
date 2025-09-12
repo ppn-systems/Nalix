@@ -1,5 +1,5 @@
+using Nalix.Common.Enums;
 using Nalix.Common.Exceptions;
-using Nalix.Common.Security.Enums;
 using System;
 using System.Text;
 using Xunit;
