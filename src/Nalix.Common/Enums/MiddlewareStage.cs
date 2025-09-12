@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Packets.Enums;
+namespace Nalix.Common.Enums;
 
 /// <summary>
 /// Represents the stage at which middleware is executed in the dispatch pipeline.

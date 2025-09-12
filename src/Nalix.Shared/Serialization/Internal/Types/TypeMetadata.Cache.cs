@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Serialization;
+using Nalix.Common.Serialization.Abstractions;
 
 namespace Nalix.Shared.Serialization.Internal.Types;
 

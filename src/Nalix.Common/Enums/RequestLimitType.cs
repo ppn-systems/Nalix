@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Security.Types;
+namespace Nalix.Common.Enums;
 
 /// <summary>
 /// Defines request rate limit levels for firewall or throttling configurations.

@@ -5,8 +5,6 @@ using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Common.Enums;
 using Nalix.Common.Logging.Abstractions;
-using Nalix.Common.Security.Enums;
-using Nalix.Common.Security.Types;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;

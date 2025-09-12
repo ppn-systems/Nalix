@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Security.Abstractions;
+using Nalix.Cryptography.Abstractions;
 using Nalix.Cryptography.Primitives;
 
 namespace Nalix.Cryptography.Hashing;
