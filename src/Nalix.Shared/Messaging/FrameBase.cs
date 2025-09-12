@@ -4,8 +4,8 @@ using Nalix.Common.Attributes;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Enums;
 using Nalix.Common.Protocols;
-using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
+using Nalix.Common.Serialization.Enums;
 
 namespace Nalix.Shared.Messaging;
 
