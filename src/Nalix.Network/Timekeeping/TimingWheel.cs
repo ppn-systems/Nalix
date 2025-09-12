@@ -3,10 +3,10 @@
 
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
-using Nalix.Common.Identity.Enums;
+using Nalix.Common.Identity;
+using Nalix.Common.Networking;
 using Nalix.Common.Networking.Abstractions;
-using Nalix.Common.Shared.Abstractions;
-using Nalix.Common.Shared.Caching;
+using Nalix.Common.Shared;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;

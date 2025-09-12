@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics;
-using Nalix.Common.Identity.Enums;
+using Nalix.Common.Identity;
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
