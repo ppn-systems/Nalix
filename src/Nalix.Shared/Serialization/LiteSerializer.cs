@@ -15,6 +15,7 @@ public static class LiteSerializer
 {
     #region Constants
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
     private const System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes All =
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All;
 
