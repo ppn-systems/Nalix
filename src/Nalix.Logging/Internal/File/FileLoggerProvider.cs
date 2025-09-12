@@ -2,6 +2,7 @@
 
 using Nalix.Common.Environment;
 using Nalix.Logging.Internal.Exceptions;
+using Nalix.Logging.Internal.File;
 using Nalix.Logging.Sinks.File;
 
 namespace Nalix.Logging.Internal;

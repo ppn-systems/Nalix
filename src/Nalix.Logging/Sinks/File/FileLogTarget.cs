@@ -46,7 +46,7 @@ public sealed class FileLogTarget : ILoggerTarget, System.IDisposable
     /// Initializes a new instance of the <see cref="FileLogTarget"/> class with the default formatter and options.
     /// </summary>
     public FileLogTarget()
-        : this(new LoggingFormatter(false), new FileLogOptions())
+        : this(new LogFormatter(false), new FileLogOptions())
     {
     }
 
@@ -55,7 +55,7 @@ public sealed class FileLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     /// <param name="options">A delegate to configure <see cref="FileLogOptions"/>.</param>
     public FileLogTarget(FileLogOptions options)
-        : this(new LoggingFormatter(false), options)
+        : this(new LogFormatter(false), options)
     {
     }
 
@@ -64,7 +64,7 @@ public sealed class FileLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     /// <param name="configureOptions">A delegate to configure <see cref="FileLogOptions"/>.</param>
     public FileLogTarget(System.Action<FileLogOptions> configureOptions)
-        : this(new LoggingFormatter(false), ConfigureOptions(configureOptions))
+        : this(new LogFormatter(false), ConfigureOptions(configureOptions))
     {
     }
 

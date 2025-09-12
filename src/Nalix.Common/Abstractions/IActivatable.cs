@@ -12,7 +12,7 @@ namespace Nalix.Common.Abstractions;
 /// Typical use cases include background services, processors,
 /// or managers that must be toggled at runtime.
 /// </remarks>
-public interface IActivatable
+public interface IActivatable : System.IDisposable
 {
     /// <summary>
     /// Activates the component, transitioning it into an operational state.
