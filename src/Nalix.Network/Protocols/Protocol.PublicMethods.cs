@@ -28,27 +28,6 @@ public abstract partial class Protocol
     #endregion Properties
 
     /// <summary>
-    /// Called when an error occurs during connection handling.
-    /// Override to implement custom error handling.
-    /// </summary>
-    /// <param name="connection">The connection where the error occurred.</param>
-    /// <param name="exception">The exception that was thrown.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected virtual void OnConnectionError(IConnection connection, System.Exception exception)
-        => _ = System.Threading.Interlocked.Increment(ref this._totalErrors);
-
-    /// <summary>
-    /// Validates the incoming connection before accepting it.
-    /// Override this method to implement custom validation logic.
-    /// </summary>
-    /// <param name="connection">The connection to validate.</param>
-    /// <returns>True if the connection is valid, false otherwise.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected virtual System.Boolean ValidateConnection(IConnection connection) => true;
-
-    /// <summary>
     /// Called when a connection is accepted. Starts receiving data by default.
     /// Override to implement custom acceptance logic, such as IP validation.
     /// </summary>
@@ -130,4 +109,26 @@ public abstract partial class Protocol
 
         this._accepting = isEnabled ? 1 : 0;
     }
+
+
+    /// <summary>
+    /// Called when an error occurs during connection handling.
+    /// Override to implement custom error handling.
+    /// </summary>
+    /// <param name="connection">The connection where the error occurred.</param>
+    /// <param name="exception">The exception that was thrown.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    protected virtual void OnConnectionError(IConnection connection, System.Exception exception)
+        => _ = System.Threading.Interlocked.Increment(ref this._totalErrors);
+
+    /// <summary>
+    /// Validates the incoming connection before accepting it.
+    /// Override this method to implement custom validation logic.
+    /// </summary>
+    /// <param name="connection">The connection to validate.</param>
+    /// <returns>True if the connection is valid, false otherwise.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    protected virtual System.Boolean ValidateConnection(IConnection connection) => true;
 }
