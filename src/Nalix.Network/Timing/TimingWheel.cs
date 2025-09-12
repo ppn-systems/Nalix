@@ -167,8 +167,8 @@ public sealed class TimingWheel : System.IDisposable, IActivatable
 
         // Prefer a dedicated thread to reduce pool jitter.
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-            name: NetNames.TimingWheelWorker(TickMs, WheelSize),
-            group: NetNames.TimingWheelGroup,
+            name: NetTaskNames.TimingWheelWorker(TickMs, WheelSize),
+            group: NetTaskNames.TimingWheelGroup,
             work: async (ctx, ct) => { await RunLoop(ctx, ct).ConfigureAwait(false); },
             options: new WorkerOptions
             {

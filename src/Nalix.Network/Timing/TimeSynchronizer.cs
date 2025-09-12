@@ -173,8 +173,8 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
         }
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-            name: NetNames.TimeSyncWorker(Period),
-            group: NetNames.TimeSyncGroup,
+            name: NetTaskNames.TimeSyncWorker(Period),
+            group: NetTaskNames.TimeSyncGroup,
             work: async (ctx, ct) =>
             {
                 try
