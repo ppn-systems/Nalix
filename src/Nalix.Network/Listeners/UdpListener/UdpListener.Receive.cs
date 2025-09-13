@@ -30,11 +30,7 @@ public abstract partial class UdpListenerBase
                 _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.StartWorker(
                     name: $"udp.proc.{_port}",
                     group: $"udp.port.{_port}",
-                    work: async (_, __) =>
-                    {
-                        ProcessDatagram(result);
-                        await System.Threading.Tasks.Task.CompletedTask;
-                    },
+                    work: (_, __) => { ProcessDatagram(result); return new System.Threading.Tasks.ValueTask(); },
                     options: new WorkerOptions
                     {
                         Tag = "udp",

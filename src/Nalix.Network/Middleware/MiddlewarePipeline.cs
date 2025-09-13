@@ -10,7 +10,7 @@ namespace Nalix.Network.Middleware;
 /// Allows chaining multiple middleware components to handle a packet context.
 /// </summary>
 /// <typeparam name="TPacket">The type of packet being processed in the pipeline.</typeparam>
-public class PacketMiddlewarePipeline<TPacket>
+public class MiddlewarePipeline<TPacket>
 {
     private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _inbound = [];
     private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _outbound = [];
