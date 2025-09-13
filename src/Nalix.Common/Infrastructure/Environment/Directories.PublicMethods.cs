@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Environment;
+namespace Nalix.Common.Infrastructure.Environment;
 
 public static partial class Directories
 {
@@ -274,13 +274,9 @@ public static partial class Directories
         [System.Diagnostics.CodeAnalysis.NotNull] System.String searchPattern = "*",
         [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean recursive = false)
     {
-        if (System.String.IsNullOrWhiteSpace(directory))
-        {
-            throw new System.ArgumentNullException(nameof(directory));
-        }
-
-        return EnumerateFilesCore();
-
+        return System.String.IsNullOrWhiteSpace(directory)
+            ? throw new System.ArgumentNullException(nameof(directory))
+            : EnumerateFilesCore();
         System.Collections.Generic.IEnumerable<System.String> EnumerateFilesCore()
         {
             if (!System.IO.Directory.Exists(directory))
