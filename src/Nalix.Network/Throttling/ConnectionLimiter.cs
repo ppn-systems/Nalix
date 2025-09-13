@@ -9,7 +9,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Name;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Configurations;
-using Nalix.Network.Internal;
+using Nalix.Network.Internal.Net;
 using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Throttling;

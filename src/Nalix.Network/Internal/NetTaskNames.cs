@@ -1,4 +1,11 @@
-﻿using Nalix.Framework.Tasks.Name;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Framework.Tasks.Name;
+
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+#endif
 
 namespace Nalix.Network.Internal;
 
