@@ -3,6 +3,7 @@
 using Nalix.Common.Exceptions;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Logging.Models;
+using Nalix.Logging.Options;
 
 namespace Nalix.Logging.Sinks.Email;
 
