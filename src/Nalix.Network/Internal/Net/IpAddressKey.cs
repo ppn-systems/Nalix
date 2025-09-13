@@ -1,4 +1,11 @@
-﻿namespace Nalix.Network.Internal;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+#endif
+
+namespace Nalix.Network.Internal.Net;
 
 internal readonly struct IpAddressKey : System.IEquatable<IpAddressKey>
 {
