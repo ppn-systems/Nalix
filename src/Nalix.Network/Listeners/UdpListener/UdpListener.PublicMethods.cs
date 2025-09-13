@@ -3,6 +3,8 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Tasks;
+using Nalix.Framework.Tasks.Options;
 using Nalix.Framework.Time;
 using Nalix.Network.Abstractions;
 
@@ -12,10 +14,8 @@ namespace Nalix.Network.Listeners.Udp;
 /// Provides a base implementation for a UDP network listener, supporting asynchronous listening,
 /// protocol processing, and time synchronization. Inherit from this class to implement custom UDP listeners.
 /// </summary>
-[System.Obsolete("This API is for internal use only.", error: true)]
 [System.Diagnostics.DebuggerDisplay("Port={Config?.Port}, Running={_isRunning}")]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-public abstract partial class UdpListenerBase : IListener, System.IDisposable
+public abstract partial class UdpListenerBase : IListener
 {
     /// <summary>
     /// Starts listening for incoming UDP datagrams and processes them using the specified protocol.
@@ -52,7 +52,7 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
             this._cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             this._cancellationToken = this._cts.Token;
 
-            _ = this._lock.WaitAsync(this._cancellationToken).ConfigureAwait(false);
+            _lock.Wait(_cancellationToken);
 
             try
             {
@@ -61,10 +61,20 @@ public abstract partial class UdpListenerBase : IListener, System.IDisposable
 
                 System.Threading.Tasks.Task receiveTask = this.ReceiveDatagramsAsync(this._cancellationToken);
                 _ = receiveTask.ConfigureAwait(false);
+
+                _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.StartWorker(
+                   name: $"udp.proc.{_port}",
+                   group: $"net/udp/{_port}",
+                   work: async (_, ct) => await ReceiveDatagramsAsync(ct),
+                   options: new WorkerOptions
+                   {
+                       Tag = "udp",
+                       CancellationToken = _cancellationToken
+                   });
             }
             finally
             {
-                _ = this._lock.Release();
+                _ = _lock.Release();
             }
         }
         catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
