@@ -58,7 +58,7 @@ public abstract class FrameBase : IPacket
     public abstract System.Byte[] Serialize();
 
     /// <inheritdoc/>
-    public abstract void Serialize(System.Span<System.Byte> buffer);
+    public abstract System.Int32 Serialize(System.Span<System.Byte> buffer);
 
     /// <inheritdoc/>
     public abstract void ResetForPool();

@@ -31,15 +31,11 @@ public static class ConnectionExtensions
     /// <returns>A task representing the asynchronous send operation.</returns>
     public static async System.Threading.Tasks.Task SendAsync(
         this IConnection connection,
-        ControlType controlType,
-        ProtocolCode reason,
-        ProtocolAction action,
-        System.UInt32 sequenceId = 0,
-        ControlFlags flags = ControlFlags.NONE,
-        System.UInt32 arg0 = 0,
-        System.UInt32 arg1 = 0,
-        System.UInt16 arg2 = 0)
+        ControlType controlType, ProtocolCode reason, ProtocolAction action,
+        System.UInt32 sequenceId = 0, ControlFlags flags = ControlFlags.NONE,
+        System.UInt32 arg0 = 0, System.UInt32 arg1 = 0, System.UInt16 arg2 = 0)
     {
+        const System.Int32 STACK_THRESHOLD = 1024;
         System.ArgumentNullException.ThrowIfNull(connection);
 
         Directive pkt = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
@@ -58,21 +54,30 @@ public static class ConnectionExtensions
                 arg2: arg2);
 
             System.Int32 len = pkt.Length;
-            System.Byte[] rented = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(len);
-            try
+
+            if (len >= STACK_THRESHOLD)
             {
-                pkt.Serialize(System.MemoryExtensions.AsSpan(rented, 0, len));
-                _ = await connection.TCP.SendAsync(System.MemoryExtensions.AsMemory(rented, 0, len)).ConfigureAwait(false);
+                System.Byte[] rented = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(len + 16);
+
+                try
+                {
+                    System.Int32 length = pkt.Serialize(System.MemoryExtensions.AsSpan(rented, 0, len));
+                    _ = await connection.TCP.SendAsync(System.MemoryExtensions.AsMemory(rented, 0, length)).ConfigureAwait(false);
+                }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Error($"[{nameof(ConnectionExtensions)}] directive-send-failed type={controlType} " +
+                                                   $"reason={reason} action={action} seq={sequenceId} msg={ex.Message}");
+                }
+                finally
+                {
+                    System.Buffers.ArrayPool<System.Byte>.Shared.Return(rented);
+                }
             }
-            catch (System.Exception ex)
+            else
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(ConnectionExtensions)}] directive-send-failed type={controlType} " +
-                                               $"reason={reason} action={action} seq={sequenceId} msg={ex.Message}");
-            }
-            finally
-            {
-                System.Buffers.ArrayPool<System.Byte>.Shared.Return(rented);
+                _ = await connection.TCP.SendAsync(pkt.Serialize()).ConfigureAwait(false);
             }
         }
         finally
