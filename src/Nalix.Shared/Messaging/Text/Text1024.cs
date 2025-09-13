@@ -132,7 +132,7 @@ public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>, IPa
     public override System.Byte[] Serialize() => LiteSerializer.Serialize(this);
 
     /// <inheritdoc/>
-    public override void Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
+    public override System.Int32 Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
 
     /// <summary>Resets this instance to its default state for pooling reuse.</summary>
     public override void ResetForPool()
