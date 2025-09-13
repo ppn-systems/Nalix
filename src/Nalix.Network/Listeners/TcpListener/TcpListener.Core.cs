@@ -18,9 +18,6 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable, I
 {
     #region Constants
 
-    private const System.Int32 SocketBacklog = 100;
-    private const System.Int32 MaxSimultaneousAccepts = 32;
-    private const System.Int32 AcceptDelay = 10; // Milliseconds
     private const System.Int32 MinWorkerThreads = 4;
 
     #endregion Constants

@@ -218,6 +218,8 @@ public abstract partial class TcpListenerBase
     public virtual System.String GenerateReport()
     {
         System.Text.StringBuilder sb = new();
+        System.Threading.ThreadPool.GetMinThreads(out System.Int32 minWorker, out System.Int32 minIocp);
+
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TcpListenerBase Status:");
         _ = sb.AppendLine($"Port                : {_port}");
         _ = sb.AppendLine($"State               : {State}");
@@ -232,9 +234,7 @@ public abstract partial class TcpListenerBase
         _ = sb.AppendLine($"KeepAlive           : {Config.KeepAlive}");
         _ = sb.AppendLine($"ReuseAddress        : {Config.ReuseAddress}");
         _ = sb.AppendLine($"EnableIPv6          : {Config.EnableIPv6}");
-        _ = sb.AppendLine($"Backlog             : {SocketBacklog}");
-        _ = sb.AppendLine($"AcceptDelay(ms)     : {AcceptDelay}");
-        _ = sb.AppendLine($"MaxSimulAccepts     : {MaxSimultaneousAccepts}");
+        _ = sb.AppendLine($"Backlog             : {Config.Backlog}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Protocol:");
@@ -247,8 +247,6 @@ public abstract partial class TcpListenerBase
         _ = sb.AppendLine($"ActiveConnections   : {InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?.ConnectionCount}");
         _ = sb.AppendLine($"LimiterEnabled      : {true}");
         _ = sb.AppendLine();
-
-        System.Threading.ThreadPool.GetMinThreads(out System.Int32 minWorker, out System.Int32 minIocp);
 
         _ = sb.AppendLine("Threading:");
         _ = sb.AppendLine("--------------------------------------------");
