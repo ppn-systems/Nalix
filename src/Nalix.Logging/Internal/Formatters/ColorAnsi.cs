@@ -1,11 +1,13 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-
 using Nalix.Common.Logging.Models;
 
-namespace Nalix.Logging.Internal.Format;
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Benchmarks")]
+#endif
+
+namespace Nalix.Logging.Internal.Formatters;
 
 /// <summary>
 /// Provides ANSI color codes for console output styling in the logging system.

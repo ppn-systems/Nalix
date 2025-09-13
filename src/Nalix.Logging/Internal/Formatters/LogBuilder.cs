@@ -2,9 +2,13 @@
 
 using Nalix.Common.Logging.Models;
 using Nalix.Logging.Engine;
-using Nalix.Logging.Internal.Format;
 
-namespace Nalix.Logging.Formatters;
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Benchmarks")]
+#endif
+
+namespace Nalix.Logging.Internal.Formatters;
 
 /// <summary>
 /// High-performance log building utilities optimized for minimal allocations.

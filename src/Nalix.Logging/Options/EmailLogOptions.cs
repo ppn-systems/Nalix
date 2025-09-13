@@ -1,8 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Common.Logging.Models;
 
-namespace Nalix.Logging.Sinks.Email;
+namespace Nalix.Logging.Options;
 
 /// <summary>
 /// Represents the configuration options for logging via email.

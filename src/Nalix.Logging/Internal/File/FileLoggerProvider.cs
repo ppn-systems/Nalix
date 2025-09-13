@@ -2,10 +2,15 @@
 
 using Nalix.Common.Environment;
 using Nalix.Logging.Internal.Exceptions;
-using Nalix.Logging.Internal.File;
-using Nalix.Logging.Sinks.File;
+using Nalix.Logging.Options;
 
-namespace Nalix.Logging.Internal;
+
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Benchmarks")]
+#endif
+
+namespace Nalix.Logging.Internal.File;
 
 /// <summary>
 /// A high-performance provider for file-based logging with support for file rotation and error handling.
@@ -184,9 +189,9 @@ internal sealed class FileLoggerProvider : System.IDisposable
                     }
                 }
                 catch (System.Exception ex) when (ex is System.Threading.Tasks.TaskCanceledException ||
-                                                 (ex is System.AggregateException aex &&
+                                                 ex is System.AggregateException aex &&
                                                   aex.InnerExceptions.Count == 1 &&
-                                                  aex.InnerExceptions[0] is System.Threading.Tasks.TaskCanceledException))
+                                                  aex.InnerExceptions[0] is System.Threading.Tasks.TaskCanceledException)
                 {
                     // Expected exception when task is canceled
                 }

@@ -2,7 +2,7 @@
 
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Logging.Models;
-using Nalix.Logging.Sinks.File;
+using Nalix.Logging.Options;
 
 namespace Nalix.Logging.Engine;
 

@@ -3,6 +3,11 @@
 using Nalix.Common.Environment;
 using Nalix.Logging.Internal.Exceptions;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Benchmarks")]
+#endif
+
 namespace Nalix.Logging.Internal.File;
 
 /// <summary>

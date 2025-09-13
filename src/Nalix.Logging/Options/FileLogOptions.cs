@@ -3,7 +3,7 @@
 using Nalix.Common.Environment;
 using Nalix.Logging.Internal.Exceptions;
 
-namespace Nalix.Logging.Sinks.File;
+namespace Nalix.Logging.Options;
 
 /// <summary>
 /// Configuration options for the file logger.
