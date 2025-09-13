@@ -209,8 +209,8 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     public IConnection? GetConnectionByUsername(System.String username)
     {
         return System.String.IsNullOrWhiteSpace(username)
-            ? null
-            : this._usernameToId.TryGetValue(username, out IIdentifier? id) ? this.GetConnection(id) : null;
+            ? null : this._usernameToId.TryGetValue(username, out IIdentifier? id)
+            ? this.GetConnection(id) : null;
     }
 
     /// <summary>

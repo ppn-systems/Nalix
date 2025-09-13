@@ -80,7 +80,7 @@ public interface IPacket
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    void Serialize(System.Span<System.Byte> buffer);
+    System.Int32 Serialize(System.Span<System.Byte> buffer);
 
     #endregion Packet Methods
 }
