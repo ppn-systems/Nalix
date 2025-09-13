@@ -117,7 +117,7 @@ public abstract partial class TcpListenerBase
                                         .Debug($"[{nameof(TcpListenerBase)}] config-bind {epV6Any} (v6)");
 
                 listener.Bind(epV6Any);
-                listener.Listen(SocketBacklog > 0 ? SocketBacklog : 128);
+                listener.Listen(Config.Backlog);
 
                 this._listener = listener;
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -159,8 +159,8 @@ public abstract partial class TcpListenerBase
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(TcpListenerBase)}] config-bind {epV4Any} (v4)");
 
-        this._listener.Bind(epV4Any);
-        this._listener.Listen(SocketBacklog > 0 ? SocketBacklog : 128);
+        _listener.Bind(epV4Any);
+        _listener.Listen(Config.Backlog);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(TcpListenerBase)}] config-listen {this._listener.LocalEndPoint}");

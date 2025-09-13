@@ -52,6 +52,12 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     }
 
     /// <summary>
+    /// Gets or sets the maximum length of the pending connections queue.
+    /// Default is 512.
+    /// </summary>
+    public System.Int32 Backlog { get; set; } = 512;
+
+    /// <summary>
     /// Gets or sets a value indicating whether the idle timeout mechanism is enabled.
     /// </summary>
     /// <value>

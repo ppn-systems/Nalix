@@ -31,7 +31,6 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable, I
 
     private readonly System.UInt16 _port;
     private readonly IProtocol _protocol;
-    private readonly System.Threading.Lock _socketLock;
     private readonly System.Threading.SemaphoreSlim _lock;
     private readonly System.Collections.Generic.List<IIdentifier> _acceptWorkerIds;
 
@@ -131,7 +130,6 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable, I
         _protocol = protocol;
         _isDisposed = false;
 
-        _socketLock = new();
         _acceptWorkerIds = new(Config.MaxParallel);
         _lock = new System.Threading.SemaphoreSlim(1, 1);
 
@@ -205,6 +203,8 @@ public abstract partial class TcpListenerBase : IListener, System.IDisposable, I
                 }
                 catch { }
                 self._cts = null;
+
+                System.Threading.Interlocked.Exchange(ref self._stopInitiated, 0);
             }
         }
 

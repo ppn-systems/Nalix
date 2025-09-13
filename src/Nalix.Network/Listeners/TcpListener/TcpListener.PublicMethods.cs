@@ -53,6 +53,7 @@ public abstract partial class TcpListenerBase
                 return;
             }
 
+            System.Threading.Interlocked.Exchange(ref _stopInitiated, 0);
             _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Starting);
 
             _cts?.Dispose();

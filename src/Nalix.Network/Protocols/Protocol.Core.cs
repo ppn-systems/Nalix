@@ -33,7 +33,10 @@ public abstract partial class Protocol : IProtocol
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual void OnPostProcess(IConnectEventArgs args)
-    { }
+    {
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Trace($"[{nameof(Protocol)}] post-ok id={args.Connection.ID}");
+    }
 
     /// <summary>
     /// Inbound-processes a message after it has been handled.
@@ -53,9 +56,6 @@ public abstract partial class Protocol : IProtocol
         try
         {
             this.OnPostProcess(args);
-
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(Protocol)}] post-ok id={args.Connection.ID}");
 
             if (!this.KeepConnectionOpen)
             {
