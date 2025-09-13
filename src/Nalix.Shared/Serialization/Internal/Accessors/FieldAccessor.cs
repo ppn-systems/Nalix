@@ -3,6 +3,11 @@
 using Nalix.Shared.Serialization.Buffers;
 using Nalix.Shared.Serialization.Internal.Reflection;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+#endif
+
 namespace Nalix.Shared.Serialization.Internal.Accessors;
 
 /// <summary>

@@ -2,6 +2,11 @@
 
 using Nalix.Common.Serialization.Abstractions;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+#endif
+
 namespace Nalix.Shared.Serialization.Internal.Types;
 
 internal static partial class TypeMetadata

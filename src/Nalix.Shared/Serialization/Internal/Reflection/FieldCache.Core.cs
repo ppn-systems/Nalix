@@ -4,6 +4,11 @@ using Nalix.Common.Serialization.Attributes;
 using Nalix.Common.Serialization.Enums;
 using Nalix.Shared.Messaging.Binary;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+#endif
+
 namespace Nalix.Shared.Serialization.Internal.Reflection;
 
 internal static partial class FieldCache<T>
