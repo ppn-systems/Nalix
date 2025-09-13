@@ -33,7 +33,7 @@ public sealed class PacketCatalogTests
 
         void IPoolable.ResetForPool() => throw new NotImplementedException();
         Byte[] IPacket.Serialize() => throw new NotImplementedException();
-        void IPacket.Serialize(Span<Byte> buffer) => throw new NotImplementedException();
+        Int32 IPacket.Serialize(Span<Byte> buffer) => throw new NotImplementedException();
     }
 
     /// <summary>
