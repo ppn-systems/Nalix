@@ -1,11 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Shared;
 
-namespace Nalix.Network.Protocols;
+namespace Nalix.Common.Networking;
 
 /// <summary>
 /// Interface representing a network protocol.
