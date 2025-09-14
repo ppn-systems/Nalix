@@ -16,8 +16,10 @@ public interface IPacketMiddleware<TPacket>
     /// </summary>
     /// <param name="context">Encapsulates the packet and its connection metadata.</param>
     /// <param name="next">Delegate to call the next middleware in the sequence.</param>
+    /// <param name="ct">A cancellation token to observe while waiting for the task to complete.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     System.Threading.Tasks.Task InvokeAsync(
         PacketContext<TPacket> context,
-        System.Func<System.Threading.Tasks.Task> next);
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next,
+        System.Threading.CancellationToken ct);
 }

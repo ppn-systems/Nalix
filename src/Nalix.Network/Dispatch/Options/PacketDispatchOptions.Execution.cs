@@ -18,26 +18,37 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         if (this._pipeline is not null)
         {
-            await this._pipeline.ExecuteAsync(context, Terminal)
+            await this._pipeline.ExecuteAsync(context, Terminal, System.Threading.CancellationToken.None)
                                 .ConfigureAwait(false);
         }
         else
         {
-            await Terminal().ConfigureAwait(false);
+            await Terminal(System.Threading.CancellationToken.None).ConfigureAwait(false);
         }
 
-        async System.Threading.Tasks.Task Terminal()
+        async System.Threading.Tasks.Task Terminal(System.Threading.CancellationToken ct)
         {
             try
             {
+                ct.ThrowIfCancellationRequested();
+
                 // Execute the handler and await the ValueTask once
                 System.Object? result = await descriptor.ExecuteAsync(context)
+                                                        .AsTask()
+                                                        .WaitAsync(ct)
                                                         .ConfigureAwait(false);
+
+                ct.ThrowIfCancellationRequested();
 
                 // Handle the result
                 IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.GetHandler(descriptor.ReturnType);
                 await returnHandler.HandleAsync(result, context)
+                                   .AsTask()
+                                   .WaitAsync(ct)
                                    .ConfigureAwait(false);
+            }
+            catch (System.OperationCanceledException) when (ct.IsCancellationRequested)
+            {
             }
             catch (System.Exception ex)
             {
@@ -81,8 +92,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// Map exception types to ProtocolCode/ProtocolAction/ControlFlags.
     /// Adjust mappings to match your enum set.
     /// </summary>
-    private static (ProtocolCode reason, ProtocolAction action, ControlFlags flags)
-        ClassifyException(System.Exception ex)
+    private static (ProtocolCode reason, ProtocolAction action, ControlFlags flags) ClassifyException(System.Exception ex)
     {
         // 1) Cancellation/Timeout => transient
         if (ex is System.OperationCanceledException or System.TimeoutException)
@@ -126,7 +136,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return (ProtocolCode.NETWORK_ERROR, ProtocolAction.RETRY, ControlFlags.IS_TRANSIENT);
         }
 
-        // 7) Mặc định
+        // 7) Default: internal error
         return (ProtocolCode.INTERNAL_ERROR, ProtocolAction.NONE, ControlFlags.NONE);
 
         static (ProtocolCode, ProtocolAction, ControlFlags) ClassifySocket(System.Net.Sockets.SocketException se)
@@ -134,9 +144,18 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return se.SocketErrorCode switch
             {
                 // thường do peer reset/close hay mạng chập chờn
-                System.Net.Sockets.SocketError.ConnectionReset or System.Net.Sockets.SocketError.ConnectionAborted or System.Net.Sockets.SocketError.TimedOut or System.Net.Sockets.SocketError.HostDown or System.Net.Sockets.SocketError.HostUnreachable or System.Net.Sockets.SocketError.NetworkDown or System.Net.Sockets.SocketError.NetworkUnreachable => (ProtocolCode.NETWORK_ERROR, ProtocolAction.RETRY, ControlFlags.IS_TRANSIENT),
+                System.Net.Sockets.SocketError.ConnectionReset or
+                System.Net.Sockets.SocketError.ConnectionAborted or
+                System.Net.Sockets.SocketError.TimedOut or
+                System.Net.Sockets.SocketError.HostDown or
+                System.Net.Sockets.SocketError.HostUnreachable or
+                System.Net.Sockets.SocketError.NetworkDown or
+                System.Net.Sockets.SocketError.NetworkUnreachable
+                => (ProtocolCode.NETWORK_ERROR, ProtocolAction.RETRY, ControlFlags.IS_TRANSIENT),
                 // local cancellation / interrupted
-                System.Net.Sockets.SocketError.Interrupted or System.Net.Sockets.SocketError.OperationAborted => (ProtocolCode.NETWORK_ERROR, ProtocolAction.RETRY, ControlFlags.IS_TRANSIENT),
+                System.Net.Sockets.SocketError.Interrupted or
+                System.Net.Sockets.SocketError.OperationAborted
+                => (ProtocolCode.NETWORK_ERROR, ProtocolAction.RETRY, ControlFlags.IS_TRANSIENT),
                 // default
                 _ => (ProtocolCode.NETWORK_ERROR, ProtocolAction.RETRY, ControlFlags.NONE),
             };

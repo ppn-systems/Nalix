@@ -18,50 +18,65 @@ public class MiddlewarePipeline<TPacket>
     /// <summary>
     /// Adds a middleware component to be executed before the main handler.
     /// </summary>
-    /// <param name="middleware">The middleware to be added.</param>
-    /// <returns>The current pipeline instance for chaining.</returns>
     public void UseInbound(IPacketMiddleware<TPacket> middleware) => _inbound.Add(middleware);
 
     /// <summary>
     /// Adds a middleware component to be executed after the main handler.
     /// </summary>
-    /// <param name="middleware">The middleware to be added.</param>
-    /// <returns>The current pipeline instance for chaining.</returns>
     public void UseOutbound(IPacketMiddleware<TPacket> middleware) => _outbound.Add(middleware);
 
     /// <summary>
     /// Executes the pipeline asynchronously using the provided packet context and terminal handler.
     /// Middlewares are invoked in the order they were added, forming a chain of responsibility.
     /// </summary>
-    /// <param name="context">The packet context to be processed.</param>
-    /// <param name="handler">The final delegate to be called after all middleware components.</param>
-    /// <returns>A task representing the asynchronous pipeline execution.</returns>
     public System.Threading.Tasks.Task ExecuteAsync(
         PacketContext<TPacket> context,
-        System.Func<System.Threading.Tasks.Task> handler)
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> handler,
+        System.Threading.CancellationToken ct = default)
     {
-        return ExecuteMiddlewareChain(this._inbound, context, async () =>
-        {
-            await handler().ConfigureAwait(false);
-            await ExecuteMiddlewareChain(this._outbound, context, () => System.Threading.Tasks.Task.CompletedTask).ConfigureAwait(false);
-        });
+        // Build inbound chain → handler → outbound chain
+        return ExecuteMiddlewareChain(
+            _inbound,
+            context,
+            async (downstreamCt) =>
+            {
+                // Call terminal handler
+                await handler(downstreamCt).ConfigureAwait(false);
+
+                // Then run outbound chain (separately) with the same downstream token
+                await ExecuteMiddlewareChain(
+                    _outbound,
+                    context,
+                    _ => System.Threading.Tasks.Task.CompletedTask,
+                    downstreamCt
+                ).ConfigureAwait(false);
+            },
+            ct
+        );
     }
+
+    // -------------------- Core chain builder (token-aware) --------------------
 
     private static System.Threading.Tasks.Task ExecuteMiddlewareChain(
         System.Collections.Generic.List<IPacketMiddleware<TPacket>> middlewares,
         PacketContext<TPacket> context,
-        System.Func<System.Threading.Tasks.Task> final)
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> final,
+        System.Threading.CancellationToken ct)
     {
-        System.Func<System.Threading.Tasks.Task> next = final;
+        // Start from 'final', wrap backwards.
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next = final;
 
         for (System.Int32 i = middlewares.Count - 1; i >= 0; i--)
         {
             IPacketMiddleware<TPacket> current = middlewares[i];
-            System.Func<System.Threading.Tasks.Task> localNext = next;
+            var localNext = next;
 
-            next = () => current.InvokeAsync(context, localNext);
+            // Each middleware receives the upstream token 'ct' as parameter,
+            // and may choose to pass the SAME or a NEW token to localNext(...)
+            next = (upstreamCt) => current.InvokeAsync(context, localNext, upstreamCt);
         }
 
-        return next();
+        // Kick off the chain with the provided 'ct'
+        return next(ct);
     }
 }

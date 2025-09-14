@@ -23,7 +23,8 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
     /// </summary>
     public async System.Threading.Tasks.Task InvokeAsync(
         PacketContext<IPacket> context,
-        System.Func<System.Threading.Tasks.Task> next)
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next,
+        System.Threading.CancellationToken ct)
     {
         if (context.Attributes.Permission is not null &&
             context.Attributes.Permission.Level > context.Connection.Level)
@@ -47,6 +48,6 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        await next();
+        await next(ct);
     }
 }
