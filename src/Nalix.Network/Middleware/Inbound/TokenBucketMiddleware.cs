@@ -4,12 +4,11 @@ using Nalix.Common.Enums;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Attributes;
 using Nalix.Common.Protocols;
+using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
-using Nalix.Network.Configurations;
 using Nalix.Network.Connection;
 using Nalix.Network.Dispatch;
 using Nalix.Network.Throttling;
-using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Middleware.Inbound;
 
@@ -29,8 +28,7 @@ public class TokenBucketMiddleware : IPacketMiddleware<IPacket>
     /// </summary>
     public TokenBucketMiddleware()
     {
-        TokenBucketOptions option = ConfigurationManager.Instance.Get<TokenBucketOptions>();
-        this._limiter = new TokenBucketLimiter(option);
+        _limiter = InstanceManager.Instance.GetOrCreateInstance<TokenBucketLimiter>();
     }
 
     /// <summary>
@@ -40,13 +38,15 @@ public class TokenBucketMiddleware : IPacketMiddleware<IPacket>
     /// </summary>
     /// <param name="context">The packet context containing both the packet and the connection.</param>
     /// <param name="next">A delegate representing the next middleware to be executed.</param>
+    /// <param name="ct"></param>
     /// <returns>A task representing the asynchronous operation.</returns>
     public async System.Threading.Tasks.Task InvokeAsync(
         PacketContext<IPacket> context,
-        System.Func<System.Threading.Tasks.Task> next)
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next,
+        System.Threading.CancellationToken ct)
     {
         System.String key = context.Connection.RemoteEndPoint.ToString() ?? "0.0.0.0";
-        TokenBucketLimiter.LimitDecision decision = this._limiter.Check(key);
+        TokenBucketLimiter.LimitDecision decision = _limiter.Check(key);
 
         if (!decision.Allowed)
         {
@@ -68,6 +68,6 @@ public class TokenBucketMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        await next();
+        await next(ct);
     }
 }
