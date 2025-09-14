@@ -11,7 +11,6 @@ using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Connection;
 using Nalix.Network.Dispatch;
-using Nalix.Shared.Messaging.Catalog;
 
 namespace Nalix.Network.Middleware.Outbound;
 
@@ -45,7 +44,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
         try
         {
-            PacketCatalog? catalog = InstanceManager.Instance.GetExistingInstance<PacketCatalog>();
+            IPacketCatalog? catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>();
             if (catalog is null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
