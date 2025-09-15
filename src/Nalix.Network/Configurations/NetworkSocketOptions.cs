@@ -108,6 +108,11 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// </summary>
     public System.Boolean ReuseAddress { get; set; } = true;
 
+    /// <summary>
+    /// Gets or sets the maximum number of concurrent groups allowed for socket operations.
+    /// Default is 8.
+    /// </summary>
+    public System.Int32 MaxGroupConcurrency { get; set; } = 8;
 
     /// <summary>
     /// Gets or sets the maximum number of concurrent connections allowed by the socket.

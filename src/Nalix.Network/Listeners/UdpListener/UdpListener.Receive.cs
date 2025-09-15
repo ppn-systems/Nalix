@@ -34,7 +34,7 @@ public abstract partial class UdpListenerBase
                     options: new WorkerOptions
                     {
                         Tag = "udp",
-                        MaxGroupConcurrency = 8,
+                        MaxGroupConcurrency = Config.MaxGroupConcurrency,
                         TryAcquireGroupSlotImmediately = true
                     });
             }
@@ -44,7 +44,7 @@ public abstract partial class UdpListenerBase
             }
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-
+                System.Threading.Interlocked.Increment(ref _recvErrors);
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"[{nameof(UdpListenerBase)}] recv-error port={_port}", ex);
 
@@ -66,6 +66,7 @@ public abstract partial class UdpListenerBase
 
         if (InstanceManager.Instance.GetExistingInstance<ConnectionHub>() is null)
         {
+            System.Threading.Interlocked.Increment(ref _dropShort);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error($"[{nameof(UdpListenerBase)}] [{nameof(ConnectionHub)}] null");
             return;
@@ -76,6 +77,7 @@ public abstract partial class UdpListenerBase
         if (InstanceManager.Instance.GetExistingInstance<ConnectionHub>()!
                                     .GetConnection(identifier) is not Connection.Connection connection)
         {
+            System.Threading.Interlocked.Increment(ref _dropUnknown);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[{nameof(UdpListenerBase)}] unknown-packet from={result.RemoteEndPoint}");
             return;
@@ -83,10 +85,14 @@ public abstract partial class UdpListenerBase
 
         if (!this.IsAuthenticated(connection, result))
         {
+            System.Threading.Interlocked.Increment(ref _dropUnauth);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[{nameof(UdpListenerBase)}] unauth from={result.RemoteEndPoint}");
             return;
         }
+
+        System.Threading.Interlocked.Increment(ref _rxPackets);
+        System.Threading.Interlocked.Add(ref _rxBytes, result.Buffer.Length);
 
         connection.InjectIncoming(result.Buffer[..^Identifier.Size]);
 

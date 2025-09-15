@@ -468,7 +468,7 @@ public sealed partial class TaskManager : ITaskManager
 
         // Recurring summary
         _ = sb.AppendLine("Recurring:");
-        _ = sb.AppendLine("Naming                       | Runs     | Fails | Running | Last UTC             | Next UTC              | Interval | Tag");
+        _ = sb.AppendLine("Naming                       | Runs     | Fails | Running | Last UTC             | Next UTC             | Interval | Tag");
         foreach (var kv in _recurring)
         {
             var s = kv.Value;
@@ -486,7 +486,7 @@ public sealed partial class TaskManager : ITaskManager
 
         // Workers summary by group
         _ = sb.AppendLine("Workers by Group:");
-        _ = sb.AppendLine("Group                        | Running | Total  | Concurrency");
+        _ = sb.AppendLine("Group                        | Running | Total | Concurrency");
         var perGroup = new System.Collections.Concurrent.ConcurrentDictionary<System.String, (System.Int32 running, System.Int32 total)>(System.StringComparer.Ordinal);
         foreach (var kv in _workers)
         {
@@ -512,7 +512,7 @@ public sealed partial class TaskManager : ITaskManager
 
         // Top N long-running workers
         _ = sb.AppendLine("Top Running Workers (by age):");
-        _ = sb.AppendLine("Id         | Naming                        | Group                       | Age     | Progress | LastBeat");
+        _ = sb.AppendLine("Id         | Naming                       | Group                        | Age     | Progress | LastBeat");
         var top = new System.Collections.Generic.List<WorkerState>(_workers.Values);
         top.Sort(static (a, b) => a.StartedUtc.CompareTo(b.StartedUtc)); // oldest first
         System.Int32 show = 0;
