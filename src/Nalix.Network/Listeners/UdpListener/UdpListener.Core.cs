@@ -32,6 +32,19 @@ public abstract partial class UdpListenerBase
     private volatile System.Boolean _isDisposed = false;
     private volatile System.Boolean _isRunning = false;
 
+    // Diagnostics fields
+    private System.Int64 _rxPackets;
+    private System.Int64 _rxBytes;
+    private System.Int64 _dropShort;
+    private System.Int64 _dropUnauth;
+    private System.Int64 _dropUnknown;
+
+    private System.Int64 _recvErrors;
+
+    // Time sync diagnostics
+    private System.Int64 _lastSyncUnixMs;
+    private System.Int64 _lastDriftMs;
+
     #endregion Fields
 
     #region Properties
@@ -90,10 +103,10 @@ public abstract partial class UdpListenerBase
     {
         System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
 
-        this._port = port;
-        this._protocol = protocol;
+        _port = port;
+        _protocol = protocol;
 
-        this._lock = new System.Threading.SemaphoreSlim(1, 1);
+        _lock = new System.Threading.SemaphoreSlim(1, 1);
 
         InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
                        .TimeSynchronized += this.SynchronizeTime;
@@ -152,7 +165,8 @@ public abstract partial class UdpListenerBase
         }
 
         this._isDisposed = true;
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info($"[{nameof(UdpListenerBase)}] disposed");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Info($"[{nameof(UdpListenerBase)}] disposed");
     }
 
     #endregion IDisposable
