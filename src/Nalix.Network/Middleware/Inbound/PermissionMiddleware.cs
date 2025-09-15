@@ -1,9 +1,11 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Enums;
+using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Packets.Attributes;
 using Nalix.Common.Protocols;
+using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Connection;
 using Nalix.Network.Dispatch;
@@ -29,6 +31,10 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         if (context.Attributes.Permission is not null &&
             context.Attributes.Permission.Level > context.Connection.Level)
         {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.OpCode.OpCode:X} " +
+                                          $"need={context.Attributes.Permission.Level} have={context.Connection.Level}");
+
             System.UInt32 sequenceId = 0;
             if (context.Packet is IPacketSequenced s)
             {

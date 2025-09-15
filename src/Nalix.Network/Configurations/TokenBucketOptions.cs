@@ -20,9 +20,9 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// <remarks>
     /// Typical values: 10–100.
     /// Determines the maximum burst size allowed.
-    /// Default is 20.
+    /// Default is 12.
     /// </remarks>
-    public System.Int32 CapacityTokens { get; set; } = 20;
+    public System.Int32 CapacityTokens { get; set; } = 12;
 
     /// <summary>
     /// Gets or sets the refill rate in tokens per second.
@@ -30,9 +30,9 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// <remarks>
     /// Typically set to <c>CapacityTokens / windowSeconds</c>.
     /// Controls the sustained throughput rate.
-    /// Default is 10.0 tokens per second.
+    /// Default is 6.0 tokens per second.
     /// </remarks>
-    public System.Double RefillTokensPerSecond { get; set; } = 10.0;
+    public System.Double RefillTokensPerSecond { get; set; } = 6.0;
 
     /// <summary>
     /// Gets or sets the hard lockout duration in seconds after a throttle decision.
@@ -67,10 +67,10 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// (micro-tokens per token).
     /// </summary>
     /// <remarks>
-    /// Default is 1,000,000.
+    /// Default is 1,000.
     /// Higher values improve precision but may add overhead.
     /// </remarks>
-    public System.Int32 TokenScale { get; set; } = 1_000_000;
+    public System.Int32 TokenScale { get; set; } = 1_000;
 
     /// <summary>
     /// Gets or sets the number of shards for endpoint partitioning.
@@ -78,7 +78,7 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// <remarks>
     /// A power-of-two value is recommended (e.g., 64).
     /// Sharding reduces contention on hot paths by distributing state.
-    /// Default is 64.
+    /// Default is 32.
     /// </remarks>
-    public System.Int32 ShardCount { get; set; } = 64;
+    public System.Int32 ShardCount { get; set; } = 32;
 }

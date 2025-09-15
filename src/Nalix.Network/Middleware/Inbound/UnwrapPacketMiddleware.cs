@@ -58,7 +58,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                     sequenceId: sequenceId,
                     flags: ControlFlags.NONE,
                     arg0: context.Attributes.OpCode.OpCode,
-                    arg1: (System.Byte)current.Flags,
+                    arg1: (System.UInt32)current.Flags,
                     arg2: 0).ConfigureAwait(false);
 
                 return;
@@ -76,7 +76,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                     sequenceId: sequenceId,
                     flags: ControlFlags.NONE,
                     arg0: context.Attributes.OpCode.OpCode,
-                    arg1: (System.Byte)current.Flags,
+                    arg1: (System.UInt32)current.Flags,
                     arg2: 0).ConfigureAwait(false);
 
                 return;
@@ -96,7 +96,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                         sequenceId: sequenceId,
                         flags: ControlFlags.NONE,
                         arg0: context.Attributes.OpCode.OpCode,
-                        arg1: (System.Byte)current.Flags,
+                        arg1: (System.UInt32)current.Flags,
                         arg2: 0).ConfigureAwait(false);
 
                     return;
@@ -128,7 +128,16 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
             if (!ReferenceEquals(current, context.Packet))
             {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[{nameof(UnwrapPacketMiddleware)}] packet-replaced " +
+                                               $"type={current.GetType().Name} op=0x{context.Attributes.OpCode.OpCode:X}");
                 context.AssignPacket(current);
+            }
+            else
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[{nameof(UnwrapPacketMiddleware)}] packet-in-place " +
+                                               $"type={current.GetType().Name} op=0x{context.Attributes.OpCode.OpCode:X}");
             }
         }
         catch (System.Exception ex)
