@@ -68,6 +68,19 @@ public sealed class PacketContext<TPacket> : IPoolable
         get; private set;
     }
 
+    /// <summary>
+    /// If true, outbound middlewares will be skipped for this context.
+    /// </summary>
+    public System.Boolean SkipOutbound
+    {
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        get;
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        internal set;
+    }
+
     #endregion Properties
 
     #region Constructor
