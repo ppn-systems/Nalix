@@ -42,7 +42,7 @@ internal sealed class WebhookEmbedField
             }
 
             sb.Append("\"name\":");
-            sb.Append(Json.Quote(Name));
+            sb.Append(JsonFormatter.Quote(Name));
             first = false;
         }
 
@@ -54,7 +54,7 @@ internal sealed class WebhookEmbedField
             }
 
             sb.Append("\"value\":");
-            sb.Append(Json.Quote(Value));
+            sb.Append(JsonFormatter.Quote(Value));
             first = false;
         }
 

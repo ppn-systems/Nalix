@@ -37,7 +37,7 @@ internal sealed class WebhookEmbedFooter
             }
 
             sb.Append("\"text\":");
-            sb.Append(Json.Quote(Text));
+            sb.Append(JsonFormatter.Quote(Text));
             first = false;
         }
 
@@ -49,7 +49,7 @@ internal sealed class WebhookEmbedFooter
             }
 
             sb.Append("\"icon_url\":");
-            sb.Append(Json.Quote(IconUrl));
+            sb.Append(JsonFormatter.Quote(IconUrl));
         }
 
         sb.Append('}');
