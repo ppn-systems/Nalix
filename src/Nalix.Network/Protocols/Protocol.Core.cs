@@ -34,8 +34,6 @@ public abstract partial class Protocol : IProtocol
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual void OnPostProcess(IConnectEventArgs args)
     {
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[{nameof(Protocol)}] post-ok id={args.Connection.ID}");
     }
 
     /// <summary>

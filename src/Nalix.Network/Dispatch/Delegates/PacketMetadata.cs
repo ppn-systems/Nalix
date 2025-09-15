@@ -21,7 +21,8 @@ public readonly struct PacketMetadata(
     PacketOpcodeAttribute opCode,
     PacketTimeoutAttribute? timeout,
     PacketPermissionAttribute? permission,
-    PacketEncryptionAttribute? encryption)
+    PacketEncryptionAttribute? encryption,
+    PacketRateLimitAttribute? rateLimit)
 {
     /// <summary>
     /// Gets the operation code attribute which uniquely identifies the type of packet.
@@ -45,4 +46,10 @@ public readonly struct PacketMetadata(
     /// encryption mechanism for this packet’s payload.
     /// </summary>
     public readonly PacketEncryptionAttribute? Encryption = encryption;
+
+    /// <summary>
+    /// Gets the optional rate limit attribute that specifies the allowed burst and
+    /// requests per second for this packet, used to control network traffic and prevent abuse.
+    /// </summary>
+    public readonly PacketRateLimitAttribute? RateLimit = rateLimit;
 }

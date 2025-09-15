@@ -35,6 +35,21 @@ public sealed partial class PacketDispatchOptions<TPacket>
             {
                 ct.ThrowIfCancellationRequested();
 
+                if (!descriptor.CanExecute(context))
+                {
+                    await context.Connection.SendAsync(
+                        controlType: ControlType.FAIL,
+                        reason: ProtocolCode.REQUEST_INVALID,
+                        action: ProtocolAction.RETRY,
+                        sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                        flags: ControlFlags.IS_TRANSIENT,
+                        arg0: descriptor.OpCode,
+                        arg1: 0,
+                        arg2: 0).ConfigureAwait(false);
+
+                    return;
+                }
+
                 // Execute the handler and await the ValueTask once
                 System.Object? result = await descriptor.ExecuteAsync(context)
                                                         .AsTask()
@@ -72,17 +87,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         var (reason, action, flags) = ClassifyException(exception);
 
-        System.UInt32 sequenceId = 0;
-        if (context.Packet is IPacketSequenced s)
-        {
-            sequenceId = s.SequenceId;
-        }
-
         await context.Connection.SendAsync(
               controlType: ControlType.FAIL,
               reason: reason,
               action: action,
-              sequenceId: sequenceId,
+              sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
               flags: flags,
               arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
     }
