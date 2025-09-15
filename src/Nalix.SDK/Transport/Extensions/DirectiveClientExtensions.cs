@@ -8,7 +8,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.Shared.Messaging.Controls;  // Directive
 
-namespace Nalix.SDK.Remote.Extensions;
+namespace Nalix.SDK.Transport.Extensions;
 
 /// <summary>
 /// Provides client-side helpers to process server <see cref="Directive"/> frames,

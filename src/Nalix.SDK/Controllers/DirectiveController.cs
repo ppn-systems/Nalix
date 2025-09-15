@@ -2,7 +2,7 @@
 
 using Nalix.Common.Messaging.Protocols;
 using Nalix.Framework.Injection;
-using Nalix.SDK.Remote;
+using Nalix.SDK.Transport;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging.Controls;
 
