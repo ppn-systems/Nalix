@@ -89,10 +89,10 @@ public sealed partial class Connection : IConnection
     public System.Int64 LastPingTime => this._cstream.Cache.LastPingTime;
 
     /// <inheritdoc />
-    public PermissionLevel Level { get; set; } = PermissionLevel.Guest;
+    public PermissionLevel Level { get; set; } = PermissionLevel.None;
 
     /// <inheritdoc />
-    public SymmetricAlgorithmType Encryption { get; set; } = SymmetricAlgorithmType.XTEA;
+    public SymmetricAlgorithmType Encryption { get; set; } = SymmetricAlgorithmType.ChaCha20Poly1305;
 
     /// <inheritdoc />
     public System.Byte[] EncryptionKey

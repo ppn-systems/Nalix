@@ -18,17 +18,18 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         context.SkipOutbound = IsVoidLike(descriptor.ReturnType);
 
-        if (this._pipeline is not null)
+        if (!_pipeline.IsEmpty)
         {
-            await this._pipeline.ExecuteAsync(context, Terminal, System.Threading.CancellationToken.None)
+            await this._pipeline.ExecuteAsync(context, Terminal)
                                 .ConfigureAwait(false);
         }
         else
         {
-            await Terminal(System.Threading.CancellationToken.None).ConfigureAwait(false);
+            await Terminal().ConfigureAwait(false);
         }
 
-        async System.Threading.Tasks.Task Terminal(System.Threading.CancellationToken ct)
+        async System.Threading.Tasks.Task Terminal(
+              System.Threading.CancellationToken ct = default)
         {
             try
             {
