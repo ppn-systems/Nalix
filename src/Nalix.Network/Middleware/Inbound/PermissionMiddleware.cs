@@ -16,7 +16,7 @@ namespace Nalix.Network.Middleware.Inbound;
 /// Middleware that checks the permission level of the current connection
 /// before allowing the packet to proceed to the next handler.
 /// </summary>
-[PacketMiddleware(MiddlewareStage.Inbound, order: 2, name: "Permission")]
+[Middleware(MiddlewareStage.Inbound, order: 2, name: "Permission")]
 public class PermissionMiddleware : IPacketMiddleware<IPacket>
 {
     /// <summary>
