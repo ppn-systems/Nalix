@@ -1,4 +1,7 @@
-﻿using Nalix.Framework.Configuration.Binding;
+﻿using Nalix.Common.Attributes;
+using Nalix.Common.Enums;
+using Nalix.Common.Infrastructure.Client;
+using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.SDK.Configuration;
 
@@ -7,8 +10,18 @@ namespace Nalix.SDK.Configuration;
 /// Place appropriate keys in your configuration source under the section
 /// matching this class name (TransportOptions).
 /// </summary>
-public sealed class TransportOptions : ConfigurationLoader
+public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
 {
+    /// <summary>
+    /// Gets the port number for the connection.
+    /// </summary>
+    public System.UInt16 Port { get; set; } = 10106;
+
+    /// <summary>
+    /// Gets the server address or hostname.
+    /// </summary>
+    public System.String Address { get; set; } = "127.0.0.1";
+
     // Basic connectivity
 
     /// <summary>
@@ -62,4 +75,17 @@ public sealed class TransportOptions : ConfigurationLoader
     /// Must be large enough to contain protocol header.
     /// </summary>
     public System.Int32 MaxPacketSize { get; set; } = 64 * 1024;
+
+    /// <summary>
+    /// Gets the encryption key used for secure communication.
+    /// Default value is an empty byte array.
+    /// </summary>
+    [ConfiguredIgnore]
+    public System.Byte[] EncryptionKey { get; set; }
+
+    /// <summary>
+    /// Gets the encryption mode for the connection.
+    /// This property is ignored during configuration binding.
+    /// </summary>
+    public CipherSuiteType EncryptionMode { get; set; } = CipherSuiteType.CHACHA20_POLY1305;
 }
