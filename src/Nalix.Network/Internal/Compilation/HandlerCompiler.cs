@@ -23,6 +23,7 @@ namespace Nalix.Network.Internal.Compilation;
 /// <typeparam name="TPacket">The packet type handled by this controller.</typeparam>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class HandlerCompiler<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>()
