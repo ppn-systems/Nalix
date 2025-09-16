@@ -2,7 +2,6 @@
 
 using Nalix.Common.Packets.Attributes;
 using Nalix.Network.Configurations;
-using Nalix.Network.Internal.Net;
 using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Throttling;
@@ -28,7 +27,7 @@ public static class RateLimiter
     public static TokenBucketLimiter.LimitDecision Check(
         System.UInt16 opCode,
         PacketRateLimitAttribute attr,
-        IpAddressKey ip)
+        System.String ip)
     {
         System.ArgumentNullException.ThrowIfNull(attr);
         if (attr.RequestsPerSecond <= 0)
