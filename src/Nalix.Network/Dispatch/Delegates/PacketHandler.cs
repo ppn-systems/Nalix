@@ -1,8 +1,5 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Network.Internal.Net;
-using Nalix.Network.Throttling;
-
 namespace Nalix.Network.Dispatch.Delegates;
 
 /// <summary>
@@ -13,13 +10,9 @@ namespace Nalix.Network.Dispatch.Delegates;
 [method: System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 public readonly struct PacketHandler<TPacket>(
-    System.UInt16 opCode,
-    PacketMetadata attributes,
-    System.Object controllerInstance,
-    System.Reflection.MethodInfo method,
-    System.Type returnType,
-    System.Func<System.Object, PacketContext<TPacket>,
-        System.Threading.Tasks.ValueTask<System.Object?>> compiledInvoker)
+    System.UInt16 opCode, PacketMetadata attributes,
+    System.Object controllerInstance, System.Reflection.MethodInfo method, System.Type returnType,
+    System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object?>> compiledInvoker)
 {
     #region Fields
 
@@ -27,6 +20,11 @@ public readonly struct PacketHandler<TPacket>(
     /// The OpCode associated with this packet handler.
     /// </summary>
     public readonly System.UInt16 OpCode = opCode;
+
+    /// <summary>
+    /// The return type of the handler method.
+    /// </summary>
+    public readonly System.Type ReturnType = returnType;
 
     /// <summary>
     /// Metadata attributes for this handler (e.g., timeout, rate limiting, permissions).
@@ -44,16 +42,11 @@ public readonly struct PacketHandler<TPacket>(
     public readonly System.Reflection.MethodInfo Method = method;
 
     /// <summary>
-    /// The return type of the handler method.
-    /// </summary>
-    public readonly System.Type ReturnType = returnType;
-
-    /// <summary>
     /// A compiled delegate for invoking the handler directly.
     /// PERFORMANCE CRITICAL: avoids reflection and allocations.
     /// </summary>
     public readonly System.Func<System.Object, PacketContext<TPacket>,
-        System.Threading.Tasks.ValueTask<System.Object?>> CompiledInvoker = compiledInvoker;
+                    System.Threading.Tasks.ValueTask<System.Object?>> CompiledInvoker = compiledInvoker;
 
     #endregion Fields
 
@@ -86,26 +79,8 @@ public readonly struct PacketHandler<TPacket>(
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean CanExecute(PacketContext<TPacket> context)
-    {
-        if (Attributes.RateLimit != null)
-        {
-            if (context.Connection.RemoteEndPoint is System.Net.IPEndPoint ipEndPoint)
-            {
-                TokenBucketLimiter.LimitDecision d = RateLimiter.Check(
-                    OpCode, Attributes.RateLimit,
-                    IpAddressKey.FromEndPoint(ipEndPoint).ToString());
-
-                if (!d.Allowed)
-                {
-                    return false;
-                }
-            }
-        }
-
-        // Additional checks (e.g., permissions) can be added here.
-        return true;
-    }
+    // Additional checks (e.g., permissions) can be added here.
+    public System.Boolean CanExecute(PacketContext<TPacket> _) => true;
 
     #endregion Methods
 }

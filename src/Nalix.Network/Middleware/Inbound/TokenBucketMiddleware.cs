@@ -62,6 +62,6 @@ public class TokenBucketMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        await next(ct);
+        await next(ct).ConfigureAwait(false);
     }
 }

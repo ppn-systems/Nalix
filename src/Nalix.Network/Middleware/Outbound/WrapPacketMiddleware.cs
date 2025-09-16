@@ -33,7 +33,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
         if (!needEncrypt && !needCompress)
         {
-            await next(ct);
+            await next(ct).ConfigureAwait(false);
             return;
         }
 
@@ -138,7 +138,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
                   arg2: 0).ConfigureAwait(false);
         }
 
-        await next(ct);
+        await next(ct).ConfigureAwait(false);
     }
 
     private static System.Boolean ShouldCompress(in PacketContext<IPacket> context)
