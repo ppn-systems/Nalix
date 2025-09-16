@@ -175,8 +175,10 @@ public sealed partial class Connection : IConnection
 
         this.OnCloseEventBridge(this, new ConnectionEventArgs(this));
 
+#if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(Connection)}] close request id={this.ID} remote={this.RemoteEndPoint}");
+#endif
     }
 
     /// <inheritdoc />
