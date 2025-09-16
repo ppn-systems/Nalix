@@ -3,6 +3,7 @@
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Infrastructure.Caching;
+using Nalix.Common.Infrastructure.Client;
 using Nalix.Common.Messaging.Packets;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Framework.Configuration;
@@ -17,7 +18,7 @@ namespace Nalix.SDK.Transport;
 /// <summary>
 /// TCP client entry point. Delegates send/receive responsibilities to internal helpers.
 /// </summary>
-public sealed class ReliableClient : System.IDisposable
+public sealed class ReliableClient : IClient
 {
     #region Constants
 
@@ -31,7 +32,6 @@ public sealed class ReliableClient : System.IDisposable
     #region Fields
 
     private readonly System.Threading.Lock _sync = new();
-    private readonly TransportOptions _options;
 
     // helpers
     private FRAME_SENDER _sender;
@@ -107,6 +107,9 @@ public sealed class ReliableClient : System.IDisposable
 
     #region Properties
 
+    /// <inheritdoc/>
+    public readonly TransportOptions Options;
+
     /// <summary>
     /// Gets whether the client is connected.
     /// </summary>
@@ -132,6 +135,8 @@ public sealed class ReliableClient : System.IDisposable
     /// </summary>
     public System.Int64 ReceiveBytesPerSecond => System.Threading.Interlocked.Read(ref _lastReceiveBps);
 
+    ITransportOptions IClient.Options => throw new System.NotImplementedException();
+
     #endregion Properties
 
     #region Constructor
@@ -146,11 +151,11 @@ public sealed class ReliableClient : System.IDisposable
     {
         try
         {
-            _options = ConfigurationManager.Instance.Get<TransportOptions>();
+            Options = ConfigurationManager.Instance.Get<TransportOptions>();
         }
         catch
         {
-            _options = new TransportOptions
+            Options = new TransportOptions
             {
                 ConnectTimeoutMillis = 5000,
                 ReconnectEnabled = true,
@@ -204,8 +209,8 @@ public sealed class ReliableClient : System.IDisposable
 
         System.ObjectDisposedException.ThrowIf(this._disposed, nameof(ReliableClient));
 
-        _host = host ?? _options.Address;
-        _port = port ?? _options.Port;
+        _host = host ?? Options.Address;
+        _port = port ?? Options.Port;
 
         if (IsConnected)
         {
@@ -222,9 +227,9 @@ public sealed class ReliableClient : System.IDisposable
         }
 
         System.Threading.CancellationTokenSource connectCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
-        if (_options.ConnectTimeoutMillis > 0)
+        if (Options.ConnectTimeoutMillis > 0)
         {
-            connectCts.CancelAfter(_options.ConnectTimeoutMillis);
+            connectCts.CancelAfter(Options.ConnectTimeoutMillis);
         }
 
         System.Exception lastEx = null;
@@ -244,9 +249,9 @@ public sealed class ReliableClient : System.IDisposable
                 System.Net.Sockets.Socket s = new(addr.AddressFamily, System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
                 try
                 {
-                    s.NoDelay = _options.NoDelay;
-                    s.SendBufferSize = _options.BufferSize;
-                    s.ReceiveBufferSize = _options.BufferSize;
+                    s.NoDelay = Options.NoDelay;
+                    s.SendBufferSize = Options.BufferSize;
+                    s.ReceiveBufferSize = Options.BufferSize;
 
                     await s.ConnectAsync(new System.Net.IPEndPoint(addr, (System.Int32)port), connectCts.Token)
                            .ConfigureAwait(false);
@@ -261,8 +266,8 @@ public sealed class ReliableClient : System.IDisposable
                     // create helpers bound to the socket getter
                     System.Func<System.Net.Sockets.Socket> socketGetter = GET_CONNECTED_SOCKET_OR_THROW;
 
-                    _sender = new FRAME_SENDER(socketGetter, _options, REPORT_BYTE_SSENT, HANDLE_SEND_ERROR);
-                    _receiver = new FRAME_READER(socketGetter, _options, HANDLE_RECEIVE_MESSAGE, HANDLE_RECEIVE_ERROR, REPORT_BYTES_RECEIVED);
+                    _sender = new FRAME_SENDER(socketGetter, Options, REPORT_BYTE_SSENT, HANDLE_SEND_ERROR);
+                    _receiver = new FRAME_READER(socketGetter, Options, HANDLE_RECEIVE_MESSAGE, HANDLE_RECEIVE_ERROR, REPORT_BYTES_RECEIVED);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Info($"[SDK.{nameof(ReliableClient)}] connected remote={addr}:{port}");
@@ -320,9 +325,9 @@ public sealed class ReliableClient : System.IDisposable
                     }
 
                     // Heartbeat: schedule recurring if configured
-                    if (_options.KeepAliveIntervalMillis > 0)
+                    if (Options.KeepAliveIntervalMillis > 0)
                     {
-                        System.TimeSpan interval = System.TimeSpan.FromMilliseconds(System.Math.Max(1, _options.KeepAliveIntervalMillis));
+                        System.TimeSpan interval = System.TimeSpan.FromMilliseconds(System.Math.Max(1, Options.KeepAliveIntervalMillis));
                         try
                         {
                             _heartbeatName = $"ClientHeartbeat-{addr}:{port}";
@@ -513,7 +518,7 @@ public sealed class ReliableClient : System.IDisposable
 
     #endregion Public API
 
-    #region Internal helpers and callbacks
+    #region Private Methods
 
     private void REPORT_BYTE_SSENT(System.Int32 count)
     {
@@ -545,7 +550,7 @@ public sealed class ReliableClient : System.IDisposable
 
     private async System.Threading.Tasks.Task HEARTBEAT_LOOP_ASYNC(System.Threading.CancellationToken token)
     {
-        System.Int32 interval = System.Math.Max(1, _options.KeepAliveIntervalMillis);
+        System.Int32 interval = System.Math.Max(1, Options.KeepAliveIntervalMillis);
         while (!token.IsCancellationRequested)
         {
             try
@@ -618,7 +623,7 @@ public sealed class ReliableClient : System.IDisposable
             _socket = null;
         }
 
-        if (!_options.ReconnectEnabled || _disposed)
+        if (!Options.ReconnectEnabled || _disposed)
         {
             return;
         }
@@ -631,8 +636,8 @@ public sealed class ReliableClient : System.IDisposable
         }
 
         System.Int32 attempt = 0;
-        System.Int64 delay = System.Math.Max(1, _options.ReconnectBaseDelayMillis);
-        while (!_disposed && (_options.ReconnectMaxAttempts == 0 || attempt < _options.ReconnectMaxAttempts))
+        System.Int64 delay = System.Math.Max(1, Options.ReconnectBaseDelayMillis);
+        while (!_disposed && (Options.ReconnectMaxAttempts == 0 || attempt < Options.ReconnectMaxAttempts))
         {
             attempt++;
             try
@@ -659,7 +664,7 @@ public sealed class ReliableClient : System.IDisposable
                 }
                 catch { }
 
-                delay = System.Math.Min(_options.ReconnectMaxDelayMillis, delay * 2);
+                delay = System.Math.Min(Options.ReconnectMaxDelayMillis, delay * 2);
                 continue;
             }
         }
@@ -674,5 +679,5 @@ public sealed class ReliableClient : System.IDisposable
         return s?.Connected != true ? throw new System.InvalidOperationException("Client not connected.") : s;
     }
 
-    #endregion Internal helpers and callbacks
+    #endregion Private Methods
 }

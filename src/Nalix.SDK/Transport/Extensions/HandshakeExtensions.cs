@@ -48,7 +48,7 @@ public static class HandshakeExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<System.Boolean> HandshakeAsync(
-        this IReliableClient client,
+        this IClient client,
         System.UInt16 opCode = 1,
         System.Int32 timeoutMs = 5_000,
         System.Func<System.Byte[], System.Boolean> validateServerPublicKey = null,
@@ -61,8 +61,7 @@ public static class HandshakeExtensions
             return false; // not connected
         }
 
-        // Idempotent: already handshaked
-        if (client.IsHandshaked)
+        if (client.Options.EncryptionKey != null)
         {
             return true;
         }
@@ -73,7 +72,7 @@ public static class HandshakeExtensions
         linked.CancelAfter(timeoutMs);
 
         // Generate ephemeral keypair
-        var kp = X25519.GenerateKeyPair();
+        X25519.X25519KeyPair kp = X25519.GenerateKeyPair();
 
         // Temporary listener (auto-removed in finally)
         [System.Runtime.CompilerServices.MethodImpl(

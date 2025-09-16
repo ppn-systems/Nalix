@@ -3,6 +3,7 @@
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Infrastructure.Caching;
+using Nalix.Common.Infrastructure.Client;
 using Nalix.Common.Messaging.Packets;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Framework.Configuration;
@@ -22,13 +23,12 @@ namespace Nalix.SDK.Transport;
 /// - Rate sampler scheduled as TaskManager recurring job
 /// - Use BufferPoolManager and BufferLease for received payloads
 /// </summary>
-public sealed class UnreliableClient : System.IDisposable
+public sealed class UnreliableClient : IClient
 {
     #region Fields
 
     private readonly System.Threading.Lock _sync = new();
     private readonly BufferPoolManager _bufferPool;
-    private readonly TransportOptions _options;
 
     // Socket + control
     private System.Net.Sockets.UdpClient _udpClient;
@@ -90,6 +90,9 @@ public sealed class UnreliableClient : System.IDisposable
 
     #region Properties
 
+    /// <inheritdoc/>
+    public readonly TransportOptions Options;
+
     /// <summary>
     /// Whether receive loop is active and client not disposed.
     /// </summary>
@@ -115,6 +118,8 @@ public sealed class UnreliableClient : System.IDisposable
     /// </summary>
     public System.Int64 ReceiveBytesPerSecond => System.Threading.Interlocked.Read(ref _lastReceiveBps);
 
+    ITransportOptions IClient.Options => throw new System.NotImplementedException();
+
     #endregion Properties
 
     #region Constructors
@@ -126,11 +131,11 @@ public sealed class UnreliableClient : System.IDisposable
     {
         try
         {
-            _options = ConfigurationManager.Instance.Get<TransportOptions>();
+            Options = ConfigurationManager.Instance.Get<TransportOptions>();
         }
         catch
         {
-            _options = new TransportOptions
+            Options = new TransportOptions
             {
                 ConnectTimeoutMillis = 5000,
                 ReconnectEnabled = true,
@@ -163,8 +168,11 @@ public sealed class UnreliableClient : System.IDisposable
     /// <summary>
     /// "Connect" to remote UDP endpoint and start receive loop. For UDP, connect only stores the remote endpoint and starts background receive.
     /// </summary>
-    public async System.Threading.Tasks.Task ConnectAsync(System.String host, System.Int32 port, System.Threading.CancellationToken cancellationToken = default)
+    public async System.Threading.Tasks.Task ConnectAsync(System.String host = null, System.UInt16? port = null, System.Threading.CancellationToken cancellationToken = default)
     {
+        port ??= this.Options.Port;
+        host ??= this.Options.Address;
+
         if (System.String.IsNullOrWhiteSpace(host))
         {
             throw new System.ArgumentNullException(nameof(host));
@@ -178,7 +186,7 @@ public sealed class UnreliableClient : System.IDisposable
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(UnreliableClient));
 
         // store remote
-        _remoteEndPoint = new System.Net.IPEndPoint(await RESOLVE_HOST_ASYNC(host, cancellationToken).ConfigureAwait(false), port);
+        _remoteEndPoint = new System.Net.IPEndPoint(await RESOLVE_HOST_ASYNC(host, cancellationToken).ConfigureAwait(false), (System.Int32)port);
 
         lock (_sync)
         {
@@ -198,10 +206,10 @@ public sealed class UnreliableClient : System.IDisposable
             _udpClient = new System.Net.Sockets.UdpClient(0);
             try
             {
-                if (_options != null)
+                if (Options != null)
                 {
-                    _udpClient.Client.SendBufferSize = _options.BufferSize;
-                    _udpClient.Client.ReceiveBufferSize = _options.BufferSize;
+                    _udpClient.Client.SendBufferSize = Options.BufferSize;
+                    _udpClient.Client.ReceiveBufferSize = Options.BufferSize;
                 }
             }
             catch { }
