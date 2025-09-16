@@ -199,9 +199,16 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
-    /// Legacy compatibility method - wraps new descriptor-based handler in the old signature.
-    /// Maintained for backward compatibility with existing code.
+    /// Attempts to resolve a registered packet handler delegate for the specified opcode.
     /// </summary>
+    /// <param name="opCode">The opcode of the packet handler to resolve.</param>
+    /// <param name="handler">
+    /// When this method returns, contains the delegate <see cref="System.Func{TPacket, IConnection, Task}"/> associated with the specified opcode,
+    /// if the opcode is found; otherwise, <see langword="null"/>.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if a handler delegate was found for the specified opcode; otherwise, <see langword="false"/>.
+    /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean TryResolveHandler(
@@ -237,8 +244,16 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
-    /// New preferred method - returns descriptor directly for better performance.
+    /// Attempts to resolve a registered packet handler descriptor for the specified opcode.
     /// </summary>
+    /// <param name="opCode">The opcode of the packet handler to resolve.</param>
+    /// <param name="descriptor">
+    /// When this method returns, contains the <see cref="PacketHandler{TPacket}"/> associated with the specified opcode,
+    /// if the opcode is found; otherwise, the default value for the type of the descriptor parameter.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if a handler descriptor was found for the specified opcode; otherwise, <see langword="false"/>.
+    /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean TryResolveHandlerDescriptor(

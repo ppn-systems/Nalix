@@ -33,7 +33,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
         if (!needDecrypt && !needDecompress)
         {
-            await next(ct);
+            await next(ct).ConfigureAwait(false);
             return;
         }
 
@@ -150,6 +150,6 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                 arg2: 0).ConfigureAwait(false);
         }
 
-        await next(ct);
+        await next(ct).ConfigureAwait(false);
     }
 }

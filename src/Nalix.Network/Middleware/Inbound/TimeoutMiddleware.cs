@@ -58,6 +58,6 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        await next(ct);
+        await next(ct).ConfigureAwait(false);
     }
 }
