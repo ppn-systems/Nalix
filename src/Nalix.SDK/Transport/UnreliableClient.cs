@@ -23,7 +23,7 @@ namespace Nalix.SDK.Transport;
 /// - Rate sampler scheduled as TaskManager recurring job
 /// - Use BufferPoolManager and BufferLease for received payloads
 /// </summary>
-public sealed class UnreliableClient : IClient
+public sealed class UnreliableClient : IClientConnection
 {
     #region Fields
 
@@ -118,7 +118,7 @@ public sealed class UnreliableClient : IClient
     /// </summary>
     public System.Int64 ReceiveBytesPerSecond => System.Threading.Interlocked.Read(ref _lastReceiveBps);
 
-    ITransportOptions IClient.Options => throw new System.NotImplementedException();
+    ITransportOptions IClientConnection.Options => throw new System.NotImplementedException();
 
     #endregion Properties
 
