@@ -13,7 +13,7 @@ namespace Nalix.Network.Dispatch;
 /// <typeparam name="TPacket">
 /// The packet type that implements both <see cref="IPacket"/>.
 /// </typeparam>
-public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket
+public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
 {
     #region Properties
 
@@ -32,7 +32,7 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PacketDispatchCore{TPacket}"/> class
+    /// Initializes a new instance of the <see cref="PacketDispatcherBase{TPacket}"/> class
     /// using the provided <paramref name="options"/>.
     /// </summary>
     /// <param name="options">
@@ -43,17 +43,17 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket
     /// </exception>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:UsePrimaryConstructor", Justification = "<Pending>")]
-    protected PacketDispatchCore(PacketDispatchOptions<TPacket> options)
+    protected PacketDispatcherBase(PacketDispatchOptions<TPacket> options)
         => this.Options = options ?? throw new System.ArgumentNullException(nameof(options));
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PacketDispatchCore{TPacket}"/> class
+    /// Initializes a new instance of the <see cref="PacketDispatcherBase{TPacket}"/> class
     /// with optional configuration logic.
     /// </summary>
     /// <param name="configure">
     /// An optional delegate to configure the <see cref="PacketDispatchOptions{TPacket}"/> instance.
     /// </param>
-    protected PacketDispatchCore(System.Action<PacketDispatchOptions<TPacket>>? configure = null)
+    protected PacketDispatcherBase(System.Action<PacketDispatchOptions<TPacket>>? configure = null)
         : this(new PacketDispatchOptions<TPacket>()) => configure?.Invoke(this.Options);
 
     #endregion Constructors
@@ -107,7 +107,7 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket
         if (this.Options.TryResolveHandler(packet.OpCode,
             out System.Func<TPacket, IConnection, System.Threading.Tasks.Task>? handler))
         {
-            this.Logger?.Meta($"[{nameof(PacketDispatchCore<TPacket>)}] handle opcode={packet.OpCode}");
+            this.Logger?.Meta($"[{nameof(PacketDispatcherBase<TPacket>)}] handle opcode={packet.OpCode}");
             try
             {
                 await this.ExecuteHandlerAsync(packet, connection, handler)
@@ -115,13 +115,13 @@ public abstract class PacketDispatchCore<TPacket> where TPacket : IPacket
             }
             catch (System.Exception ex)
             {
-                this.Logger?.Error($"[{nameof(PacketDispatchCore<TPacket>)}] handler-error opcode={packet.OpCode}", ex);
+                this.Logger?.Error($"[{nameof(PacketDispatcherBase<TPacket>)}] handler-error opcode={packet.OpCode}", ex);
             }
 
             return;
         }
 
-        this.Logger?.Warn($"[{nameof(PacketDispatchCore<TPacket>)}] no-handler opcode={packet.OpCode}");
+        this.Logger?.Warn($"[{nameof(PacketDispatcherBase<TPacket>)}] no-handler opcode={packet.OpCode}");
     }
 
     #endregion Protected Methods

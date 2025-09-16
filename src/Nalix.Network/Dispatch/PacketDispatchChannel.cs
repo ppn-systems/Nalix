@@ -43,7 +43,7 @@ namespace Nalix.Network.Dispatch;
 /// </example>
 [System.Diagnostics.DebuggerDisplay("Running={_running}, Pending={_dispatch.TotalPackets}")]
 public sealed class PacketDispatchChannel
-    : PacketDispatchCore<IPacket>, IPacketDispatch<IPacket>, System.IDisposable, IActivatable
+    : PacketDispatcherBase<IPacket>, IPacketDispatch<IPacket>, System.IDisposable, IActivatable
 {
     #region Fields
 
