@@ -1,14 +1,17 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Common.Enums;
 
-namespace Nalix.Common.Packets.Attributes;
+namespace Nalix.Common.Attributes;
 
 /// <summary>
 /// Attribute to mark a class as a packet middleware and specify its stage, order, and optional name.
 /// </summary>
 [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false)]
-public sealed class PacketMiddlewareAttribute(
+public sealed class MiddlewareAttribute(
     MiddlewareStage stage,
     System.Int32 order = 0,
     System.String name = null) : System.Attribute

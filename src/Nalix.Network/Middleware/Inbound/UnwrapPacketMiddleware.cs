@@ -17,7 +17,7 @@ namespace Nalix.Network.Middleware.Inbound;
 /// <summary>
 /// Middleware that unwraps (decrypts and/or decompresses) packets before further processing.
 /// </summary>
-[PacketMiddleware(MiddlewareStage.Inbound, order: 3, name: "Unwrap")]
+[Middleware(MiddlewareStage.Inbound, order: 3, name: "Unwrap")]
 public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 {
     /// <inheritdoc/>

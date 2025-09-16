@@ -7,6 +7,4 @@ namespace Nalix.Common.Attributes;
 /// When applied, the catalog builder will not bind transformer methods for this type.
 /// </summary>
 [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-public sealed class PipelineManagedTransformAttribute : System.Attribute
-{
-}
+public sealed class PipelineManagedTransformAttribute : System.Attribute;
