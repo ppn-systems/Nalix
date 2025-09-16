@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **Nalix** ecosystem is a comprehensive suite of .NET libraries designed for building high-performance, real-time applications with advanced networking, cryptography, graphics, and data management capabilities. Built using modern C# 13 and .NET 9.0, Nalix follows Domain-Driven Design (DDD) principles and SOLID architectural patterns.
+The **Nalix** ecosystem is a comprehensive suite of .NET libraries designed for building high-performance, real-time applications with advanced networking, cryptography, graphics, and data management capabilities. Built using modern C# 13 and .NET 9.0-10.0, Nalix follows Domain-Driven Design (DDD) principles and SOLID architectural patterns.
 
 ## 📚 Project Documentation
 
@@ -92,37 +92,6 @@ Flexible and high-performance logging library providing structured logging capab
 - 🌊 Multi-layer parallax scrolling effects
 - ⚙️ 2D physics simulation and collision detection
 
-## 🏗️ Architecture Overview
-
-The Nalix ecosystem follows a layered architecture with clear separation of concerns:
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│                    Application Layer                            │
-│              (Games, Web Apps, Services)                       │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────────────┐
-│                  Nalix.Graphics                                 │
-│            (UI Framework, 2D Engine, Rendering)                │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────────────┐
-│              Nalix.Network + Network.Package                   │
-│         (High-Performance Networking, Packet Handling)         │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────────────┐
-│    Nalix.Shared + Nalix.Cryptography + Nalix.Logging          │
-│        (Serialization, Security, Logging, Localization)        │
-└─────────────────────────┬───────────────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────────────┐
-│                Nalix.Common + Nalix                            │
-│        (Foundation, Utilities, Core Functionality)             │
-└─────────────────────────────────────────────────────────────────┘
-```
-
 ## 🚀 Quick Start Guide
 
 ### Installation
@@ -131,16 +100,15 @@ Install Nalix packages via NuGet Package Manager:
 
 ```bash
 # Core libraries
-dotnet add package Nalix
 dotnet add package Nalix.Common
 dotnet add package Nalix.Shared
+dotnet add package Nalix.Framework
 
 # Specialized libraries
-dotnet add package Nalix.Cryptography
+dotnet add package Nalix.SDK
 dotnet add package Nalix.Network
-dotnet add package Nalix.Network.Package
 dotnet add package Nalix.Logging
-dotnet add package Nalix.Graphics
+dotnet add package Nalix.Cryptography
 ```
 
 ### Basic Usage Example
