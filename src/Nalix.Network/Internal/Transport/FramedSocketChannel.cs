@@ -32,7 +32,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     #region Fields
 
     private readonly System.Net.Sockets.Socket _socket = socket;
-    private readonly string _epText = FormatEndpoint(socket);
+    private readonly System.String _epText = FormatEndpoint(socket);
     private readonly System.Threading.CancellationTokenSource _cts = new();
 
     private IConnection? _sender;
@@ -96,8 +96,10 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             return; // already started
         }
 
+#if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Meta($"[{nameof(FramedSocketChannel)}] receive-loop started ep={_socket.RemoteEndPoint}");
+                                .Debug($"[{nameof(FramedSocketChannel)}] receive-loop started ep={_socket.RemoteEndPoint}");
+#endif
 
         System.Threading.CancellationTokenSource linked =
             System.Threading.CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
@@ -177,8 +179,10 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
         try
         {
+#if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Meta($"[{nameof(FramedSocketChannel)}] send-pooled len={data.Length} id={_sender?.ID}");
+                                    .Debug($"[{nameof(FramedSocketChannel)}] send-pooled len={data.Length} id={_sender?.ID}");
+#endif
 
             System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(System.MemoryExtensions
                                                   .AsSpan(buffer), totalLength);
@@ -244,8 +248,10 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             data.Span.CopyTo(System.MemoryExtensions
                      .AsSpan(buffer, HeaderSize));
 
+#if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Meta($"[{nameof(FramedSocketChannel)}] send-async len={data.Length} id={_sender?.ID}");
+                                    .Debug($"[{nameof(FramedSocketChannel)}] send-async len={data.Length} id={_sender?.ID}");
+#endif
 
             System.Int32 sent = 0;
             while (sent < totalLength)
@@ -287,7 +293,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     /// <summary>
     /// Safely formats the remote endpoint string without throwing if the socket is already disposed.
     /// </summary>
-    private static string FormatEndpoint(System.Net.Sockets.Socket s)
+    private static System.String FormatEndpoint(System.Net.Sockets.Socket s)
     {
         try { return s.RemoteEndPoint?.ToString() ?? "<unknown>"; }
         catch (System.ObjectDisposedException) { return "<disposed>"; }
@@ -374,8 +380,10 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                 System.UInt16 size = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(System.MemoryExtensions
                                                                            .AsSpan(_buffer, 0, HeaderSize));
 
+#if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Meta($"[{nameof(FramedSocketChannel)}] recv-header size(le)={size}");
+#endif
 
                 if (size < HeaderSize)
                 {
@@ -398,9 +406,11 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                           .AsMemory(_buffer, HeaderSize, payload), token)
                           .ConfigureAwait(false);
 
+#if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Meta($"[{nameof(FramedSocketChannel)}] " +
+                                        .Debug($"[{nameof(FramedSocketChannel)}] " +
                                               $"recv-frame size={size} payload={payload} ep={_epText}");
+#endif
 
                 // 4) Handoff to session cache
                 this.Cache.LastPingTime = Clock.UnixMillisecondsNow();
@@ -470,8 +480,10 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             _cts.Dispose();
         }
 
+#if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Meta($"[{nameof(FramedSocketChannel)}] disposed");
+                                .Debug($"[{nameof(FramedSocketChannel)}] disposed");
+#endif
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
