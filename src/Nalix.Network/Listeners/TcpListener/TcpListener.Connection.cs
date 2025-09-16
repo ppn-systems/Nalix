@@ -6,7 +6,7 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
-using Nalix.Network.Internal;
+using Nalix.Network.Internal.Net;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Throttling;
 using Nalix.Network.Timing;

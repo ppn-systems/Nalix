@@ -10,7 +10,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
-using Nalix.Network.Internal;
+using Nalix.Network.Internal.Net;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Pooling;
 

@@ -6,7 +6,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Framework.Time;
-using Nalix.Network.Internal;
+using Nalix.Network.Internal.Net;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Timing;
