@@ -35,7 +35,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 
         if (context.Connection.RemoteEndPoint is System.Net.IPEndPoint ipEndPoint)
         {
-            TokenBucketLimiter.LimitDecision d = RateLimiter.Check(
+            TokenBucketLimiter.LimitDecision d = PolicyRateLimiter.Check(
                 context.Packet.OpCode, rl,
                 IpAddressKey.FromIpAddress(ipEndPoint.Address).ToString());
 
