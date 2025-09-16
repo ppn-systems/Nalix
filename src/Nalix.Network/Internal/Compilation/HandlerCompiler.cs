@@ -361,7 +361,6 @@ internal sealed class HandlerCompiler<
         System.String controller, System.UInt16 opcode,
         System.Reflection.MethodInfo? method = null, System.Type? returnType = null)
     {
-        // opcode in hex cho dễ trace với wire logs
         var op = $"opcode=0x{opcode:X4}";
         var ctrl = $"controller={controller}";
         var m = method is null ? "" : $" method={method.Name}";
