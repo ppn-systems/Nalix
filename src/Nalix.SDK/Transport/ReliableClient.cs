@@ -65,42 +65,25 @@ public sealed class ReliableClient : IClientConnection
 
     #region Event Args
 
-    // Events
-    /// <summary>
-    /// Occurs when the client has successfully connected to the remote endpoint.
-    /// </summary>
+    /// <inheritdoc/>
     public event System.EventHandler OnConnected;
 
-    /// <summary>
-    /// Occurs when the client is disconnected. The <see cref="System.EventHandler{T}"/> argument
-    /// contains the exception that caused the disconnect, or <c>null</c> if it was requested.
-    /// </summary>
+    /// <inheritdoc/>
     public event System.EventHandler<System.Exception> OnDisconnected;
 
-    /// <summary>
-    /// Synchronous message-received event. Subscribers receive an <see cref="IBufferLease"/>
-    /// and are responsible for disposing the lease when done.
-    /// </summary>
+    /// <inheritdoc/>
     public event System.EventHandler<IBufferLease> OnMessageReceived;
 
-    /// <summary>
-    /// Asynchronous message-received callback. If set, the provided delegate will be invoked
-    /// to handle received messages. The delegate is responsible for disposing the <see cref="IBufferLease"/>.
-    /// </summary>
+    /// <inheritdoc/>
     public System.Func<ReliableClient, IBufferLease, System.Threading.Tasks.Task> OnMessageReceivedAsync;
-    /// <summary>
-    /// Occurs when bytes are written to the socket. The event argument is the number of bytes sent.
-    /// </summary>
+
+    /// <inheritdoc/>
     public event System.EventHandler<System.Int64> OnBytesSent;
 
-    /// <summary>
-    /// Occurs when bytes are received from the socket. The event argument is the number of bytes (header+payload) received for that frame.
-    /// </summary>
+    /// <inheritdoc/>
     public event System.EventHandler<System.Int64> OnBytesReceived;
 
-    /// <summary>
-    /// Occurs when an internal error happens. Subscribers can use this for logging or diagnostics.
-    /// </summary>
+    /// <inheritdoc/>
     public event System.EventHandler<System.Exception> OnError;
 
     #endregion Event Args
@@ -110,32 +93,23 @@ public sealed class ReliableClient : IClientConnection
     /// <inheritdoc/>
     public readonly TransportOptions Options;
 
-    /// <summary>
-    /// Gets whether the client is connected.
-    /// </summary>
+    /// <inheritdoc/>
+    ITransportOptions IClientConnection.Options => this.Options;
+
+    /// <inheritdoc/>
     public System.Boolean IsConnected => _socket?.Connected == true && !_disposed;
 
-    /// <summary>
-    /// Total bytes sent (thread-safe).
-    /// </summary>
+    /// <inheritdoc/>
     public System.Int64 BytesSent => System.Threading.Interlocked.Read(ref _bytesSent);
 
-    /// <summary>
-    /// Total bytes received (thread-safe).
-    /// </summary>
+    /// <inheritdoc/>
     public System.Int64 BytesReceived => System.Threading.Interlocked.Read(ref _bytesReceived);
 
-    /// <summary>
-    /// Last measured bytes-per-second sent (sampled every 1s).
-    /// </summary>
+    /// <inheritdoc/>
     public System.Int64 SendBytesPerSecond => System.Threading.Interlocked.Read(ref _lastSendBps);
 
-    /// <summary>
-    /// Last measured bytes-per-second received (sampled every 1s).
-    /// </summary>
+    /// <inheritdoc/>
     public System.Int64 ReceiveBytesPerSecond => System.Threading.Interlocked.Read(ref _lastReceiveBps);
-
-    ITransportOptions IClientConnection.Options => throw new System.NotImplementedException();
 
     #endregion Properties
 
@@ -184,17 +158,8 @@ public sealed class ReliableClient : IClientConnection
 
     #region Public API
 
-    /// <summary>
-    /// Connects to the specified host and port asynchronously.
-    /// This method stores host/port for automatic reconnects.
-    /// </summary>
-    /// <param name="host">The hostname or IP address to connect to.</param>
-    /// <param name="port">The destination port.</param>
-    /// <param name="ct">A <see cref="System.Threading.CancellationToken"/> to cancel the connect attempt.</param>
-    /// <returns>A task that completes when connected.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="host"/> is null or whitespace.</exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown when the client has been disposed.</exception>
-    /// <exception cref="System.InvalidOperationException">Thrown when the client is already connected.</exception>
+
+    /// <inheritdoc/>
     /// <remarks>
     /// This method will attempt to resolve DNS for the provided host and try each returned address.
     /// If <see cref="TransportOptions.ConnectTimeoutMillis"/> is set, the connect attempt will be cancelled
@@ -380,12 +345,7 @@ public sealed class ReliableClient : IClientConnection
         }
     }
 
-    /// <summary>Disconnects the client and cancels background loops.</summary>
-    /// <returns>A completed task when disconnect work is initiated.</returns>
-    /// <remarks>
-    /// This is a best-effort, synchronous-style disconnect that cancels background loops and
-    /// disposes the underlying socket. It is safe to call multiple times.
-    /// </remarks>
+    /// <inheritdoc/>
     public System.Threading.Tasks.Task DisconnectAsync()
     {
         if (_disposed)
@@ -429,14 +389,7 @@ public sealed class ReliableClient : IClientConnection
         return System.Threading.Tasks.Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Sends a framed payload (header + payload) asynchronously.
-    /// </summary>
-    /// <param name="payload">Payload bytes to send (payload only, header is added by the protocol).</param>
-    /// <param name="ct">Cancellation token to cancel the send operation.</param>
-    /// <returns>Task that resolves to <c>true</c> if the send succeeded, otherwise <c>false</c>.</returns>
-    /// <exception cref="System.ObjectDisposedException">Thrown if the client has been disposed.</exception>
-    /// <exception cref="System.InvalidOperationException">Thrown if the client is not connected.</exception>
+    /// <inheritdoc/>
     public System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(this._disposed, nameof(ReliableClient));
@@ -445,15 +398,7 @@ public sealed class ReliableClient : IClientConnection
             : _sender.SendAsync(payload, ct);
     }
 
-    /// <summary>
-    /// Helper to send an <see cref="IPacket"/> asynchronously (serializes then sends).
-    /// </summary>
-    /// <param name="packet">The packet to serialize and send.</param>
-    /// <param name="ct">Cancellation token to cancel the send operation.</param>
-    /// <returns>Task that resolves to <c>true</c> if the send succeeded, otherwise <c>false</c>.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="packet"/> is null.</exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown if the client has been disposed.</exception>
-    /// <exception cref="System.InvalidOperationException">Thrown if the client is not connected.</exception>
+    /// <inheritdoc/>
     public System.Threading.Tasks.Task<System.Boolean> SendAsync(IPacket packet, System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(this._disposed, nameof(ReliableClient));
@@ -462,9 +407,7 @@ public sealed class ReliableClient : IClientConnection
             : _sender is null ? throw new System.InvalidOperationException("Client not connected.") : _sender.SendAsync(packet, ct);
     }
 
-    /// <summary>
-    /// Dispose the client and release all resources.
-    /// </summary>
+    /// <inheritdoc/>
     /// <remarks>
     /// After calling <see cref="Dispose"/>, the instance is no longer usable.
     /// This method is idempotent and safe to call multiple times.
