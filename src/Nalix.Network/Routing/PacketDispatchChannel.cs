@@ -352,7 +352,6 @@ public sealed class PacketDispatchChannel
 
                 try
                 {
-                    // Xử lý middleware (thay đổi lease nếu cần)
                     IBufferLease afterMw = await Options.NetworkPipeline.ExecuteAsync(lease, connection, ct).ConfigureAwait(false);
 
                     if (afterMw is null)
@@ -363,12 +362,11 @@ public sealed class PacketDispatchChannel
                         continue;
                     }
 
-                    // Nếu middleware trả về lease mới, dispose lease cũ
                     if (afterMw != lease)
                     {
                         lease.Dispose();
+                        lease = afterMw;
                     }
-                    lease = afterMw;
                 }
                 catch (System.Exception ex)
                 {

@@ -20,15 +20,31 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
         IBufferLease lease, IConnection connection, System.Threading.CancellationToken ct,
         System.Func<IBufferLease, System.Threading.CancellationToken, System.Threading.Tasks.Task<IBufferLease>> next)
     {
+
+#if DEBUG
+        System.String debugId = $"{connection?.NetworkEndpoint}/{connection?.ID.ToString() ?? "?"}/leasePtr=0x{lease.GetHashCode():X8}";
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Trace($"[DECRYPT][{debugId}] Start - Flags={lease.Span.ReadFlagsLE()} LeaseLen={lease.Length}");
+#endif
+
         if (lease.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED))
         {
             BufferLease dest;
             try
             {
+#if DEBUG
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[DECRYPT][{debugId}] Alloc decrypt lease: PlaintextLen={FrameTransformer.GetPlaintextLength(lease.Span)}");
+#endif      
+
                 dest = BufferLease.Rent(FrameTransformer.GetPlaintextLength(lease.Span));
             }
             catch
             {
+#if DEBUG
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[DECRYPT][{debugId}] Failed to get plaintext length.");
+#endif
                 return null;
             }
 
@@ -37,7 +53,7 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
                 dest.Dispose();
 #if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"Failed to decrypt frame from connection {connection.RemoteEndPoint}. Closing connection.");
+                                        .Debug($"[DECRYPT][{debugId}] Failed to decrypt frame! Flags={lease.Span.ReadFlagsLE()} - Closing connection.");
 #endif
                 return null; // fallback if failed
             }
@@ -46,10 +62,25 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
                      .ReadFlagsLE()
                      .RemoveFlag(PacketFlags.ENCRYPTED));
 
+#if DEBUG
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[DECRYPT][{debugId}] Decryption success! FlagsAfter={dest.Span.ReadFlagsLE()} DestLen={dest.Length}");
+
+            System.Int32 sampleLen = System.Math.Min(16, dest.Length);
+            System.String hexSample = System.BitConverter.ToString(dest.Span[..sampleLen].ToArray());
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[DECRYPT][{debugId}] Decrypted buffer sample: {hexSample}");
+#endif
+
             return await next(dest, ct).ConfigureAwait(false);
         }
         else
         {
+#if DEBUG
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[DECRYPT][{debugId}] Bypass decryption (flags do not match). LeaseLen={lease.Length}");
+#endif
+
             return await next(lease, ct).ConfigureAwait(false);
         }
     }

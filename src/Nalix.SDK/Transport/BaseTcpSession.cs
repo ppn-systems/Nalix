@@ -8,7 +8,7 @@ using Nalix.Common.Shared;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.SDK.Configuration;
-using Nalix.SDK.Transport.Extensions;
+using Nalix.SDK.Extensions;
 using Nalix.SDK.Transport.Internal;
 using Nalix.Shared.Memory.Buffers;
 using System.Threading.Tasks;
@@ -125,7 +125,6 @@ public abstract class BaseTcpSession : IClientConnection
     /// Compress trước, sau đó encrypt – đúng thứ tự.
     /// </summary>
     /// <param name="packet">Gói tin.</param>
-    /// <param name="compress">Nén payload.</param>
     /// <param name="encrypt">Mã hóa payload.</param>
     /// <param name="cancellationToken">Token huỷ.</param>
     /// <returns>
@@ -133,41 +132,41 @@ public abstract class BaseTcpSession : IClientConnection
     /// </returns>
     public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
         IPacket packet,
-        System.Boolean compress,
         System.Boolean encrypt,
         System.Threading.CancellationToken cancellationToken = default)
     {
-        // --- Encode payload ---
         System.ReadOnlyMemory<System.Byte> payload = packet.Serialize();
 
         BufferLease lease = BufferLease.CopyFrom(payload.Span);
         try
         {
-            if (compress)
-            {
-                BufferLease? compressed = lease.CompressPayload();
-                lease.Dispose();
-                if (compressed == null)
-                {
-                    throw new System.Exception("Compression failed");
-                }
-
-                lease = compressed;
-            }
-
             if (encrypt)
             {
-                BufferLease? encrypted = lease.EncryptPayload(this);
-                lease.Dispose();
-                if (encrypted == null)
+                BufferLease? encrypted = lease.EncryptPayload(this) ?? throw new System.Exception("Encryption failed");
+                try
                 {
-                    throw new System.Exception("Encryption failed");
+                    return await SendAsync(encrypted.Memory, cancellationToken).ConfigureAwait(false);
                 }
-
-                lease = encrypted;
+                catch (System.Exception ex)
+                {
+                    Logging?.Error($"[SDK.{this.GetType().Name}] SendAsync with encryption failed: {ex.Message}", ex);
+                    return false;
+                }
+                finally
+                {
+                    encrypted.Dispose();
+                }
             }
+            else
+            {
 
-            return await SendAsync(lease.Memory, cancellationToken).ConfigureAwait(false);
+                return await SendAsync(lease.Memory, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Logging?.Error($"[SDK.{this.GetType().Name}] SendAsync failed: {ex.Message}", ex);
+            return false;
         }
         finally
         {

@@ -32,7 +32,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
     {
         if (context.Attributes.Permission is null ||
-                    context.Attributes.Permission.Level <= context.Connection.Level)
+            context.Attributes.Permission.Level <= context.Connection.Level)
         {
             await next(context.CancellationToken).ConfigureAwait(false);
             return;
