@@ -1,11 +1,11 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Diagnostics.Abstractions;
-using Nalix.Common.Networking.Abstractions;
+using Nalix.Common.Diagnostics;
+using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
-using Nalix.Network.Abstractions;
 using Nalix.Network.Connections;
 using Nalix.Network.Protocols;
+using Nalix.Network.Routing;
 
 namespace Nalix.Network.Examples.Protocols;
 
