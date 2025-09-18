@@ -2,13 +2,13 @@
 
 using Nalix.Common.Attributes;
 using Nalix.Common.Enums;
-using Nalix.Common.Exceptions;
+using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Protocols;
+using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Connection;
 using Nalix.Network.Dispatch;
-using Nalix.Network.Throttling;
 
 namespace Nalix.Network.Middleware.Inbound;
 
@@ -31,55 +31,27 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next,
         System.Threading.CancellationToken ct)
     {
-        if (context.Attributes.ConcurrencyLimit is null)
+        if (context.Attributes.Permission is not null &&
+            context.Attributes.Permission.Level > context.Connection.Level)
         {
-            await next(ct).ConfigureAwait(false);
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.OpCode.OpCode:X} " +
+                                          $"need={context.Attributes.Permission.Level} have={context.Connection.Level}");
+
+            await context.Connection.SendAsync(
+                controlType: ControlType.FAIL,
+                reason: ProtocolCode.UNAUTHENTICATED,
+                action: ProtocolAction.NONE,
+                sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                flags: ControlFlags.NONE,
+                arg0: (System.Byte)context.Attributes.Permission.Level,
+                arg1: (System.Byte)context.Connection.Level,
+                arg2: context.Attributes.OpCode.OpCode).ConfigureAwait(false);
+
             return;
         }
 
-        ConcurrencyGate.Lease lease = default;
-        try
-        {
-            System.Boolean acquired;
-            if (context.Attributes.ConcurrencyLimit.Queue)
-            {
-                lease = await ConcurrencyGate.EnterAsync(context.Packet.OpCode, context.Attributes.ConcurrencyLimit, ct)
-                                             .ConfigureAwait(false);
-                acquired = true;
-            }
-            else
-            {
-                acquired = ConcurrencyGate.TryEnter(context.Packet.OpCode, context.Attributes.ConcurrencyLimit, out lease);
-
-                if (!acquired)
-                {
-                    await context.Connection.SendAsync(
-                        controlType: ControlType.FAIL,
-                        reason: ProtocolCode.RATE_LIMITED,
-                        action: ProtocolAction.RETRY,
-                        sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
-                        flags: ControlFlags.IS_TRANSIENT,
-                        arg0: context.Packet.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
-                    return;
-                }
-            }
-
-            await next(ct).ConfigureAwait(false);
-        }
-        catch (ConcurrencyRejectedException)
-        {
-            await context.Connection.SendAsync(
-                controlType: ControlType.FAIL,
-                reason: ProtocolCode.RATE_LIMITED,
-                action: ProtocolAction.RETRY,
-                sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
-                flags: ControlFlags.IS_TRANSIENT,
-                arg0: context.Packet.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
-        }
-        finally
-        {
-            lease.Dispose();
-        }
+        await next(ct).ConfigureAwait(false);
     }
 }
 
