@@ -35,9 +35,9 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// Gets or sets the maximum number of concurrent connections allowed.
     /// </summary>
     /// <value>
-    /// The maximum connection limit, or <see langword="null"/> for unlimited. Default is <see langword="null"/>.
+    /// The maximum connection limit, or -1 for unlimited. Default is -1.
     /// </value>
-    public System.Int32? MaxConnections { get; init; } = null;
+    public System.Int32 MaxConnections { get; init; } = -1;
 
     /// <summary>
     /// Gets or sets the policy for handling connection rejection when limits are reached.
