@@ -33,10 +33,11 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
+        System.Boolean acquired;
         ConcurrencyGate.Lease lease = default;
+
         try
         {
-            System.Boolean acquired;
             if (context.Attributes.ConcurrencyLimit.Queue)
             {
                 lease = await ConcurrencyGate.EnterAsync(context.Packet.OpCode, context.Attributes.ConcurrencyLimit, ct)
