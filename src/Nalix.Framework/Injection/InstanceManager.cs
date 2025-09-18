@@ -440,7 +440,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// <summary>
     /// Disposes of all instances in the cache that implement <see cref="System.IDisposable"/>.
     /// </summary>
-    public void DisposeManaged(System.Boolean _)
+    protected override void DisposeManaged()
     {
         if (System.Threading.Interlocked.Exchange(ref _isDisposed, 1) != 0)
         {

@@ -231,30 +231,26 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <summary>
     /// Protected implementation of Dispose pattern.
     /// </summary>
-    /// <param name="disposing">True to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
-    protected override void Dispose(System.Boolean disposing)
+    protected override void DisposeManaged()
     {
-        if (disposing)
+        // Flush any pending changes
+        if (_iniFile.IsValueCreated)
         {
-            // Flush any pending changes
-            if (_iniFile.IsValueCreated)
+            try
             {
-                try
-                {
-                    _iniFile.Value.Flush();
-                }
-                catch
-                {
-                    // Ignore exceptions during cleanup
-                }
+                _iniFile.Value.Flush();
             }
-
-            // Clean up resources
-            _configLock.Dispose();
-            _configContainerDict.Clear();
+            catch
+            {
+                // Ignore exceptions during cleanup
+            }
         }
 
-        base.Dispose(disposing);
+        // Clean up resources
+        _configLock.Dispose();
+        _configContainerDict.Clear();
+
+        base.Dispose();
     }
 
     #endregion Protected Methods
