@@ -27,15 +27,15 @@ public sealed class RecurringOptions : IRecurringOptions
     /// <summary>
     /// Gets an optional timeout for a single run, after which the run is cancelled.
     /// </summary>
-    public System.TimeSpan? RunTimeout { get; init; }
+    public System.TimeSpan? ExecutionTimeout { get; init; }
 
     /// <summary>
     /// Gets the number of consecutive failures before backoff is applied.
     /// </summary>
-    public System.Int32 MaxFailuresBeforeBackoff { get; init; } = 1;
+    public System.Int32 FailuresBeforeBackoff { get; init; } = 1;
 
     /// <summary>
     /// Gets the maximum backoff duration after consecutive failures.
     /// </summary>
-    public System.TimeSpan MaxBackoff { get; init; } = System.TimeSpan.FromSeconds(15);
+    public System.TimeSpan BackoffCap { get; init; } = System.TimeSpan.FromSeconds(15);
 }

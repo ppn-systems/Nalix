@@ -49,7 +49,7 @@ public interface IIdentifier : System.IEquatable<IIdentifier>
     /// <returns>
     /// A byte array containing the serialized representation of the identifier.
     /// </returns>
-    System.Byte[] Format();
+    System.Byte[] ToByteArray();
 
     /// <summary>
     /// Attempts to serialize the identifier into the provided byte span.
@@ -60,5 +60,5 @@ public interface IIdentifier : System.IEquatable<IIdentifier>
     /// <see langword="true"/> if the identifier was successfully serialized;  
     /// otherwise, <see langword="false"/> if the destination is too small.
     /// </returns>
-    System.Boolean TryFormat(System.Span<System.Byte> destination, out System.Int32 bytesWritten);
+    System.Boolean TryWriteBytes(System.Span<System.Byte> destination, out System.Int32 bytesWritten);
 }

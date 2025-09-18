@@ -135,8 +135,8 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
                 Tag = nameof(TokenBucketLimiter),
                 NonReentrant = true,
                 Jitter = System.TimeSpan.FromMilliseconds(250),
-                RunTimeout = System.TimeSpan.FromSeconds(2),
-                MaxBackoff = System.TimeSpan.FromSeconds(15)
+                ExecutionTimeout = System.TimeSpan.FromSeconds(2),
+                BackoffCap = System.TimeSpan.FromSeconds(15)
             }
         );
 

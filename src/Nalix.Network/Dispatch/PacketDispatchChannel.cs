@@ -106,7 +106,7 @@ public sealed class PacketDispatchChannel
             options: new WorkerOptions
             {
                 CancellationToken = linkedToken,
-                Retention = System.TimeSpan.Zero,
+                RetainFor = System.TimeSpan.Zero,
                 Tag = TaskNames.Tags.Dispatch
             });
     }

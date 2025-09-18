@@ -219,7 +219,7 @@ public abstract partial class UdpListenerBase : IListener
         _ = sb.AppendLine("Worker:");
         _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine($"Group: udp.port.{_port}");
-        _ = sb.AppendLine("Configured MaxGroupConcurrency: 8");
+        _ = sb.AppendLine("Configured GroupConcurrencyLimit: 8");
         _ = sb.AppendLine();
 
         // Time sync

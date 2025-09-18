@@ -34,8 +34,8 @@ public abstract partial class UdpListenerBase
                     options: new WorkerOptions
                     {
                         Tag = "udp",
-                        MaxGroupConcurrency = Config.MaxGroupConcurrency,
-                        TryAcquireGroupSlotImmediately = true
+                        GroupConcurrencyLimit = Config.MaxGroupConcurrency,
+                        TryAcquireSlotImmediately = true
                     });
             }
             catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -72,7 +72,7 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        IIdentifier identifier = Identifier.FromByteArray(result.Buffer[^Identifier.Size..]);
+        IIdentifier identifier = Identifier.FromBytes(result.Buffer[^Identifier.Size..]);
 
         if (InstanceManager.Instance.GetExistingInstance<ConnectionHub>()!
                                     .GetConnection(identifier) is not Connection.Connection connection)
