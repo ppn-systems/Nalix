@@ -26,14 +26,14 @@ public interface IRecurringOptions
     /// Gets the maximum backoff duration to wait before retrying after failures.
     /// </summary>
     [System.ComponentModel.DataAnnotations.Range(typeof(System.TimeSpan), "00:00:00", "7.00:00:00")]
-    System.TimeSpan MaxBackoff { get; init; }
+    System.TimeSpan BackoffCap { get; init; }
 
     /// <summary>
     /// Gets the maximum duration allowed for each job run.
     /// If the job exceeds this timeout, it may be cancelled.
     /// </summary>
     [System.ComponentModel.DataAnnotations.Range(typeof(System.TimeSpan), "00:00:00", "1.00:00:00")]
-    System.TimeSpan? RunTimeout { get; init; }
+    System.TimeSpan? ExecutionTimeout { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the recurring job should be non-reentrant.
@@ -46,5 +46,5 @@ public interface IRecurringOptions
     /// Gets the maximum number of consecutive failures before applying backoff logic.
     /// </summary>
     [System.ComponentModel.DataAnnotations.Range(0, System.Int32.MaxValue)]
-    System.Int32 MaxFailuresBeforeBackoff { get; init; }
+    System.Int32 FailuresBeforeBackoff { get; init; }
 }

@@ -31,8 +31,8 @@ namespace Nalix.Framework.Identity;
 [System.Runtime.InteropServices.StructLayout(
     System.Runtime.InteropServices.LayoutKind.Explicit, Size = 7,
     CharSet = System.Runtime.InteropServices.CharSet.Ansi)]
-[System.Diagnostics.DebuggerDisplay("{Value}-{MachineId}-{Type} ({ToBase36String()})")]
-public readonly partial struct Identifier : IIdentifier, System.IEquatable<Identifier>
+[System.Diagnostics.DebuggerDisplay("{Value}-{MachineId}-{Type} ({ToBase36()})")]
+public readonly partial struct Identifier : IIdentifier
 {
     #region Const
 
@@ -107,7 +107,7 @@ public readonly partial struct Identifier : IIdentifier, System.IEquatable<Ident
     /// <example>
     /// <code>
     /// var id = Identifier.Generate(12345, 1001, IdentifierType.User);
-    /// Console.WriteLine(id.ToBase36String()); // Outputs Base36 representation
+    /// Console.WriteLine(id.ToBase36()); // Outputs Base36 representation
     /// </code>
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -123,7 +123,7 @@ public readonly partial struct Identifier : IIdentifier, System.IEquatable<Ident
     /// <example>
     /// <code>
     /// var id = Identifier.Generate(IdentifierType.System);
-    /// Console.WriteLine(id.ToBase36String()); // Outputs Base36 representation
+    /// Console.WriteLine(id.ToBase36()); // Outputs Base36 representation
     /// </code>
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(

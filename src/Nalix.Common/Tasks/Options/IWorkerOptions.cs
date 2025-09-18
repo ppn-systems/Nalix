@@ -42,21 +42,21 @@ public interface IWorkerOptions
     /// Set to <c>null</c> or <c>TimeSpan.Zero</c> to auto-remove workers immediately.
     /// </summary>
     [System.ComponentModel.DataAnnotations.Range(typeof(System.TimeSpan), "00:00:00", "1.00:00:00")]
-    System.TimeSpan? Retention { get; init; }
+    System.TimeSpan? RetainFor { get; init; }
 
     /// <summary>
     /// Gets the optional concurrency cap for workers in the same group.
     /// If set, executions in this group are limited by this value.
     /// </summary>
     [System.ComponentModel.DataAnnotations.Range(0, System.Int32.MaxValue)]
-    System.Int32? MaxGroupConcurrency { get; init; }
+    System.Int32? GroupConcurrencyLimit { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the group slot should be acquired immediately or the worker should be cancelled if unavailable.
     /// Default is <c>false</c>, which means the worker will wait for a slot.
     /// </summary>
     [System.ComponentModel.DefaultValue(false)]
-    System.Boolean TryAcquireGroupSlotImmediately { get; init; }
+    System.Boolean TryAcquireSlotImmediately { get; init; }
 
     /// <summary>
     /// Gets the cancellation token that is linked to the worker's execution.

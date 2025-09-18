@@ -7,168 +7,127 @@ namespace Nalix.Framework.Injection.DI;
 /// </summary>
 /// <typeparam name="T">The type of the Singleton class.</typeparam>
 [System.Diagnostics.DebuggerDisplay("Instance = {Instance}, IsCreated = {IsCreated}")]
-[System.Diagnostics.CodeAnalysis.SuppressMessage(
-    "Design", "CA1000:Do not declare static members on generic types", Justification = "Singleton pattern intentionally exposes static Instance")]
-[System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
 public abstract class SingletonBase<T> : System.IDisposable where T : class
 {
     #region Fields
 
-    // Using ExecutionAndPublication mode for maximum thread safety
-    private static readonly System.Lazy<T> Instances = new(
-        valueFactory: CreateInstanceInternal,
-        System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
+    // Lazy with full publication safety.
+    private static readonly System.Lazy<T> s_instance =
+        new(valueFactory: CreateInstanceInternal, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
-    // Use volatile for thread-safety without locks
-    private volatile System.Boolean _isDisposed;
+    // Compiled .ctor delegate (private/protected allowed) – built once per closed generic.
+    private static readonly System.Func<T> s_ctor = CreateCtor();
 
-    private System.Int32 _disposeSignaled;
+    // 0 = not disposed, 1 = disposed
+    private System.Int32 _disposed;
 
     #endregion Fields
 
     #region Properties
 
     /// <summary>
-    /// Gets the single instance of the <typeparamref name="T"/> class.
+    /// Gets the singleton instance (creates on first access).
     /// </summary>
-    /// <remarks>
-    /// This property uses aggressive inlining for better performance in high-throughput scenarios.
-    /// </remarks>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Usage", "CA2213:Disposable fields should be disposed", Justification = "Lazy<T> no need to dispose")]
-    public static T Instance => Instances.Value;
+    public static T Instance => s_instance.Value;
 
     /// <summary>
-    /// Indicates whether the singleton instance has been created.
+    /// Returns true if the instance has been created, without forcing creation.
     /// </summary>
-    /// <remarks>
-    /// Use this property to check if the instance exists without forcing instantiation.
-    /// </remarks>
-    public static System.Boolean IsCreated => Instances.IsValueCreated;
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Roslynator", "RCS1158:Static member in generic type should use a type parameter",
+        Justification = "Property bound to closed generic SingletonBase<T>.")]
+    public static System.Boolean IsCreated => s_instance.IsValueCreated;
 
     #endregion Properties
 
-    #region Constructor
+    #region APIs
 
-    /// <summary>
-    /// A protected constructor to prevent direct instantiation from outside the class.
-    /// </summary>
-    protected SingletonBase()
-    { }
+    /// <inheritdoc />
+    protected SingletonBase() { }
 
-    #endregion Constructor
+    /// <summary>Best-effort: returns existing instance if created, else false without creating it.</summary>
+    public static System.Boolean TryGetInstance([System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T instance)
+    {
+        if (IsCreated)
+        {
+            instance = s_instance.Value;
+            return true;
+        }
+        instance = default!;
+        return false;
+    }
 
-    #region IDisposable
+    /// <summary>Force-creates the instance (useful for warmup).</summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Roslynator", "RCS1158:Static member in generic type should use a type parameter",
+        Justification = "Static member intentionally bound to closed generic SingletonBase<T>.")]
+    public static void EnsureCreated() => _ = s_instance.Value;
+
+    #endregion APIs
+
+    #region IDisposable Support
 
     /// <inheritdoc />
     public void Dispose()
     {
-        // Ensure Dispose can only be called once
-        if (System.Threading.Interlocked.Exchange(ref _disposeSignaled, 1) != 0)
+        if (System.Threading.Interlocked.Exchange(ref _disposed, 1) != 0)
         {
             return;
         }
 
-        Dispose(true);
+        DisposeManaged();
         System.GC.SuppressFinalize(this);
     }
 
     /// <summary>
-    /// Releases unmanaged and, optionally, managed resources.
-    /// If overridden, make sure to call base.Dispose(disposing).
+    /// Override to release managed state. Base does nothing.
     /// </summary>
-    /// <param name="disposeManaged">
-    /// <c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.
-    /// </param>
-    [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, nameof(_isDisposed))]
-    protected virtual void Dispose(System.Boolean disposeManaged)
-    {
-        if (_isDisposed)
-        {
-            return;
-        }
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    protected virtual void DisposeManaged() { }
 
-        if (disposeManaged)
-        {
-            // Dispose any managed resources specific to the derived class
-            // (This space intentionally left blank for derived classes to implement)
-        }
+    #endregion IDisposable Support
 
-        _isDisposed = true;
-    }
+    #region Finalizer
 
-    /// <summary>
-    /// Finalizer to ensure resources are properly cleaned up if Dispose is not called.
-    /// </summary>
-    ~SingletonBase()
-    {
-        Dispose(false);
-    }
-
-    #endregion IDisposable
-
-    #region Private Methods
-
-    /// <summary>
-    /// Creates an instance of the Singleton class with error handling.
-    /// </summary>
-    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static T CreateInstanceInternal()
     {
         try
         {
-            return CreateInstance();
+            return s_ctor();
         }
         catch (System.Exception ex)
         {
             throw new System.InvalidOperationException(
-                $"Failed to create singleton instance of type {typeof(T).Name}. " +
-                "Ensure it has a non-public constructor that can be called.", ex);
+                $"Failed to create singleton instance of type {typeof(T).FullName}. " +
+                "Ensure it has a parameterless constructor (private/protected).", ex);
         }
     }
 
     /// <summary>
-    /// Creates an instance of the Singleton class.
+    /// Builds a compiled lambda that invokes the non-public parameterless constructor of T.
+    /// This runs once per closed generic T.
     /// </summary>
-    /// <returns>The single instance of <typeparamref name="T"/>.</returns>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static T CreateInstance()
+    private static System.Func<T> CreateCtor()
     {
-        return System.Activator.CreateInstance(typeof(T), nonPublic: true) as T
-               ?? throw new System.MissingMethodException(
-                   $"Unable to create instance of {typeof(T)}. " +
-                   "Ensure the class has a parameterless constructor marked as protected or private.");
+        const System.Reflection.BindingFlags Flags =
+            System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.NonPublic |
+            System.Reflection.BindingFlags.Public;
+
+        System.Reflection.ConstructorInfo ctor = typeof(T).GetConstructor(Flags, binder: null, types: System.Type.EmptyTypes, modifiers: null)
+            ?? throw new System.MissingMethodException(
+                $"Type '{typeof(T).FullName}' must declare a parameterless constructor (private/protected/public).");
+
+        // Compile: () => new T()
+        System.Linq.Expressions.Expression newExpr = System.Linq.Expressions.Expression.New(ctor);
+        System.Linq.Expressions.Expression<System.Func<T>> lambda = System.Linq.Expressions.Expression.Lambda<System.Func<T>>(newExpr);
+        return lambda.Compile(); // JIT emits direct newobj path; no reflection after the first time.
     }
 
-    /// <summary>
-    /// Provides a mechanism to reset the singleton instance.
-    /// Should be used with extreme caution and only in testing scenarios.
-    /// </summary>
-    /// <remarks>
-    /// This method is intended for testing purposes only and should not be used in production code.
-    /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    internal static void ResetForTesting()
-    {
-        if (Instances.IsValueCreated &&
-            Instances.Value is System.IDisposable disposable)
-        {
-            disposable.Dispose();
-        }
-
-        // We can't actually reset the Lazy<TPacket> instance, but we can set a flag
-        // that will be checked in Instance getter in a test environment
-    }
-
-    #endregion Private Methods
+    #endregion Finalizer
 }

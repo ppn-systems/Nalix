@@ -44,7 +44,7 @@ public readonly partial struct Identifier
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static Identifier FromByteArray(System.Byte[] bytes)
+    public static Identifier FromBytes(System.Byte[] bytes)
     {
         return bytes == null || bytes.Length != 7
             ? throw new System.ArgumentException("Input must be a non-null array of exactly 7 bytes.", nameof(bytes))
@@ -156,10 +156,10 @@ public readonly partial struct Identifier
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Byte[] Format()
+    public System.Byte[] ToByteArray()
     {
         System.Byte[] result = new System.Byte[7];
-        _ = TryFormat(result, out _);
+        _ = TryWriteBytes(result, out _);
         return result;
     }
 
@@ -174,7 +174,7 @@ public readonly partial struct Identifier
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean TryFormat(
+    public System.Boolean TryFormatBase36(
         System.Span<System.Char> destination, out System.Byte charsWritten)
     {
         System.UInt64 value = GetCombinedValue();
@@ -220,7 +220,7 @@ public readonly partial struct Identifier
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean TryFormat(
+    public System.Boolean TryWriteBytes(
         System.Span<System.Byte> destination, out System.Int32 bytesWritten)
     {
         if (destination.Length < 7)
@@ -245,60 +245,4 @@ public readonly partial struct Identifier
     }
 
     #endregion Serialization Methods
-
-    #region String Representation Methods
-
-    /// <summary>
-    /// Returns the Base36 string representation of this identifier.
-    /// </summary>
-    /// <returns>A Base36 encoded string representing this identifier.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override System.String ToString() => ToBase36String();
-
-    /// <summary>
-    /// Converts this identifier to its Base36 string representation.
-    /// </summary>
-    /// <returns>A Base36 encoded string representing this identifier.</returns>
-    /// <remarks>
-    /// Base36 encoding uses digits 0-9 and letters A-Z, providing a compact
-    /// and URL-safe string representation.
-    /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.String ToBase36String()
-    {
-        System.UInt64 combinedValue = GetCombinedValue();
-        return EncodeToBase36(combinedValue);
-    }
-
-    /// <summary>
-    /// Converts this identifier to its hexadecimal string representation.
-    /// </summary>
-    /// <returns>A hexadecimal string representing this identifier.</returns>
-    /// <remarks>
-    /// The hexadecimal representation shows the raw byte values of the identifier.
-    /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.String ToHexString()
-    {
-        System.Span<System.Byte> buffer = stackalloc System.Byte[7];
-        _ = TryFormat(buffer, out _);
-        return System.Convert.ToHexString(buffer);
-    }
-
-    /// <summary>
-    /// Converts this identifier to a string representation using the specified format.
-    /// </summary>
-    /// <param name="useHexFormat">
-    /// <c>true</c> to use hexadecimal format; <c>false</c> to use Base36 format.
-    /// </param>
-    /// <returns>A string representation of this identifier in the specified format.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.String ToString(System.Boolean useHexFormat)
-        => useHexFormat ? ToHexString() : ToBase36String();
-
-    #endregion String Representation Methods
 }

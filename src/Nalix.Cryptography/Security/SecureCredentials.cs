@@ -49,7 +49,7 @@ public static class SecureCredentials
 
     /// <summary>
     /// Generates a Base64Value-encoded string containing version, salt, and hash for a credential.
-    /// Format: [version (1 byte)] + [salt] + [hash].
+    /// ToByteArray: [version (1 byte)] + [salt] + [hash].
     /// </summary>
     /// <param name="credential">The plaintext credential.</param>
     /// <returns>A Base64Value-encoded string containing version, salt, and hash.</returns>

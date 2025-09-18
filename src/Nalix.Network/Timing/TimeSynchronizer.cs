@@ -255,7 +255,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
             {
                 CancellationToken = linkedToken,
                 Tag = "timesync",
-                Retention = System.TimeSpan.Zero
+                RetainFor = System.TimeSpan.Zero
             }
         );
     }

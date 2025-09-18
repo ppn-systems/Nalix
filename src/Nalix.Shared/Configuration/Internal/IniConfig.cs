@@ -827,7 +827,7 @@ internal sealed class IniConfig
             return System.String.Empty;
         }
 
-        // Format numeric values with invariant culture for consistency
+        // ToByteArray numeric values with invariant culture for consistency
         return value switch
         {
             System.Single f => f.ToString("G", System.Globalization.CultureInfo.InvariantCulture),

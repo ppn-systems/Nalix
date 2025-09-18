@@ -99,7 +99,7 @@ public abstract partial class TcpListenerBase
                     options: new WorkerOptions
                     {
                         CancellationToken = linkedToken,
-                        Retention = System.TimeSpan.FromSeconds(30),
+                        RetainFor = System.TimeSpan.FromSeconds(30),
                         IdType = IdentifierType.System,
                         Tag = NetTaskNames.Segments.Net
                     }

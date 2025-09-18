@@ -35,7 +35,7 @@ public interface ITaskManager : System.IDisposable, IReportable
     /// <param name="work">The delegate representing the job work.</param>
     /// <param name="ct">Cancellation token (optional).</param>
     /// <returns>A ValueTask representing the job execution.</returns>
-    System.Threading.Tasks.ValueTask RunSingleJob(
+    System.Threading.Tasks.ValueTask RunOnceAsync(
         System.String name,
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
         System.Threading.CancellationToken ct = default);

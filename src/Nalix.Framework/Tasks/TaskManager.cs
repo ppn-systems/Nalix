@@ -14,6 +14,7 @@ namespace Nalix.Framework.Tasks;
 /// Manages background recurring tasks and worker tasks, providing scheduling, cancellation, and reporting functionalities.
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("TaskManager (Workers={_workers.Count}, Recurring={_recurring.Count})")]
 public sealed partial class TaskManager : ITaskManager
 {
@@ -105,7 +106,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="System.ArgumentException">Thrown if the name is null or whitespace.</exception>
     /// <exception cref="System.ArgumentNullException">Thrown if the work delegate is null.</exception>
-    public async System.Threading.Tasks.ValueTask RunSingleJob(
+    public async System.Threading.Tasks.ValueTask RunOnceAsync(
         System.String name,
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
         System.Threading.CancellationToken ct = default)
@@ -173,7 +174,7 @@ public sealed partial class TaskManager : ITaskManager
         Gate? gate = null;
         System.Exception? failure = null;
 
-        if (options.MaxGroupConcurrency is System.Int32 cap && cap > 0)
+        if (options.GroupConcurrencyLimit is System.Int32 cap && cap > 0)
         {
             gate = _groupGates.GetOrAdd(group, _ => new Gate(new System.Threading.SemaphoreSlim(cap, cap), cap));
         }
@@ -187,7 +188,7 @@ public sealed partial class TaskManager : ITaskManager
             {
                 if (gate is not null)
                 {
-                    if (options.TryAcquireGroupSlotImmediately)
+                    if (options.TryAcquireSlotImmediately)
                     {
                         acquired = await gate.SemaphoreSlim.WaitAsync(0, ct).ConfigureAwait(false);
                         if (!acquired)
