@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Attributes;
 using Nalix.Common.Infrastructure.Environment;
+using Nalix.Framework.Configuration.Binding;
 using Nalix.Logging.Internal.Exceptions;
 
 namespace Nalix.Logging.Options;
@@ -10,7 +12,7 @@ namespace Nalix.Logging.Options;
 /// </summary>
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("File={LogFileName,nq}, Dir={LogDirectory,nq}, MaxSize={MaxFileSizeBytes}")]
-public sealed class FileLogOptions
+public sealed class FileLogOptions : ConfigurationLoader
 {
     #region Constants
 
@@ -18,7 +20,6 @@ public sealed class FileLogOptions
     private const System.Int32 DefaultMaxFileSize = 10 * 1024 * 1024; // 10 MB
 
     private const System.Int32 DefaultMaxQueueSize = 4096;
-    private const System.Boolean DefaultAppendToFile = true;
 
     #endregion Constants
 
@@ -33,11 +34,6 @@ public sealed class FileLogOptions
     #endregion Fields
 
     #region Properties
-
-    /// <summary>
-    /// Specifies whether to append to existing log files or overwrite them.
-    /// </summary>
-    public System.Boolean Append { get; set; } = DefaultAppendToFile;
 
     /// <summary>
     /// The maximum allowed file size for a log file in bytes.
@@ -104,34 +100,6 @@ public sealed class FileLogOptions
     public System.TimeSpan FlushInterval { get; set; } = DefaultFlushInterval;
 
     /// <summary>
-    /// Gets or sets whether to include the date in log file names.
-    /// </summary>
-    public System.Boolean IncludeDateInFileName { get; set; } = true;
-
-    /// <summary>
-    /// A custom formatter for the log file name.
-    /// </summary>
-    /// <remarks>
-    /// By providing a custom formatter, you can define your own criteria for generating log file names.
-    /// This formatter is applied once when creating a new log file, not for every log entry.
-    /// </remarks>
-    public System.Func<System.String, System.String>? FormatLogFileName { get; set; }
-
-    /// <summary>
-    /// A custom handler for file errors.
-    /// </summary>
-    /// <remarks>
-    /// If this handler is provided, exceptions occurring during file operations will be passed to it.
-    /// You can handle file errors according to your application's logic and propose an alternative log file name.
-    /// </remarks>
-    public System.Action<FileError>? HandleFileError { get; set; }
-
-    /// <summary>
-    /// Gets or sets whether to use background thread for file operations.
-    /// </summary>
-    public System.Boolean UseBackgroundThread { get; set; } = true;
-
-    /// <summary>
     /// Gets or sets the behavior when the queue is full.
     /// </summary>
     /// <remarks>
@@ -144,6 +112,27 @@ public sealed class FileLogOptions
     /// Optional: also suffix by process to avoid cross-process collisions.
     /// </summary>
     public System.Boolean UsePerProcessSuffix { get; set; } = false;
+
+    /// <summary>
+    /// A custom formatter for the log file name.
+    /// </summary>
+    /// <remarks>
+    /// By providing a custom formatter, you can define your own criteria for generating log file names.
+    /// This formatter is applied once when creating a new log file, not for every log entry.
+    /// </remarks>
+    [ConfiguredIgnore]
+    public System.Func<System.String, System.String>? FormatLogFileName { get; set; }
+
+    /// <summary>
+    /// A custom handler for file errors.
+    /// </summary>
+    /// <remarks>
+    /// If this handler is provided, exceptions occurring during file operations will be passed to it.
+    /// You can handle file errors according to your application's logic and propose an alternative log file name.
+    /// </remarks>
+    [ConfiguredIgnore]
+    public System.Action<FileError>? HandleFileError { get; set; }
+
 
     #endregion Properties
 
