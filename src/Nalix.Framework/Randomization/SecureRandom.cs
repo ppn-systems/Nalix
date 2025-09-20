@@ -10,6 +10,7 @@ namespace Nalix.Framework.Randomization;
 /// High-performance cryptographically strong random ProtocolType generator
 /// based on the Xoshiro256++ algorithm with additional entropy sources.
 /// </summary>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]

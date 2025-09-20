@@ -6,6 +6,7 @@ namespace Nalix.Framework.Identity;
 /// <summary>
 /// Provides cryptographically secure random number generation using the operating system's CSPRNG facilities.
 /// </summary>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 public static partial class OsRandom
