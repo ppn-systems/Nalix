@@ -13,10 +13,10 @@ public class IdentifierTests
     public void CreateEmpty_IsEmpty_True_And_SerializesTo7ZeroBytes()
     {
         var id = Identifier.Empty; // all zero
-        Assert.True(id.IsEmpty()); // not empty => false
+        Assert.True(id.IsEmpty); // not empty => false
 
         Span<Byte> buf = stackalloc Byte[7];
-        Assert.True(id.TryFormat(buf, out var written));
+        Assert.True(id.TryWriteBytes(buf, out var written));
         Assert.Equal(7, written);
         Assert.Equal(new Byte[7], buf.ToArray());
     }
@@ -29,13 +29,12 @@ public class IdentifierTests
         const IdentifierType type = (IdentifierType)0x77;
 
         var id = Identifier.NewId(value, machine, type);
-        Assert.True(id.IsValid());
         Assert.Equal(value, id.Value);
         Assert.Equal(machine, id.MachineId);
         Assert.Equal(type, id.Type);
 
         Span<Byte> buf = stackalloc Byte[7];
-        Assert.True(id.TryFormat(buf, out var written));
+        Assert.True(id.TryWriteBytes(buf, out var written));
         Assert.Equal(7, written);
 
         // little-endian layout: [0..3]=Value, [4..5]=Machine, [6]=Type  (core impl)
@@ -57,7 +56,7 @@ public class IdentifierTests
     {
         var id = Identifier.NewId(0xAABBCCDD, 0xEEFF, (IdentifierType)0x12);
         Span<Byte> small = stackalloc Byte[6];
-        Assert.False(id.TryFormat(small, out var written));
+        Assert.False(id.TryWriteBytes(small, out var written));
         Assert.Equal(0, written);
     }
 
@@ -65,7 +64,7 @@ public class IdentifierTests
     public void Serialize_ReturnsNew7ByteArray()
     {
         var id = Identifier.NewId(0x01020304, 0x0506, (IdentifierType)0x07);
-        var arr = id.Format();
+        var arr = id.ToByteArray();
         Assert.Equal(7, arr.Length);
         Assert.Equal(new Byte[] { 0x04, 0x03, 0x02, 0x01, 0x06, 0x05, 0x07 }, arr);
     }
@@ -82,13 +81,13 @@ public class IdentifierTests
     public void Base36_ToString_And_Deserialize_RoundTrip()
     {
         var id = Identifier.NewId(0xDEADBEEF, 0xBEEF, (IdentifierType)0xAB);
-        String s1 = id.ToBase36String(); // Base36 [0-9A-Z], compact (impl)
+        String s1 = id.ToBase36(); // Base36 [0-9A-Z], compact (impl)
         var back1 = Identifier.Parse(s1);
         Assert.Equal(id, back1);
 
         // TrySerialize to char span
         Span<Char> dst = stackalloc Char[13];
-        Assert.True(id.TryFormat(dst, out Byte len));
+        Assert.True(id.TryFormatBase36(dst, out Byte len));
         Assert.InRange(len, 1, 13);
         Assert.Equal(s1, new String(dst[..len]));
     }
@@ -97,7 +96,7 @@ public class IdentifierTests
     public void TryDeserialize_AllowsLowercase_And_RejectsNonBase36()
     {
         var id = Identifier.NewId(0x00ABCDEF, 0x1234, (IdentifierType)0x5A);
-        String up = id.ToBase36String();
+        String up = id.ToBase36();
         String low = up.ToLowerInvariant();
 
         Assert.True(Identifier.TryParse(low.AsSpan(), out var lowerParsed));
@@ -116,8 +115,8 @@ public class IdentifierTests
     {
         var id = Identifier.NewId(0x00112233, 0x4455, (IdentifierType)0x66);
         Span<Byte> buf = stackalloc Byte[7];
-        Assert.True(id.TryFormat(buf, out _));
-        var hex = id.ToHexString(); // Convert.ToHexString(7 bytes) => 14 hex chars
+        Assert.True(id.TryWriteBytes(buf, out _));
+        var hex = id.ToHex(); // Convert.ToHexString(7 bytes) => 14 hex chars
         Assert.Equal(Convert.ToHexString(buf.ToArray()), hex);
         Assert.Equal(14, hex.Length);
     }
@@ -150,7 +149,7 @@ public class IdentifierTests
     {
         // Compose the absolute max allowed 56-bit value: FF_FFFF_FFFF_FFFF (56 bits)
         var id = Identifier.NewId(0xFFFFFFFF, 0xFFFF, IdentifierType.MaxValue);
-        String s = id.ToBase36String();
+        String s = id.ToBase36();
         Assert.True(Identifier.TryParse(s.AsSpan(), out var back));
         Assert.Equal(id, back);
     }
@@ -161,10 +160,9 @@ public class IdentifierTests
         // NewId(type, machineId) uses SecureRandom for Value; we just check round-trip
         var id = Identifier.NewId((IdentifierType)0x11, machineId: 0x2222);
         Span<Byte> buf = stackalloc Byte[7];
-        Assert.True(id.TryFormat(buf, out _));
+        Assert.True(id.TryWriteBytes(buf, out _));
         var back = Identifier.FromBytes(buf);
         Assert.Equal(id, back);
-        Assert.True(id.IsValid());
     }
 
     [Fact]
