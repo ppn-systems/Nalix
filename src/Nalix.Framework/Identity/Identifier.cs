@@ -79,6 +79,14 @@ public readonly partial struct Identifier : IIdentifier
     /// <value>An enum value representing the type of this identifier.</value>
     public IdentifierType Type => (IdentifierType)_type;
 
+    /// <summary>
+    /// Determines whether this identifier is empty (all components are zero).
+    /// </summary>
+    /// <returns>
+    /// <c>true</c> if all components (value, machine ID, and type) are zero; otherwise, <c>false</c>.
+    /// </returns>
+    public System.Boolean IsEmpty => (Value | MachineId | _type) == 0;
+
     #endregion Public Properties
 
     #region Constructors and Factory Methods
