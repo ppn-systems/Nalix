@@ -14,7 +14,7 @@ public class TaskManagerTests
         var tm = new TaskManager();
         Boolean ran = false;
 
-        await tm.RunSingleJob("one", async ct =>
+        await tm.RunOnceAsync("one", async ct =>
         {
             await Task.Delay(10, ct);
             ran = true;
