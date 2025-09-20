@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Identity;
+using Nalix.Framework.Injection;
 
 namespace Nalix.Framework.Randomization;
 
@@ -32,6 +34,9 @@ public static class SecureRandom
             FastRandom.Attach();
             _f = FastRandom.Fill;
         }
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Info($"[SecureRandom] init using {(_f == OsRandom.Fill ? "OS_CSPRNG" : "FA_RANDOM")}");
     }
 
     #region APIs
