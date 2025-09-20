@@ -97,7 +97,7 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
 
         _workerHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
             name: "log.webhook.worker",
-            group: "log.webhook",
+            group: "log",
             work: async (ctx, ct) =>
             {
                 using var linkedCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
