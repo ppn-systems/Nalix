@@ -268,8 +268,13 @@ public sealed partial class TaskManager : ITaskManager
     /// <param name="name">The name of the recurring task.</param>
     /// <returns><c>true</c> if the recurring task was found and cancelled; otherwise, <c>false</c>.</returns>
     [System.Diagnostics.Contracts.Pure]
-    public System.Boolean CancelRecurring(System.String name)
+    public System.Boolean CancelRecurring([System.Diagnostics.CodeAnalysis.MaybeNull] System.String? name)
     {
+        if (name is null)
+        {
+            return false;
+        }
+
         if (_recurring.TryRemove(name, out RecurringState? st))
         {
             st.Cancel();
