@@ -10,6 +10,7 @@ namespace Nalix.Framework.Randomization;
 /// and exposes a familiar interface similar to <see cref="System.Random"/>.
 /// </remarks>
 /// <param name="seed">The seed to initialize the random ProtocolType generator.</param>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]

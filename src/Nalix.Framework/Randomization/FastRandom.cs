@@ -19,6 +19,7 @@ namespace Nalix.Framework.Randomization;
 /// DO NOT use for cryptographic purposes (keys, IVs, tokens).
 /// </para>
 /// </summary>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("FastRandom (NOT CSPRNG)")]

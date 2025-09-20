@@ -9,6 +9,7 @@ namespace Nalix.Framework.Randomization;
 /// Initializes a new instance of the <see cref="SeededRandom"/> class with a specified seed.
 /// </remarks>
 /// <param name="seed">The seed value to initialize the random ProtocolType generator.</param>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("SeededRandom(Seed={_seed})")]
