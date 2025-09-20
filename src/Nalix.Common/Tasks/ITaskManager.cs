@@ -45,7 +45,7 @@ public interface ITaskManager : System.IDisposable, IReportable
     /// </summary>
     /// <param name="name">The name of the recurring job.</param>
     /// <returns>True if the job was cancelled; otherwise, false.</returns>
-    System.Boolean CancelRecurring(System.String name);
+    System.Boolean CancelRecurring([System.Diagnostics.CodeAnalysis.MaybeNull] System.String name);
 
     /// <summary>
     /// Starts a long-running worker task.
