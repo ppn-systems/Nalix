@@ -2,6 +2,7 @@
 
 using Nalix.Common.Connection;
 using Nalix.Common.Enums;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
@@ -16,23 +17,6 @@ namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
 {
-    #region Internal
-
-    internal sealed class NonFatalRejectedException : System.Exception
-    {
-        public NonFatalRejectedException() : base() { }
-
-        public NonFatalRejectedException(System.String? message) : base(message)
-        {
-        }
-
-        public NonFatalRejectedException(System.String? message, System.Exception? innerException) : base(message, innerException)
-        {
-        }
-    }
-
-    #endregion Internal
-
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -153,7 +137,7 @@ public abstract partial class TcpListenerBase
 
                 continue;
             }
-            catch (NonFatalRejectedException)
+            catch (InternalErrorException)
             {
                 await System.Threading.Tasks.Task.Delay(10, System.Threading.CancellationToken.None)
                                                  .ConfigureAwait(false);
@@ -218,19 +202,12 @@ public abstract partial class TcpListenerBase
             socket = await context.BeginAcceptAsync(_listener)
                                   .ConfigureAwait(false);
 
-            if (socket.RemoteEndPoint is not System.Net.IPEndPoint ipEndPoint)
-            {
-                SafeCloseSocket(socket);
-
-                throw new NonFatalRejectedException();
-            }
-
             if (!InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>()
-                                         .IsConnectionAllowed(ipEndPoint))
+                                         .IsConnectionAllowed(socket.RemoteEndPoint))
             {
                 SafeCloseSocket(socket);
 
-                throw new NonFatalRejectedException();
+                throw new InternalErrorException();
             }
 
             return this.InitializeConnection(socket, context);
@@ -241,7 +218,7 @@ public abstract partial class TcpListenerBase
             InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Return<PooledAcceptContext>(context);
 
-            throw new NonFatalRejectedException();
+            throw new InternalErrorException();
         }
     }
 
@@ -360,14 +337,8 @@ public abstract partial class TcpListenerBase
                         return;
                     }
 
-                    if (socket.RemoteEndPoint is not System.Net.IPEndPoint ipEndPoint)
-                    {
-                        SafeCloseSocket(socket);
-                        return;
-                    }
-
                     if (!InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>()
-                                                 .IsConnectionAllowed(ipEndPoint))
+                                                 .IsConnectionAllowed(socket.RemoteEndPoint))
                     {
                         SafeCloseSocket(socket);
                         return;
