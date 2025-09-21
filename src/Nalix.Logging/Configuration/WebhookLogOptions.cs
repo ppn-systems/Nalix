@@ -5,7 +5,7 @@ using Nalix.Common.Diagnostics;
 using Nalix.Common.Enums;
 using Nalix.Framework.Configuration.Binding;
 
-namespace Nalix.Logging.Options;
+namespace Nalix.Logging.Configuration;
 
 /// <summary>
 /// Configuration options for the Discord webhook logger.

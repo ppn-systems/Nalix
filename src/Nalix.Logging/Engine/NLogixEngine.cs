@@ -1,9 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Diagnostics;
+using Nalix.Framework.Configuration;
+using Nalix.Logging.Configuration;
 using Nalix.Logging.Sinks;
 
-namespace Nalix.Logging.Core;
+namespace Nalix.Logging.Engine;
 
 /// <summary>
 /// Abstract class that provides a high-performance logging engine to process log entries.
@@ -38,7 +40,9 @@ public abstract class NLogixEngine : System.IDisposable
     protected NLogixEngine(System.Action<NLogixOptions>? configureOptions = null)
     {
         _distributor = new NLogixDistributor();
-        _logOptions = new NLogixOptions(_distributor);
+        _logOptions = ConfigurationManager.Instance.Get<NLogixOptions>();
+
+        _logOptions.SetPublisher(_distributor);
 
         // Apply configuration if provided
         if (configureOptions != null)

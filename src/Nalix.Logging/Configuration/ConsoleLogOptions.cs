@@ -1,8 +1,11 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Framework.Configuration.Binding;
 
-namespace Nalix.Logging.Options;
+namespace Nalix.Logging.Configuration;
 
 /// <summary>
 /// Configuration options for the console logger.

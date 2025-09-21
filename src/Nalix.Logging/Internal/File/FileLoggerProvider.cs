@@ -7,7 +7,8 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Logging.Options;
+using Nalix.Logging.Configuration;
+
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
