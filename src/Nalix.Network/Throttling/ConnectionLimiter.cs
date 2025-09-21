@@ -162,6 +162,27 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
     }
 
     /// <summary>
+    /// Attempts to acquire a connection slot for the given IP address.
+    /// Returns <c>true</c> if allowed (and increments counters), otherwise <c>false</c>.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean IsConnectionAllowed(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Net.EndPoint? endPoint)
+    {
+        if (endPoint is null)
+        {
+            throw new InternalErrorException($"[{nameof(ConnectionLimiter)}] EndPoint cannot be null", nameof(endPoint));
+        }
+        if (endPoint is not System.Net.IPEndPoint ipEndPoint)
+        {
+            throw new InternalErrorException($"[{nameof(ConnectionLimiter)}] EndPoint must be IPEndPoint", nameof(endPoint));
+        }
+
+        return IsConnectionAllowed(ipEndPoint);
+    }
+
+    /// <summary>
     /// Marks a connection as closed for the given IP address. Returns <c>true</c> if the counter was decremented.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(

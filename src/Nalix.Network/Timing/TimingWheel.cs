@@ -53,7 +53,7 @@ namespace Nalix.Network.Timing;
 /// </code>
 /// </example>
 /// <seealso cref="IActivatable"/>
-public sealed class TimingWheel : System.IDisposable, IActivatable
+public sealed class TimingWheel : IActivatable
 {
     #region Fields
 

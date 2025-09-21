@@ -25,19 +25,27 @@ public static class PolicyRateLimiter
 
     #endregion Const
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Policy, Entry> s_limiters = new();
-    private static readonly System.Int32[] RpsTiers = [1, 2, 4, 8, 16, 32, 64, 128];
-    private static readonly System.Int32[] BurstTiers = [1, 2, 4, 8, 16, 32, 64];
+    private static readonly System.Int32[] RpsTiers;
+    private static readonly System.Int32[] BurstTiers;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Policy, Entry> s_limiters;
+
     private static System.Int32 s_checkCounter;
 
     private readonly record struct Policy(System.Int32 Rps, System.Int32 Burst);
 
     private sealed class Entry
     {
-        public TokenBucketLimiter Limiter { get; }
         public System.Int64 LastUsedUtc;
+        public TokenBucketLimiter Limiter { get; }
         public Entry(TokenBucketLimiter l) { Limiter = l; Touch(); }
         public void Touch() => LastUsedUtc = System.DateTime.UtcNow.Ticks;
+    }
+
+    static PolicyRateLimiter()
+    {
+        s_limiters = new();
+        BurstTiers = [1, 2, 4, 8, 16, 32, 64];
+        RpsTiers = [1, 2, 4, 8, 16, 32, 64, 128];
     }
 
     /// <summary>
