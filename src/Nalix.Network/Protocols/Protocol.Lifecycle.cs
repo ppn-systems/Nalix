@@ -44,7 +44,7 @@ public abstract partial class Protocol
         this.Dispose(true);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[{nameof(Protocol)}] disposed");
+                                .Trace($"[{nameof(Protocol)}:{nameof(Dispose)}] disposed");
 
         System.GC.SuppressFinalize(this);
     }

@@ -59,7 +59,7 @@ public abstract partial class Protocol
             if (this.ValidateConnection(connection))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(Protocol)}:{nameof(OnAccept)}] accepted id={connection.ID}");
+                                        .Trace($"[{nameof(Protocol)}:{OnAccept}] accepted id={connection.ID}");
 
                 connection.TCP.BeginReceive(cancellationToken);
                 return;
@@ -105,7 +105,8 @@ public abstract partial class Protocol
     public void SetConnectionAcceptance(System.Boolean isEnabled)
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(Protocol)}] accepting={(isEnabled ? "enabled" : "disabled")}");
+                                .Info($"[{nameof(Protocol)}:{SetConnectionAcceptance}] " +
+                                      $"accepting={(isEnabled ? "enabled" : "disabled")}");
 
         this._accepting = isEnabled ? 1 : 0;
     }
