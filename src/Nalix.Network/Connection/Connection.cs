@@ -63,7 +63,7 @@ public sealed partial class Connection : IConnection
         // Only IPv4/IPv6 are supported here
         if (this.RemoteEndPoint is System.Net.IPEndPoint ipEndPoint)
         {
-            this.IpAddress = IpAddressKey.FromIpAddress(ipEndPoint.Address);
+            this.IpAddress = IPAddressKey.FromIpAddress(ipEndPoint.Address);
         }
         else
         {
@@ -90,7 +90,7 @@ public sealed partial class Connection : IConnection
     public IConnection.IUdp UDP { get; }
 
     /// <inheritdoc />
-    internal IpAddressKey IpAddress { get; }
+    internal IPAddressKey IpAddress { get; }
 
     /// <inheritdoc />
     public System.Net.EndPoint RemoteEndPoint { get; }

@@ -33,7 +33,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
     private readonly ConnectionLimitOptions _config;
     private readonly System.TimeSpan _cleanupInterval;
     private readonly System.TimeSpan _inactivityThreshold;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<IpAddressKey, ConnectionLimitInfo> _map;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<IPAddressKey, ConnectionLimitInfo> _map;
 
     private System.Boolean _disposed;
 
@@ -53,7 +53,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         _cleanupInterval = _config.CleanupInterval;
         _inactivityThreshold = _config.InactivityThreshold;
 
-        _map = new System.Collections.Concurrent.ConcurrentDictionary<IpAddressKey, ConnectionLimitInfo>();
+        _map = new System.Collections.Concurrent.ConcurrentDictionary<IPAddressKey, ConnectionLimitInfo>();
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
             name: TaskNames.Recurring.WithKey(nameof(ConnectionLimiter), this.GetHashCode()),
@@ -105,7 +105,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
             throw new InternalErrorException($"[{nameof(ConnectionLimiter)}] EndPoint cannot be null", nameof(endPoint));
         }
 
-        IpAddressKey key = IpAddressKey.FromEndPoint(endPoint);
+        IPAddressKey key = IPAddressKey.FromEndPoint(endPoint);
 
         System.DateTime now = System.DateTime.UtcNow;
         System.DateTime today = now.Date;
@@ -179,7 +179,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
             return;
         }
 
-        IpAddressKey key = IpAddressKey.FromEndPoint(endPoint);
+        IPAddressKey key = IPAddressKey.FromEndPoint(endPoint);
 
         System.DateTime now = System.DateTime.UtcNow;
 
@@ -224,7 +224,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         // Take a stable snapshot to minimize contention and keep the report consistent.
         // Copy to a local list once to avoid enumerating the concurrent map multiple times.
         var snapshot = new System.Collections.Generic.List<
-            System.Collections.Generic.KeyValuePair<IpAddressKey, ConnectionLimitInfo>>(_map.Count);
+            System.Collections.Generic.KeyValuePair<IPAddressKey, ConnectionLimitInfo>>(_map.Count);
 
         snapshot.AddRange(_map);
 
