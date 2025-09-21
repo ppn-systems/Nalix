@@ -8,6 +8,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Name;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Configurations;
+using Nalix.Network.Internal.Net;
 using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Throttling;
@@ -78,8 +79,8 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>A shard contains a dictionary of endpoint states and a shard-level lock for map mutation.</summary>
     private sealed class Shard
     {
-        public readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, EndpointState> Map
-            = new(System.StringComparer.Ordinal);
+        public readonly System.Collections.Concurrent.ConcurrentDictionary<IpAddressKey, EndpointState> Map
+            = new();
 
         // No shard-wide lock necessary for map ops; per-key Gate handles mutation.
     }
@@ -160,21 +161,17 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Checks and consumes 1 token for the given endpoint. Returns decision with RetryAfter and Credit.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public LimitDecision Check(System.String endPoint)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal LimitDecision Check(IpAddressKey key)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(TokenBucketLimiter));
 
-        if (System.String.IsNullOrWhiteSpace(endPoint))
-        {
-            throw new InternalErrorException($"[{nameof(TokenBucketLimiter)}] EndPoint cannot be null or whitespace", nameof(endPoint));
-        }
-
         System.Boolean isNew = false;
         var now = System.Diagnostics.Stopwatch.GetTimestamp();
-        var shard = GetShard(endPoint);
+        var shard = GetShard(key);
 
-        var state = shard.Map.GetOrAdd(endPoint, _ =>
+        var state = shard.Map.GetOrAdd(key, _ =>
         {
             isNew = true;
             return new EndpointState
@@ -189,7 +186,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         if (isNew)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(TokenBucketLimiter)}] new-endpoint ep={EpKey(endPoint)}");
+                                    .Debug($"[{nameof(TokenBucketLimiter)}] new-endpoint ep={key.Address}");
         }
 
         lock (state.Gate)
@@ -201,7 +198,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             {
                 var retryMsHard = ComputeMs(now, state.HardBlockedUntilSw);
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(TokenBucketLimiter)}] hard-blocked ep={EpKey(endPoint)} retry_ms={retryMsHard}");
+                                        .Trace($"[{nameof(TokenBucketLimiter)}] hard-blocked ep={key.Address} retry_ms={retryMsHard}");
 
                 return new LimitDecision
                 {
@@ -223,7 +220,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
                 if (credit <= 1)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[{nameof(TokenBucketLimiter)}] allow ep={EpKey(endPoint)} credit={credit}");
+                                            .Trace($"[{nameof(TokenBucketLimiter)}] allow ep={key.Address} credit={credit}");
                 }
                 return new LimitDecision { Allowed = true, RetryAfterMs = 0, Credit = credit, Reason = RateLimitReason.None };
             }
@@ -249,37 +246,62 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     }
 
     /// <summary>
-    /// Async facade for <see cref="Check(System.String)"/> (no extra allocations).
+    /// Checks and consumes 1 token for the given IP (IPv4/IPv6).
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Threading.Tasks.ValueTask<LimitDecision> CheckAsync(System.String endPoint) => new(this.Check(endPoint));
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public LimitDecision Check(System.Net.IPAddress ip)
+    {
+        System.ArgumentNullException.ThrowIfNull(ip);
+        return Check(IpAddressKey.FromIpAddress(ip));
+    }
+
+    /// <summary>
+    /// Checks and consumes 1 token for the given remote endpoint.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public LimitDecision Check(System.Net.IPEndPoint endpoint)
+    {
+        System.ArgumentNullException.ThrowIfNull(endpoint);
+        return Check(endpoint.Address);
+    }
+
+    /// <summary>
+    /// Checks and consumes 1 token for the given remote endpoint.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public LimitDecision Check(System.Net.EndPoint endpoint)
+    {
+        System.ArgumentNullException.ThrowIfNull(endpoint);
+        if (endpoint is not System.Net.IPEndPoint ipEndPoint)
+        {
+            throw new System.ArgumentException("Only IPEndPoint is supported.", nameof(endpoint));
+        }
+
+        return Check(ipEndPoint.Address);
+    }
 
     #endregion Public API
 
     #region Private Helpers
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private Shard GetShard(System.String key)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private Shard GetShard(IpAddressKey key)
     {
         // Deterministic hashing; simple but fast. You can replace with XxHash if needed.
+        System.Int32 h = key.GetHashCode();
         unchecked
         {
-            System.Int32 h = 23;
-            foreach (var c in key)
-            {
-                h = (h * 31) + c;
-            }
-
-            if (h < 0)
-            {
-                h = ~h + 1;
-            }
-
-            return _shards[h & (_shards.Length - 1)];
+            System.UInt32 uh = (System.UInt32)h;
+            return _shards[(System.Int32)(uh & (System.UInt32)(_shards.Length - 1))];
         }
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void Refill(System.Int64 now, EndpointState state)
     {
         var dt = now - state.LastRefillSwTicks;
@@ -302,7 +324,8 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         }
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Int32 ComputeRetryMsForMicro(System.Int64 microNeeded)
     {
         if (_refillPerSecMicro <= 0)
@@ -315,7 +338,8 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         return ms < 0 ? 0 : ms;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Int32 ComputeMs(System.Int64 now, System.Int64 untilSw)
     {
         if (untilSw <= now)
@@ -330,11 +354,13 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         return ms < 0 ? 0 : ms;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Int64 ToSwTicks(System.Int32 seconds)
         => (System.Int64)System.Math.Round(seconds * _swFreq);
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.UInt16 GetCredit(System.Int64 microBalance, System.Int32 tokenScale)
     {
         var t = microBalance / tokenScale;
@@ -367,22 +393,6 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         }
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.String EpKey(System.String s)
-    {
-        // FNV-1a 32-bit, stable
-        unchecked
-        {
-            System.UInt32 h = 2166136261;
-            for (System.Int32 i = 0; i < s.Length; i++)
-            {
-                h ^= s[i];
-                h *= 16777619;
-            }
-            return h.ToString("X8");
-        }
-    }
-
     /// <summary>
     /// Generates a human-readable diagnostic report of the limiter state.
     /// Includes config overview, shard stats, and top endpoints by pressure.
@@ -392,7 +402,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     {
         // Snapshot all endpoints into a single list (allocation-bounded by map sizes).
         var snapshot = new System.Collections.Generic.List<
-            System.Collections.Generic.KeyValuePair<System.String, EndpointState>>(1024);
+            System.Collections.Generic.KeyValuePair<IpAddressKey, EndpointState>>(1024);
 
         System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
         System.Int32 shardCount = _shards.Length;
@@ -450,7 +460,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             }
 
             // Fallback: ordinal string compare (cheap enough)
-            return System.String.CompareOrdinal(a.Key, b.Key);
+            return System.String.CompareOrdinal(a.Key.Address, b.Key.Address);
         });
 
         // Count hard-blocked after sort pass
@@ -522,7 +532,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
                 }
             }
 
-            System.String keyCol = key.Length > 15 ? (key[..15] + "…") : key.PadRight(15);
+            System.String keyCol = key.Address.Length > 15 ? (key.Address[..15] + "…") : key.Address.PadRight(15);
             _ = sb.AppendLine(
                 $"{keyCol} | {(isBlocked ? "yes" : " no ")}   | {credit,6} | {micro,10}/{this._capacityMicro,-10} | {retryMs,12}");
         }

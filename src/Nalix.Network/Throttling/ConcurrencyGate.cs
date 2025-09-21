@@ -11,7 +11,6 @@ namespace Nalix.Network.Throttling;
 /// </summary>
 public static class ConcurrencyGate
 {
-
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.UInt16, Entry> s_table = new();
 
     private sealed class Entry(System.Int32 max, System.Boolean queue, System.Int32 queueMax)
