@@ -45,8 +45,7 @@ public class TokenBucketMiddleware : IPacketMiddleware<IPacket>
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next,
         System.Threading.CancellationToken ct)
     {
-        System.String key = context.Connection.RemoteEndPoint.ToString() ?? "0.0.0.0";
-        TokenBucketLimiter.LimitDecision decision = _limiter.Check(key);
+        TokenBucketLimiter.LimitDecision decision = _limiter.Check(context.Connection.RemoteEndPoint);
 
         if (!decision.Allowed)
         {

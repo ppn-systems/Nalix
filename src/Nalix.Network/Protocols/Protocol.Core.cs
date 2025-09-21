@@ -14,7 +14,6 @@ namespace Nalix.Network.Protocols;
 [System.Diagnostics.DebuggerDisplay("Disposed={_isDisposed}, KeepConnectionOpen={KeepConnectionOpen}")]
 public abstract partial class Protocol : IProtocol
 {
-
     /// <summary>
     /// Processes a message received on the connection.
     /// This method must be implemented by derived classes to handle specific message processing.
