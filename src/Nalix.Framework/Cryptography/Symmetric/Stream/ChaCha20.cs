@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Enums;
-using Nalix.Cryptography.Primitives;
+using Nalix.Framework.Cryptography.Primitives;
 
 namespace Nalix.Framework.Cryptography.Symmetric.Stream;
 
@@ -722,7 +722,7 @@ public sealed class ChaCha20 : System.IDisposable
 
         System.Int32 offset = 0;
         System.Int32 full = numBytes / BlockSize;
-        System.Int32 tail = numBytes - full * BlockSize;
+        System.Int32 tail = numBytes - (full * BlockSize);
 
         for (System.Int32 loop = 0; loop < full; loop++)
         {
@@ -769,7 +769,7 @@ public sealed class ChaCha20 : System.IDisposable
         System.Int32 offset = 0;
 
         System.Int32 howManyFullLoops = numBytes / BlockSize;
-        System.Int32 tailByteCount = numBytes - howManyFullLoops * BlockSize;
+        System.Int32 tailByteCount = numBytes - (howManyFullLoops * BlockSize);
 
         for (System.Int32 loop = 0; loop < howManyFullLoops; loop++)
         {

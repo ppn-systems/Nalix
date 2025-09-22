@@ -2,8 +2,8 @@
 
 using Nalix.Common.Enums;
 using Nalix.Common.Exceptions;
-using Nalix.Cryptography.Primitives;
 using Nalix.Framework.Cryptography.Aead;
+using Nalix.Framework.Cryptography.Primitives;
 using Nalix.Framework.Cryptography.Symmetric.Block;
 using Nalix.Framework.Cryptography.Symmetric.Stream;
 using Nalix.Framework.Randomization;
@@ -18,10 +18,8 @@ public static class CipherSuite
     #region Constants
 
     private const System.Int32 ChaCha20NonceSize = 12;
-    private const System.Int32 ChaCha20TagSize = 16;
     private const System.Int32 Salsa20NonceSize = 8;
     private const System.Int32 SpeckBlockSize = 8;
-    private const System.Int32 TwofishBlockSize = 16;
     private const System.Int32 XteaBlockSize = 8;
     private const System.Int32 LengthPrefixSize = 4;
 
