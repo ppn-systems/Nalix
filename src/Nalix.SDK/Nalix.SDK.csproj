@@ -42,7 +42,6 @@ A high-performance, configurable TCP remote client for integrating with Nalix-ba
 	<ItemGroup>
 		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
 		<ProjectReference Include="..\Nalix.Shared\Nalix.Shared.csproj" />
-		<ProjectReference Include="..\Nalix.Cryptography\Nalix.Cryptography.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -5,8 +5,6 @@ VisualStudioVersion = 17.12.35521.163
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Common", "Nalix.Common\Nalix.Common.csproj", "{F01710B4-39AF-44B2-BCFC-B20DD45F41EB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Cryptography", "Nalix.Cryptography\Nalix.Cryptography.csproj", "{2F731F1B-BF8D-4F70-95A6-DBE57B16753D}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Logging", "Nalix.Logging\Nalix.Logging.csproj", "{55CB6D4F-749E-4E35-A35C-B8926838D4FE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Network", "Nalix.Network\Nalix.Network.csproj", "{24F017C9-5CCA-4FC9-8065-2CEA05A0447E}"
@@ -27,10 +25,6 @@ Global
 		{F01710B4-39AF-44B2-BCFC-B20DD45F41EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F01710B4-39AF-44B2-BCFC-B20DD45F41EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F01710B4-39AF-44B2-BCFC-B20DD45F41EB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2F731F1B-BF8D-4F70-95A6-DBE57B16753D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2F731F1B-BF8D-4F70-95A6-DBE57B16753D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2F731F1B-BF8D-4F70-95A6-DBE57B16753D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2F731F1B-BF8D-4F70-95A6-DBE57B16753D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{55CB6D4F-749E-4E35-A35C-B8926838D4FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{55CB6D4F-749E-4E35-A35C-B8926838D4FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{55CB6D4F-749E-4E35-A35C-B8926838D4FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
