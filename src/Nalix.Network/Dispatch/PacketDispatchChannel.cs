@@ -89,7 +89,7 @@ public sealed class PacketDispatchChannel
     {
         if (System.Threading.Interlocked.CompareExchange(ref _running, 1, 0) != 0)
         {
-            Logger?.Debug($"[{nameof(PacketDispatchChannel)}] already-running");
+            Logger?.Debug($"[{nameof(PacketDispatchChannel)}:{Activate}] already-running");
             return;
         }
 
@@ -97,7 +97,7 @@ public sealed class PacketDispatchChannel
                 ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token).Token
                 : _cts.Token;
 
-        Logger?.Trace($"[{nameof(PacketDispatchChannel)}] start");
+        Logger?.Trace($"[{nameof(PacketDispatchChannel)}:{Activate}] start");
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
             name: NetTaskNames.PacketDispatchWorker,
@@ -128,18 +128,18 @@ public sealed class PacketDispatchChannel
             if (!this._cts.IsCancellationRequested)
             {
                 this._cts.Cancel();
-                Logger?.Trace($"[{nameof(PacketDispatchChannel)}] stop");
+                Logger?.Trace($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop");
             }
 
             try { _ = _semaphore.Release(); } catch { /* ignore over-release */ }
         }
         catch (System.ObjectDisposedException)
         {
-            Logger?.Warn($"[{nameof(PacketDispatchChannel)}] stop-on-disposed-cts");
+            Logger?.Warn($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop-on-disposed-cts");
         }
         catch (System.Exception ex)
         {
-            Logger?.Error($"[{nameof(PacketDispatchChannel)}] stop-error", ex);
+            Logger?.Error($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop-error", ex);
         }
     }
 
@@ -154,7 +154,8 @@ public sealed class PacketDispatchChannel
             // 1) Fast-fail: empty payload
             if (raw == null)
             {
-                Logger?.Warn($"[{nameof(PacketDispatchChannel)}] empty-payload ep={connection.RemoteEndPoint}");
+                Logger?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] " +
+                             $"empty-payload ep={connection.RemoteEndPoint}");
                 return;
             }
 
@@ -167,13 +168,13 @@ public sealed class PacketDispatchChannel
             {
                 // Log only a small head preview to avoid leaking large/secret data
                 System.String head = System.Convert.ToHexString(raw.Span[..System.Math.Min(16, len)]);
-                Logger?.Warn($"[{nameof(PacketDispatchChannel)}] " +
+                Logger?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] " +
                              $"deserialize-none ep={connection.RemoteEndPoint} len={len} magic=0x{magic:X8} head={head}");
                 return;
             }
 
             // 4) Success trace (can be disabled in production)
-            Logger?.Trace($"[{nameof(PacketDispatchChannel)}] " +
+            Logger?.Trace($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] " +
                           $"deserialized ep={connection.RemoteEndPoint} type={packet.GetType().Name} len={len} magic=0x{magic:X8}");
 
             // 5) Dispatch to typed handler
@@ -212,16 +213,18 @@ public sealed class PacketDispatchChannel
             while (System.Threading.Volatile.Read(ref _running) == 1 && !ct.IsCancellationRequested)
             {
                 // Wait for packets to be available
-                await this._semaphore.WaitAsync(this._cts.Token).ConfigureAwait(false);
+                await _semaphore.WaitAsync(_cts.Token)
+                                .ConfigureAwait(false);
 
                 // Dequeue and process raw
                 if (!_dispatch.Pull(out IPacket packet, out IConnection connection))
                 {
-                    Logger?.Warn($"[{nameof(PacketDispatch)}] dequeue-failed");
+                    Logger?.Warn($"[{nameof(PacketDispatch)}:{nameof(RunLoop)}] dequeue-failed");
                     continue;
                 }
 
-                await ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false);
+                await base.ExecutePacketHandlerAsync(packet, connection)
+                          .ConfigureAwait(false);
 
                 ctx.Advance(1);
                 ctx.Beat();
@@ -233,7 +236,7 @@ public sealed class PacketDispatchChannel
         }
         catch (System.Exception ex)
         {
-            Logger?.Error($"[{nameof(PacketDispatchChannel)}] loop-error", ex);
+            Logger?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] loop-error", ex);
         }
         finally
         {

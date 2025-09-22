@@ -33,7 +33,7 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
         _catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
                    ?? throw new System.InvalidOperationException(
                        $"[{nameof(PacketDispatch)}] IPacketCatalog not registered in InstanceManager. " +
-                       $"Make sure to build and register IPacketCatalog before starting dispatcher.");
+                        "Make sure to build and register IPacketCatalog before starting dispatcher.");
     }
 
     /// <inheritdoc />
@@ -51,7 +51,7 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
             if (raw == null)
             {
                 Logger?.Warn(
-                    $"[{nameof(PacketDispatch)}] empty-payload ep={connection.RemoteEndPoint}");
+                    $"[{nameof(PacketDispatch)}:{nameof(HandlePacket)}] empty-payload ep={connection.RemoteEndPoint}");
                 return;
             }
 
@@ -64,14 +64,14 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
             {
                 // Log only a small head preview to avoid leaking large/secret data
                 System.String head = System.Convert.ToHexString(raw.Span[..System.Math.Min(16, len)]);
-                Logger?.Warn($"[{nameof(PacketDispatch)}] " +
+                Logger?.Warn($"[{nameof(PacketDispatch)}:{nameof(HandlePacket)}] " +
                              $"deserialize-none ep={connection.RemoteEndPoint} len={len} magic=0x{magic:X8} head={head}");
                 return;
             }
 
             // 4) Success trace (can be disabled in production)
             Logger?.Trace(
-                $"[{nameof(PacketDispatch)}] " +
+                $"[{nameof(PacketDispatch)}:{nameof(HandlePacket)}] " +
                 $"deserialized ep={connection.RemoteEndPoint} type={packet.GetType().Name} len={len} magic=0x{magic:X8}");
 
             // 5) Dispatch to typed handler

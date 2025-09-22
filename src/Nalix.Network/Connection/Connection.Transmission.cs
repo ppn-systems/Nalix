@@ -70,7 +70,7 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public System.Boolean Send(IPacket packet) => packet is not null && this.Send(packet.Serialize());
+        public System.Boolean Send(IPacket packet) => this.Send(packet.Serialize());
 
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
@@ -155,17 +155,7 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public System.Boolean Send(IPacket packet)
-        {
-            if (packet is null)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[{nameof(Connection)}] send-null-packet");
-                return false;
-            }
-
-            return this.Send(packet.Serialize());
-        }
+        public System.Boolean Send(IPacket packet) => this.Send(packet.Serialize());
 
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
@@ -184,6 +174,8 @@ public sealed partial class Connection : IConnection
         }
 
         /// <inheritdoc/>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public System.Boolean Send(System.String message)
         {
             System.Int32 byteCount = System.Text.Encoding.UTF8.GetByteCount(message);
