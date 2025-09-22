@@ -30,6 +30,7 @@ namespace Nalix.Framework.Cryptography.Symmetric.Block;
 /// <c>AES-GCM</c> or <c>ChaCha20-Poly1305</c> where possible.
 /// </para>
 /// </remarks>
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public static class Xtea
 {
     #region Constants
@@ -80,10 +81,9 @@ public static class Xtea
     public static unsafe System.Int32 Encrypt(
         System.ReadOnlySpan<System.Byte> plaintext,
         System.ReadOnlySpan<System.Byte> key,
-        System.Span<System.Byte> output,
-        System.Byte rounds = DefaultRounds)
+        System.Span<System.Byte> output, System.Byte rounds = DefaultRounds)
     {
-        AssertInputSizes(plaintext, key);
+        A9B8C7D6(plaintext, key);
 
         if (output.Length < plaintext.Length)
         {
@@ -110,7 +110,7 @@ public static class Xtea
                         System.UInt32 v1 = inputBlock[1];
 
                         // Encrypt the block
-                        EncryptBlock(ref v0, ref v1, keyWords, rounds);
+                        E5F6A7B8(ref v0, ref v1, keyWords, rounds);
 
                         // Store results
                         outputBlock[0] = v0;
@@ -141,10 +141,9 @@ public static class Xtea
     public static unsafe System.Int32 Decrypt(
         System.ReadOnlySpan<System.Byte> ciphertext,
         System.ReadOnlySpan<System.Byte> key,
-        System.Span<System.Byte> output,
-        System.Byte rounds = DefaultRounds)
+        System.Span<System.Byte> output, System.Byte rounds = DefaultRounds)
     {
-        AssertInputSizes(ciphertext, key);
+        A9B8C7D6(ciphertext, key);
 
         if (output.Length < ciphertext.Length)
         {
@@ -171,7 +170,7 @@ public static class Xtea
                         System.UInt32 v1 = inputBlock[1];
 
                         // Decrypt the block
-                        DecryptBlock(ref v0, ref v1, keyWords, rounds);
+                        F0A1B2C3(ref v0, ref v1, keyWords, rounds);
 
                         // Store results
                         outputBlock[0] = v0;
@@ -197,11 +196,9 @@ public static class Xtea
     /// <param name="rounds">ProtocolType of rounds (default is 32)</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe void EncryptBlock(
-        ref System.UInt32 v0,
-        ref System.UInt32 v1,
-        System.UInt32* key,
-        System.Byte rounds = DefaultRounds)
+    private static unsafe void E5F6A7B8(
+        ref System.UInt32 v0, ref System.UInt32 v1,
+        System.UInt32* key, System.Byte rounds = DefaultRounds)
     {
         System.UInt32 sum = 0;
 
@@ -222,11 +219,9 @@ public static class Xtea
     /// <param name="rounds">ProtocolType of rounds (default is 32)</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe void DecryptBlock(
-        ref System.UInt32 v0,
-        ref System.UInt32 v1,
-        System.UInt32* key,
-        System.Byte rounds = DefaultRounds)
+    private static unsafe void F0A1B2C3(
+        ref System.UInt32 v0, ref System.UInt32 v1,
+        System.UInt32* key, System.Byte rounds = DefaultRounds)
     {
         System.UInt32 sum = rounds * Delta;
 
@@ -247,7 +242,7 @@ public static class Xtea
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void AssertInputSizes(
+    private static void A9B8C7D6(
         System.ReadOnlySpan<System.Byte> data,
         System.ReadOnlySpan<System.Byte> key)
     {

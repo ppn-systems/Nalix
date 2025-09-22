@@ -1,8 +1,5 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using System.Buffers;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using Nalix.Common.Enums;
 
 namespace Nalix.Framework.Cryptography.Security;
@@ -97,7 +94,7 @@ public sealed class PBKDF2 : System.IDisposable
         System.Int32 l = (System.Int32)System.Math.Ceiling(_keyLength / (System.Double)hLen);
         System.Int32 r = _keyLength - ((l - 1) * hLen);
 
-        System.Byte[] block = ArrayPool<System.Byte>.Shared.Rent(hLen);
+        System.Byte[] block = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(hLen);
         try
         {
             System.Int32 offset = 0;
@@ -112,7 +109,7 @@ public sealed class PBKDF2 : System.IDisposable
         finally
         {
             System.Array.Clear(block, 0, block.Length);
-            ArrayPool<System.Byte>.Shared.Return(block);
+            System.Buffers.ArrayPool<System.Byte>.Shared.Return(block);
         }
     }
 
@@ -138,7 +135,8 @@ public sealed class PBKDF2 : System.IDisposable
     // U1 = PRF(P, S || INT_32_BE(i))
     // Uc = PRF(P, U_{c-1})
     // T_i = U1 XOR U2 XOR ... XOR Uiterations
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void F(
         System.ReadOnlySpan<System.Byte> password,
         System.ReadOnlySpan<System.Byte> salt,
@@ -174,28 +172,35 @@ public sealed class PBKDF2 : System.IDisposable
         si.Clear();
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void Hmac(System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> data, HashAlgorithmType prf, System.Span<System.Byte> output)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void Hmac(
+        System.ReadOnlySpan<System.Byte> key,
+        System.ReadOnlySpan<System.Byte> data,
+        HashAlgorithmType prf, System.Span<System.Byte> output)
     {
         // HMAC classes accept byte[]; minimal, contained allocations:
         if (prf == HashAlgorithmType.Sha256)
         {
-            using var h = new HMACSHA256(key.ToArray());
-            var hash = h.ComputeHash(data.ToArray());
+            using System.Security.Cryptography.HMACSHA256 h = new(key.ToArray());
+            System.Byte[] hash = h.ComputeHash(data.ToArray());
             System.MemoryExtensions.AsSpan(hash).CopyTo(output);
             System.Array.Clear(hash, 0, hash.Length);
         }
         else
         {
-            using var h = new HMACSHA512(key.ToArray());
-            var hash = h.ComputeHash(data.ToArray());
+            using System.Security.Cryptography.HMACSHA512 h = new(key.ToArray());
+            System.Byte[] hash = h.ComputeHash(data.ToArray());
             System.MemoryExtensions.AsSpan(hash).CopyTo(output);
             System.Array.Clear(hash, 0, hash.Length);
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void XorInPlace(System.Span<System.Byte> a, System.ReadOnlySpan<System.Byte> b)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void XorInPlace(
+        System.Span<System.Byte> a,
+        System.ReadOnlySpan<System.Byte> b)
     {
         for (System.Int32 i = 0; i < a.Length; i++)
         {
@@ -203,8 +208,10 @@ public sealed class PBKDF2 : System.IDisposable
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void WriteInt32BE(System.Int32 value, System.Span<System.Byte> dest)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void WriteInt32BE(
+        System.Int32 value, System.Span<System.Byte> dest)
     {
         dest[0] = (System.Byte)((System.UInt32)value >> 24);
         dest[1] = (System.Byte)((System.UInt32)value >> 16);
