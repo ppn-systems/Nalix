@@ -40,7 +40,7 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
     private System.Boolean _finalized;
     private System.Boolean _disposed;
     private System.UInt64 _byteCount;
-    private System.Byte[] _finalHash;
+    private System.Byte[]? _finalHash;
 
     #endregion
 
@@ -394,11 +394,11 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
             {
                 for (System.Int32 y = 0; y < 5; y++)
                 {
-                    System.Int32 idx = 5 * x + y;
+                    System.Int32 idx = (5 * x) + y;
                     System.Int32 r = R[idx];
                     System.Int32 X = y;
-                    System.Int32 Y = (2 * x + 3 * y) % 5;
-                    B[5 * X + Y] = System.Numerics.BitOperations.RotateLeft(A[idx], r);
+                    System.Int32 Y = ((2 * x) + (3 * y)) % 5;
+                    B[(5 * X) + Y] = System.Numerics.BitOperations.RotateLeft(A[idx], r);
                 }
             }
 
@@ -412,11 +412,11 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
                 System.UInt64 b3 = B[i0 + 3];
                 System.UInt64 b4 = B[i0 + 4];
 
-                A[i0 + 0] = b0 ^ ~b1 & b2;
-                A[i0 + 1] = b1 ^ ~b2 & b3;
-                A[i0 + 2] = b2 ^ ~b3 & b4;
-                A[i0 + 3] = b3 ^ ~b4 & b0;
-                A[i0 + 4] = b4 ^ ~b0 & b1;
+                A[i0 + 0] = b0 ^ (~b1 & b2);
+                A[i0 + 1] = b1 ^ (~b2 & b3);
+                A[i0 + 2] = b2 ^ (~b3 & b4);
+                A[i0 + 3] = b3 ^ (~b4 & b0);
+                A[i0 + 4] = b4 ^ (~b0 & b1);
             }
 
             // ι step
