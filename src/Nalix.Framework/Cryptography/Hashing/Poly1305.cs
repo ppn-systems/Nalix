@@ -1,8 +1,5 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-
 using Nalix.Cryptography.Primitives;
 
 namespace Nalix.Framework.Cryptography.Hashing;
@@ -46,12 +43,12 @@ public sealed class Poly1305 : System.IDisposable
     /// <summary>
     /// Represents the r part of the key (clamped).
     /// </summary>
-    private System.UInt32[] _r;
+    private System.UInt32[]? _r;
 
     /// <summary>
     /// Represents the s part of the key.
     /// </summary>
-    private System.UInt32[] _s;
+    private System.UInt32[]? _s;
 
     /// <summary>
     /// Flag indicating if this instance has been disposed.
@@ -259,7 +256,7 @@ public sealed class Poly1305 : System.IDisposable
     }
 
     /// <summary>
-    /// Incrementally absorb message data. 
+    /// Incrementally absorb message data.
     /// You may call Update multiple times before calling <see cref="FinalizeTag(System.Span{System.Byte})"/>.
     /// </summary>
     /// <param name="data">Next chunk of the message.</param>
@@ -562,30 +559,29 @@ public sealed class Poly1305 : System.IDisposable
         System.UInt32 aValue = a[row];
 
         // Unroll inner loop cho performance
-        System.UInt64 t;
 
         // j = 0
-        t = (System.UInt64)aValue * b[0] + product[row] + carry;
+        System.UInt64 t = ((System.UInt64)aValue * b[0]) + product[row] + carry;
         product[row] = (System.UInt32)t;
         carry = t >> 32;
 
         // j = 1
-        t = (System.UInt64)aValue * b[1] + product[row + 1] + carry;
+        t = ((System.UInt64)aValue * b[1]) + product[row + 1] + carry;
         product[row + 1] = (System.UInt32)t;
         carry = t >> 32;
 
         // j = 2
-        t = (System.UInt64)aValue * b[2] + product[row + 2] + carry;
+        t = ((System.UInt64)aValue * b[2]) + product[row + 2] + carry;
         product[row + 2] = (System.UInt32)t;
         carry = t >> 32;
 
         // j = 3
-        t = (System.UInt64)aValue * b[3] + product[row + 3] + carry;
+        t = ((System.UInt64)aValue * b[3]) + product[row + 3] + carry;
         product[row + 3] = (System.UInt32)t;
         carry = t >> 32;
 
         // j = 4
-        t = (System.UInt64)aValue * b[4] + product[row + 4] + carry;
+        t = ((System.UInt64)aValue * b[4]) + product[row + 4] + carry;
         product[row + 4] = (System.UInt32)t;
         carry = t >> 32;
 
@@ -610,30 +606,29 @@ public sealed class Poly1305 : System.IDisposable
 
         // Multiply the high 130 bits by 5 (because 2^130 ≡ 5 (mod 2^130 - 5))
         // and add to the result
-        System.UInt64 t;
 
         // i = 0
-        t = (System.UInt64)product[5] * 5 + result[0];
+        System.UInt64 t = ((System.UInt64)product[5] * 5) + result[0];
         result[0] = (System.UInt32)t;
         System.UInt32 carry = (System.UInt32)(t >> 32);
 
         // i = 1
-        t = (System.UInt64)product[6] * 5 + result[1] + carry;
+        t = ((System.UInt64)product[6] * 5) + result[1] + carry;
         result[1] = (System.UInt32)t;
         carry = (System.UInt32)(t >> 32);
 
         // i = 2
-        t = (System.UInt64)product[7] * 5 + result[2] + carry;
+        t = ((System.UInt64)product[7] * 5) + result[2] + carry;
         result[2] = (System.UInt32)t;
         carry = (System.UInt32)(t >> 32);
 
         // i = 3
-        t = (System.UInt64)product[8] * 5 + result[3] + carry;
+        t = ((System.UInt64)product[8] * 5) + result[3] + carry;
         result[3] = (System.UInt32)t;
         carry = (System.UInt32)(t >> 32);
 
         // i = 4
-        t = (System.UInt64)product[9] * 5 + result[4] + carry;
+        t = ((System.UInt64)product[9] * 5) + result[4] + carry;
         result[4] = (System.UInt32)t;
 
         // Final reduction if needed (result might be >= 2^130 - 5)
@@ -728,9 +723,7 @@ public sealed class Poly1305 : System.IDisposable
         System.Span<System.UInt32> a,
         System.ReadOnlySpan<System.UInt32> b)
     {
-        System.UInt64 diff;
-
-        diff = (System.UInt64)a[0] - b[0];
+        System.UInt64 diff = (System.UInt64)a[0] - b[0];
         a[0] = (System.UInt32)diff;
         System.UInt32 borrow = (System.UInt32)(diff >> 32 & 1);
 
@@ -775,7 +768,7 @@ public sealed class Poly1305 : System.IDisposable
         System.UInt64 carry = 0;
         for (System.Byte i = 0; i < 4; i++)
         {
-            carry += (System.UInt64)result[i] + _s[i];
+            carry += (System.UInt64)result[i] + _s![i];
             finalResult[i] = (System.UInt32)carry;
             carry >>= 32;
         }

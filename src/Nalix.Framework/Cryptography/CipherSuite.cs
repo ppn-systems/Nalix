@@ -13,7 +13,7 @@ namespace Nalix.Framework.Cryptography;
 /// <summary>
 /// Provides methods to encrypt and decrypt raw data.
 /// </summary>
-public static class Ciphers
+public static class CipherSuite
 {
     #region Constants
 

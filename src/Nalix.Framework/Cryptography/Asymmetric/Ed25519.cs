@@ -1,6 +1,5 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Framework.Cryptography.Hashing;
 using Nalix.Framework.Extensions;
 
 namespace Nalix.Framework.Cryptography.Asymmetric;
@@ -159,7 +158,7 @@ public static class Ed25519
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data)
-        => (Sha512.Value ?? new SHA512()).ComputeHash(data);
+        => System.Security.Cryptography.SHA512.HashData(data);
 
     /// <summary>
     /// Computes the modular inverse of the given value using Fermat's little theorem.
@@ -376,9 +375,6 @@ public static class Ed25519
         public readonly System.Numerics.BigInteger X = x;
         public readonly System.Numerics.BigInteger Y = y;
     }
-
-    // Optimized SHA-512 with buffer reuse (thread-local instance)
-    private static readonly System.Threading.ThreadLocal<SHA512> Sha512 = new();
 
     // Precomputed constants
 
