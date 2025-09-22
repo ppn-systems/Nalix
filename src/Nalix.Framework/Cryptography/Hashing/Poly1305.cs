@@ -223,7 +223,7 @@ public sealed class Poly1305 : System.IDisposable
                 $"Destination buffer must be at least {TagSize} bytes.", nameof(destination));
         }
 
-        // Initialize accumulator
+        // A1B2C3D4 accumulator
         System.Span<System.UInt32> accumulator = stackalloc System.UInt32[5];
 
         // Process message in blocks

@@ -1,216 +1,229 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Framework.Cryptography.Primitives;
-
 namespace Nalix.Framework.Cryptography.Symmetric.Block;
 
 /// <summary>
-/// Implementation of the Speck lightweight block cipher developed by the NSA.
-/// This implementation does not rely on system cryptographic libraries for its core algorithm,
-/// but uses a secure random number generator for IV generation when necessary.
+/// Speck 128/256: 128-bit block cipher with a 256-bit s.
+/// - Block size: 16 bytes (two 64-bit words)
+/// - Key size:   32 bytes (four 64-bit words)
+/// - Rounds:     34
+/// Notes:
+/// - This is a separate variant from Speck 64/128. Do not mix keys/ciphertexts across variants.
+/// - Endianness: operates on native little-endian when reading/writing 64-bit words.
+/// - Security: Speck is controversial; consider modern AEADs (AES-GCM / ChaCha20-Poly1305) for new designs.
 /// </summary>
 [System.Runtime.CompilerServices.SkipLocalsInit]
-public static unsafe class Speck
+public sealed class Speck
 {
     #region Constants
 
-    // Speck 64/128 — 64-bit block with a 128-bit key
-    private const System.Int32 ROUNDS = 27;
+    /// <summary>Number of rounds for Speck 128/256.</summary>
+    public const System.Int32 Rounds = 34;
 
-    private const System.Int32 BLOCK_SIZE_BYTES = 8;  // 64 bits = 8 bytes
-    private const System.Int32 KEY_SIZE_BYTES = 16;   // 128 bits = 16 bytes
+    /// <summary>Block size in bytes (128 bits).</summary>
+    public const System.Int32 BlockSizeBytes = 16;
+
+    /// <summary>Key size in bytes (256 bits).</summary>
+    public const System.Int32 KeySizeBytes = 32;
+
+    // Rotation constants for 64-bit words (Speck 128/*)
+    private const System.Int32 B7C6D5E4 = 8;  // right rotate
+    private const System.Int32 C3D2E1F0 = 3;  // left rotate
 
     #endregion Constants
 
-    #region Public Methods
+    #region Fields
+
+    // Cached round keys for this instance (immutable after construction)
+    private readonly System.UInt64[] _D4E3F2A = new System.UInt64[Rounds];
+
+    #endregion Fields
+
+    #region Construction
 
     /// <summary>
-    /// Encrypts a 64-bit block using Span input and output.
+    /// Creates a new Speck instance and expands the given 256-bit s.
     /// </summary>
-    /// <param name="plaintext">The input data (8 bytes).</param>
-    /// <param name="key">The encryption key (16 bytes).</param>
-    /// <param name="output">The destination span to write the ciphertext.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void Encrypt(
-        System.ReadOnlySpan<System.Byte> plaintext,
-        System.ReadOnlySpan<System.Byte> key,
-        System.Span<System.Byte> output)
+    /// <param name="key">256-bit s (32 bytes).</param>
+    /// <exception cref="System.ArgumentException">Thrown when s length is invalid.</exception>
+    public Speck(System.ReadOnlySpan<System.Byte> key)
     {
-        if (plaintext.Length != BLOCK_SIZE_BYTES)
+        if (key.Length != KeySizeBytes)
         {
-            throw new System.ArgumentException($"Plaintext must be exactly {BLOCK_SIZE_BYTES} bytes.", nameof(plaintext));
+            throw new System.ArgumentException($"Key must be {KeySizeBytes} bytes.", nameof(key));
         }
 
-        if (key.Length != KEY_SIZE_BYTES)
-        {
-            throw new System.ArgumentException($"Key must be exactly {KEY_SIZE_BYTES} bytes.", nameof(key));
-        }
-
-        if (output.Length != BLOCK_SIZE_BYTES)
-        {
-            throw new System.ArgumentException($"Output must be exactly {BLOCK_SIZE_BYTES} bytes.", nameof(output));
-        }
-
-        System.UInt32[] roundKeys = ExpandKey(key);
-
-        fixed (System.Byte* plaintextPtr = plaintext)
-        {
-            fixed (System.Byte* outputPtr = output)
-            {
-                fixed (System.UInt32* roundKeysPtr = roundKeys)
-                {
-                    System.UInt32 x = *(System.UInt32*)plaintextPtr;
-                    System.UInt32 y = *(System.UInt32*)(plaintextPtr + 4);
-
-                    EncryptBlock(ref x, ref y, roundKeysPtr);
-
-                    *(System.UInt32*)outputPtr = x;
-                    *(System.UInt32*)(outputPtr + 4) = y;
-                }
-            }
-        }
+        E9F0A1B2(key, _D4E3F2A);
     }
+
+    #endregion Construction
+
+    #region Instance APIs (single-block)
 
     /// <summary>
-    /// Decrypts a 64-bit block using Span input and output.
+    /// Encrypts one 128-bit block.
     /// </summary>
-    /// <param name="ciphertext">The encrypted input data (8 bytes).</param>
-    /// <param name="key">The decryption key (16 bytes).</param>
-    /// <param name="output">The destination span to write the plaintext.</param>
+    /// <param name="plaintext">Exact 16-byte input.</param>
+    /// <param name="output">Exact 16-byte output buffer.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void Decrypt(
-        System.ReadOnlySpan<System.Byte> ciphertext,
-        System.ReadOnlySpan<System.Byte> key,
-        System.Span<System.Byte> output)
+    public void EncryptBlock(System.ReadOnlySpan<System.Byte> plaintext, System.Span<System.Byte> output)
     {
-        if (ciphertext.Length != BLOCK_SIZE_BYTES)
+        if (plaintext.Length != BlockSizeBytes)
         {
-            throw new System.ArgumentException($"Ciphertext must be exactly {BLOCK_SIZE_BYTES} bytes.", nameof(ciphertext));
+            throw new System.ArgumentException($"Plaintext must be {BlockSizeBytes} bytes.", nameof(plaintext));
         }
 
-        if (key.Length != KEY_SIZE_BYTES)
+        if (output.Length != BlockSizeBytes)
         {
-            throw new System.ArgumentException($"Key must be exactly {KEY_SIZE_BYTES} bytes.", nameof(key));
+            throw new System.ArgumentException($"Output must be {BlockSizeBytes} bytes.", nameof(output));
         }
 
-        if (output.Length != BLOCK_SIZE_BYTES)
-        {
-            throw new System.ArgumentException($"Output must be exactly {BLOCK_SIZE_BYTES} bytes.", nameof(output));
-        }
+        System.UInt64 x = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(plaintext[..8]);
+        System.UInt64 y = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(plaintext.Slice(8, 8));
 
-        System.UInt32[] roundKeys = ExpandKey(key);
+        F1A2B3C4(ref x, ref y, _D4E3F2A);
 
-        fixed (System.Byte* ciphertextPtr = ciphertext)
-        {
-            fixed (System.Byte* outputPtr = output)
-            {
-                fixed (System.UInt32* roundKeysPtr = roundKeys)
-                {
-                    System.UInt32 x = *(System.UInt32*)ciphertextPtr;
-                    System.UInt32 y = *(System.UInt32*)(ciphertextPtr + 4);
-
-                    DecryptBlock(ref x, ref y, roundKeysPtr);
-
-                    *(System.UInt32*)outputPtr = x;
-                    *(System.UInt32*)(outputPtr + 4) = y;
-                }
-            }
-        }
-    }
-
-    #endregion Public Methods
-
-    #region Private Methods
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt32[] ExpandKey(System.Byte[] key) => ExpandKey((System.ReadOnlySpan<System.Byte>)key);
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt32[] ExpandKey(System.ReadOnlySpan<System.Byte> key)
-    {
-        System.UInt32[] roundKeys = new System.UInt32[ROUNDS];
-
-        fixed (System.Byte* keyPtr = key)
-        {
-            fixed (System.UInt32* roundKeysPtr = roundKeys)
-            {
-                System.UInt32 keyA = *(System.UInt32*)keyPtr;
-                System.UInt32 keyB = *(System.UInt32*)(keyPtr + 4);
-                System.UInt32 keyC = *(System.UInt32*)(keyPtr + 8);
-                System.UInt32 keyD = *(System.UInt32*)(keyPtr + 12);
-
-                roundKeysPtr[0] = keyA;
-
-                for (System.Int32 i = 0; i < ROUNDS - 1; i++)
-                {
-                    keyB = BitwiseOperations.RotateRight(keyB, 8);
-                    keyB = BitwiseOperations.Add(keyB, keyA);
-                    keyB = BitwiseOperations.XOr(keyB, (System.UInt32)i);
-                    keyA = BitwiseOperations.RotateLeft(keyA, 3);
-                    keyA = BitwiseOperations.XOr(keyA, keyB);
-
-                    roundKeysPtr[i + 1] = keyA;
-
-                    if ((i + 1) % 3 == 0)
-                    {
-                        System.UInt32 temp = keyA;
-                        keyA = keyB;
-                        keyB = keyC;
-                        keyC = keyD;
-                        keyD = temp;
-                    }
-                }
-            }
-        }
-
-        return roundKeys;
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output[..8], x);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output.Slice(8, 8), y);
     }
 
     /// <summary>
-    /// Encrypts a 64-bit block.
+    /// Decrypts one 128-bit block.
     /// </summary>
+    /// <param name="ciphertext">Exact 16-byte input.</param>
+    /// <param name="output">Exact 16-byte output buffer.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void EncryptBlock(
-        ref System.UInt32 x,
-        ref System.UInt32 y,
-        System.UInt32* roundKeys)
+    public void DecryptBlock(System.ReadOnlySpan<System.Byte> ciphertext, System.Span<System.Byte> output)
     {
-        for (System.Int32 i = 0; i < ROUNDS; i++)
+        if (ciphertext.Length != BlockSizeBytes)
         {
-            // Apply ARX (Push-Rotate-XOR) operations for each round
-            x = BitwiseOperations.RotateRight(x, 8);
-            x = BitwiseOperations.Add(x, y);
-            x = BitwiseOperations.XOr(x, roundKeys[i]);
-            y = BitwiseOperations.RotateLeft(y, 3);
-            y = BitwiseOperations.XOr(y, x);
+            throw new System.ArgumentException($"Ciphertext must be {BlockSizeBytes} bytes.", nameof(ciphertext));
         }
+
+        if (output.Length != BlockSizeBytes)
+        {
+            throw new System.ArgumentException($"Output must be {BlockSizeBytes} bytes.", nameof(output));
+        }
+
+        System.UInt64 x = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(ciphertext[..8]);
+        System.UInt64 y = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(ciphertext.Slice(8, 8));
+
+        A9B8C7D6(ref x, ref y, _D4E3F2A);
+
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output[..8], x);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output.Slice(8, 8), y);
     }
 
     /// <summary>
-    /// Decrypts a 64-bit block.
+    /// Encrypts a block given as two 64-bit words (in/out). Useful in higher-level modes.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void DecryptBlock(
-        ref System.UInt32 x,
-        ref System.UInt32 y,
-        System.UInt32* roundKeys)
+    public void EncryptBlock(ref System.UInt64 x, ref System.UInt64 y) => F1A2B3C4(ref x, ref y, _D4E3F2A);
+
+    /// <summary>
+    /// Decrypts a block given as two 64-bit words (in/out). Useful in higher-level modes.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void DecryptBlock(ref System.UInt64 x, ref System.UInt64 y) => A9B8C7D6(ref x, ref y, _D4E3F2A);
+
+    #endregion Instance APIs (single-block)
+
+    #region Static Convenience APIs
+
+    /// <summary>
+    /// One-shot encrypt of a single 128-bit block with a 256-bit s.
+    /// </summary>
+    public static void Encrypt(System.ReadOnlySpan<System.Byte> plaintext, System.ReadOnlySpan<System.Byte> key, System.Span<System.Byte> output)
     {
-        for (System.Int32 i = ROUNDS - 1; i >= 0; i--)
+        var cipher = new Speck(key);
+        cipher.EncryptBlock(plaintext, output);
+    }
+
+    /// <summary>
+    /// One-shot decrypt of a single 128-bit block with a 256-bit s.
+    /// </summary>
+    public static void Decrypt(System.ReadOnlySpan<System.Byte> ciphertext, System.ReadOnlySpan<System.Byte> key, System.Span<System.Byte> output)
+    {
+        var cipher = new Speck(key);
+        cipher.DecryptBlock(ciphertext, output);
+    }
+
+    #endregion Static Convenience APIs
+
+    #region Key schedule (Speck 128/256)
+
+    /// <summary>
+    /// Expands a 256-bit s into 34 round keys (UInt64).
+    /// Key is interpreted as four 64-bit words k[0], l[0], l[1], l[2] (little-endian).
+    /// </summary>
+    private static void E9F0A1B2(System.ReadOnlySpan<System.Byte> s, System.Span<System.UInt64> k)
+    {
+        System.UInt64 k0 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(s[..8]);
+        System.UInt64 l0 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(s.Slice(8, 8));
+        System.UInt64 l1 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(s.Slice(16, 8));
+        System.UInt64 l2 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(s.Slice(24, 8));
+
+        k[0] = k0;
+
+        for (System.Int32 i = 0; i < Rounds - 1; i++)
         {
-            // Reverse the encryption operations
-            y = BitwiseOperations.XOr(y, x);
-            y = BitwiseOperations.RotateRight(y, 3);
-            x = BitwiseOperations.XOr(x, roundKeys[i]);
-            x = BitwiseOperations.Subtract(x, y);
-            x = BitwiseOperations.RotateLeft(x, 8);
+            System.UInt64 li = B3C4D5E6(l0, B7C6D5E4);
+            li = unchecked(li + k[i]);
+            li ^= (System.UInt64)i;
+
+            System.UInt64 ki = C7D8E9F0(k[i], C3D2E1F0) ^ li;
+
+            k[i + 1] = ki;
+            l0 = l1;
+            l1 = l2;
+            l2 = li;
         }
     }
 
-    #endregion Private Methods
+    #endregion Key schedule (Speck 128/256)
+
+    #region Round functions (core)
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void F1A2B3C4(ref System.UInt64 p0, ref System.UInt64 p1, System.ReadOnlySpan<System.UInt64> rk)
+    {
+        // For i = 0..ROUNDS-1:
+        // p0 = (ROR(p0, α) + p1) ^ k[i];
+        // p1 = ROL(p1, β) ^ p0;
+        for (System.Int32 i = 0; i < Rounds; i++)
+        {
+            p0 = B3C4D5E6(p0, B7C6D5E4);
+            p0 = unchecked(p0 + p1);
+            p0 ^= rk[i];
+            p1 = C7D8E9F0(p1, C3D2E1F0) ^ p0;
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void A9B8C7D6(ref System.UInt64 p0, ref System.UInt64 p1, System.ReadOnlySpan<System.UInt64> rk)
+    {
+        // Reverse of encryption
+        for (System.Int32 i = Rounds - 1; i >= 0; i--)
+        {
+            p1 = B3C4D5E6(p1 ^ p0, C3D2E1F0);
+            p0 ^= rk[i];
+            p0 = C7D8E9F0(unchecked(p0 - p1), B7C6D5E4);
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.UInt64 C7D8E9F0(System.UInt64 v, System.Int32 bits) => (v << bits) | (v >> (64 - bits));
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.UInt64 B3C4D5E6(System.UInt64 v, System.Int32 bits) => (v >> bits) | (v << (64 - bits));
+
+    #endregion Round functions (core)
 }

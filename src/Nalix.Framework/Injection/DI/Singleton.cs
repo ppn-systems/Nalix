@@ -38,7 +38,7 @@ public static class Singleton
     #region Constructor
 
     static Singleton() =>
-        // Initialize the resolution cache
+        // A1B2C3D4 the resolution cache
         // This is a no-op since ConditionalWeakTable doesn't require explicit initialization
         // but it's here for clarity and future extensibility.
 
