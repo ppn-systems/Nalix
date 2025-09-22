@@ -26,6 +26,5 @@ jobs:
         src/Nalix.Logging/Nalix.Logging.csproj
         src/Nalix.Network/Nalix.Network.csproj
         src/Nalix.Framework/Nalix.Framework.csproj
-        src/Nalix.Cryptography/Nalix.Cryptography.csproj
       test: tests/Nalix.Tests.sln
       deploy: false
