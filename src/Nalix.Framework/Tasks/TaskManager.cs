@@ -581,11 +581,12 @@ public sealed partial class TaskManager : ITaskManager
         System.Text.StringBuilder sb = new(1024);
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TaskManager:");
         _ = sb.AppendLine($"Recurring: {_recurring.Count} | Workers: {_workers.Count} (running={COUNT_RUNNING_WORKERS()})");
-        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");
 
         // Recurring summary
         _ = sb.AppendLine("Recurring:");
+        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");
         _ = sb.AppendLine("Naming                       | Runs     | Fails | Running | Last UTC             | Next UTC             | Interval | Tag");
+        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");
         foreach (System.Collections.Generic.KeyValuePair<System.String, RecurringState> kv in _recurring)
         {
             RecurringState s = kv.Value;
@@ -599,11 +600,14 @@ public sealed partial class TaskManager : ITaskManager
             System.String tag = s.Options.Tag ?? "-";
             _ = sb.AppendLine($"{nm} | {runs} | {fails} | {run.PadLeft(7)} | {last,-20} | {next,-20} | {iv} | {tag}");
         }
+        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");
         _ = sb.AppendLine();
 
         // Workers summary by group
         _ = sb.AppendLine("Workers by Group:");
+        _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine("Group                        | Running | Total | Concurrency");
+        _ = sb.AppendLine("------------------------------------------------------------");
         System.Collections.Concurrent.ConcurrentDictionary<System.String, (System.Int32 running, System.Int32 total)> perGroup = new(System.StringComparer.Ordinal);
         foreach (System.Collections.Generic.KeyValuePair<ISnowflake, WorkerState> kv in _workers)
         {
@@ -625,11 +629,14 @@ public sealed partial class TaskManager : ITaskManager
                 _ = sb.AppendLine($"{gname} | {gkv.Value.running,7} | {gkv.Value.total,5} | -");
             }
         }
+        _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine();
 
         // Top N long-running workers
         _ = sb.AppendLine("Top Running Workers (by age):");
+        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------");
         _ = sb.AppendLine("Id             | Naming                       | Group                        | Age     | Progress | LastBeat");
+        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------");
         System.Collections.Generic.List<WorkerState> top = [.. _workers.Values];
         top.Sort(static (a, b) => a.StartedUtc.CompareTo(b.StartedUtc)); // oldest first
         System.Int32 show = 0;
@@ -640,14 +647,14 @@ public sealed partial class TaskManager : ITaskManager
                 continue;
             }
 
-            _ = sb.AppendLine($"{w.Id} | {PadName(w.Name, 28)} | {PadName(w.Group, 28)} | {FormatAge(w.StartedUtc),7} | {w.Progress,8} | {w.LastHeartbeatUtc?.ToString("HH:mm:ss") ?? "-"}");
+            _ = sb.AppendLine($"{w.Id} | {PadName(w.Name, 28)} | {PadName(w.Group, 28)} | {FormatAge(w.StartedUtc),7} | {w.Progress,8} |  {w.LastHeartbeatUtc?.ToString("HH:mm:ss") ?? "-"}");
             if (++show >= 50)
             {
                 break;
             }
         }
 
-        _ = sb.AppendLine("--------------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------");
         return sb.ToString();
 
         static System.String PadName(System.String s, System.Int32 width)
