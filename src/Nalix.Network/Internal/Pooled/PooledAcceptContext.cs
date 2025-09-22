@@ -92,7 +92,7 @@ internal sealed class PooledAcceptContext : IPoolable
         var tcs = new System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>(
             System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var args = this.Args;          // throws if not bound
+        System.Net.Sockets.SocketAsyncEventArgs args = this.Args;          // throws if not bound
         args.UserToken = tcs;
         args.AcceptSocket = null;
 
@@ -105,7 +105,7 @@ internal sealed class PooledAcceptContext : IPoolable
             }
             else
             {
-                var s = args.AcceptSocket!;
+                System.Net.Sockets.Socket s = args.AcceptSocket!;
                 args.AcceptSocket = null;
                 _ = tcs.TrySetResult(s);
             }

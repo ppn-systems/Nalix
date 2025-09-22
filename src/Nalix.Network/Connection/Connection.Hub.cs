@@ -89,13 +89,14 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             _ = System.Threading.Interlocked.Increment(ref this._connectionCount);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(ConnectionHub)}] register id={connection.ID} total={this._connectionCount}");
+                                    .Trace($"[{nameof(ConnectionHub)}:{RegisterConnection}] " +
+                                           $"register id={connection.ID} total={this._connectionCount}");
 
             return true;
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(ConnectionHub)}] register-dup id={connection.ID}");
+                                .Info($"[{nameof(ConnectionHub)}:{RegisterConnection}] register-dup id={connection.ID}");
         return false;
     }
 
@@ -122,7 +123,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(ConnectionHub)}] unregister-miss id={connection.ID}");
+                                    .Info($"[{nameof(ConnectionHub)}:{UnregisterConnection}] unregister-miss id={connection.ID}");
             return false;
         }
 
@@ -136,7 +137,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _ = System.Threading.Interlocked.Decrement(ref this._connectionCount);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[{nameof(ConnectionHub)}] " +
+                                .Trace($"[{nameof(ConnectionHub)}:{UnregisterConnection}] " +
                                        $"unregister id={connection.ID} total={this._connectionCount}");
 
         ConnectionUnregistered?.Invoke(existing ?? connection);
@@ -168,7 +169,8 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         {
             _ = this._usernameToId.TryRemove(oldUsername, out _);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(ConnectionHub)}] map-rebind id={id} old={oldUsername} new={username}");
+                                    .Trace($"[{nameof(ConnectionHub)}:{AssociateUsername}] " +
+                                           $"map-rebind id={id} old={oldUsername} new={username}");
         }
 
         // Push new associations
@@ -176,7 +178,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         this._usernameToId[username] = id;
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[{nameof(ConnectionHub)}] map user=\"{username}\" id={id}");
+                                .Trace($"[{nameof(ConnectionHub)}:{AssociateUsername}] map user=\"{username}\" id={id}");
     }
 
     /// <inheritdoc />
@@ -287,7 +289,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         if (connections is null || connections.Count == 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(ConnectionHub)}] broadcast-skip total=0");
+                                    .Trace($"[{nameof(ConnectionHub)}:{BroadcastAsync<T>}] broadcast-skip total=0");
             return;
         }
 
@@ -315,7 +317,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         catch (System.OperationCanceledException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(ConnectionHub)}] broadcast-cancel");
+                                    .Info($"[{nameof(ConnectionHub)}:{BroadcastAsync<T>}] broadcast-cancel");
         }
     }
 
@@ -371,7 +373,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         catch (System.OperationCanceledException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(ConnectionHub)}] broadcast-cancel");
+                                    .Info($"[{nameof(ConnectionHub)}:{BroadcastWhereAsync<T>}] broadcast-cancel");
         }
     }
 
@@ -397,7 +399,8 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(ConnectionHub)}] disconnect-error id={connection.ID}", ex);
+                                        .Error($"[{nameof(ConnectionHub)}:{CloseAllConnections}] " +
+                                               $"disconnect-error id={connection.ID}", ex);
             }
         });
 
@@ -408,7 +411,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _ = System.Threading.Interlocked.Exchange(ref this._connectionCount, 0);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(ConnectionHub)}] disconnect-all total={connections.Count}");
+                                .Info($"[{nameof(ConnectionHub)}:{CloseAllConnections}] disconnect-all total={connections.Count}");
     }
 
     /// <summary>
@@ -462,7 +465,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(ConnectionHub)}] disposed");
+                                .Info($"[{nameof(ConnectionHub)}:{Dispose}] disposed");
     }
 
     #endregion APIs
