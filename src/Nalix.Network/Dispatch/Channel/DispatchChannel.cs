@@ -78,12 +78,22 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     // Metrics (global).
     private System.Int32 _totalPackets;
 
+    /// <summary>
+    /// Total number of packets currently queued in this dispatch channel.
+    /// </summary>
+    private System.Int64 _packetCount;
+
     #endregion Fields
 
     #region Properties
 
     /// <summary>Gets total packets across all per-connection queues.</summary>
     public System.Int32 TotalPackets => System.Threading.Volatile.Read(ref _totalPackets);
+
+    /// <summary>
+    /// Indicates whether this dispatch channel currently has any packet to process.
+    /// </summary>
+    public System.Boolean HasPacket => System.Threading.Interlocked.Read(ref _packetCount) > 0;
 
     #endregion
 
@@ -131,24 +141,32 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         // From highest priority down to lowest, pick a ready connection.
         for (System.Int32 p = HighestPriorityIndex; p >= LowestPriorityIndex; p--)
         {
-            if (!_readyByPrio[p].TryDequeue(out connection!))
+            if (_readyByPrio[p].TryDequeue(out connection))
             {
+                if (connection is null)
+                {
+                    // defensive: skip if somehow null (shouldn't happen if TryDequeue true, but safe)
+                    continue;
+                }
+
                 _ = _inReady.TryRemove(connection, out _);
 
                 // Get the per-connection queues
-                if (!_queues.TryGetValue(connection, out var cqs))
+                if (!_queues.TryGetValue(connection, out ConnectionQueues cqs))
                 {
-                    return false;
+                    continue;
                 }
 
                 // Try to dequeue from this priority first; if empty due to race, try lower levels.
                 if (!TRY_DEQUEUE_HIGHEST(cqs, p, out lease, out System.Int32 dequeuedFromPrio))
                 {
-                    return false;
+                    continue;
                 }
 
                 // Adjust counters
                 ConnectionState cs = GET_STATE(connection);
+
+                _ = System.Threading.Interlocked.Decrement(ref _packetCount);
                 _ = System.Threading.Interlocked.Decrement(ref _totalPackets);
                 _ = System.Threading.Interlocked.Decrement(ref cs.ApproxTotal);
                 _ = System.Threading.Interlocked.Decrement(ref cs.ApproxByPriority[dequeuedFromPrio]);
@@ -240,6 +258,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         cqs.Q[prioIndex].Enqueue(lease);
 
         // Update counters
+        _ = System.Threading.Interlocked.Increment(ref _packetCount);
         _ = System.Threading.Interlocked.Increment(ref _totalPackets);
         _ = System.Threading.Interlocked.Increment(ref cs.ApproxTotal);
         _ = System.Threading.Interlocked.Increment(ref cs.ApproxByPriority[prioIndex]);
