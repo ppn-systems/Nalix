@@ -5,7 +5,7 @@ namespace Nalix.Common.Enums;
 /// <summary>
 /// Specifies the symmetric encryption algorithms and modes supported by the system.
 /// </summary>
-public enum SymmetricAlgorithmType : System.Byte
+public enum CipherType : System.Byte
 {
     /// <summary>
     /// No encryption is applied to the data.

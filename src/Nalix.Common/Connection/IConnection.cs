@@ -41,7 +41,7 @@ public partial interface IConnection : System.IDisposable
     /// <summary>
     /// Gets the encryption key used for securing communication.
     /// </summary>
-    System.Byte[] EncryptionKey { get; set; }
+    System.Byte[] Secret { get; set; }
 
     /// <summary>
     /// Gets the authority levels associated with the connection.
@@ -51,7 +51,7 @@ public partial interface IConnection : System.IDisposable
     /// <summary>
     /// Gets or sets the encryption mode used.
     /// </summary>
-    SymmetricAlgorithmType Encryption { get; set; }
+    CipherType Algorithm { get; set; }
 
     /// <summary>
     /// Occurs when the connection is closed.

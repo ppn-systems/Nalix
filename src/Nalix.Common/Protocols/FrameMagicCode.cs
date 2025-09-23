@@ -4,10 +4,10 @@ namespace Nalix.Common.Protocols;
 
 /// <summary>
 /// Defines reserved <c>MagicNumber</c> values used internally by the framework
-/// for core packet types (handshake, control, text, and binary).  
+/// for core packet types (handshake, control, text, and binary).
 /// <para>
 /// <b>Important:</b> The range <c>0x0000_A000</c> – <c>0x0000_AFFF</c> is
-/// reserved for system/default packets.  
+/// reserved for system/default packets.
 /// Do not assign custom packets within this range to avoid collisions.
 /// </para>
 /// <para>

@@ -26,7 +26,7 @@ public sealed partial class Connection : IConnection
     private readonly System.Threading.Lock _lock;
 
     private System.Boolean _disposed;
-    private System.Byte[] _encryptionKey;
+    private System.Byte[] _secret;
     private System.Int32 _closeSignaled;
 
     private System.EventHandler<IConnectEventArgs>? _onCloseEvent;
@@ -47,7 +47,7 @@ public sealed partial class Connection : IConnection
         _lock = new System.Threading.Lock();
 
         _disposed = false;
-        _encryptionKey = [];
+        _secret = [];
 
         _cstream = new FramedSocketChannel(socket);
         _cstream.Cache.SetCallback(OnProcessEventBridge, this, new ConnectionEventArgs(this));
@@ -108,14 +108,14 @@ public sealed partial class Connection : IConnection
     public PermissionLevel Level { get; set; } = PermissionLevel.None;
 
     /// <inheritdoc />
-    public SymmetricAlgorithmType Encryption { get; set; } = SymmetricAlgorithmType.ChaCha20Poly1305;
+    public CipherType Algorithm { get; set; } = CipherType.ChaCha20Poly1305;
 
     /// <inheritdoc />
-    public System.Byte[] EncryptionKey
+    public System.Byte[] Secret
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get => this._encryptionKey;
+        get => _secret;
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -123,12 +123,12 @@ public sealed partial class Connection : IConnection
         {
             if (value is null || value.Length != 32)
             {
-                throw new System.ArgumentException("EncryptionKey must be exactly 32 bytes.", nameof(value));
+                throw new System.ArgumentException("Secret must be exactly 32 bytes.", nameof(value));
             }
 
-            lock (this._lock)
+            lock (_lock)
             {
-                this._encryptionKey = value;
+                _secret = value;
             }
         }
     }

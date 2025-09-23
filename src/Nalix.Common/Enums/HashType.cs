@@ -5,7 +5,7 @@ namespace Nalix.Common.Enums;
 /// <summary>
 /// Specifies the hash algorithms supported for HMAC (Hash-based Message Authentication Code) computation.
 /// </summary>
-public enum HashAlgorithmType : System.Byte
+public enum HashType : System.Byte
 {
     /// <summary>
     /// No hash algorithm specified.

@@ -12,7 +12,7 @@ public sealed class PBKDF2 : System.IDisposable
     private readonly System.Byte[] _salt;           // a copy of the provided salt
     private readonly System.Int32 _iterations;
     private readonly System.Int32 _keyLength;
-    private readonly HashAlgorithmType _hashAlg;
+    private readonly HashType _hashAlg;
 
     private System.Boolean _disposed;
 
@@ -24,7 +24,7 @@ public sealed class PBKDF2 : System.IDisposable
     /// <param name="keyLength">Desired key length in bytes (>= 1).</param>
     /// <param name="hashAlgorithm">PRF selection: Sha256 or Sha512.</param>
     /// <exception cref="System.ArgumentException">If parameters are invalid.</exception>
-    public PBKDF2(System.Byte[] salt, System.Int32 iterations, System.Int32 keyLength, HashAlgorithmType hashAlgorithm)
+    public PBKDF2(System.Byte[] salt, System.Int32 iterations, System.Int32 keyLength, HashType hashAlgorithm)
     {
         if (salt is null || salt.Length < 8)
         {
@@ -35,7 +35,7 @@ public sealed class PBKDF2 : System.IDisposable
 
         System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(keyLength);
 
-        if (hashAlgorithm is not HashAlgorithmType.Sha256 and not HashAlgorithmType.Sha512)
+        if (hashAlgorithm is not HashType.Sha256 and not HashType.Sha512)
         {
             throw new System.ArgumentOutOfRangeException(nameof(hashAlgorithm), "Only Sha256 and Sha512 are supported.");
         }
@@ -90,7 +90,7 @@ public sealed class PBKDF2 : System.IDisposable
             throw new System.ArgumentException("Output buffer is too small.", nameof(output));
         }
 
-        System.Int32 hLen = _hashAlg == HashAlgorithmType.Sha256 ? 32 : 64;
+        System.Int32 hLen = _hashAlg == HashType.Sha256 ? 32 : 64;
         System.Int32 l = (System.Int32)System.Math.Ceiling(_keyLength / (System.Double)hLen);
         System.Int32 r = _keyLength - ((l - 1) * hLen);
 
@@ -142,10 +142,10 @@ public sealed class PBKDF2 : System.IDisposable
         System.ReadOnlySpan<System.Byte> salt,
         System.Int32 iterations,
         System.Int32 blockIndex,
-        HashAlgorithmType prf,
+        HashType prf,
         System.Span<System.Byte> output)
     {
-        System.Int32 hLen = prf == HashAlgorithmType.Sha256 ? 32 : 64;
+        System.Int32 hLen = prf == HashType.Sha256 ? 32 : 64;
 
         System.Span<System.Byte> u = stackalloc System.Byte[hLen];
         System.Span<System.Byte> t = stackalloc System.Byte[hLen];
@@ -177,10 +177,10 @@ public sealed class PBKDF2 : System.IDisposable
     private static void Hmac(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> data,
-        HashAlgorithmType prf, System.Span<System.Byte> output)
+        HashType prf, System.Span<System.Byte> output)
     {
         // HMAC classes accept byte[]; minimal, contained allocations:
-        if (prf == HashAlgorithmType.Sha256)
+        if (prf == HashType.Sha256)
         {
             using System.Security.Cryptography.HMACSHA256 h = new(key.ToArray());
             System.Byte[] hash = h.ComputeHash(data.ToArray());
