@@ -24,8 +24,7 @@ namespace Nalix.Network.Internal.Compilation;
 internal sealed class HandlerCompiler<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>()
-    where TController : class
-    where TPacket : IPacket
+    where TController : class where TPacket : IPacket
 {
     #region Fields
 
