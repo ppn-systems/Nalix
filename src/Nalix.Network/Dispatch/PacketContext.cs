@@ -135,7 +135,7 @@ public sealed class PacketContext<TPacket> : IPoolable
         this.Packet = packet;
         this.Connection = connection;
         this.Attributes = descriptor;
-        this._isInitialized = true;
+        _isInitialized = true;
     }
 
     /// <summary>
@@ -151,7 +151,7 @@ public sealed class PacketContext<TPacket> : IPoolable
         this.Packet = default!;
         this.Connection = default!;
         this.Attributes = default;
-        this._isInitialized = false;
+        _isInitialized = false;
     }
 
     /// <summary>
