@@ -285,7 +285,7 @@ public sealed class ObjectPoolManager : IReportable
         } while (Interlocked.CompareExchange(ref _peakPoolCount, currentCount, observed) != observed);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                        .Info($"[SH.{nameof(ObjectPoolManager)}:{nameof(SetMaxCapacity)}] set-max type={typeof(T).Name} cap={maxCapacity}");
+                        .Debug($"[SH.{nameof(ObjectPoolManager)}:{nameof(SetMaxCapacity)}] set-max type={typeof(T).Name} cap={maxCapacity}");
 
         return true;
     }
@@ -355,7 +355,7 @@ public sealed class ObjectPoolManager : IReportable
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SH.{nameof(ObjectPoolManager)}:{nameof(ClearAllPools)}] cleared-all total-removed={totalRemoved}");
+                                .Debug($"[SH.{nameof(ObjectPoolManager)}:{nameof(ClearAllPools)}] cleared-all total-removed={totalRemoved}");
 
         return totalRemoved;
     }
@@ -447,7 +447,7 @@ public sealed class ObjectPoolManager : IReportable
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Meta($"[SH.{nameof(ObjectPoolManager)}:{nameof(ResetStatistics)}] stats-reset-complete");
+                                .Trace($"[SH.{nameof(ObjectPoolManager)}:{nameof(ResetStatistics)}] stats-reset-complete");
     }
 
     /// <summary>

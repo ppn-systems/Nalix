@@ -48,7 +48,7 @@ internal sealed class FRAME_READER(
         try
         {
             s = _getSocket();
-            BaseTcpSession.Logging?.Meta($"[SDK.{nameof(FRAME_READER)}] receive-loop starting; endpoint={FORMAT_ENDPOINT(s)}");
+            BaseTcpSession.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop starting; endpoint={FORMAT_ENDPOINT(s)}");
         }
         catch (System.Exception ex)
         {
@@ -209,7 +209,7 @@ internal sealed class FRAME_READER(
             }
 
             // Normal cancellation: log graceful stop
-            BaseTcpSession.Logging?.Meta($"[SDK.{nameof(FRAME_READER)}] receive-loop ending normally endpoint={FORMAT_ENDPOINT(s)}");
+            BaseTcpSession.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop ending normally endpoint={FORMAT_ENDPOINT(s)}");
         }
         catch (System.OperationCanceledException) when (token.IsCancellationRequested)
         {

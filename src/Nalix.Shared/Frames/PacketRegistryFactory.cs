@@ -101,7 +101,7 @@ public sealed class PacketRegistryFactory
         System.Type t = typeof(TPacket);
         System.Boolean added = _explicitPacketTypes.Add(t);
 
-        INFO(added
+        TRACE(added
             ? $"reg-type type={t.Name}"
             : $"reg-type-skip type={t.Name}");
 
@@ -114,10 +114,10 @@ public sealed class PacketRegistryFactory
     /// </summary>
     public PacketRegistryFactory IncludeAssembly(System.Reflection.Assembly? asm)
     {
-        if (asm is null) { INFO("include-asm-null"); return this; }
+        if (asm is null) { TRACE("include-asm-null"); return this; }
 
         System.Boolean added = _assemblies.Add(asm);
-        INFO(added
+        TRACE(added
             ? $"include-asm name={asm.GetName().Name}"
             : $"include-asm-skip name={asm.GetName().Name}");
 
@@ -161,7 +161,7 @@ public sealed class PacketRegistryFactory
             _namespaceScan[ns] = false;
         }
 
-        INFO($"include-ns ns={ns} recursive=false");
+        TRACE($"include-ns ns={ns} recursive=false");
         return this;
     }
 
@@ -187,7 +187,7 @@ public sealed class PacketRegistryFactory
         // Recursive always wins over non-recursive for the same key.
         _namespaceScan[rootNs] = true;
 
-        INFO($"include-ns ns={rootNs} recursive=true");
+        TRACE($"include-ns ns={rootNs} recursive=true");
         return this;
     }
 
@@ -207,11 +207,11 @@ public sealed class PacketRegistryFactory
         // ── 1. Collect candidates ────────────────────────────────────────────────
         System.Collections.Generic.HashSet<System.Type> candidates = [.. _explicitPacketTypes];
 
-        INFO($"build-start asm={_assemblies.Count} explicit={_explicitPacketTypes.Count} ns={_namespaceScan.Count}");
+        TRACE($"build-start asm={_assemblies.Count} explicit={_explicitPacketTypes.Count} ns={_namespaceScan.Count}");
 
         foreach (System.Reflection.Assembly asm in _assemblies)
         {
-            INFO($"scan-asm name={asm.GetName().Name}");
+            TRACE($"scan-asm name={asm.GetName().Name}");
 
             foreach (System.Type type in SAFE_GET_TYPES(asm))
             {
@@ -254,13 +254,13 @@ public sealed class PacketRegistryFactory
                 }
 
                 _ = candidates.Add(type);
-                INFO($"candidate type={type.FullName}");
+                TRACE($"candidate type={type.FullName}");
             }
         }
 
         if (candidates.Count == 0)
         {
-            INFO("no-candidate");
+            TRACE("no-candidate");
         }
 
         // ── 2. Bind per type ─────────────────────────────────────────────────────
@@ -276,7 +276,7 @@ public sealed class PacketRegistryFactory
             // ── Deserializer (required) ──────────────────────────────────────────
             if (miDeserialize is null)
             {
-                INFO($"[ERROR] miss-deserialize type={type.Name} — skipping");
+                TRACE($"[ERROR] miss-deserialize type={type.Name} — skipping");
                 continue;
             }
 
@@ -300,7 +300,7 @@ public sealed class PacketRegistryFactory
             }
             catch (System.Exception ex)
             {
-                INFO($"bind-deserialize-fail type={type.Name} err={ex.Message}");
+                TRACE($"bind-deserialize-fail type={type.Name} err={ex.Message}");
                 continue;
             }
 
@@ -312,7 +312,7 @@ public sealed class PacketRegistryFactory
             }
             catch (System.Exception ex)
             {
-                INFO($"get-method-fail type={type.Name} method=InvokeDeserialize err={ex.Message}");
+                TRACE($"get-method-fail type={type.Name} method=InvokeDeserialize err={ex.Message}");
                 continue;
             }
 
@@ -322,12 +322,12 @@ public sealed class PacketRegistryFactory
             }
             catch (System.Exception ex)
             {
-                INFO($"delegate-create-fail type={type.Name} err={ex.Message}");
+                TRACE($"delegate-create-fail type={type.Name} err={ex.Message}");
                 continue;
             }
         }
 
-        INFO($"build-ok packets={deserializers.Count}");
+        TRACE($"build-ok packets={deserializers.Count}");
 
         return new PacketRegistry(
             System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(deserializers));
@@ -476,8 +476,6 @@ public sealed class PacketRegistryFactory
 
     private static ILogger? Logging => InstanceManager.Instance.GetExistingInstance<ILogger>();
 
-    private static void INFO(System.String msg) => Logging?.Info($"[SH.{nameof(PacketRegistryFactory)}] {msg}");
-
     private static void TRACE(System.String msg) => Logging?.Trace($"[SH.{nameof(PacketRegistryFactory)}] {msg}");
 
     #endregion Private Helpers
@@ -518,7 +516,7 @@ public sealed class PacketRegistryFactory
     {
         PacketFunctionTable<TPacket>.DeserializePtr = BIND_DESERIALIZE_PTR<TPacket>(miDeserialize);
 
-        Logging?.Meta($"[SH.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+");
+        Logging?.Trace($"[SH.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+");
     }
 
     #endregion Private: Binding Helpers
