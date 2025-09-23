@@ -7,8 +7,11 @@ namespace Nalix.Shared.Serialization.Buffers;
 /// Internally stores a <see cref="System.Span{Byte}"/> view and, when rented,
 /// keeps the backing <see cref="System.Byte"/> array to allow expansion and pooling.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Auto)]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+[System.Diagnostics.DebuggerDisplay("Len={Length}, Written={WrittenCount}, Rent={_rent}, Owner={( _owner != null )}")]
 public ref struct DataWriter
 {
     #region Fields
@@ -51,7 +54,7 @@ public ref struct DataWriter
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if <paramref name="buffer"/> has zero length.</exception>
     public DataWriter(System.Byte[] buffer)
     {
-        if (buffer.Length <= 0)
+        if (buffer.Length == 0)
         {
             throw new System.ArgumentOutOfRangeException(nameof(buffer), "Size must be greater than zero.");
         }
@@ -87,32 +90,38 @@ public ref struct DataWriter
     /// <summary>
     /// Gets the number of bytes committed via <see cref="Advance(System.Int32)"/>.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
     public System.Int32 WrittenCount { get; private set; }
 
     /// <summary>
     /// Gets a value indicating whether the buffer view is empty (no underlying storage).
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
     public readonly System.Boolean IsNull => _span == System.Span<System.Byte>.Empty;
 
     /// <summary>
     /// Gets the total capacity of the internal buffer in bytes.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
     public readonly System.Int32 Length => _span.Length;
 
     /// <summary>
     /// Gets a span representing the remaining unwritten segment of the buffer.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
     public readonly System.Span<System.Byte> FreeBuffer => _span[WrittenCount..];
 
     /// <summary>
     /// Gets a span representing the committed (written) segment of the buffer.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
     public readonly System.Span<System.Byte> WrittenBuffer => _span[..WrittenCount];
 
     /// <summary>
     /// Gets a <see cref="System.Memory{Byte}"/> view over the committed data
     /// when a backing array exists; otherwise <see cref="System.Memory{Byte}.Empty"/>.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
     public readonly System.Memory<System.Byte> WrittenMemory
         => _owner is null ? System.Memory<System.Byte>.Empty
         : System.MemoryExtensions.AsMemory(_owner, 0, WrittenCount);
@@ -156,6 +165,7 @@ public ref struct DataWriter
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if non-positive.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown when expansion is not allowed.</exception>
     [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Expand(System.Int32 minimumSize)
     {
         if (minimumSize <= 0)
@@ -196,6 +206,7 @@ public ref struct DataWriter
     /// <summary>
     /// Copies the committed data into a new tightly sized array.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     public readonly System.Byte[] ToArray()
     {
@@ -212,6 +223,8 @@ public ref struct DataWriter
     /// <summary>
     /// Clears state and returns the rented array to the pool when applicable.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     public void Dispose()
     {

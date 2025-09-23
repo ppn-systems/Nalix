@@ -15,6 +15,7 @@ namespace Nalix.Shared.Serialization.Internal.Accessors;
 /// Generic design cho reusability across different object types.
 /// </summary>
 /// <typeparam name="T">Type của object chứa field.</typeparam>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal abstract class FieldAccessor<T>
 {
     /// <summary>
