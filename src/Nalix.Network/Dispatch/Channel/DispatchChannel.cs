@@ -86,7 +86,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         System.ArgumentNullException.ThrowIfNull(connection);
 
         // Create per-connection queue lazily; attach close handler once.
-        var q = _queues.GetOrAdd(connection, conn =>
+        System.Collections.Concurrent.ConcurrentQueue<TPacket> q = _queues.GetOrAdd(connection, conn =>
         {
             conn.OnCloseEvent += this.OnConnectionClosed;
             return new System.Collections.Concurrent.ConcurrentQueue<TPacket>();

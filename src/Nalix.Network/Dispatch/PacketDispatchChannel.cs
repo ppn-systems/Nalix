@@ -193,7 +193,7 @@ public sealed class PacketDispatchChannel
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(IPacket packet, IConnection connection)
     {
-        this._dispatch.Push(packet, connection);
+        _dispatch.Push(packet, connection);
         _ = _semaphore.Release();
     }
 

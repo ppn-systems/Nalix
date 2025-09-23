@@ -106,6 +106,28 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
+    /// Adds a middleware component to the end of the packet processing pipeline.
+    /// </summary>
+    /// <param name="middleware">
+    /// The <see cref="IPacketMiddleware{TPacket}"/> instance that will be invoked after the main packet handler completes.
+    /// </param>
+    /// <returns>
+    /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
+    /// </returns>
+    /// <remarks>
+    /// Inbound-processing middleware is useful for tasks such as auditing, cleanup, metrics collection,
+    /// or response transformation. Middleware is executed in the order it is added.
+    /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public PacketDispatchOptions<TPacket> WithOutboundAlways(
+        IPacketMiddleware<TPacket> middleware)
+    {
+        _pipeline.UseOutboundAlways(middleware);
+        return this;
+    }
+
+    /// <summary>
     /// Registers a handler by creating an instance of the specified controller type
     /// and scanning its methods decorated with <see cref="PacketOpcodeAttribute"/>.
     /// </summary>

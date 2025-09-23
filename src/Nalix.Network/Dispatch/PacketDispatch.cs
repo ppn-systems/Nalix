@@ -87,6 +87,5 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void HandlePacket(IPacket packet, IConnection connection)
-        => ExecutePacketHandlerAsync(packet, connection).Await();
+    public void HandlePacket(IPacket packet, IConnection connection) => ExecutePacketHandlerAsync(packet, connection).Await();
 }
