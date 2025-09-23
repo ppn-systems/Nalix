@@ -10,7 +10,6 @@ using Nalix.Common.Serialization.Attributes;
 using Nalix.Common.Serialization.Enums;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Extensions;
-using Nalix.Shared.LZ4.Extensions;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Serialization;
 
