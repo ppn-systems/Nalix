@@ -117,7 +117,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                     return;
                 }
-                current = t.Encrypt(current, context.Connection.EncryptionKey, context.Connection.Encryption);
+                current = t.Encrypt(current, context.Connection.Secret, context.Connection.Algorithm);
             }
 
             if (!ReferenceEquals(current, context.Packet))

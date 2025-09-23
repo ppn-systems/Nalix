@@ -18,7 +18,7 @@ public static class StringCipherExtensions
     /// <param name="algorithm">The symmetric algorithm to use.</param>
     /// <returns>A Base64 string of the encrypted data, or <see cref="System.String.Empty"/> if <paramref name="text"/> is null or empty.</returns>
     public static System.String EncryptToBase64(
-        this System.String text, System.Byte[] key, SymmetricAlgorithmType algorithm)
+        this System.String text, System.Byte[] key, CipherType algorithm)
     {
         if (System.String.IsNullOrEmpty(text))
         {
@@ -39,7 +39,7 @@ public static class StringCipherExtensions
     /// <returns>The decrypted UTF-8 string, or <see cref="System.String.Empty"/> if <paramref name="base64"/> is null or empty.</returns>
     /// <exception cref="System.InvalidOperationException">Thrown when Base64 is invalid or decryption fails.</exception>
     public static System.String DecryptFromBase64(
-        this System.String base64, System.Byte[] key, SymmetricAlgorithmType algorithm)
+        this System.String base64, System.Byte[] key, CipherType algorithm)
     {
         if (System.String.IsNullOrEmpty(base64))
         {

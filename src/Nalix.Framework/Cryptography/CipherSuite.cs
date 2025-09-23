@@ -17,11 +17,11 @@ public static class CipherSuite
 {
     #region Constants
 
-    private const System.Int32 ChaCha20NonceSize = 12;
-    private const System.Int32 LengthPrefixSize = 4;
-    private const System.Int32 Salsa20NonceSize = 8;
-    private const System.Int32 SpeckBlockSize = 8;
     private const System.Int32 XteaBlockSize = 8;
+    private const System.Int32 SpeckBlockSize = 8;
+    private const System.Int32 Salsa20NonceSize = 8;
+    private const System.Int32 LengthPrefixSize = 4;
+    private const System.Int32 ChaCha20NonceSize = 12;
 
     #endregion Constants
 
@@ -40,7 +40,7 @@ public static class CipherSuite
     public static System.ReadOnlyMemory<System.Byte> Encrypt(
         System.ReadOnlyMemory<System.Byte> data,
         System.Byte[] key,
-        SymmetricAlgorithmType algorithm)
+        CipherType algorithm)
     {
         ValidateEncryptionInputs(data, key, algorithm);
 
@@ -48,10 +48,10 @@ public static class CipherSuite
         {
             return algorithm switch
             {
-                SymmetricAlgorithmType.ChaCha20Poly1305 => EncryptChaCha20Poly1305(data, key),
-                SymmetricAlgorithmType.Salsa20 => EncryptSalsa20(data, key),
-                SymmetricAlgorithmType.Speck => EncryptSpeck(data, key),
-                SymmetricAlgorithmType.XTEA => EncryptXTEA(data, key),
+                CipherType.ChaCha20Poly1305 => EncryptChaCha20Poly1305(data, key),
+                CipherType.Salsa20 => EncryptSalsa20(data, key),
+                CipherType.Speck => EncryptSpeck(data, key),
+                CipherType.XTEA => EncryptXTEA(data, key),
                 _ => throw new CryptoException(
                     $"The specified encryption algorithm '{algorithm}' is not supported.")
             };
@@ -76,7 +76,7 @@ public static class CipherSuite
     public static System.ReadOnlyMemory<System.Byte> Decrypt(
         System.ReadOnlyMemory<System.Byte> data,
         System.Byte[] key,
-        SymmetricAlgorithmType algorithm = SymmetricAlgorithmType.XTEA)
+        CipherType algorithm = CipherType.XTEA)
     {
         ValidateDecryptionInputs(data, key, algorithm);
 
@@ -84,10 +84,10 @@ public static class CipherSuite
         {
             return algorithm switch
             {
-                SymmetricAlgorithmType.ChaCha20Poly1305 => DecryptChaCha20Poly1305(data, key),
-                SymmetricAlgorithmType.Salsa20 => DecryptSalsa20(data, key),
-                SymmetricAlgorithmType.Speck => DecryptSpeck(data, key),
-                SymmetricAlgorithmType.XTEA => DecryptXTEA(data, key),
+                CipherType.ChaCha20Poly1305 => DecryptChaCha20Poly1305(data, key),
+                CipherType.Salsa20 => DecryptSalsa20(data, key),
+                CipherType.Speck => DecryptSpeck(data, key),
+                CipherType.XTEA => DecryptXTEA(data, key),
                 _ => throw new CryptoException(
                     $"The specified decryption algorithm '{algorithm}' is not supported.")
             };
@@ -111,7 +111,7 @@ public static class CipherSuite
         System.ReadOnlyMemory<System.Byte> data,
         System.Byte[] key,
         out System.ReadOnlyMemory<System.Byte> result,
-        SymmetricAlgorithmType mode)
+        CipherType mode)
     {
         try
         {
@@ -137,7 +137,7 @@ public static class CipherSuite
         System.ReadOnlyMemory<System.Byte> data,
         System.Byte[] key,
         out System.ReadOnlyMemory<System.Byte> result,
-        SymmetricAlgorithmType mode)
+        CipherType mode)
     {
         try
         {
@@ -155,7 +155,7 @@ public static class CipherSuite
 
     #region Validation Methods
 
-    private static void ValidateEncryptionInputs(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key, SymmetricAlgorithmType algorithm)
+    private static void ValidateEncryptionInputs(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key, CipherType algorithm)
     {
         if (key is null)
         {
@@ -173,7 +173,7 @@ public static class CipherSuite
         }
     }
 
-    private static void ValidateDecryptionInputs(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key, SymmetricAlgorithmType algorithm)
+    private static void ValidateDecryptionInputs(System.ReadOnlyMemory<System.Byte> data, System.Byte[] key, CipherType algorithm)
     {
         if (key is null)
         {
@@ -302,7 +302,7 @@ public static class CipherSuite
         if (input.Length < minSize)
         {
             throw new System.ArgumentException(
-                $"Invalid data length. " +
+                 "Invalid data length. " +
                 $"Encrypted data must contain a nonce ({ChaCha20NonceSize} bytes) and a tag ({ChaCha20Poly1305.TagSize} bytes).",
                 nameof(data));
         }
