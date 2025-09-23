@@ -17,6 +17,7 @@ namespace Nalix.Shared.Serialization.Internal.Accessors;
 /// </summary>
 /// <typeparam name="T">Object type chứa field.</typeparam>
 /// <typeparam name="TField">Field type.</typeparam>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class FieldAccessorImpl<T, TField>(System.Int32 index) : FieldAccessor<T>
 {
     #region Fields

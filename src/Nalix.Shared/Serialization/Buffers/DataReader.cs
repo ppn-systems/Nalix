@@ -8,7 +8,11 @@ namespace Nalix.Shared.Serialization.Buffers;
 /// Provides functionality for reading serialized data from a byte buffer.
 /// Supports managed <c>byte[]</c>, <c>ReadOnlyMemory&lt;byte&gt;</c>, <c>ReadOnlySpan&lt;byte&gt;</c>, and unmanaged memory.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+[System.Diagnostics.DebuggerDisplay("Len={_length}, Read={BytesRead}, Rem={BytesRemaining}, Pinned={_pinned}")]
 public unsafe struct DataReader : System.IDisposable
 {
     #region Fields
@@ -98,9 +102,8 @@ public unsafe struct DataReader : System.IDisposable
         if (System.Runtime.InteropServices.MemoryMarshal
             .TryGetArray(memory, out System.ArraySegment<System.Byte> segment))
         {
-            _pin = System.Runtime.InteropServices.GCHandle.Alloc(
-                segment.Array!,
-                System.Runtime.InteropServices.GCHandleType.Pinned);
+            _pin = System.Runtime.InteropServices.GCHandle.Alloc(segment.Array,
+                   System.Runtime.InteropServices.GCHandleType.Pinned);
             _ptr = (System.Byte*)_pin.AddrOfPinnedObject() + segment.Offset;
             _length = segment.Count;
             _pinned = true;
@@ -131,6 +134,7 @@ public unsafe struct DataReader : System.IDisposable
     /// <exception cref="SerializationException">
     /// Thrown if the requested length exceeds the available buffer size.
     /// </exception>
+    [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -150,6 +154,7 @@ public unsafe struct DataReader : System.IDisposable
     /// <exception cref="SerializationException">
     /// Thrown if the requested size exceeds the available buffer size.
     /// </exception>
+    [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -174,7 +179,8 @@ public unsafe struct DataReader : System.IDisposable
     /// </exception>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Advance(System.Int32 count)
     {
         System.ArgumentOutOfRangeException.ThrowIfNegative(count);
@@ -190,6 +196,7 @@ public unsafe struct DataReader : System.IDisposable
     /// <summary>
     /// Releases pinned memory if necessary and resets the reader state.
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     public void Dispose()
     {

@@ -101,94 +101,96 @@ internal readonly struct LZ4Decoder
         }
 
         fixed (System.Byte* inputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(input))
-        fixed (System.Byte* outputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(output))
         {
-            System.Byte* inputPtr = inputBase + LZ4BlockHeader.Size;
-            System.Byte* inputEnd = inputBase + header.CompressedLength;
-            System.Byte* outputPtr = outputBase;
-            System.Byte* outputEnd = outputBase + header.OriginalLength;
-
-            while (inputPtr < inputEnd)
+            fixed (System.Byte* outputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(output))
             {
-                if (inputPtr >= inputEnd)
+                System.Byte* inputPtr = inputBase + LZ4BlockHeader.Size;
+                System.Byte* inputEnd = inputBase + header.CompressedLength;
+                System.Byte* outputPtr = outputBase;
+                System.Byte* outputEnd = outputBase + header.OriginalLength;
+
+                while (inputPtr < inputEnd)
                 {
-                    return false;
-                }
-
-                System.Byte token = *inputPtr++;
-
-                System.Int32 literalLength = (token >> 4) & LZ4CompressionConstants.TokenLiteralMask;
-
-                if (literalLength == LZ4CompressionConstants.TokenLiteralMask)
-                {
-                    System.Int32 bytesRead = SpanOps.ReadVarInt(ref inputPtr, inputEnd, out System.Int32 extraLength);
-                    if (bytesRead == -1 || extraLength < 0)
+                    if (inputPtr >= inputEnd)
                     {
                         return false;
                     }
 
-                    literalLength += extraLength;
-                }
+                    System.Byte token = *inputPtr++;
 
-                if (literalLength > 0)
-                {
-                    if (inputPtr + literalLength > inputEnd || outputPtr + literalLength > outputEnd)
+                    System.Int32 literalLength = (token >> 4) & LZ4CompressionConstants.TokenLiteralMask;
+
+                    if (literalLength == LZ4CompressionConstants.TokenLiteralMask)
+                    {
+                        System.Int32 bytesRead = SpanOps.ReadVarInt(ref inputPtr, inputEnd, out System.Int32 extraLength);
+                        if (bytesRead == -1 || extraLength < 0)
+                        {
+                            return false;
+                        }
+
+                        literalLength += extraLength;
+                    }
+
+                    if (literalLength > 0)
+                    {
+                        if (inputPtr + literalLength > inputEnd || outputPtr + literalLength > outputEnd)
+                        {
+                            return false;
+                        }
+
+                        MemOps.Copy(inputPtr, outputPtr, literalLength);
+                        inputPtr += literalLength;
+                        outputPtr += literalLength;
+                    }
+
+                    if (inputPtr >= inputEnd || outputPtr >= outputEnd)
+                    {
+                        break;
+                    }
+
+                    if (inputPtr + sizeof(System.UInt16) > inputEnd)
                     {
                         return false;
                     }
 
-                    MemOps.Copy(inputPtr, outputPtr, literalLength);
-                    inputPtr += literalLength;
-                    outputPtr += literalLength;
-                }
-
-                if (inputPtr >= inputEnd || outputPtr >= outputEnd)
-                {
-                    break;
-                }
-
-                if (inputPtr + sizeof(System.UInt16) > inputEnd)
-                {
-                    return false;
-                }
-
-                System.Int32 offset = MemOps.ReadUnaligned<System.UInt16>(inputPtr);
-                inputPtr += sizeof(System.UInt16);
-                if (offset == 0 || offset > (outputPtr - outputBase))
-                {
-                    return false;
-                }
-
-                System.Int32 matchLength = token & LZ4CompressionConstants.TokenMatchMask;
-                if (matchLength == LZ4CompressionConstants.TokenMatchMask)
-                {
-                    System.Int32 bytesRead = SpanOps.ReadVarInt(ref inputPtr, inputEnd, out System.Int32 extraLength);
-                    if (bytesRead == -1 || extraLength < 0)
+                    System.Int32 offset = MemOps.ReadUnaligned<System.UInt16>(inputPtr);
+                    inputPtr += sizeof(System.UInt16);
+                    if (offset == 0 || offset > (outputPtr - outputBase))
                     {
                         return false;
                     }
 
-                    matchLength += extraLength;
-                }
-                matchLength += LZ4CompressionConstants.MinMatchLength;
+                    System.Int32 matchLength = token & LZ4CompressionConstants.TokenMatchMask;
+                    if (matchLength == LZ4CompressionConstants.TokenMatchMask)
+                    {
+                        System.Int32 bytesRead = SpanOps.ReadVarInt(ref inputPtr, inputEnd, out System.Int32 extraLength);
+                        if (bytesRead == -1 || extraLength < 0)
+                        {
+                            return false;
+                        }
 
-                System.Byte* matchSourcePtr = outputPtr - offset;
-                if (outputPtr + matchLength > outputEnd)
+                        matchLength += extraLength;
+                    }
+                    matchLength += LZ4CompressionConstants.MinMatchLength;
+
+                    System.Byte* matchSourcePtr = outputPtr - offset;
+                    if (outputPtr + matchLength > outputEnd)
+                    {
+                        return false;
+                    }
+
+                    MemOps.Copy(matchSourcePtr, outputPtr, matchLength);
+                    outputPtr += matchLength;
+                }
+
+                if (outputPtr != outputEnd || inputPtr != inputEnd)
                 {
                     return false;
                 }
 
-                MemOps.Copy(matchSourcePtr, outputPtr, matchLength);
-                outputPtr += matchLength;
+                bytesWritten = header.OriginalLength;
+                return true;
             }
-
-            if (outputPtr != outputEnd || inputPtr != inputEnd)
-            {
-                return false;
-            }
-
-            bytesWritten = header.OriginalLength;
-            return true;
         }
     }
 }

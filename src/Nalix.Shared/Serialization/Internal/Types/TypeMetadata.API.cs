@@ -10,6 +10,10 @@ namespace Nalix.Shared.Serialization.Internal.Types;
 /// <summary>
 /// Provides metadata operations for serialization types.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal static partial class TypeMetadata
 {
     /// <summary>
@@ -17,6 +21,7 @@ internal static partial class TypeMetadata
     /// </summary>
     /// <typeparam name="T">The unmanaged type to evaluate.</typeparam>
     /// <returns>The size of the type in bytes.</returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 SizeOf<T>()
@@ -27,6 +32,7 @@ internal static partial class TypeMetadata
     /// </summary>
     /// <typeparam name="T">The type to check.</typeparam>
     /// <returns>True if the type is unmanaged; otherwise, false.</returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean IsUnmanaged<[
@@ -39,6 +45,8 @@ internal static partial class TypeMetadata
     /// <param name="type">The type to check for unmanaged status.</param>
     /// <returns>True if the type is unmanaged; otherwise, false.</returns>
     /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="type"/> is null.</exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.StackTraceHidden]
     public static System.Boolean IsUnmanaged(System.Type type)
     {
         try
@@ -59,6 +67,7 @@ internal static partial class TypeMetadata
     /// </summary>
     /// <typeparam name="T">The type to check.</typeparam>
     /// <returns>True if the type is nullable; otherwise, false.</returns>
+    [System.Diagnostics.Contracts.Pure]
     public static System.Boolean IsNullable<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>()
         => Cache<T>.IsNullable;
@@ -68,6 +77,7 @@ internal static partial class TypeMetadata
     /// </summary>
     /// <typeparam name="T">The type to check.</typeparam>
     /// <returns>True if the type is a reference type or nullable; otherwise, false.</returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean IsReferenceOrNullable<[
@@ -80,6 +90,7 @@ internal static partial class TypeMetadata
     /// <typeparam name="T">The type to evaluate.</typeparam>
     /// <param name="size">The fixed or unmanaged size of the type.</param>
     /// <returns>The corresponding <see cref="TypeKind"/> value.</returns>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static TypeKind TryGetFixedOrUnmanagedSize<
@@ -108,6 +119,9 @@ internal static partial class TypeMetadata
     /// </summary>
     /// <param name="type">The type to check.</param>
     /// <returns>True if the type is anonymous; otherwise, false.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean IsAnonymous(System.Type type)
     {
         // Kiểu ẩn danh thường không có namespace
