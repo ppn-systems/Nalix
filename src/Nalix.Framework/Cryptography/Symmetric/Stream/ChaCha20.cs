@@ -580,6 +580,79 @@ public sealed class ChaCha20 : System.IDisposable
 
     #endregion Decryption methods
 
+    #region Static Methods
+
+    /// <summary>
+    /// Encrypts or decrypts the input bytes using ChaCha20 in a one-shot static API.
+    /// </summary>
+    /// <param name="key">32-byte key</param>
+    /// <param name="nonce">12-byte nonce</param>
+    /// <param name="counter">Initial block counter</param>
+    /// <param name="input">Input data to encrypt/decrypt</param>
+    /// <param name="simdMode">SIMD acceleration mode (default auto)</param>
+    /// <returns>Encrypted/decrypted output</returns>
+    public static System.Byte[] Encrypt(
+        System.Byte[] key,
+        System.Byte[] nonce,
+        System.UInt32 counter,
+        System.Byte[] input,
+        SimdMode simdMode = SimdMode.AutoDetect)
+    {
+        using ChaCha20 chacha = new(key, nonce, counter);
+        return chacha.EncryptBytes(input, simdMode);
+    }
+
+    /// <summary>
+    /// Decrypts the input bytes using ChaCha20 in a one-shot static API.
+    /// (Same as Encrypt, provided for clarity.)
+    /// </summary>
+    /// <param name="key">32-byte key</param>
+    /// <param name="nonce">12-byte nonce</param>
+    /// <param name="counter">Initial block counter</param>
+    /// <param name="input">Input data to decrypt</param>
+    /// <param name="simdMode">SIMD acceleration mode (default auto)</param>
+    /// <returns>Decrypted output</returns>
+    public static System.Byte[] Decrypt(
+        System.Byte[] key,
+        System.Byte[] nonce,
+        System.UInt32 counter,
+        System.Byte[] input,
+        SimdMode simdMode = SimdMode.AutoDetect)
+    {
+        using ChaCha20 chacha = new(key, nonce, counter);
+        return chacha.DecryptBytes(input, simdMode);
+    }
+
+    /// <summary>
+    /// Encrypts or decrypts UTF8 string in a one-shot static API.
+    /// </summary>
+    public static System.Byte[] EncryptString(
+        System.Byte[] key,
+        System.Byte[] nonce,
+        System.UInt32 counter,
+        System.String input,
+        SimdMode simdMode = SimdMode.AutoDetect)
+    {
+        using ChaCha20 chacha = new(key, nonce, counter);
+        return chacha.EncryptString(input, simdMode);
+    }
+
+    /// <summary>
+    /// Decrypts UTF8-encoded ciphertext to string in a one-shot static API.
+    /// </summary>
+    public static System.String DecryptString(
+        System.Byte[] key,
+        System.Byte[] nonce,
+        System.UInt32 counter,
+        System.Byte[] input,
+        SimdMode simdMode = SimdMode.AutoDetect)
+    {
+        using ChaCha20 chacha = new(key, nonce, counter);
+        return chacha.DecryptUtf8ByteArray(input, simdMode);
+    }
+
+    #endregion Static Methods
+
     #region Private Methods
 
     /// <summary>

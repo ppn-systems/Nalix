@@ -124,30 +124,38 @@ internal class FieldElement
     /// Converts to a 32 byte array
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Identical to feToBytes in Golang
     ///   feToBytes marshals h to s.
     /// Preconditions:
     /// |h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
-    /// 
+    /// </para>
+    /// <para>
     /// Write p=2^255-19; q=floor(h/p).
     /// Basic claim: q = floor(2^(-255)(h + 19 2^(-25)h9 + 2^(-1))).
-    /// 
+    /// </para>
+    /// <para>
     /// Proof:
     /// Have |h|&lt;=p so |q|&lt;=1 so |19^2 2^(-255) q|&lt;1/4.
     /// Also have |h-2^230 h9|&lt;2^230 so |19 2^(-255)(h-2^230 h9)|&lt;1/4.
-    /// 
+    /// </para>
+    /// <para>
     /// Write y=2^(-1)-19^2 2^(-255)q-19 2^(-255)(h-2^230 h9).
     /// Then 0&lt;y&lt;1.
-    /// 
+    /// </para>
+    /// <para>
     /// Write r=h-pq.
     /// Have 0&lt;=r&lt;=p-1=2^255-20.
     /// Thus 0&lt;=r+19(2^-255)r&lt;r+19(2^-255)2^255&lt;=2^255-1.
-    /// 
+    /// </para>
+    /// <para>
     /// Write x=r+19(2^-255)r+y.
     /// Then 0&lt;x&lt;2^255 so floor(2^(-255)x) = 0 so floor(q+2^(-255)x) = q.
-    /// 
+    /// </para>
+    /// <para>
     /// Have q+2^(-255)x = 2^(-255)(h + 19 2^(-25) h9 + 2^(-1))
     /// so floor(2^(-255)(h + 19 2^(-25) h9 + 2^(-1))) = q.
+    /// </para>
     /// </remarks>
     /// <returns></returns>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -156,7 +164,7 @@ internal class FieldElement
     {
         var carry = new System.Int32[10];
 
-        System.Int32 q = 19 * _elements[9] + (1 << 24) >> 25;
+        System.Int32 q = (19 * _elements[9]) + (1 << 24) >> 25;
         q = _elements[0] + q >> 26;
         q = _elements[1] + q >> 25;
         q = _elements[2] + q >> 26;
@@ -249,32 +257,36 @@ internal class FieldElement
     /// </summary>
     /// <param name="g"></param>
     /// <remarks>
-    /// Can overlap h with f or g.
-    /// 
+    /// <para>Can overlap h with f or g.</para>
+    /// <para>
     /// Preconditions:
     /// |f| bounded by 1.1*2^26,1.1*2^25,1.1*2^26,1.1*2^25,etc.
     /// |g| bounded by 1.1*2^26,1.1*2^25,1.1*2^26,1.1*2^25,etc.
-    /// 
+    /// </para>
+    /// <para>
     /// Postconditions:
     /// |h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
-    /// 
-    /// Notes on implementation strategy:
-    /// 
+    /// </para>
+    /// <para>Notes on implementation strategy:</para>
+    /// <para>
     /// Using schoolbook multiplication.
     /// Karatsuba would save a little in some cost models.
-    /// 
+    /// </para>
+    /// <para>
     /// Most multiplications by 2 and 19 are 32-bit precomputations;
     /// cheaper than 64-bit postcomputations.
-    /// 
+    /// </para>
+    /// <para>
     /// There is one remaining multiplication by 19 in the carry chain;
     /// one *19 precomputation can be merged into this,
     /// but the resulting data flow is considerably less clean.
-    /// 
+    /// </para>
+    /// <para>
     /// There are 12 carries below.
     /// 10 of them are 2-way parallelizable and vectorizable.
     /// Can get away with 11 carries, but then data flow is much deeper.
-    /// 
-    /// With tighter constraints on inputs can squeeze carries into int32.
+    /// </para>
+    /// <para>With tighter constraints on inputs can squeeze carries into int32.</para>
     /// </remarks>
     /// <returns></returns>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -676,11 +688,14 @@ internal class FieldElement
     /// Calculates h = f * 121666. Can overlap h with f; I have no clue why this is a thing
     /// </summary>
     /// <remarks>
+    /// <para>
     ///   Preconditions:
     /// |f| bounded by 1.1*2^26,1.1*2^25,1.1*2^26,1.1*2^25,etc.
-    /// 
+    /// </para>
+    /// <para>
     /// Postconditions:
     /// |h| bounded by 1.1*2^25,1.1*2^24,1.1*2^25,1.1*2^24,etc.
+    /// </para>
     /// </remarks>
     /// <returns></returns>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -749,7 +764,6 @@ internal class FieldElement
     /// <summary>
     /// Calculates this ^(-1)
     /// </summary>
-    /// 
     /// <returns></returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -930,13 +944,15 @@ internal class FieldElement
     {
         b = -b;
         fixed (System.Int32* fPtr = f._elements)
-        fixed (System.Int32* gPtr = g._elements)
         {
-            for (System.Int32 i = 0; i < 10; i++)
+            fixed (System.Int32* gPtr = g._elements)
             {
-                System.Int32 t = b & (fPtr[i] ^ gPtr[i]);
-                fPtr[i] ^= t;
-                gPtr[i] ^= t;
+                for (System.Int32 i = 0; i < 10; i++)
+                {
+                    System.Int32 t = b & (fPtr[i] ^ gPtr[i]);
+                    fPtr[i] ^= t;
+                    gPtr[i] ^= t;
+                }
             }
         }
     }

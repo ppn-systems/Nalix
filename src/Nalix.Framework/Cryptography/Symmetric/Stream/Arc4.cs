@@ -188,6 +188,130 @@ public sealed class Arc4 : System.IDisposable
 
     #endregion
 
+    #region Static API
+
+    /// <summary>
+    /// One-shot ARC4 processing (encrypt/decrypt). Returns a new byte[].
+    /// WARNING: ARC4 is weak; prefer modern ciphers for new designs.
+    /// </summary>
+    /// <param name="key">Key (5..256 bytes).</param>
+    /// <param name="input">Input to encrypt/decrypt.</param>
+    /// <returns>Ciphertext or plaintext (same length as input).</returns>
+    public static System.Byte[] Process(System.Byte[] key, System.ReadOnlySpan<System.Byte> input)
+    {
+        System.ArgumentNullException.ThrowIfNull(key);
+        using var rc4 = new Arc4(key);
+        var dst = new System.Byte[input.Length];
+        rc4.Process(input, dst);
+        return dst;
+    }
+
+    /// <summary>
+    /// One-shot ARC4 processing (encrypt/decrypt) in place.
+    /// WARNING: ARC4 is weak; prefer modern ciphers for new designs.
+    /// </summary>
+    /// <param name="key">Key (5..256 bytes).</param>
+    /// <param name="buffer">Buffer to be processed in place.</param>
+    public static void ProcessInPlace(System.Byte[] key, System.Span<System.Byte> buffer)
+    {
+        System.ArgumentNullException.ThrowIfNull(key);
+        if (buffer.IsEmpty)
+        {
+            return;
+        }
+
+        using var rc4 = new Arc4(key);
+        rc4.Process(buffer);
+    }
+
+    /// <summary>
+    /// One-shot ARC4 processing from source into destination (lengths must match).
+    /// WARNING: ARC4 is weak; prefer modern ciphers for new designs.
+    /// </summary>
+    /// <param name="key">Key (5..256 bytes).</param>
+    /// <param name="source">Source input.</param>
+    /// <param name="destination">Destination buffer (same length as source).</param>
+    public static void Process(
+        System.Byte[] key,
+        System.ReadOnlySpan<System.Byte> source,
+        System.Span<System.Byte> destination)
+    {
+        System.ArgumentNullException.ThrowIfNull(key);
+        using var rc4 = new Arc4(key);
+        rc4.Process(source, destination);
+    }
+
+    /// <summary>
+    /// One-shot ARC4 processing for streams (sync).
+    /// Reads from <paramref name="input"/> and writes to <paramref name="output"/> until EOF.
+    /// WARNING: ARC4 is weak; prefer modern ciphers for new designs.
+    /// </summary>
+    /// <param name="key">Key (5..256 bytes).</param>
+    /// <param name="input">Input stream (readable).</param>
+    /// <param name="output">Output stream (writable).</param>
+    /// <param name="bufferSize">I/O buffer size (default 8192).</param>
+    public static void ProcessStream(
+        System.Byte[] key,
+        System.IO.Stream input,
+        System.IO.Stream output,
+        System.Int32 bufferSize = 8192)
+    {
+        System.ArgumentNullException.ThrowIfNull(key);
+        System.ArgumentNullException.ThrowIfNull(input);
+        System.ArgumentNullException.ThrowIfNull(output);
+        if (bufferSize <= 0)
+        {
+            bufferSize = 8192;
+        }
+
+        using var rc4 = new Arc4(key);
+        var buf = new System.Byte[bufferSize];
+        System.Int32 read;
+        while ((read = input.Read(buf, 0, buf.Length)) > 0)
+        {
+            rc4.Process(System.MemoryExtensions.AsSpan(buf, 0, read));
+            output.Write(buf, 0, read);
+        }
+    }
+
+    /// <summary>
+    /// One-shot ARC4 processing for streams (async).
+    /// Reads from <paramref name="input"/> and writes to <paramref name="output"/> until EOF.
+    /// WARNING: ARC4 is weak; prefer modern ciphers for new designs.
+    /// </summary>
+    /// <param name="key">Key (5..256 bytes).</param>
+    /// <param name="input">Input stream (readable).</param>
+    /// <param name="output">Output stream (writable).</param>
+    /// <param name="bufferSize">I/O buffer size (default 8192).</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async System.Threading.Tasks.Task ProcessStreamAsync(
+        System.Byte[] key,
+        System.IO.Stream input,
+        System.IO.Stream output,
+        System.Int32 bufferSize = 8192,
+        System.Threading.CancellationToken ct = default)
+    {
+        System.ArgumentNullException.ThrowIfNull(key);
+        System.ArgumentNullException.ThrowIfNull(input);
+        System.ArgumentNullException.ThrowIfNull(output);
+        if (bufferSize <= 0)
+        {
+            bufferSize = 8192;
+        }
+
+        using var rc4 = new Arc4(key);
+        var buf = new System.Byte[bufferSize];
+
+        System.Int32 read;
+        while ((read = await input.ReadAsync(System.MemoryExtensions.AsMemory(buf, 0, buf.Length), ct)) > 0)
+        {
+            rc4.Process(System.MemoryExtensions.AsSpan(buf, 0, read));
+            await output.WriteAsync(System.MemoryExtensions.AsMemory(buf, 0, read), ct);
+        }
+    }
+
+    #endregion Static API
+
     #region Private API
 
     [System.Runtime.CompilerServices.MethodImpl(

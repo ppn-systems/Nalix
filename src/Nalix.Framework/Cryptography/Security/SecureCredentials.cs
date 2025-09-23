@@ -24,9 +24,9 @@ public static class SecureCredentials
     public const System.Int32 SaltSize = 32;
 
     /// <summary>
-    /// ProtocolType of iterations for PBKDF2.
+    /// Iteration count for PBKDF2.
     /// </summary>
-    public const System.Int32 Iterations = 100_000;
+    public const System.Int32 Iterations = 310_000;
 
     #endregion Constants
 
@@ -59,7 +59,7 @@ public static class SecureCredentials
     {
         GenerateCredentialHash(credential, out System.Byte[] salt, out System.Byte[] hash);
         System.Byte[] combined = new System.Byte[1 + salt.Length + hash.Length];
-        System.Byte version = 1;
+        const System.Byte version = 2;
         combined[0] = version;
         System.Array.Copy(salt, 0, combined, 1, salt.Length);
         System.Array.Copy(hash, 0, combined, 1 + salt.Length, hash.Length);
