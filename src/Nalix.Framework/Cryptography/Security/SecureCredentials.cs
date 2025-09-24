@@ -1,6 +1,5 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Enums;
 using Nalix.Framework.Cryptography.Primitives;
 using Nalix.Framework.Randomization;
 
@@ -43,8 +42,8 @@ public static class SecureCredentials
     public static void GenerateCredentialHash(System.String credential, out System.Byte[] salt, out System.Byte[] hash)
     {
         salt = SecureRandom.GetBytes(SaltSize);
-        using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize, HashType.Sha256);
-        hash = pbkdf2.DeriveKey(credential);
+        using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize);
+        hash = pbkdf2.GenerateKey(credential);
     }
 
     /// <summary>
@@ -77,8 +76,8 @@ public static class SecureCredentials
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean VerifyCredentialHash(System.String credential, System.Byte[] salt, System.Byte[] hash)
     {
-        using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize, HashType.Sha256);
-        return BitwiseOperations.FixedTimeEquals(pbkdf2.DeriveKey(credential), hash);
+        using PBKDF2 pbkdf2 = new(salt, Iterations, KeySize);
+        return BitwiseOperations.FixedTimeEquals(pbkdf2.GenerateKey(credential), hash);
     }
 
     /// <summary>
