@@ -209,15 +209,15 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     {
         System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
 
-        var snapshot = CollectStateSnapshot(now, out System.Int32 totalEndpoints, out System.Int32 hardBlockedCount);
+        var snapshot = COLLECT_STATE_SNAPSHOT(now, out System.Int32 totalEndpoints, out System.Int32 hardBlockedCount);
 
         try
         {
-            return BuildReportString(snapshot, totalEndpoints, hardBlockedCount, now);
+            return BUILD_REPORT_STRING(snapshot, totalEndpoints, hardBlockedCount, now);
         }
         finally
         {
-            ReturnSnapshotToPool(snapshot);
+            RETURN_SNAPSHOT_TO_POOL(snapshot);
         }
     }
 
@@ -718,10 +718,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// Collects a consistent snapshot of all endpoint states.
     /// </summary>
     private System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>>
-        CollectStateSnapshot(
-            System.Int64 now,
-            out System.Int32 totalEndpoints,
-            out System.Int32 hardBlockedCount)
+        COLLECT_STATE_SNAPSHOT(System.Int64 now, out System.Int32 totalEndpoints, out System.Int32 hardBlockedCount)
     {
         System.Int32 currentCount = System.Threading.Interlocked.CompareExchange(ref _totalEndpointCount, 0, 0);
         System.Int32 estimatedCapacity = currentCount > 0 ? currentCount : (_shards.Length * 8);
@@ -756,7 +753,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             }
         }
 
-        SortSnapshotByPressure(snapshot, now);
+        SORT_SNAPSHOT_BY_PRESSURE(snapshot, now);
 
         return snapshot;
     }
@@ -764,9 +761,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Sorts snapshot by pressure (blocked first, then by token deficit).
     /// </summary>
-    private void SortSnapshotByPressure(
-        System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>> snapshot,
-        System.Int64 now)
+    private void SORT_SNAPSHOT_BY_PRESSURE(System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>> snapshot, System.Int64 now)
     {
         snapshot.Sort((a, b) =>
         {
@@ -795,8 +790,8 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             }
 
             // Then by deficit (bigger deficit = higher pressure)
-            System.Int64 aDef = CalculateDeficit(aMicro);
-            System.Int64 bDef = CalculateDeficit(bMicro);
+            System.Int64 aDef = CALCULATE_DEFICIT(aMicro);
+            System.Int64 bDef = CALCULATE_DEFICIT(bMicro);
 
             System.Int32 cmpDef = bDef.CompareTo(aDef);
             if (cmpDef != 0)
@@ -814,7 +809,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Int64 CalculateDeficit(System.Int64 microBalance)
+    private System.Int64 CALCULATE_DEFICIT(System.Int64 microBalance)
     {
         System.Int64 clamped = microBalance < 0 ? 0 :
                               (microBalance > _capacityMicro ? _capacityMicro : microBalance);
@@ -824,7 +819,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Builds the report string from snapshot data.
     /// </summary>
-    private System.String BuildReportString(
+    private System.String BUILD_REPORT_STRING(
         System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>> snapshot,
         System.Int32 totalEndpoints,
         System.Int32 hardBlockedCount,
@@ -832,8 +827,8 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     {
         System.Text.StringBuilder sb = new();
 
-        AppendReportHeader(sb, totalEndpoints, hardBlockedCount);
-        AppendEndpointDetails(sb, snapshot, now);
+        APPEND_REPORT_HEADER(sb, totalEndpoints, hardBlockedCount);
+        APPEND_ENDPOINT_DETAILS(sb, snapshot, now);
 
         return sb.ToString();
     }
@@ -841,7 +836,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Appends report header with configuration and statistics.
     /// </summary>
-    private void AppendReportHeader(
+    private void APPEND_REPORT_HEADER(
         System.Text.StringBuilder sb,
         System.Int32 totalEndpoints,
         System.Int32 hardBlockedCount)
@@ -863,7 +858,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Appends detailed endpoint information to report.
     /// </summary>
-    private void AppendEndpointDetails(
+    private void APPEND_ENDPOINT_DETAILS(
         System.Text.StringBuilder sb,
         System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>> snapshot,
         System.Int64 now)
@@ -879,7 +874,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         }
         else
         {
-            AppendTopEndpoints(sb, snapshot, now, maxCount: 20);
+            APPEND_TOP_ENDPOINTS(sb, snapshot, now, maxCount: 20);
         }
 
         _ = sb.AppendLine("-------------------------------------------------------------------------------");
@@ -888,7 +883,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Appends top N endpoints to the report.
     /// </summary>
-    private void AppendTopEndpoints(
+    private void APPEND_TOP_ENDPOINTS(
         System.Text.StringBuilder sb,
         System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>> snapshot,
         System.Int64 now,
@@ -903,18 +898,14 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
                 break;
             }
 
-            AppendEndpointRow(sb, kv.Key, kv.Value, now);
+            APPEND_ENDPOINT_ROW(sb, kv.Key, kv.Value, now);
         }
     }
 
     /// <summary>
     /// Appends a single endpoint row to the report.
     /// </summary>
-    private void AppendEndpointRow(
-        System.Text.StringBuilder sb,
-        INetworkEndpoint key,
-        EndpointState state,
-        System.Int64 now)
+    private void APPEND_ENDPOINT_ROW(System.Text.StringBuilder sb, INetworkEndpoint key, EndpointState state, System.Int64 now)
     {
         System.Int64 micro, blockedUntil;
 
@@ -926,9 +917,9 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         System.Boolean isBlocked = blockedUntil > now;
         System.UInt16 credit = CALCULATE_REMAINING_CREDIT(micro, _opt.TokenScale);
-        System.Int32 retryMs = CalculateRetryForReport(micro, isBlocked, blockedUntil, now);
+        System.Int32 retryMs = CALCULATE_RETRY_FOR_REPORT(micro, isBlocked, blockedUntil, now);
 
-        System.String keyCol = FormatEndpointKey(key.Address);
+        System.String keyCol = FORMAT_ENDPOINT_KEY(key.Address);
         System.String blockedCol = isBlocked ? "yes" : " no ";
 
         _ = sb.AppendLine($"{keyCol} | {blockedCol}   | {credit,6} | {micro,10}/{_capacityMicro,-10} | {retryMs,12}");
@@ -939,11 +930,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Int32 CalculateRetryForReport(
-        System.Int64 micro,
-        System.Boolean isBlocked,
-        System.Int64 blockedUntil,
-        System.Int64 now)
+    private System.Int32 CALCULATE_RETRY_FOR_REPORT(System.Int64 micro, System.Boolean isBlocked, System.Int64 blockedUntil, System.Int64 now)
     {
         if (isBlocked)
         {
@@ -959,7 +946,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.String FormatEndpointKey(System.String address)
+    private static System.String FORMAT_ENDPOINT_KEY(System.String address)
     {
         const System.Int32 MaxLength = 15;
         return address.Length > MaxLength
@@ -972,7 +959,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void ReturnSnapshotToPool(
+    private static void RETURN_SNAPSHOT_TO_POOL(
         System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>> snapshot)
     {
         var pool = ListPool<System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>>.Instance;
