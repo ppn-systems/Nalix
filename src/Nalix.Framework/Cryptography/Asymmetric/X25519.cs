@@ -166,12 +166,15 @@ internal static class Curve25519
         return x2.ToBytes();
     }
     /// <summary>
+    /// <para>
     /// X25519 returns the result of the scalar multiplication (scalar * point),
     /// according to RFC 7748, Section 5. scalar, point and the return value are
     /// slices of 32 bytes.
-    ///
+    /// </para>
+    /// <para>
     /// If point is Basepoint (but not if it's a different slice with the same
     /// contents) a precomputed implementation might be used for performance.
+    /// </para>
     /// </summary>
     /// <returns></returns>
     public static System.Byte[] ScalarMultiplication(System.Byte[] scalar, System.Byte[] point)
@@ -197,7 +200,7 @@ internal static class Curve25519
         System.Byte v = 0;
         for (System.Int32 i = 0; i < result.Length; i++)
         {
-            v = (System.Byte)(v | zero[i] ^ result[i]);
+            v = (System.Byte)(v | (zero[i] ^ result[i]));
         }
 
         return (System.Int32)((System.UInt32)(v ^ 0) - 1 >> 31) == 1

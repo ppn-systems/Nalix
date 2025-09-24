@@ -1,5 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Framework.Cryptography.Hashing;
 using Nalix.Framework.Extensions;
 
 namespace Nalix.Framework.Cryptography.Asymmetric;
@@ -44,9 +45,11 @@ public static class Ed25519
         }
 
         // Compute the hash of the private key and split into two halves
-        System.Byte[] h = ComputeHash(privateKey);
-        System.Numerics.BigInteger a = ClampScalar(System.MemoryExtensions.AsSpan(h, 0, 32));
-        System.ReadOnlySpan<System.Byte> prefix = new(h, 32, h.Length - 32);
+        System.Span<System.Byte> aBytes = stackalloc System.Byte[32];
+        System.Span<System.Byte> prefix = stackalloc System.Byte[32];
+        DeriveKeyMaterial(privateKey, aBytes, prefix);
+
+        System.Numerics.BigInteger a = ClampScalar(aBytes);
 
         // r = Hashing(prefix || message) mod L, using Span overload
         System.Numerics.BigInteger r = HashToScalar(prefix, message);
@@ -151,16 +154,6 @@ public static class Ed25519
     #region Private Methods
 
     /// <summary>
-    /// Computes the SHA-512 hash of the provided data.
-    /// </summary>
-    /// <param name="data">The data to hash.</param>
-    /// <returns>The hash of the data as a byte array.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data)
-        => System.Security.Cryptography.SHA512.HashData(data);
-
-    /// <summary>
     /// Computes the modular inverse of the given value using Fermat's little theorem.
     /// </summary>
     /// <param name="x">The value to invert.</param>
@@ -250,7 +243,7 @@ public static class Ed25519
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Numerics.BigInteger HashToScalar(System.ReadOnlySpan<System.Byte> data)
     {
-        System.Byte[] h = ComputeHash(data);
+        System.Byte[] h = SHA3256.HashData(data);
         return new System.Numerics.BigInteger(h, isUnsigned: true, isBigEndian: false) % L;
     }
 
@@ -259,31 +252,18 @@ public static class Ed25519
     private static System.Numerics.BigInteger HashToScalar(
         System.ReadOnlySpan<System.Byte> prefix, System.Byte[] message)
     {
-        System.Int32 len = prefix.Length + message.Length;
-        if (len <= 1024)
-        {
-            System.Span<System.Byte> buf = stackalloc System.Byte[len];
-            prefix.CopyTo(buf);
-            System.MemoryExtensions.CopyTo(message, buf[prefix.Length..]);
-            var h = ComputeHash(buf);
-            // Little-endian!
-            return new System.Numerics.BigInteger(h, isUnsigned: true, isBigEndian: false) % L;
-        }
-        else
-        {
-            // Use pooled array to avoid LOH
-            var pool = System.Buffers.ArrayPool<System.Byte>.Shared;
-            System.Byte[] rented = pool.Rent(len);
-            try
-            {
-                var span = System.MemoryExtensions.AsSpan(rented, 0, len);
-                prefix.CopyTo(span);
-                System.MemoryExtensions.CopyTo(message, span[prefix.Length..]);
-                var h = ComputeHash(span);
-                return new System.Numerics.BigInteger(h, isUnsigned: true, isBigEndian: false) % L;
-            }
-            finally { pool.Return(rented, clearArray: true); }
-        }
+        // Incremental hashing to avoid building a temporary buffer:
+        // H(prefix || message)
+        using SHA3256 sha3 = new();
+        sha3.Update(prefix);
+        sha3.Update(message);
+
+        // Write 32-byte digest directly into a stack buffer (no heap allocation)
+        System.Span<System.Byte> digest = stackalloc System.Byte[32];
+        sha3.FinalizeHash(digest);
+
+        // Little-endian!
+        return new System.Numerics.BigInteger(digest, isUnsigned: true, isBigEndian: false) % L;
     }
 
     /// <summary>
@@ -366,6 +346,28 @@ public static class Ed25519
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Numerics.BigInteger DecodeScalar(System.ReadOnlySpan<System.Byte> data)
         => new System.Numerics.BigInteger(data, isUnsigned: true, isBigEndian: true) % L;
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void DeriveKeyMaterial(
+        System.ReadOnlySpan<System.Byte> secretKey,
+        System.Span<System.Byte> aBytes,
+        System.Span<System.Byte> prefix)
+    {
+        // Build sk||tag in a tiny stack buffer to avoid allocations
+        System.Span<System.Byte> tmp = stackalloc System.Byte[secretKey.Length + 1];
+
+        // aBytes = SHA3-256(sk || 0x00)
+        secretKey.CopyTo(tmp);
+        tmp[^1] = 0x00;
+        System.Byte[] h0 = SHA3256.HashData(tmp); // 32 bytes
+        System.MemoryExtensions.CopyTo(h0, aBytes);
+
+        // prefix = SHA3-256(sk || 0x01)
+        secretKey.CopyTo(tmp);
+        tmp[^1] = 0x01;
+        System.Byte[] h1 = SHA3256.HashData(tmp); // 32 bytes
+        System.MemoryExtensions.CopyTo(h1, prefix);
+    }
 
     #region Fields
 

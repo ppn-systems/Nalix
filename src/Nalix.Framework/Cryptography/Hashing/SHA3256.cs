@@ -330,34 +330,8 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
 
         // XOR rate portion into state (17 lanes)
         if (System.BitConverter.IsLittleEndian &&
-            System.Runtime.Intrinsics.X86.Avx2.IsSupported)
-        {
-            fixed (System.Byte* pBlock = block)
-            {
-                fixed (System.UInt64* pState = _state)
-                {
-                    // 128 bytes: 4 × 32 bytes (Vector256<ulong>)
-                    for (System.Int32 off = 0; off < 128; off += 32)
-                    {
-                        var vBlock = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                            System.Runtime.Intrinsics.Vector256<System.UInt64>>(pBlock + off);
-
-                        var vState = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                            System.Runtime.Intrinsics.Vector256<System.UInt64>>((System.Byte*)pState + off);
-
-                        var vXor = System.Runtime.Intrinsics.X86.Avx2.Xor(vBlock, vState);
-                        System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + off, vXor);
-                    }
-
-                    // remaining 8 bytes (lane 17)
-                    System.UInt64 tail = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(128, 8));
-                    pState[16] ^= tail;
-                }
-            }
-        }
-        else if (System.BitConverter.IsLittleEndian &&
-                 System.Runtime.Intrinsics.X86.Avx512F.IsSupported &&
-                 System.Runtime.Intrinsics.X86.Avx512DQ.IsSupported)
+            System.Runtime.Intrinsics.X86.Avx512F.IsSupported &&
+            System.Runtime.Intrinsics.X86.Avx512DQ.IsSupported)
         {
             fixed (System.Byte* pBlock = block)
             {
@@ -388,6 +362,32 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
 
             KeccakF1600(_state);
             return;
+        }
+        else if (System.BitConverter.IsLittleEndian &&
+                 System.Runtime.Intrinsics.X86.Avx2.IsSupported)
+        {
+            fixed (System.Byte* pBlock = block)
+            {
+                fixed (System.UInt64* pState = _state)
+                {
+                    // 128 bytes: 4 × 32 bytes (Vector256<ulong>)
+                    for (System.Int32 off = 0; off < 128; off += 32)
+                    {
+                        var vBlock = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                            System.Runtime.Intrinsics.Vector256<System.UInt64>>(pBlock + off);
+
+                        var vState = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                            System.Runtime.Intrinsics.Vector256<System.UInt64>>((System.Byte*)pState + off);
+
+                        var vXor = System.Runtime.Intrinsics.X86.Avx2.Xor(vBlock, vState);
+                        System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + off, vXor);
+                    }
+
+                    // remaining 8 bytes (lane 17)
+                    System.UInt64 tail = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(128, 8));
+                    pState[16] ^= tail;
+                }
+            }
         }
         else if (System.BitConverter.IsLittleEndian)
         {
