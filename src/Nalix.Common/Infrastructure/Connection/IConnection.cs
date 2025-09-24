@@ -45,7 +45,6 @@ public partial interface IConnection : System.IDisposable
     /// </summary>
     System.Byte[] Secret { get; set; }
 
-
     /// <summary>
     /// Gets the authority levels associated with the connection.
     /// </summary>

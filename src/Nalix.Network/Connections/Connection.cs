@@ -28,16 +28,12 @@ public sealed partial class Connection : IConnection
 
     private System.Byte[] _secret;
     private System.Int64 _bytesSent;
-    private volatile System.Boolean _disposed;
     private System.Int32 _closeSignaled;
 
-    [System.Diagnostics.CodeAnalysis.AllowNull]
+    private volatile System.Boolean _disposed;
+
     private System.EventHandler<IConnectEventArgs> _onCloseEvent;
-
-    [System.Diagnostics.CodeAnalysis.AllowNull]
     private System.EventHandler<IConnectEventArgs> _onProcessEvent;
-
-    [System.Diagnostics.CodeAnalysis.AllowNull]
     private System.EventHandler<IConnectEventArgs> _onPostProcessEvent;
 
     #endregion Fields
