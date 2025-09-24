@@ -107,7 +107,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
         if (this.Options.TryResolveHandler(packet.OpCode,
             out System.Func<TPacket, IConnection, System.Threading.Tasks.Task>? handler))
         {
-            this.Logger?.Meta($"[{nameof(PacketDispatcherBase<TPacket>)}:{ExecutePacketHandlerAsync}] handle opcode={packet.OpCode}");
+            this.Logger?.Meta($"[{nameof(PacketDispatcherBase<TPacket>)}] handle opcode={packet.OpCode}");
             try
             {
                 await this.ExecuteHandlerAsync(packet, connection, handler)
@@ -115,14 +115,14 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
             }
             catch (System.Exception ex)
             {
-                this.Logger?.Error($"[{nameof(PacketDispatcherBase<TPacket>)}:{ExecutePacketHandlerAsync}] " +
+                this.Logger?.Error($"[{nameof(PacketDispatcherBase<TPacket>)}] " +
                                    $"handler-error opcode={packet.OpCode}", ex);
             }
 
             return;
         }
 
-        this.Logger?.Warn($"[{nameof(PacketDispatcherBase<TPacket>)}:{ExecutePacketHandlerAsync}] no-handler opcode={packet.OpCode}");
+        this.Logger?.Warn($"[{nameof(PacketDispatcherBase<TPacket>)}] no-handler opcode={packet.OpCode}");
     }
 
     #endregion Protected Methods
