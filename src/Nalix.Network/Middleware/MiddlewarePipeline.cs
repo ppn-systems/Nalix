@@ -37,7 +37,7 @@ public class MiddlewarePipeline<TPacket>
     /// <summary>
     /// Adds a middleware component to be executed after the main handler, regardless of outbound skipping.
     /// </summary>
-    public void UseOutboundAlways(IPacketMiddleware<TPacket> m) => _outboundAlways.Add(m);
+    public void UseOutboundAlways(IPacketMiddleware<TPacket> middleware) => _outboundAlways.Add(middleware);
 
     /// <summary>
     /// Executes the pipeline asynchronously using the provided packet context and terminal handler.
