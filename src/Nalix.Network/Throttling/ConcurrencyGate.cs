@@ -53,7 +53,7 @@ public static class ConcurrencyGate
         try
         {
             _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-                name: $"{nameof(ConcurrencyGate)}.cleanup",
+                name: "concurrency.gate.cleanup",
                 interval: CleanupInterval,
                 work: static _ =>
                 {
