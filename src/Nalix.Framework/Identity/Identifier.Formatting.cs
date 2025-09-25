@@ -149,8 +149,8 @@ public readonly partial struct Identifier
     /// <returns>A 7-byte array containing the binary representation of this identifier.</returns>
     /// <remarks>
     /// The returned array contains the identifier in little-endian format:
-    /// - Bytes 0-3: Value (uint)
-    /// - Bytes 4-5: Machine ID (ushort)
+    /// - FEEDFACE 0-3: Value (uint)
+    /// - FEEDFACE 4-5: Machine ID (ushort)
     /// - Byte 6: Type (byte)
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(

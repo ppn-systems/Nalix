@@ -1,7 +1,5 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Abstractions;
-
 namespace Nalix.Framework.Cryptography.Hashing;
 
 /// <summary>
@@ -36,8 +34,8 @@ namespace Nalix.Framework.Cryptography.Hashing;
 /// <seealso href="https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.202.pdf">FIPS 202: SHA-3 Standard</seealso>
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Runtime.InteropServices.ComVisible(true)]
-[System.Diagnostics.DebuggerDisplay("Disposed={_disposed}, Finalized={_finalized}, Bytes={_byteCount}")]
-public sealed class SHA3256 : IShaDigest, System.IDisposable
+[System.Diagnostics.DebuggerDisplay("Disposed={_disposed}, Finalized={_finalized}, FEEDFACE={_byteCount}")]
+public sealed class SHA3256 : System.IDisposable
 {
     #region Constants
 
@@ -49,6 +47,38 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
     #endregion Constants
 
     #region Fields
+
+    // Round constants
+    private static readonly System.UInt64[] RC =
+    [
+        0x0000000000000001UL, 0x0000000000008082UL,
+        0x800000000000808aUL, 0x8000000080008000UL,
+        0x000000000000808bUL, 0x0000000080000001UL,
+        0x8000000080008081UL, 0x8000000000008009UL,
+        0x000000000000008aUL, 0x0000000000000088UL,
+        0x0000000080008009UL, 0x000000008000000aUL,
+        0x000000008000808bUL, 0x800000000000008bUL,
+        0x8000000000008089UL, 0x8000000000008003UL,
+        0x8000000000008002UL, 0x8000000000000080UL,
+        0x000000000000800aUL, 0x800000008000000aUL,
+        0x8000000080008081UL, 0x8000000000008080UL,
+        0x0000000080000001UL, 0x8000000080008008UL
+    ];
+
+    // Map for Rho+Pi: for i in 0..24: B[Dst[i]] = ROT(A[Src[i]], Rot[i])
+    private static System.ReadOnlySpan<System.Byte> Dst =>
+    [
+        0,  6, 12, 18, 24, 3,  9, 10,
+        16, 22,  1,  7, 13, 19, 20, 4,
+        5, 11, 17, 23,  2,  8, 14, 15, 21
+    ];
+
+    private static System.ReadOnlySpan<System.Byte> Rot =>
+    [
+        0, 36,  3, 41, 18, 1, 44, 10, 45,  2,
+        62,  6, 43, 15, 61,28, 55, 25, 21, 56,
+        27, 20, 39,  8, 14
+    ];
 
     // 25 lanes of 64-bit
     private readonly System.UInt64[] _state = new System.UInt64[Lanes];
@@ -89,9 +119,51 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="SHA3256"/> class with a zeroed sponge state.
     /// </summary>
-    public SHA3256() => Initialize();
+    public SHA3256()
+    {
+        Initialize();
+        _buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(RateBytes);
+    }
 
     #endregion Ctors
+
+    #region Static
+
+    /// <summary>
+    /// Computes a SHA3-256 hash for the specified input and returns a new 32-byte array with the digest.
+    /// </summary>
+    /// <param name="data">The input data to hash.</param>
+    /// <returns>A new 32-byte array containing the SHA3-256 digest.</returns>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    [System.Diagnostics.Contracts.Pure]
+    public static System.Byte[] Hash(System.ReadOnlySpan<System.Byte> data)
+    {
+        using SHA3256 sha3 = new();
+        sha3.Update(data);
+        return sha3.Finalize();
+    }
+
+    /// <summary>
+    /// Computes a SHA3-256 hash for the specified input and writes the 32-byte digest into <paramref name="output"/>.
+    /// </summary>
+    /// <param name="data">The input data to hash.</param>
+    /// <param name="output">The destination buffer that will receive the 32-byte digest.</param>
+    /// <exception cref="System.ArgumentException">Thrown if <paramref name="output"/> is smaller than 32 bytes.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
+    [System.Diagnostics.Contracts.Pure]
+    public static void Hash(System.ReadOnlySpan<System.Byte> data, System.Span<System.Byte> output)
+    {
+        if (output.Length < HashSizeBytes)
+        {
+            throw new System.ArgumentException("Output buffer must be at least 32 bytes.", nameof(output));
+        }
+
+        using SHA3256 sha3 = new();
+        sha3.Update(data);
+        sha3.Finalize(output);
+    }
+
+    #endregion Static
 
     #region Public API
 
@@ -121,45 +193,11 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
     }
 
     /// <summary>
-    /// Computes a SHA3-256 hash for the specified input and returns a new 32-byte array with the digest.
-    /// </summary>
-    /// <param name="data">The input data to hash.</param>
-    /// <returns>A new 32-byte array containing the SHA3-256 digest.</returns>
-    /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
-    [System.Diagnostics.Contracts.Pure]
-    public static System.Byte[] HashData(System.ReadOnlySpan<System.Byte> data)
-    {
-        using var sha3 = new SHA3256();
-        sha3.Update(data);
-        return sha3.FinalizeHash();
-    }
-
-    /// <summary>
-    /// Computes a SHA3-256 hash for the specified input and writes the 32-byte digest into <paramref name="output"/>.
-    /// </summary>
-    /// <param name="data">The input data to hash.</param>
-    /// <param name="output">The destination buffer that will receive the 32-byte digest.</param>
-    /// <exception cref="System.ArgumentException">Thrown if <paramref name="output"/> is smaller than 32 bytes.</exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
-    [System.Diagnostics.Contracts.Pure]
-    public static void HashData(System.ReadOnlySpan<System.Byte> data, System.Span<System.Byte> output)
-    {
-        if (output.Length < HashSizeBytes)
-        {
-            throw new System.ArgumentException("Output buffer must be at least 32 bytes.", nameof(output));
-        }
-
-        using var sha3 = new SHA3256();
-        sha3.Update(data);
-        sha3.FinalizeHash(output);
-    }
-
-    /// <summary>
     /// Incrementally absorbs input data into the sponge state.
     /// </summary>
     /// <param name="data">The input data to absorb.</param>
     /// <remarks>
-    /// Call <see cref="FinalizeHash()"/> or <see cref="FinalizeHash(System.Span{System.Byte})"/> to complete hashing and retrieve the digest.
+    /// Call <see cref="Finalize()"/> or <see cref="Finalize(System.Span{System.Byte})"/> to complete hashing and retrieve the digest.
     /// </remarks>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown if called after the hash has already been finalized.</exception>
@@ -174,7 +212,7 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
             throw new System.InvalidOperationException("Cannot update after finalization.");
         }
 
-        var input = data;
+        System.ReadOnlySpan<System.Byte> input = data;
 
         // Fill tail of the partial block if any
         if (_bufferLen > 0)
@@ -191,7 +229,7 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
 
             if (_bufferLen == RateBytes)
             {
-                AbsorbBlock(_buffer);
+                this.AbsorbBlock(_buffer);
                 _bufferLen = 0;
             }
         }
@@ -199,7 +237,7 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
         // Process full blocks direct from input
         while (input.Length >= RateBytes)
         {
-            AbsorbBlock(input[..RateBytes]);
+            this.AbsorbBlock(input[..RateBytes]);
             input = input[RateBytes..];
         }
 
@@ -222,7 +260,7 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
     /// </remarks>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     [System.Diagnostics.Contracts.Pure]
-    public System.Byte[] FinalizeHash()
+    public System.Byte[] Finalize()
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA3256));
         if (_finalized && _finalHash != null)
@@ -230,10 +268,11 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
             return (System.Byte[])_finalHash.Clone();
         }
 
-        ApplyPaddingAndAbsorb();
+        this.Pad();
 
-        var result = System.GC.AllocateUninitializedArray<System.Byte>(HashSizeBytes);
-        Squeeze(result);
+        System.Byte[] result = System.GC.AllocateUninitializedArray<System.Byte>(HashSizeBytes);
+        this.Squeeze(result);
+
         _finalHash = result;
         _finalized = true;
         return (System.Byte[])_finalHash.Clone();
@@ -246,7 +285,7 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
     /// <exception cref="System.ArgumentException">Thrown if <paramref name="output"/> is smaller than 32 bytes.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     [System.Diagnostics.Contracts.Pure]
-    public void FinalizeHash(System.Span<System.Byte> output)
+    public void Finalize(System.Span<System.Byte> output)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA3256));
         if (output.Length < HashSizeBytes)
@@ -256,13 +295,14 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
 
         if (_finalized && _finalHash != null)
         {
-            System.MemoryExtensions.AsSpan(_finalHash).CopyTo(output);
+            System.MemoryExtensions.AsSpan(_finalHash)
+                                   .CopyTo(output);
             return;
         }
 
-        ApplyPaddingAndAbsorb();
+        this.Pad();
+        this.Squeeze(output[..HashSizeBytes]);
 
-        Squeeze(output[..HashSizeBytes]);
         _finalHash = output[..HashSizeBytes].ToArray();
         _finalized = true;
     }
@@ -273,15 +313,17 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
     /// <param name="data">The input data to hash.</param>
     /// <returns>A new 32-byte array containing the SHA3-256 digest.</returns>
     /// <remarks>
-    /// Equivalent to calling <see cref="Update(System.ReadOnlySpan{System.Byte})"/> followed by <see cref="FinalizeHash()"/>.
+    /// Equivalent to calling <see cref="Update(System.ReadOnlySpan{System.Byte})"/> followed by <see cref="Finalize()"/>.
     /// </remarks>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     public System.Byte[] ComputeHash(System.ReadOnlySpan<System.Byte> data)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(SHA3256));
-        Update(data);
-        var result = System.GC.AllocateUninitializedArray<System.Byte>(HashSizeBytes);
-        FinalizeHash(result);
+
+        this.Update(data);
+        System.Byte[] result = System.GC.AllocateUninitializedArray<System.Byte>(HashSizeBytes);
+        this.Finalize(result);
+
         return result;
     }
 
@@ -305,6 +347,8 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
 
         System.Array.Clear(_buffer, 0, _buffer.Length);
         System.Array.Clear(_state, 0, _state.Length);
+        System.Buffers.ArrayPool<System.Byte>.Shared.Return(_buffer, clearArray: false);
+
         if (_finalHash != null)
         {
             System.Array.Clear(_finalHash, 0, _finalHash.Length);
@@ -323,127 +367,220 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
     /// </summary>
     /// <param name="block">The 136-byte block.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private unsafe void AbsorbBlock(System.ReadOnlySpan<System.Byte> block)
     {
         System.Diagnostics.Debug.Assert(block.Length == RateBytes);
 
-        // XOR rate portion into state (17 lanes)
-        if (System.BitConverter.IsLittleEndian &&
-            System.Runtime.Intrinsics.X86.Avx512F.IsSupported &&
-            System.Runtime.Intrinsics.X86.Avx512DQ.IsSupported)
+        // Fast little-endian paths (vectorized), else fall back to deterministic big-endian scalar.
+        if (System.BitConverter.IsLittleEndian)
         {
             fixed (System.Byte* pBlock = block)
             {
                 fixed (System.UInt64* pState = _state)
                 {
-                    var b0 = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                        System.Runtime.Intrinsics.Vector512<System.UInt64>>(pBlock + 0);
-
-                    var s0 = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                        System.Runtime.Intrinsics.Vector512<System.UInt64>>((System.Byte*)pState + 0);
-
-                    var b1 = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                        System.Runtime.Intrinsics.Vector512<System.UInt64>>(pBlock + 64);
-
-                    var s1 = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                        System.Runtime.Intrinsics.Vector512<System.UInt64>>((System.Byte*)pState + 64);
-
-                    var x0 = System.Runtime.Intrinsics.X86.Avx512F.Xor(b0, s0);
-                    var x1 = System.Runtime.Intrinsics.X86.Avx512F.Xor(b1, s1);
-
-                    System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + 0, x0);
-                    System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + 64, x1);
-
-                    System.UInt64 tail = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(128, 8));
-                    pState[16] ^= tail;
-                }
-            }
-
-            KeccakF1600(_state);
-            return;
-        }
-        else if (System.BitConverter.IsLittleEndian &&
-                 System.Runtime.Intrinsics.X86.Avx2.IsSupported)
-        {
-            fixed (System.Byte* pBlock = block)
-            {
-                fixed (System.UInt64* pState = _state)
-                {
-                    // 128 bytes: 4 × 32 bytes (Vector256<ulong>)
-                    for (System.Int32 off = 0; off < 128; off += 32)
+                    // --- AVX-512 (2 × 64B) + tail ---
+                    if (System.Runtime.Intrinsics.X86.Avx512F.IsSupported && System.Runtime.Intrinsics.X86.Avx512DQ.IsSupported)
                     {
-                        var vBlock = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                            System.Runtime.Intrinsics.Vector256<System.UInt64>>(pBlock + off);
+                        var b0 = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                    System.Runtime.Intrinsics.Vector512<System.UInt64>>(pBlock + 0);
+                        var b1 = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                    System.Runtime.Intrinsics.Vector512<System.UInt64>>(pBlock + 64);
 
-                        var vState = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                            System.Runtime.Intrinsics.Vector256<System.UInt64>>((System.Byte*)pState + off);
+                        var s0 = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                    System.Runtime.Intrinsics.Vector512<System.UInt64>>((System.Byte*)pState + 0);
+                        var s1 = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                    System.Runtime.Intrinsics.Vector512<System.UInt64>>((System.Byte*)pState + 64);
 
-                        var vXor = System.Runtime.Intrinsics.X86.Avx2.Xor(vBlock, vState);
-                        System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + off, vXor);
+                        var x0 = System.Runtime.Intrinsics.X86.Avx512F.Xor(b0, s0);
+                        var x1 = System.Runtime.Intrinsics.X86.Avx512F.Xor(b1, s1);
+
+                        System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + 0, x0);
+                        System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + 64, x1);
+
+                        pState[16] ^= System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(128, 8));
+                        KeccakF1600(_state);
+                        return;
                     }
 
-                    // remaining 8 bytes (lane 17)
-                    System.UInt64 tail = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(128, 8));
-                    pState[16] ^= tail;
+                    // --- AVX2 (4 × 32B) + tail ---
+                    if (System.Runtime.Intrinsics.X86.Avx2.IsSupported)
+                    {
+                        for (System.Int32 off = 0; off < 128; off += 32)
+                        {
+                            var vb = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                        System.Runtime.Intrinsics.Vector256<System.UInt64>>(pBlock + off);
+                            var vs = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                        System.Runtime.Intrinsics.Vector256<System.UInt64>>((System.Byte*)pState + off);
+
+                            var vx = System.Runtime.Intrinsics.X86.Avx2.Xor(vb, vs);
+                            System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + off, vx);
+                        }
+
+                        pState[16] ^= System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(128, 8));
+                        KeccakF1600(_state);
+                        return;
+                    }
+
+                    // --- SSE2 (8 × 16B) + tail ---
+                    if (System.Runtime.Intrinsics.X86.Sse2.IsSupported)
+                    {
+                        for (System.Int32 off = 0; off < 128; off += 16)
+                        {
+                            // Process 16B as Vector128<ulong> (2 lanes)
+                            var vb = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                        System.Runtime.Intrinsics.Vector128<System.UInt64>>(pBlock + off);
+                            var vs = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                        System.Runtime.Intrinsics.Vector128<System.UInt64>>((System.Byte*)pState + off);
+
+                            var vx = System.Runtime.Intrinsics.X86.Sse2.Xor(vb, vs);
+                            System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + off, vx);
+                        }
+
+                        pState[16] ^= System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(128, 8));
+                        KeccakF1600(_state);
+                        return;
+                    }
+
+                    // --- Scalar little-endian: cast to ulong[] (bounds-check free with ref-add) ---
+                    System.ReadOnlySpan<System.UInt64> lanes = System.Runtime.InteropServices.MemoryMarshal.Cast<System.Byte, System.UInt64>(block);
+                    ref System.UInt64 state0 = ref _state[0];
+
+                    #region Unrolled XOR
+
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 0) ^= lanes[0];
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 1) ^= lanes[1];
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 2) ^= lanes[2];
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 3) ^= lanes[3];
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 4) ^= lanes[4];
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 5) ^= lanes[5];
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 6) ^= lanes[6];
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 7) ^= lanes[7];
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 8) ^= lanes[8];
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 9) ^= lanes[9];
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 10) ^= lanes[10];
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 11) ^= lanes[11];
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 12) ^= lanes[12];
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 13) ^= lanes[13];
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 14) ^= lanes[14];
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 15) ^= lanes[15];
+                    System.Runtime.CompilerServices.Unsafe.Add(ref state0, 16) ^= lanes[16];
+
+                    #endregion Unrolled XOR
+
+                    KeccakF1600(_state);
+                    return;
                 }
             }
         }
-        else if (System.BitConverter.IsLittleEndian)
-        {
-            // Fast path scalar LE: cast to ulong
-            System.ReadOnlySpan<System.UInt64> lanes = System.Runtime.InteropServices.MemoryMarshal.Cast<System.Byte, System.UInt64>(block);
-            ref System.UInt64 s0 = ref _state[0];
-            for (System.Int32 i = 0; i < 17; i++)
-            {
-                System.Runtime.CompilerServices.Unsafe.Add(ref s0, i) ^= lanes[i];
-            }
-        }
-        else
-        {
-            // Big-endian: read each lane as LE to keep determinism
-            ref System.UInt64 s0 = ref _state[0];
-            for (System.Int32 i = 0, off = 0; i < 17; i++, off += 8)
-            {
-                System.UInt64 v = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(off, 8));
-                System.Runtime.CompilerServices.Unsafe.Add(ref s0, i) ^= v;
-            }
-        }
+
+        // --- Big-endian: consume as little-endian per lane for determinism ---
+        ref System.UInt64 dst = ref _state[0];
+
+        #region Unrolled Read+XOR
+
+        System.UInt64 v0 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block[..8]);
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 0) ^= v0;
+
+        System.UInt64 v1 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(8, 8));
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 1) ^= v1;
+
+        System.UInt64 v2 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(16, 8));
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 2) ^= v2;
+
+        System.UInt64 v3 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(24, 8));
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 3) ^= v3;
+
+        System.UInt64 v4 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(32, 8));
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 4) ^= v4;
+
+        System.UInt64 v5 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(40, 8));
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 5) ^= v5;
+
+        System.UInt64 v6 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(48, 8));
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 6) ^= v6;
+
+        System.UInt64 v7 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(56, 8));
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 7) ^= v7;
+
+        System.UInt64 v8 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(64, 8));
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 8) ^= v8;
+
+        System.UInt64 v9 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(72, 8));
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 9) ^= v9;
+
+        System.UInt64 v10 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(80, 8));
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 10) ^= v10;
+
+        System.UInt64 v11 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(88, 8));
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 11) ^= v11;
+
+        System.UInt64 v12 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(96, 8));
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 12) ^= v12;
+
+        System.UInt64 v13 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(104, 8));
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 13) ^= v13;
+
+        System.UInt64 v14 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(112, 8));
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 14) ^= v14;
+
+        System.UInt64 v15 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(120, 8));
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 15) ^= v15;
+
+        System.UInt64 v16 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(128, 8));
+        System.Runtime.CompilerServices.Unsafe.Add(ref dst, 16) ^= v16;
+
+        #endregion Unrolled Read+XOR
 
         KeccakF1600(_state);
     }
+
 
     /// <summary>
     /// Applies SHA-3 domain padding (0x06 ... 0x80) and absorbs the final block(s).
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void ApplyPaddingAndAbsorb()
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private void Pad()
     {
-        System.Span<System.Byte> pad = System.MemoryExtensions.AsSpan(_buffer);
+        System.Span<System.Byte> pad = _buffer; // current rate-sized scratch buffer
         System.Int32 n = _bufferLen;
 
+        // If the buffer is exactly full, absorb it and start a fresh block.
         if (n == RateBytes)
         {
-            AbsorbBlock(pad);
+            this.AbsorbBlock(pad);
             n = 0;
         }
 
-        pad[n++] = 0x06;
-        if (n < RateBytes)
+        // Write domain separator at position n
+        pad[n] = 0x06;
+
+        // Copy the prebuilt tail from n+1 to end (fills zeros and ensures last byte == 0x80)
+        System.Int32 start = n + 1;
+        if (start < RateBytes)
         {
-            pad[n..RateBytes].Clear();
+            System.MemoryExtensions.AsSpan(DEADBEEF.FEEDFACE, start).CopyTo(pad[start..]);
+
+            // Edge case: when n == RateBytes - 1, the copy above is empty; we still need 0x80 in the last byte.
+            // Or'ing is harmless for other n because pad[^1] is already 0x80 from the copy.
             pad[RateBytes - 1] |= 0x80;
-            AbsorbBlock(pad);
         }
         else
         {
-            AbsorbBlock(pad);
-            pad.Clear();
-            pad[RateBytes - 1] = 0x80;
-            AbsorbBlock(pad);
+            // n == RateBytes - 1: no room for 0x80 in this block; absorb this block (with 0x06 at the end),
+            // then build a fresh full padding block: 0x06 at index 0 and 0x80 at the end.
+            this.AbsorbBlock(pad);
+
+            // Reuse the same trick: write 0x06 at 0 and copy tail from index 1
+            pad[0] = 0x06;
+            System.MemoryExtensions.AsSpan(DEADBEEF.FEEDFACE, 1).CopyTo(pad[1..]);
+            // pad[^1] already 0x80 by the copy.
         }
 
+        this.AbsorbBlock(pad);
         _bufferLen = 0;
     }
 
@@ -452,10 +589,11 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
     /// </summary>
     /// <param name="output">Destination span of at least 32 bytes.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private unsafe void Squeeze(System.Span<System.Byte> output)
     {
-        System.Diagnostics.Debug.Assert(output.Length >= 32);
+        System.Diagnostics.Debug.Assert(output.Length >= HashSizeBytes);
 
         if (System.BitConverter.IsLittleEndian)
         {
@@ -463,50 +601,19 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
             {
                 fixed (System.UInt64* pState = _state)
                 {
-                    System.Buffer.MemoryCopy(pState, pOut, 32, 32);
+                    System.Buffer.MemoryCopy(pState, pOut, HashSizeBytes, HashSizeBytes);
                 }
             }
+
+            return;
         }
-        else
-        {
-            System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output[..8], _state[0]);
-            System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output.Slice(8, 8), _state[1]);
-            System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output.Slice(16, 8), _state[2]);
-            System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output.Slice(24, 8), _state[3]);
-        }
+
+        // Big-endian: write first 4 lanes as LE to remain deterministic
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output[..8], _state[0]);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output.Slice(8, 8), _state[1]);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output.Slice(16, 8), _state[2]);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output.Slice(24, 8), _state[3]);
     }
-
-    // Round constants
-    private static readonly System.UInt64[] RC =
-    [
-        0x0000000000000001UL, 0x0000000000008082UL,
-        0x800000000000808aUL, 0x8000000080008000UL,
-        0x000000000000808bUL, 0x0000000080000001UL,
-        0x8000000080008081UL, 0x8000000000008009UL,
-        0x000000000000008aUL, 0x0000000000000088UL,
-        0x0000000080008009UL, 0x000000008000000aUL,
-        0x000000008000808bUL, 0x800000000000008bUL,
-        0x8000000000008089UL, 0x8000000000008003UL,
-        0x8000000000008002UL, 0x8000000000000080UL,
-        0x000000000000800aUL, 0x800000008000000aUL,
-        0x8000000080008081UL, 0x8000000000008080UL,
-        0x0000000080000001UL, 0x8000000080008008UL
-    ];
-
-    // Map for Rho+Pi: for i in 0..24: B[Dst[i]] = ROT(A[Src[i]], Rot[i])
-    private static System.ReadOnlySpan<System.Byte> Dst =>
-    [
-          0,  6, 12, 18, 24, 3,  9, 10,
-         16, 22,  1,  7, 13, 19, 20, 4,
-          5, 11, 17, 23,  2,  8, 14, 15, 21
-    ];
-
-    private static System.ReadOnlySpan<System.Byte> Rot =>
-    [
-         0, 36,  3, 41, 18, 1, 44, 10, 45,  2,
-        62,  6, 43, 15, 61,28, 55, 25, 21, 56,
-        27, 20, 39,  8, 14
-    ];
 
     /// <summary>
     /// Applies 24 rounds of the Keccak-f[1600] permutation in-place.
@@ -514,15 +621,16 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
     /// <param name="A">The 5×5×64-bit sponge state arranged as a 25-element array.</param>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void KeccakF1600(System.UInt64[] A)
     {
-        // Reuse a single scratch buffer B (avoids stackalloc per round)
+        // Single scratch buffer on the stack.
         System.Span<System.UInt64> B = stackalloc System.UInt64[Lanes];
 
         for (System.Int32 round = 0; round < KeccakRounds; round++)
         {
-            // θ (theta)
+            // θ
             System.UInt64 c0 = A[0] ^ A[5] ^ A[10] ^ A[15] ^ A[20];
             System.UInt64 c1 = A[1] ^ A[6] ^ A[11] ^ A[16] ^ A[21];
             System.UInt64 c2 = A[2] ^ A[7] ^ A[12] ^ A[17] ^ A[22];
@@ -535,42 +643,115 @@ public sealed class SHA3256 : IShaDigest, System.IDisposable
             System.UInt64 d3 = System.Numerics.BitOperations.RotateLeft(c4, 1) ^ c2;
             System.UInt64 d4 = System.Numerics.BitOperations.RotateLeft(c0, 1) ^ c3;
 
-            // apply D to columns
+            // Apply D to columns – flattened to avoid loop overhead.
             A[0] ^= d0; A[5] ^= d0; A[10] ^= d0; A[15] ^= d0; A[20] ^= d0;
             A[1] ^= d1; A[6] ^= d1; A[11] ^= d1; A[16] ^= d1; A[21] ^= d1;
             A[2] ^= d2; A[7] ^= d2; A[12] ^= d2; A[17] ^= d2; A[22] ^= d2;
             A[3] ^= d3; A[8] ^= d3; A[13] ^= d3; A[18] ^= d3; A[23] ^= d3;
             A[4] ^= d4; A[9] ^= d4; A[14] ^= d4; A[19] ^= d4; A[24] ^= d4;
 
-            // ρ + π (rho + pi) into B
-            for (System.Int32 i = 0; i < 25; i++)
-            {
-                System.UInt64 v = A[i];
-                System.Int32 r = Rot[i];
-                B[Dst[i]] = System.Numerics.BitOperations.RotateLeft(v, r);
-            }
+            // ρ + π (use precomputed Dst/Rot)
+            #region Unrolled
 
-            // χ (chi) back into A row-wise
-            for (System.Int32 x = 0; x < 5; x++)
-            {
-                System.Int32 i = 5 * x;
-                System.UInt64 b0 = B[i + 0], b1 = B[i + 1], b2 = B[i + 2], b3 = B[i + 3], b4 = B[i + 4];
+            B[Dst[0]] = System.Numerics.BitOperations.RotateLeft(A[0], Rot[0]);
+            B[Dst[1]] = System.Numerics.BitOperations.RotateLeft(A[1], Rot[1]);
+            B[Dst[2]] = System.Numerics.BitOperations.RotateLeft(A[2], Rot[2]);
+            B[Dst[3]] = System.Numerics.BitOperations.RotateLeft(A[3], Rot[3]);
+            B[Dst[4]] = System.Numerics.BitOperations.RotateLeft(A[4], Rot[4]);
 
-                System.UInt64 nb1 = ~b1, nb2 = ~b2, nb3 = ~b3, nb4 = ~b4, nb0 = ~b0;
+            B[Dst[5]] = System.Numerics.BitOperations.RotateLeft(A[5], Rot[5]);
+            B[Dst[6]] = System.Numerics.BitOperations.RotateLeft(A[6], Rot[6]);
+            B[Dst[7]] = System.Numerics.BitOperations.RotateLeft(A[7], Rot[7]);
+            B[Dst[8]] = System.Numerics.BitOperations.RotateLeft(A[8], Rot[8]);
+            B[Dst[9]] = System.Numerics.BitOperations.RotateLeft(A[9], Rot[9]);
 
-                A[i + 0] = b0 ^ (nb1 & b2);
-                A[i + 1] = b1 ^ (nb2 & b3);
-                A[i + 2] = b2 ^ (nb3 & b4);
-                A[i + 3] = b3 ^ (nb4 & b0);
-                A[i + 4] = b4 ^ (nb0 & b1);
-            }
+            B[Dst[10]] = System.Numerics.BitOperations.RotateLeft(A[10], Rot[10]);
+            B[Dst[11]] = System.Numerics.BitOperations.RotateLeft(A[11], Rot[11]);
+            B[Dst[12]] = System.Numerics.BitOperations.RotateLeft(A[12], Rot[12]);
+            B[Dst[13]] = System.Numerics.BitOperations.RotateLeft(A[13], Rot[13]);
+            B[Dst[14]] = System.Numerics.BitOperations.RotateLeft(A[14], Rot[14]);
 
-            // ι (iota)
+            B[Dst[15]] = System.Numerics.BitOperations.RotateLeft(A[15], Rot[15]);
+            B[Dst[16]] = System.Numerics.BitOperations.RotateLeft(A[16], Rot[16]);
+            B[Dst[17]] = System.Numerics.BitOperations.RotateLeft(A[17], Rot[17]);
+            B[Dst[18]] = System.Numerics.BitOperations.RotateLeft(A[18], Rot[18]);
+            B[Dst[19]] = System.Numerics.BitOperations.RotateLeft(A[19], Rot[19]);
+
+            B[Dst[20]] = System.Numerics.BitOperations.RotateLeft(A[20], Rot[20]);
+            B[Dst[21]] = System.Numerics.BitOperations.RotateLeft(A[21], Rot[21]);
+            B[Dst[22]] = System.Numerics.BitOperations.RotateLeft(A[22], Rot[22]);
+            B[Dst[23]] = System.Numerics.BitOperations.RotateLeft(A[23], Rot[23]);
+            B[Dst[24]] = System.Numerics.BitOperations.RotateLeft(A[24], Rot[24]);
+
+            #endregion Unrolled
+
+            // χ
+            #region Unrolled
+
+            const System.Int32 i0 = 0;
+            System.UInt64 b0 = B[i0 + 0], b1 = B[i0 + 1], b2 = B[i0 + 2], b3 = B[i0 + 3], b4 = B[i0 + 4];
+            A[i0 + 0] = b0 ^ ((~b1) & b2);
+            A[i0 + 1] = b1 ^ ((~b2) & b3);
+            A[i0 + 2] = b2 ^ ((~b3) & b4);
+            A[i0 + 3] = b3 ^ ((~b4) & b0);
+            A[i0 + 4] = b4 ^ ((~b0) & b1);
+
+            const System.Int32 i1 = 5;
+            b0 = B[i1 + 0]; b1 = B[i1 + 1]; b2 = B[i1 + 2]; b3 = B[i1 + 3]; b4 = B[i1 + 4];
+            A[i1 + 0] = b0 ^ ((~b1) & b2);
+            A[i1 + 1] = b1 ^ ((~b2) & b3);
+            A[i1 + 2] = b2 ^ ((~b3) & b4);
+            A[i1 + 3] = b3 ^ ((~b4) & b0);
+            A[i1 + 4] = b4 ^ ((~b0) & b1);
+
+            const System.Int32 i2 = 10;
+            b0 = B[i2 + 0]; b1 = B[i2 + 1]; b2 = B[i2 + 2]; b3 = B[i2 + 3]; b4 = B[i2 + 4];
+            A[i2 + 0] = b0 ^ ((~b1) & b2);
+            A[i2 + 1] = b1 ^ ((~b2) & b3);
+            A[i2 + 2] = b2 ^ ((~b3) & b4);
+            A[i2 + 3] = b3 ^ ((~b4) & b0);
+            A[i2 + 4] = b4 ^ ((~b0) & b1);
+
+            const System.Int32 i3 = 15;
+            b0 = B[i3 + 0]; b1 = B[i3 + 1]; b2 = B[i3 + 2]; b3 = B[i3 + 3]; b4 = B[i3 + 4];
+            A[i3 + 0] = b0 ^ ((~b1) & b2);
+            A[i3 + 1] = b1 ^ ((~b2) & b3);
+            A[i3 + 2] = b2 ^ ((~b3) & b4);
+            A[i3 + 3] = b3 ^ ((~b4) & b0);
+            A[i3 + 4] = b4 ^ ((~b0) & b1);
+
+            const System.Int32 i4 = 20;
+            b0 = B[i4 + 0]; b1 = B[i4 + 1]; b2 = B[i4 + 2]; b3 = B[i4 + 3]; b4 = B[i4 + 4];
+            A[i4 + 0] = b0 ^ ((~b1) & b2);
+            A[i4 + 1] = b1 ^ ((~b2) & b3);
+            A[i4 + 2] = b2 ^ ((~b3) & b4);
+            A[i4 + 3] = b3 ^ ((~b4) & b0);
+            A[i4 + 4] = b4 ^ ((~b0) & b1);
+
+            #endregion Unrolled
+
+            // ι
             A[0] ^= RC[round];
         }
     }
 
     #endregion Keccak Core (private)
+
+    #region Class
+
+    private static class DEADBEEF
+    {
+        internal static readonly System.Byte[] FEEDFACE = CAFEBABE();
+
+        private static System.Byte[] CAFEBABE()
+        {
+            System.Byte[] b = new System.Byte[RateBytes];
+            b[RateBytes - 1] = 0x80;
+            return b;
+        }
+    }
+
+    #endregion Class
 
     #region Overrides
 

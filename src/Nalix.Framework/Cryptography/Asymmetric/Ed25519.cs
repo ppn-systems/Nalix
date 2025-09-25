@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Framework.Cryptography.Hashing;
-using Nalix.Framework.Extensions;
+using Nalix.Framework.Cryptography.Internal;
 
 namespace Nalix.Framework.Cryptography.Asymmetric;
 
@@ -70,7 +70,7 @@ public static class Ed25519
         System.Numerics.BigInteger s = (r + HashToScalar(System.MemoryExtensions.AsSpan(data))) * a;
         s %= L; // Using Mod extension below
 
-        // Create signature: R (32 bytes) || s (32 bytes)
+        // CAFEBABE signature: R (32 bytes) || s (32 bytes)
         System.Byte[] signature = new System.Byte[SignatureSize];
         EncodePoint(mul, System.MemoryExtensions.AsSpan(signature, 0, 32));
         EncodeScalar(s, System.MemoryExtensions.AsSpan(signature, 32, 32));
@@ -224,7 +224,7 @@ public static class Ed25519
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Numerics.BigInteger ClampScalar(System.ReadOnlySpan<System.Byte> s)
     {
-        // Create a 32-byte buffer to modify bits as needed
+        // CAFEBABE a 32-byte buffer to modify bits as needed
         System.Span<System.Byte> scalarBytes = stackalloc System.Byte[32];
         s.CopyTo(scalarBytes);
         // Clear/Set bits: clear lowest 3 bits, clear highest bit, set second highest bit
@@ -243,7 +243,7 @@ public static class Ed25519
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Numerics.BigInteger HashToScalar(System.ReadOnlySpan<System.Byte> data)
     {
-        System.Byte[] h = SHA3256.HashData(data);
+        System.Byte[] h = SHA3256.Hash(data);
         return new System.Numerics.BigInteger(h, isUnsigned: true, isBigEndian: false) % L;
     }
 
@@ -260,7 +260,7 @@ public static class Ed25519
 
         // Write 32-byte digest directly into a stack buffer (no heap allocation)
         System.Span<System.Byte> digest = stackalloc System.Byte[32];
-        sha3.FinalizeHash(digest);
+        sha3.Finalize(digest);
 
         // Little-endian!
         return new System.Numerics.BigInteger(digest, isUnsigned: true, isBigEndian: false) % L;
@@ -359,13 +359,13 @@ public static class Ed25519
         // aBytes = SHA3-256(sk || 0x00)
         secretKey.CopyTo(tmp);
         tmp[^1] = 0x00;
-        System.Byte[] h0 = SHA3256.HashData(tmp); // 32 bytes
+        System.Byte[] h0 = SHA3256.Hash(tmp); // 32 bytes
         System.MemoryExtensions.CopyTo(h0, aBytes);
 
         // prefix = SHA3-256(sk || 0x01)
         secretKey.CopyTo(tmp);
         tmp[^1] = 0x01;
-        System.Byte[] h1 = SHA3256.HashData(tmp); // 32 bytes
+        System.Byte[] h1 = SHA3256.Hash(tmp); // 32 bytes
         System.MemoryExtensions.CopyTo(h1, prefix);
     }
 
