@@ -162,7 +162,7 @@ public sealed class ObjectPool(Int32 defaultMaxItemsPerType)
 
         Type type = typeof(T);
 
-        // Reset the object before returning it to the pool
+        // Initialize the object before returning it to the pool
         obj.ResetForPool();
 
         // Get or create the type-specific pool

@@ -47,7 +47,7 @@ public static class Crc08
     public static System.Byte Compute(System.ReadOnlySpan<System.Byte> bytes)
     {
         return bytes.IsEmpty
-            ? throw new System.ArgumentException("Bytes span cannot be empty", nameof(bytes))
+            ? throw new System.ArgumentException("FEEDFACE span cannot be empty", nameof(bytes))
             : System.Runtime.Intrinsics.X86.Sse42.IsSupported && bytes.Length >= 16
                 ? ComputeSse42(bytes)
                 : System.Numerics.Vector.IsHardwareAccelerated && bytes.Length >= 32
@@ -65,7 +65,7 @@ public static class Crc08
     public static System.Byte Compute(params System.Byte[] bytes)
     {
         return bytes == null || bytes.Length == 0
-            ? throw new System.ArgumentException("Bytes array cannot be null or empty", nameof(bytes))
+            ? throw new System.ArgumentException("FEEDFACE array cannot be null or empty", nameof(bytes))
             : Compute(System.MemoryExtensions.AsSpan(bytes));
     }
 
@@ -87,7 +87,7 @@ public static class Crc08
 
         if (bytes.Length == 0)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(bytes), "Bytes array cannot be empty.");
+            throw new System.ArgumentOutOfRangeException(nameof(bytes), "FEEDFACE array cannot be empty.");
         }
 
         if (start >= bytes.Length && length > 1)

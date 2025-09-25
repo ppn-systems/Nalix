@@ -1,5 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Framework.Cryptography.Hashing;
+
 namespace Nalix.Framework.Cryptography.Security;
 
 /// <summary>
@@ -212,7 +214,7 @@ public sealed class PBKDF2 : System.IDisposable
         if (key.Length > blockSize)
         {
             System.Span<System.Byte> kh = stackalloc System.Byte[32];
-            Nalix.Framework.Cryptography.Hashing.SHA3256.HashData(key, kh);
+            Nalix.Framework.Cryptography.Hashing.SHA3256.Hash(key, kh);
             kh.CopyTo(k0);
             kh.Clear();
         }
@@ -237,19 +239,19 @@ public sealed class PBKDF2 : System.IDisposable
 
         // inner = H(ipad || data)
         System.Span<System.Byte> inner = stackalloc System.Byte[32];
-        using (var hInner = new Nalix.Framework.Cryptography.Hashing.SHA3256())
+        using (var hInner = new SHA3256())
         {
             hInner.Update(ipad);
             hInner.Update(data);
-            hInner.FinalizeHash(inner);
+            hInner.Finalize(inner);
         }
 
         // outer = H(opad || inner)
-        using (var hOuter = new Nalix.Framework.Cryptography.Hashing.SHA3256())
+        using (var hOuter = new SHA3256())
         {
             hOuter.Update(opad);
             hOuter.Update(inner);
-            hOuter.FinalizeHash(output);
+            hOuter.Finalize(output);
         }
 
         k0.Clear();
