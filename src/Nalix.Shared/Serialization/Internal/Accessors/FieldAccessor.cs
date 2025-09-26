@@ -43,6 +43,9 @@ internal abstract class FieldAccessor<
     public abstract void Deserialize(ref DataReader reader, T obj);
 
     [System.Diagnostics.DebuggerStepThrough]
+    public abstract void Deserialize(ref DataReader reader, ref T obj);
+
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static FieldAccessor<T> Create(FieldSchema schema, System.Int32 index)
