@@ -272,20 +272,25 @@ public static partial class Directories
             throw new System.ArgumentNullException(nameof(directory));
         }
 
-        if (!System.IO.Directory.Exists(directory))
-        {
-            yield break;
-        }
+        return GetFiles2();
 
-        System.IO.EnumerationOptions opts = new()
+        System.Collections.Generic.IEnumerable<System.String> GetFiles2()
         {
-            RecurseSubdirectories = recursive,
-            IgnoreInaccessible = true
-        };
+            if (!System.IO.Directory.Exists(directory))
+            {
+                yield break;
+            }
 
-        foreach (System.String file in System.IO.Directory.EnumerateFiles(directory, searchPattern, opts))
-        {
-            yield return file;
+            System.IO.EnumerationOptions opts = new()
+            {
+                RecurseSubdirectories = recursive,
+                IgnoreInaccessible = true
+            };
+
+            foreach (System.String file in System.IO.Directory.EnumerateFiles(directory, searchPattern, opts))
+            {
+                yield return file;
+            }
         }
     }
 
