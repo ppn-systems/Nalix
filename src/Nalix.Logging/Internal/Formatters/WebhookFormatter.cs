@@ -4,6 +4,11 @@ using Nalix.Common.Diagnostics;
 using Nalix.Logging.Configuration;
 using Nalix.Logging.Internal.Webhook.Models;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Benchmarks")]
+#endif
+
 namespace Nalix.Logging.Internal.Formatters;
 
 /// <summary>

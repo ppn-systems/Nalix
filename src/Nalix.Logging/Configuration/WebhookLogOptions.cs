@@ -32,7 +32,7 @@ public sealed class WebhookLogOptions : ConfigurationLoader
     private System.Int32 _batchSize = DefaultBatchSize;
     private System.Int32 _retryCount = DefaultRetryCount;
     private System.Int32 _maxQueueSize = DefaultMaxQueueSize;
-    private System.Collections.Generic.List<System.String> _webhookUrls = ["https://discord.com/api/webhooks/{webhook.id}/{webhook.token}", "https://discord.com/api/webhooks/{webhook.id}/{webhook.token}"];
+    private System.Collections.Generic.List<System.String> _webhookUrls = [];
 
     #endregion Fields
 
@@ -46,6 +46,7 @@ public sealed class WebhookLogOptions : ConfigurationLoader
     /// Format: https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
     /// </remarks>
     /// <exception cref="System.ArgumentException">Thrown when value is null, empty, or not a valid URL.</exception>
+    [ConfiguredIgnore]
     public System.Collections.Generic.List<System.String> WebhookUrls
     {
         get => _webhookUrls;
