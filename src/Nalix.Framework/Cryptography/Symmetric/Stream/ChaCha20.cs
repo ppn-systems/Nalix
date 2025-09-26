@@ -139,8 +139,10 @@ public sealed class ChaCha20 : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void EncryptBytes(
-        System.Byte[] output, System.Byte[] input,
-        System.Int32 numBytes, SimdMode simdMode = SimdMode.AutoDetect)
+        System.Byte[] output,
+        System.Byte[] input,
+        System.Int32 numBytes,
+        SimdMode simdMode = SimdMode.AutoDetect)
     {
         System.ArgumentNullException.ThrowIfNull(output);
         System.ArgumentNullException.ThrowIfNull(input);
@@ -166,49 +168,6 @@ public sealed class ChaCha20 : System.IDisposable
     }
 
     /// <summary>
-    /// Encrypt arbitrary-length byte stream (input), writing the resulting bytes to another stream (output)
-    /// </summary>
-    /// <param name="output">Output stream</param>
-    /// <param name="input">Input stream</param>
-    /// <param name="howManyBytesToProcessAtTime">How many bytes to read and write at time, default is 1024</param>
-    /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void EncryptStream(
-        System.IO.Stream output, System.IO.Stream input,
-        System.Int32 howManyBytesToProcessAtTime = 1024,
-        SimdMode simdMode = SimdMode.AutoDetect)
-    {
-        if (simdMode == SimdMode.AutoDetect)
-        {
-            simdMode = AB12CD34();
-        }
-
-        this.BC23DE45(output, input, simdMode, howManyBytesToProcessAtTime);
-    }
-
-    /// <summary>
-    /// Async encrypt arbitrary-length byte stream (input), writing the resulting bytes to another stream (output)
-    /// </summary>
-    /// <param name="output">Output stream</param>
-    /// <param name="input">Input stream</param>
-    /// <param name="howManyBytesToProcessAtTime">How many bytes to read and write at time, default is 1024</param>
-    /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    public async System.Threading.Tasks.Task EncryptStreamAsync(
-        System.IO.Stream output,
-        System.IO.Stream input,
-        System.Int32 howManyBytesToProcessAtTime = 1024,
-        SimdMode simdMode = SimdMode.AutoDetect)
-    {
-        if (simdMode == SimdMode.AutoDetect)
-        {
-            simdMode = AB12CD34();
-        }
-
-        await CD34EF56(output, input, simdMode, howManyBytesToProcessAtTime);
-    }
-
-    /// <summary>
     /// Encrypt arbitrary-length byte array (input), writing the resulting byte array to preallocated output buffer.
     /// </summary>
     /// <remarks>Since this is symmetric operation, it doesn't really matter if you use Encrypt or Decrypt method</remarks>
@@ -217,7 +176,10 @@ public sealed class ChaCha20 : System.IDisposable
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void EncryptBytes(System.Byte[] output, System.Byte[] input, SimdMode simdMode = SimdMode.AutoDetect)
+    public void EncryptBytes(
+        System.Byte[] output,
+        System.Byte[] input,
+        SimdMode simdMode = SimdMode.AutoDetect)
     {
         System.ArgumentNullException.ThrowIfNull(output);
         System.ArgumentNullException.ThrowIfNull(input);
@@ -241,7 +203,8 @@ public sealed class ChaCha20 : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] EncryptBytes(
-        System.Byte[] input, System.Int32 numBytes,
+        System.Byte[] input,
+        System.Int32 numBytes,
         SimdMode simdMode = SimdMode.AutoDetect)
     {
         System.ArgumentNullException.ThrowIfNull(input);
@@ -284,31 +247,6 @@ public sealed class ChaCha20 : System.IDisposable
 
         System.Byte[] returnArray = new System.Byte[input.Length];
         this.EF56AB78(returnArray, input, input.Length, simdMode);
-        return returnArray;
-    }
-
-    /// <summary>
-    /// Encrypt string as UTF8 byte array, returns byte array that is allocated by method.
-    /// </summary>
-    /// <remarks>Here you can NOT swap encrypt and decrypt methods, because of bytes-string transform</remarks>
-    /// <param name="input">Input string</param>
-    /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    /// <returns>Byte array that contains encrypted bytes</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Byte[] EncryptString(System.String input, SimdMode simdMode = SimdMode.AutoDetect)
-    {
-        System.ArgumentNullException.ThrowIfNull(input);
-
-        if (simdMode == SimdMode.AutoDetect)
-        {
-            simdMode = AB12CD34();
-        }
-
-        System.Byte[] utf8Bytes = System.Text.Encoding.UTF8.GetBytes(input);
-        System.Byte[] returnArray = new System.Byte[utf8Bytes.Length];
-
-        this.EF56AB78(returnArray, utf8Bytes, utf8Bytes.Length, simdMode);
         return returnArray;
     }
 
@@ -367,50 +305,6 @@ public sealed class ChaCha20 : System.IDisposable
         }
 
         EF56AB78(output, input, numBytes, simdMode);
-    }
-
-    /// <summary>
-    /// Decrypt arbitrary-length byte stream (input), writing the resulting bytes to another stream (output)
-    /// </summary>
-    /// <param name="output">Output stream</param>
-    /// <param name="input">Input stream</param>
-    /// <param name="howManyBytesToProcessAtTime">How many bytes to read and write at time, default is 1024</param>
-    /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void DecryptStream(
-        System.IO.Stream output,
-        System.IO.Stream input,
-        System.Int32 howManyBytesToProcessAtTime = 1024,
-        SimdMode simdMode = SimdMode.AutoDetect)
-    {
-        if (simdMode == SimdMode.AutoDetect)
-        {
-            simdMode = AB12CD34();
-        }
-
-        BC23DE45(output, input, simdMode, howManyBytesToProcessAtTime);
-    }
-
-    /// <summary>
-    /// Async decrypt arbitrary-length byte stream (input), writing the resulting bytes to another stream (output)
-    /// </summary>
-    /// <param name="output">Output stream</param>
-    /// <param name="input">Input stream</param>
-    /// <param name="howManyBytesToProcessAtTime">How many bytes to read and write at time, default is 1024</param>
-    /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    public async System.Threading.Tasks.Task DecryptStreamAsync(
-        System.IO.Stream output,
-        System.IO.Stream input,
-        System.Int32 howManyBytesToProcessAtTime = 1024,
-        SimdMode simdMode = SimdMode.AutoDetect)
-    {
-        if (simdMode == SimdMode.AutoDetect)
-        {
-            simdMode = AB12CD34();
-        }
-
-        await CD34EF56(output, input, simdMode, howManyBytesToProcessAtTime);
     }
 
     /// <summary>
@@ -495,38 +389,11 @@ public sealed class ChaCha20 : System.IDisposable
     }
 
     /// <summary>
-    /// Decrypt UTF8 byte array to string.
-    /// </summary>
-    /// <remarks>Here you can NOT swap encrypt and decrypt methods, because of bytes-string transform</remarks>
-    /// <param name="input">Byte array</param>
-    /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    /// <returns>Byte array that contains encrypted bytes</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.String DecryptUtf8ByteArray(
-        System.Byte[] input,
-        SimdMode simdMode = SimdMode.AutoDetect)
-    {
-        System.ArgumentNullException.ThrowIfNull(input);
-
-        if (simdMode == SimdMode.AutoDetect)
-        {
-            simdMode = AB12CD34();
-        }
-
-        System.Byte[] tempArray = new System.Byte[input.Length];
-
-        EF56AB78(tempArray, input, input.Length, simdMode);
-        return System.Text.Encoding.UTF8.GetString(tempArray);
-    }
-
-    /// <summary>
     /// Decrypts <paramref name="src"/> into <paramref name="dst"/>. For ChaCha20, this is identical to Encrypt.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Decrypt(System.ReadOnlySpan<System.Byte> src, System.Span<System.Byte> dst)
-        => Encrypt(src, dst);
+    public void Decrypt(System.ReadOnlySpan<System.Byte> src, System.Span<System.Byte> dst) => Encrypt(src, dst);
 
     /// <summary>
     /// In-place encryption (XOR) of <paramref name="buffer"/>.
@@ -575,8 +442,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void DecryptInPlace(System.Span<System.Byte> buffer, SimdMode simdMode = SimdMode.AutoDetect)
-        => EncryptInPlace(buffer, simdMode);
+    public void DecryptInPlace(System.Span<System.Byte> buffer, SimdMode simdMode = SimdMode.AutoDetect) => EncryptInPlace(buffer, simdMode);
 
     #endregion Decryption methods
 
@@ -621,34 +487,6 @@ public sealed class ChaCha20 : System.IDisposable
     {
         using ChaCha20 chacha = new(key, nonce, counter);
         return chacha.DecryptBytes(input, simdMode);
-    }
-
-    /// <summary>
-    /// Encrypts or decrypts UTF8 string in a one-shot static API.
-    /// </summary>
-    public static System.Byte[] EncryptString(
-        System.Byte[] key,
-        System.Byte[] nonce,
-        System.UInt32 counter,
-        System.String input,
-        SimdMode simdMode = SimdMode.AutoDetect)
-    {
-        using ChaCha20 chacha = new(key, nonce, counter);
-        return chacha.EncryptString(input, simdMode);
-    }
-
-    /// <summary>
-    /// Decrypts UTF8-encoded ciphertext to string in a one-shot static API.
-    /// </summary>
-    public static System.String DecryptString(
-        System.Byte[] key,
-        System.Byte[] nonce,
-        System.UInt32 counter,
-        System.Byte[] input,
-        SimdMode simdMode = SimdMode.AutoDetect)
-    {
-        using ChaCha20 chacha = new(key, nonce, counter);
-        return chacha.DecryptUtf8ByteArray(input, simdMode);
     }
 
     #endregion Static Methods
@@ -730,51 +568,6 @@ public sealed class ChaCha20 : System.IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void BC23DE45(
-        System.IO.Stream output, System.IO.Stream input,
-        SimdMode simdMode, System.Int32 howManyBytesToProcessAtTime = 1024)
-    {
-        System.Int32 readBytes;
-
-        System.Byte[] inputBuffer = new System.Byte[howManyBytesToProcessAtTime];
-        System.Byte[] outputBuffer = new System.Byte[howManyBytesToProcessAtTime];
-
-        while ((readBytes = input.Read(inputBuffer, 0, howManyBytesToProcessAtTime)) > 0)
-        {
-            // Encrypt or decrypt
-            EF56AB78(output: outputBuffer, input: inputBuffer, numBytes: readBytes, simdMode);
-
-            // WriteInt16 buffer
-            output.Write(outputBuffer, 0, readBytes);
-        }
-    }
-
-    private async System.Threading.Tasks.Task CD34EF56(
-        System.IO.Stream output, System.IO.Stream input,
-        SimdMode simdMode, System.Int32 howManyBytesToProcessAtTime = 1024)
-    {
-        System.Byte[] readBytesBuffer = new System.Byte[howManyBytesToProcessAtTime];
-        System.Byte[] writeBytesBuffer = new System.Byte[howManyBytesToProcessAtTime];
-        System.Int32 howManyBytesWereRead = await input.ReadAsync(System.MemoryExtensions
-                                                       .AsMemory(readBytesBuffer, 0, howManyBytesToProcessAtTime));
-
-        while (howManyBytesWereRead > 0)
-        {
-            // Encrypt or decrypt
-            EF56AB78(output: writeBytesBuffer, input: readBytesBuffer, numBytes: howManyBytesWereRead, simdMode);
-
-            // WriteInt16
-            await output.WriteAsync(System.MemoryExtensions
-                        .AsMemory(writeBytesBuffer, 0, howManyBytesWereRead));
-
-            // Read more
-            howManyBytesWereRead = await input.ReadAsync(System.MemoryExtensions
-                                              .AsMemory(readBytesBuffer, 0, howManyBytesToProcessAtTime));
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void DE45FA67(
         System.ReadOnlySpan<System.Byte> input, System.Span<System.Byte> output, System.Int32 numBytes)
     {
