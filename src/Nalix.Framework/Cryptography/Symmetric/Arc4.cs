@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Framework.Cryptography.Symmetric.Stream;
+namespace Nalix.Framework.Cryptography.Symmetric;
 
 /// <summary>
 /// Implements the ARC4 (Alleged RC4) symmetric stream cipher.
