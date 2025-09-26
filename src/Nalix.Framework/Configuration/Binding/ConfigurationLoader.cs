@@ -12,6 +12,7 @@ namespace Nalix.Framework.Configuration.Binding;
 /// </summary>
 /// <remarks>
 /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
+/// Supported data types: int, long, short, byte, double, float, decimal, bool, char, string, DateTime, TimeSpan, Guid, and all Enum types.
 /// The section and key names in the INI file are derived from the class and property names.
 /// </remarks>
 [System.Runtime.CompilerServices.SkipLocalsInit]
@@ -57,11 +58,17 @@ public abstract partial class ConfigurationLoader
     /// <summary>
     /// Gets a value indicating whether this instance has been initialized.
     /// </summary>
+    /// <value>
+    /// <c>true</c> if the configuration has been initialized; otherwise, <c>false</c>.
+    /// </value>
     public System.Boolean IsInitialized => System.Threading.Volatile.Read(ref _isInitialized) == 1;
 
     /// <summary>
     /// Gets the time when this configuration was last initialized.
     /// </summary>
+    /// <value>
+    /// A <see cref="System.DateTime"/> representing the UTC time of last initialization.
+    /// </value>
     public System.DateTime LastInitializationTime { get; private set; }
 
     #endregion Properties
@@ -85,7 +92,22 @@ public abstract partial class ConfigurationLoader
     /// <summary>
     /// Creates a shallow clone of this configuration instance.
     /// </summary>
-    /// <returns>A new instance with the same property values.</returns>
+    /// <typeparam name="T">
+    /// The type of the derived class from <see cref="ConfigurationLoader"/>.
+    /// </typeparam>
+    /// <returns>
+    /// A new instance of type <typeparamref name="T"/> with the same property values.
+    /// </returns>
+    /// <remarks>
+    /// This method supports all bindable properties, including the supported data types:
+    /// <list type="bullet">
+    /// <item><description>int, long, short, byte</description></item>
+    /// <item><description>double, float, decimal</description></item>
+    /// <item><description>bool, char, string</description></item>
+    /// <item><description>DateTime, TimeSpan</description></item>
+    /// <item><description>Guid, Enum types</description></item>
+    /// </list>
+    /// </remarks>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]

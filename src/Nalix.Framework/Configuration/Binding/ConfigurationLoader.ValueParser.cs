@@ -3,7 +3,6 @@
 using Nalix.Common.Diagnostics;
 using Nalix.Framework.Configuration.Internal;
 using Nalix.Framework.Injection;
-using System.Collections.Generic;
 
 namespace Nalix.Framework.Configuration.Binding;
 
@@ -26,64 +25,6 @@ public partial class ConfigurationLoader
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     private static System.Object? GetConfigValue(IniConfig configFile, System.String section, PropertyMetadata property)
     {
-        // --- Support binding List<T> ---
-        if (property.PropertyType.IsGenericType &&
-            property.PropertyType.GetGenericTypeDefinition() == typeof(System.Collections.Generic.List<>))
-        {
-            // Đọc chuỗi từ config: "A,B,C"
-            System.String csv = configFile.GetString(section, property.Name);
-            System.Type elementType = property.PropertyType.GetGenericArguments()[0];
-
-            System.String[] values = System.String.IsNullOrEmpty(csv)
-                ? [] : csv.Split([','], System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
-
-            // Chuyển từng phần tử sang kiểu đúng
-            System.Collections.IList list = (System.Collections.IList)System.Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType))!;
-
-            foreach (System.String s in values)
-            {
-                System.Object? v = elementType == typeof(System.String)
-                    ? s
-                    : elementType.IsEnum
-                        ? System.Enum.Parse(elementType, s, ignoreCase: true)
-                        : elementType == typeof(System.Int32)
-                            ? System.Int32.Parse(s)
-                        : elementType == typeof(System.Int64)
-                            ? System.Int64.Parse(s)
-                        : elementType == typeof(System.Byte)
-                            ? System.Byte.Parse(s)
-                        : elementType == typeof(System.SByte)
-                            ? System.SByte.Parse(s)
-                        : elementType == typeof(System.UInt16)
-                            ? System.UInt16.Parse(s)
-                        : elementType == typeof(System.Int16)
-                            ? System.Int16.Parse(s)
-                        : elementType == typeof(System.UInt32)
-                            ? System.UInt32.Parse(s)
-                        : elementType == typeof(System.UInt64)
-                            ? System.UInt64.Parse(s)
-                        : elementType == typeof(System.Single)
-                            ? System.Single.Parse(s, System.Globalization.CultureInfo.InvariantCulture)
-                        : elementType == typeof(System.Double)
-                            ? System.Double.Parse(s, System.Globalization.CultureInfo.InvariantCulture)
-                        : elementType == typeof(System.Decimal)
-                            ? System.Decimal.Parse(s, System.Globalization.CultureInfo.InvariantCulture)
-                        : elementType == typeof(System.Boolean)
-                            ? System.Boolean.Parse(s)
-                        : elementType == typeof(System.DateTime)
-                            ? System.DateTime.Parse(s, null, System.Globalization.DateTimeStyles.RoundtripKind)
-                        : elementType == typeof(System.TimeSpan)
-                            ? System.TimeSpan.Parse(s)
-                        : elementType == typeof(System.Guid)
-                            ? System.Guid.Parse(s)
-                        : System.Convert.ChangeType(s, elementType, System.Globalization.CultureInfo.InvariantCulture);
-
-                list.Add(v);
-            }
-
-            return list;
-        }
-
         // Handle Enums of any underlying type with cached reflection
         if (property.PropertyType.IsEnum)
         {
