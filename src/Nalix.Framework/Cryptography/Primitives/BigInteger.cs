@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Framework.Cryptography;
+namespace Nalix.Framework.Cryptography.Primitives;
 
 /// <summary>
 /// Provides extension methods for BigInteger operations with modular arithmetic.
