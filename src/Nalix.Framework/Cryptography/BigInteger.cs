@@ -1,11 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Framework.Cryptography.Internal;
+namespace Nalix.Framework.Cryptography;
 
 /// <summary>
 /// Provides extension methods for BigInteger operations with modular arithmetic.
 /// </summary>
-internal static class BigIntExtensions
+internal static class BigInteger
 {
     /// <summary>
     /// Adds two BigInteger values with modulo operation.

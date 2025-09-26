@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Framework.Cryptography.Primitives;
+namespace Nalix.Framework.Cryptography;
 
 /// <summary>
 /// High-performance bitwise utilities for cryptographic operations.
@@ -20,12 +20,12 @@ internal static class BitwiseOperations
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.UInt32 RotateRight(System.UInt32 value, System.Int32 bits)
-        => (value >> bits) | (value << (32 - bits));
+        => value >> bits | value << 32 - bits;
 
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.UInt64 RotateRight(System.UInt64 v, System.Int32 bits) => (v >> bits) | (v << (64 - bits));
+    public static System.UInt64 RotateRight(System.UInt64 v, System.Int32 bits) => v >> bits | v << 64 - bits;
 
     /// <summary>
     /// Performs a left bitwise rotation on a 32-bit unsigned integer using hardware intrinsics when available.
@@ -41,7 +41,7 @@ internal static class BitwiseOperations
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.UInt64 RotateLeft(System.UInt64 v, System.Int32 bits) => (v << bits) | (v >> (64 - bits));
+    public static System.UInt64 RotateLeft(System.UInt64 v, System.Int32 bits) => v << bits | v >> 64 - bits;
 
     #endregion Bit Rotations
 
