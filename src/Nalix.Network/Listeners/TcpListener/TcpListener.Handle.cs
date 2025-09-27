@@ -14,6 +14,7 @@ using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Throttling;
 using Nalix.Network.Timing;
 using Nalix.Shared.Memory.Pooling;
+using System.Net;
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -68,31 +69,27 @@ public abstract partial class TcpListenerBase
     {
         InitializeOptions(socket);
 
-        try
+        // Trả context ngay tại đây, trước khi tạo connection
+        // Context chỉ cần cho việc Accept, không cần sau đó
+        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                .Return<PooledAcceptContext>(context);
+
+        IConnection connection = new Connection(socket);
+
+        connection.OnCloseEvent += this.HandleConnectionClose;
+
+        connection.OnProcessEvent += _protocol.ProcessMessage;
+        connection.OnPostProcessEvent += _protocol.PostProcessMessage;
+        connection.OnCloseEvent += InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>()
+                                                           .OnConnectionClosed;
+
+        if (Config.EnableTimeout)
         {
-            IConnection connection = new Connection(socket);
-
-            connection.OnCloseEvent += this.HandleConnectionClose;
-
-            connection.OnProcessEvent += _protocol.ProcessMessage;
-            connection.OnPostProcessEvent += _protocol.PostProcessMessage;
-            connection.OnCloseEvent += InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>()
-                                                               .OnConnectionClosed;
-
-            if (Config.EnableTimeout)
-            {
-                InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
-                                        .Register(connection);
-            }
-
-            return connection;
+            InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
+                                    .Register(connection);
         }
-        finally
-        {
-            // Ensure the context is returned to the pool even if connection creation fails
-            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Return<PooledAcceptContext>(context);
-        }
+
+        return connection;
     }
 
     [System.Diagnostics.StackTraceHidden]
@@ -133,11 +130,14 @@ public abstract partial class TcpListenerBase
                         return;
                     }
 
-                    if (!InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>()
-                                                 .IsConnectionAllowed(socket.RemoteEndPoint))
+                    if (socket.RemoteEndPoint is IPEndPoint ip)
                     {
-                        SafeCloseSocket(socket);
-                        return;
+                        if (!InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>()
+                                                     .IsConnectionAllowed(ip))
+                        {
+                            SafeCloseSocket(socket);
+                            return;
+                        }
                     }
 
                     // Create and process connection similar to async version
@@ -343,17 +343,14 @@ public abstract partial class TcpListenerBase
 
                 _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                     name: $"{NetTaskNames.Tcp}/{TaskNaming.Tags.Accept}",
-                    group: $"{NetTaskNames.Net}/{NetTaskNames.Tcp}",
-                    work: async (_, _) =>
-                    {
-                        ProcessConnection(connection);
-                        await System.Threading.Tasks.Task.CompletedTask;
-                    },
+                    group: $"{NetTaskNames.Net}/{NetTaskNames.Tcp}/{_port}",
+                    work: async (_, _) => this.ProcessConnection(connection),
                     options: new WorkerOptions
                     {
-                        RetainFor = System.TimeSpan.Zero,
+                        Tag = NetTaskNames.Net,
                         IdType = SnowflakeType.System,
-                        Tag = NetTaskNames.Net
+                        RetainFor = System.TimeSpan.Zero,
+                        CancellationToken = cancellationToken,
                     }
                 );
 
@@ -403,6 +400,7 @@ public abstract partial class TcpListenerBase
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        System.Boolean contextReturned = false;
         PooledAcceptContext context = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                               .Get<PooledAcceptContext>();
 
@@ -412,8 +410,7 @@ public abstract partial class TcpListenerBase
 
             if (_listener == null)
             {
-                throw new System.InvalidOperationException(
-                    $"[NW.{nameof(TcpListenerBase)}:{nameof(CreateConnectionAsync)}] socket is not initialized.");
+                throw new System.InvalidOperationException("Socket is not initialized.");
             }
 
             // Wait async accept:
@@ -425,6 +422,11 @@ public abstract partial class TcpListenerBase
             {
                 SafeCloseSocket(socket);
 
+                // Trả context ở đây vì InitializeConnection sẽ không được gọi
+                contextReturned = true;
+                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                        .Return<PooledAcceptContext>(context);
+
                 throw new InternalErrorException();
             }
 
@@ -432,9 +434,11 @@ public abstract partial class TcpListenerBase
         }
         catch
         {
-            // Don't forget to return to pool in case of failure
-            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+            if (!contextReturned)
+            {
+                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Return<PooledAcceptContext>(context);
+            }
 
             throw new InternalErrorException();
         }

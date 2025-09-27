@@ -33,7 +33,7 @@ internal sealed class PooledAcceptContext : IPoolable
 
     // Always access through BindArgs(...) to keep handler wiring correct.
     [System.Diagnostics.CodeAnalysis.AllowNull]
-    private System.Net.Sockets.SocketAsyncEventArgs _args;
+    private System.Net.Sockets.SocketAsyncEventArgs _args = null;
 
     /// <summary>
     /// The SAEA currently bound to this context.
@@ -41,19 +41,23 @@ internal sealed class PooledAcceptContext : IPoolable
     public System.Net.Sockets.SocketAsyncEventArgs Args => _args ?? throw new System.InvalidOperationException("Args not bound.");
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PooledAcceptContext"/> class and binds to a pooled args.
+    /// Ensures that this context has a bound SAEA, acquiring one from the pool if necessary.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0270:Use coalesce expression", Justification = "<Pending>")]
-    public PooledAcceptContext()
+    public void EnsureArgsBound()
     {
-        PooledSocketAsyncEventArgs pooledArgs = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                                        .Get<PooledSocketAsyncEventArgs>();
-        if (pooledArgs == null)
+        if (_args == null)
         {
-            throw new System.InvalidOperationException("Failed to acquire a pooled SocketAsyncEventArgs instance.");
-        }
+            PooledSocketAsyncEventArgs pooledArgs = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                                            .Get<PooledSocketAsyncEventArgs>();
 
-        this.BindArgs(pooledArgs);
+            if (pooledArgs == null)
+            {
+                throw new System.InvalidOperationException("Failed to acquire PooledSocketAsyncEventArgs.");
+            }
+
+            this.BindArgs(pooledArgs);
+        }
     }
 
     /// <summary>
@@ -65,10 +69,7 @@ internal sealed class PooledAcceptContext : IPoolable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void BindArgs(System.Net.Sockets.SocketAsyncEventArgs newArgs)
     {
-        if (_args != null)
-        {
-            _args.Completed -= AsyncAcceptCompleted;
-        }
+        _args?.Completed -= AsyncAcceptCompleted;
 
         _args = newArgs ?? throw new System.ArgumentNullException(nameof(newArgs));
         _args.Completed += AsyncAcceptCompleted;
@@ -82,10 +83,7 @@ internal sealed class PooledAcceptContext : IPoolable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void BindArgsForSync(System.Net.Sockets.SocketAsyncEventArgs newArgs)
     {
-        if (_args != null)
-        {
-            _args.Completed -= AsyncAcceptCompleted;
-        }
+        _args?.Completed -= AsyncAcceptCompleted;
 
         _args = newArgs ?? throw new System.ArgumentNullException(nameof(newArgs));
     }
@@ -97,7 +95,9 @@ internal sealed class PooledAcceptContext : IPoolable
     [System.Diagnostics.Contracts.Pure]
     public System.Threading.Tasks.ValueTask<System.Net.Sockets.Socket> BeginAcceptAsync(System.Net.Sockets.Socket listener)
     {
-        var tcs = new System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>(
+        EnsureArgsBound();
+
+        System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket> tcs = new(
             System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
 
         System.Net.Sockets.SocketAsyncEventArgs args = this.Args;          // throws if not bound
@@ -134,6 +134,16 @@ internal sealed class PooledAcceptContext : IPoolable
             _args.Completed -= AsyncAcceptCompleted;
             _args.UserToken = null;
             _args.AcceptSocket = null;
+
+            // Trả PooledSocketAsyncEventArgs về pool
+            if (_args is PooledSocketAsyncEventArgs pooled)
+            {
+                pooled.ResetForPool();
+                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                        .Return<PooledSocketAsyncEventArgs>(pooled);
+            }
+
+            _args = null; // Tránh dangling reference
         }
     }
 }
