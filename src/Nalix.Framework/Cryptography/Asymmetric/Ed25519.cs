@@ -243,7 +243,7 @@ public static class Ed25519
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Numerics.BigInteger HashToScalar(System.ReadOnlySpan<System.Byte> data)
     {
-        System.Byte[] h = SHA3256.Hash(data);
+        System.Byte[] h = SHA3256.HashData(data);
         return new System.Numerics.BigInteger(h, isUnsigned: true, isBigEndian: false) % L;
     }
 
@@ -359,13 +359,13 @@ public static class Ed25519
         // aBytes = SHA3-256(sk || 0x00)
         secretKey.CopyTo(tmp);
         tmp[^1] = 0x00;
-        System.Byte[] h0 = SHA3256.Hash(tmp); // 32 bytes
+        System.Byte[] h0 = SHA3256.HashData(tmp); // 32 bytes
         System.MemoryExtensions.CopyTo(h0, aBytes);
 
         // prefix = SHA3-256(sk || 0x01)
         secretKey.CopyTo(tmp);
         tmp[^1] = 0x01;
-        System.Byte[] h1 = SHA3256.Hash(tmp); // 32 bytes
+        System.Byte[] h1 = SHA3256.HashData(tmp); // 32 bytes
         System.MemoryExtensions.CopyTo(h1, prefix);
     }
 

@@ -4,6 +4,7 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Protocols;            // ProtocolType
 using Nalix.Framework.Cryptography.Asymmetric;
+using Nalix.Framework.Cryptography.Hashing;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Messaging.Controls;
 
@@ -89,7 +90,7 @@ public static class HandshakeExtensions
     /// </exception>
     /// <remarks>
     /// The shared secret is derived via <see cref="X25519.Agreement(System.Byte[], System.Byte[])"/> and
-    /// hashed with <see cref="System.Security.Cryptography.SHA256.HashData(System.ReadOnlySpan{System.Byte})"/>.
+    /// hashed with <see cref="SHA3256.HashData(System.ReadOnlySpan{System.Byte})"/>.
     /// Sensitive material (private key and derived secret) is cleared from memory once the operation completes.
     /// </remarks>
     /// <example>
@@ -127,7 +128,7 @@ public static class HandshakeExtensions
             secret = X25519.Agreement(clientKeyPair.PrivateKey, hs.Data);
 
             // Derive 32-byte session key using SHA-256(secret)
-            client.Options.EncryptionKey = System.Security.Cryptography.SHA256.HashData(secret);
+            client.Options.EncryptionKey = SHA3256.HashData(secret);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Info("Handshake completed. EncryptionKey installed.");
