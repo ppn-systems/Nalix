@@ -536,7 +536,7 @@ public sealed partial class TaskManager : ITaskManager
             }
         }
 
-        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("--------------------------------------------------------------------------------------------------------");
         return sb.ToString();
 
         static System.String PadName(System.String s, System.Int32 width)

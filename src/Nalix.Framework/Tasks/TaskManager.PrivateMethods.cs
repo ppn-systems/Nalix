@@ -65,10 +65,11 @@ public partial class TaskManager
 
     #endregion Internal Cleanup
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private async System.Threading.Tasks.Task RecurringLoopAsync(
-    RecurringState s,
-    System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work)
+        RecurringState s,
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work)
     {
         System.Threading.CancellationToken ct = s.Cts.Token;
 
@@ -100,7 +101,7 @@ public partial class TaskManager
         // Local helpers for fast delay
         static void BusyWait(System.Int64 untilTicks)
         {
-            var sw = new System.Threading.SpinWait();
+            System.Threading.SpinWait sw = new();
             while (System.Diagnostics.Stopwatch.GetTimestamp() < untilTicks)
             {
                 sw.SpinOnce(sleep1Threshold: -1);
@@ -175,6 +176,7 @@ public partial class TaskManager
                     s.MarkFailure();
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Error($"[{nameof(TaskManager)}] recurring-timeout name={s.Name} msg={oce.Message}");
+
                     await RecurringBackoffAsync(s, ct).ConfigureAwait(false);
                 }
                 catch (System.Exception ex)
@@ -182,6 +184,7 @@ public partial class TaskManager
                     s.MarkFailure();
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Error($"[{nameof(TaskManager)}] recurring-error name={s.Name} msg={ex.Message}");
+
                     await RecurringBackoffAsync(s, ct).ConfigureAwait(false);
                 }
                 finally
