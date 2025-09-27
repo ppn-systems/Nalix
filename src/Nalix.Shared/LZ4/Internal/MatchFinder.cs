@@ -51,7 +51,7 @@ internal static unsafe class MatchFinder
     /// <summary>
     /// Finds the longest match for the current input position within the sliding window.
     /// </summary>
-    /// <param name="hashTable">Hash table mapping hash values to input offsets.</param>
+    /// <param name="hashTable">HashData table mapping hash values to input offsets.</param>
     /// <param name="inputBase">Pointer to the start of the input buffer.</param>
     /// <param name="currentInputPtr">Pointer to the current position in the input buffer.</param>
     /// <param name="inputLimit">Pointer to the end of the input buffer or match limit.</param>

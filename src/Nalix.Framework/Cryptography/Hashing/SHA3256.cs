@@ -138,7 +138,7 @@ public sealed class SHA3256 : System.IDisposable
     /// <returns>A new 32-byte array containing the SHA3-256 digest.</returns>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     [System.Diagnostics.Contracts.Pure]
-    public static System.Byte[] Hash(System.ReadOnlySpan<System.Byte> data)
+    public static System.Byte[] HashData(System.ReadOnlySpan<System.Byte> data)
     {
         using SHA3256 sha3 = new();
         sha3.Update(data);
@@ -153,7 +153,7 @@ public sealed class SHA3256 : System.IDisposable
     /// <exception cref="System.ArgumentException">Thrown if <paramref name="output"/> is smaller than 32 bytes.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the instance has been disposed.</exception>
     [System.Diagnostics.Contracts.Pure]
-    public static void Hash(System.ReadOnlySpan<System.Byte> data, System.Span<System.Byte> output)
+    public static void HashData(System.ReadOnlySpan<System.Byte> data, System.Span<System.Byte> output)
     {
         if (output.Length < HashSizeBytes)
         {
