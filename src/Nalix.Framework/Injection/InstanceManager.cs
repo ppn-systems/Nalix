@@ -395,27 +395,27 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         _ = sb.AppendLine($"CachedInstanceCount: {CachedInstanceCount}");
         _ = sb.AppendLine();
         _ = sb.AppendLine("Instances:");
-        _ = sb.AppendLine("-------------------------------------------------------------------------");
+        _ = sb.AppendLine("-----------------------------------------------------------------------");
         _ = sb.AppendLine("Type                                   | Disposable | Source");
-        _ = sb.AppendLine("-------------------------------------------------------------------------");
+        _ = sb.AppendLine("-----------------------------------------------------------------------");
 
         foreach (var kvp in _instanceCache)
         {
             var type = System.Type.GetTypeFromHandle(kvp.Key)!;
             var instance = kvp.Value;
             System.String typeName = type.FullName ?? type.Name;
-            if (typeName.Length > 35)
+            if (typeName.Length > 32)
             {
-                typeName = "..." + typeName[^32..];
+                typeName = "..." + typeName[^29..];
             }
 
             System.Boolean isDisposable = instance is System.IDisposable;
             System.String source = _activatorCacheContains(type) ? "ActivatorCache" : "ManualRegister";
 
-            _ = sb.AppendLine($"{typeName.PadRight(38)} | {(isDisposable ? "Yes" : "No "),10} | {source}");
+            _ = sb.AppendLine($"{typeName.PadRight(35)} | {(isDisposable ? "Yes" : "No "),10} | {source}");
         }
 
-        _ = sb.AppendLine("-------------------------------------------------------------------------");
+        _ = sb.AppendLine("-----------------------------------------------------------------------");
         return sb.ToString();
 
         System.Boolean _activatorCacheContains(System.Type t)

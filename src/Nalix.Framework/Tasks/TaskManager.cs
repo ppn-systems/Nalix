@@ -470,7 +470,7 @@ public sealed partial class TaskManager : ITaskManager
         var sb = new System.Text.StringBuilder(1024);
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TaskManager:");
         _ = sb.AppendLine($"Recurring: {_recurring.Count} | Workers: {_workers.Count} (running={CountRunningWorkers()})");
-        _ = sb.AppendLine("---------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");
 
         // Recurring summary
         _ = sb.AppendLine("Recurring:");
@@ -536,7 +536,7 @@ public sealed partial class TaskManager : ITaskManager
             }
         }
 
-        _ = sb.AppendLine("---------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------------");
         return sb.ToString();
 
         static System.String PadName(System.String s, System.Int32 width)

@@ -314,13 +314,13 @@ public sealed class ObjectPoolManager : IReportable
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Pool Details:");
-        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine("--------------------------------------------------------------");
         _ = sb.AppendLine("Type                     | Available | Max Capacity | Created");
-        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine("--------------------------------------------------------------");
 
         // Sort pools by type name for better readability
         System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<System.Type, ObjectPool>> sortedPools = [.. _poolDict];
-        sortedPools.Sort((a, b) => System.String.Compare(a.Key.Name, b.Key.Name, System.StringComparison.Ordinal));
+        sortedPools.Sort((a, b) => System.String.CompareOrdinal(a.Key.Name, b.Key.Name));
 
         foreach (var kvp in sortedPools)
         {
@@ -330,7 +330,7 @@ public sealed class ObjectPoolManager : IReportable
             var typeStats = pool.GetTypeInfo<IPoolable>();
 
             System.String typeName = type.Name.Length > 24
-                ? System.String.Concat(System.MemoryExtensions.AsSpan(type.Name, 0, 21), "...")
+                ? $"{System.MemoryExtensions.AsSpan(type.Name, 0, 21)}..."
                 : type.Name.PadRight(24);
 
             System.Int32 availableCount = System.Convert.ToInt32(typeStats["AvailableCount"]);
@@ -340,7 +340,7 @@ public sealed class ObjectPoolManager : IReportable
             _ = sb.AppendLine($"{typeName} | {availableCount,9} | {maxCapacity,12} | {created,7}");
         }
 
-        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine("--------------------------------------------------------------");
         return sb.ToString();
     }
 

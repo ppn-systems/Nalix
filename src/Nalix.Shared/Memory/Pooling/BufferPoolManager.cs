@@ -113,7 +113,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
             _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
                 name: RecurringName,
                 interval: System.TimeSpan.FromMinutes(System.Math.Max(1, _trimIntervalMinutes)),
-                work: ct =>
+                work: _ =>
                 {
                     TrimExcessBuffers(null);
                     return System.Threading.Tasks.ValueTask.CompletedTask;
@@ -296,9 +296,9 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Pool Details:");
-        _ = sb.AppendLine("--------------------------------------------------------------------");
+        _ = sb.AppendLine("----------------------------------------------------------------------");
         _ = sb.AppendLine("Size     | Total Buffers | Free Buffers | In Use | Usage % | MissRate");
-        _ = sb.AppendLine("--------------------------------------------------------------------");
+        _ = sb.AppendLine("----------------------------------------------------------------------");
 
         foreach (var pool in System.Linq.Enumerable.OrderBy(_poolManager.GetAllPools(), p => p.GetPoolInfoRef().BufferSize))
         {
@@ -311,7 +311,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
             _ = sb.AppendLine($"{info.BufferSize,8} | {info.TotalBuffers,13} | {info.FreeBuffers,12} | {inUse,6} | {usage,7:F2}% | {miss,7:F2}%");
         }
 
-        _ = sb.AppendLine("--------------------------------------------------------------------");
+        _ = sb.AppendLine("----------------------------------------------------------------------");
 
         return sb.ToString();
     }
