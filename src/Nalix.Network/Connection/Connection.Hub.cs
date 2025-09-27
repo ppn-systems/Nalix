@@ -89,14 +89,14 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             _ = System.Threading.Interlocked.Increment(ref this._connectionCount);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(ConnectionHub)}:{RegisterConnection}] " +
+                                    .Trace($"[{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] " +
                                            $"register id={connection.ID} total={this._connectionCount}");
 
             return true;
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(ConnectionHub)}:{RegisterConnection}] register-dup id={connection.ID}");
+                                .Info($"[{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register-dup id={connection.ID}");
         return false;
     }
 
@@ -123,7 +123,8 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(ConnectionHub)}:{UnregisterConnection}] unregister-miss id={connection.ID}");
+                                    .Info($"[{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] " +
+                                          $"unregister-miss id={connection.ID}");
             return false;
         }
 
