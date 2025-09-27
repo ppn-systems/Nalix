@@ -10,10 +10,10 @@
 		<DisableImplicitMicrosoftCSharpReference>true</DisableImplicitMicrosoftCSharpReference>
 
 		<!-- Versions -->
-		<Version>6.0.0</Version>
-		<FileVersion>6.0.0.0</FileVersion>
-		<PackageVersion>6.0.0</PackageVersion>
-		<InformationalVersion>6.0.0+$(SourceRevisionId)</InformationalVersion>
+		<Version>6.2.5</Version>
+		<FileVersion>6.2.5.0</FileVersion>
+		<PackageVersion>6.2.5</PackageVersion>
+		<InformationalVersion>6.2.5+$(SourceRevisionId)</InformationalVersion>
 		
 		<Description>
 Nalix.Network is a high-performance .NET library for network communication. It provides essential components for connection management, protocol handling, transport layers, and event-driven network listeners. Designed for developers building scalable and efficient networking applications.
