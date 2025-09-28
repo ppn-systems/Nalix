@@ -20,8 +20,7 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
     /// <inheritdoc/>
     public async System.Threading.Tasks.Task InvokeAsync(
         PacketContext<IPacket> context,
-        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next,
-        System.Threading.CancellationToken ct)
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
     {
         System.Int32 timeout = context.Attributes.Timeout?.TimeoutMilliseconds ?? 0;
 
@@ -58,6 +57,6 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        await next(ct).ConfigureAwait(false);
+        await next(context.CancellationToken).ConfigureAwait(false);
     }
 }

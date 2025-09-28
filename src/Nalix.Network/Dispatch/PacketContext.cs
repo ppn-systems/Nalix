@@ -81,6 +81,19 @@ public sealed class PacketContext<TPacket> : IPoolable
         internal set;
     }
 
+    /// <summary>
+    /// Gets or sets the cancellation token associated with the packet context.
+    /// </summary>
+    public System.Threading.CancellationToken CancellationToken
+    {
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        get;
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        internal set;
+    }
+
     #endregion Properties
 
     #region Constructor
@@ -135,6 +148,8 @@ public sealed class PacketContext<TPacket> : IPoolable
         this.Packet = packet;
         this.Connection = connection;
         this.Attributes = descriptor;
+        this.CancellationToken = new System.Threading.CancellationToken();
+
         _isInitialized = true;
     }
 

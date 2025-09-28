@@ -194,53 +194,96 @@ internal sealed class HandlerCompiler<
                                                         .GetProperty(nameof(PacketContext<TPacket>.Packet))!);
         var connProp = System.Linq.Expressions.Expression.Property(contextParam, typeof(PacketContext<TPacket>)
                                                          .GetProperty(nameof(PacketContext<TPacket>.Connection))!);
+        var ctProp = System.Linq.Expressions.Expression.Property(contextParam, typeof(PacketContext<TPacket>)
+                                                       .GetProperty(nameof(PacketContext<TPacket>.CancellationToken))!);
+
 
         // Get the actual parameter types of the method
         var parms = method.GetParameters();
 
-        // must be exactly 2 params: (TPacket-like, IConnection-like)
-        if (parms.Length != 2)
+        if (parms.Length is not 2 and not 3)
         {
             throw new System.InvalidOperationException(
-                $"Handler {method.DeclaringType?.Name}.{method.Name} must have exactly 2 parameters " +
-                $"(packet, connection). Found: {parms.Length}.");
+                $"Handler {method.DeclaringType?.Name}.{method.Name} must have 2 or 3 parameters " +
+                "(packet, connection[, CancellationToken]). Found: {parms.Length}.");
         }
-
-        var pktArgType = parms[0].ParameterType;   // ex: HANDSHAKE
-        var connArgType = parms[1].ParameterType;   // ex: IConnection hay Connection
+        var pktArgType = parms[0].ParameterType;
+        var connArgType = parms[1].ParameterType;
 
         if (!typeof(IPacket).IsAssignableFrom(pktArgType))
         {
-            throw new System.InvalidOperationException(
-                $"First parameter of {method.Name} must implement IPacket. Found: {pktArgType}.");
+            throw new System.InvalidOperationException($"First parameter of {method.Name} must implement IPacket. Found: {pktArgType}.");
         }
 
         if (!typeof(IConnection).IsAssignableFrom(connArgType))
         {
-            throw new System.InvalidOperationException(
-                $"Second parameter of {method.Name} must implement IConnection. Found: {connArgType}.");
+            throw new System.InvalidOperationException($"Second parameter of {method.Name} must implement IConnection. Found: {connArgType}.");
         }
 
-        var pktArg = pktArgType.IsAssignableFrom(typeof(TPacket))
-                        ? (System.Linq.Expressions.Expression)pktProp
-                        : System.Linq.Expressions.Expression.Convert(pktProp, pktArgType);
+        var pktArg = pktArgType.IsAssignableFrom(typeof(TPacket)) ? (System.Linq.Expressions.Expression)pktProp
+                     : System.Linq.Expressions.Expression.Convert(pktProp, pktArgType);
 
-        var connArg = connArgType.IsAssignableFrom(typeof(IConnection))
-                        ? (System.Linq.Expressions.Expression)connProp
-                        : System.Linq.Expressions.Expression.Convert(connProp, connArgType);
+        var connArg = connArgType == typeof(IConnection) ? (System.Linq.Expressions.Expression)connProp
+                     : System.Linq.Expressions.Expression.Convert(connProp, connArgType);
+
+        var args = parms.Length == 2
+            ? [pktArg, connArg]
+            : new[] { pktArg, connArg, System.Linq.Expressions.Expression.Convert(ctProp, parms[2].ParameterType) };
 
         System.Linq.Expressions.Expression call = method.IsStatic
-            ? System.Linq.Expressions.Expression.Call(method, pktArg, connArg)
-            : System.Linq.Expressions.Expression.Call(System.Linq.Expressions.Expression
-                                                .Convert(instanceParam, method.DeclaringType!), method, pktArg, connArg);
+            ? System.Linq.Expressions.Expression.Call(method, args)
+            : System.Linq.Expressions.Expression.Call(
+                System.Linq.Expressions.Expression.Convert(instanceParam, method.DeclaringType!), method, args);
 
         System.Linq.Expressions.Expression body = method.ReturnType == typeof(void)
-            ? System.Linq.Expressions.Expression.Block(call, System.Linq.Expressions.Expression
-                                                .Constant(null, typeof(global::System.Object)))
+            ? System.Linq.Expressions.Expression.Block(call, System.Linq.Expressions.Expression.Constant(null, typeof(global::System.Object)))
             : System.Linq.Expressions.Expression.Convert(call, typeof(global::System.Object));
 
-        var sync = System.Linq.Expressions.Expression.Lambda<System.Func<System.Object, PacketContext<TPacket>, System.Object?>>(
-                       body, instanceParam, contextParam).Compile();
+        // Compile or create delegate depending on AOT support
+        System.Func<System.Object, PacketContext<TPacket>, System.Object?> sync;
+
+        if (System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported)
+        {
+            // JIT-capable: compile IL
+            sync = System.Linq.Expressions.Expression
+                .Lambda<System.Func<System.Object, PacketContext<TPacket>, System.Object?>>(body, instanceParam, contextParam)
+                .Compile();
+        }
+        else
+        {
+            // AOT fallback: CreateDelegate + tiny adapter
+            var openDelegateType = method.IsStatic
+                ? method.CreateDelegateTypeForStatic()
+                : method.CreateDelegateTypeForInstance();
+
+            var dlg = method.IsStatic
+                ? method.CreateDelegate(openDelegateType)
+                : null; // instance-bound at call time
+
+            sync = (instance, context) =>
+            {
+                // materialize parameters
+                var p0 = ((System.Object?)context.Packet)!;
+                var p1 = (System.Object)context.Connection;
+                System.Object? p2 = null;
+
+                if (parms.Length == 3)
+                {
+                    p2 = context.CancellationToken;
+                }
+
+                // fast cast/convert
+                var a0 = pktArgType.IsInstanceOfType(p0) ? p0 : System.Convert.ChangeType(p0, pktArgType);
+                var a1 = connArgType.IsInstanceOfType(p1) ? p1 : System.Convert.ChangeType(p1, connArgType);
+
+                // invoke
+                System.Object? result = method.IsStatic
+                    ? method.Invoke(null, parms.Length == 2 ? [a0, a1] : [a0, a1, p2!])
+                    : method.Invoke(instance, parms.Length == 2 ? [a0, a1] : [a0, a1, p2!]);
+
+                return result;
+            };
+        }
 
         var asyncWrapper = CreateAsyncWrapper(sync, method.ReturnType);
         return new HandlerInvoker<TPacket>(method, method.ReturnType, asyncWrapper);

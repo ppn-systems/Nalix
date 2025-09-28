@@ -22,9 +22,8 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 {
     /// <inheritdoc/>
     public async System.Threading.Tasks.Task InvokeAsync(
-            PacketContext<IPacket> context,
-            System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next,
-            System.Threading.CancellationToken ct)
+        PacketContext<IPacket> context,
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
     {
         IPacket current = context.Packet;
 
@@ -33,7 +32,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
         if (!needDecrypt && !needDecompress)
         {
-            await next(ct).ConfigureAwait(false);
+            await next(context.CancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -150,6 +149,6 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                 arg2: 0).ConfigureAwait(false);
         }
 
-        await next(ct).ConfigureAwait(false);
+        await next(context.CancellationToken).ConfigureAwait(false);
     }
 }
