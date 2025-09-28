@@ -190,7 +190,8 @@ public sealed partial class TaskManager : ITaskManager
                 {
                     if (options.TryAcquireSlotImmediately)
                     {
-                        acquired = await gate.SemaphoreSlim.WaitAsync(0, ct).ConfigureAwait(false);
+                        acquired = await gate.SemaphoreSlim.WaitAsync(0, ct)
+                                                           .ConfigureAwait(false);
                         if (!acquired)
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -209,7 +210,8 @@ public sealed partial class TaskManager : ITaskManager
                     }
                     else
                     {
-                        await gate.SemaphoreSlim.WaitAsync(ct).ConfigureAwait(false);
+                        await gate.SemaphoreSlim.WaitAsync(ct)
+                                                .ConfigureAwait(false);
                         acquired = true;
                     }
                 }
@@ -221,7 +223,10 @@ public sealed partial class TaskManager : ITaskManager
 
                 st.MarkStop();
             }
-            catch (System.OperationCanceledException) when (cts.IsCancellationRequested) { st.MarkStop(); }
+            catch (System.OperationCanceledException) when (cts.IsCancellationRequested)
+            {
+                st.MarkStop();
+            }
             catch (System.Exception ex)
             {
                 failure = ex;
@@ -245,13 +250,18 @@ public sealed partial class TaskManager : ITaskManager
                 catch (System.Exception cbex)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                        .Warn($"[{nameof(TaskManager)}] worker-callback-error id={id} msg={cbex.Message}");
+                                            .Warn($"[{nameof(TaskManager)}] worker-callback-error id={id} msg={cbex.Message}");
                 }
 
                 if (gate is not null && acquired)
                 {
-                    try { _ = gate.SemaphoreSlim.Release(); } catch { }
+                    try
+                    {
+                        _ = gate.SemaphoreSlim.Release();
+                    }
+                    catch { }
                 }
+
                 this.RetainOrRemove(st);
             }
         }, cts.Token);
@@ -279,7 +289,7 @@ public sealed partial class TaskManager : ITaskManager
         {
             st.Cancel();
 
-            var t = st.Task;
+            System.Threading.Tasks.Task? t = st.Task;
             if (t is not null)
             {
                 _ = t.ContinueWith(_ =>
@@ -294,8 +304,16 @@ public sealed partial class TaskManager : ITaskManager
             }
             else
             {
-                try { st.Cts.Dispose(); } catch { }
-                try { st.Gate.Dispose(); } catch { }
+                try
+                {
+                    st.Cts.Dispose();
+                }
+                catch { }
+                try
+                {
+                    st.Gate.Dispose();
+                }
+                catch { }
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -318,10 +336,14 @@ public sealed partial class TaskManager : ITaskManager
         {
             st.Cancel();
 
-            var t = st.Task;
+            System.Threading.Tasks.Task? t = st.Task;
             if (t?.IsCompleted == true)
             {
-                try { st.Cts.Dispose(); } catch { }
+                try
+                {
+                    st.Cts.Dispose();
+                }
+                catch { }
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?

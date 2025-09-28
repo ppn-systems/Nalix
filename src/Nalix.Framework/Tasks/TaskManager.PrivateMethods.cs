@@ -256,7 +256,12 @@ public partial class TaskManager
         if (keep is null || keep <= System.TimeSpan.Zero)
         {
             _ = _workers.TryRemove(st.Id, out _);
-            try { st.Cts.Dispose(); } catch { }
+
+            try
+            {
+                st.Cts.Dispose();
+            }
+            catch { }
 
             System.Boolean hasSameGroup = false;
             foreach (var kv in _workers)
@@ -273,7 +278,11 @@ public partial class TaskManager
             {
                 if (_groupGates.TryRemove(st.Group, out Gate? g))
                 {
-                    try { g.SemaphoreSlim.Dispose(); } catch { }
+                    try
+                    {
+                        g.SemaphoreSlim.Dispose();
+                    }
+                    catch { }
                 }
             }
 
