@@ -1,8 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging.Models;
-using Nalix.Logging.Sinks.Console;
-using Nalix.Logging.Sinks.File;
+using Nalix.Logging.Sinks;
 
 namespace Nalix.Logging.Engine;
 

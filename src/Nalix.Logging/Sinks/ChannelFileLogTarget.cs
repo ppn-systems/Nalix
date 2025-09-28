@@ -6,7 +6,7 @@ using Nalix.Logging.Engine;
 using Nalix.Logging.Internal.File;
 using Nalix.Logging.Options;
 
-namespace Nalix.Logging.Sinks.File;
+namespace Nalix.Logging.Sinks;
 
 /// <summary>
 /// Provides a channel-based file logging target, optimized for non-blocking log producers

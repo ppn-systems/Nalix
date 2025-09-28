@@ -6,7 +6,7 @@ using Nalix.Logging.Engine;
 using Nalix.Logging.Internal.File;
 using Nalix.Logging.Options;
 
-namespace Nalix.Logging.Sinks.File;
+namespace Nalix.Logging.Sinks;
 
 /// <summary>
 /// Provides a standard implementation for logging messages to a file.
