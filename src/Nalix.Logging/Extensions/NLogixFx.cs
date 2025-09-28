@@ -4,7 +4,7 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Logging.Models;
 using Nalix.Logging.Engine;
 using Nalix.Logging.Options;
-using Nalix.Logging.Sinks.Console;
+using Nalix.Logging.Sinks;
 
 namespace Nalix.Logging.Extensions;
 

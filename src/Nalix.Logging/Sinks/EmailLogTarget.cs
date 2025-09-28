@@ -5,7 +5,7 @@ using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Logging.Models;
 using Nalix.Logging.Options;
 
-namespace Nalix.Logging.Sinks.Email;
+namespace Nalix.Logging.Sinks;
 
 /// <summary>
 /// Logging target that sends log messages via email.

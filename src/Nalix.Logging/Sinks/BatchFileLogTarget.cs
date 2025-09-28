@@ -3,9 +3,8 @@
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Logging.Models;
 using Nalix.Logging.Options;
-using Nalix.Logging.Sinks.File;
 
-namespace Nalix.Logging.Sinks.BatchFile;
+namespace Nalix.Logging.Sinks;
 
 /// <summary>
 /// A logging target that buffers log messages and periodically writes them to a file.
