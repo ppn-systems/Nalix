@@ -48,7 +48,7 @@ public class MiddlewarePipeline<TPacket>
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> handler,
         System.Threading.CancellationToken ct = default)
     {
-        // Build inbound chain → handler → outbound chain
+        // Build inbound chain → handler → outboundAlways → outbound
         return ExecuteMiddlewareChain(
             _inbound, context,
             async (downstreamCt) =>
@@ -56,31 +56,42 @@ public class MiddlewarePipeline<TPacket>
                 // Call terminal handler
                 await handler(downstreamCt).ConfigureAwait(false);
 
+                // Run 'always outbound' with the SAME downstream token (not context.CancellationToken)
                 await ExecuteMiddlewareChain(
                     _outboundAlways, context,
-                    _ => System.Threading.Tasks.Task.CompletedTask, downstreamCt
+                    _ => System.Threading.Tasks.Task.CompletedTask,
+                    downstreamCt
                 ).ConfigureAwait(false);
 
-                // Then run outbound chain (separately) with the same downstream token
+                // Then run outbound (conditionally) with the SAME downstream token
                 if (!context.SkipOutbound)
                 {
                     await ExecuteMiddlewareChain(
                         _outbound, context,
-                        _ => System.Threading.Tasks.Task.CompletedTask, downstreamCt
+                        _ => System.Threading.Tasks.Task.CompletedTask,
+                        downstreamCt
                     ).ConfigureAwait(false);
                 }
             },
+            // Start inbound with the caller-supplied token (ct),
+            // not necessarily context.CancellationToken.
             ct
         );
     }
 
     // -------------------- Core chain builder (token-aware) --------------------
 
+    /// <summary>
+    /// Builds and executes a middleware chain. Each middleware receives a 'next' delegate that
+    /// accepts a <see cref="System.Threading.CancellationToken"/> so the middleware can either:
+    ///  - pass through the current token, or
+    ///  - substitute a derived/linked token.
+    /// </summary>
     private static System.Threading.Tasks.Task ExecuteMiddlewareChain(
         System.Collections.Generic.List<IPacketMiddleware<TPacket>> middlewares,
         PacketContext<TPacket> context,
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> final,
-        System.Threading.CancellationToken ct)
+        System.Threading.CancellationToken startToken)
     {
         // Start from 'final', wrap backwards.
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next = final;
@@ -90,12 +101,11 @@ public class MiddlewarePipeline<TPacket>
             IPacketMiddleware<TPacket> current = middlewares[i];
             var localNext = next;
 
-            // Each middleware receives the upstream token 'ct' as parameter,
-            // and may choose to pass the SAME or a NEW token to localNext(...)
-            next = (upstreamCt) => current.InvokeAsync(context, localNext, upstreamCt);
+            // Mỗi middleware nhận 'next' và tự quyết định token nào sẽ đẩy xuống
+            next = (_) => current.InvokeAsync(context, localNext);
         }
 
-        // Kick off the chain with the provided 'ct'
-        return next(ct);
+        // Kick off the chain with the provided starting token
+        return next(startToken);
     }
 }

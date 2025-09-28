@@ -24,12 +24,10 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
     /// </summary>
     /// <param name="context">The packet context containing the packet and connection information.</param>
     /// <param name="next">The next middleware delegate in the pipeline.</param>
-    /// <param name="ct">A cancellation token to observe while waiting for the task to complete.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     public async System.Threading.Tasks.Task InvokeAsync(
         PacketContext<IPacket> context,
-        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next,
-        System.Threading.CancellationToken ct)
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
     {
         if (context.Attributes.Permission is not null &&
             context.Attributes.Permission.Level > context.Connection.Level)
@@ -51,7 +49,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        await next(ct).ConfigureAwait(false);
+        await next(context.CancellationToken).ConfigureAwait(false);
     }
 }
 

@@ -20,12 +20,12 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         if (!_pipeline.IsEmpty)
         {
-            await this._pipeline.ExecuteAsync(context, Terminal)
+            await this._pipeline.ExecuteAsync(context, Terminal, context.CancellationToken)
                                 .ConfigureAwait(false);
         }
         else
         {
-            await Terminal().ConfigureAwait(false);
+            await Terminal(context.CancellationToken).ConfigureAwait(false);
         }
 
         async System.Threading.Tasks.Task Terminal(

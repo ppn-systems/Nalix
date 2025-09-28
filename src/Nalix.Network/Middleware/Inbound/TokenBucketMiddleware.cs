@@ -38,12 +38,10 @@ public class TokenBucketMiddleware : IPacketMiddleware<IPacket>
     /// </summary>
     /// <param name="context">The packet context containing both the packet and the connection.</param>
     /// <param name="next">A delegate representing the next middleware to be executed.</param>
-    /// <param name="ct"></param>
     /// <returns>A task representing the asynchronous operation.</returns>
     public async System.Threading.Tasks.Task InvokeAsync(
         PacketContext<IPacket> context,
-        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next,
-        System.Threading.CancellationToken ct)
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
     {
         TokenBucketLimiter.LimitDecision decision = _limiter.Check(context.Connection.RemoteEndPoint);
 
@@ -61,6 +59,6 @@ public class TokenBucketMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        await next(ct).ConfigureAwait(false);
+        await next(context.CancellationToken).ConfigureAwait(false);
     }
 }
