@@ -37,7 +37,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     private System.Lazy<IniConfig> _iniFile;
     private readonly System.String _baseConfigDirectory;
     private readonly System.Threading.ReaderWriterLockSlim _configLock;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, ConfigurationLoader> _configContainerDict;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Lazy<ConfigurationLoader>> _configContainerDict;
 
     private System.Int32 _isReloading;
     private System.Boolean _directoryChecked;
@@ -222,9 +222,12 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                         IniConfig newIniFile = _iniFile.Value;
 
                         // Reinitialize all existing containers
-                        foreach (ConfigurationLoader container in _configContainerDict.Values)
+                        foreach (var lazy in _configContainerDict.Values)
                         {
-                            container.Initialize(newIniFile);
+                            if (lazy.IsValueCreated)  // chỉ reload những cái đã init
+                            {
+                                lazy.Value.Initialize(_iniFile.Value);
+                            }
                         }
 
                         LastReloadTime = System.DateTime.UtcNow;
@@ -277,19 +280,17 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public TClass Get<TClass>() where TClass : ConfigurationLoader, new()
     {
-        return (TClass)_configContainerDict.GetOrAdd(typeof(TClass), _ =>
-        {
-            TClass container = new();
+        System.Lazy<ConfigurationLoader> lazy = _configContainerDict.GetOrAdd(
+            typeof(TClass),
+            _ => new System.Lazy<ConfigurationLoader>(() =>
+            {
+                TClass container = new();
+                container.Initialize(_iniFile.Value);
+                return container;
+            }, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication)
+        );
 
-            // Get the INI file reference first (thread-safe via Lazy<T>)
-            IniConfig iniFile = _iniFile.Value;
-
-            // Initialize the container outside of any explicit lock
-            // ConcurrentDictionary.GetOrAdd ensures only one initialization per type
-            container.Initialize(iniFile);
-
-            return container;
-        });
+        return (TClass)lazy.Value;
     }
 
     /// <summary>
@@ -333,19 +334,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     public TClass Get<TClass>(System.String configFilePath, System.Boolean autoReload = true) where TClass : ConfigurationLoader, new()
     {
         this.SetConfigFilePath(configFilePath, autoReload);
-        return (TClass)_configContainerDict.GetOrAdd(typeof(TClass), _ =>
-        {
-            TClass container = new();
-
-            // Get the INI file reference first (thread-safe via Lazy<T>)
-            IniConfig iniFile = _iniFile.Value;
-
-            // Initialize the container outside of any explicit lock
-            // ConcurrentDictionary.GetOrAdd ensures only one initialization per type
-            container.Initialize(iniFile);
-
-            return container;
-        });
+        return Get<TClass>();
     }
 
     /// <summary>
@@ -382,9 +371,12 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 }
 
                 // Reinitialize all containers
-                foreach (var container in _configContainerDict.Values)
+                foreach (var lazy in _configContainerDict.Values)
                 {
-                    container.Initialize(_iniFile.Value);
+                    if (lazy.IsValueCreated)  // chỉ reload những cái đã init
+                    {
+                        lazy.Value.Initialize(_iniFile.Value);
+                    }
                 }
 
                 LastReloadTime = System.DateTime.UtcNow;
