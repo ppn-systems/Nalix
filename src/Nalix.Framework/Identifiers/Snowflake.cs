@@ -30,7 +30,7 @@ public readonly partial struct Snowflake : ISnowflake
     private readonly UInt56 __combined;
     private static readonly System.UInt16 __machineId = LAZY_LOAD_MACHINE_ID();
 
-    private static System.UInt16 _sequence = 0;
+    private static System.Int32 _sequence = 0;
     private static System.Int64 _lastTimestampMs = 0;
     private const System.UInt16 MaxSequence = 0xFFFF; // 16-bit max = 65535
     private static readonly System.Threading.Lock _generatorLock = new();
@@ -206,39 +206,56 @@ public readonly partial struct Snowflake : ISnowflake
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Snowflake NewId(SnowflakeType type, System.UInt16 machineId = 1)
     {
-        lock (_generatorLock)
+        while (true)
         {
-            System.Int64 timestampMs = Clock.UnixMillisecondsNow();
+            System.Int64 now = Clock.EpochMillisecondsNow();
 
-            if (timestampMs == _lastTimestampMs)
+            System.Int64 last = System.Threading.Volatile.Read(ref _lastTimestampMs);
+
+            // Handle clock rollback
+            if (now < last)
             {
-                _sequence++;
-                if (_sequence > Snowflake.MaxSequence)
+                now = last;
+            }
+
+            System.Int32 seq;
+
+            if (now == last)
+            {
+                // same millisecond → increment sequence
+                seq = System.Threading.Interlocked.Increment(ref _sequence) & 0x0FFF;
+
+                if (seq == 0)
                 {
-                    // Wait for next millisecond
+                    System.Threading.SpinWait spin = new();
                     do
                     {
-                        System.Threading.Tasks.Task.Delay(1);
-                        timestampMs = Clock.UnixMillisecondsNow();
+                        spin.SpinOnce();
+                        now = Clock.EpochMillisecondsNow();
                     }
-                    while (timestampMs == _lastTimestampMs);
+                    while (now <= last);
 
-                    _sequence = 0;
-                    _lastTimestampMs = timestampMs;
+                    continue; // retry loop
                 }
-            }
-            else if (timestampMs > _lastTimestampMs)
-            {
-                _sequence = 0;
-                _lastTimestampMs = timestampMs;
             }
             else
             {
-                throw new System.InvalidOperationException(
-                    $"Clock moved backwards! Last={_lastTimestampMs}ms, Current={timestampMs}ms");
+                // new millisecond → reset sequence
+                seq = 0;
+                System.Threading.Interlocked.Exchange(ref _sequence, 0);
             }
 
-            System.UInt32 value = unchecked((System.UInt32)timestampMs) ^ ((System.UInt32)_sequence << 16);
+            // try publish timestamp (CAS)
+            if (System.Threading.Interlocked.CompareExchange(ref _lastTimestampMs, now, last) != last)
+            {
+                continue; // race → retry
+            }
+
+            // pack 32-bit value
+            System.UInt32 timePart = (System.UInt32)(now & 0xFFFFF);   // 20-bit
+            System.UInt32 seqPart = (System.UInt32)seq;               // 12-bit
+
+            System.UInt32 value = (timePart << 12) | seqPart;
 
             return new Snowflake(value, machineId, type);
         }
