@@ -477,8 +477,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         catch (System.Exception ex) when (IS_BENIGN_DISCONNECT(ex))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] " +
-                                           $"receive-loop ended (peer closed/shutdown) ep={_epText}");
+                                    .Trace($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] receive-loop ended (peer closed/shutdown) ep={_epText}");
         }
         catch (System.OperationCanceledException)
         {
@@ -537,7 +536,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
 #if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(FramedSocketChannel)}:{nameof(Dispose)}] disposed");
+                                .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(Dispose)}] disposed");
 #endif
     }
 

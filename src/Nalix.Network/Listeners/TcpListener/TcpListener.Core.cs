@@ -36,10 +36,10 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     private System.Int32 _state;
     private System.Int32 _isDisposed;
     private System.Int32 _stopInitiated;
-    private System.Threading.CancellationToken _cancellationToken;
-    private System.Threading.CancellationTokenRegistration _cancelReg;
     private System.Net.Sockets.Socket _listener;
     private System.Threading.CancellationTokenSource _cts;
+    private System.Threading.CancellationToken _cancellationToken;
+    private System.Threading.CancellationTokenRegistration _cancelReg;
 
     #endregion Fields
 
