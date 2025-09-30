@@ -30,6 +30,7 @@ public sealed class PBKDF2 : System.IDisposable
     private readonly System.Byte[] _salt;
     private readonly System.Int32 _iterations;
     private readonly System.Int32 _keyLength;
+
     private System.Boolean _disposed;
 
     /// <summary>
