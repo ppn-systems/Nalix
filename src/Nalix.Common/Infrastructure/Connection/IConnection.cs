@@ -10,7 +10,7 @@ namespace Nalix.Common.Connection;
 /// <summary>
 /// Represents an interface for managing a network connection.
 /// </summary>
-public partial interface IConnection : System.IDisposable
+public partial interface IConnection : System.IDisposable, IConnectionErrorTracked
 {
     /// <summary>
     /// Gets the unique identifier for the connection.
