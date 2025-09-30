@@ -154,7 +154,9 @@ public sealed class PBKDF2 : System.IDisposable
     /// <exception cref="System.ObjectDisposedException">
     /// Thrown if this instance has been disposed.
     /// </exception>
-    public System.Boolean TryGenerateKey(System.ReadOnlySpan<System.Byte> password, System.Span<System.Byte> output, out System.Int32 bytesWritten)
+    public System.Boolean GenerateKey(
+        System.ReadOnlySpan<System.Byte> password,
+        System.Span<System.Byte> output, out System.Int32 bytesWritten)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
         if (output.Length < _keyLength)
@@ -172,10 +174,8 @@ public sealed class PBKDF2 : System.IDisposable
     private static void F(
         System.ReadOnlySpan<System.Byte> password,
         System.ReadOnlySpan<System.Byte> salt,
-        System.Int32 iterations,
-        System.Int32 blockIndex,
-        System.Span<System.Byte> output,
-        System.Int32 blockSize)
+        System.Int32 iterations, System.Int32 blockIndex,
+        System.Span<System.Byte> output, System.Int32 blockSize)
     {
         const System.Int32 hLen = 32;
 
@@ -195,7 +195,10 @@ public sealed class PBKDF2 : System.IDisposable
         for (System.Int32 c = 2; c <= iterations; c++)
         {
             HmacSha3_256(password, u, u, blockSize);
-            XorInPlace(t, u);
+            for (System.Int32 i = 0; i < t.Length; i++)
+            {
+                t[i] ^= u[i];
+            }
         }
 
         t.CopyTo(output);
@@ -207,8 +210,7 @@ public sealed class PBKDF2 : System.IDisposable
     private static void HmacSha3_256(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> data,
-        System.Span<System.Byte> output,
-        System.Int32 blockSize)
+        System.Span<System.Byte> output, System.Int32 blockSize)
     {
         // Prepare key block
         System.Span<System.Byte> k0 = stackalloc System.Byte[blockSize];
@@ -259,14 +261,6 @@ public sealed class PBKDF2 : System.IDisposable
         ipad.Clear();
         opad.Clear();
         inner.Clear();
-    }
-
-    private static void XorInPlace(System.Span<System.Byte> a, System.ReadOnlySpan<System.Byte> b)
-    {
-        for (System.Int32 i = 0; i < a.Length; i++)
-        {
-            a[i] ^= b[i];
-        }
     }
 
     private static void WriteInt32BE(System.Int32 value, System.Span<System.Byte> dest)
