@@ -231,11 +231,11 @@ public sealed partial class TaskManager : ITaskManager
                     {
                         using System.Threading.CancellationTokenSource wcts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
                         wcts.CancelAfter(to);
-                        await work(ctx, wcts.Token);
+                        await work(new WorkerContext(st, this), wcts.Token).ConfigureAwait(false);
                     }
                     else
                     {
-                        await work(ctx, ct);
+                        await work(new WorkerContext(st, this), ct).ConfigureAwait(false);
                     }
 
                     st.MarkStop();
