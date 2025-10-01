@@ -48,11 +48,11 @@ internal sealed class FRAME_READER(
         try
         {
             s = _getSocket();
-            BaseTcpSession.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop starting; endpoint={FORMAT_ENDPOINT(s)}");
+            TcpSessionBase.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop starting; endpoint={FORMAT_ENDPOINT(s)}");
         }
         catch (System.Exception ex)
         {
-            BaseTcpSession.Logging?.Error($"[SDK.{nameof(FRAME_READER)}] receive-start-error {ex.Message}", ex);
+            TcpSessionBase.Logging?.Error($"[SDK.{nameof(FRAME_READER)}] receive-start-error {ex.Message}", ex);
             _onError(ex);
             return;
         }
@@ -75,11 +75,11 @@ internal sealed class FRAME_READER(
                         System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(
                             headerMemory.Span);
 
-                    BaseTcpSession.Logging?.Debug($"[SDK.{nameof(FRAME_READER)}] header-read totalLen={totalLen} endpoint={FORMAT_ENDPOINT(s)}");
+                    TcpSessionBase.Logging?.Debug($"[SDK.{nameof(FRAME_READER)}] header-read totalLen={totalLen} endpoint={FORMAT_ENDPOINT(s)}");
 
                     if (totalLen < TcpSession.HeaderSize || totalLen > _options.MaxPacketSize)
                     {
-                        BaseTcpSession.Logging?.Warn(
+                        TcpSessionBase.Logging?.Warn(
                             $"[SDK.{nameof(FRAME_READER)}] invalid-packet-size totalLen={totalLen} " +
                             $"headerSize={TcpSession.HeaderSize} max={_options.MaxPacketSize} " +
                             $"endpoint={FORMAT_ENDPOINT(s)}");
@@ -95,7 +95,7 @@ internal sealed class FRAME_READER(
 
                     try
                     {
-                        BaseTcpSession.Logging?.Trace(
+                        TcpSessionBase.Logging?.Trace(
                             $"[SDK.{nameof(FRAME_READER)}] rented-buffer size={rented.Length} " +
                             $"frameTotal={totalLen} payload={payloadLen} endpoint={FORMAT_ENDPOINT(s)}");
 
@@ -119,7 +119,7 @@ internal sealed class FRAME_READER(
                         }
                         catch (System.Exception teleEx)
                         {
-                            BaseTcpSession.Logging?.Warn(
+                            TcpSessionBase.Logging?.Warn(
                                 $"[SDK.{nameof(FRAME_READER)}] report-bytes-received failed: {teleEx.Message}",
                                 teleEx);
                         }
@@ -169,7 +169,7 @@ internal sealed class FRAME_READER(
                         try
                         {
                             _onMessage(lease);
-                            BaseTcpSession.Logging?.Trace(
+                            TcpSessionBase.Logging?.Trace(
                                 $"[SDK.{nameof(FRAME_READER)}] handler-invoked-success payload={payloadLen} endpoint={FORMAT_ENDPOINT(s)}");
                         }
                         catch (System.Exception handlerEx)
@@ -177,7 +177,7 @@ internal sealed class FRAME_READER(
                             // Handler faulted after ownershipTransferred = true.
                             // HandleReceiveMessage should finally { lease.Dispose(); }
                             // so buffer likely already returned — log and continue.
-                            BaseTcpSession.Logging?.Error(
+                            TcpSessionBase.Logging?.Error(
                                 $"[SDK.{nameof(FRAME_READER)}] handler-faulted—loop continues. msg={handlerEx.Message}",
                                 handlerEx);
                         }
@@ -190,11 +190,11 @@ internal sealed class FRAME_READER(
                             try
                             {
                                 BufferLease.ByteArrayPool.Return(rented);
-                                BaseTcpSession.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] returned-rented-buffer size={rented?.Length} endpoint={FORMAT_ENDPOINT(s)}");
+                                TcpSessionBase.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] returned-rented-buffer size={rented?.Length} endpoint={FORMAT_ENDPOINT(s)}");
                             }
                             catch (System.Exception returnEx)
                             {
-                                BaseTcpSession.Logging?.Warn($"[SDK.{nameof(FRAME_READER)}] failed-returning-buffer: {returnEx.Message}", returnEx);
+                                TcpSessionBase.Logging?.Warn($"[SDK.{nameof(FRAME_READER)}] failed-returning-buffer: {returnEx.Message}", returnEx);
                             }
                         }
 
@@ -209,16 +209,16 @@ internal sealed class FRAME_READER(
             }
 
             // Normal cancellation: log graceful stop
-            BaseTcpSession.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop ending normally endpoint={FORMAT_ENDPOINT(s)}");
+            TcpSessionBase.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop ending normally endpoint={FORMAT_ENDPOINT(s)}");
         }
         catch (System.OperationCanceledException) when (token.IsCancellationRequested)
         {
             // Normal shutdown — not an error.
-            BaseTcpSession.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop cancelled endpoint={FORMAT_ENDPOINT(s)}");
+            TcpSessionBase.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop cancelled endpoint={FORMAT_ENDPOINT(s)}");
         }
         catch (System.Exception ex)
         {
-            BaseTcpSession.Logging?.Error($"[SDK.{nameof(FRAME_READER)}:{nameof(ReceiveLoopAsync)}] faulted msg={ex.Message} endpoint={FORMAT_ENDPOINT(s)}", ex);
+            TcpSessionBase.Logging?.Error($"[SDK.{nameof(FRAME_READER)}:{nameof(ReceiveLoopAsync)}] faulted msg={ex.Message} endpoint={FORMAT_ENDPOINT(s)}", ex);
 
             try { _onError(ex); } catch { /* swallow to avoid crash */ }
         }

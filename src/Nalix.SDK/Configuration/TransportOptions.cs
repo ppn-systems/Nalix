@@ -104,12 +104,12 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     /// Enable or disable compression for outgoing packets. Compression is applied to packets larger than MinSizeToCompress.
     /// </summary>
     [IniComment("Enable compression for outgoing packets (only applies to packets larger than MinSizeToCompress)")]
-    public System.Boolean EnebledCompress { get; set; } = true;
+    public System.Boolean EnableCompression { get; set; } = true;
 
     /// <summary>
     /// Minimum packet size in bytes required to trigger compression. Packets smaller than this threshold will not be compressed.
     /// </summary>
-    [IniComment("Minimum packet size in bytes to trigger compression (only applies if EnebledCompress is true)")]
+    [IniComment("Minimum packet size in bytes to trigger compression (only applies if EnableCompression is true)")]
     public System.Int32 MinSizeToCompress { get; set; } = 1024;
 
     /// <summary>
