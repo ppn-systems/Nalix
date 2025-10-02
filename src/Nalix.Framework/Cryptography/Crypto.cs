@@ -38,8 +38,7 @@ public static class Crypto
     /// <exception cref="CryptoException">Thrown when algorithm is not supported or encryption fails.</exception>
     public static System.ReadOnlyMemory<System.Byte> Encrypt(
         System.ReadOnlyMemory<System.Byte> data,
-        System.Byte[] key,
-        CipherType algorithm)
+        System.Byte[] key, CipherType algorithm = CipherType.XTEA)
     {
         if (key is null)
         {
@@ -87,8 +86,7 @@ public static class Crypto
     /// <exception cref="CryptoException">Thrown when algorithm is not supported or decryption fails.</exception>
     public static System.ReadOnlyMemory<System.Byte> Decrypt(
         System.ReadOnlyMemory<System.Byte> data,
-        System.Byte[] key,
-        CipherType algorithm = CipherType.XTEA)
+        System.Byte[] key, CipherType algorithm = CipherType.XTEA)
     {
         if (key is null)
         {
@@ -133,10 +131,8 @@ public static class Crypto
     /// <param name="mode">The encryption mode to use.</param>
     /// <returns><c>true</c> if encryption succeeded; otherwise, <c>false</c>.</returns>
     public static System.Boolean TryEncrypt(
-        System.ReadOnlyMemory<System.Byte> data,
-        System.Byte[] key,
-        out System.ReadOnlyMemory<System.Byte> result,
-        CipherType mode)
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key,
+        out System.ReadOnlyMemory<System.Byte> result, CipherType mode)
     {
         try
         {
@@ -159,10 +155,8 @@ public static class Crypto
     /// <param name="mode">The encryption mode to use.</param>
     /// <returns><c>true</c> if decryption succeeded; otherwise, <c>false</c>.</returns>
     public static System.Boolean TryDecrypt(
-        System.ReadOnlyMemory<System.Byte> data,
-        System.Byte[] key,
-        out System.ReadOnlyMemory<System.Byte> result,
-        CipherType mode)
+        System.ReadOnlyMemory<System.Byte> data, System.Byte[] key,
+        out System.ReadOnlyMemory<System.Byte> result, CipherType mode)
     {
         try
         {
