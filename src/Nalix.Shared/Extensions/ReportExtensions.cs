@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
@@ -28,10 +28,10 @@ public static class ReportExtensions
     /// <param name="this">The reportable manager.</param>
     /// <param name="prefix">Optional filename prefix, e.g. "buffer" or "object".</param>
     /// <returns>The full path of the saved report file.</returns>
-    public static System.String SaveReportToFile(this IReportable @this, System.String prefix = "report")
+    public static System.String SaveReportToFile(this IReportable @this, System.String prefix = "null")
     {
         System.String report = @this.GenerateReport();
-        System.String safePrefix = prefix?.ToLowerInvariant() ?? "report";
+        System.String safePrefix = prefix?.ToLowerInvariant() ?? "null";
 
         _ = System.IO.Directory.CreateDirectory(ReportDir);
 
@@ -41,13 +41,21 @@ public static class ReportExtensions
         {
             System.IO.File.WriteAllText(filePath, report);
 
+            // Select last 3 segments, or fewer if there are less than 3
+            System.String[] segments = filePath.Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+            System.Int32 segmentCount = segments.Length;
+            System.String lastSegments = System.String.Join(System.IO.Path.DirectorySeparatorChar
+                                                      .ToString(), System.Linq.Enumerable
+                                                      .Skip(segments, System.Math
+                                                      .Max(0, segmentCount - 3)));
+
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{@this.GetType().Name}] report saved: {filePath}");
+                                    .Info($"[RP.{@this.GetType().Name}] report-saved path={lastSegments}");
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{@this.GetType().Name}] failed to save report to file: {ex}");
+                                    .Error($"[RP.{@this.GetType().Name}] failed-save-report", ex);
         }
 
         return filePath;
