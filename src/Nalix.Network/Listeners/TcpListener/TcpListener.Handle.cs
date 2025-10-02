@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Concurrency;
 using Nalix.Common.Connection;
@@ -34,7 +34,7 @@ public abstract partial class TcpListenerBase
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] process-error={connection.EndPoint} ex={ex.Message}");
+                                    .Error($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] process-error={connection.EndPoint}", ex);
             connection.Close();
         }
     }
@@ -105,7 +105,7 @@ public abstract partial class TcpListenerBase
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error ex={ex.Message}");
+                                    .Debug($"[NW.{nameof(TcpListenerBase)}:Internal] accept-error ex={ex.Message}");
         }
     }
 
@@ -129,13 +129,11 @@ public abstract partial class TcpListenerBase
                         return;
                     }
 
-                    if (socket.RemoteEndPoint is IPEndPoint ip)
+                    if (socket.RemoteEndPoint is not IPEndPoint remoteIp
+                        || !Limiter.IsConnectionAllowed(remoteIp))
                     {
-                        if (!Limiter.IsConnectionAllowed(ip))
-                        {
-                            SafeCloseSocket(socket);
-                            return;
-                        }
+                        SafeCloseSocket(socket);
+                        throw new InternalErrorException();
                     }
 
                     // Create and process connection similar to async version
@@ -186,7 +184,7 @@ public abstract partial class TcpListenerBase
                 catch (System.Exception ex)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error ex={ex.Message}");
+                                            .Error($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error port={_port}", ex);
 
                     try
                     {
@@ -311,7 +309,7 @@ public abstract partial class TcpListenerBase
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptNext)}] accept-error ex={ex.Message}");
+                                        .Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptNext)}] accept-error port={_port}", ex);
 
                 // Brief delay to prevent CPU spinning on repeated errors
                 System.Threading.Tasks.Task.Delay(50, System.Threading.CancellationToken.None)
@@ -383,7 +381,7 @@ public abstract partial class TcpListenerBase
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accept-error ex={ex.Message}");
+                                        .Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accept-error port={_port}", ex);
 
                 // Brief delay to prevent CPU spinning on repeated errors
                 await System.Threading.Tasks.Task.Delay(50, cancellationToken)
@@ -433,7 +431,7 @@ public abstract partial class TcpListenerBase
 
             return this.InitializeConnection(socket, context);
         }
-        catch
+        catch (System.Exception ex)
         {
             if (!contextReturned)
             {
@@ -441,7 +439,7 @@ public abstract partial class TcpListenerBase
                                     .Return<PooledAcceptContext>(context);
             }
 
-            throw new InternalErrorException();
+            throw new InternalErrorException("Accept failed", ex);
         }
     }
 }
