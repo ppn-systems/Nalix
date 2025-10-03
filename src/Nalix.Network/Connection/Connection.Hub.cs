@@ -332,10 +332,8 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <exception cref="System.ArgumentNullException">
     /// Thrown if <paramref name="message"/>, <paramref name="sendFunc"/>, or <paramref name="predicate"/> is null.</exception>
     public async System.Threading.Tasks.Task BroadcastWhereAsync<T>(
-        T message,
-        System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
-        System.Func<IConnection, System.Boolean> predicate,
-        System.Threading.CancellationToken _ = default)
+        T message, System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
+        System.Func<IConnection, System.Boolean> predicate, System.Threading.CancellationToken _ = default)
         where T : class
     {
         if (message is null || sendFunc is null || predicate is null || this._disposed)
