@@ -1,81 +1,38 @@
-# TokenBucketOptions — Configuration for Token-Bucket Rate Limiter (Backend/Networking)
+# TokenBucketOptions — Configure token-bucket rate limiting
 
-The `TokenBucketOptions` class encapsulates all configuration settings for the high-performance token-bucket rate limiter used in .NET backend servers (API gateways, game networks, IoT, etc.).  
-It covers burst, refill, soft/hard throttling, sharding, memory defense, and more.
-
----
-
-## Properties
-
-| Property                     | Type     | Default  | Description                                                                           |
-|------------------------------|----------|----------|---------------------------------------------------------------------------------------|
-| `CapacityTokens`             | int      | 12       | Max tokens held in bucket for any endpoint (determines burst size).                   |
-| `RefillTokensPerSecond`      | double   | 6.0      | Token refill rate per second (sustained throughput).                                  |
-| `HardLockoutSeconds`         | int      | 0        | Hard block time in seconds after max violation (0 disables).                          |
-| `StaleEntrySeconds`          | int      | 300      | Seconds before a tracked endpoint is considered stale/expired.                        |
-| `CleanupIntervalSeconds`     | int      | 120      | How often (in seconds) to clean up stale endpoints.                                   |
-| `TokenScale`                 | int      | 1000     | Arithmetic granularity for tokens (e.g., 1000=millitoken; increases refill precision).|
-| `ShardCount`                 | int      | 32       | Concurrency sharding count (must be a power of two).                                  |
-| `SoftViolationWindowSeconds` | int      | 5        | Window over which soft violations are counted for escalation.                         |
-| `MaxSoftViolations`          | int      | 3        | Number of soft violations (overzealous requests) allowed before escalation.           |
-| `CooldownResetSec`           | int      | 10       | How long before violation/hardlock state resets (seconds).                            |
-| `MaxTrackedEndpoints`        | int      | 10000    | Cap on number of simultaneously tracked endpoints (0 = no limit, not recommended).    |
-| `InitialTokens`              | int      | -1       | How many tokens a new endpoint starts with (-1 = full, 0 = empty/cold-start).         |
+`TokenBucketOptions` tunes the `TokenBucketLimiter` behavior (burst capacity, refill rate, violation policy, sharding, cleanup, and scalability).
 
 ---
 
-## Validation
+## Key properties
 
-- **Validates all properties at runtime; call `.Validate()` before use.**
-- `ShardCount` **must** be a power-of-two for correct/balanced parallelism.
-- Extreme `TokenScale` or `CapacityTokens * TokenScale` are capped to prevent overflows.
-- Zero refill disables token regeneration; possibly for unthrottled burst-only scenarios.
-
----
-
-## Usage Example
-
-```csharp
-var options = new TokenBucketOptions
-{
-    CapacityTokens = 20,
-    RefillTokensPerSecond = 5.5,
-    ShardCount = 16, // Must be a power of 2
-    MaxTrackedEndpoints = 20000,
-    ... // Further customization
-};
-options.Validate();
-// Pass to TokenBucketLimiter on construction
-var limiter = new TokenBucketLimiter(options);
-```
+| Property | Description | Default |
+|----------|-------------|---------|
+| `CapacityTokens` | Bucket capacity (tokens) — how many requests can burst at once (must be ≥ 1). | `12` |
+| `RefillTokensPerSecond` | Sustained throughput rate (tokens/sec). | `6.0` |
+| `TokenScale` | Fixed-point precision (tokens translated into micro-tokens for accurate arithmetic). | `1_000` |
+| `ShardCount` | Number of shards partitioning the endpoint map (should be a power of two, e.g., 32). | `32` |
+| `HardLockoutSeconds` | Hard lockout duration (seconds) after repeated violations (`0` disables hard lockouts). | `0` |
+| `SoftViolationWindowSeconds` / `MaxSoftViolations` | Number of soft violations allowed within the window before harsher penalties kick in. | `5s` / `3` |
+| `CooldownResetSec` | Seconds to reset violation counters after applying penalties. | `10` |
+| `StaleEntrySeconds` | How long an idle endpoint stays in memory before eligible for cleanup. | `300` |
+| `CleanupIntervalSeconds` | Frequency (seconds) of eviction scans for stale endpoints. | `120` |
+| `MaxTrackedEndpoints` | Global cap on tracked endpoints to keep memory bounded (`0` = unlimited). | `10_000` |
+| `InitialTokens` | Initial token count for new endpoints (`-1` = full capacity, `0` = cold start). | `-1` |
 
 ---
 
-## Tuning Guidance
+## Usage guidance
 
-- **Set `CapacityTokens`** for command "burstiness" (short-burst: 5–10, media upload: 20+)
-- **Lower `RefillTokensPerSecond`** for stricter throughput (API protection); higher for chat/real-time flows
-- Use a **large enough `ShardCount`** (16–64) on multicore servers for best thread scaling
-- Cap `MaxTrackedEndpoints` to fit your RAM budget
-
----
-
-## Precision & Performance
-
-- `TokenScale` controls arithmetic granularity; higher = more precision, slightly more memory/CPU.
-- Granular sharding and optimized pool management enables hundreds of thousands of clients with minimal impact.
+- Load via `ConfigurationManager.Instance.Get<TokenBucketOptions>()` or supply to the limiter’s constructor.
+- Call `Validate()` to enforce power-of-two `ShardCount`, positive capacity, and overflow-safe arithmetic.
+- Use low `CapacityTokens` / `RefillTokensPerSecond` for expensive commands; higher values for lightweight APIs that can accept bursts.
+- Set `MaxTrackedEndpoints` to your expected concurrency; large values consume more memory, tiny values may evict legitimate users.
+- Pair `TokenBucketOptions` with `[PacketRateLimit]` attributes so multiple handlers sharing the same tier reuse a single limiter.
 
 ---
 
-## License
+## See also
 
-Licensed under the Apache License, Version 2.0.  
-Copyright (c) 2026 PPN Corporation.
-
----
-
-## See Also
-
-- [PoolingOptions](./PoolingOptions.md)
-- [PolicyRateLimiter](../Throttling/PolicyRateLimiter.md)
 - [TokenBucketLimiter](../Throttling/TokenBucketLimiter.md)
+- [PolicyRateLimiter](../Throttling/PolicyRateLimiter.md)

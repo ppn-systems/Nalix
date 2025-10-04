@@ -136,6 +136,17 @@ Notes:
 
 ---
 
+## PacketDispatchOptions Deep Dive
+
+- **Network buffer preprocessing:** `PacketDispatchOptions<TPacket>` wires a `NetworkBufferMiddlewarePipeline` that runs frame decryption/decompression before `PacketDispatchChannel` deserializes `IPacket`s, so the dispatcher always sees well-formed packets.
+- **Handler registration & validation:** `WithHandler<TController>()` compiles `[PacketOpcode]` methods, prevents duplicate opcodes, and captures the concrete packet type expected (or notes `PacketContext<TPacket>` handlers). A fast lookup (`_packetTypeMap`) guards against type mismatches; the dispatcher responds with `ControlType.FAIL` instead of crashing on a bad packet.
+- **Execution flow:** `_pipeline.ExecuteAsync` runs inbound middleware before the handler, and `ReturnTypeHandlerFactory` handles outbound packets unless `PacketContext.SkipOutbound` was set. `PacketContext<TPacket>` gives handlers access to `Packet`, `Connection`, attributes, `Sender`, and cancellation.
+- **Error mapping:** Exceptions flow through `_errorHandler`/`MapExceptionToProtocol` and produce protocol-correct replies (`FAIL`, `TIMEOUT`, `NETWORK_ERROR`, etc.). You can inject custom error handling with `WithErrorHandling` or `WithErrorHandlingMiddleware`.
+- **Handler helpers:** `TryResolveHandler(opcode, out handler)` and `TryResolveHandlerDescriptor` let you inspect or call registered handlers directly (useful for diagnostics or ad-hoc dispatch).
+
+
+---
+
 ## License
 
 Licensed under the Apache License, Version 2.0.  

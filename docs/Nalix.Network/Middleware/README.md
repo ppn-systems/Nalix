@@ -129,15 +129,6 @@ pipeline.ConfigureErrorHandling(
 
 ---
 
-## Internal API Reference
-
-- `Use(IPacketMiddleware<TPacket> mw)`: Register new middleware
-- `Clear()`: Remove all
-- `ExecuteAsync(context, handler, ct)`: Process all inbound, handler, then all outbound/always
-- `ConfigureErrorHandling(bool, Action<Exception, Type>)`: Error-path logging/policy
-
----
-
 ## License
 
 Licensed under the Apache License, Version 2.0.  
