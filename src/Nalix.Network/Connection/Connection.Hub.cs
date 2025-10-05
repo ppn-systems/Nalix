@@ -31,8 +31,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         new(System.Environment.ProcessorCount * 2, 1024, System.StringComparer.OrdinalIgnoreCase);
 
     // Connection statistics for monitoring
-    private volatile System.Int32 _connectionCount;
-
+    private volatile System.Int32 _count;
     private volatile System.Boolean _disposed;
 
     // Outbound-allocated collections for bulk operations
@@ -45,7 +44,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <summary>
     /// Gets the current number of active connections.
     /// </summary>
-    public System.Int32 ConnectionCount => this._connectionCount;
+    public System.Int32 Count => _count;
 
     /// <summary>
     /// Raised after a connection is successfully unregistered.
@@ -78,19 +77,19 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean RegisterConnection(IConnection connection)
     {
-        if (connection is null || this._disposed)
+        if (connection is null || _disposed)
         {
             return false;
         }
 
-        if (this._connections.TryAdd(connection.ID, connection))
+        if (_connections.TryAdd(connection.ID, connection))
         {
             connection.OnCloseEvent += this.OnClientDisconnected;
-            _ = System.Threading.Interlocked.Increment(ref this._connectionCount);
+            _ = System.Threading.Interlocked.Increment(ref _count);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[{nameof(ConnectionHub)}] " +
-                                           $"register id={connection.ID} total={this._connectionCount}");
+                                           $"register id={connection.ID} total={_count}");
 
             return true;
         }
@@ -110,16 +109,16 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean UnregisterConnection(IConnection connection)
     {
-        if (connection is null || this._disposed)
+        if (connection is null || _disposed)
         {
             return false;
         }
 
-        if (!this._connections.TryRemove(connection.ID, out IConnection? existing))
+        if (!_connections.TryRemove(connection.ID, out IConnection? existing))
         {
-            if (this._usernames.TryRemove(connection.ID, out System.String? orphanUser) && orphanUser is not null)
+            if (_usernames.TryRemove(connection.ID, out System.String? orphanUser) && orphanUser is not null)
             {
-                _ = this._usernameToId.TryRemove(orphanUser, out _);
+                _ = _usernameToId.TryRemove(orphanUser, out _);
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -128,18 +127,18 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return false;
         }
 
-        if (this._usernames.TryRemove(connection.ID, out System.String? username))
+        if (_usernames.TryRemove(connection.ID, out System.String? username))
         {
-            _ = this._usernameToId.TryRemove(username, out _);
+            _ = _usernameToId.TryRemove(username, out _);
         }
 
         (existing ?? connection).OnCloseEvent -= this.OnClientDisconnected;
 
-        _ = System.Threading.Interlocked.Decrement(ref this._connectionCount);
+        _ = System.Threading.Interlocked.Decrement(ref _count);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Trace($"[{nameof(ConnectionHub)}] " +
-                                       $"unregister id={connection.ID} total={this._connectionCount}");
+                                       $"unregister id={connection.ID} total={_count}");
 
         ConnectionUnregistered?.Invoke(existing ?? connection);
 
@@ -158,25 +157,27 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void AssociateUsername(IConnection connection, System.String username)
     {
-        if (connection is null || System.String.IsNullOrWhiteSpace(username) || this._disposed)
+        if (connection is null ||
+            System.String.IsNullOrWhiteSpace(username) ||
+            _disposed)
         {
             return;
         }
 
-        var id = connection.ID;
+        IIdentifier id = connection.ID;
 
         // Remove old association if exists
-        if (this._usernames.TryGetValue(id, out System.String? oldUsername) && oldUsername != username)
+        if (_usernames.TryGetValue(id, out System.String? oldUsername) && oldUsername != username)
         {
-            _ = this._usernameToId.TryRemove(oldUsername, out _);
+            _ = _usernameToId.TryRemove(oldUsername, out _);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[{nameof(ConnectionHub)}] " +
                                            $"map-rebind id={id} old={oldUsername} new={username}");
         }
 
         // Push new associations
-        this._usernames[id] = username;
-        this._usernameToId[username] = id;
+        _usernames[id] = username;
+        _usernameToId[username] = id;
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Trace($"[{nameof(ConnectionHub)}] map user=\"{username}\" id={id}");
@@ -201,7 +202,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public IConnection? GetConnection(System.ReadOnlySpan<System.Byte> id)
-        => this._connections.TryGetValue(Identifier.FromBytes(id), out IConnection? connection) ? connection : null;
+        => _connections.TryGetValue(Identifier.FromBytes(id), out IConnection? connection) ? connection : null;
 
     /// <summary>
     /// Retrieves a connection by its associated username.
@@ -213,7 +214,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public IConnection? GetConnectionByUsername(System.String username)
         => System.String.IsNullOrWhiteSpace(username)
-        ? null : this._usernameToId.TryGetValue(username, out IIdentifier? id)
+        ? null : _usernameToId.TryGetValue(username, out IIdentifier? id)
         ? this.GetConnection(id) : null;
 
     /// <summary>
@@ -224,7 +225,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.String? GetUsername(IIdentifier id)
-        => this._usernames.TryGetValue(id, out System.String? username) ? username : null;
+        => _usernames.TryGetValue(id, out System.String? username) ? username : null;
 
     /// <inheritdoc />
     /// <summary>
@@ -233,7 +234,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <returns>A read-only collection of active connections.</returns>
     public System.Collections.Generic.IReadOnlyCollection<IConnection> ListConnections()
     {
-        System.Int32 count = _connectionCount;
+        System.Int32 count = _count;
         if (count == 0)
         {
             return [];
@@ -279,7 +280,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Threading.CancellationToken cancellationToken = default)
         where T : class
     {
-        if (message is null || sendFunc is null || this._disposed)
+        if (message is null || sendFunc is null || _disposed)
         {
             return;
         }
@@ -336,13 +337,13 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Func<IConnection, System.Boolean> predicate, System.Threading.CancellationToken _ = default)
         where T : class
     {
-        if (message is null || sendFunc is null || predicate is null || this._disposed)
+        if (message is null || sendFunc is null || predicate is null || _disposed)
         {
             return;
         }
 
         System.Collections.Generic.List<IConnection> filteredConnections = [];
-        foreach (IConnection connection in this._connections.Values)
+        foreach (IConnection connection in _connections.Values)
         {
             if (predicate(connection))
             {
@@ -380,7 +381,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <param name="reason">The reason for closing the connections, if any.</param>
     public void CloseAllConnections(System.String? reason = null)
     {
-        if (this._disposed)
+        if (_disposed)
         {
             return;
         }
@@ -405,7 +406,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _connections.Clear();
         _usernames.Clear();
         _usernameToId.Clear();
-        _ = System.Threading.Interlocked.Exchange(ref _connectionCount, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _count, 0);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Info($"[{nameof(ConnectionHub)}] disconnect-all total={connections.Count}");
@@ -419,9 +420,9 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Text.StringBuilder sb = new();
 
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionHub Status:");
-        _ = sb.AppendLine($"Total Connections   : {_connectionCount}");
+        _ = sb.AppendLine($"Total Connections   : {_count}");
         _ = sb.AppendLine($"Authenticated Users : {_usernames.Count}");
-        _ = sb.AppendLine($"Anonymous Users     : {_connectionCount - _usernames.Count}");
+        _ = sb.AppendLine($"Anonymous Users     : {_count - _usernames.Count}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Active Connections:");
@@ -447,16 +448,16 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// </summary>
     public void Dispose()
     {
-        if (this._disposed)
+        if (_disposed)
         {
             return;
         }
 
-        this._disposed = true;
+        _disposed = true;
         this.CloseAllConnections("disposed");
 
         // Unsubscribe from all events
-        foreach (IConnection connection in this._connections.Values)
+        foreach (IConnection connection in _connections.Values)
         {
             connection.OnCloseEvent -= this.OnClientDisconnected;
         }
