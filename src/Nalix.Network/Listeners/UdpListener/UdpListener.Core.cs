@@ -158,10 +158,13 @@ public abstract partial class UdpListenerBase
         {
             this._cts?.Cancel();
             this._cts?.Dispose();
+            this._cts = null;
+            this._cancellationToken = default;
 
             try
             {
                 this._udpClient?.Close();
+                this._udpClient = null;
 
                 InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
                                .TimeSynchronized -= this.SynchronizeTime;
