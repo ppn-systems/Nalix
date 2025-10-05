@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
 using Nalix.Common.Diagnostics;
@@ -20,6 +20,8 @@ namespace Nalix.Network.Middleware.Inbound;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class PermissionMiddleware : IPacketMiddleware<IPacket>
 {
+    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
     /// <summary>
     /// Invokes the concurrency middleware, enforcing concurrency limits on incoming packets.
     /// </summary>
@@ -30,17 +32,21 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         PacketContext<IPacket> context,
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
     {
-        if (context.Attributes.Permission is not null &&
-            context.Attributes.Permission.Level > context.Connection.Level)
+        if (context.Attributes.Permission is null ||
+                    context.Attributes.Permission.Level <= context.Connection.Level)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[NW.{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.OpCode.OpCode:X} " +
-                                           $"need={context.Attributes.Permission.Level} have={context.Connection.Level}");
+            await next(context.CancellationToken).ConfigureAwait(false);
+            return;
+        }
 
-            System.UInt32 sequenceId = context.Packet is IPacketSequenced sequenced
-                ? sequenced.SequenceId
-                : 0;
+        s_logger?.Trace(
+            $"[NW.{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.OpCode.OpCode:X4} " +
+            $"need={context.Attributes.Permission.Level} have={context.Connection.Level}");
 
+        System.UInt32 sequenceId = context.Packet is IPacketSequenced sequenced ? sequenced.SequenceId : 0;
+
+        try
+        {
             await context.Connection.SendAsync(
                 controlType: ControlType.FAIL,
                 reason: ProtocolReason.UNAUTHENTICATED,
@@ -48,12 +54,13 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
                 sequenceId: sequenceId,
                 flags: ControlFlags.NONE,
                 arg0: (System.Byte)context.Attributes.Permission.Level,
-                arg1: (System.Byte)context.Connection.Level, arg2: context.Attributes.OpCode.OpCode).ConfigureAwait(false);
-
-            return;
+                arg1: (System.Byte)context.Connection.Level,
+                arg2: context.Attributes.OpCode.OpCode).ConfigureAwait(false);
         }
-
-        await next(context.CancellationToken).ConfigureAwait(false);
+        catch (System.Exception ex)
+        {
+            s_logger?.Error($"[NW.{nameof(PermissionMiddleware)}] send-error-failed", ex);
+        }
     }
 }
 

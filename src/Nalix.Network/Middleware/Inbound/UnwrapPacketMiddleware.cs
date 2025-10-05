@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
 using Nalix.Common.Diagnostics;
@@ -20,6 +20,9 @@ namespace Nalix.Network.Middleware.Inbound;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 {
+    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private readonly IPacketCatalog s_catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>();
+
     /// <inheritdoc/>
     public async System.Threading.Tasks.Task InvokeAsync(
         PacketContext<IPacket> context,
@@ -36,136 +39,89 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
+        if (s_catalog is null)
+        {
+            s_logger?.Fatal($"[NW.{nameof(UnwrapPacketMiddleware)}] missing-catalog");
+            await SEND_ERROR_RESPONSE(context, ProtocolReason.INTERNAL_ERROR, ControlFlags.NONE).ConfigureAwait(false);
+            return;
+        }
+
+        if (!s_catalog.TryGetTransformer(current.GetType(), out PacketTransformer transformer))
+        {
+            s_logger?.Error($"[NW.{nameof(UnwrapPacketMiddleware)}] no-transformer type={current.GetType().Name}");
+            await SEND_ERROR_RESPONSE(context, ProtocolReason.UNSUPPORTED_PACKET, ControlFlags.NONE).ConfigureAwait(false);
+            return;
+        }
+
         try
         {
-            IPacketCatalog catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>();
-            if (catalog is null)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Fatal($"[NW.{nameof(UnwrapPacketMiddleware)}] missing-catalog");
-
-                System.UInt32 sequenceId1 = context.Packet is IPacketSequenced sequenced1
-                    ? sequenced1.SequenceId
-                    : 0;
-
-                await context.Connection.SendAsync(
-                    ControlType.FAIL,
-                    ProtocolReason.INTERNAL_ERROR,
-                    ProtocolAdvice.NONE,
-                    sequenceId: sequenceId1,
-                    flags: ControlFlags.NONE,
-                    arg0: context.Attributes.OpCode.OpCode,
-                    arg1: (System.UInt32)current.Flags, arg2: 0).ConfigureAwait(false);
-
-                return;
-            }
-
-            if (!catalog.TryGetTransformer(current.GetType(), out PacketTransformer t))
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[NW.{nameof(UnwrapPacketMiddleware)}] no-transformer type={current.GetType().Name}");
-
-                System.UInt32 sequenceId2 = context.Packet is IPacketSequenced sequenced2
-                    ? sequenced2.SequenceId
-                    : 0;
-
-                await context.Connection.SendAsync(
-                    ControlType.FAIL,
-                    ProtocolReason.UNSUPPORTED_PACKET,
-                    ProtocolAdvice.NONE,
-                    sequenceId: sequenceId2,
-                    flags: ControlFlags.NONE,
-                    arg0: context.Attributes.OpCode.OpCode,
-                    arg1: (System.UInt32)current.Flags, arg2: 0).ConfigureAwait(false);
-
-                return;
-            }
-
             if (needDecrypt)
             {
-                if (!t.HasDecrypt)
+                if (!transformer.HasDecrypt)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
-                        $"[NW.{nameof(UnwrapPacketMiddleware)}] no-decrypt type={current.GetType().Name}");
-
-                    System.UInt32 sequenceId3 = context.Packet is IPacketSequenced sequenced3
-                        ? sequenced3.SequenceId
-                        : 0;
-
-                    await context.Connection.SendAsync(
-                        ControlType.FAIL,
-                        ProtocolReason.CRYPTO_UNSUPPORTED,
-                        ProtocolAdvice.NONE,
-                        sequenceId: sequenceId3,
-                        flags: ControlFlags.NONE,
-                        arg0: context.Attributes.OpCode.OpCode,
-                        arg1: (System.UInt32)current.Flags, arg2: 0).ConfigureAwait(false);
-
+                    s_logger?.Warn($"[NW.{nameof(UnwrapPacketMiddleware)}] no-decrypt type={current.GetType().Name}");
+                    await SEND_ERROR_RESPONSE(context, ProtocolReason.CRYPTO_UNSUPPORTED, ControlFlags.NONE).ConfigureAwait(false);
                     return;
                 }
-                current = t.Decrypt(current, context.Connection.Secret);
+
+                current = transformer.Decrypt(current, context.Connection.Secret);
             }
 
             if (needDecompress)
             {
-                if (!t.HasDecompress)
+                if (!transformer.HasDecompress)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
-                        $"[NW.{nameof(UnwrapPacketMiddleware)}] no-decompress type={current.GetType().Name}");
-
-                    System.UInt32 sequenceId4 = context.Packet is IPacketSequenced sequenced4
-                        ? sequenced4.SequenceId
-                        : 0;
-
-                    await context.Connection.SendAsync(
-                        ControlType.FAIL,
-                        ProtocolReason.COMPRESSION_UNSUPPORTED,
-                        ProtocolAdvice.NONE,
-                        sequenceId: sequenceId4,
-                        flags: ControlFlags.NONE,
-                        arg0: context.Attributes.OpCode.OpCode,
-                        arg1: (System.UInt32)current.Flags, arg2: 0).ConfigureAwait(false);
-
+                    s_logger?.Warn($"[NW.{nameof(UnwrapPacketMiddleware)}] no-decompress type={current.GetType().Name}");
+                    await SEND_ERROR_RESPONSE(context, ProtocolReason.COMPRESSION_UNSUPPORTED, ControlFlags.NONE).ConfigureAwait(false);
                     return;
                 }
-                current = t.Decompress(current);
+
+                current = transformer.Decompress(current);
             }
 
             if (!ReferenceEquals(current, context.Packet))
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[NW.{nameof(UnwrapPacketMiddleware)}] packet-replaced " +
-                                               $"type={current.GetType().Name} op=0x{context.Attributes.OpCode.OpCode:X}");
+                s_logger?.Trace($"[NW.{nameof(UnwrapPacketMiddleware)}] packet-replaced type={current.GetType().Name} op=0x{context.Attributes.OpCode.OpCode:X4}");
                 context.AssignPacket(current);
             }
-            else
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[NW.{nameof(UnwrapPacketMiddleware)}] packet-in-place " +
-                                               $"type={current.GetType().Name} op=0x{context.Attributes.OpCode.OpCode:X}");
-            }
+        }
+        catch (System.IO.InvalidDataException ex)
+        {
+            s_logger?.Warn($"[NW.{nameof(UnwrapPacketMiddleware)}] decompress-failed type={current.GetType().Name}", ex);
+            await SEND_ERROR_RESPONSE(context, ProtocolReason.COMPRESSION_FAILED, ControlFlags.NONE).ConfigureAwait(false);
+            return;
         }
         catch (System.Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(UnwrapPacketMiddleware)}] transform-failed type={current.GetType().Name}", ex);
-
-            System.UInt32 sequenceId5 = context.Packet is IPacketSequenced sequenced5
-                ? sequenced5.SequenceId
-                : 0;
-
-            await context.Connection.SendAsync(
-                ControlType.FAIL,
-                ProtocolReason.TRANSFORM_FAILED,
-                ProtocolAdvice.RETRY,
-                sequenceId: sequenceId5,
-                flags: ControlFlags.IS_TRANSIENT,
-                arg0: context.Attributes.OpCode.OpCode,
-                arg1: (System.Byte)current.Flags, arg2: 0).ConfigureAwait(false);
-
+            s_logger?.Warn($"[NW.{nameof(UnwrapPacketMiddleware)}] transform-failed type={current.GetType().Name}", ex);
+            await SEND_ERROR_RESPONSE(context, ProtocolReason.TRANSFORM_FAILED, ControlFlags.IS_TRANSIENT).ConfigureAwait(false);
             return;
         }
 
         await next(context.CancellationToken).ConfigureAwait(false);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private async System.Threading.Tasks.Task SEND_ERROR_RESPONSE(PacketContext<IPacket> context, ProtocolReason reason, ControlFlags flags)
+    {
+        System.UInt32 sequenceId = context.Packet is IPacketSequenced sequenced ? sequenced.SequenceId : 0;
+
+        try
+        {
+            await context.Connection.SendAsync(
+                ControlType.FAIL,
+                reason,
+                ProtocolAdvice.NONE,
+                sequenceId: sequenceId,
+                flags: flags,
+                arg0: context.Attributes.OpCode.OpCode,
+                arg1: (System.UInt32)context.Packet.Flags,
+                arg2: 0).ConfigureAwait(false);
+        }
+        catch (System.Exception ex)
+        {
+            s_logger?.Error($"[NW.{nameof(UnwrapPacketMiddleware)}] send-error-failed reason={reason}", ex);
+        }
     }
 }

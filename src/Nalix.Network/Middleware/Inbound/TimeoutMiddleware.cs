@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
 using Nalix.Common.Enums;
@@ -30,44 +30,34 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        using System.Threading.CancellationTokenSource execCts =
-            System.Threading.CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+        using System.Threading.CancellationTokenSource timeoutCts = new(timeout);
+        using System.Threading.CancellationTokenSource linkedCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, timeoutCts.Token);
 
-        System.Threading.Tasks.Task execution = next(execCts.Token);
-        System.Threading.Tasks.Task delay = System.Threading.Tasks.Task.Delay(timeout, System.Threading.CancellationToken.None);
-
-        System.Threading.Tasks.Task completed = await System.Threading.Tasks.Task.WhenAny(execution, delay)
-                                                                                 .ConfigureAwait(false);
-
-        if (completed == delay)
+        try
         {
-            execCts.Cancel();
+            await next(linkedCts.Token).ConfigureAwait(false);
+        }
+        catch (System.OperationCanceledException) when (timeoutCts.IsCancellationRequested && !context.CancellationToken.IsCancellationRequested)
+        {
+            System.UInt32 sequenceId = context.Packet is IPacketSequenced sequenced ? sequenced.SequenceId : 0;
 
             try
             {
-                await execution.ConfigureAwait(false);
+                await context.Connection.SendAsync(
+                    ControlType.TIMEOUT,
+                    ProtocolReason.TIMEOUT,
+                    ProtocolAdvice.RETRY,
+                    sequenceId: sequenceId,
+                    flags: ControlFlags.IS_TRANSIENT,
+                    arg0: (System.UInt32)(timeout / 100),
+                    arg1: 0, arg2: 0).ConfigureAwait(false);
             }
-            catch (System.OperationCanceledException)
+            catch
             {
-                // ignore
+                // Ignore send failures
             }
 
-            System.UInt32 sequenceId = context.Packet is IPacketSequenced sequenced
-                ? sequenced.SequenceId
-                : 0;
-
-            await context.Connection.SendAsync(
-                ControlType.TIMEOUT,
-                ProtocolReason.TIMEOUT,
-                ProtocolAdvice.RETRY,
-                sequenceId: sequenceId,
-                flags: ControlFlags.IS_TRANSIENT,
-                arg0: (System.UInt32)(timeout / 100),
-                arg1: 0, arg2: 0).ConfigureAwait(false);
-
-            return;
+            throw;
         }
-
-        await execution.ConfigureAwait(false);
     }
 }
