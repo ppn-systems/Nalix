@@ -1,9 +1,8 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
-using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
@@ -12,6 +11,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal;
+using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Security.Hashing;
 
 namespace Nalix.Network.Listeners.Udp;
@@ -27,7 +27,6 @@ public abstract partial class UdpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [System.Obsolete]
     private async System.Threading.Tasks.Task ReceiveDatagramsAsync(
         System.Threading.CancellationToken cancellationToken)
     {
@@ -76,7 +75,6 @@ public abstract partial class UdpListenerBase
         }
     }
 
-    [System.Obsolete]
     private void ProcessDatagram(System.Net.Sockets.UdpReceiveResult result)
     {
         if (result.Buffer.Length < PacketConstants.HeaderSize + AuthenticationMetadataSize)
@@ -114,10 +112,9 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        System.Byte[] payload = buffer[..payloadLength];
-        System.ReadOnlySpan<System.Byte> payloadSpan = payload;
+        BufferLease lease = BufferLease.CopyFrom(System.MemoryExtensions.AsSpan(buffer)[..payloadLength]);
 
-        if (!ValidateAuthenticationToken(connection, result.RemoteEndPoint, payloadSpan, idBytes, timestamp, tagBytes))
+        if (!ValidateAuthenticationToken(connection, result.RemoteEndPoint, lease.Span, idBytes, timestamp, tagBytes))
         {
             _ = System.Threading.Interlocked.Increment(ref _dropUnauth);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -136,14 +133,14 @@ public abstract partial class UdpListenerBase
         _ = System.Threading.Interlocked.Increment(ref _rxPackets);
         _ = System.Threading.Interlocked.Add(ref _rxBytes, result.Buffer.Length);
 
-        connection.InjectIncoming(payload);
+        connection.InjectIncoming(lease);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] inject id={connection.ID} size={payload.Length}");
+                                .Trace($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] inject id={connection.ID} size={lease.Length}");
     }
 
     private static System.Boolean ValidateAuthenticationToken(
-        IConnection connection,
+        Connection connection,
         System.Net.EndPoint remoteEndPoint,
         System.ReadOnlySpan<System.Byte> payload,
         System.ReadOnlySpan<System.Byte> identifierBytes,
