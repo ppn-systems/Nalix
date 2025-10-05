@@ -245,7 +245,7 @@ public abstract partial class TcpListenerBase
 
         _ = sb.AppendLine("Connections:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"ActiveConnections   : {InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?.ConnectionCount}");
+        _ = sb.AppendLine($"ActiveConnections   : {InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?.Count}");
         _ = sb.AppendLine($"LimiterEnabled      : {true}");
         _ = sb.AppendLine();
 
