@@ -1,7 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Infrastructure.Caching;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Framework.Injection;
@@ -318,8 +317,6 @@ public sealed partial class Connection : IConnection
                 return true;
             }
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(Connection)}:{nameof(Send)}] send-failed");
             return false;
         }
 
@@ -453,8 +450,6 @@ public sealed partial class Connection : IConnection
                 return true;
             }
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(Connection)}:{nameof(SendAsync)}] send-async-failed");
             return false;
         }
 
