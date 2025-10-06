@@ -99,7 +99,7 @@ public class MiddlewarePipeline<TPacket>
         for (System.Int32 i = middlewares.Count - 1; i >= 0; i--)
         {
             IPacketMiddleware<TPacket> current = middlewares[i];
-            var localNext = next;
+            System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> localNext = next;
 
             // Mỗi middleware nhận 'next' và tự quyết định token nào sẽ đẩy xuống
             next = (_) => current.InvokeAsync(context, localNext);

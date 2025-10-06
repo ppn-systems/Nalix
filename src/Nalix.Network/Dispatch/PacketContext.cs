@@ -197,9 +197,8 @@ public sealed class PacketContext<TPacket> : IPoolable
             this.Reset();
         }
 
-        _ = System.Threading.Interlocked.Exchange(
-            ref System.Runtime.CompilerServices.Unsafe.As<PacketContextState, System.Byte>(ref _state),
-            (System.Byte)PacketContextState.Pooled);
+        _ = System.Threading.Interlocked.Exchange(ref System.Runtime.CompilerServices.Unsafe
+                                        .As<PacketContextState, System.Byte>(ref _state), (System.Byte)PacketContextState.Pooled);
     }
 
     /// <summary>
