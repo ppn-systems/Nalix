@@ -1,8 +1,5 @@
 ﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Diagnostics;
-using Nalix.Framework.Injection;
-
 namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
@@ -40,21 +37,19 @@ public abstract partial class TcpListenerBase
 
                 System.Net.IPEndPoint epV6Any = new(System.Net.IPAddress.IPv6Any, this._port);
 
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any}.v6)");
+                s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any}.v6)");
 
                 sock.Bind(epV6Any);
                 sock.Listen(Config.Backlog);
 
                 _listener = sock;
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}.dual");
+                s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}.dual");
+
                 return;
             }
             catch (System.Exception ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] failed-bind ex={ex.Message}");
+                s_logger.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] failed-bind ex={ex.Message}");
 
                 // Clean up the half-initialized IPv6 socket before falling back
                 try
@@ -92,14 +87,12 @@ public abstract partial class TcpListenerBase
 
         System.Net.IPEndPoint epV4Any = new(System.Net.IPAddress.Any, this._port);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any}.v4");
+        s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any}.v4");
 
         _listener.Bind(epV4Any);
         _listener.Listen(Config.Backlog);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}");
+        s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}");
     }
 
     [System.Diagnostics.DebuggerStepThrough]
