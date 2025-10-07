@@ -62,7 +62,8 @@ public readonly struct EventId(System.Int32 id, System.String name = null) : Sys
 
     /// <inheritdoc />
     public override System.Boolean Equals(
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] System.Object obj) => obj is not null && obj is EventId eventId && Equals(eventId);
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] System.Object obj)
+        => obj is not null && obj is EventId eventId && Equals(eventId);
 
     /// <inheritdoc />
     public override System.Int32 GetHashCode() => Id;

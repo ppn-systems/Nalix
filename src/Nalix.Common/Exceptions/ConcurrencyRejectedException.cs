@@ -16,12 +16,12 @@ public sealed class ConcurrencyRejectedException : InternalErrorException
     }
 
     /// <inheritdoc/>
-    public ConcurrencyRejectedException(System.String message, System.Exception innerException) : base(message, innerException)
+    public ConcurrencyRejectedException(System.String message, System.String details) : base(message, details)
     {
     }
 
     /// <inheritdoc/>
-    public ConcurrencyRejectedException(System.String message, System.String details) : base(message, details)
+    public ConcurrencyRejectedException(System.String message, System.Exception innerException) : base(message, innerException)
     {
     }
 }
