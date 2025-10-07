@@ -60,8 +60,8 @@ public abstract partial class TcpListenerBase
             _cts?.Dispose();
             _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _cancellationToken = _cts.Token;
-            linkedToken = _cts.Token;
 
+            linkedToken = _cts.Token;
             _ = linkedToken.Register(static s => ((TcpListenerBase)s!).ScheduleStop(), this);
 
             System.Boolean needInit;

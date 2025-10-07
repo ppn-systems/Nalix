@@ -66,12 +66,15 @@ public partial interface IConnection
     /// for a network connection.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// This interface inherits from <see cref="ITransport"/> which defines
     /// common send methods for sending packets or raw data synchronously
     /// and asynchronously.
-    ///
+    /// </para>
+    /// <para>
     /// TCP is a connectionless protocol, so this interface focuses mainly
     /// on sending data without connection state management or receive control.
+    /// </para>
     /// </remarks>
     interface ITcp : ITransport
     {
@@ -111,12 +114,15 @@ public partial interface IConnection
     /// for a network connection.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// This interface inherits from <see cref="ITransport"/> which defines
     /// common send methods for sending packets or raw data synchronously
     /// and asynchronously.
-    ///
+    /// </para>
+    /// <para>
     /// UDP is a connectionless protocol, so this interface focuses mainly
     /// on sending data without connection state management or receive control.
+    /// </para>
     /// </remarks>
     interface IUdp : ITransport
     {
