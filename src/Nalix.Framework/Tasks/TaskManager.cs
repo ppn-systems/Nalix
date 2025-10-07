@@ -118,14 +118,7 @@ public sealed partial class TaskManager : ITaskManager
 
     #region APIs
 
-    /// <summary>
-    /// Starts a worker task in the background.
-    /// </summary>
-    /// <param name="name">The name of the worker.</param>
-    /// <param name="group">The group to which the worker belongs.</param>
-    /// <param name="work">The delegate representing the work to be performed.</param>
-    /// <param name="options">Optional worker options.</param>
-    /// <returns>A handle to the started worker.</returns>
+    /// <inheritdoc/>
     /// <exception cref="System.ArgumentException">Thrown if the name is null or whitespace.</exception>
     /// <exception cref="System.ArgumentNullException">Thrown if the work delegate is null.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown if the worker cannot be added.</exception>
@@ -309,14 +302,7 @@ public sealed partial class TaskManager : ITaskManager
         }
     }
 
-    /// <summary>
-    /// Schedules a recurring background task.
-    /// </summary>
-    /// <param name="name">The unique name of the recurring task.</param>
-    /// <param name="interval">The interval between executions.</param>
-    /// <param name="work">The delegate representing the work to be performed.</param>
-    /// <param name="options">Optional recurring options.</param>
-    /// <returns>A handle to the scheduled recurring task.</returns>
+    /// <inheritdoc/>
     /// <exception cref="System.ArgumentException">Thrown if the name is null or whitespace.</exception>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if the interval is less than or equal to zero.</exception>
     /// <exception cref="System.ArgumentNullException">Thrown if the work delegate is null.</exception>
@@ -372,13 +358,7 @@ public sealed partial class TaskManager : ITaskManager
         }
     }
 
-    /// <summary>
-    /// Runs a single background job.
-    /// </summary>
-    /// <param name="name">The name of the job.</param>
-    /// <param name="work">The delegate representing the work to be performed.</param>
-    /// <param name="ct">A cancellation token.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <inheritdoc/>
     /// <exception cref="System.ArgumentException">Thrown if the name is null or whitespace.</exception>
     /// <exception cref="System.ArgumentNullException">Thrown if the work delegate is null.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -409,10 +389,7 @@ public sealed partial class TaskManager : ITaskManager
         }
     }
 
-    /// <summary>
-    /// Cancels all running workers.
-    /// </summary>
-    /// <returns>The number of workers cancelled.</returns>
+    /// <inheritdoc/>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -436,11 +413,7 @@ public sealed partial class TaskManager : ITaskManager
         return n;
     }
 
-    /// <summary>
-    /// Cancels a worker task by its identifier.
-    /// </summary>
-    /// <param name="id">The identifier of the worker.</param>
-    /// <returns><c>true</c> if the worker was found and cancelled; otherwise, <c>false</c>.</returns>
+    /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -471,11 +444,7 @@ public sealed partial class TaskManager : ITaskManager
         return false;
     }
 
-    /// <summary>
-    /// Cancels all workers in a specific group.
-    /// </summary>
-    /// <param name="group">The group name.</param>
-    /// <returns>The number of workers cancelled.</returns>
+    /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -503,11 +472,7 @@ public sealed partial class TaskManager : ITaskManager
         return n;
     }
 
-    /// <summary>
-    /// Cancels a recurring background task by its name.
-    /// </summary>
-    /// <param name="name">The name of the recurring task.</param>
-    /// <returns><c>true</c> if the recurring task was found and cancelled; otherwise, <c>false</c>.</returns>
+    /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -575,12 +540,7 @@ public sealed partial class TaskManager : ITaskManager
         return false;
     }
 
-    /// <summary>
-    /// Lists all worker handles.
-    /// </summary>
-    /// <param name="runningOnly">If <c>true</c>, only running workers are listed.</param>
-    /// <param name="group">Optional group name to filter workers.</param>
-    /// <returns>A read-only collection of worker handles.</returns>
+    /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -607,10 +567,7 @@ public sealed partial class TaskManager : ITaskManager
         return list;
     }
 
-    /// <summary>
-    /// Lists all scheduled recurring tasks.
-    /// </summary>
-    /// <returns>A read-only collection of recurring handles.</returns>
+    /// <inheritdoc/>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -626,12 +583,7 @@ public sealed partial class TaskManager : ITaskManager
         return list;
     }
 
-    /// <summary>
-    /// Tries to get a worker handle by identifier.
-    /// </summary>
-    /// <param name="id">The identifier of the worker.</param>
-    /// <param name="handle">The handle of the worker, if found.</param>
-    /// <returns><c>true</c> if found; otherwise, <c>false</c>.</returns>
+    /// <inheritdoc/>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -644,12 +596,7 @@ public sealed partial class TaskManager : ITaskManager
         handle = null; return false;
     }
 
-    /// <summary>
-    /// Tries to get a recurring handle by name.
-    /// </summary>
-    /// <param name="name">The name of the recurring task.</param>
-    /// <param name="handle">The handle of the recurring task, if found.</param>
-    /// <returns><c>true</c> if found; otherwise, <c>false</c>.</returns>
+    /// <inheritdoc/>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -666,10 +613,7 @@ public sealed partial class TaskManager : ITaskManager
 
     #region IReportable
 
-    /// <summary>
-    /// Generates a report summarizing all background tasks and workers.
-    /// </summary>
-    /// <returns>A formatted string containing report details.</returns>
+    /// <inheritdoc/>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -794,9 +738,7 @@ public sealed partial class TaskManager : ITaskManager
 
     #region IDisposable
 
-    /// <summary>
-    /// Disposes the background task manager and cancels all running tasks.
-    /// </summary>
+    /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Dispose()

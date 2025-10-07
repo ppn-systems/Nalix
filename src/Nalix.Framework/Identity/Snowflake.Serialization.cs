@@ -87,28 +87,13 @@ public readonly partial struct Snowflake
 
     #region Serialization
 
-    /// <summary>
-    /// Converts this <see cref="Snowflake"/> to its underlying 56-bit representation.
-    /// </summary>
-    /// <returns>The 56-bit unsigned integer value of this identifier.</returns>
-    /// <remarks>
-    /// This is the most efficient serialization method as it returns the internal representation directly.
-    /// Use this when you need to store or transmit the identifier in a compact binary format.
-    /// </remarks>
+    /// <inheritdoc/>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public UInt56 ToUInt56() => __combined;
 
-    /// <summary>
-    /// Converts this <see cref="Snowflake"/> to a 7-byte array.
-    /// </summary>
-    /// <returns>A new byte array containing the serialized identifier.</returns>
-    /// <remarks>
-    /// This method allocates a new 7-byte array and writes the identifier in little-endian format.
-    /// The layout is: [0-3]=Value, [4-5]=MachineId, [6]=Type.
-    /// For better performance, use <see cref="TryWriteBytes(System.Span{System.Byte})"/> with a pre-allocated buffer.
-    /// </remarks>
+    /// <inheritdoc/>
     [System.ComponentModel.EditorBrowsable(
         System.ComponentModel.EditorBrowsableState.Never)]
     [System.Diagnostics.Contracts.Pure]
@@ -121,23 +106,7 @@ public readonly partial struct Snowflake
         return result;
     }
 
-    /// <summary>
-    /// Attempts to write the serialized <see cref="Snowflake"/> to the specified byte span.
-    /// </summary>
-    /// <param name="destination">The span to write the serialized bytes to.</param>
-    /// <param name="bytesWritten">
-    /// When this method returns, contains the number of bytes written to <paramref name="destination"/>.
-    /// This is always <see cref="Size"/> (7) on success, or 0 on failure.
-    /// </param>
-    /// <returns>
-    /// <c>true</c> if the identifier was successfully serialized; <c>false</c> if <paramref name="destination"/>
-    /// is too small (less than <see cref="Size"/> bytes).
-    /// </returns>
-    /// <remarks>
-    /// This method writes the identifier in little-endian format: [0-3]=Value, [4-5]=MachineId, [6]=Type.
-    /// The method validates the destination buffer size before writing to prevent buffer overflows.
-    /// This is the recommended serialization method for performance-critical scenarios.
-    /// </remarks>
+    /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean TryWriteBytes(
@@ -160,18 +129,7 @@ public readonly partial struct Snowflake
         return true;
     }
 
-    /// <summary>
-    /// Attempts to write the serialized <see cref="Snowflake"/> to the specified byte span.
-    /// </summary>
-    /// <param name="destination">The span to write the serialized bytes to.</param>
-    /// <returns>
-    /// <c>true</c> if the identifier was successfully serialized; <c>false</c> if <paramref name="destination"/>
-    /// is too small (less than <see cref="Size"/> bytes).
-    /// </returns>
-    /// <remarks>
-    /// This overload is identical to <see cref="TryWriteBytes(System.Span{System.Byte}, out System.Int32)"/> but does not
-    /// return the number of bytes written. Use this when you don't need the byte count.
-    /// </remarks>
+    /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean TryWriteBytes(System.Span<System.Byte> destination)
