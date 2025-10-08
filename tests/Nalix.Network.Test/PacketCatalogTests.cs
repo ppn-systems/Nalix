@@ -1,8 +1,7 @@
-﻿using Nalix.Common.Infrastructure.Caching;
-using Nalix.Common.Messaging.Packets;
+﻿using Nalix.Common.Messaging.Packets;
 using Nalix.Common.Messaging.Packets.Abstractions;
-using Nalix.Common.Messaging.Protocols;
 using Nalix.Shared.Messaging.Catalog;
+using Nalix.Shared.Messaging.Controls;
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
@@ -15,25 +14,6 @@ namespace Nalix.Network.Tests;
 /// </summary>
 public sealed class PacketCatalogTests
 {
-    private sealed class DummyPacket : IPacket, IPoolable
-    {
-        UInt16 IPacket.Length => throw new NotImplementedException();
-
-        UInt32 IPacket.MagicNumber => throw new NotImplementedException();
-
-        UInt16 IPacket.OpCode => throw new NotImplementedException();
-
-        PacketFlags IPacket.Flags => throw new NotImplementedException();
-
-        PacketPriority IPacket.Priority => throw new NotImplementedException();
-
-        ProtocolType IPacket.Protocol => throw new NotImplementedException();
-
-        void IPoolable.ResetForPool() => throw new NotImplementedException();
-        Byte[] IPacket.Serialize() => throw new NotImplementedException();
-        Int32 IPacket.Serialize(Span<Byte> buffer) => throw new NotImplementedException();
-    }
-
     /// <summary>
     /// Verify: TryDeserialize returns false when buffer shorter than header (4 bytes).
     /// </summary>
@@ -67,7 +47,7 @@ public sealed class PacketCatalogTests
         // PacketDeserializer deser = static ReadOnlySpan<Byte> _ => new DummyPacket();
 
         // With this line:
-        static IPacket deser(ReadOnlySpan<Byte> _) => new DummyPacket();
+        static IPacket deser(ReadOnlySpan<Byte> _) => new Control();
         var des = new Dictionary<UInt32, PacketDeserializer> { [Magic] = deser };
         var catalog = new PacketCatalog(
             new Dictionary<Type, PacketTransformer>().ToFrozenDictionary(),
@@ -82,7 +62,7 @@ public sealed class PacketCatalogTests
 
         // Assert
         Assert.True(ok);
-        _ = Assert.IsType<DummyPacket>(pkt);
+        _ = Assert.IsType<Control>(pkt);
     }
 
     /// <summary>
@@ -93,7 +73,7 @@ public sealed class PacketCatalogTests
     {
         // Arrange
         const UInt32 Magic = 0xAABBCCDD;
-        static IPacket deser(ReadOnlySpan<Byte> _) => new DummyPacket();
+        static IPacket deser(ReadOnlySpan<Byte> _) => new Control();
 
         var catalog = new PacketCatalog(
             new Dictionary<Type, PacketTransformer>().ToFrozenDictionary(),
