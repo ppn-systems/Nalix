@@ -249,7 +249,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
                 try
                 {
-                    context.Initialize(packet, connection, descriptor.Attributes);
+                    context.Initialize(packet, connection, descriptor.Metadata);
                     await this.ExecuteHandlerAsync(descriptor, context)
                               .ConfigureAwait(false);
                 }

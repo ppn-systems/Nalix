@@ -26,7 +26,7 @@ internal static class MethodInfoDelegateTypeExtensions
 
         if (!mi.IsStatic)
         {
-            throw new System.ArgumentException("Method must be static.", nameof(mi));
+            throw new System.ArgumentException("MethodInfo must be static.", nameof(mi));
         }
 
         var paramTypes = mi.GetParameters();
@@ -72,12 +72,12 @@ internal static class MethodInfoDelegateTypeExtensions
 
         if (mi.IsStatic)
         {
-            throw new System.ArgumentException("Method must be an instance method.", nameof(mi));
+            throw new System.ArgumentException("MethodInfo must be an instance method.", nameof(mi));
         }
 
         if (mi.DeclaringType is null)
         {
-            throw new System.ArgumentException("Method must have a declaring type.", nameof(mi));
+            throw new System.ArgumentException("MethodInfo must have a declaring type.", nameof(mi));
         }
 
         var paramTypes = mi.GetParameters();
