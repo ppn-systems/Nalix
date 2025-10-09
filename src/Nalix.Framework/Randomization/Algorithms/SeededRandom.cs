@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Framework.Randomization;
+namespace Nalix.Framework.Randomization.Algorithms;
 
 /// <summary>
 /// A high-performance class for generating random numbers with various data types and ranges.
@@ -60,13 +60,13 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         }
 
         // Fast path for power of 2
-        if ((max & (max - 1)) == 0)
+        if ((max & max - 1) == 0)
         {
-            return this.Get() & (max - 1);
+            return this.Get() & max - 1;
         }
 
         // Avoid modulo bias by rejecting values in the unfair region
-        System.UInt32 threshold = RandMax - (RandMax % max);
+        System.UInt32 threshold = RandMax - RandMax % max;
         System.UInt32 result;
         do
         {
@@ -98,13 +98,13 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         }
 
         // Optimize for powers of 2
-        if ((max & (max - 1)) == 0)
+        if ((max & max - 1) == 0)
         {
-            return this.Get64() & (max - 1);
+            return this.Get64() & max - 1;
         }
 
         // Use rejection sampling to avoid modulo bias
-        System.UInt64 threshold = System.UInt64.MaxValue - (System.UInt64.MaxValue % max);
+        System.UInt64 threshold = System.UInt64.MaxValue - System.UInt64.MaxValue % max;
         System.UInt64 result;
         do
         {
@@ -247,7 +247,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Single Get(System.Single min, System.Single max)
-        => min >= max ? min : min + (this.GetFloat() * (max - min));
+        => min >= max ? min : min + this.GetFloat() * (max - min);
 
     /// <summary>
     /// Returns a random double-precision floating-point ProtocolType in the range [min, max).
@@ -259,7 +259,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Double Get(System.Double min, System.Double max)
-        => min >= max ? min : min + (this.GetDouble() * (max - min));
+        => min >= max ? min : min + this.GetDouble() * (max - min);
 
     /// <summary>
     /// Returns a random boolean with the specified probability of being true.
