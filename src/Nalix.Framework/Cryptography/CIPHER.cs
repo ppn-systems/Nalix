@@ -12,7 +12,7 @@ namespace Nalix.Framework.Cryptography;
 /// <summary>
 /// Provides methods to encrypt and decrypt raw data.
 /// </summary>
-public static class Crypto
+public static class CIPHER
 {
     #region Constants
 
@@ -179,7 +179,7 @@ public static class Crypto
     {
         // Nonce 12 bytes (unique per key!)
         System.Span<System.Byte> nonce = stackalloc System.Byte[ChaCha20NonceSize];
-        SecureRandom.Fill(nonce);
+        RANDOM.Fill(nonce);
 
         System.Byte[] result = new System.Byte[ChaCha20NonceSize + data.Length + ChaCha20Poly1305.TagSize];
 
@@ -198,7 +198,7 @@ public static class Crypto
     {
         const System.UInt64 counter = 0;
         System.Span<System.Byte> nonce = new System.Byte[Salsa20NonceSize];
-        SecureRandom.Fill(nonce);
+        RANDOM.Fill(nonce);
 
         System.Byte[] result = new System.Byte[Salsa20NonceSize + data.Length];
         nonce.CopyTo(result);
@@ -225,7 +225,7 @@ public static class Crypto
             data.Span.CopyTo(workSpan);
             if (bufferSize > originalLength)
             {
-                SecureRandom.Fill(workSpan[originalLength..bufferSize]);
+                RANDOM.Fill(workSpan[originalLength..bufferSize]);
             }
 
             EncryptBlocks(
@@ -255,7 +255,7 @@ public static class Crypto
                                                   .AsSpan(encrypted)[..LengthPrefixSize], originalLength);
 
             data.Span.CopyTo(paddedInput);
-            SecureRandom.Fill(System.MemoryExtensions.AsSpan(paddedInput, originalLength, bufferSize - originalLength));
+            RANDOM.Fill(System.MemoryExtensions.AsSpan(paddedInput, originalLength, bufferSize - originalLength));
 
             _ = Xtea.Encrypt(
                 System.MemoryExtensions.AsSpan(paddedInput, 0, bufferSize),
