@@ -7,6 +7,7 @@ using Nalix.Common.Packets.Attributes;
 using Nalix.Framework.Injection;
 using Nalix.Network.Dispatch;
 using Nalix.Network.Dispatch.Delegates;
+using Nalix.Network.Internal.Extensions;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
