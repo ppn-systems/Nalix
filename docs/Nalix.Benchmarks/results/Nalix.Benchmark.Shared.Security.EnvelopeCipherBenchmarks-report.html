@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>Nalix.Benchmark.Shared.Security.EnvelopeCipherBenchmarks-20260304-214812</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.7840/25H2/2025Update/HudsonValley2)
+13th Gen Intel Core i7-13620H 2.40GHz, 1 CPU, 16 logical and 10 physical cores
+.NET SDK 10.0.103
+  [Host]     : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
+  DefaultJob : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
+</code></pre>
+<pre><code></code></pre>
+
+<table>
+<thead><tr><th>Method          </th><th>PayloadSize</th><th>Algorithm  </th><th>Mean </th><th>Error</th><th>StdDev</th><th>Gen0</th><th>Gen1</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>EnvelopeCipher.Encrypt</td><td>128</td><td>SPECK</td><td>425.4 ns</td><td>2.01 ns</td><td>1.78 ns</td><td>0.0553</td><td>-</td><td>696 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>128</td><td>SPECK</td><td>304.9 ns</td><td>6.12 ns</td><td>7.05 ns</td><td>0.0410</td><td>-</td><td>520 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>128</td><td>SALSA20</td><td>417.5 ns</td><td>7.82 ns</td><td>7.32 ns</td><td>0.0286</td><td>-</td><td>360 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>128</td><td>SALSA20</td><td>288.0 ns</td><td>5.65 ns</td><td>7.73 ns</td><td>0.0157</td><td>-</td><td>200 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>128</td><td>CHACHA20</td><td>621.0 ns</td><td>12.28 ns</td><td>13.13 ns</td><td>0.0362</td><td>-</td><td>464 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>128</td><td>CHACHA20</td><td>501.9 ns</td><td>10.08 ns</td><td>14.77 ns</td><td>0.0229</td><td>-</td><td>296 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>128</td><td>SPECK_POLY1305</td><td>1,379.5 ns</td><td>26.71 ns</td><td>37.44 ns</td><td>0.0668</td><td>-</td><td>840 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>128</td><td>SPECK_POLY1305</td><td>1,322.4 ns</td><td>25.77 ns</td><td>36.96 ns</td><td>0.0668</td><td>-</td><td>840 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>128</td><td>SALSA20_POLY1305</td><td>1,280.3 ns</td><td>25.17 ns</td><td>30.91 ns</td><td>0.0153</td><td>-</td><td>192 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>128</td><td>SALSA20_POLY1305</td><td>1,219.7 ns</td><td>24.34 ns</td><td>33.31 ns</td><td>0.0153</td><td>-</td><td>200 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>128</td><td>CHACHA20_POLY1305</td><td>1,689.1 ns</td><td>32.74 ns</td><td>41.40 ns</td><td>0.0153</td><td>-</td><td>192 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>128</td><td>CHACHA20_POLY1305</td><td>1,645.2 ns</td><td>32.22 ns</td><td>33.09 ns</td><td>0.0153</td><td>-</td><td>200 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>1024</td><td>SPECK</td><td>2,148.9 ns</td><td>42.54 ns</td><td>48.99 ns</td><td>0.1945</td><td>-</td><td>2488 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>1024</td><td>SPECK</td><td>1,725.8 ns</td><td>31.41 ns</td><td>29.38 ns</td><td>0.1125</td><td>-</td><td>1416 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>1024</td><td>SALSA20</td><td>2,458.5 ns</td><td>48.70 ns</td><td>61.59 ns</td><td>0.1678</td><td>-</td><td>2152 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>1024</td><td>SALSA20</td><td>2,005.2 ns</td><td>40.14 ns</td><td>60.07 ns</td><td>0.0839</td><td>-</td><td>1096 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>1024</td><td>CHACHA20</td><td>3,391.0 ns</td><td>65.49 ns</td><td>61.26 ns</td><td>0.1793</td><td>-</td><td>2256 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>1024</td><td>CHACHA20</td><td>2,980.1 ns</td><td>58.70 ns</td><td>74.23 ns</td><td>0.0916</td><td>-</td><td>1192 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>1024</td><td>SPECK_POLY1305</td><td>5,606.5 ns</td><td>108.03 ns</td><td>120.08 ns</td><td>0.1373</td><td>-</td><td>1736 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>1024</td><td>SPECK_POLY1305</td><td>5,541.6 ns</td><td>110.47 ns</td><td>131.51 ns</td><td>0.1373</td><td>-</td><td>1736 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>1024</td><td>SALSA20_POLY1305</td><td>5,760.4 ns</td><td>111.05 ns</td><td>136.38 ns</td><td>0.0839</td><td>-</td><td>1088 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>1024</td><td>SALSA20_POLY1305</td><td>5,764.8 ns</td><td>97.43 ns</td><td>91.13 ns</td><td>0.0839</td><td>-</td><td>1096 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>1024</td><td>CHACHA20_POLY1305</td><td>6,854.2 ns</td><td>136.43 ns</td><td>167.55 ns</td><td>0.0839</td><td>-</td><td>1088 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>1024</td><td>CHACHA20_POLY1305</td><td>6,871.4 ns</td><td>127.94 ns</td><td>131.38 ns</td><td>0.0839</td><td>-</td><td>1096 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>8192</td><td>SPECK</td><td>15,830.7 ns</td><td>314.07 ns</td><td>308.46 ns</td><td>1.3123</td><td>0.0305</td><td>16824 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>8192</td><td>SPECK</td><td>12,804.0 ns</td><td>248.03 ns</td><td>322.51 ns</td><td>0.6714</td><td>0.0153</td><td>8584 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>8192</td><td>SALSA20</td><td>18,682.3 ns</td><td>370.80 ns</td><td>427.02 ns</td><td>1.3123</td><td>0.0305</td><td>16488 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>8192</td><td>SALSA20</td><td>15,530.9 ns</td><td>307.32 ns</td><td>377.42 ns</td><td>0.6409</td><td>-</td><td>8264 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>8192</td><td>CHACHA20</td><td>26,043.3 ns</td><td>386.58 ns</td><td>361.61 ns</td><td>1.3123</td><td>0.0305</td><td>16592 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>8192</td><td>CHACHA20</td><td>22,835.0 ns</td><td>445.42 ns</td><td>624.42 ns</td><td>0.6409</td><td>-</td><td>8360 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>8192</td><td>SPECK_POLY1305</td><td>39,608.2 ns</td><td>764.71 ns</td><td>1,072.02 ns</td><td>0.6714</td><td>-</td><td>8904 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>8192</td><td>SPECK_POLY1305</td><td>39,104.1 ns</td><td>659.78 ns</td><td>584.88 ns</td><td>0.6714</td><td>-</td><td>8904 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>8192</td><td>SALSA20_POLY1305</td><td>40,734.9 ns</td><td>772.68 ns</td><td>793.48 ns</td><td>0.6104</td><td>-</td><td>8256 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>8192</td><td>SALSA20_POLY1305</td><td>41,613.3 ns</td><td>795.92 ns</td><td>947.48 ns</td><td>0.6104</td><td>-</td><td>8264 B</td>
+</tr><tr><td>EnvelopeCipher.Encrypt</td><td>8192</td><td>CHACHA20_POLY1305</td><td>48,734.3 ns</td><td>957.05 ns</td><td>1,341.64 ns</td><td>0.6104</td><td>-</td><td>8256 B</td>
+</tr><tr><td>EnvelopeCipher.Decrypt</td><td>8192</td><td>CHACHA20_POLY1305</td><td>49,632.1 ns</td><td>980.41 ns</td><td>1,129.04 ns</td><td>0.6104</td><td>-</td><td>8264 B</td>
+</tr></tbody></table>
+</body>
+</html>

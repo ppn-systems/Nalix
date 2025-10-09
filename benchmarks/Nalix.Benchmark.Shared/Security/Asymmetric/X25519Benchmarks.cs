@@ -5,17 +5,17 @@
 //  [Host]     : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3 [AttachedDebugger]
 //  DefaultJob : .NET 10.0.3(10.0.3, 10.0.326.7603), X64 RyuJIT x86 - 64 - v3
 
-// | Method                                                | KeyPairCount | Mean     | Error   | StdDev  | Gen0    | Gen1   | Allocated |
-// |------------------------------------------------------ |------------- |---------:|--------:|--------:|--------:|-------:|----------:|
-// | 'X25519.GenerateKeyPair (CSPRNG + scalar mult)'       | 1            | 122.5 us | 2.38 us | 2.33 us | 37.4756 | 0.2441 | 460.05 KB |
-// | 'X25519.GenerateKeyFromPrivateKey (scalar mult only)' | 1            | 121.0 us | 2.37 us | 2.33 us | 37.4756 | 0.2441 | 460.05 KB |
-// | 'X25519.Agreement (shared secret)'                    | 1            | 119.0 us | 1.42 us | 1.19 us | 37.4756 |      - |    460 KB |
-// | 'X25519.GenerateKeyPair (CSPRNG + scalar mult)'       | 4            | 118.9 us | 1.81 us | 1.69 us | 37.4756 | 0.2441 | 460.05 KB |
-// | 'X25519.GenerateKeyFromPrivateKey (scalar mult only)' | 4            | 120.4 us | 1.86 us | 1.65 us | 37.4756 | 0.2441 | 460.05 KB |
-// | 'X25519.Agreement (shared secret)'                    | 4            | 117.8 us | 2.31 us | 2.16 us | 37.4756 |      - |    460 KB |
-// | 'X25519.GenerateKeyPair (CSPRNG + scalar mult)'       | 16           | 119.6 us | 2.35 us | 2.31 us | 37.4756 | 0.2441 | 460.05 KB |
-// | 'X25519.GenerateKeyFromPrivateKey (scalar mult only)' | 16           | 123.9 us | 2.42 us | 3.47 us | 37.3535 | 0.2441 | 460.05 KB |
-// | 'X25519.Agreement (shared secret)'                    | 16           | 120.8 us | 2.27 us | 3.92 us | 37.4756 |      - |    460 KB |
+//| Method                                                | KeyPairCount | Mean     | Error    | StdDev   | Allocated |
+//|------------------------------------------------------ |------------- |---------:|---------:|---------:|----------:|
+//| 'X25519.GenerateKeyPair (CSPRNG + scalar mult)'       | 1            | 65.36 us | 1.058 us | 0.989 us |     112 B |
+//| 'X25519.GenerateKeyFromPrivateKey (scalar mult only)' | 1            | 67.35 us | 1.294 us | 1.147 us |     112 B |
+//| 'X25519.Agreement (shared secret)'                    | 1            | 66.59 us | 1.321 us | 1.622 us |      56 B |
+//| 'X25519.GenerateKeyPair (CSPRNG + scalar mult)'       | 4            | 65.76 us | 1.310 us | 1.609 us |     112 B |
+//| 'X25519.GenerateKeyFromPrivateKey (scalar mult only)' | 4            | 65.96 us | 1.301 us | 1.336 us |     112 B |
+//| 'X25519.Agreement (shared secret)'                    | 4            | 65.95 us | 1.297 us | 1.543 us |      56 B |
+//| 'X25519.GenerateKeyPair (CSPRNG + scalar mult)'       | 16           | 67.09 us | 1.329 us | 1.422 us |     112 B |
+//| 'X25519.GenerateKeyFromPrivateKey (scalar mult only)' | 16           | 66.36 us | 1.276 us | 1.566 us |     112 B |
+//| 'X25519.Agreement (shared secret)'                    | 16           | 66.34 us | 1.309 us | 1.747 us |      56 B |
 
 using BenchmarkDotNet.Attributes;
 using Nalix.Shared.Security.Asymmetric; // X25519
