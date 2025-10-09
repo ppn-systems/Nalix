@@ -54,9 +54,11 @@ public sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
 
         // Copy block memory
         fixed (T* src = value)
-        fixed (System.Byte* dst = &destination)
         {
-            System.Buffer.MemoryCopy(src, dst, totalBytes, totalBytes);
+            fixed (System.Byte* dst = &destination)
+            {
+                System.Buffer.MemoryCopy(src, dst, totalBytes, totalBytes);
+            }
         }
 
         writer.Advance(totalBytes);
