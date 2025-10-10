@@ -533,6 +533,16 @@ public enum ProtocolCode : System.UInt16
     /// </summary>
     AGE_RESTRICTED = 702,
 
+    /// <summary>
+    /// Invalid username format.
+    /// </summary>
+    INVALID_USERNAME = 703,
+
+    /// <summary>
+    /// Weak password; does not meet complexity requirements.
+    /// </summary>
+    WEAK_PASSWORD = 704,
+
     #endregion
 
     #region 900–999: Reserved / Vendor Specific
