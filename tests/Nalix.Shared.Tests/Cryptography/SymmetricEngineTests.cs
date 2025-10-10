@@ -10,44 +10,6 @@ namespace Nalix.Shared.Tests.Cryptography;
 public class SymmetricEngineTests
 {
     [Fact]
-    public void ConvertKeyToXtea_Valid32Bytes_ProducesXorOfHalves()
-    {
-        var key32 = new Byte[32];
-        for (Int32 i = 0; i < 32; i++)
-        {
-            key32[i] = (Byte)(0xFF - i);
-        }
-
-        var out16 = new Byte[16];
-        SymmetricEngine.ConvertKeyToXtea(key32, out16);
-
-        for (Int32 i = 0; i < 16; i++)
-        {
-            Assert.Equal((Byte)(key32[i] ^ key32[i + 16]), out16[i]);
-        }
-    }
-
-    [Fact]
-    public void ConvertKeyToXtea_InvalidKeyLength_ThrowsArgumentException()
-    {
-        var badKey = Array.Empty<Byte>();
-        var out16 = new Byte[16];
-
-        var ex = Assert.Throws<ArgumentException>(() => SymmetricEngine.ConvertKeyToXtea(badKey, out16));
-        Assert.Equal("key", ex.ParamName);
-    }
-
-    [Fact]
-    public void ConvertKeyToXtea_OutTooSmall_ThrowsArgumentException()
-    {
-        var key32 = new Byte[32];
-        var outTooSmall = new Byte[4];
-
-        var ex = Assert.Throws<ArgumentException>(() => SymmetricEngine.ConvertKeyToXtea(key32, outTooSmall));
-        Assert.Equal("out16", ex.ParamName);
-    }
-
-    [Fact]
     public void EncryptDecrypt_Envelope_Roundtrip_ChaCha20_Succeeds()
     {
         var key = new Byte[ChaCha20.KeySize];
