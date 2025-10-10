@@ -63,8 +63,8 @@ public class EnvelopeCipherBenchmarks
     public Int32 PayloadSize;
 
     // Test both an AEAD and a stream/CTR cipher to compare behavior.
-    [Params(CipherSuiteType.SPECK, CipherSuiteType.SALSA20, CipherSuiteType.CHACHA20,
-            CipherSuiteType.SPECK_POLY1305, CipherSuiteType.SALSA20_POLY1305, CipherSuiteType.CHACHA20_POLY1305)]
+    [Params(CipherSuiteType.SALSA20, CipherSuiteType.CHACHA20,
+            CipherSuiteType.SALSA20_POLY1305, CipherSuiteType.CHACHA20_POLY1305)]
     public CipherSuiteType Algorithm;
 
     private Byte[] _key = Array.Empty<Byte>();
