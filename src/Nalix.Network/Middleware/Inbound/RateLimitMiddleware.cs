@@ -48,6 +48,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
                     arg0: context.Attributes.OpCode.OpCode,
                     arg1: (System.UInt32)d.RetryAfterMs, arg2: d.Credit
                 ).ConfigureAwait(false);
+
                 return;
             }
         }

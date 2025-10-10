@@ -2,6 +2,7 @@
 
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Common.Packets.Attributes;
+using Nalix.Framework.Cryptography.Hashing;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
 using Nalix.Network.Internal.Net;
@@ -60,8 +61,7 @@ public static class PolicyRateLimiter
     /// <returns>Decision containing Allowed, RetryAfterMs, Credit, and Reason.</returns>
     public static TokenBucketLimiter.LimitDecision Check(
         System.UInt16 opCode,
-        PacketRateLimitAttribute attr,
-        System.String ip)
+        PacketRateLimitAttribute attr, System.String ip)
     {
         System.ArgumentNullException.ThrowIfNull(attr);
 
@@ -131,22 +131,24 @@ public static class PolicyRateLimiter
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static IPAddressKey IxCP9(System.String s)
     {
-        unchecked
-        {
-            System.UInt64 h = 1469598103934665603UL;
-            for (System.Int32 i = 0; i < s.Length; i++)
-            {
-                h ^= s[i];
-                h *= 1099511628211UL;
-            }
+        // Hash key string as UTF-8 with SHA3-256, then take first 16 bytes
+        // to form a stable IPv6 address (endianness-agnostic).
+        // Avoid allocations with stackalloc when possible.
 
-            System.Byte[] bytes = System.BitConverter.GetBytes(h);
-            System.Net.IPAddress ip = new(bytes.Length == 16 ? bytes : bytes.Length == 8
-                ? [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, bytes[0], bytes[1], bytes[2], bytes[3]]
-                : new System.Byte[16]);
+        // Get UTF-8 bytes
+        System.Int32 byteCount = System.Text.Encoding.UTF8.GetByteCount(s);
+        System.Span<System.Byte> utf8 = byteCount <= 256
+            ? stackalloc System.Byte[byteCount]
+            : new System.Byte[byteCount];
+        System.Text.Encoding.UTF8.GetBytes(s, utf8);
 
-            return IPAddressKey.FromIpAddress(ip);
-        }
+        // Compute SHA3-256
+        System.Span<System.Byte> digest = stackalloc System.Byte[32];
+        SHA3256.HashData(utf8, digest);
+
+        // Take first 16 bytes for IPv6
+        var ip = new System.Net.IPAddress(digest[..16]);
+        return IPAddressKey.FromIpAddress(ip);
     }
 
 
