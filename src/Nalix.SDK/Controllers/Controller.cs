@@ -7,10 +7,6 @@ using Nalix.Framework.Time;
 using Nalix.SDK.Remote;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging.Controls;
-using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Nalix.SDK.Controllers;
 
@@ -22,7 +18,9 @@ namespace Nalix.SDK.Controllers;
 public sealed class Controller()
 {
     private readonly ObjectPoolManager _pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-    private readonly ConcurrentDictionary<System.UInt32, System.Int64> _pingTracker = new(); // seq -> clientMonoTicksAtSend
+
+    // seq -> clientMonoTicksAtSend
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.UInt32, System.Int64> _pingTracker = new();
 
     /// <summary>
     /// Raised when a server PING arrives (after auto-responding with PONG).
@@ -55,7 +53,8 @@ public sealed class Controller()
     /// Handle an inbound pooled <see cref="Control"/> frame from the network.
     /// The caller owns the pooling lifecycle; this method does not return the object to pool.
     /// </summary>
-    public async ValueTask<System.Boolean> HandleAsync(Control c, CancellationToken ct = default)
+    public async System.Threading.Tasks.ValueTask<System.Boolean> HandleAsync(
+        Control c, System.Threading.CancellationToken ct = default)
     {
         if (c is null)
         {
@@ -111,10 +110,10 @@ public sealed class Controller()
     /// Initiates a client-side PING to the server and tracks RTT by sequence id.
     /// Returns the sequence id used.
     /// </summary>
-    public async ValueTask<System.UInt32> SendPingAsync(
+    public async System.Threading.Tasks.ValueTask<System.UInt32> SendPingAsync(
         System.UInt16 opCode = PacketConstants.OpCodeDefault,
         ProtocolType transport = ProtocolType.TCP,
-        CancellationToken ct = default)
+        System.Threading.CancellationToken ct = default)
     {
         var seq = NextSequenceId();
         var nowMono = Clock.MonoTicksNow();
@@ -137,11 +136,11 @@ public sealed class Controller()
     /// <summary>
     /// Sends a PONG in response to a server PING. Normally called internally by HandleAsync.
     /// </summary>
-    public async ValueTask SendPongAsync(
+    public async System.Threading.Tasks.ValueTask SendPongAsync(
         System.UInt32 sequenceId,
         System.UInt16 opCode = PacketConstants.OpCodeDefault,
         ProtocolType transport = ProtocolType.TCP,
-        CancellationToken ct = default)
+        System.Threading.CancellationToken ct = default)
     {
         var pkt = _pool.Get<Control>();
         try
@@ -158,12 +157,12 @@ public sealed class Controller()
     /// <summary>
     /// Sends an ACK with the provided sequence id and reason.
     /// </summary>
-    public async ValueTask SendAckAsync(
+    public async System.Threading.Tasks.ValueTask SendAckAsync(
         System.UInt32 sequenceId,
         ProtocolCode reason = ProtocolCode.NONE,
         System.UInt16 opCode = PacketConstants.OpCodeDefault,
         ProtocolType transport = ProtocolType.TCP,
-        CancellationToken ct = default)
+        System.Threading.CancellationToken ct = default)
     {
         var pkt = _pool.Get<Control>();
         try
@@ -181,7 +180,8 @@ public sealed class Controller()
     /// Try compute RTT in milliseconds for a PONG matching a previous client-initiated PING.
     /// Returns -1 when the PONG cannot be correlated (e.g., unsolicited).
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Int32 TryComputeRttMs(System.UInt32 seq)
     {
         if (_pingTracker.TryRemove(seq, out var sentMono))
