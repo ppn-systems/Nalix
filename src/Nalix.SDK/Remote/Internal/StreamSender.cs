@@ -1,8 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Packets.Abstractions;
-using System;
-using System.Buffers.Binary;
+
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.SDK.Remote.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.SDK.Remote.Benchmarks")]
+#endif
 
 namespace Nalix.SDK.Remote.Internal;
 
@@ -26,7 +29,7 @@ internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream str
     /// Checks if the network stream is healthy and writable.
     /// </summary>
     /// <returns><c>true</c> if the stream is writable; otherwise, <c>false</c>.</returns>
-    public System.Boolean IsStreamHealthy => _stream != null && _stream.CanWrite;
+    public System.Boolean IsStreamHealthy => _stream?.CanWrite == true;
 
     /// <summary>
     /// Asynchronously sends a packet over the network stream.
@@ -66,8 +69,8 @@ internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream str
             throw new System.InvalidOperationException("The network stream is not writable.");
         }
 
-        var total = (UInt16)(bytes.Length + sizeof(UInt16));
-        System.Byte[] header = new Byte[2];
+        var total = (System.UInt16)(bytes.Length + sizeof(System.UInt16));
+        System.Byte[] header = new System.Byte[2];
         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(header, total);
 
         await _stream.WriteAsync(header, cancellationToken).ConfigureAwait(false);
@@ -102,16 +105,16 @@ internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream str
     {
         if (!_stream.CanWrite)
         {
-            throw new InvalidOperationException("The network stream is not writable.");
+            throw new System.InvalidOperationException("The network stream is not writable.");
         }
 
-        if (bytes.Length > UInt16.MaxValue - sizeof(UInt16))
+        if (bytes.Length > System.UInt16.MaxValue - sizeof(System.UInt16))
         {
-            throw new ArgumentOutOfRangeException(nameof(bytes), "Packet too large");
+            throw new System.ArgumentOutOfRangeException(nameof(bytes), "Packet too large");
         }
 
-        Span<Byte> header = stackalloc Byte[2];
-        BinaryPrimitives.WriteUInt16LittleEndian(header, (UInt16)(bytes.Length + sizeof(UInt16)));
+        System.Span<System.Byte> header = stackalloc System.Byte[2];
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(header, (System.UInt16)(bytes.Length + sizeof(System.UInt16)));
 
         _stream.Write(header);
         _stream.Write(bytes);

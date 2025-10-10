@@ -4,8 +4,8 @@ using Nalix.Shared.Serialization.Buffers;
 using Nalix.Shared.Serialization.Internal.Reflection;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Serialization.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Serialization.Benchmarks")]
 #endif
 
 namespace Nalix.Shared.Serialization.Internal.Accessors;

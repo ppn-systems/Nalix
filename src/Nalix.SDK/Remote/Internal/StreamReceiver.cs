@@ -3,7 +3,11 @@
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Framework.Injection;
-using System.Buffers.Binary;
+
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.SDK.Remote.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.SDK.Remote.Benchmarks")]
+#endif
 
 namespace Nalix.SDK.Remote.Internal;
 
@@ -53,7 +57,7 @@ internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream s
         await _stream.ReadExactlyAsync(header, cancellationToken).ConfigureAwait(false);
 
         // Unsafe fast conversion to ushort (big-endian)
-        System.UInt16 length = BinaryPrimitives.ReadUInt16LittleEndian(header);
+        System.UInt16 length = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(header);
 
         if (length < 2)
         {
