@@ -4,7 +4,6 @@ using Nalix.Common.Environment;
 using Nalix.Logging.Internal.Exceptions;
 using Nalix.Logging.Options;
 
-
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Benchmarks")]
