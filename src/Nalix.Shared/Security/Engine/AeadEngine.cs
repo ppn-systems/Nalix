@@ -2,8 +2,6 @@
 
 using Nalix.Common.Enums;
 using Nalix.Framework.Random;
-using Nalix.Shared.Memory.Buffers;
-using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Aead;
 
 namespace Nalix.Shared.Security.Engine;
@@ -80,101 +78,40 @@ public static class AeadEngine
         [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 written)
     {
         written = 0;
-
+        System.UInt32 seqVal = seq ?? Csprng.NextUInt32();
         System.Int32 total = EnvelopeFormat.HeaderSize + nonce.Length + plaintext.Length + EnvelopeFormat.TagSize;
+
         if (ciphertext.Length < total)
         {
             return false;
         }
 
-        // Sequence number
-        System.UInt32 seqVal;
-        if (seq is null)
+        // Instead of renting a temporary buffer, encrypt directly into the destination
+        // ciphertext buffer at the correct offset to avoid Rent/Span slicing issues.
+        System.Int32 ctOffset = EnvelopeFormat.HeaderSize + nonce.Length;
+        System.Span<System.Byte> ctDestination = ciphertext.Slice(ctOffset, plaintext.Length);
+        System.Span<System.Byte> tagDestination = ciphertext.Slice(ctOffset + plaintext.Length, EnvelopeFormat.TagSize);
+
+        switch (algorithm)
         {
-            System.Span<System.Byte> tmp = stackalloc System.Byte[4];
-            Csprng.Fill(tmp);
-            seqVal = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(tmp);
-        }
-        else
-        {
-            seqVal = seq.Value;
-        }
+            case CipherSuiteType.CHACHA20_POLY1305:
+                ChaCha20Poly1305.Encrypt(key, nonce, plaintext, aad, ctDestination, tagDestination);
+                break;
 
-        // Build header (stack-allocated)
-        System.Span<System.Byte> header = stackalloc System.Byte[EnvelopeFormat.HeaderSize];
-        EnvelopeHeader headerStruct = new(EnvelopeFormat.CurrentVersion, algorithm, flags: 0, (System.Byte)nonce.Length, seqVal);
-        EnvelopeHeader.Encode(header, headerStruct);
+            case CipherSuiteType.SALSA20_POLY1305:
+                Salsa20Poly1305.Encrypt(key, nonce, plaintext, aad, ctDestination, tagDestination);
+                break;
 
-        // Rent ct + tag buffer
-        System.Int32 combinedAadLen = header.Length + nonce.Length + aad.Length;
-        System.Byte[]? rentedCt = null;
-        System.Byte[]? rentedAad = null;
-        System.Boolean encryptOk = false;
-
-        try
-        {
-            rentedCt = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(plaintext.Length + EnvelopeFormat.TagSize);
-            System.Span<System.Byte> ctSlice = new(rentedCt, 0, plaintext.Length);
-            System.Span<System.Byte> tagSlice = new(rentedCt, plaintext.Length, EnvelopeFormat.TagSize);
-
-            // Combined AAD: stack nếu nhỏ, ArrayPool nếu lớn
-            scoped System.Span<System.Byte> combinedAad;
-            if (combinedAadLen <= BufferLease.StackAllocThreshold)
-            {
-                combinedAad = stackalloc System.Byte[combinedAadLen];
-            }
-            else
-            {
-                rentedAad = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(combinedAadLen);
-                combinedAad = new System.Span<System.Byte>(rentedAad, 0, combinedAadLen);
-            }
-
-            // Compose AAD: header || nonce || userAAD
-            header.CopyTo(combinedAad);
-            nonce.CopyTo(combinedAad[header.Length..]);
-            aad.CopyTo(combinedAad[(header.Length + nonce.Length)..]);
-
-            // Dispatch encrypt
-            switch (algorithm)
-            {
-                case CipherSuiteType.CHACHA20_POLY1305:
-                    ChaCha20Poly1305.Encrypt(key, nonce, plaintext, combinedAad, ctSlice, tagSlice);
-                    break;
-
-                case CipherSuiteType.SALSA20_POLY1305:
-                    Salsa20Poly1305.Encrypt(key, nonce, plaintext, combinedAad, ctSlice, tagSlice);
-                    break;
-
-                default:
-                    ThrowHelper.ThrowArgumentNullException("Unsupported aead algorithm");
-                    break;
-            }
-
-            // Ghi envelope: header || nonce || ciphertext || tag
-            EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonce, ctSlice, tagSlice);
-
-            encryptOk = true;
-        }
-        finally
-        {
-            if (rentedAad is not null)
-            {
-                System.Array.Clear(rentedAad, 0, rentedAad.Length);
-                System.Buffers.ArrayPool<System.Byte>.Shared.Return(rentedAad, clearArray: false);
-            }
-
-            if (rentedCt is not null)
-            {
-                System.Array.Clear(rentedCt, 0, rentedCt.Length);
-                System.Buffers.ArrayPool<System.Byte>.Shared.Return(rentedCt, clearArray: false);
-            }
+            default:
+                return false;
         }
 
-        if (!encryptOk)
-        {
-            return false;
-        }
+        // Write the envelope header/nonce and copy ciphertext+tag into the output span.
+        // ctDestination/tagDestination already point into ciphertext; WriteEnvelope should
+        // write header and nonce and then copy provided ct/tag into the envelope region.
+        EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonce, ctDestination, tagDestination);
 
+        // Clear sensitive temporary areas if necessary (we avoid extra temporaries here).
         written = total;
         return true;
     }
@@ -185,11 +122,11 @@ public static class AeadEngine
     /// </summary>
     /// <param name="key">Secret key (length depends on suite; see <see cref="Encrypt"/> remarks).</param>
     /// <param name="envelope">Concatenation of <c>header || nonce || ciphertext || tag</c>.</param>
-    /// <param name="aad">Optional associated data to be authenticated (not encrypted).</param>
     /// <param name="plaintext">
     /// On success, receives a newly allocated array containing the plaintext;
     /// otherwise set to <c>null</c>.
     /// </param>
+    /// <param name="aad">Optional associated data to be authenticated (not encrypted).</param>
     /// <param name="written"></param>
     /// <returns><c>true</c> if decryption and tag verification succeeded; otherwise <c>false</c>.</returns>
     /// <remarks>
@@ -207,75 +144,44 @@ public static class AeadEngine
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 written)
     {
         written = 0;
-        plaintext = null;
 
         if (!EnvelopeFormat.TryParseEnvelope(envelope, out EnvelopeFormat.ParsedEnvelope env))
         {
             return false;
         }
 
-        // OPT-B: stackalloc combinedAad when small (≤ 256 B), ArrayPool fallback for large AAD
-        System.Int32 combinedLen = env.Header.Length + env.Nonce.Length + aad.Length;
-        System.Byte[]? rentedAad = null;
-        System.Span<System.Byte> combinedAad = combinedLen <= BufferLease.StackAllocThreshold
-            ? stackalloc System.Byte[combinedLen]
-            : System.MemoryExtensions.AsSpan(rentedAad = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(combinedLen), 0, combinedLen);
+        System.Int32 ctLen = env.Ciphertext.Length;
 
-        try
+        if (plaintext.Length < env.Ciphertext.Length)
         {
-            env.Header.CopyTo(combinedAad);
-            env.Nonce.CopyTo(combinedAad[env.Header.Length..]);
-            aad.CopyTo(combinedAad[(env.Header.Length + env.Nonce.Length)..]);
-
-            switch (env.AeadType)
-            {
-                case CipherSuiteType.CHACHA20_POLY1305:
-                    written = ChaCha20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, combinedAad, env.Tag, plaintext);
-                    break;
-
-                case CipherSuiteType.SALSA20_POLY1305:
-                    written = Salsa20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, combinedAad, env.Tag, plaintext);
-                    break;
-
-                default:
-                    ThrowHelper.ThrowArgumentNullException("Unsupported aead algorithm");
-                    break;
-            }
-
-            return written > 0;
+            return false;
         }
-        finally
+
+        System.Int32 result = 0;
+        System.Span<System.Byte> ptSlice = plaintext[..ctLen];
+
+        switch (env.AeadType)
         {
-            MemorySecurity.ZeroMemory(combinedAad);
-            if (rentedAad is not null)
-            {
-                System.Buffers.ArrayPool<System.Byte>.Shared.Return(rentedAad);
-            }
+
+            case CipherSuiteType.CHACHA20_POLY1305:
+                result = ChaCha20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, aad, env.Tag, ptSlice);
+                break;
+
+            case CipherSuiteType.SALSA20_POLY1305:
+                result = Salsa20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, aad, env.Tag, ptSlice);
+                break;
+
+            default:
+                ThrowHelper.ThrowNotSupportedException("Unsupported aead algorithm");
+                break;
         }
-    }
 
-    #region Helpers
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Int32 GetNonceLength(CipherSuiteType type)
-    {
-        return type switch
+        if (result < 0)
         {
-            CipherSuiteType.CHACHA20_POLY1305 => 12,
-            CipherSuiteType.SALSA20_POLY1305 => 8,
-            _ => throw new System.ArgumentOutOfRangeException(nameof(type))
-        };
-    }
+            return false;
+        }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt32 GenerateRandomSeq()
-    {
-        System.Span<System.Byte> tmp = stackalloc System.Byte[4];
-        Csprng.Fill(tmp);
-        return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(tmp);
+        written = result;
+        return true;
     }
-
-    #endregion
 }

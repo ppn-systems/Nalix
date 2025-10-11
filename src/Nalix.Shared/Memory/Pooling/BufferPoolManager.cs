@@ -670,7 +670,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void APPEND_REPORT_POOL_DETAILS(System.Text.StringBuilder sb)
     {
-        _ = sb.AppendLine("Pool Details:");
+        _ = sb.AppendLine("BufferPool Details:");
         _ = sb.AppendLine("----------------------------------------------------------------------");
         _ = sb.AppendLine("SIZE     | Total Buffers | Free Buffers | In Use |  Usage % | MissRate");
         _ = sb.AppendLine("----------------------------------------------------------------------");

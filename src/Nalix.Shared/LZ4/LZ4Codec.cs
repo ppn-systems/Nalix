@@ -74,9 +74,16 @@ public static class LZ4Codec
     {
         System.Int32 maxOutputSize = LZ4BlockEncoder.GetMaxLength(input.Length);
         System.Byte[] buffer = new System.Byte[maxOutputSize];
+
         System.Int32 written = Encode(input, buffer);
 
-        return written < 0 ? throw new System.InvalidOperationException("Compression failed.") : buffer[..written];
+        if (written < 0)
+        {
+            throw new System.InvalidOperationException("Compression failed.");
+        }
+
+        System.Array.Resize(ref buffer, written);
+        return buffer;
     }
 
     /// <summary>

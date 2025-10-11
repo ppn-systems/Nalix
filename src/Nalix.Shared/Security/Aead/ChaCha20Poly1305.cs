@@ -1,5 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Exceptions;
 using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Hashing;
 using Nalix.Shared.Security.Primitives;
@@ -95,7 +96,7 @@ public static class ChaCha20Poly1305
             ThrowHelper.ThrowInvalidNonceLengthException();
         }
 
-        if (dstCiphertext.Length != plaintext.Length)
+        if (dstCiphertext.Length < plaintext.Length)
         {
             ThrowHelper.ThrowOutputLengthMismatchException();
         }
@@ -179,7 +180,7 @@ public static class ChaCha20Poly1305
             ThrowHelper.ThrowInvalidTagLengthException();
         }
 
-        if (dstPlaintext.Length != ciphertext.Length)
+        if (dstPlaintext.Length < ciphertext.Length)
         {
             ThrowHelper.ThrowOutputLengthMismatchException();
         }
@@ -200,7 +201,7 @@ public static class ChaCha20Poly1305
             // 3) Constant-time compare
             if (!BitwiseOperations.FixedTimeEquals(computed, tag))
             {
-                return 0;
+                return -1;
             }
 
             // 4) Decrypt with counter=1+
@@ -294,7 +295,7 @@ public static class ChaCha20Poly1305
         System.Byte[] pt = new System.Byte[ctLen];
         System.Int32 ok = Decrypt(key, nonce, ct, aad ?? System.ReadOnlySpan<System.Byte>.Empty, tag, pt);
 
-        return ok == 0 ? throw new System.InvalidOperationException("Authentication failed") : pt;
+        return ok < 0 ? throw new CryptoException("Authentication failed") : pt;
     }
 
     #endregion API

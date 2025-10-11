@@ -83,7 +83,8 @@ internal static class EnvelopeValueCodec
             // fixed-size span that we pass to DataWriter directly.
 
             // Use a dedicated stack/pooled buffer and wrap DataWriter around it for zero-copy:
-            System.Int32 estimatedCipherCapacity = plaintextLen + 32; // +32 for nonce/tag overhead
+            System.Int32 estimatedCipherCapacity = plaintextLen + EnvelopeCipher.EncryptionOverheadBytes + EnvelopeCipher.GetNonceLength(algorithm);
+            System.Diagnostics.Debug.WriteLine($"EnvelopeValueCodec.Serialize: plaintext {plaintextLen} bytes, estimated cipher capacity {estimatedCipherCapacity} bytes.");
 
             if (estimatedCipherCapacity <= BufferLease.StackAllocThreshold)
             {
@@ -99,9 +100,9 @@ internal static class EnvelopeValueCodec
                 CopyWrittenBytes(ref writer, ptStack, plaintextLen);
 
                 EnvelopeCipher.Encrypt(key, ptStack, cipherStack, aad, null, algorithm, out System.Int32 written);
+                System.Diagnostics.Debug.WriteLine($"EnvelopeValueCodec.Serialize: actual cipher length {written} bytes.");
 
                 System.String result = System.Convert.ToBase64String(cipherStack[..written]);
-
                 // Defense-in-depth: zero sensitive bytes before stack frame unwinds.
                 ptStack.Clear();
                 cipherStack[..written].Clear();
@@ -239,8 +240,7 @@ internal static class EnvelopeValueCodec
         try
         {
             // Use FormatterCache<T>.Formatter for zero-lookup access on the hot path.
-            var formatter = FormatterCache<T>.Formatter
-                            ?? Nalix.Shared.Serialization.Formatters.FormatterProvider.Get<T>();
+            var formatter = FormatterCache<T>.Formatter ?? FormatterProvider.Get<T>();
             T result = formatter.Deserialize(ref reader);
 
             // Zero sensitive plaintext before returning.
