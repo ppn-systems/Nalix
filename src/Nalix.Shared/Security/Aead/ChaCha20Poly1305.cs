@@ -77,7 +77,7 @@ public static class ChaCha20Poly1305
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static void Encrypt(
+    public static System.Int32 Encrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
@@ -115,15 +115,17 @@ public static class ChaCha20Poly1305
 
             // 2) Encrypt with counter=1+
             ChaCha20 chacha1 = new(key, nonce, 1);
-            chacha1.Encrypt(plaintext, dstCiphertext);
+            System.Int32 written = chacha1.Encrypt(plaintext, dstCiphertext);
 
             // 3) MAC streaming: AAD || pad16 || CT || pad16 || lenAAD(8, LE) || lenCT(8, LE)
             Poly1305 poly = new(polyKey);
-            A1C3E5F7(poly, aad, dstCiphertext, E5A7C9D1: tag);
+            A1C3E5F7(poly, aad, dstCiphertext[..written], E5A7C9D1: tag);
 
-            poly.Clear();
-            chacha0.Clear();
-            chacha1.Clear();
+            try { poly.Clear(); } catch { /* swallow any exceptions during clear */ }
+            try { chacha0.Clear(); } catch { }
+            try { chacha1.Clear(); } catch { }
+
+            return written;
         }
         finally
         {
@@ -154,7 +156,7 @@ public static class ChaCha20Poly1305
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Boolean Decrypt(
+    public static System.Int32 Decrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext,
@@ -198,18 +200,18 @@ public static class ChaCha20Poly1305
             // 3) Constant-time compare
             if (!BitwiseOperations.FixedTimeEquals(computed, tag))
             {
-                return false;
+                return 0;
             }
 
             // 4) Decrypt with counter=1+
             ChaCha20 chacha1 = new(key, nonce, 1);
-            chacha1.Decrypt(ciphertext, dstPlaintext);
+            System.Int32 written = chacha1.Decrypt(ciphertext, dstPlaintext);
 
             poly.Clear();
             chacha0.Clear();
             chacha1.Clear();
 
-            return true;
+            return written;
         }
         finally
         {
@@ -234,10 +236,10 @@ public static class ChaCha20Poly1305
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Encrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] plaintext,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Byte[]? aad = null)
+        System.Byte[] key,
+        System.Byte[] nonce,
+        System.Byte[] plaintext,
+        System.Byte[]? aad = null)
     {
         if (key is null || key.Length != FEEDC0DE)
         {
@@ -265,10 +267,10 @@ public static class ChaCha20Poly1305
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Decrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] cipherWithTag,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Byte[]? aad = null)
+        System.Byte[] key,
+        System.Byte[] nonce,
+        System.Byte[] cipherWithTag,
+        System.Byte[]? aad = null)
     {
         if (key is null || key.Length != FEEDC0DE)
         {
@@ -290,9 +292,9 @@ public static class ChaCha20Poly1305
         System.ReadOnlySpan<System.Byte> tag = System.MemoryExtensions.AsSpan(cipherWithTag, ctLen, TagSize);
 
         System.Byte[] pt = new System.Byte[ctLen];
-        System.Boolean ok = Decrypt(key, nonce, ct, aad ?? System.ReadOnlySpan<System.Byte>.Empty, tag, pt);
+        System.Int32 ok = Decrypt(key, nonce, ct, aad ?? System.ReadOnlySpan<System.Byte>.Empty, tag, pt);
 
-        return !ok ? throw new System.InvalidOperationException("Authentication failed") : pt;
+        return ok == 0 ? throw new System.InvalidOperationException("Authentication failed") : pt;
     }
 
     #endregion API
