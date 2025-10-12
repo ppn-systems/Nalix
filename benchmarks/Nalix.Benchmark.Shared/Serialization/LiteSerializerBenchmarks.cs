@@ -46,7 +46,6 @@ using System.Buffers;
 namespace Nalix.Benchmark.Shared.Serialization;
 
 [MemoryDiagnoser]
-[ThreadingDiagnoser]
 [DisassemblyDiagnoser]
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
 public class LiteSerializerBenchmarks

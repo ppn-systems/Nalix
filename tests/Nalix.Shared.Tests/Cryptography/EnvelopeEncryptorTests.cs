@@ -7,17 +7,17 @@ using Xunit;
 
 namespace Nalix.Shared.Tests.Cryptography;
 
-// Dùng để test các chức năng của EnvelopeEncryptor lớp
+// Tests for EnvelopeEncryptor functionality
 public class EnvelopeEncryptorTests
 {
-    // Mock class with SensitiveDataAttribute để kiểm tra lớp
+    // Mock class with SensitiveDataAttribute to validate the encryptor
     private class TestClass
     {
         [SensitiveData]
         public String SensitiveProperty { get; set; }
 
         [SensitiveData]
-        public Int32 SensitiveField;
+        public Int64 SensitiveField;
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public class EnvelopeEncryptorTests
             SensitiveField = 1234
         };
 
-        String key = "1234567890abcdef1234567890abcdef"; // 16 bytes key
+        String key = "1234567890abcdef1234567890abcdef"; // 32 bytes key
         var keyBytes = Encoding.UTF8.GetBytes(key);
 
         // Act
@@ -75,8 +75,8 @@ public class EnvelopeEncryptorTests
         // Act
         var memberNames = EnvelopeEncryptor.GetSensitiveDataMembers<TestClass>();
 
-        // Assert
-        Assert.Contains("SensitiveProperty", memberNames);
-        Assert.Contains("SensitiveField", memberNames);
+        // Assert: method returns "MemberName [Level]"; test accordingly
+        Assert.Contains("SensitiveProperty [High]", memberNames);
+        Assert.Contains("SensitiveField [High]", memberNames);
     }
 }
