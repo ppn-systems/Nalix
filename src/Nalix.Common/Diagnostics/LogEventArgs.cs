@@ -10,17 +10,33 @@ namespace Nalix.Common.Diagnostics;
 /// This class encapsulates information about a logging event,
 /// including the log level, message, and an optional exception.
 /// </remarks>
-public sealed class LogEventArgs : System.EventArgs
+/// <remarks>
+/// Initializes a new instance of the <see cref="LogEventArgs"/> class.
+/// </remarks>
+/// <param name="level">
+/// The severity level of the log entry.
+/// </param>
+/// <param name="message">
+/// The log message describing the event.
+/// </param>
+/// <param name="exception">
+/// The exception related to the log event, or <see langword="null"/>
+/// if no exception is associated.
+/// </param>
+public sealed class LogEventArgs(
+    LogLevel level,
+    System.String message,
+    System.Exception exception = null) : System.EventArgs
 {
     /// <summary>
     /// Gets the severity level of the log entry.
     /// </summary>
-    public LogLevel Level { get; }
+    public LogLevel Level { get; } = level;
 
     /// <summary>
     /// Gets the log message associated with the event.
     /// </summary>
-    public System.String Message { get; }
+    public System.String Message { get; } = message;
 
     /// <summary>
     /// Gets the exception associated with the log event, if any.
@@ -29,28 +45,5 @@ public sealed class LogEventArgs : System.EventArgs
     /// This property may be <see langword="null"/> when the log entry
     /// is not related to an exception.
     /// </remarks>
-    public System.Exception Exception { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="LogEventArgs"/> class.
-    /// </summary>
-    /// <param name="level">
-    /// The severity level of the log entry.
-    /// </param>
-    /// <param name="message">
-    /// The log message describing the event.
-    /// </param>
-    /// <param name="exception">
-    /// The exception related to the log event, or <see langword="null"/>
-    /// if no exception is associated.
-    /// </param>
-    public LogEventArgs(
-        LogLevel level,
-        System.String message,
-        System.Exception exception = null)
-    {
-        Level = level;
-        Message = message;
-        Exception = exception;
-    }
+    public System.Exception Exception { get; } = exception;
 }

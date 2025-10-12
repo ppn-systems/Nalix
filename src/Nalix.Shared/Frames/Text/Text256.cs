@@ -56,8 +56,8 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>
             throw new System.ArgumentOutOfRangeException(nameof(content), $"Text supports at most {DynamicSize} bytes.");
         }
 
-        this.Protocol = transport;
-        this.Content = content ?? System.String.Empty;
+        Protocol = transport;
+        Content = content ?? System.String.Empty;
     }
 
     /// <summary>
@@ -95,10 +95,10 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>
     /// </summary>
     public override void ResetForPool()
     {
-        this.Flags = PacketFlags.NONE;
-        this.Protocol = ProtocolType.NONE;
-        this.Content = System.String.Empty;
-        this.Priority = PacketPriority.NONE;
+        Flags = PacketFlags.NONE;
+        Protocol = ProtocolType.NONE;
+        Content = System.String.Empty;
+        Priority = PacketPriority.NONE;
     }
 
     /// <inheritdoc/>

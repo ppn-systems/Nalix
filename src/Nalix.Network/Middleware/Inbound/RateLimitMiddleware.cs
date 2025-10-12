@@ -102,4 +102,3 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
         await next(context.CancellationToken).ConfigureAwait(false);
     }
 }
-

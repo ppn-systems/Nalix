@@ -435,7 +435,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
 
-        args ??= System.Array.Empty<System.Object?>();
+        args ??= [];
 
         // If no args provided, preserve existing behavior: cache by Type handle.
         if (args.Length == 0)
@@ -767,7 +767,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         }
 
         // Clear caches without disposing again.
-        this.Clear(dispose: false);
+        Clear(dispose: false);
 
         if (_processMutexOwner && _processMutex != null)
         {
@@ -870,9 +870,9 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         catch (System.Exception)
         {
             // Non-fatal: reflection may fail in trimmed / restricted environments.
-            InstanceManager? mgr = InstanceManager.Instance; // attempt safe access if possible
-                                                             // If we cannot get instance, ignore; otherwise log.
-                                                             // We cannot call LogEvent here directly (static context) reliably, so swallow or let caller log if needed.
+            _ = InstanceManager.Instance; // attempt safe access if possible
+                                          // If we cannot get instance, ignore; otherwise log.
+                                          // We cannot call LogEvent here directly (static context) reliably, so swallow or let caller log if needed.
         }
     }
 
@@ -1048,7 +1048,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         System.Reflection.Emit.DynamicMethod dm = new(
             name: type.Name + "_CtorFast",
             returnType: typeof(System.Object),
-            parameterTypes: new System.Type[] { typeof(System.Object?[]) },
+            parameterTypes: [typeof(System.Object?[])],
             m: type.Module,
             skipVisibility: true);
 

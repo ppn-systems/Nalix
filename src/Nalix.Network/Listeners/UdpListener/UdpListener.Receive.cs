@@ -122,7 +122,7 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        if (!this.IsAuthenticated(connection, result))
+        if (!IsAuthenticated(connection, result))
         {
             _ = System.Threading.Interlocked.Increment(ref _dropUnauth);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -237,4 +237,3 @@ public abstract partial class UdpListenerBase
         return result == 0;
     }
 }
-

@@ -60,8 +60,8 @@ public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>
             throw new System.ArgumentOutOfRangeException(nameof(content), $"Text supports at most {DynamicSize} bytes.");
         }
 
-        this.Protocol = transport;
-        this.Content = content ?? System.String.Empty;
+        Protocol = transport;
+        Content = content ?? System.String.Empty;
     }
 
     /// <summary>
@@ -97,10 +97,10 @@ public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>
     /// <summary>Resets this instance to its default state for pooling reuse.</summary>
     public override void ResetForPool()
     {
-        this.Flags = PacketFlags.NONE;
-        this.Protocol = ProtocolType.NONE;
-        this.Content = System.String.Empty;
-        this.Priority = PacketPriority.NONE;
+        Flags = PacketFlags.NONE;
+        Protocol = ProtocolType.NONE;
+        Content = System.String.Empty;
+        Priority = PacketPriority.NONE;
     }
 
     /// <inheritdoc/>

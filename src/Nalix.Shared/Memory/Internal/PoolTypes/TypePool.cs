@@ -64,7 +64,7 @@ internal class TypePool(System.Int32 maxCapacity)
         // If the new capacity is less than the old one, trim the pool
         if (maxCapacity < oldCapacity)
         {
-            _ = this.Trim(100); // Trim to exactly the max capacity
+            _ = Trim(100); // Trim to exactly the max capacity
         }
     }
 

@@ -212,7 +212,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable
         System.Int32 offset,
         System.Int32 count)
     {
-        System.Net.Sockets.SocketAsyncEventArgs args = this.Args; // throws if not bound
+        System.Net.Sockets.SocketAsyncEventArgs args = Args; // throws if not bound
 
         // Point the SAEA window at the requested slice.
         args.SetBuffer(buffer, offset, count);

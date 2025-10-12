@@ -24,12 +24,12 @@ public abstract partial class Protocol
         [System.Diagnostics.DebuggerStepThrough]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get => System.Threading.Interlocked.CompareExchange(ref this._keepConnectionOpen, 0, 0) == 1;
+        get => System.Threading.Interlocked.CompareExchange(ref _keepConnectionOpen, 0, 0) == 1;
 
         [System.Diagnostics.DebuggerStepThrough]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        protected set => System.Threading.Interlocked.Exchange(ref this._keepConnectionOpen, value ? 1 : 0);
+        protected set => System.Threading.Interlocked.Exchange(ref _keepConnectionOpen, value ? 1 : 0);
     }
 
     #endregion Properties
@@ -41,7 +41,7 @@ public abstract partial class Protocol
     /// </summary>
     public void Dispose()
     {
-        this.Dispose(true);
+        Dispose(true);
 
         s_logger.Trace($"[NW.{nameof(Protocol)}:{nameof(Dispose)}] disposed");
 
@@ -56,7 +56,7 @@ public abstract partial class Protocol
     {
         // Atomic check-and-set: 0 -> 1
         // If already 1, return immediately (already disposed)
-        if (System.Threading.Interlocked.CompareExchange(ref this._isDisposed, 1, 0) != 0)
+        if (System.Threading.Interlocked.CompareExchange(ref _isDisposed, 1, 0) != 0)
         {
             return;
         }

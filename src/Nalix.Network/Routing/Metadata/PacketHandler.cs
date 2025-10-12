@@ -66,7 +66,7 @@ public readonly struct PacketHandler<TPacket>(
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Threading.Tasks.ValueTask<System.Object> ExecuteAsync(PacketContext<TPacket> context) => this.Invoker(this.Instance, context);
+    public System.Threading.Tasks.ValueTask<System.Object> ExecuteAsync(PacketContext<TPacket> context) => Invoker(Instance, context);
 
     /// <summary>
     /// Determines whether this handler can be executed for the specified packet context.

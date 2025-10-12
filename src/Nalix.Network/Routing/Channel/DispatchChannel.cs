@@ -140,7 +140,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
         // Subscribe to hub lifecycle to ensure timely cleanup.
         InstanceManager.Instance.GetOrCreateInstance<ConnectionHub>()
-                       .ConnectionUnregistered += this.OnUnregistered;
+                       .ConnectionUnregistered += OnUnregistered;
     }
 
     #endregion Constructors
@@ -437,7 +437,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void OnUnregistered([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection) => this.RemoveConnection(connection);
+    private void OnUnregistered([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection) => RemoveConnection(connection);
 
     /// <summary>
     /// Removes a connection, draining all per-priority queues and adjusting counters.

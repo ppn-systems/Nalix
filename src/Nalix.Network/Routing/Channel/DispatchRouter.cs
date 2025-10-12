@@ -97,4 +97,3 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
 
     #endregion Private Methods
 }
-

@@ -297,7 +297,7 @@ public sealed partial class TaskManager : ITaskManager
                         }
                     }
 
-                    this.RETAIN_OR_REMOVE(st);
+                    RETAIN_OR_REMOVE(st);
                     _globalConcurrencyGate.Release();
                 }
             }, cts.Token);

@@ -23,8 +23,8 @@ public abstract partial class Protocol
     /// </summary>
     public System.Boolean IsAccepting
     {
-        get => System.Threading.Interlocked.CompareExchange(ref this._accepting, 0, 0) == 1;
-        protected set => System.Threading.Interlocked.Exchange(ref this._accepting, value ? 1 : 0);
+        get => System.Threading.Interlocked.CompareExchange(ref _accepting, 0, 0) == 1;
+        protected set => System.Threading.Interlocked.Exchange(ref _accepting, value ? 1 : 0);
     }
 
     #endregion Properties
@@ -53,7 +53,7 @@ public abstract partial class Protocol
         System.Threading.CancellationToken cancellationToken = default)
     {
         // Check if accepting connections is enabled
-        if (!this.IsAccepting)
+        if (!IsAccepting)
         {
             s_logger.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=not-accepting");
 
@@ -62,14 +62,14 @@ public abstract partial class Protocol
         }
 
         System.ArgumentNullException.ThrowIfNull(connection);
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref this._isDisposed) != 0, this);
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _isDisposed) != 0, this);
 
         // CheckLimit cancellation
         cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
-            if (this.ValidateConnection(connection))
+            if (ValidateConnection(connection))
             {
                 s_logger.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accepted id={connection.ID}");
 
@@ -94,7 +94,7 @@ public abstract partial class Protocol
         catch (System.Exception ex)
         {
             // Log exception if a logger is available
-            this.OnConnectionError(connection, ex);
+            OnConnectionError(connection, ex);
             connection.Disconnect();
 
             s_logger.Debug($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-error id={connection.ID} ex={ex.Message}");

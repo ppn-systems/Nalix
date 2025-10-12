@@ -575,7 +575,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 
                 // ── Step 3: read payload bytes ────────────────────────────
                 System.Int32 payload = size - HeaderSize;
-                await this.SAEA_RECEIVE_EXACTLY_ASYNC(HeaderSize, payload, token)
+                await SAEA_RECEIVE_EXACTLY_ASYNC(HeaderSize, payload, token)
                           .ConfigureAwait(false);
 
 #if DEBUG
