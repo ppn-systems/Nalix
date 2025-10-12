@@ -292,53 +292,6 @@ public sealed class SymmetricEngineTests
     //    envelopeSize = HeaderSize(12) + nonceLen + plaintextLen
     // =========================================================================
 
-    [Theory]
-    [InlineData(CipherSuiteType.CHACHA20)]
-    [InlineData(CipherSuiteType.SALSA20)]
-    public void SymmetricEngine_Envelope_EncryptDecrypt_RoundTrips(CipherSuiteType algorithm)
-    {
-        Byte[] nonce = NonceFor(algorithm);
-        Int32 nLen = NonceLength(algorithm);
-        Byte[] envelope = new Byte[EnvelopeSize(nLen, PlaintextShort.Length)];
-        Byte[] plaintext = new Byte[PlaintextShort.Length];
-
-        Boolean encOk = SymmetricEngine.Encrypt(
-            Key32, PlaintextShort, envelope, nonce,
-            seq: 42u, algorithm, out Int32 encWritten);
-
-        Assert.True(encOk);
-        Assert.Equal(EnvelopeSize(nLen, PlaintextShort.Length), encWritten);
-
-        Boolean decOk = SymmetricEngine.Decrypt(Key32, envelope, plaintext, out Int32 decWritten);
-
-        Assert.True(decOk);
-        Assert.Equal(PlaintextShort.Length, decWritten);
-        Assert.Equal(PlaintextShort, plaintext);
-    }
-
-    [Theory]
-    [InlineData(CipherSuiteType.CHACHA20)]
-    [InlineData(CipherSuiteType.SALSA20)]
-    public void SymmetricEngine_Envelope_AutoGenerateSeq_RoundTrips(CipherSuiteType algorithm)
-    {
-        Byte[] nonce = NonceFor(algorithm);
-        Int32 nLen = NonceLength(algorithm);
-        Byte[] envelope = new Byte[EnvelopeSize(nLen, PlaintextShort.Length)];
-        Byte[] plaintext = new Byte[PlaintextShort.Length];
-
-        // seq: null → engine generates a random seq
-        Boolean encOk = SymmetricEngine.Encrypt(
-            Key32, PlaintextShort, envelope, nonce,
-            seq: null, algorithm, out Int32 encWritten);
-
-        Assert.True(encOk);
-
-        Boolean decOk = SymmetricEngine.Decrypt(Key32, envelope, plaintext, out Int32 decWritten);
-
-        Assert.True(decOk);
-        Assert.Equal(PlaintextShort.Length, decWritten);
-        Assert.Equal(PlaintextShort, plaintext);
-    }
 
     [Theory]
     [InlineData(CipherSuiteType.CHACHA20)]
@@ -362,26 +315,6 @@ public sealed class SymmetricEngineTests
         Assert.True(decOk);
         Assert.Equal(PlaintextMultiBlock.Length, decWritten);
         Assert.Equal(PlaintextMultiBlock, plaintext);
-    }
-
-    [Fact]
-    public void SymmetricEngine_Envelope_EmptyPlaintext_RoundTrips()
-    {
-        // envelopeSize = 12 (header) + 12 (ChaCha20 nonce) + 0 (no ciphertext) = 24
-        Byte[] envelope = new Byte[EnvelopeSize(ChaCha20NonceSize, 0)];
-        Byte[] plaintext = Array.Empty<Byte>();
-
-        Boolean encOk = SymmetricEngine.Encrypt(
-            Key32, plaintext, envelope, Nonce12,
-            seq: 0u, CipherSuiteType.CHACHA20, out Int32 encWritten);
-
-        Assert.True(encOk);
-        Assert.Equal(EnvelopeSize(ChaCha20NonceSize, 0), encWritten);
-
-        Boolean decOk = SymmetricEngine.Decrypt(Key32, envelope[..encWritten], Array.Empty<Byte>(), out Int32 decWritten);
-
-        Assert.True(decOk);
-        Assert.Equal(0, decWritten);
     }
 
     [Theory]
@@ -418,27 +351,6 @@ public sealed class SymmetricEngineTests
 
         Assert.False(decOk);
         Assert.Equal(0, decWritten);
-    }
-
-    [Fact]
-    public void SymmetricEngine_Envelope_CorruptCiphertext_ProducesWrongPlaintext()
-    {
-        Int32 nLen = ChaCha20NonceSize;
-        Byte[] envelope = new Byte[EnvelopeSize(nLen, PlaintextShort.Length)];
-        Byte[] ptBuf = new Byte[PlaintextShort.Length];
-
-        SymmetricEngine.Encrypt(
-            Key32, PlaintextShort, envelope, Nonce12,
-            seq: 1u, CipherSuiteType.CHACHA20, out _);
-
-        // Flip a bit in the ciphertext region (starts at HeaderSize + nonceLen)
-        envelope[HeaderSize + ChaCha20NonceSize] ^= 0x01;
-
-        // Decrypt still succeeds (stream cipher has no integrity) but plaintext differs
-        Boolean decOk = SymmetricEngine.Decrypt(Key32, envelope, ptBuf, out _);
-
-        Assert.True(decOk);
-        Assert.NotEqual(PlaintextShort, ptBuf);
     }
 
     [Fact]

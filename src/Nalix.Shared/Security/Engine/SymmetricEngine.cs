@@ -143,7 +143,6 @@ public static class SymmetricEngine
         }
         catch
         {
-            System.Console.WriteLine("Encryption failed");
             return false;
         }
     }
