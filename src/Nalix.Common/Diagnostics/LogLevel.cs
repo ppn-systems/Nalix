@@ -10,7 +10,7 @@ namespace Nalix.Common.Diagnostics;
 /// The severity level is used to categorize and filter log output.
 /// Lower numeric values typically indicate more detailed or verbose logging.
 /// </remarks>
-public enum LogLevel : System.Byte
+public enum LogLevel : byte
 {
     /// <summary>
     /// Represents an undefined or disabled logging level.

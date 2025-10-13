@@ -6,7 +6,7 @@ namespace Nalix.Common.Serialization;
 /// <summary>
 /// Defines the layout strategy for serialization.
 /// </summary>
-public enum SerializeLayout : System.Byte
+public enum SerializeLayout : byte
 {
     /// <summary>
     /// Indicates that serialization should follow a sequential layout,

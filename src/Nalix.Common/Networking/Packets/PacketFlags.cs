@@ -10,7 +10,7 @@ namespace Nalix.Common.Networking.Packets;
 /// This enumeration is marked with <see cref="System.FlagsAttribute"/> so that multiple flags can be combined using a bitwise OR.
 /// </remarks>
 [System.Flags]
-public enum PacketFlags : System.Byte
+public enum PacketFlags : byte
 {
     /// <summary>
     /// No flags are set.
@@ -23,43 +23,43 @@ public enum PacketFlags : System.Byte
     /// The packet payload has been compressed to reduce its size.
     /// Should be decompressed on the receiving side before processing.
     /// </summary>
-    COMPRESSED = 0x02,
+    COMPRESSED = 1 << 1,
 
     /// <summary>
     /// The packet payload has been encrypted for secure transmission.
     /// Should be decrypted with the correct key on the receiving side.
     /// </summary>
-    ENCRYPTED = 0x04,
+    ENCRYPTED = 1 << 2,
 
     /// <summary>
     /// The packet is a fragment of a larger message that exceeded the maximum allowed size.
     /// The receiving side should reassemble fragments in the correct order.
     /// </summary>
-    FRAGMENTED = 0x08,
+    FRAGMENTED = 1 << 3,
 
     /// <summary>
     /// The packet is sent over a reliable transport protocol (typically TCP).
     /// Guarantees delivery and ordering without the need for manual retries.
     /// </summary>
-    RELIABLE = 0x10,
+    RELIABLE = 1 << 4,
 
     /// <summary>
     /// The packet is sent over an unreliable transport protocol (typically UDP).
     /// Best suited for real-time data where occasional loss is acceptable.
     /// </summary>
-    UNRELIABLE = 0x20,
+    UNRELIABLE = 1 << 5,
 
     /// <summary>
     /// The packet has been acknowledged by the receiver.
     /// Often used to stop retransmissions or mark successful delivery.
     /// </summary>
-    ACKNOWLEDGED = 0x40,
+    ACKNOWLEDGED = 1 << 6,
 
     /// <summary>
     /// The packet is a system-level message that does not contain user data.
     /// Examples include ping, heartbeat, handshake, or system error notifications.
     /// </summary>
-    SYSTEM = 0x80
+    SYSTEM = 1 << 7
 
     // -----------------------------
     // Ghi chú sử dụng cho PacketFlags

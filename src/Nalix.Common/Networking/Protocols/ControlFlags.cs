@@ -7,7 +7,7 @@ namespace Nalix.Common.Networking.Protocols;
 /// CONTROL flags providing additional context for control messages.
 /// </summary>
 [System.Flags]
-public enum ControlFlags : System.Byte
+public enum ControlFlags : byte
 {
     /// <summary>
     /// No special flags set.

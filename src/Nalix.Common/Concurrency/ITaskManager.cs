@@ -18,7 +18,7 @@ public interface ITaskManager : System.IDisposable, IReportable
     /// <summary>
     /// Gets a short console title summary containing running workers, total workers, and recurring tasks.
     /// </summary>
-    System.String Title { get; }
+    string Title { get; }
 
     /// <summary>
     /// Schedules a recurring job.
@@ -29,7 +29,7 @@ public interface ITaskManager : System.IDisposable, IReportable
     /// <param name="options">Options for the recurring job (optional).</param>
     /// <returns>A handle to manage the recurring job.</returns>
     IRecurringHandle ScheduleRecurring(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
+        [System.Diagnostics.CodeAnalysis.NotNull] string name,
         [System.Diagnostics.CodeAnalysis.NotNull] System.TimeSpan interval,
         [System.Diagnostics.CodeAnalysis.NotNull]
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
@@ -43,7 +43,7 @@ public interface ITaskManager : System.IDisposable, IReportable
     /// <param name="ct">Cancellation token (optional).</param>
     /// <returns>A ValueTask representing the job execution.</returns>
     System.Threading.Tasks.ValueTask RunOnceAsync(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
+        [System.Diagnostics.CodeAnalysis.NotNull] string name,
         [System.Diagnostics.CodeAnalysis.NotNull]
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken ct = default);
@@ -57,8 +57,8 @@ public interface ITaskManager : System.IDisposable, IReportable
     /// <param name="options">Options for the worker (optional).</param>
     /// <returns>A handle to manage the worker.</returns>
     IWorkerHandle ScheduleWorker(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String group,
+        [System.Diagnostics.CodeAnalysis.NotNull] string name,
+        [System.Diagnostics.CodeAnalysis.NotNull] string group,
         [System.Diagnostics.CodeAnalysis.NotNull]
         System.Func<IWorkerContext, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
         [System.Diagnostics.CodeAnalysis.MaybeNull] IWorkerOptions options = null);
@@ -67,28 +67,28 @@ public interface ITaskManager : System.IDisposable, IReportable
     /// Cancels all running workers.
     /// </summary>
     /// <returns>The number of workers cancelled.</returns>
-    System.Int32 CancelAllWorkers();
+    int CancelAllWorkers();
 
     /// <summary>
     /// Cancels a worker by identifier.
     /// </summary>
     /// <param name="id">The worker's identifier.</param>
     /// <returns>True if the worker was cancelled; otherwise, false.</returns>
-    System.Boolean CancelWorker([System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id);
+    bool CancelWorker([System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id);
 
     /// <summary>
     /// Cancels all workers in a group.
     /// </summary>
     /// <param name="group">The name of the group.</param>
     /// <returns>The number of workers cancelled.</returns>
-    System.Int32 CancelGroup([System.Diagnostics.CodeAnalysis.NotNull] System.String group);
+    int CancelGroup([System.Diagnostics.CodeAnalysis.NotNull] string group);
 
     /// <summary>
     /// Cancels a recurring job by name.
     /// </summary>
     /// <param name="name">The name of the recurring job.</param>
     /// <returns>True if the job was cancelled; otherwise, false.</returns>
-    System.Boolean CancelRecurring([System.Diagnostics.CodeAnalysis.MaybeNull] System.String name);
+    bool CancelRecurring([System.Diagnostics.CodeAnalysis.MaybeNull] string name);
 
     /// <summary>
     /// Lists all workers, optionally filtered by running status and/or group.
@@ -97,8 +97,8 @@ public interface ITaskManager : System.IDisposable, IReportable
     /// <param name="group">The group to filter by (optional).</param>
     /// <returns>A read-only collection of worker handles.</returns>
     System.Collections.Generic.IReadOnlyCollection<IWorkerHandle> GetWorkers(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean runningOnly = true,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String group = null);
+        [System.Diagnostics.CodeAnalysis.NotNull] bool runningOnly = true,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string group = null);
 
     /// <summary>
     /// Tries to get a worker by identifier.
@@ -106,7 +106,7 @@ public interface ITaskManager : System.IDisposable, IReportable
     /// <param name="id">The worker's identifier.</param>
     /// <param name="handle">The handle to the worker if found.</param>
     /// <returns>True if the worker was found; otherwise, false.</returns>
-    System.Boolean TryGetWorker(
+    bool TryGetWorker(
         [System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IWorkerHandle handle);
 
@@ -122,7 +122,7 @@ public interface ITaskManager : System.IDisposable, IReportable
     /// <param name="name">The name of the recurring job.</param>
     /// <param name="handle">The handle to the recurring job if found.</param>
     /// <returns>True if the recurring job was found; otherwise, false.</returns>
-    System.Boolean TryGetRecurring(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
+    bool TryGetRecurring(
+        [System.Diagnostics.CodeAnalysis.NotNull] string name,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IRecurringHandle handle);
 }

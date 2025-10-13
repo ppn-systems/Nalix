@@ -25,7 +25,7 @@ namespace Nalix.Common.Diagnostics;
 /// </param>
 public sealed class LogEventArgs(
     LogLevel level,
-    System.String message,
+    string message,
     System.Exception exception = null) : System.EventArgs
 {
     /// <summary>
@@ -36,7 +36,7 @@ public sealed class LogEventArgs(
     /// <summary>
     /// Gets the log message associated with the event.
     /// </summary>
-    public System.String Message { get; } = message;
+    public string Message { get; } = message;
 
     /// <summary>
     /// Gets the exception associated with the log event, if any.

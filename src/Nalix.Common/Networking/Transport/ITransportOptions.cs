@@ -18,10 +18,10 @@ public interface ITransportOptions
     // ── Endpoint ──────────────────────────────────────────────────────────
 
     /// <summary>Port number for the connection.</summary>
-    System.UInt16 Port { get; set; }
+    ushort Port { get; set; }
 
     /// <summary>Server address or hostname.</summary>
-    System.String Address { get; set; }
+    string Address { get; set; }
 
     // ── Connect ───────────────────────────────────────────────────────────
 
@@ -29,29 +29,29 @@ public interface ITransportOptions
     /// Timeout for connect attempts in milliseconds.
     /// <c>0</c> means no timeout.
     /// </summary>
-    System.Int32 ConnectTimeoutMillis { get; set; }
+    int ConnectTimeoutMillis { get; set; }
 
     // ── Reconnect ─────────────────────────────────────────────────────────
 
     /// <summary>
     /// When <c>true</c>, the client automatically reconnects after an unexpected disconnect.
     /// </summary>
-    System.Boolean ReconnectEnabled { get; set; }
+    bool ReconnectEnabled { get; set; }
 
     /// <summary>
     /// Maximum number of reconnect attempts. <c>0</c> = unlimited.
     /// </summary>
-    System.Int32 ReconnectMaxAttempts { get; set; }
+    int ReconnectMaxAttempts { get; set; }
 
     /// <summary>
     /// Base delay in milliseconds for exponential backoff between reconnect attempts.
     /// </summary>
-    System.Int32 ReconnectBaseDelayMillis { get; set; }
+    int ReconnectBaseDelayMillis { get; set; }
 
     /// <summary>
     /// Maximum delay in milliseconds between reconnect attempts.
     /// </summary>
-    System.Int32 ReconnectMaxDelayMillis { get; set; }
+    int ReconnectMaxDelayMillis { get; set; }
 
     // ── Keep-alive ────────────────────────────────────────────────────────
 
@@ -59,7 +59,7 @@ public interface ITransportOptions
     /// Interval in milliseconds to send keep-alive (heartbeat) packets.
     /// <c>0</c> disables heartbeats.
     /// </summary>
-    System.Int32 KeepAliveIntervalMillis { get; set; }
+    int KeepAliveIntervalMillis { get; set; }
 
     // ── Socket tuning ─────────────────────────────────────────────────────
 
@@ -67,19 +67,19 @@ public interface ITransportOptions
     /// Controls the <c>TCP_NODELAY</c> socket option.
     /// When <c>true</c>, Nagle's algorithm is disabled for lower latency.
     /// </summary>
-    System.Boolean NoDelay { get; set; }
+    bool NoDelay { get; set; }
 
     /// <summary>
     /// Size in bytes of the socket send and receive buffer.
     /// </summary>
-    System.Int32 BufferSize { get; set; }
+    int BufferSize { get; set; }
 
     // ── Limits ────────────────────────────────────────────────────────────
 
     /// <summary>
     /// Maximum allowed packet size (header + payload) in bytes.
     /// </summary>
-    System.Int32 MaxPacketSize { get; set; }
+    int MaxPacketSize { get; set; }
 
     // ── Security ──────────────────────────────────────────────────────────
 
@@ -87,7 +87,7 @@ public interface ITransportOptions
     /// Encryption key used for secure communication.
     /// Set by <c>HandshakeExtensions</c> after the X25519 key exchange completes.
     /// </summary>
-    System.Byte[] Secret { get; set; }
+    byte[] Secret { get; set; }
 
     /// <summary>
     /// Cipher suite used for encrypting packets.

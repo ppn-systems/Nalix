@@ -16,5 +16,5 @@ public interface IPacketSequenced
     /// This is used to correlate requests with their responses.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.SEQUENCE_ID)]
-    System.UInt32 SequenceId { get; }
+    uint SequenceId { get; }
 }

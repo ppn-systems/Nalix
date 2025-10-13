@@ -21,7 +21,7 @@ public class NetworkException : BaseException
     /// Initializes a new instance of the <see cref="NetworkException"/> class with a specified error message.
     /// </summary>
     /// <param name="message">The error message that explains the reason for the exception.</param>
-    public NetworkException(System.String message)
+    public NetworkException(string message)
         : base(message) { }
 
     /// <summary>
@@ -29,6 +29,6 @@ public class NetworkException : BaseException
     /// </summary>
     /// <param name="message">The error message that explains the reason for the exception.</param>
     /// <param name="innerException">The exception that is the cause of this exception.</param>
-    public NetworkException(System.String message, System.Exception innerException)
+    public NetworkException(string message, System.Exception innerException)
         : base(message, innerException) { }
 }

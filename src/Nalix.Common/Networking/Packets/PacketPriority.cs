@@ -10,7 +10,7 @@ namespace Nalix.Common.Networking.Packets;
 /// The priority level may influence the order in which packets are processed or transmitted.
 /// Higher values generally indicate a greater urgency for delivery.
 /// </remarks>
-public enum PacketPriority : System.Byte
+public enum PacketPriority : byte
 {
     /// <summary>
     /// Standard priority level for most packets.
