@@ -14,29 +14,6 @@ namespace Nalix.Framework.Binaries;
 internal static class Crc00
 {
     /// <summary>
-    /// Generates a lookup table for CRC-8 based on the specified polynomial.
-    /// </summary>
-    /// <param name="poly">The polynomial to use for table generation (e.g., <c>0x31</c>).</param>
-    /// <returns>An array of 256 precomputed CRC-8 values.</returns>
-    internal static System.Byte[] GenerateTable8(System.Byte poly)
-    {
-        var table = new System.Byte[256];
-
-        for (System.Int16 i = 0; i < 256; i++)
-        {
-            System.Byte crc = (System.Byte)i;
-            for (System.Byte j = 0; j < 8; j++)
-            {
-                crc = (System.Byte)((crc & 0x80) != 0 ? crc << 1 ^ poly : crc << 1);
-            }
-
-            table[i] = crc;
-        }
-
-        return table;
-    }
-
-    /// <summary>
     /// Generates a lookup table for CRC-16 based on the specified polynomial.
     /// </summary>
     /// <param name="poly">The polynomial to use for table generation (e.g., <c>0x8005</c>).</param>
