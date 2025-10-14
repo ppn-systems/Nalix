@@ -47,6 +47,5 @@ appsettings.json
 nugets/
 artifacts/
 docs/Nalix.Benchmarks/*.log
-docs/Nalix.Benchmarks/results/*.md
 docs/Nalix.Benchmarks/results/*.csv
 benchmarks/BenchmarkDotNet.Artifacts
