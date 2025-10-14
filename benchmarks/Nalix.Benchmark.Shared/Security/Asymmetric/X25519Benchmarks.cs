@@ -30,11 +30,6 @@ namespace Nalix.Benchmark.Shared.Security.Asymmetric;
 [RankColumn]
 [MemoryDiagnoser]
 [DisassemblyDiagnoser]
-[HardwareCounters(
-    HardwareCounter.BranchInstructions,
-    HardwareCounter.BranchMispredictions,
-    HardwareCounter.CacheMisses,
-    HardwareCounter.InstructionRetired)]
 [MinColumn, MaxColumn]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
