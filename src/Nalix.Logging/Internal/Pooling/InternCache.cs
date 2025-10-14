@@ -14,30 +14,30 @@ internal static class InternCache
     /// <summary>
     /// Gets the pre-interned opening bracket string.
     /// </summary>
-    public static System.String BracketOpen { get; } = "[";
+    public static string BracketOpen { get; } = "[";
 
     /// <summary>
     /// Gets the pre-interned closing bracket string.
     /// </summary>
-    public static System.String BracketClose { get; } = "]";
+    public static string BracketClose { get; } = "]";
 
     /// <summary>
     /// Gets the pre-interned space string.
     /// </summary>
-    public static System.String Space { get; } = " ";
+    public static string Space { get; } = " ";
 
     /// <summary>
     /// Gets the pre-interned dash with spaces string.
     /// </summary>
-    public static System.String DashWithSpaces { get; } = " - ";
+    public static string DashWithSpaces { get; } = " - ";
 
     /// <summary>
     /// Gets the pre-interned colon string.
     /// </summary>
-    public static System.String Colon { get; } = ":";
+    public static string Colon { get; } = ":";
 
     /// <summary>
     /// Gets the pre-interned newline string.
     /// </summary>
-    public static System.String NewLine { get; } = System.Environment.NewLine;
+    public static string NewLine { get; } = System.Environment.NewLine;
 }

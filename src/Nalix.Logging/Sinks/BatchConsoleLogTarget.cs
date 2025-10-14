@@ -27,12 +27,12 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
     /// <summary>
     /// Gets the total number of log entries successfully written to the console.
     /// </summary>
-    public System.Int64 WrittenCount => _provider.WrittenCount;
+    public long WrittenCount => _provider.WrittenCount;
 
     /// <summary>
     /// Gets the total number of log entries that were dropped and not written to the console.
     /// </summary>
-    public System.Int64 DroppedCount => _provider.DroppedCount;
+    public long DroppedCount => _provider.DroppedCount;
 
     #endregion Properties
 
@@ -65,11 +65,11 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
     #region API
 
     /// <inheritdoc/>
-    public void Publish(LogEntry entry)
+    public void Publish(LogEntry logMessage)
     {
-        if (!_provider.TryEnqueue(entry))
+        if (!_provider.TryEnqueue(logMessage))
         {
-            System.Diagnostics.Debug.WriteLine($"[LG.BatchConsoleLogTarget] dropped-log msg={entry.Message}");
+            System.Diagnostics.Debug.WriteLine($"[LG.BatchConsoleLogTarget] dropped-log msg={logMessage.Message}");
         }
     }
 

@@ -13,15 +13,17 @@ internal static class TimestampCache
 {
     #region Fields
 
-    // Thread-local cache to avoid synchronization overhead
+    /// <summary>
+    /// Thread-local cache to avoid synchronization overhead
+    /// </summary>
     [System.ThreadStatic]
-    private static System.Int64 t_lastTicks;
+    private static long t_lastTicks;
 
     [System.ThreadStatic]
-    private static System.String? t_cachedFormat;
+    private static string? t_cachedFormat;
 
     [System.ThreadStatic]
-    private static System.String? t_cachedTimestamp;
+    private static string? t_cachedTimestamp;
 
     #endregion Fields
 
@@ -35,10 +37,10 @@ internal static class TimestampCache
     /// <returns>A formatted timestamp string.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.String GetFormattedTimestamp(System.DateTime timestamp, System.String format)
+    public static string GetFormattedTimestamp(System.DateTime timestamp, string format)
     {
         // Truncate to millisecond precision for caching
-        System.Int64 currentTicks = timestamp.Ticks / System.TimeSpan.TicksPerMillisecond;
+        long currentTicks = timestamp.Ticks / System.TimeSpan.TicksPerMillisecond;
 
         // Fast path: same millisecond and format
         if (currentTicks == t_lastTicks && format == t_cachedFormat && t_cachedTimestamp != null)
@@ -47,7 +49,7 @@ internal static class TimestampCache
         }
 
         // Format the timestamp
-        System.String formatted = timestamp.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
+        string formatted = timestamp.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
 
         // Update cache
         t_cachedFormat = format;
