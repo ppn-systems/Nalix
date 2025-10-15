@@ -1,4 +1,5 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
 
 namespace Nalix.Framework.Injection.DI;
 
@@ -18,7 +19,7 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     private static readonly System.Lazy<T> s_instance =
         new(valueFactory: CREATE_INSTANCE_INTERNAL, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
-    // Compiled .ctor delegate (private/protected allowed) – built once per closed generic.
+    // Compiled .ctor delegate (private/protected allowed) ï¿½ built once per closed generic.
     private static readonly System.Func<T> s_ctor = CREATE_CONSTRUCTORS();
 
     // 0 = not disposed, 1 = disposed
