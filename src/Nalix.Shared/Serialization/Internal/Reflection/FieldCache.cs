@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
+using System.Reflection;
 using Nalix.Common.Serialization;
 
 #if DEBUG
@@ -20,9 +22,9 @@ internal static partial class FieldCache<
 
     private static readonly FieldSchema[] _metadata;
     private static readonly SerializeLayout _layout;
-    private static readonly System.Collections.Generic.Dictionary<System.String, System.Int32> _fieldIndex;
+    private static readonly Dictionary<System.String, System.Int32> _fieldIndex;
 
-    private static readonly System.Collections.Generic.Dictionary<System.String, System.Reflection.PropertyInfo> _propertyCache;
+    private static readonly Dictionary<System.String, PropertyInfo> _propertyCache;
 
     #endregion Static Fields
 
@@ -45,15 +47,15 @@ internal static partial class FieldCache<
     {
         _layout = GetSerializeLayout();
 
-        _propertyCache = new System.Collections.Generic.Dictionary<System.String, System.Reflection.PropertyInfo>(
+        _propertyCache = new Dictionary<System.String, PropertyInfo>(
             capacity: 32,
             comparer: System.StringComparer.Ordinal
         );
 
-        foreach (var p in typeof(T).GetProperties(
-            System.Reflection.BindingFlags.Public |
-            System.Reflection.BindingFlags.NonPublic |
-            System.Reflection.BindingFlags.Instance))
+        foreach (PropertyInfo p in typeof(T).GetProperties(
+            BindingFlags.Public |
+            BindingFlags.NonPublic |
+            BindingFlags.Instance))
         {
             _propertyCache[p.Name] = p;
         }
@@ -67,7 +69,7 @@ internal static partial class FieldCache<
 
         for (System.Int32 i = 0; i < _metadata.Length; i++)
         {
-            var field = _metadata[i].FieldInfo;
+            FieldInfo field = _metadata[i].FieldInfo;
             _getters[i] = CreateGetter(field);
             _setters[i] = CreateSetter(field);
         }
@@ -88,21 +90,21 @@ internal static partial class FieldCache<
     {
         System.Type type = typeof(TField);
 
-        System.Collections.Generic.List<System.Reflection.FieldInfo> fields = [];
+        List<FieldInfo> fields = [];
         while (type != null && type != typeof(System.Object))
         {
             fields.AddRange(type.GetFields(
-            System.Reflection.BindingFlags.Public |
-            System.Reflection.BindingFlags.NonPublic |
-            System.Reflection.BindingFlags.Instance |
-            System.Reflection.BindingFlags.DeclaredOnly));
+            BindingFlags.Public |
+            BindingFlags.NonPublic |
+            BindingFlags.Instance |
+            BindingFlags.DeclaredOnly));
             type = type.BaseType!;
         }
 
-        System.Collections.Generic.List<FieldSchema> includedFields = new(fields.Count);
+        List<FieldSchema> includedFields = new(fields.Count);
         System.Int32 sequentialOrder = 0;
 
-        foreach (System.Reflection.FieldInfo field in fields)
+        foreach (FieldInfo field in fields)
         {
             if (ShouldIgnoreField(field))
             {
@@ -151,10 +153,10 @@ internal static partial class FieldCache<
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static System.Collections.Generic.Dictionary<System.String, System.Int32> BuildFieldIndex()
+    private static Dictionary<System.String, System.Int32> BuildFieldIndex()
     {
         // Performance: StringComparer.Ordinal nhanh hơn default
-        System.Collections.Generic.Dictionary<System.String, System.Int32> index = new(
+        Dictionary<System.String, System.Int32> index = new(
             _metadata.Length, System.StringComparer.Ordinal);
 
         for (System.Int32 i = 0; i < _metadata.Length; i++)
@@ -173,7 +175,7 @@ internal static partial class FieldCache<
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
         "IL2090:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. " +
         "The generic parameter of the source method or type does not have matching annotations.", Justification = "<Pending>")]
-    private static System.Int32? GetExplicitOrder(System.Reflection.FieldInfo field)
+    private static System.Int32? GetExplicitOrder(FieldInfo field)
     {
         System.Type? type = field.DeclaringType;
         if (type is null)
@@ -181,13 +183,13 @@ internal static partial class FieldCache<
             return null;
         }
 
-        foreach (System.Reflection.PropertyInfo property in type.GetProperties(
-            System.Reflection.BindingFlags.Public |
-            System.Reflection.BindingFlags.Instance))
+        foreach (PropertyInfo property in type.GetProperties(
+            BindingFlags.Public |
+            BindingFlags.Instance))
         {
             if (field.Name == property.Name || IsBackingFieldFor(field, property))
             {
-                SerializeOrderAttribute? attr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeOrderAttribute>(property);
+                SerializeOrderAttribute? attr = CustomAttributeExtensions.GetCustomAttribute<SerializeOrderAttribute>(property);
                 if (attr is not null)
                 {
                     return attr.Order;
@@ -201,8 +203,8 @@ internal static partial class FieldCache<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Boolean IsBackingFieldFor(
-        System.Reflection.FieldInfo field,
-        System.Reflection.PropertyInfo property) => field.Name == $"<{property.Name}>k__BackingField";
+        FieldInfo field,
+        PropertyInfo property) => field.Name == $"<{property.Name}>k__BackingField";
 
     #endregion Field Discovery
 
@@ -210,16 +212,16 @@ internal static partial class FieldCache<
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static System.Boolean ShouldIgnoreField(System.Reflection.FieldInfo field)
+    private static System.Boolean ShouldIgnoreField(FieldInfo field)
     {
         // Rule 1: Skip backing fields nếu property có SerializeIgnoreAttribute
         if (field.Name.StartsWith('<') && field.Name.Contains(">k__BackingField"))
         {
             var propertyName = field.Name[1..field.Name.IndexOf('>')];
-            if (_propertyCache.TryGetValue(propertyName, out var property))
+            if (_propertyCache.TryGetValue(propertyName, out PropertyInfo? property))
             {
                 // Nếu property bị ignore thì skip backing field
-                if (System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeIgnoreAttribute>(property) is not null)
+                if (CustomAttributeExtensions.GetCustomAttribute<SerializeIgnoreAttribute>(property) is not null)
                 {
                     return true;
                 }
@@ -227,7 +229,7 @@ internal static partial class FieldCache<
         }
 
         // Rule 2: Skip fields có SerializeIgnoreAttribute
-        return System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeIgnoreAttribute>(field) is not null;
+        return CustomAttributeExtensions.GetCustomAttribute<SerializeIgnoreAttribute>(field) is not null;
     }
 
     #endregion Domain Rules - Business Logic
@@ -238,7 +240,7 @@ internal static partial class FieldCache<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static SerializeLayout GetSerializeLayout()
     {
-        SerializePackableAttribute? packableAttr = System.Reflection.CustomAttributeExtensions
+        SerializePackableAttribute? packableAttr = CustomAttributeExtensions
             .GetCustomAttribute<SerializePackableAttribute>(typeof(T));
 
         return packableAttr?.SerializeLayout ?? SerializeLayout.Sequential;
@@ -273,7 +275,7 @@ internal static partial class FieldCache<
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void EnsureNoDuplicateOrders()
     {
-        var orderGroups = System.Linq.Enumerable.Where(
+        IEnumerable<System.Linq.IGrouping<System.Int32, FieldSchema>> orderGroups = System.Linq.Enumerable.Where(
             System.Linq.Enumerable.GroupBy(_metadata, f => f.Order),
             g => System.Linq.Enumerable.Count(g) > 1
         );
@@ -296,7 +298,7 @@ internal static partial class FieldCache<
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void EnsureNoNegativeOrders()
     {
-        System.Collections.Generic.IEnumerable<FieldSchema> negativeOrders = System.Linq.Enumerable
+        IEnumerable<FieldSchema> negativeOrders = System.Linq.Enumerable
             .Where(_metadata, f => f.Order < 0);
 
         if (System.Linq.Enumerable.Any(negativeOrders))

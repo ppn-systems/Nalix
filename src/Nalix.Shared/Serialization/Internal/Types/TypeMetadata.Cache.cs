@@ -31,11 +31,11 @@ internal static partial class TypeMetadata
         public static System.Boolean IsNullable;
         public static System.Boolean IsReference;
         public static System.Boolean IsUnmanagedSZArray;
-        public static System.Boolean IsFixedSizeSerializable = false;
-        public static System.Boolean IsCompositeSerializable = false;
+        public static System.Boolean IsFixedSizeSerializable;
+        public static System.Boolean IsCompositeSerializable;
 
-        public static System.Int32 SerializableFixedSize = 0;
-        public static System.Int32 UnmanagedSZArrayElementSize = 0;
+        public static System.Int32 SerializableFixedSize;
+        public static System.Int32 UnmanagedSZArrayElementSize;
 
         static Cache()
         {

@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 #if DEBUG
+using System.Runtime.Intrinsics;
+
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
@@ -170,11 +172,11 @@ internal static unsafe class MemOps
         {
             while (count + 32 <= maxLength)
             {
-                var a = System.Runtime.Intrinsics.X86.Avx.LoadVector256(p1 + count);
-                var b = System.Runtime.Intrinsics.X86.Avx.LoadVector256(p2 + count);
-                var cmp = System.Runtime.Intrinsics.X86.Avx2.CompareEqual(a, b);
+                Vector256<System.Byte> a = System.Runtime.Intrinsics.X86.Avx.LoadVector256(p1 + count);
+                Vector256<System.Byte> b = System.Runtime.Intrinsics.X86.Avx.LoadVector256(p2 + count);
+                Vector256<System.Byte> cmp = System.Runtime.Intrinsics.X86.Avx2.CompareEqual(a, b);
 
-                if (System.Runtime.Intrinsics.Vector256.EqualsAll(cmp, System.Runtime.Intrinsics.Vector256<System.Byte>.AllBitsSet))
+                if (Vector256.EqualsAll(cmp, Vector256<byte>.AllBitsSet))
                 {
                     count += 32;
                     continue;
@@ -190,11 +192,11 @@ internal static unsafe class MemOps
             // Fall down to 16B SSE2 lane for the tail (if any)
             if (count + 16 <= maxLength)
             {
-                var a = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p1 + count);
-                var b = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p2 + count);
-                var cmp = System.Runtime.Intrinsics.X86.Sse2.CompareEqual(a, b);
+                Vector128<System.Byte> a = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p1 + count);
+                Vector128<System.Byte> b = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p2 + count);
+                Vector128<System.Byte> cmp = System.Runtime.Intrinsics.X86.Sse2.CompareEqual(a, b);
 
-                if (System.Runtime.Intrinsics.Vector128.EqualsAll(cmp, System.Runtime.Intrinsics.Vector128<System.Byte>.AllBitsSet))
+                if (Vector128.EqualsAll(cmp, Vector128<byte>.AllBitsSet))
                 {
                     count += 16;
                 }
@@ -238,11 +240,11 @@ internal static unsafe class MemOps
         {
             while (count + 16 <= maxLength)
             {
-                var a = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p1 + count);
-                var b = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p2 + count);
-                var cmp = System.Runtime.Intrinsics.X86.Sse2.CompareEqual(a, b);
+                Vector128<System.Byte> a = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p1 + count);
+                Vector128<System.Byte> b = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p2 + count);
+                Vector128<System.Byte> cmp = System.Runtime.Intrinsics.X86.Sse2.CompareEqual(a, b);
 
-                if (System.Runtime.Intrinsics.Vector128.EqualsAll(cmp, System.Runtime.Intrinsics.Vector128<System.Byte>.AllBitsSet))
+                if (Vector128.EqualsAll(cmp, Vector128<byte>.AllBitsSet))
                 {
                     count += 16;
                     continue;
@@ -284,11 +286,11 @@ internal static unsafe class MemOps
         {
             while (count + 16 <= maxLength)
             {
-                var a = System.Runtime.Intrinsics.Arm.AdvSimd.LoadVector128(p1 + count);
-                var b = System.Runtime.Intrinsics.Arm.AdvSimd.LoadVector128(p2 + count);
-                var cmp = System.Runtime.Intrinsics.Arm.AdvSimd.CompareEqual(a, b); // 0xFF where equal
+                Vector128<System.Byte> a = System.Runtime.Intrinsics.Arm.AdvSimd.LoadVector128(p1 + count);
+                Vector128<System.Byte> b = System.Runtime.Intrinsics.Arm.AdvSimd.LoadVector128(p2 + count);
+                Vector128<System.Byte> cmp = System.Runtime.Intrinsics.Arm.AdvSimd.CompareEqual(a, b); // 0xFF where equal
 
-                if (System.Runtime.Intrinsics.Vector128.EqualsAll(cmp, System.Runtime.Intrinsics.Vector128<System.Byte>.AllBitsSet))
+                if (Vector128.EqualsAll(cmp, Vector128<byte>.AllBitsSet))
                 {
                     count += 16;
                     continue;

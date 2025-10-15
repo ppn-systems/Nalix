@@ -71,7 +71,7 @@ internal static partial class TypeMetadata
         }
         finally
         {
-            t_visitedTypes.Remove(type);
+            _ = t_visitedTypes.Remove(type);
         }
     }
 

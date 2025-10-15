@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Shared;
 using Nalix.Framework.Configuration.Binding;
@@ -141,8 +143,8 @@ public sealed class BufferConfig : ConfigurationLoader
     /// </exception>
     public void Validate()
     {
-        var context = new System.ComponentModel.DataAnnotations.ValidationContext(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+        ValidationContext context = new System.ComponentModel.DataAnnotations.ValidationContext(this);
+        Validator.ValidateObject(this, context, validateAllProperties: true);
 
         if (ExpandThresholdPercent >= ShrinkThresholdPercent)
         {
@@ -152,12 +154,12 @@ public sealed class BufferConfig : ConfigurationLoader
 
         try
         {
-            var allocations = ParseBufferAllocations(BufferAllocations);
+            (System.Int32, System.Double)[] allocations = ParseBufferAllocations(BufferAllocations);
 
             System.Double totalRatio = 0;
             System.Int32 lastSize = 0;
 
-            foreach (var (size, ratio) in allocations)
+            foreach ((System.Int32 size, System.Double ratio) in allocations)
             {
                 if (size > lastSize)
                 {
@@ -221,7 +223,7 @@ public sealed class BufferConfig : ConfigurationLoader
             {
                 try
                 {
-                    var allocations = PARSE_ALLOCATIONS(key, bufferAllocationsString);
+                    (System.Int32 allocationSize, System.Double ratio)[] allocations = PARSE_ALLOCATIONS(key, bufferAllocationsString);
                     System.Double totalAllocation = System.Linq.Enumerable.Sum(allocations, a => a.ratio);
                     return totalAllocation > 1.1
                         ? throw new System.ArgumentException(
@@ -248,7 +250,7 @@ public sealed class BufferConfig : ConfigurationLoader
         System.String key, System.String bufferAllocationsString)
     {
         System.String[] pairs = key.Split(';', System.StringSplitOptions.RemoveEmptyEntries);
-        var list = new System.Collections.Generic.List<(System.Int32, System.Double)>();
+        List<(int, double)> list = new System.Collections.Generic.List<(System.Int32, System.Double)>();
 
         foreach (System.String pair in pairs)
         {

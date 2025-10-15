@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Security;
 using Nalix.Common.Shared;
 using Nalix.Shared.LZ4;
 using Nalix.Shared.LZ4.Encoders;
@@ -53,7 +52,7 @@ public static class FrameTransformer
     /// </summary>
     /// <param name="envelope">The input envelope.</param>
     public static System.Int32 GetPlaintextLength(System.ReadOnlySpan<System.Byte> envelope)
-        => !EnvelopeFormat.TryParseEnvelope(envelope[Offset..], out var parsed)
+        => !EnvelopeFormat.TryParseEnvelope(envelope[Offset..], out EnvelopeFormat.ParsedEnvelope parsed)
         ? throw new System.ArgumentException("Malformed envelope", nameof(envelope)) : parsed.Ciphertext.Length;
 
     /// <summary>
@@ -111,7 +110,7 @@ public static class FrameTransformer
         System.Span<System.Byte> outData = dest.SpanFull[Offset..];
 
         // Encrypt
-        EnvelopeCipher.Encrypt(key, plainData, outData, null, null, suite, out System.Int32 encrypted);
+        _ = EnvelopeCipher.Encrypt(key, plainData, outData, null, null, suite, out System.Int32 encrypted);
         dest.CommitLength(Offset + encrypted);
 
         return true;

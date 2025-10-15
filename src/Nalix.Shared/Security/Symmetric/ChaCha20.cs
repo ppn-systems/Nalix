@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Security;
 using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Internal;
 using Nalix.Shared.Security.Primitives;
@@ -184,8 +183,8 @@ public ref struct ChaCha20
     {
         if (!_cleared)
         {
-            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes<System.UInt32>((System.Span<System.UInt32>)_state));
-            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes<System.UInt32>((System.Span<System.UInt32>)_working));
+            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes((System.Span<System.UInt32>)_state));
+            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes((System.Span<System.UInt32>)_working));
             MemorySecurity.ZeroMemory(_keystream);
             _cleared = true;
         }
@@ -250,18 +249,7 @@ public ref struct ChaCha20
     }
 
     #endregion Private — Initialization
-
     #region Private — SIMD Detection
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static SimdMode DetectSimdMode()
-    {
-        return System.Runtime.Intrinsics.Vector512.IsHardwareAccelerated ? SimdMode.V512
-             : System.Runtime.Intrinsics.Vector256.IsHardwareAccelerated ? SimdMode.V256
-             : System.Runtime.Intrinsics.Vector128.IsHardwareAccelerated ? SimdMode.V128
-             : SimdMode.NONE;
-    }
 
     #endregion Private — SIMD Detection
 
@@ -373,97 +361,7 @@ public ref struct ChaCha20
     }
 
     #endregion Private — Span-Based Encrypt Core
-
     #region Private — Array-Based Encrypt Core (SIMD)
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void EncryptBytesInternal(
-        System.Byte[] output,
-        System.Byte[] input,
-        System.Int32 numBytes,
-        SimdMode simdMode)
-    {
-        System.Span<System.UInt32> stateSpan = _state;
-        System.Span<System.UInt32> workingSpan = _working;
-        System.Span<System.Byte> keystreamSpan = _keystream;
-
-        System.Byte[]? keystreamArray = simdMode is not SimdMode.NONE
-            ? System.Buffers.ArrayPool<System.Byte>.Shared.Rent(BlockSize)
-            : null;
-
-        try
-        {
-            System.Int32 offset = 0;
-            System.Int32 fullBlocks = numBytes / BlockSize;
-            System.Int32 tailBytes = numBytes - (fullBlocks * BlockSize);
-
-            for (System.Int32 block = 0; block < fullBlocks; block++)
-            {
-                GenerateBlock(stateSpan, workingSpan, keystreamSpan);
-
-                if (simdMode is SimdMode.NONE)
-                {
-                    for (System.Int32 i = 0; i < BlockSize; i += 4)
-                    {
-                        System.Int32 p = i + offset;
-                        output[p] = (System.Byte)(input[p] ^ keystreamSpan[i]);
-                        output[p + 1] = (System.Byte)(input[p + 1] ^ keystreamSpan[i + 1]);
-                        output[p + 2] = (System.Byte)(input[p + 2] ^ keystreamSpan[i + 2]);
-                        output[p + 3] = (System.Byte)(input[p + 3] ^ keystreamSpan[i + 3]);
-                    }
-                }
-                else
-                {
-                    keystreamSpan.CopyTo(System.MemoryExtensions.AsSpan(keystreamArray, 0, BlockSize));
-
-                    if (simdMode is SimdMode.V512)
-                    {
-                        var inputV = System.Runtime.Intrinsics.Vector512.Create(input, offset);
-                        var tmpV = System.Runtime.Intrinsics.Vector512.Create(keystreamArray!, 0);
-                        System.Runtime.Intrinsics.Vector512.CopyTo(inputV ^ tmpV, output, offset);
-                    }
-                    else if (simdMode is SimdMode.V256)
-                    {
-                        var inV0 = System.Runtime.Intrinsics.Vector256.Create(input, offset);
-                        var tmpV0 = System.Runtime.Intrinsics.Vector256.Create(keystreamArray!, 0);
-                        System.Runtime.Intrinsics.Vector256.CopyTo(inV0 ^ tmpV0, output, offset);
-
-                        var inV1 = System.Runtime.Intrinsics.Vector256.Create(input, offset + 32);
-                        var tmpV1 = System.Runtime.Intrinsics.Vector256.Create(keystreamArray!, 32);
-                        System.Runtime.Intrinsics.Vector256.CopyTo(inV1 ^ tmpV1, output, offset + 32);
-                    }
-                    else // V128
-                    {
-                        for (System.Int32 chunk = 0; chunk < BlockSize; chunk += 16)
-                        {
-                            var inV = System.Runtime.Intrinsics.Vector128.Create(input, offset + chunk);
-                            var tmpV = System.Runtime.Intrinsics.Vector128.Create(keystreamArray!, chunk);
-                            System.Runtime.Intrinsics.Vector128.CopyTo(inV ^ tmpV, output, offset + chunk);
-                        }
-                    }
-                }
-
-                offset += BlockSize;
-            }
-
-            if (tailBytes > 0)
-            {
-                GenerateBlock(stateSpan, workingSpan, keystreamSpan);
-                for (System.Int32 i = 0; i < tailBytes; i++)
-                {
-                    output[offset + i] = (System.Byte)(input[offset + i] ^ keystreamSpan[i]);
-                }
-            }
-        }
-        finally
-        {
-            if (keystreamArray is not null)
-            {
-                System.Buffers.ArrayPool<System.Byte>.Shared.Return(keystreamArray, clearArray: true);
-            }
-        }
-    }
 
     #endregion Private — Array-Based Encrypt Core (SIMD)
 }
