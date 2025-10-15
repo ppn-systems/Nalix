@@ -177,12 +177,11 @@ internal static class EnvelopeFormat
         public readonly System.Byte Flags;
         public readonly System.Byte NonceLen;
         public readonly System.UInt32 Seq;
-
-        public readonly System.ReadOnlySpan<System.Byte> Header; // the 12 bytes
-        public readonly System.ReadOnlySpan<System.Byte> Nonce;
-        public readonly System.ReadOnlySpan<System.Byte> Ciphertext;
-        public readonly System.ReadOnlySpan<System.Byte> Tag;
         public readonly System.Boolean HasTag;
+        public readonly System.ReadOnlySpan<System.Byte> Tag;
+        public readonly System.ReadOnlySpan<System.Byte> Nonce;
+        public readonly System.ReadOnlySpan<System.Byte> Header; // the 12 bytes
+        public readonly System.ReadOnlySpan<System.Byte> Ciphertext;
 
         public ParsedEnvelope(
             System.Byte version, CipherSuiteType type, System.Byte flags, System.Byte nonceLen, System.UInt32 seq,
