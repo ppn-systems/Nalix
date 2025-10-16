@@ -38,10 +38,10 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     internal System.Threading.Tasks.Task? i_receiveTask;
     internal System.Threading.CancellationTokenSource? i_loopCts;
 
-    internal System.Int32 _disposed = 0;
+    internal int _disposed;
 
 
-    private System.Int32 _connectionState = (System.Int32)TcpSessionState.Disconnected;
+    private int _connectionState = (int)TcpSessionState.Disconnected;
 
     /// <inheritdoc/>
     internal static readonly ILogger? Logging;
@@ -78,10 +78,10 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     public event System.EventHandler<System.Exception>? OnError;
 
     /// <inheritdoc/>
-    public event System.EventHandler<System.Int64>? OnBytesSent;
+    public event System.EventHandler<long>? OnBytesSent;
 
     /// <inheritdoc/>
-    public event System.EventHandler<System.Int64>? OnBytesReceived;
+    public event System.EventHandler<long>? OnBytesReceived;
 
     /// <inheritdoc/>
     public event System.EventHandler<IBufferLease>? OnMessageReceived;
@@ -93,12 +93,12 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     /// Occurs when the session successfully reconnects after an unexpected disconnect.
     /// The event argument is the number of attempts it took.
     /// </summary>
-    public event System.EventHandler<System.Int32>? OnReconnected;
+    public event System.EventHandler<int>? OnReconnected;
 
     /// <inheritdoc/>
-    public System.Func<TcpSessionBase, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task>? OnMessageReceivedAsync;
+    public System.Func<TcpSessionBase, System.ReadOnlyMemory<byte>, System.Threading.Tasks.Task>? OnMessageReceivedAsync;
 
-    #endregion
+    #endregion Events
 
     #region Construction
 
@@ -119,7 +119,7 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     #region Public API
 
     /// <inheritdoc/>
-    public abstract System.Threading.Tasks.Task ConnectAsync(System.String? host = null, System.UInt16? port = null, System.Threading.CancellationToken ct = default);
+    public abstract System.Threading.Tasks.Task ConnectAsync(string? host = null, ushort? port = null, System.Threading.CancellationToken ct = default);
 
     /// <summary>
     /// Connects to the endpoint specified by <paramref name="uri"/>.
@@ -133,36 +133,36 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     {
         System.ArgumentNullException.ThrowIfNull(uri);
 
-        if (!System.String.Equals(uri.Scheme, "tcp", System.StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(uri.Scheme, "tcp", System.StringComparison.OrdinalIgnoreCase))
         {
             throw new System.ArgumentException(
                 $"URI scheme must be 'tcp', got '{uri.Scheme}'.", nameof(uri));
         }
 
-        System.UInt16 port = uri.Port > 0
-            ? (System.UInt16)uri.Port
+        ushort port = uri.Port > 0
+            ? (ushort)uri.Port
             : Options.Port;
 
         return ConnectAsync(uri.Host, port, ct);
     }
 
     /// <inheritdoc/>
-    public virtual System.Boolean IsConnected => i_socket?.Connected == true && System.Threading.Volatile.Read(ref _disposed) == 0;
+    public virtual bool IsConnected => i_socket?.Connected == true && System.Threading.Volatile.Read(ref _disposed) == 0;
 
     /// <inheritdoc/>
-    public virtual System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken ct = default)
+    public virtual System.Threading.Tasks.Task<bool> SendAsync(System.ReadOnlyMemory<byte> payload, System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(TcpSessionBase));
-        var sender = System.Threading.Volatile.Read(ref i_sender);
+        FRAME_SENDER? sender = System.Threading.Volatile.Read(ref i_sender);
         return sender is null ? throw new System.InvalidOperationException("Client not connected.") : sender.SendAsync(payload, ct);
     }
 
     /// <inheritdoc/>
-    public virtual System.Threading.Tasks.Task<System.Boolean> SendAsync(IPacket packet, System.Threading.CancellationToken ct = default)
+    public virtual System.Threading.Tasks.Task<bool> SendAsync(IPacket packet, System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(packet);
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(TcpSessionBase));
-        var sender = System.Threading.Volatile.Read(ref i_sender);
+        FRAME_SENDER? sender = System.Threading.Volatile.Read(ref i_sender);
         return sender is null ? throw new System.InvalidOperationException("Client not connected.") : sender.SendAsync(packet, ct);
     }
 
@@ -209,17 +209,17 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     /// was not worth compressing uses path 3.
     /// </para>
     /// </remarks>
-    public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
+    public async System.Threading.Tasks.Task<bool> SendAsync(
         IPacket packet,
-        System.Boolean encrypt,
+        bool encrypt,
         System.Threading.CancellationToken cancellationToken = default)
     {
         // Serialize into a pooled buffer — avoids allocating a byte[] per send.
         BufferLease rawLease = BufferLease.Rent(packet.Length);
-        System.Int32 written = packet.Serialize(rawLease.SpanFull);
+        int written = packet.Serialize(rawLease.SpanFull);
         rawLease.CommitLength(written);
 
-        System.Boolean enableCompress = Options.EnableCompression && written >= Options.MinSizeToCompress;
+        bool enableCompress = Options.EnableCompression && written >= Options.MinSizeToCompress;
 
         try
         {
@@ -237,7 +237,7 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
             // ----------------------------------------------------------------
             if (enableCompress && !encrypt)
             {
-                System.Int32 maxCompressedSize = FrameTransformer.GetMaxCompressedSize(written);
+                int maxCompressedSize = FrameTransformer.GetMaxCompressedSize(written);
                 BufferLease compressedLease = BufferLease.Rent(maxCompressedSize + FrameTransformer.Offset);
                 try
                 {
@@ -264,7 +264,7 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
             // ----------------------------------------------------------------
             if (!enableCompress && encrypt)
             {
-                System.Int32 maxCipherSize = FrameTransformer.GetMaxCiphertextSize(Options.Algorithm, rawLease.Length);
+                int maxCipherSize = FrameTransformer.GetMaxCiphertextSize(Options.Algorithm, rawLease.Length);
                 BufferLease encryptedLease = BufferLease.Rent(maxCipherSize + FrameTransformer.Offset);
                 try
                 {
@@ -289,7 +289,7 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
             // ----------------------------------------------------------------
             // Case 4: compress then encrypt
             // ----------------------------------------------------------------
-            System.Int32 maxCompressed = FrameTransformer.GetMaxCompressedSize(written);
+            int maxCompressed = FrameTransformer.GetMaxCompressedSize(written);
             BufferLease compressLease = BufferLease.Rent(maxCompressed + FrameTransformer.Offset);
             try
             {
@@ -302,7 +302,7 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
                 compressLease.Span.WriteFlagsLE(
                     compressLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
 
-                System.Int32 maxCipher = FrameTransformer.GetMaxCiphertextSize(Options.Algorithm, compressLease.Length);
+                int maxCipher = FrameTransformer.GetMaxCiphertextSize(Options.Algorithm, compressLease.Length);
                 BufferLease encryptLease = BufferLease.Rent(maxCipher + FrameTransformer.Offset);
                 try
                 {
@@ -441,7 +441,7 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     }
 
     /// <inheritdoc/>
-    protected void RaiseBytesSent(System.Int64 bytes)
+    protected void RaiseBytesSent(long bytes)
     {
         Logging?.Trace($"[SDK.{GetType().Name}] BytesSent={bytes}");
         try
@@ -455,7 +455,7 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     }
 
     /// <inheritdoc/>
-    protected void RaiseBytesReceived(System.Int64 bytes)
+    protected void RaiseBytesReceived(long bytes)
     {
         Logging?.Trace($"[SDK.{GetType().Name}] BytesReceived={bytes}");
         try
@@ -479,6 +479,7 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     /// <summary>
     /// Start/stage receive worker - scheduling differs per subclass (TaskManager vs Task.Run).
     /// </summary>
+    /// <param name="loopToken"></param>
     protected abstract void StartReceiveWorker(System.Threading.CancellationToken loopToken);
 
     /// <summary>
@@ -499,7 +500,7 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
 
             try
             {
-                var prevSender = System.Threading.Interlocked.Exchange(ref i_sender, null);
+                FRAME_SENDER? prevSender = System.Threading.Interlocked.Exchange(ref i_sender, null);
                 prevSender?.Dispose();
             }
             catch (System.Exception ex)
@@ -512,16 +513,17 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
 
             Logging?.Debug($"[SDK.{GetType().Name}] TearDownConnection: Socket closed and disposed.");
 
-            i_socket = null!;
-            i_receiver = null!;
+            i_socket = null;
+            i_receiver = null;
         }
 
-        i_receiveTask = null!;
+        i_receiveTask = null;
     }
 
     /// <summary>
     /// Cancel and dispose a CancellationTokenSource under lock.
     /// </summary>
+    /// <param name="cts"></param>
     protected static void CancelAndDispose(ref System.Threading.CancellationTokenSource? cts)
     {
         if (cts is null)
@@ -531,12 +533,13 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
 
         try { cts.Cancel(); } catch { }
         try { cts.Dispose(); } catch { }
-        cts = null!;
+        cts = null;
     }
 
     /// <summary>
     /// Throw if socket is not connected; used by FRAME helpers.
     /// </summary>
+    /// <exception cref="System.InvalidOperationException"></exception>
     protected System.Net.Sockets.Socket RequireConnectedSocket()
     {
         System.Net.Sockets.Socket? s = i_socket;
@@ -548,7 +551,8 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     /// <summary>
     /// Report byte counts to subscribers. Subclasses can override to include counters.
     /// </summary>
-    protected virtual void ReportBytesSent(System.Int32 count)
+    /// <param name="count"></param>
+    protected virtual void ReportBytesSent(int count)
     {
         try { OnBytesSent?.Invoke(this, count); } catch { }
     }
@@ -556,7 +560,8 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     /// <summary>
     /// Report byte counts to subscribers. Subclasses can override to include counters.
     /// </summary>
-    protected virtual void ReportBytesReceived(System.Int32 count)
+    /// <param name="count"></param>
+    protected virtual void ReportBytesReceived(int count)
     {
         try { OnBytesReceived?.Invoke(this, count); } catch { }
     }
@@ -565,11 +570,12 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     /// Default receive message delivery for synchronous subscribers.
     /// Derived classes that need async handler support should override.
     /// </summary>
+    /// <param name="lease"></param>
     protected virtual void HandleReceiveMessage(BufferLease lease)
     {
-        System.ReadOnlyMemory<System.Byte> asyncData = default;
+        System.ReadOnlyMemory<byte> asyncData = default;
         System.Delegate[]? handlers = OnMessageReceived?.GetInvocationList();
-        System.Func<TcpSessionBase, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task>? asyncHandler = OnMessageReceivedAsync;
+        System.Func<TcpSessionBase, System.ReadOnlyMemory<byte>, System.Threading.Tasks.Task>? asyncHandler = OnMessageReceivedAsync;
 
         if (asyncHandler is not null)
         {
@@ -623,6 +629,7 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     /// Default send error handler: notify subscribers and tear down connection.
     /// Subclasses can override to implement reconnect semantics.
     /// </summary>
+    /// <param name="ex"></param>
     protected virtual void HandleSendError(System.Exception ex)
     {
         try { OnError?.Invoke(this, ex); } catch { }
@@ -633,6 +640,7 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     /// Default receive error handler: notify subscribers and tear down connection.
     /// Subclasses can override to implement reconnect semantics.
     /// </summary>
+    /// <param name="ex"></param>
     protected virtual void HandleReceiveError(System.Exception ex)
     {
         try { OnError?.Invoke(this, ex); } catch { }
@@ -643,10 +651,11 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     /// Transitions the session to <paramref name="next"/> and logs the change.
     /// Thread-safe via atomic write.
     /// </summary>
+    /// <param name="next"></param>
     protected void SetState(TcpSessionState next)
     {
         TcpSessionState prev = (TcpSessionState)System.Threading.Interlocked.Exchange(
-            ref _connectionState, (System.Int32)next);
+            ref _connectionState, (int)next);
 
         if (prev != next)
         {
@@ -657,7 +666,8 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     /// <summary>
     /// Fires <see cref="OnReconnected"/> with the attempt count.
     /// </summary>
-    protected void RaiseReconnected(System.Int32 attempt)
+    /// <param name="attempt"></param>
+    protected void RaiseReconnected(int attempt)
     {
         Logging?.Info($"[SDK.{GetType().Name}] Reconnected (attempt {attempt}).");
         try
@@ -675,8 +685,8 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     #region Private Methods
 
     private async System.Threading.Tasks.Task InvokeAsyncHandler(
-        System.Func<TcpSessionBase, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task> handler,
-        System.ReadOnlyMemory<System.Byte> data)
+        System.Func<TcpSessionBase, System.ReadOnlyMemory<byte>, System.Threading.Tasks.Task> handler,
+        System.ReadOnlyMemory<byte> data)
     {
         try
         {

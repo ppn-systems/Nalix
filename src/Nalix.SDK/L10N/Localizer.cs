@@ -53,7 +53,7 @@ public class Localizer
     /// var localizer = new Localizer("localization.po");
     /// </code>
     /// </example>
-    public Localizer(System.String path) => _catalog = new PoFile(path);
+    public Localizer(string path) => _catalog = new PoFile(path);
 
     #endregion Constructor
 
@@ -77,7 +77,7 @@ public class Localizer
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public virtual void Load(System.String path) => _catalog.LoadFromFile(path);
+    public virtual void Load(string path) => _catalog.LoadFromFile(path);
 
     /// <summary>
     /// Retrieves the localized string for the specified message ProtocolType.
@@ -94,7 +94,7 @@ public class Localizer
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public virtual System.String Get(System.String id) => _catalog.GetString(id);
+    public virtual string Get(string id) => _catalog.GetString(id);
 
     /// <summary>
     /// Retrieves the localized string for a message within a specific context.
@@ -112,7 +112,7 @@ public class Localizer
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public virtual System.String GetParticular(System.String context, System.String id)
+    public virtual string GetParticular(string context, string id)
         => _catalog.GetParticularString(context, id);
 
     /// <summary>
@@ -133,7 +133,7 @@ public class Localizer
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public virtual System.String GetPlural(System.String id, System.String idPlural, System.Int32 n)
+    public virtual string GetPlural(string id, string idPlural, int n)
         => _catalog.GetPluralString(id, idPlural, n);
 
     /// <summary>
@@ -156,8 +156,8 @@ public class Localizer
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public virtual System.String GetParticularPlural(
-        System.String context, System.String id, System.String idPlural, System.Int32 n)
+    public virtual string GetParticularPlural(
+        string context, string id, string idPlural, int n)
         => _catalog.GetParticularPluralString(context, id, idPlural, n);
 
     #endregion Public API
