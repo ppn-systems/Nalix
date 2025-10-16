@@ -19,9 +19,9 @@ public static class Csprng
 {
     #region Fields
 
-    private static System.String DebuggerDisplay => "Csprng(primary=OS)";
+    private static string DebuggerDisplay => "Csprng(primary=OS)";
 
-    private static readonly System.Action<System.Span<System.Byte>> _f;
+    private static readonly System.Action<System.Span<byte>> _f;
 
     #endregion Fields
 
@@ -29,8 +29,8 @@ public static class Csprng
 
     static Csprng()
     {
-        System.Action<System.Span<System.Byte>> f = OsCsprng.Fill;
-        System.Span<System.Byte> probe = stackalloc System.Byte[16];
+        System.Action<System.Span<byte>> f = OsCsprng.Fill;
+        System.Span<byte> probe = stackalloc byte[16];
 
         try
         {
@@ -64,7 +64,7 @@ public static class Csprng
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void Fill([System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> data)
+    public static void Fill([System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> data)
     {
         if (data.Length == 0)
         {
@@ -85,7 +85,7 @@ public static class Csprng
     /// Never reuse a nonce with the same key in authenticated encryption.
     /// </remarks>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Byte[] CreateNonce([System.Diagnostics.CodeAnalysis.NotNull] System.Int32 length = 12)
+    public static byte[] CreateNonce([System.Diagnostics.CodeAnalysis.NotNull] int length = 12)
     {
         if (length <= 0)
         {
@@ -93,7 +93,7 @@ public static class Csprng
                 nameof(length), length, "Nonce length must be a positive integer.");
         }
 
-        System.Byte[] nonce = new System.Byte[length];
+        byte[] nonce = new byte[length];
         _f(nonce);
         return nonce;
     }
@@ -114,7 +114,7 @@ public static class Csprng
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Byte[] GetBytes([System.Diagnostics.CodeAnalysis.NotNull] System.Int32 length)
+    public static byte[] GetBytes([System.Diagnostics.CodeAnalysis.NotNull] int length)
     {
         if (length < 0)
         {
@@ -126,7 +126,7 @@ public static class Csprng
             return [];
         }
 
-        System.Byte[] bytes = new System.Byte[length];
+        byte[] bytes = new byte[length];
         _f(bytes);
         return bytes;
     }
@@ -145,28 +145,28 @@ public static class Csprng
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int32 GetInt32(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 min,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 max)
+    public static int GetInt32(
+        [System.Diagnostics.CodeAnalysis.NotNull] int min,
+        [System.Diagnostics.CodeAnalysis.NotNull] int max)
     {
         if (min >= max)
         {
             throw new System.ArgumentOutOfRangeException(nameof(max), max, "Max must be greater than min.");
         }
 
-        System.UInt64 range = (System.UInt64)((System.Int64)max - min);
+        ulong range = (ulong)((long)max - min);
 
         // Compute mask on 64-bit to avoid overflow/bias
-        System.Int32 bits = 64 - System.Numerics.BitOperations.LeadingZeroCount(range - 1);
-        System.UInt64 mask = bits >= 64 ? System.UInt64.MaxValue : ((1UL << bits) - 1);
+        int bits = 64 - System.Numerics.BitOperations.LeadingZeroCount(range - 1);
+        ulong mask = bits >= 64 ? ulong.MaxValue : ((1UL << bits) - 1);
 
-        System.UInt64 r;
+        ulong r;
         do
         {
             r = NextUInt64() & mask;
         } while (r >= range);
 
-        return (System.Int32)(r + (System.UInt64)min);
+        return (int)(r + (ulong)min);
     }
 
     /// <summary>
@@ -182,8 +182,8 @@ public static class Csprng
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int32 GetInt32(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 max) => GetInt32(0, max);
+    public static int GetInt32(
+        [System.Diagnostics.CodeAnalysis.NotNull] int max) => GetInt32(0, max);
 
     #endregion Get
 
@@ -202,7 +202,7 @@ public static class Csprng
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void NextBytes(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] buffer)
+        [System.Diagnostics.CodeAnalysis.NotNull] byte[] buffer)
     {
         System.ArgumentNullException.ThrowIfNull(buffer);
         _f(buffer);
@@ -220,7 +220,7 @@ public static class Csprng
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void NextBytes(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> buffer) => Fill(buffer);
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> buffer) => Fill(buffer);
 
     /// <summary>
     /// Generates a cryptographically strong 32-bit random integer.
@@ -234,9 +234,9 @@ public static class Csprng
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.UInt32 NextUInt32()
+    public static uint NextUInt32()
     {
-        System.Span<System.Byte> b = stackalloc System.Byte[4];
+        System.Span<byte> b = stackalloc byte[4];
         _f(b);
         return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(b);
     }
@@ -253,9 +253,9 @@ public static class Csprng
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.UInt64 NextUInt64()
+    public static ulong NextUInt64()
     {
-        System.Span<System.Byte> b = stackalloc System.Byte[8];
+        System.Span<byte> b = stackalloc byte[8];
         _f(b);
         return System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(b);
     }
@@ -272,7 +272,7 @@ public static class Csprng
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Double NextDouble() => (NextUInt64() >> 11) * (1.0 / 9007199254740992.0);
+    public static double NextDouble() => (NextUInt64() >> 11) * (1.0 / 9007199254740992.0);
 
     #endregion Next
 

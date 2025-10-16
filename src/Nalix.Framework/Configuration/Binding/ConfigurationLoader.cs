@@ -25,12 +25,12 @@ public abstract partial class ConfigurationLoader
     #region Fields
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        System.Type, System.String> _sectionNameCache;
+        System.Type, string> _sectionNameCache;
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
         System.Type, ConfigurationMetadata> _metadataCache;
 
-    private static readonly System.String[] _suffixesToTrim =
+    private static readonly string[] _suffixesToTrim =
     [
         "Config",
         "Option",
@@ -42,7 +42,7 @@ public abstract partial class ConfigurationLoader
         "Configurations",
     ];
 
-    private System.Int32 _isInitialized;
+    private int _isInitialized;
 
     #endregion Fields
 
@@ -61,7 +61,7 @@ public abstract partial class ConfigurationLoader
     /// <summary>
     /// Gets a value indicating whether this instance has been initialized.
     /// </summary>
-    public System.Boolean IsInitialized
+    public bool IsInitialized
         => System.Threading.Volatile.Read(ref _isInitialized) == 1;
 
     /// <summary>
@@ -103,7 +103,7 @@ public abstract partial class ConfigurationLoader
 
         foreach (PropertyMetadata propertyInfo in metadata.BindableProperties)
         {
-            System.Object? value = propertyInfo.PropertyInfo.GetValue(this);
+            object? value = propertyInfo.PropertyInfo.GetValue(this);
             propertyInfo.PropertyInfo.SetValue(clone, value);
         }
 
@@ -133,7 +133,7 @@ public abstract partial class ConfigurationLoader
 
         System.Type type = GetType();
         ConfigurationMetadata metadata = GetOrCreateMetadata(type);
-        System.String section = GetSectionName(type);
+        string section = GetSectionName(type);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Trace($"[FW.{nameof(ConfigurationLoader)}:Internal] init type={type.Name} section={section}");
@@ -147,10 +147,10 @@ public abstract partial class ConfigurationLoader
         {
             try
             {
-                System.Object? value = GetConfigValue(configFile, section, propertyInfo);
+                object? value = GetConfigValue(configFile, section, propertyInfo);
 
                 if (value == null ||
-                   (value is System.String strValue && System.String.IsNullOrEmpty(strValue)))
+                   (value is string strValue && string.IsNullOrEmpty(strValue)))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Trace($"[FW.{nameof(ConfigurationLoader)}:Internal] missing-value section={section} key={propertyInfo.Name}");

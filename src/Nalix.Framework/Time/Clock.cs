@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Framework.Time;
 
 /// <summary>
@@ -14,17 +16,17 @@ public static partial class Clock
     #region Constants and Fields
 
     // BaseValue36 values for high-precision time calculation
-    private static readonly System.DateTime UtcBase;
-    private static readonly System.Int64 UtcBaseTicks;
-    private static readonly System.Double DriftSmoothing;
+    private static readonly DateTime UtcBase;
+    private static readonly long UtcBaseTicks;
+    private static readonly double DriftSmoothing;
     private static readonly System.Diagnostics.Stopwatch UtcStopwatch;
 
     // Time synchronization variables
-    private static System.Int64 _timeOffset;
-    private static System.Double _driftCorrection;
-    private static System.Int64 _lastSyncMonoTicks;
-    private static System.DateTime _lastExternalTime;
-    private static readonly System.Double _swToDateTimeTicks;
+    private static long _timeOffset;
+    private static double _driftCorrection;
+    private static long _lastSyncMonoTicks;
+    private static DateTime _lastExternalTime;
+    private static readonly double _swToDateTimeTicks;
 
     #endregion Constants and Fields
 
@@ -33,17 +35,17 @@ public static partial class Clock
     /// <summary>
     /// Gets the frequency of the high-resolution timer in ticks per second.
     /// </summary>
-    public static System.Int64 TicksPerSecond => System.Diagnostics.Stopwatch.Frequency;
+    public static long TicksPerSecond => System.Diagnostics.Stopwatch.Frequency;
 
     /// <summary>
     /// Gets a value indicating whether the clock has been synchronized with an external time source.
     /// </summary>
-    public static System.Boolean IsSynchronized { get; private set; }
+    public static bool IsSynchronized { get; private set; }
 
     /// <summary>
     /// Gets the time when the last synchronization occurred.
     /// </summary>
-    public static System.DateTime LastSyncTime { get; private set; }
+    public static DateTime LastSyncTime { get; private set; }
 
     #endregion Properties
 
@@ -53,15 +55,15 @@ public static partial class Clock
     {
         _timeOffset = 0; // In ticks, adjusted from external time sources
         _driftCorrection = 1.0; // Multiplier to correct for system clock drift
-        _swToDateTimeTicks = (System.Double)System.TimeSpan.TicksPerSecond / System.Diagnostics.Stopwatch.Frequency;
+        _swToDateTimeTicks = (double)TimeSpan.TicksPerSecond / System.Diagnostics.Stopwatch.Frequency;
 
         // Static class, no instantiation allowed
         DriftSmoothing = 0.1;
         IsSynchronized = false;
-        UtcBase = System.DateTime.UtcNow;
+        UtcBase = DateTime.UtcNow;
 
         UtcBaseTicks = UtcBase.Ticks;
-        LastSyncTime = System.DateTime.MinValue;
+        LastSyncTime = DateTime.MinValue;
         UtcStopwatch = System.Diagnostics.Stopwatch.StartNew();
     }
 
@@ -78,40 +80,40 @@ public static partial class Clock
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Double SynchronizeTime(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.DateTime externalTime,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Double maxAllowedDriftMs = 1000.0)
+    public static double SynchronizeTime(
+        [System.Diagnostics.CodeAnalysis.NotNull] DateTime externalTime,
+        [System.Diagnostics.CodeAnalysis.NotNull] double maxAllowedDriftMs = 1000.0)
     {
-        if (externalTime.Kind != System.DateTimeKind.Utc)
+        if (externalTime.Kind != DateTimeKind.Utc)
         {
-            throw new System.ArgumentException("External time must be UTC", nameof(externalTime));
+            throw new ArgumentException("External time must be UTC", nameof(externalTime));
         }
 
-        System.Double diffMs = (externalTime - NowUtc()).TotalMilliseconds;
-        if (System.Math.Abs(diffMs) <= maxAllowedDriftMs)
+        double diffMs = (externalTime - NowUtc()).TotalMilliseconds;
+        if (Math.Abs(diffMs) <= maxAllowedDriftMs)
         {
             return 0;
         }
 
-        System.Int64 nowMono = System.Diagnostics.Stopwatch.GetTimestamp();
+        long nowMono = System.Diagnostics.Stopwatch.GetTimestamp();
 
-        var prevExt = _lastExternalTime;
+        DateTime prevExt = _lastExternalTime;
 
         IsSynchronized = true;
         LastSyncTime = externalTime;
 
-        System.Threading.Volatile.Write(ref _timeOffset, (System.Int64)(diffMs * System.TimeSpan.TicksPerMillisecond));
+        System.Threading.Volatile.Write(ref _timeOffset, (long)(diffMs * TimeSpan.TicksPerMillisecond));
 
-        if (prevExt != System.DateTime.MinValue)
+        if (prevExt != DateTime.MinValue)
         {
-            System.Double extElapsed = (externalTime - prevExt).TotalSeconds;
-            System.Int64 deltaMono = nowMono - _lastSyncMonoTicks;
+            double extElapsed = (externalTime - prevExt).TotalSeconds;
+            long deltaMono = nowMono - _lastSyncMonoTicks;
 
-            System.Double monoElapsed = deltaMono / (System.Double)System.Diagnostics.Stopwatch.Frequency;
+            double monoElapsed = deltaMono / (double)System.Diagnostics.Stopwatch.Frequency;
             if (monoElapsed > 60.0)
             {
-                System.Double drift = extElapsed / monoElapsed;
-                System.Double dc = _driftCorrection;
+                double drift = extElapsed / monoElapsed;
+                double dc = _driftCorrection;
                 dc += (drift - dc) * DriftSmoothing;   // optimized smoothing
                 System.Threading.Volatile.Write(ref _driftCorrection, dc);
             }
@@ -131,51 +133,51 @@ public static partial class Clock
     /// <param name="maxAllowedDriftMs">Maximum allowed drift in milliseconds before adjustment is applied. Must be positive.</param>
     /// <param name="maxHardAdjustMs">Maximum hard adjustment in milliseconds. Must be positive.</param>
     /// <returns>The adjustment made in milliseconds, or 0 if inputs are invalid or adjustment exceeds limits.</returns>
-    /// <exception cref="System.ArgumentException">Thrown when input parameters are invalid.</exception>
+    /// <exception cref="ArgumentException">Thrown when input parameters are invalid.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Double SynchronizeUnixMilliseconds(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Int64 serverUnixMs,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Double rttMs = 0,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Double maxAllowedDriftMs = 1_000.0,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Double maxHardAdjustMs = 10_000.0)
+    public static double SynchronizeUnixMilliseconds(
+        [System.Diagnostics.CodeAnalysis.NotNull] long serverUnixMs,
+        [System.Diagnostics.CodeAnalysis.NotNull] double rttMs = 0,
+        [System.Diagnostics.CodeAnalysis.NotNull] double maxAllowedDriftMs = 1_000.0,
+        [System.Diagnostics.CodeAnalysis.NotNull] double maxHardAdjustMs = 10_000.0)
     {
         // Validate input parameters
         if (serverUnixMs < 0)
         {
-            throw new System.ArgumentException("Server Unix timestamp cannot be negative", nameof(serverUnixMs));
+            throw new ArgumentException("Server Unix timestamp cannot be negative", nameof(serverUnixMs));
         }
 
         if (rttMs < 0)
         {
-            throw new System.ArgumentException("RTT cannot be negative", nameof(rttMs));
+            throw new ArgumentException("RTT cannot be negative", nameof(rttMs));
         }
 
         if (maxAllowedDriftMs <= 0)
         {
-            throw new System.ArgumentException("Max allowed drift must be positive", nameof(maxAllowedDriftMs));
+            throw new ArgumentException("Max allowed drift must be positive", nameof(maxAllowedDriftMs));
         }
 
         if (maxHardAdjustMs <= 0)
         {
-            throw new System.ArgumentException("Max hard adjust must be positive", nameof(maxHardAdjustMs));
+            throw new ArgumentException("Max hard adjust must be positive", nameof(maxHardAdjustMs));
         }
 
         // Sanity check: Unix timestamp should be reasonable (after year 2000 and before year 2100)
-        const System.Int64 MinReasonableUnixMs = 946684800000L; // Jan 1, 2000
-        const System.Int64 MaxReasonableUnixMs = 4102444800000L; // Jan 1, 2100
+        const long MinReasonableUnixMs = 946684800000L; // Jan 1, 2000
+        const long MaxReasonableUnixMs = 4102444800000L; // Jan 1, 2100
         if (serverUnixMs is < MinReasonableUnixMs or > MaxReasonableUnixMs)
         {
-            throw new System.ArgumentException("Server Unix timestamp is outside reasonable range (2000-2100)", nameof(serverUnixMs));
+            throw new ArgumentException("Server Unix timestamp is outside reasonable range (2000-2100)", nameof(serverUnixMs));
         }
 
         // Compensate half RTT (one-way latency)
-        System.Int64 corrected = serverUnixMs + (System.Int64)(rttMs * 0.5);
-        System.DateTime externalTime = System.DateTime.UnixEpoch.AddMilliseconds(corrected);
+        long corrected = serverUnixMs + (long)(rttMs * 0.5);
+        DateTime externalTime = DateTime.UnixEpoch.AddMilliseconds(corrected);
 
-        System.Double adjustMs = (externalTime - NowUtc()).TotalMilliseconds;
-        return System.Math.Abs(adjustMs) > maxHardAdjustMs ? 0 : SynchronizeTime(externalTime, maxAllowedDriftMs);
+        double adjustMs = (externalTime - NowUtc()).TotalMilliseconds;
+        return Math.Abs(adjustMs) > maxHardAdjustMs ? 0 : SynchronizeTime(externalTime, maxAllowedDriftMs);
     }
 
     /// <summary>
@@ -190,7 +192,7 @@ public static partial class Clock
         _ = System.Threading.Interlocked.Exchange(ref _driftCorrection, 1.0);
 
         IsSynchronized = false;
-        LastSyncTime = System.DateTime.MinValue;
+        LastSyncTime = DateTime.MinValue;
     }
 
     /// <summary>
@@ -201,7 +203,7 @@ public static partial class Clock
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Double DriftRate() => System.Threading.Volatile.Read(ref _driftCorrection);
+    public static double DriftRate() => System.Threading.Volatile.Read(ref _driftCorrection);
 
     /// <summary>
     /// Gets the current error estimate between the synchronized time and system time in milliseconds.
@@ -209,15 +211,15 @@ public static partial class Clock
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Double CurrentErrorEstimateMs()
+    public static double CurrentErrorEstimateMs()
     {
         if (!IsSynchronized)
         {
             return 0;
         }
 
-        var driftedTime = NowUtc();
-        var systemTime = System.DateTime.UtcNow;
+        DateTime driftedTime = NowUtc();
+        DateTime systemTime = DateTime.UtcNow;
         return (driftedTime - systemTime).TotalMilliseconds;
     }
 

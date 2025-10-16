@@ -22,7 +22,7 @@ internal class PropertyMetadata
     /// <summary>
     /// Gets or sets the optional comment written above this key in the INI file.
     /// </summary>
-    public System.String? Comment { get; init; }
+    public string? Comment { get; init; }
 
     /// <summary>
     /// Gets or sets the type code of the property.
@@ -33,7 +33,7 @@ internal class PropertyMetadata
     /// Gets or sets the name of the property.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.NotNull]
-    public System.String Name { get; init; } = null!;
+    public string Name { get; init; } = null!;
 
     /// <summary>
     /// Gets or sets the type of the property.
@@ -62,8 +62,8 @@ internal class PropertyMetadata
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void SetValue(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Object target,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Object? value)
+        [System.Diagnostics.CodeAnalysis.NotNull] object target,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] object? value)
     {
         // Only set if the types are compatible
         if (value == null || PropertyType.IsInstanceOfType(value))
