@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Connection;
-using Nalix.Common.Messaging.Packets.Abstractions;
+using Nalix.Common.Messaging.Abstractions;
 
-namespace Nalix.Common.Messaging.Packets.Attributes;
+namespace Nalix.Common.Messaging.Attributes;
 
 /// <summary>
 /// Specifies that the target class is a packet controller responsible for handling packet commands.

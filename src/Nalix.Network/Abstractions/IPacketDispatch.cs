@@ -4,7 +4,7 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Connection;
 using Nalix.Common.Infrastructure.Caching;
-using Nalix.Common.Messaging.Packets.Abstractions;
+using Nalix.Common.Messaging.Abstractions;
 
 namespace Nalix.Network.Abstractions;
 

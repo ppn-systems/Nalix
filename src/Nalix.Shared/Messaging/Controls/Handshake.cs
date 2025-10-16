@@ -3,8 +3,8 @@
 
 using Nalix.Common.Attributes;
 using Nalix.Common.Infrastructure.Caching;
+using Nalix.Common.Messaging.Abstractions;
 using Nalix.Common.Messaging.Packets;
-using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Common.Messaging.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Injection;

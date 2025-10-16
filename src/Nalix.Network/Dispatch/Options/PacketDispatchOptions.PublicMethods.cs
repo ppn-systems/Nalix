@@ -5,7 +5,7 @@ using Nalix.Common.Attributes;
 using Nalix.Common.Connection;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Enums;
-using Nalix.Common.Messaging.Packets.Attributes;
+using Nalix.Common.Messaging.Attributes;
 using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch.Delegates;

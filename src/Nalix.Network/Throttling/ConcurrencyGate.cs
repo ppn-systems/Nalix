@@ -4,7 +4,7 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
-using Nalix.Common.Messaging.Packets.Attributes;
+using Nalix.Common.Messaging.Attributes;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
