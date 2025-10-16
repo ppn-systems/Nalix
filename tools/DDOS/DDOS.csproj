@@ -9,11 +9,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="Nalix.Common" Version="10.5.5" />
-	  <PackageReference Include="Nalix.Framework" Version="10.5.5" />
-	  <PackageReference Include="Nalix.Logging" Version="10.5.5" />
-	  <PackageReference Include="Nalix.SDK" Version="10.5.5" />
-	  <PackageReference Include="Nalix.Shared" Version="10.5.5" />
+	  <PackageReference Include="Nalix.Common" Version="10.7.6" />
+	  <PackageReference Include="Nalix.Framework" Version="10.7.6" />
+	  <PackageReference Include="Nalix.Logging" Version="10.7.6" />
+	  <PackageReference Include="Nalix.SDK" Version="10.7.6" />
+	  <PackageReference Include="Nalix.Shared" Version="10.7.6" />
 	</ItemGroup>
 	
 </Project>
