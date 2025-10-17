@@ -3,7 +3,7 @@
 
 using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Primitives;
-using Nalix.Common.Serialization;
+using Nalix.Common.Serialization.Attributes;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Serialization.Formatters.Automatic;
 using Nalix.Shared.Serialization.Formatters.Cache;
