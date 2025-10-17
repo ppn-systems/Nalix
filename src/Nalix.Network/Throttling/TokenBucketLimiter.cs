@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved. 
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
@@ -31,13 +32,13 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     public readonly struct RateLimitDecision
     {
         /// <summary>True if request is allowed (token consumed).</summary>
-        public System.Boolean Allowed { get; init; }
+        public bool Allowed { get; init; }
 
         /// <summary>Milliseconds until at least 1 token becomes available (0 if allowed or no soft backoff).</summary>
-        public System.Int32 RetryAfterMs { get; init; }
+        public int RetryAfterMs { get; init; }
 
         /// <summary>Remaining whole tokens (credit) after the check.</summary>
-        public System.UInt16 Credit { get; init; }
+        public ushort Credit { get; init; }
 
         /// <summary>Reason for throttling; NONE if allowed.</summary>
         public RateLimitReason Reason { get; init; }
@@ -46,7 +47,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Throttling reason taxonomy.
     /// </summary>
-    public enum RateLimitReason : System.Byte
+    public enum RateLimitReason : byte
     {
         /// <summary>NONE. </summary>
         None = 0,
@@ -69,15 +70,15 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>Per-endpoint mutable state; guarded by its <see cref="Gate"/>.</summary>
     private sealed class EndpointState
     {
-        public readonly System.Object Gate = new();
+        public readonly object Gate = new();
 
-        public System.Int64 LastSeenSw;
-        public System.Int64 MicroBalance;
-        public System.Int32 SoftViolations;
-        public System.Int64 LastViolationSw;
-        public System.Int64 AccumulatedMicro;
-        public System.Int64 LastRefillSwTicks;
-        public System.Int64 HardBlockedUntilSw;
+        public long LastSeenSw;
+        public long MicroBalance;
+        public int SoftViolations;
+        public long LastViolationSw;
+        public long AccumulatedMicro;
+        public long LastRefillSwTicks;
+        public long HardBlockedUntilSw;
     }
 
     /// <summary>A shard contains a dictionary of endpoint states.</summary>
@@ -90,7 +91,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     private readonly struct EndpointStateResult
     {
         public EndpointState State { get; init; }
-        public System.Boolean IsNew { get; init; }
+        public bool IsNew { get; init; }
         public RateLimitDecision? EarlyDecision { get; init; }
     }
 
@@ -98,28 +99,28 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
     #region Constants
 
-    private const System.Int32 MinReportCapacity = 256;
-    private const System.Int32 MaxEvictionCapacity = 4096;
-    private const System.Int32 CancellationCheckFrequency = 256;
-    private const System.Double MaxDelayMs = System.Int32.MaxValue - 1000.0;
+    private const int MinReportCapacity = 256;
+    private const int MaxEvictionCapacity = 4096;
+    private const int CancellationCheckFrequency = 256;
+    private const double MaxDelayMs = int.MaxValue - 1000.0;
 
     #endregion Constants
 
     #region Fields
 
     private readonly Shard[] _shards;
-    private readonly System.Double _swFreq;
+    private readonly double _swFreq;
     private readonly TokenBucketOptions _options;
-    private readonly System.Int64 _capacityMicro;
-    private readonly System.Int64 _refillPerSecMicro;
-    private readonly System.Int32 _cleanupIntervalSec;
-    private readonly System.Int64 _initialBalanceMicro;
+    private readonly long _capacityMicro;
+    private readonly long _refillPerSecMicro;
+    private readonly int _cleanupIntervalSec;
+    private readonly long _initialBalanceMicro;
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
     private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
-    private System.Int32 _totalEndpointCount;
-    private volatile System.Boolean _disposed;
+    private int _totalEndpointCount;
+    private volatile bool _disposed;
 
     #endregion Fields
 
@@ -128,7 +129,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Recurring job name for cleanup task. Format: "token.bucket".
     /// </summary>
-    public static readonly System.String RecurringName;
+    public static readonly string RecurringName;
 
     #endregion Properties
 
@@ -150,19 +151,19 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         _shards = new Shard[_options.ShardCount];
         _swFreq = System.Diagnostics.Stopwatch.Frequency;
         _cleanupIntervalSec = _options.CleanupIntervalSeconds;
-        _capacityMicro = (System.Int64)_options.CapacityTokens * _options.TokenScale;
-        _refillPerSecMicro = (System.Int64)System.Math.Round(_options.RefillTokensPerSecond * _options.TokenScale);
+        _capacityMicro = (long)_options.CapacityTokens * _options.TokenScale;
+        _refillPerSecMicro = (long)System.Math.Round(_options.RefillTokensPerSecond * _options.TokenScale);
 
         _initialBalanceMicro = CalculateInitialBalance();
 
-        for (System.Int32 i = 0; i < _shards.Length; i++)
+        for (int i = 0; i < _shards.Length; i++)
         {
             _shards[i] = new Shard();
         }
 
         SCHEDULE_CLEANUP_JOB();
 
-        System.String initialDesc = _options.InitialTokens < 0
+        string initialDesc = _options.InitialTokens < 0
             ? "full"
             : _options.InitialTokens.ToString();
 
@@ -213,7 +214,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         VALIDATE_ENDPOINT(key);
 
-        System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
+        long now = System.Diagnostics.Stopwatch.GetTimestamp();
         Shard shard = SELECT_SHARD(key);
 
         EndpointStateResult result = GET_OR_CREATE_ENDPOINT_STATE(key, shard, now);
@@ -228,11 +229,11 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <returns>Formatted string report.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public System.String GenerateReport()
+    public string GenerateReport()
     {
-        System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
+        long now = System.Diagnostics.Stopwatch.GetTimestamp();
 
-        var snapshot = COLLECT_STATE_SNAPSHOT(now, out System.Int32 totalEndpoints, out System.Int32 hardBlockedCount);
+        List<KeyValuePair<INetworkEndpoint, EndpointState>> snapshot = COLLECT_STATE_SNAPSHOT(now, out int totalEndpoints, out int hardBlockedCount);
 
         try
         {
@@ -251,6 +252,9 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Validates the provided endpoint.
     /// </summary>
+    /// <param name="key"></param>
+    /// <exception cref="System.ArgumentNullException"></exception>
+    /// <exception cref="System.ArgumentException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void VALIDATE_ENDPOINT(INetworkEndpoint key)
@@ -260,7 +264,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             throw new System.ArgumentNullException(nameof(key), "Endpoint cannot be null");
         }
 
-        if (System.String.IsNullOrEmpty(key.Address))
+        if (string.IsNullOrEmpty(key.Address))
         {
             throw new System.ArgumentException("Endpoint address cannot be null or empty", nameof(key));
         }
@@ -269,9 +273,12 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Gets existing or creates new endpoint state with proper limit enforcement.
     /// </summary>
+    /// <param name="key"></param>
+    /// <param name="shard"></param>
+    /// <param name="now"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private EndpointStateResult GET_OR_CREATE_ENDPOINT_STATE(INetworkEndpoint key, Shard shard, System.Int64 now)
+    private EndpointStateResult GET_OR_CREATE_ENDPOINT_STATE(INetworkEndpoint key, Shard shard, long now)
     {
         // Fast-path: endpoint already tracked
         if (shard.Map.TryGetValue(key, out EndpointState existingState))
@@ -286,10 +293,13 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Creates a new endpoint state with proper concurrency and limit enforcement.
     /// </summary>
+    /// <param name="key"></param>
+    /// <param name="shard"></param>
+    /// <param name="now"></param>
     private EndpointStateResult CREATE_NEW_ENDPOINT_STATE(
         INetworkEndpoint key,
         Shard shard,
-        System.Int64 now)
+        long now)
     {
         // Pre-check limit before allocation
         if (IS_ENDPOINT_LIMIT_REACHED())
@@ -303,7 +313,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         }
 
         EndpointState newState = CREATE_INITIAL_ENDPOINT_STATE(now);
-        System.Int32 newCount = System.Threading.Interlocked.Increment(ref _totalEndpointCount);
+        int newCount = System.Threading.Interlocked.Increment(ref _totalEndpointCount);
 
         if (!shard.Map.TryAdd(key, newState))
         {
@@ -335,9 +345,10 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Creates initial state for a new endpoint with full bucket.
     /// </summary>
+    /// <param name="now"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private EndpointState CREATE_INITIAL_ENDPOINT_STATE(System.Int64 now)
+    private EndpointState CREATE_INITIAL_ENDPOINT_STATE(long now)
     {
         return new EndpointState
         {
@@ -355,27 +366,30 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Boolean IS_ENDPOINT_LIMIT_REACHED()
+    private bool IS_ENDPOINT_LIMIT_REACHED()
     {
         if (_options.MaxTrackedEndpoints <= 0)
         {
             return false;
         }
 
-        System.Int32 currentCount = System.Threading.Volatile.Read(ref _totalEndpointCount);
+        int currentCount = System.Threading.Volatile.Read(ref _totalEndpointCount);
         return currentCount >= _options.MaxTrackedEndpoints;
     }
 
     /// <summary>
     /// Checks if newly added endpoint should be rejected due to limit.
     /// </summary>
+    /// <param name="newCount"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Boolean SHOULD_REJECT_DUE_TO_LIMIT(System.Int32 newCount) => _options.MaxTrackedEndpoints > 0 && newCount > _options.MaxTrackedEndpoints;
+    private bool SHOULD_REJECT_DUE_TO_LIMIT(int newCount) => _options.MaxTrackedEndpoints > 0 && newCount > _options.MaxTrackedEndpoints;
 
     /// <summary>
     /// Removes a newly added endpoint that exceeded the limit.
     /// </summary>
+    /// <param name="key"></param>
+    /// <param name="shard"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void REMOVE_NEWLY_ADDED_ENDPOINT(INetworkEndpoint key, Shard shard)
@@ -409,9 +423,12 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Evaluates rate limit for an endpoint and returns decision.
     /// </summary>
+    /// <param name="key"></param>
+    /// <param name="state"></param>
+    /// <param name="now"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private RateLimitDecision EVALUATE_RATE_LIMIT(INetworkEndpoint key, EndpointState state, System.Int64 now)
+    private RateLimitDecision EVALUATE_RATE_LIMIT(INetworkEndpoint key, EndpointState state, long now)
     {
         lock (state.Gate)
         {
@@ -440,13 +457,16 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Checks if endpoint is currently hard-blocked.
     /// </summary>
+    /// <param name="state"></param>
+    /// <param name="now"></param>
+    /// <param name="decision"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Boolean IS_HARD_BLOCKED(EndpointState state, System.Int64 now, out RateLimitDecision decision)
+    private bool IS_HARD_BLOCKED(EndpointState state, long now, out RateLimitDecision decision)
     {
         if (state.HardBlockedUntilSw > now)
         {
-            System.Int32 retryMs = CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
+            int retryMs = CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
             s_logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] hard-blocked retry_ms={retryMs}");
 
             decision = new RateLimitDecision
@@ -466,13 +486,15 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Checks if state has enough tokens for consumption.
     /// </summary>
+    /// <param name="state"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Boolean CAN_CONSUME_TOKEN(EndpointState state) => state.MicroBalance >= _options.TokenScale;
+    private bool CAN_CONSUME_TOKEN(EndpointState state) => state.MicroBalance >= _options.TokenScale;
 
     /// <summary>
     /// Consumes a token and creates an allowed decision.
     /// </summary>
+    /// <param name="state"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private RateLimitDecision CONSUME_TOKEN_AN_DCREATE_DECISION(EndpointState state)
@@ -480,7 +502,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         state.SoftViolations = 0;
         state.MicroBalance -= _options.TokenScale;
 
-        System.UInt16 credit = CALCULATE_REMAINING_CREDIT(state.MicroBalance, _options.TokenScale);
+        ushort credit = CALCULATE_REMAINING_CREDIT(state.MicroBalance, _options.TokenScale);
 
         if (credit <= 1)
         {
@@ -499,10 +521,13 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Handles the case when endpoint doesn't have enough tokens.
     /// </summary>
-    private RateLimitDecision HANDLE_INSUFFICIENT_TOKENS(INetworkEndpoint key, EndpointState state, System.Int64 now)
+    /// <param name="key"></param>
+    /// <param name="state"></param>
+    /// <param name="now"></param>
+    private RateLimitDecision HANDLE_INSUFFICIENT_TOKENS(INetworkEndpoint key, EndpointState state, long now)
     {
-        System.Int64 needed = _options.TokenScale - state.MicroBalance;
-        System.Int32 retryMs = CALCULATE_RETRY_DELAY_MS(needed);
+        long needed = _options.TokenScale - state.MicroBalance;
+        int retryMs = CALCULATE_RETRY_DELAY_MS(needed);
 
         RECORD_VIOLATION(state, now);
 
@@ -521,11 +546,13 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Records a soft violation for the endpoint.
     /// </summary>
+    /// <param name="state"></param>
+    /// <param name="now"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void RECORD_VIOLATION(EndpointState state, System.Int64 now)
+    private void RECORD_VIOLATION(EndpointState state, long now)
     {
-        System.Int64 windowTicks = TO_TICKS(_options.SoftViolationWindowSeconds);
+        long windowTicks = TO_TICKS(_options.SoftViolationWindowSeconds);
 
         if (now - state.LastViolationSw <= windowTicks)
         {
@@ -542,22 +569,26 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Checks if violations should escalate to hard lockout.
     /// </summary>
+    /// <param name="state"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Boolean SHOULD_ESCALATE_TO_HARD_LOCK(EndpointState state) => state.SoftViolations >= _options.MaxSoftViolations;
+    private bool SHOULD_ESCALATE_TO_HARD_LOCK(EndpointState state) => state.SoftViolations >= _options.MaxSoftViolations;
 
     /// <summary>
     /// Escalates endpoint to hard lockout.
     /// </summary>
+    /// <param name="key"></param>
+    /// <param name="state"></param>
+    /// <param name="now"></param>
     private RateLimitDecision ESCALATE_TO_HARD_LOCK(
         INetworkEndpoint key,
         EndpointState state,
-        System.Int64 now)
+        long now)
     {
         state.HardBlockedUntilSw = now + TO_TICKS(_options.HardLockoutSeconds);
         state.SoftViolations = 0;
 
-        System.Int32 retryMs = CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
+        int retryMs = CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
         s_logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] escalate-to-hard-lock " +
                      $"endpoint={key.Address} retry_ms={retryMs}");
 
@@ -577,11 +608,13 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Refills tokens based on elapsed time since last refill.
     /// </summary>
+    /// <param name="now"></param>
+    /// <param name="state"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void REFILL_TOKENS(System.Int64 now, EndpointState state)
+    private void REFILL_TOKENS(long now, EndpointState state)
     {
-        System.Int64 dt = now - state.LastRefillSwTicks;
+        long dt = now - state.LastRefillSwTicks;
 
         if (dt <= 0)
         {
@@ -592,7 +625,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         state.LastRefillSwTicks = now;
 
         // Check for potential overflow before multiplication
-        if (dt > System.Int64.MaxValue / _refillPerSecMicro)
+        if (dt > long.MaxValue / _refillPerSecMicro)
         {
             // Extreme case: very long dt or high refill rate → cap at full
             state.AccumulatedMicro = 0;
@@ -608,16 +641,16 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         }
 
         // Formula: (dt * refillRate) + accumulated = whole_tokens * frequency + remainder
-        System.Int64 totalMicro = (dt * _refillPerSecMicro) + state.AccumulatedMicro;
-        System.Int64 microToAdd = totalMicro / (System.Int64)_swFreq;
-        System.Int64 remainder = totalMicro % (System.Int64)_swFreq;
+        long totalMicro = (dt * _refillPerSecMicro) + state.AccumulatedMicro;
+        long microToAdd = totalMicro / (long)_swFreq;
+
 
         // Store remainder for next refill (prevents precision loss)
-        state.AccumulatedMicro = remainder;
+        state.AccumulatedMicro = totalMicro % (long)_swFreq;
 
         if (microToAdd > 0)
         {
-            System.Int64 newBalance = state.MicroBalance + microToAdd;
+            long newBalance = state.MicroBalance + microToAdd;
 
             // Clamp to capacity
             state.MicroBalance = newBalance >= _capacityMicro
@@ -639,9 +672,10 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Calculates retry delay in milliseconds for needed micro-tokens.
     /// </summary>
+    /// <param name="microNeeded"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Int32 CALCULATE_RETRY_DELAY_MS(System.Int64 microNeeded)
+    private int CALCULATE_RETRY_DELAY_MS(long microNeeded)
     {
         if (_refillPerSecMicro <= 0)
         {
@@ -654,22 +688,22 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         }
 
         // Check for potential overflow BEFORE calculation
-        if (microNeeded > (System.Int64.MaxValue / 1000))
+        if (microNeeded > (long.MaxValue / 1000))
         {
             // Would overflow in multiplication
-            return System.Int32.MaxValue;
+            return int.MaxValue;
         }
 
         // Safe calculation with double precision
-        System.Double delayMs = microNeeded * 1000.0 / _refillPerSecMicro;
+        double delayMs = microNeeded * 1000.0 / _refillPerSecMicro;
 
         // Clamp to maximum safe value
-        if (delayMs >= MaxDelayMs || System.Double.IsInfinity(delayMs) || System.Double.IsNaN(delayMs))
+        if (delayMs >= MaxDelayMs || double.IsInfinity(delayMs) || double.IsNaN(delayMs))
         {
-            return System.Int32.MaxValue;
+            return int.MaxValue;
         }
 
-        System.Int32 ms = (System.Int32)System.Math.Ceiling(delayMs);
+        int ms = (int)System.Math.Ceiling(delayMs);
 
         // Clamp to [0, Int32.MaxValue]
         return ms < 0 ? 0 : ms;
@@ -678,33 +712,35 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Calculates delay in milliseconds from now until target timestamp.
     /// </summary>
+    /// <param name="now"></param>
+    /// <param name="untilSw"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Int32 CALCULATE_DELAY_MS(System.Int64 now, System.Int64 untilSw)
+    private int CALCULATE_DELAY_MS(long now, long untilSw)
     {
         if (untilSw <= now)
         {
             return 0; // Already passed
         }
 
-        System.Int64 dtTicks = untilSw - now;
+        long dtTicks = untilSw - now;
 
-        if (dtTicks is < 0 or > (System.Int64.MaxValue / 1000))
+        if (dtTicks is < 0 or > (long.MaxValue / 1000))
         {
-            return System.Int32.MaxValue;
+            return int.MaxValue;
         }
 
-        System.Double sec = dtTicks / _swFreq;
-        System.Int64 wholeTicks = (System.Int64)(sec * _swFreq);
-        System.Int64 remainderTicks = dtTicks - wholeTicks;
-        System.Double delayMs = (sec * 1000.0) + (remainderTicks * 1000.0 / _swFreq);
+        double sec = dtTicks / _swFreq;
+        long wholeTicks = (long)(sec * _swFreq);
+        long remainderTicks = dtTicks - wholeTicks;
+        double delayMs = (sec * 1000.0) + (remainderTicks * 1000.0 / _swFreq);
 
-        if (delayMs >= MaxDelayMs || System.Double.IsInfinity(delayMs) || System.Double.IsNaN(delayMs))
+        if (delayMs >= MaxDelayMs || double.IsInfinity(delayMs) || double.IsNaN(delayMs))
         {
-            return System.Int32.MaxValue;
+            return int.MaxValue;
         }
 
-        System.Int32 ms = (System.Int32)System.Math.Ceiling(delayMs);
+        int ms = (int)System.Math.Ceiling(delayMs);
 
         return ms < 0 ? 0 : ms;
     }
@@ -712,20 +748,30 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Converts seconds to Stopwatch ticks.
     /// </summary>
+    /// <param name="seconds"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Int64 TO_TICKS(System.Int32 seconds) => (System.Int64)System.Math.Round(seconds * _swFreq);
+    private long TO_TICKS(int seconds) => (long)System.Math.Round(seconds * _swFreq);
 
     /// <summary>
     /// Calculates remaining whole tokens from micro balance.
     /// </summary>
+    /// <param name="microBalance"></param>
+    /// <param name="tokenScale"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt16 CALCULATE_REMAINING_CREDIT(System.Int64 microBalance, System.Int32 tokenScale)
+    private static ushort CALCULATE_REMAINING_CREDIT(long microBalance, int tokenScale)
     {
-        System.Int64 tokens = microBalance / tokenScale;
+        long tokens = microBalance / tokenScale;
 
-        return tokens <= 0 ? (System.UInt16)0 : tokens >= System.UInt16.MaxValue ? System.UInt16.MaxValue : (System.UInt16)tokens;
+        if (tokens <= 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return tokens >= ushort.MaxValue ? ushort.MaxValue : (ushort)tokens;
+        }
     }
 
     #endregion Time & Calculation Helpers
@@ -735,23 +781,24 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Selects shard for the given endpoint using hash mixing.
     /// </summary>
+    /// <param name="key"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private Shard SELECT_SHARD(INetworkEndpoint key)
     {
-        System.Int32 hash = key.GetHashCode();
+        int hash = key.GetHashCode();
 
         // Mix hash with FNV-1a prime for better distribution
         unchecked
         {
-            System.UInt32 h = (System.UInt32)hash;
+            uint h = (uint)hash;
             h ^= h >> 16;
             h *= 0x85ebca6b;
             h ^= h >> 13;
             h *= 0xc2b2ae35;
             h ^= h >> 16;
 
-            return _shards[(System.Int32)(h & (System.UInt32)(_shards.Length - 1))];
+            return _shards[(int)(h & (uint)(_shards.Length - 1))];
         }
     }
 
@@ -762,30 +809,33 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Collects a consistent snapshot of all endpoint states.
     /// </summary>
-    private System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>>
-        COLLECT_STATE_SNAPSHOT(System.Int64 now, out System.Int32 totalEndpoints, out System.Int32 hardBlockedCount)
+    /// <param name="now"></param>
+    /// <param name="totalEndpoints"></param>
+    /// <param name="hardBlockedCount"></param>
+    private List<KeyValuePair<INetworkEndpoint, EndpointState>>
+        COLLECT_STATE_SNAPSHOT(long now, out int totalEndpoints, out int hardBlockedCount)
     {
-        System.Int32 currentCount = System.Threading.Interlocked.CompareExchange(ref _totalEndpointCount, 0, 0);
-        System.Int32 estimatedCapacity = currentCount > 0 ? currentCount : (_shards.Length * 8);
-        System.Int32 initialCapacity = System.Math.Max(MinReportCapacity, estimatedCapacity);
+        int currentCount = System.Threading.Interlocked.CompareExchange(ref _totalEndpointCount, 0, 0);
+        int estimatedCapacity = currentCount > 0 ? currentCount : (_shards.Length * 8);
+        int initialCapacity = System.Math.Max(MinReportCapacity, estimatedCapacity);
 
-        var pool = ListPool<System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>>.Instance;
-        var snapshot = pool.Rent(minimumCapacity: initialCapacity);
+        ListPool<KeyValuePair<INetworkEndpoint, EndpointState>> pool = ListPool<KeyValuePair<INetworkEndpoint, EndpointState>>.Instance;
+        List<KeyValuePair<INetworkEndpoint, EndpointState>> snapshot = pool.Rent(minimumCapacity: initialCapacity);
 
         totalEndpoints = 0;
         hardBlockedCount = 0;
 
         // Collect snapshot from all shards
-        foreach (var shard in _shards)
+        foreach (Shard shard in _shards)
         {
             totalEndpoints += shard.Map.Count;
 
-            foreach (var kv in shard.Map)
+            foreach (KeyValuePair<INetworkEndpoint, EndpointState> kv in shard.Map)
             {
                 snapshot.Add(kv);
 
                 // Count hard-blocked during collection
-                System.Boolean isBlocked;
+                bool isBlocked;
                 lock (kv.Value.Gate)
                 {
                     isBlocked = kv.Value.HardBlockedUntilSw > now;
@@ -806,15 +856,17 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Sorts snapshot by pressure (blocked first, then by token deficit).
     /// </summary>
-    private void SORT_SNAPSHOT_BY_PRESSURE(System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>> snapshot, System.Int64 now)
+    /// <param name="snapshot"></param>
+    /// <param name="now"></param>
+    private void SORT_SNAPSHOT_BY_PRESSURE(List<KeyValuePair<INetworkEndpoint, EndpointState>> snapshot, long now)
     {
         snapshot.Sort((a, b) =>
         {
             EndpointState sa = a.Value;
             EndpointState sb = b.Value;
 
-            System.Boolean aBlocked, bBlocked;
-            System.Int64 aMicro, bMicro;
+            bool aBlocked, bBlocked;
+            long aMicro, bMicro;
 
             lock (sa.Gate)
             {
@@ -835,40 +887,53 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             }
 
             // Then by deficit (bigger deficit = higher pressure)
-            System.Int64 aDef = CALCULATE_DEFICIT(aMicro);
-            System.Int64 bDef = CALCULATE_DEFICIT(bMicro);
+            long aDef = CALCULATE_DEFICIT(aMicro);
+            long bDef = CALCULATE_DEFICIT(bMicro);
 
-            System.Int32 cmpDef = bDef.CompareTo(aDef);
+            int cmpDef = bDef.CompareTo(aDef);
             if (cmpDef != 0)
             {
                 return cmpDef;
             }
 
             // Tie-breaker by address
-            return System.String.CompareOrdinal(a.Key.Address, b.Key.Address);
+            return string.CompareOrdinal(a.Key.Address, b.Key.Address);
         });
     }
 
     /// <summary>
     /// Calculates token deficit for pressure metric.
     /// </summary>
+    /// <param name="microBalance"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Int64 CALCULATE_DEFICIT(System.Int64 microBalance)
+    private long CALCULATE_DEFICIT(long microBalance)
     {
-        System.Int64 clamped = microBalance < 0 ? 0 :
-                              (microBalance > _capacityMicro ? _capacityMicro : microBalance);
+        long clamped;
+        if (microBalance < 0)
+        {
+            clamped = 0;
+        }
+        else
+        {
+            clamped = microBalance > _capacityMicro ? _capacityMicro : microBalance;
+        }
+
         return _capacityMicro - clamped;
     }
 
     /// <summary>
     /// Builds the report string from snapshot data.
     /// </summary>
-    private System.String BUILD_REPORT_STRING(
-        System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>> snapshot,
-        System.Int32 totalEndpoints,
-        System.Int32 hardBlockedCount,
-        System.Int64 now)
+    /// <param name="snapshot"></param>
+    /// <param name="totalEndpoints"></param>
+    /// <param name="hardBlockedCount"></param>
+    /// <param name="now"></param>
+    private string BUILD_REPORT_STRING(
+        List<KeyValuePair<INetworkEndpoint, EndpointState>> snapshot,
+        int totalEndpoints,
+        int hardBlockedCount,
+        long now)
     {
         System.Text.StringBuilder sb = new();
 
@@ -881,10 +946,13 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Appends report header with configuration and statistics.
     /// </summary>
+    /// <param name="sb"></param>
+    /// <param name="totalEndpoints"></param>
+    /// <param name="hardBlockedCount"></param>
     private void APPEND_REPORT_HEADER(
         System.Text.StringBuilder sb,
-        System.Int32 totalEndpoints,
-        System.Int32 hardBlockedCount)
+        int totalEndpoints,
+        int hardBlockedCount)
     {
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TokenBucketLimiter Status:");
         _ = sb.AppendLine($"CapacityTokens      :  {_options.CapacityTokens}");
@@ -903,10 +971,13 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Appends detailed endpoint information to report.
     /// </summary>
+    /// <param name="sb"></param>
+    /// <param name="snapshot"></param>
+    /// <param name="now"></param>
     private void APPEND_ENDPOINT_DETAILS(
         System.Text.StringBuilder sb,
-        System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>> snapshot,
-        System.Int64 now)
+        List<KeyValuePair<INetworkEndpoint, EndpointState>> snapshot,
+        long now)
     {
         _ = sb.AppendLine("Top Endpoints by Pressure:");
         _ = sb.AppendLine("-------------------------------------------------------------------------------");
@@ -928,15 +999,19 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Appends top N endpoints to the report.
     /// </summary>
+    /// <param name="sb"></param>
+    /// <param name="snapshot"></param>
+    /// <param name="now"></param>
+    /// <param name="maxCount"></param>
     private void APPEND_TOP_ENDPOINTS(
         System.Text.StringBuilder sb,
-        System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>> snapshot,
-        System.Int64 now,
-        System.Int32 maxCount)
+        List<KeyValuePair<INetworkEndpoint, EndpointState>> snapshot,
+        long now,
+        int maxCount)
     {
-        System.Int32 shown = 0;
+        int shown = 0;
 
-        foreach (var kv in snapshot)
+        foreach (KeyValuePair<INetworkEndpoint, EndpointState> kv in snapshot)
         {
             if (shown++ >= maxCount)
             {
@@ -950,9 +1025,13 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Appends a single endpoint row to the report.
     /// </summary>
-    private void APPEND_ENDPOINT_ROW(System.Text.StringBuilder sb, INetworkEndpoint key, EndpointState state, System.Int64 now)
+    /// <param name="sb"></param>
+    /// <param name="key"></param>
+    /// <param name="state"></param>
+    /// <param name="now"></param>
+    private void APPEND_ENDPOINT_ROW(System.Text.StringBuilder sb, INetworkEndpoint key, EndpointState state, long now)
     {
-        System.Int64 micro, blockedUntil;
+        long micro, blockedUntil;
 
         lock (state.Gate)
         {
@@ -960,12 +1039,12 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             blockedUntil = state.HardBlockedUntilSw;
         }
 
-        System.Boolean isBlocked = blockedUntil > now;
-        System.UInt16 credit = CALCULATE_REMAINING_CREDIT(micro, _options.TokenScale);
-        System.Int32 retryMs = CALCULATE_RETRY_FOR_REPORT(micro, isBlocked, blockedUntil, now);
+        bool isBlocked = blockedUntil > now;
+        ushort credit = CALCULATE_REMAINING_CREDIT(micro, _options.TokenScale);
+        int retryMs = CALCULATE_RETRY_FOR_REPORT(micro, isBlocked, blockedUntil, now);
 
-        System.String keyCol = FORMAT_ENDPOINT_KEY(key.Address);
-        System.String blockedCol = isBlocked ? "yes" : " no ";
+        string keyCol = FORMAT_ENDPOINT_KEY(key.Address);
+        string blockedCol = isBlocked ? "yes" : " no ";
 
         _ = sb.AppendLine($"{keyCol} | {blockedCol}   | {credit,6} | {micro,10}/{_capacityMicro,-10} | {retryMs,12}");
     }
@@ -973,27 +1052,32 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Calculates retry time for report display.
     /// </summary>
+    /// <param name="micro"></param>
+    /// <param name="isBlocked"></param>
+    /// <param name="blockedUntil"></param>
+    /// <param name="now"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Int32 CALCULATE_RETRY_FOR_REPORT(System.Int64 micro, System.Boolean isBlocked, System.Int64 blockedUntil, System.Int64 now)
+    private int CALCULATE_RETRY_FOR_REPORT(long micro, bool isBlocked, long blockedUntil, long now)
     {
         if (isBlocked)
         {
             return CALCULATE_DELAY_MS(now, blockedUntil);
         }
 
-        System.Int64 needed = (micro >= _options.TokenScale) ? 0 : (_options.TokenScale - micro);
+        long needed = (micro >= _options.TokenScale) ? 0 : (_options.TokenScale - micro);
         return needed > 0 ? CALCULATE_RETRY_DELAY_MS(needed) : 0;
     }
 
     /// <summary>
     /// Formats endpoint key for display (truncates if too long).
     /// </summary>
+    /// <param name="address"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.String FORMAT_ENDPOINT_KEY(System.String address)
+    private static string FORMAT_ENDPOINT_KEY(string address)
     {
-        const System.Int32 MaxLength = 15;
+        const int MaxLength = 15;
         return address.Length > MaxLength
             ? (address[..MaxLength] + "…")
             : address.PadRight(MaxLength);
@@ -1002,12 +1086,13 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Returns snapshot list to pool.
     /// </summary>
+    /// <param name="snapshot"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void RETURN_SNAPSHOT_TO_POOL(
-        System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>> snapshot)
+        List<KeyValuePair<INetworkEndpoint, EndpointState>> snapshot)
     {
-        var pool = ListPool<System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>>.Instance;
+        ListPool<KeyValuePair<INetworkEndpoint, EndpointState>> pool = ListPool<KeyValuePair<INetworkEndpoint, EndpointState>>.Instance;
         pool.Return(snapshot, clearItems: true);
     }
 
@@ -1032,8 +1117,8 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         try
         {
-            System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
-            System.Int32 removed = PERFORM_STALE_CLEANUP(now, token);
+            long now = System.Diagnostics.Stopwatch.GetTimestamp();
+            int removed = PERFORM_STALE_CLEANUP(now, token);
 
             removed += ENFORCE_LIMIT_IF_NEEDED(token);
 
@@ -1056,19 +1141,21 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Performs cleanup of stale endpoints across all shards.
     /// </summary>
-    private System.Int32 PERFORM_STALE_CLEANUP(
-        System.Int64 now,
+    /// <param name="now"></param>
+    /// <param name="token"></param>
+    private int PERFORM_STALE_CLEANUP(
+        long now,
         System.Threading.CancellationToken token)
     {
-        System.Int32 removed = 0;
-        System.Int32 visited = 0;
-        System.Int64 staleTicks = TO_TICKS(_options.StaleEntrySeconds);
+        int removed = 0;
+        int visited = 0;
+        long staleTicks = TO_TICKS(_options.StaleEntrySeconds);
 
         foreach (Shard shard in _shards)
         {
             token.ThrowIfCancellationRequested();
 
-            foreach (var kv in shard.Map)
+            foreach (KeyValuePair<INetworkEndpoint, EndpointState> kv in shard.Map)
             {
                 visited++;
 
@@ -1090,13 +1177,17 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Attempts to remove a stale endpoint with double-check pattern.
     /// </summary>
+    /// <param name="kv"></param>
+    /// <param name="now"></param>
+    /// <param name="staleTicks"></param>
+    /// <param name="shard"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Boolean TRY_REMOVE_STALE_ENDPOINT(
-        System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState> kv,
-        System.Int64 now, System.Int64 staleTicks, Shard shard)
+    private bool TRY_REMOVE_STALE_ENDPOINT(
+        KeyValuePair<INetworkEndpoint, EndpointState> kv,
+        long now, long staleTicks, Shard shard)
     {
-        System.Boolean shouldRemove;
+        bool shouldRemove;
         EndpointState state = kv.Value;
 
         if (now - state.LastSeenSw <= staleTicks)
@@ -1127,22 +1218,23 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Enforces MaxTrackedEndpoints limit if exceeded.
     /// </summary>
-    private System.Int32 ENFORCE_LIMIT_IF_NEEDED(System.Threading.CancellationToken token)
+    /// <param name="token"></param>
+    private int ENFORCE_LIMIT_IF_NEEDED(System.Threading.CancellationToken token)
     {
         if (_options.MaxTrackedEndpoints <= 0)
         {
             return 0;
         }
 
-        System.Int32 currentCount = System.Threading.Interlocked.CompareExchange(ref _totalEndpointCount, 0, 0);
+        int currentCount = System.Threading.Interlocked.CompareExchange(ref _totalEndpointCount, 0, 0);
 
         if (currentCount <= _options.MaxTrackedEndpoints)
         {
             return 0;
         }
 
-        System.Int32 toRemove = currentCount - _options.MaxTrackedEndpoints;
-        System.Int32 removed = REMOVEO_LDEST_ENDPOINTS(toRemove, token);
+        int toRemove = currentCount - _options.MaxTrackedEndpoints;
+        int removed = REMOVEO_LDEST_ENDPOINTS(toRemove, token);
 
         if (removed > 0)
         {
@@ -1156,10 +1248,12 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Evicts the oldest endpoints across all shards.
     /// </summary>
+    /// <param name="count"></param>
+    /// <param name="cancellationToken"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private System.Int32 REMOVEO_LDEST_ENDPOINTS(
-        System.Int32 count,
+    private int REMOVEO_LDEST_ENDPOINTS(
+        int count,
         System.Threading.CancellationToken cancellationToken)
     {
         if (count <= 0)
@@ -1167,7 +1261,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             return 0;
         }
 
-        var candidates = COLLECT_EVICTION_CANDIDATES(cancellationToken);
+        List<(INetworkEndpoint Key, long LastSeen)> candidates = COLLECT_EVICTION_CANDIDATES(cancellationToken);
 
         try
         {
@@ -1183,22 +1277,23 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Collects all endpoints as eviction candidates.
     /// </summary>
-    private System.Collections.Generic.List<(INetworkEndpoint Key, System.Int64 LastSeen)> COLLECT_EVICTION_CANDIDATES(System.Threading.CancellationToken cancellationToken)
+    /// <param name="cancellationToken"></param>
+    private List<(INetworkEndpoint Key, long LastSeen)> COLLECT_EVICTION_CANDIDATES(System.Threading.CancellationToken cancellationToken)
     {
-        System.Int32 estimatedCapacity = System.Math.Min(
+        int estimatedCapacity = System.Math.Min(
             _totalEndpointCount * 2,
             MaxEvictionCapacity);
 
-        var pool = ListPool<(INetworkEndpoint Key, System.Int64 LastSeen)>.Instance;
-        var candidates = pool.Rent(minimumCapacity: estimatedCapacity);
+        ListPool<(INetworkEndpoint Key, long LastSeen)> pool = ListPool<(INetworkEndpoint Key, long LastSeen)>.Instance;
+        List<(INetworkEndpoint Key, long LastSeen)> candidates = pool.Rent(minimumCapacity: estimatedCapacity);
 
         foreach (Shard shard in _shards)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            foreach (var kv in shard.Map)
+            foreach (KeyValuePair<INetworkEndpoint, EndpointState> kv in shard.Map)
             {
-                System.Int64 lastSeen;
+                long lastSeen;
                 lock (kv.Value.Gate)
                 {
                     lastSeen = kv.Value.LastSeenSw;
@@ -1213,22 +1308,25 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Evicts the oldest N candidates.
     /// </summary>
-    private System.Int32 EVICT_OLD_ESTCANDIDATES(
-        System.Collections.Generic.List<(INetworkEndpoint Key, System.Int64 LastSeen)> candidates,
-        System.Int32 count,
+    /// <param name="candidates"></param>
+    /// <param name="count"></param>
+    /// <param name="cancellationToken"></param>
+    private int EVICT_OLD_ESTCANDIDATES(
+        List<(INetworkEndpoint Key, long LastSeen)> candidates,
+        int count,
         System.Threading.CancellationToken cancellationToken)
     {
-        System.Int32 removed = 0;
-        System.Int32 toRemove = System.Math.Min(count, candidates.Count);
+        int removed = 0;
+        int toRemove = System.Math.Min(count, candidates.Count);
 
-        for (System.Int32 i = 0; i < toRemove; i++)
+        for (int i = 0; i < toRemove; i++)
         {
             if ((i & (CancellationCheckFrequency - 1)) == 0)
             {
                 cancellationToken.ThrowIfCancellationRequested();
             }
 
-            var endpoint = candidates[i].Key;
+            INetworkEndpoint endpoint = candidates[i].Key;
             Shard shard = SELECT_SHARD(endpoint);
 
             if (shard.Map.TryRemove(endpoint, out _))
@@ -1244,11 +1342,12 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Returns eviction candidates list to pool.
     /// </summary>
+    /// <param name="candidates"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void RETURN_EVICTION_CANDIDATES_TO_POOL(System.Collections.Generic.List<(INetworkEndpoint Key, System.Int64 LastSeen)> candidates)
+    private static void RETURN_EVICTION_CANDIDATES_TO_POOL(List<(INetworkEndpoint Key, long LastSeen)> candidates)
     {
-        ListPool<(INetworkEndpoint Key, System.Int64 LastSeen)> pool = ListPool<(INetworkEndpoint Key, System.Int64 LastSeen)>.Instance;
+        ListPool<(INetworkEndpoint Key, long LastSeen)> pool = ListPool<(INetworkEndpoint Key, long LastSeen)>.Instance;
         pool.Return(candidates, clearItems: true);
     }
 
@@ -1286,7 +1385,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <returns>Initial balance in micro-tokens. </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Int64 CalculateInitialBalance()
+    private long CalculateInitialBalance()
     {
         // Default (-1): Start with full capacity
         if (_options.InitialTokens < 0)
@@ -1301,7 +1400,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         }
 
         // Custom value:  Clamp to [0, capacity]
-        System.Int64 requestedMicro = (System.Int64)_options.InitialTokens * _options.TokenScale;
+        long requestedMicro = (long)_options.InitialTokens * _options.TokenScale;
         return System.Math.Clamp(requestedMicro, 0, _capacityMicro);
     }
 
@@ -1322,10 +1421,10 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         _disposed = true;
 
-        InstanceManager.Instance.GetOrCreateInstance<TaskManager>()?
+        _ = (InstanceManager.Instance.GetOrCreateInstance<TaskManager>()?
                                 .CancelRecurring(TaskNaming.Recurring
                                 .CleanupJobId(RecurringName,
-                                GetHashCode()));
+                                GetHashCode())));
 
         s_logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:{nameof(Dispose)}] disposed");
     }

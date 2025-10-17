@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
@@ -31,15 +32,15 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 {
     #region Constants
 
-    private const System.Int32 MinReportCapacity = 128;
-    private const System.Int32 MaxReportCapacity = 4096;
-    private const System.Int32 MaxCleanupKeysPerRun = 1000;
+    private const int MinReportCapacity = 128;
+    private const int MaxReportCapacity = 4096;
+    private const int MaxCleanupKeysPerRun = 1000;
 
     #endregion Constants
 
     #region Fields
 
-    private readonly System.Int32 _maxPerEndpoint;
+    private readonly int _maxPerEndpoint;
     private readonly ConnectionLimitOptions _config;
     private readonly System.TimeSpan _cleanupInterval;
     private readonly System.TimeSpan _inactivityThreshold;
@@ -48,19 +49,21 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     [System.Diagnostics.CodeAnalysis.AllowNull]
     private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
-    private System.Int32 _disposed;
+    private int _disposed;
 
-    // Metrics for monitoring
-    private System.Int64 _totalConnectionAttempts;
-    private System.Int64 _totalRejections;
-    private System.Int64 _totalCleanedEntries;
+    /// <summary>
+    /// Metrics for monitoring
+    /// </summary>
+    private long _totalConnectionAttempts;
+    private long _totalRejections;
+    private long _totalCleanedEntries;
 
     #endregion Fields
 
     #region Properties
 
     /// <summary>Gets the recurring name used for cleanup operations.</summary>
-    public static readonly System.String RecurringName;
+    public static readonly string RecurringName;
 
     #endregion Properties
 
@@ -109,7 +112,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     /// <exception cref="InternalErrorException">Thrown if endPoint is null.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean IsConnectionAllowed(
+    public bool IsConnectionAllowed(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPEndPoint endPoint)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) != 0, nameof(ConnectionLimiter));
@@ -119,7 +122,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
             throw new InternalErrorException("NetworkEndpoint cannot be null", nameof(endPoint));
         }
 
-        SAFE_INCREMENT(ref _totalConnectionAttempts);
+        _ = SAFE_INCREMENT(ref _totalConnectionAttempts);
 
         System.DateTime now = Clock.NowUtc();
         INetworkEndpoint key = CONVERT_TO_NETWORK_ENDPOINT(endPoint);
@@ -133,16 +136,16 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
             // Throttled reject log — chỉ log 1 lần mỗi suppress window per IP
             if (_map.TryGetValue(key, out ConnectionLimitEntry entry))
             {
-                System.Int64 nowTicks = Clock.NowUtc().Ticks;
-                System.Int64 windowTicks = _config.DDoSLogSuppressWindow.Ticks;
+                long nowTicks = Clock.NowUtc().Ticks;
+                long windowTicks = _config.DDoSLogSuppressWindow.Ticks;
 
                 if (TRY_ACQUIRE_LOG_SLOT(
                         ref entry.LastRejectLogTicks,
                         ref entry.SuppressedRejectCount,
                         nowTicks, windowTicks,
-                        out System.Int64 suppressed))
+                        out long suppressed))
                 {
-                    System.String suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : System.String.Empty;
+                    string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
 
                     s_logger?.Info(
                         $"[NW.{nameof(ConnectionLimiter)}] reject endpoint={endPoint} " +
@@ -167,7 +170,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     /// <exception cref="InternalErrorException">Thrown if endPoint is null.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean IsConnectionAllowed(
+    public bool IsConnectionAllowed(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.EndPoint endPoint)
     {
         if (endPoint is null)
@@ -194,7 +197,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter", Justification = "Event handler signature")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Event handler signature")]
     public void OnConnectionClosed(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.AllowNull] object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
     {
         if (System.Threading.Volatile.Read(ref _disposed) != 0)
@@ -208,7 +211,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
             return;
         }
 
-        if (System.String.IsNullOrWhiteSpace(args.Connection.NetworkEndpoint.Address))
+        if (string.IsNullOrWhiteSpace(args.Connection.NetworkEndpoint.Address))
         {
             s_logger?.Warn($"[NW.{nameof(ConnectionLimiter)}:Internal] received-empty-address");
             return;
@@ -219,25 +222,22 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
             System.Net.IPAddress.Parse(args.Connection.NetworkEndpoint.Address)
         );
 
-        System.Boolean released = TRY_RELEASE_CONNECTION_SLOT(key, now);
+        bool released = TRY_RELEASE_CONNECTION_SLOT(key, now);
 
-        if (released)
+        if (released && _map.TryGetValue(key, out ConnectionLimitEntry closedEntry))
         {
-            if (_map.TryGetValue(key, out ConnectionLimitEntry closedEntry))
+            long nowTicks = Clock.NowUtc().Ticks;
+            long windowTicks = _config.DDoSLogSuppressWindow.Ticks;
+
+            if (TRY_ACQUIRE_LOG_SLOT(
+                    ref closedEntry.LastClosedLogTicks,
+                    ref closedEntry.SuppressedClosedCount,
+                    nowTicks, windowTicks,
+                    out long suppressed))
             {
-                System.Int64 nowTicks = Clock.NowUtc().Ticks;
-                System.Int64 windowTicks = _config.DDoSLogSuppressWindow.Ticks;
+                string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
 
-                if (TRY_ACQUIRE_LOG_SLOT(
-                        ref closedEntry.LastClosedLogTicks,
-                        ref closedEntry.SuppressedClosedCount,
-                        nowTicks, windowTicks,
-                        out System.Int64 suppressed))
-                {
-                    System.String suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : System.String.Empty;
-
-                    s_logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] closed endpoint={key.Address}{suffix}");
-                }
+                s_logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] closed endpoint={key.Address}{suffix}");
             }
         }
     }
@@ -249,10 +249,10 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public System.String GenerateReport()
+    public string GenerateReport()
     {
-        System.Collections.Generic.List<
-            System.Collections.Generic.KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot = COLLECT_SNAPSHOT();
+        List<
+            KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot = COLLECT_SNAPSHOT();
 
         try
         {
@@ -280,17 +280,19 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     /// Uses GetOrAdd to safely retrieve-or-create the entry, then locks the entry
     /// for the counter mutation. The rate-window queue is trimmed before the check.
     /// </summary>
+    /// <param name="key"></param>
+    /// <param name="now"></param>
     private ConnectionAllowResult TRY_ACQUIRE_CONNECTION_SLOT(INetworkEndpoint key, System.DateTime now)
     {
         // GetOrAdd is atomic w.r.t. insertion; the returned entry is always the canonical one.
         ConnectionLimitEntry entry = _map.GetOrAdd(key, static _ => new ConnectionLimitEntry());
 
-        System.Int64 bannedUntil = System.Threading.Interlocked.Read(ref entry.BannedUntilTicks);
+        long bannedUntil = System.Threading.Interlocked.Read(ref entry.BannedUntilTicks);
         if (bannedUntil > now.Ticks)
         {
             LOG_BANNED_THROTTLED(entry, key, new System.DateTime(bannedUntil, System.DateTimeKind.Utc));
 
-            System.Int32 currentConns;
+            int currentConns;
             lock (entry)
             {
                 currentConns = entry.Info.CurrentConnections;
@@ -313,7 +315,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
             if (entry.RecentConnectionTimestamps.Count >= _config.MaxConnectionsPerWindow)
             {
                 System.DateTime banUntil = now + _config.BanDuration;
-                System.Threading.Interlocked.Exchange(ref entry.BannedUntilTicks, banUntil.Ticks);
+                _ = System.Threading.Interlocked.Exchange(ref entry.BannedUntilTicks, banUntil.Ticks);
 
                 LOG_DDOS_DETECTED_THROTTLED(entry, key);
 
@@ -322,7 +324,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
                     group: $"{TaskNaming.Tags.Worker}/",
                     work: async (_, _) =>
                     {
-                        InstanceManager.Instance.GetOrCreateInstance<ConnectionHub>()
+                        _ = InstanceManager.Instance.GetOrCreateInstance<ConnectionHub>()
                                                 .ForceClose(key);
                     },
                     options: new WorkerOptions
@@ -342,7 +344,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
                 };
             }
 
-            System.Int32 newTotalToday = CALCULATE_TOTAL_CONNECTIONS_TODAY(entry.Info, now.Date);
+            int newTotalToday = CALCULATE_TOTAL_CONNECTIONS_TODAY(entry.Info, now.Date);
 
             entry.Info = entry.Info with
             {
@@ -358,6 +360,8 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     }
 
     /// <summary>Removes timestamps outside the rate-window. Lock-free — ConcurrentQueue is safe.</summary>
+    /// <param name="timestamps"></param>
+    /// <param name="now"></param>
     private void TRIM_OLD_TIMESTAMPS(
         System.Collections.Concurrent.ConcurrentQueue<System.DateTime> timestamps,
         System.DateTime now)
@@ -385,7 +389,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Int32 CALCULATE_TOTAL_CONNECTIONS_TODAY(ConnectionLimitInfo info, System.DateTime today)
+    private static int CALCULATE_TOTAL_CONNECTIONS_TODAY(ConnectionLimitInfo info, System.DateTime today)
     {
         if (info.LastConnectionTime == default)
         {
@@ -399,13 +403,15 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         }
 
         // Prevent overflow
-        return info.TotalConnectionsToday >= System.Int32.MaxValue - 1 ? System.Int32.MaxValue : info.TotalConnectionsToday + 1;
+        return info.TotalConnectionsToday >= int.MaxValue - 1 ? int.MaxValue : info.TotalConnectionsToday + 1;
     }
 
     /// <summary>
     /// Releases a connection slot for the given endpoint.
     /// </summary>
-    private System.Boolean TRY_RELEASE_CONNECTION_SLOT(INetworkEndpoint key, System.DateTime now)
+    /// <param name="key"></param>
+    /// <param name="now"></param>
+    private bool TRY_RELEASE_CONNECTION_SLOT(INetworkEndpoint key, System.DateTime now)
     {
         if (!_map.TryGetValue(key, out ConnectionLimitEntry entry))
         {
@@ -415,7 +421,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         lock (entry)
         {
             // Decrement with underflow protection
-            System.Int32 newCount = System.Math.Max(0, entry.Info.CurrentConnections - 1);
+            int newCount = System.Math.Max(0, entry.Info.CurrentConnections - 1);
 
             entry.Info = entry.Info with
             {
@@ -443,14 +449,14 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
     private void LOG_DDOS_DETECTED_THROTTLED(ConnectionLimitEntry entry, INetworkEndpoint key)
     {
-        System.Int64 nowTicks = Clock.NowUtc().Ticks;
-        System.Int64 lastTicks = System.Threading.Interlocked.Read(ref entry.LastDDoSLogTicks);
-        System.Int64 windowTicks = _config.DDoSLogSuppressWindow.Ticks;
+        long nowTicks = Clock.NowUtc().Ticks;
+        long lastTicks = System.Threading.Interlocked.Read(ref entry.LastDDoSLogTicks);
+        long windowTicks = _config.DDoSLogSuppressWindow.Ticks;
 
         if (nowTicks - lastTicks < windowTicks)
         {
             // Đang trong suppress window → chỉ đếm, không log
-            System.Threading.Interlocked.Increment(ref entry.SuppressedDDoSCount);
+            _ = System.Threading.Interlocked.Increment(ref entry.SuppressedDDoSCount);
             return;
         }
 
@@ -459,12 +465,12 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         if (System.Threading.Interlocked.CompareExchange(
                 ref entry.LastDDoSLogTicks, nowTicks, lastTicks) != lastTicks)
         {
-            System.Threading.Interlocked.Increment(ref entry.SuppressedDDoSCount);
+            _ = System.Threading.Interlocked.Increment(ref entry.SuppressedDDoSCount);
             return;
         }
 
         // Thread thắng CAS → log summary
-        System.Int64 suppressed = System.Threading.Interlocked.Exchange(ref entry.SuppressedDDoSCount, 0);
+        long suppressed = System.Threading.Interlocked.Exchange(ref entry.SuppressedDDoSCount, 0);
 
         if (suppressed > 0)
         {
@@ -483,16 +489,21 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     /// Generic throttled logger. Suppresses repeated messages within a time window.
     /// Returns true nếu nên log (thread thắng CAS), false nếu bị suppress.
     /// </summary>
+    /// <param name="lastLogTicks"></param>
+    /// <param name="suppressedCount"></param>
+    /// <param name="nowTicks"></param>
+    /// <param name="windowTicks"></param>
+    /// <param name="suppressed"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Boolean TRY_ACQUIRE_LOG_SLOT(
-        ref System.Int64 lastLogTicks,
-        ref System.Int64 suppressedCount,
-        System.Int64 nowTicks,
-        System.Int64 windowTicks,
-        out System.Int64 suppressed)
+    private static bool TRY_ACQUIRE_LOG_SLOT(
+        ref long lastLogTicks,
+        ref long suppressedCount,
+        long nowTicks,
+        long windowTicks,
+        out long suppressed)
     {
-        System.Int64 lastTicks = System.Threading.Interlocked.Read(ref lastLogTicks);
+        long lastTicks = System.Threading.Interlocked.Read(ref lastLogTicks);
 
         if (nowTicks - lastTicks >= windowTicks)
         {
@@ -506,9 +517,9 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         }
 
         // Inside window or CAS failed → suppress
-        System.Threading.Interlocked.Increment(ref suppressedCount);
+        _ = System.Threading.Interlocked.Increment(ref suppressedCount);
 
-        System.Int64 newLastTicks = System.Threading.Interlocked.Read(ref lastLogTicks);
+        long newLastTicks = System.Threading.Interlocked.Read(ref lastLogTicks);
         if (nowTicks - newLastTicks >= windowTicks)
         {
             // Window expired during our increment, retry once
@@ -526,16 +537,16 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
     private void LOG_BANNED_THROTTLED(ConnectionLimitEntry entry, INetworkEndpoint key, System.DateTime bannedUntil)
     {
-        System.Int64 nowTicks = Clock.NowUtc().Ticks;
-        System.Int64 windowTicks = _config.DDoSLogSuppressWindow.Ticks;
+        long nowTicks = Clock.NowUtc().Ticks;
+        long windowTicks = _config.DDoSLogSuppressWindow.Ticks;
 
         if (TRY_ACQUIRE_LOG_SLOT(
                 ref entry.LastRejectLogTicks,
                 ref entry.SuppressedRejectCount,
                 nowTicks, windowTicks,
-                out System.Int64 suppressed))
+                out long suppressed))
         {
-            System.String suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : System.String.Empty;
+            string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
 
             s_logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] banned-reject ip={key.Address} " +
                            $"until={bannedUntil:HH:mm:ss}{suffix}");
@@ -550,21 +561,21 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     /// Collects a point-in-time snapshot of all tracked endpoints.
     /// Reads Info under lock for consistency.
     /// </summary>
-    private System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> COLLECT_SNAPSHOT()
+    private List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> COLLECT_SNAPSHOT()
     {
-        System.Int32 estimatedCapacity = System.Math.Clamp(_map.Count, MinReportCapacity, MaxReportCapacity);
+        int estimatedCapacity = System.Math.Clamp(_map.Count, MinReportCapacity, MaxReportCapacity);
 
-        var pool = ListPool<System.Collections.Generic.KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>>.Instance;
-        var snapshot = pool.Rent(minimumCapacity: estimatedCapacity);
+        ListPool<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> pool = ListPool<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>>.Instance;
+        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot = pool.Rent(minimumCapacity: estimatedCapacity);
 
-        foreach (System.Collections.Generic.KeyValuePair<INetworkEndpoint, ConnectionLimitEntry> kvp in _map)
+        foreach (KeyValuePair<INetworkEndpoint, ConnectionLimitEntry> kvp in _map)
         {
             ConnectionLimitInfo info;
             lock (kvp.Value)
             {
                 info = kvp.Value.Info;
             }
-            snapshot.Add(new System.Collections.Generic.KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>(kvp.Key, info));
+            snapshot.Add(new KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>(kvp.Key, info));
         }
 
         return snapshot;
@@ -573,17 +584,17 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void SORT_SNAPSHOT_BY_LOAD(
-        System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
+        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
     {
         snapshot.Sort(static (a, b) =>
         {
-            System.Int32 byCurrent = b.Value.CurrentConnections.CompareTo(a.Value.CurrentConnections);
+            int byCurrent = b.Value.CurrentConnections.CompareTo(a.Value.CurrentConnections);
             return byCurrent != 0 ? byCurrent : b.Value.TotalConnectionsToday.CompareTo(a.Value.TotalConnectionsToday);
         });
     }
 
-    private System.String BUILD_REPORT(
-        System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
+    private string BUILD_REPORT(
+        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
     {
         GlobalMetrics metrics = CALCULATE_GLOBAL_METRICS(snapshot);
         System.Text.StringBuilder sb = new(512);
@@ -594,18 +605,18 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
     private readonly struct GlobalMetrics
     {
-        public System.Int32 TotalEndpoints { get; init; }
-        public System.Int32 TotalConcurrent { get; init; }
-        public System.Int64 TotalAttempts { get; init; }
-        public System.Int64 TotalRejections { get; init; }
-        public System.Int64 TotalCleaned { get; init; }
+        public int TotalEndpoints { get; init; }
+        public int TotalConcurrent { get; init; }
+        public long TotalAttempts { get; init; }
+        public long TotalRejections { get; init; }
+        public long TotalCleaned { get; init; }
     }
 
     private GlobalMetrics CALCULATE_GLOBAL_METRICS(
-        System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
+        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
     {
-        System.Int32 totalConcurrent = 0;
-        foreach (var kvp in snapshot)
+        int totalConcurrent = 0;
+        foreach (KeyValuePair<INetworkEndpoint, ConnectionLimitInfo> kvp in snapshot)
         {
             totalConcurrent += kvp.Value.CurrentConnections;
         }
@@ -634,7 +645,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
         if (metrics.TotalAttempts > 0)
         {
-            System.Double rejectionRate = metrics.TotalRejections * 100.0 / metrics.TotalAttempts;
+            double rejectionRate = metrics.TotalRejections * 100.0 / metrics.TotalAttempts;
             _ = sb.AppendLine($"RejectionRate      : {rejectionRate:F2}%");
         }
 
@@ -643,7 +654,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
     private static void APPEND_CONNECTION_DETAILS(
         System.Text.StringBuilder sb,
-        System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
+        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
     {
         _ = sb.AppendLine("Top Endpoints by CurrentConnections:");
         _ = sb.AppendLine("---------------------------------------------------------------");
@@ -664,21 +675,21 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
     private static void APPEND_TOP_ENDPOINTS(
         System.Text.StringBuilder sb,
-        System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot, System.Int32 maxRows)
+        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot, int maxRows)
     {
-        System.Int32 rows = 0;
+        int rows = 0;
 
-        foreach (var kvp in snapshot)
+        foreach (KeyValuePair<INetworkEndpoint, ConnectionLimitInfo> kvp in snapshot)
         {
             if (rows++ >= maxRows)
             {
                 break;
             }
 
-            System.String address = kvp.Key.Address ?? "unknown";
+            string address = kvp.Key.Address ?? "unknown";
             ConnectionLimitInfo info = kvp.Value;
 
-            System.String addressCol = address.Length > 27
+            string addressCol = address.Length > 27
                 ? $"{address[..27]}\u2026"
                 : address.PadRight(27);
 
@@ -690,9 +701,9 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void RETURN_SNAPSHOT_TO_POOL(
-        System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
+        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
     {
-        ListPool<System.Collections.Generic.KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>>.Instance
+        ListPool<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>>.Instance
             .Return(snapshot, clearItems: true);
     }
 
@@ -713,19 +724,19 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         try
         {
             System.DateTime cutoff = Clock.NowUtc() - _inactivityThreshold;
-            System.Int32 scanned = 0;
-            System.Int32 removed = 0;
+            int scanned = 0;
+            int removed = 0;
 
-            var keysToRemove = new System.Collections.Generic.List<INetworkEndpoint>(MaxCleanupKeysPerRun);
+            List<INetworkEndpoint> keysToRemove = new(MaxCleanupKeysPerRun);
 
-            foreach (var kvp in _map)
+            foreach (KeyValuePair<INetworkEndpoint, ConnectionLimitEntry> kvp in _map)
             {
                 if (scanned++ >= MaxCleanupKeysPerRun)
                 {
                     break;
                 }
 
-                System.Boolean shouldRemove;
+                bool shouldRemove;
                 lock (kvp.Value)
                 {
                     shouldRemove = SHOULD_REMOVE_ENTRY(kvp.Value, cutoff);
@@ -738,7 +749,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
             }
 
             // Remove in separate pass to avoid holding locks
-            foreach (var key in keysToRemove)
+            foreach (INetworkEndpoint key in keysToRemove)
             {
                 if (_map.TryRemove(key, out ConnectionLimitEntry removedEntry))
                 {
@@ -749,7 +760,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
                     }
 
                     removed++;
-                    System.Threading.Interlocked.Increment(ref _totalCleanedEntries);
+                    _ = System.Threading.Interlocked.Increment(ref _totalCleanedEntries);
                 }
             }
 
@@ -766,9 +777,9 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Boolean SHOULD_REMOVE_ENTRY(ConnectionLimitEntry entry, System.DateTime cutoff)
+    private static bool SHOULD_REMOVE_ENTRY(ConnectionLimitEntry entry, System.DateTime cutoff)
     {
-        System.Int64 bannedUntil = System.Threading.Interlocked.Read(ref entry.BannedUntilTicks);
+        long bannedUntil = System.Threading.Interlocked.Read(ref entry.BannedUntilTicks);
         if (bannedUntil > cutoff.Ticks)
         {
             return false;
@@ -782,22 +793,23 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     /// <summary>
     /// Safely increments a counter with overflow protection.
     /// </summary>
+    /// <param name="counter"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Int64 SAFE_INCREMENT(ref System.Int64 counter)
+    private static long SAFE_INCREMENT(ref long counter)
     {
         while (true)
         {
-            System.Int64 current = System.Threading.Interlocked.Read(ref counter);
+            long current = System.Threading.Interlocked.Read(ref counter);
 
-            if (current >= System.Int64.MaxValue - 1)
+            if (current >= long.MaxValue - 1)
             {
                 // Reset to reasonable value instead of wrapping
-                System.Threading.Interlocked.CompareExchange(ref counter, 1_000_000, current);
+                _ = System.Threading.Interlocked.CompareExchange(ref counter, 1_000_000, current);
                 return 1_000_000;
             }
 
-            System.Int64 next = current + 1;
+            long next = current + 1;
             if (System.Threading.Interlocked.CompareExchange(ref counter, next, current) == current)
             {
                 return next;
@@ -858,8 +870,8 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
         try
         {
-            InstanceManager.Instance.GetExistingInstance<TaskManager>()
-                ?.CancelRecurring(TaskNaming.Recurring.CleanupJobId(RecurringName, GetHashCode()));
+            _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()
+                ?.CancelRecurring(TaskNaming.Recurring.CleanupJobId(RecurringName, GetHashCode())));
 
             _map.Clear();
 
@@ -886,8 +898,8 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
     internal readonly struct ConnectionAllowResult
     {
-        public System.Boolean Allowed { get; init; }
-        public System.Int32 CurrentConnections { get; init; }
+        public bool Allowed { get; init; }
+        public int CurrentConnections { get; init; }
     }
 
     /// <summary>
@@ -898,18 +910,18 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     internal readonly record struct ConnectionLimitInfo
     {
         /// <summary>Current number of active connections.</summary>
-        public System.Int32 CurrentConnections { get; init; }
+        public int CurrentConnections { get; init; }
 
         /// <summary>Timestamp of most recent connection activity.</summary>
         public System.DateTime LastConnectionTime { get; init; }
 
         /// <summary>Total connections established today (resets daily).</summary>
-        public System.Int32 TotalConnectionsToday { get; init; }
+        public int TotalConnectionsToday { get; init; }
 
         public ConnectionLimitInfo(
-            System.Int32 currentConnections,
+            int currentConnections,
             System.DateTime lastConnectionTime,
-            System.Int32 totalConnectionsToday)
+            int totalConnectionsToday)
         {
             CurrentConnections = currentConnections;
             LastConnectionTime = lastConnectionTime;
@@ -930,18 +942,28 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     /// </summary>
     internal sealed class ConnectionLimitEntry
     {
-        public System.Int64 BannedUntilTicks;
+        public long BannedUntilTicks;
 
-        public System.Int64 LastDDoSLogTicks;       // lần cuối log DDoS warn
-        public System.Int64 SuppressedDDoSCount;    // số lần bị suppress
+        /// <summary>
+        /// lần cuối log DDoS warn
+        /// </summary>
+        public long LastDDoSLogTicks;
+        /// <summary>
+        /// số lần bị suppress
+        /// </summary>
+        public long SuppressedDDoSCount;
 
-        // Reject log throttle (new)
-        public System.Int64 LastRejectLogTicks;
-        public System.Int64 SuppressedRejectCount;
+        /// <summary>
+        /// Reject log throttle (new)
+        /// </summary>
+        public long LastRejectLogTicks;
+        public long SuppressedRejectCount;
 
-        // Closed log throttle (new)
-        public System.Int64 LastClosedLogTicks;
-        public System.Int64 SuppressedClosedCount;
+        /// <summary>
+        /// Closed log throttle (new)
+        /// </summary>
+        public long LastClosedLogTicks;
+        public long SuppressedClosedCount;
 
         /// <summary>
         /// Mutable connection info. Access only inside <c>lock(this)</c>.

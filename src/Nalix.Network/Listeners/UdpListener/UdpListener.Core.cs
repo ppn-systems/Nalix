@@ -14,7 +14,10 @@ public abstract partial class UdpListenerBase
 {
     #region Constants
 
-    private const System.Int32 ReceiveTimeout = 500; // Milliseconds
+    /// <summary>
+    /// Milliseconds
+    /// </summary>
+    private const int ReceiveTimeout = 500;
 
     #endregion Constants
 
@@ -22,7 +25,7 @@ public abstract partial class UdpListenerBase
 
     private static readonly NetworkSocketOptions Config;
 
-    private readonly System.UInt16 _port;
+    private readonly ushort _port;
     private readonly IProtocol _protocol;
     private readonly System.Threading.SemaphoreSlim _lock;
 
@@ -30,22 +33,26 @@ public abstract partial class UdpListenerBase
     [System.Diagnostics.CodeAnalysis.AllowNull] private System.Threading.CancellationTokenSource _cts;
     private System.Threading.CancellationToken _cancellationToken;
 
-    private System.Int32 _isDisposed = 0;
-    private volatile System.Boolean _isRunning = false;
+    private int _isDisposed;
+    private volatile bool _isRunning;
 
-    // Diagnostics fields
-    private System.Int64 _rxPackets;
-    private System.Int64 _rxBytes;
-    private System.Int64 _dropShort;
-    private System.Int64 _dropUnauth;
-    private System.Int64 _dropUnknown;
+    /// <summary>
+    /// Diagnostics fields
+    /// </summary>
+    private long _rxPackets;
+    private long _rxBytes;
+    private long _dropShort;
+    private long _dropUnauth;
+    private long _dropUnknown;
 
-    private System.Int64 _recvErrors;
+    private long _recvErrors;
 
-    // Time sync diagnostics
-    private System.Int64 _lastSyncUnixMs;
-    private System.Int64 _lastDriftMs;
-    private System.Int32 _procSeq = -1;
+    /// <summary>
+    /// Time sync diagnostics
+    /// </summary>
+    private long _lastSyncUnixMs;
+    private long _lastDriftMs;
+    private int _procSeq = -1;
 
     #endregion Fields
 
@@ -54,14 +61,15 @@ public abstract partial class UdpListenerBase
     /// <summary>
     /// Gets a value indicating whether the UDP listener is currently running and listening for datagrams.
     /// </summary>
-    public System.Boolean IsListening => _isRunning;
+    public bool IsListening => _isRunning;
 
 
     /// <summary>
     /// Gets or sets a value indicating whether time synchronization is enabled for the UDP listener.
     /// Throws <see cref="System.InvalidOperationException"/> if set while the listener is running.
     /// </summary>
-    public System.Boolean IsTimeSyncEnabled
+    /// <exception cref="System.InvalidOperationException"></exception>
+    public bool IsTimeSyncEnabled
     {
         [System.Diagnostics.DebuggerStepThrough]
         [System.Runtime.CompilerServices.MethodImpl(
@@ -105,7 +113,7 @@ public abstract partial class UdpListenerBase
     /// <param name="port">The UDP port to listen on.</param>
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
     [System.Diagnostics.DebuggerStepThrough]
-    protected UdpListenerBase(System.UInt16 port, IProtocol protocol)
+    protected UdpListenerBase(ushort port, IProtocol protocol)
     {
         System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
 
@@ -146,7 +154,7 @@ public abstract partial class UdpListenerBase
 
     /// <inheritdoc/>
     [System.Diagnostics.DebuggerStepThrough]
-    protected virtual void Dispose(System.Boolean disposing)
+    protected virtual void Dispose(bool disposing)
     {
         // Atomic check-and-set: 0 -> 1
         if (System.Threading.Interlocked.CompareExchange(ref _isDisposed, 1, 0) != 0)

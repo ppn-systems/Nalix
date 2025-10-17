@@ -4,7 +4,6 @@
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
-using Nalix.Common.Shared;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
@@ -19,25 +18,25 @@ namespace Nalix.Network.Listeners.Tcp;
 
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
-public abstract partial class TcpListenerBase : IListener, IReportable
+public abstract partial class TcpListenerBase : IListener
 {
     #region Constants
 
-    private const System.Int32 MinWorkerThreads = 4;
+    private const int MinWorkerThreads = 4;
 
     #endregion Constants
 
     #region Fields
 
-    private readonly System.UInt16 _port;
+    private readonly ushort _port;
     private readonly IProtocol _protocol;
     private readonly ConnectionLimiter _limiter;
     private readonly System.Threading.SemaphoreSlim _lock;
     private readonly System.Collections.Generic.List<ISnowflake> _acceptWorkerIds;
 
-    private System.Int32 _state;
-    private System.Int32 _isDisposed;
-    private System.Int32 _stopInitiated;
+    private int _state;
+    private int _isDisposed;
+    private int _stopInitiated;
     private System.Net.Sockets.Socket _listener;
     private System.Threading.CancellationTokenSource _cts;
     private System.Threading.CancellationToken _cancellationToken;
@@ -60,7 +59,8 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     /// <summary>
     /// Enables or disables the update loop for the listener.
     /// </summary>
-    public System.Boolean IsTimeSyncEnabled
+    /// <exception cref="System.InvalidOperationException"></exception>
+    public bool IsTimeSyncEnabled
     {
         [System.Diagnostics.DebuggerStepThrough]
         [System.Runtime.CompilerServices.MethodImpl(
@@ -87,7 +87,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
     #region Enums
 
-    private enum ListenerState : System.Int32
+    private enum ListenerState
     {
         STOPPED = 0,
         STARTING = 1,
@@ -107,12 +107,12 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     {
         if (System.OperatingSystem.IsWindows() && s_config.TuneThreadPool)
         {
-            System.Int32 parallelism = System.Math.Max(System.Environment.ProcessorCount * MinWorkerThreads, 16);
+            int parallelism = System.Math.Max(System.Environment.ProcessorCount * MinWorkerThreads, 16);
             // Thread pool optimization for IOCP
-            System.Threading.ThreadPool.GetMinThreads(out System.Int32 workerThreads, out System.Int32 completionPortThreads);
+            System.Threading.ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
             _ = System.Threading.ThreadPool.SetMinThreads(System.Math.Max(workerThreads, parallelism), System.Math.Max(completionPortThreads, parallelism));
 
-            System.Threading.ThreadPool.GetMinThreads(out System.Int32 afterWorker, out System.Int32 afterIOCP);
+            System.Threading.ThreadPool.GetMinThreads(out int afterWorker, out int afterIOCP);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Info($"[NW.{nameof(TcpListenerBase)}] set-min-threads worker={afterWorker} iocp={afterIOCP}");
@@ -126,7 +126,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     /// <param name="port">Gets or sets the port number for the network connection.</param>
     /// <param name="protocol">The protocol to handle the connections.</param>
     [System.Diagnostics.DebuggerStepThrough]
-    protected TcpListenerBase(System.UInt16 port, IProtocol protocol) : this()
+    protected TcpListenerBase(ushort port, IProtocol protocol) : this()
     {
         System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
 
@@ -134,7 +134,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
         _port = port;
         _protocol = protocol;
-        _state = (System.Int32)ListenerState.STOPPED;
+        _state = (int)ListenerState.STOPPED;
         _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>();
 
         s_config.Validate();
@@ -189,9 +189,9 @@ public abstract partial class TcpListenerBase : IListener, IReportable
             return;
         }
 
-        static void cb([System.Diagnostics.CodeAnalysis.AllowNull] System.Object state)
+        static void cb([System.Diagnostics.CodeAnalysis.AllowNull] object state)
         {
-            TcpListenerBase self = (TcpListenerBase)state!;
+            TcpListenerBase self = (TcpListenerBase)state;
 
             try
             {
@@ -206,7 +206,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
                 }
                 catch { }
 
-                _ = System.Threading.Interlocked.Exchange(ref self._state, (System.Int32)ListenerState.STOPPED);
+                _ = System.Threading.Interlocked.Exchange(ref self._state, (int)ListenerState.STOPPED);
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Info($"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] stopped port={self._port}");
@@ -253,7 +253,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     /// true to release both managed and unmanaged resources; false to release only unmanaged resources.
     /// </param>
     [System.Diagnostics.DebuggerStepThrough]
-    protected virtual void Dispose(System.Boolean disposing)
+    protected virtual void Dispose(bool disposing)
     {
         // Atomic check-and-set: 0 -> 1
         if (System.Threading.Interlocked.CompareExchange(ref _isDisposed, 1, 0) != 0)
@@ -272,7 +272,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
                 _cts?.Cancel();
                 _cts?.Dispose();
 
-                _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STOPPING);
+                _ = System.Threading.Interlocked.Exchange(ref _state, (int)ListenerState.STOPPING);
 
                 try
                 {
@@ -290,7 +290,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
             }
             catch { }
 
-            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STOPPED);
+            _ = System.Threading.Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
 
             _lock.Dispose();
         }

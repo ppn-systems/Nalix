@@ -40,13 +40,13 @@ public sealed partial class Connection : IConnection
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal void InjectIncoming(IBufferLease lease)
     {
-        _cstream.Cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
+        _cstream.Cache.LastPingTime = (long)Clock.UnixTime().TotalMilliseconds;
         lease.Retain(); // Retain for the callback; released in Connection.cs after processing.
 
         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
         args.Initialize(lease, this);
 
-        System.Boolean queued = AsyncCallback.Invoke(OnProcessEventBridge, this, args);
+        bool queued = AsyncCallback.Invoke(OnProcessEventBridge, this, args);
 
 #if DEBUG
         s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{InjectIncoming}] inject-bytes len={lease.Length}");
@@ -66,7 +66,7 @@ public sealed partial class Connection : IConnection
     [System.Diagnostics.DebuggerNonUserCode]
     [System.Runtime.CompilerServices.SkipLocalsInit]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public sealed class UdpTransport : IConnection.IUdp, IPoolable
+    public sealed class UdpTransport : IConnection.IUdp, IPoolable, System.IDisposable
     {
         #region Fields
 
@@ -91,7 +91,6 @@ public sealed partial class Connection : IConnection
         /// <summary>
         /// Initializes a new instance of the <see cref="UdpTransport"/> class.
         /// </summary>
-        /// <param name="iPEndPoint"></param>
         /// <exception cref="System.InvalidOperationException"></exception>
         public void Initialize(ref System.Net.IPEndPoint iPEndPoint)
         {
@@ -109,7 +108,7 @@ public sealed partial class Connection : IConnection
                 try { _socket.DualMode = true; } catch { /* ignore */ }
             }
 
-            const System.Int32 BufferSize = (System.Int32)(1024 * 1.35);
+            const int BufferSize = (int)(1024 * 1.35);
 
             // Optional socket options
             _socket.SendBufferSize = BufferSize;
@@ -128,7 +127,7 @@ public sealed partial class Connection : IConnection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public System.Boolean Send(IPacket packet)
+        public bool Send(IPacket packet)
         {
             if (packet.Length == 0)
             {
@@ -136,8 +135,8 @@ public sealed partial class Connection : IConnection
             }
             else if (packet.Length < BufferLease.StackAllocThreshold)
             {
-                System.Span<System.Byte> buffer = stackalloc System.Byte[packet.Length * 110 / 100];
-                System.Int32 written = packet.Serialize(buffer);
+                System.Span<byte> buffer = stackalloc byte[packet.Length * 110 / 100];
+                int written = packet.Serialize(buffer);
                 try
                 {
 
@@ -151,7 +150,7 @@ public sealed partial class Connection : IConnection
             else
             {
                 using BufferLease lease = BufferLease.Rent(packet.Length);
-                System.Int32 written = packet.Serialize(lease.Span);
+                int written = packet.Serialize(lease.Span);
                 return Send(lease.Span[..written]);
             }
         }
@@ -161,14 +160,14 @@ public sealed partial class Connection : IConnection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public System.Boolean Send(System.ReadOnlySpan<System.Byte> message)
+        public bool Send(System.ReadOnlySpan<byte> message)
         {
             if (message.IsEmpty || _endPoint is null)
             {
                 return false;
             }
 
-            System.Int32 sent = _socket.SendTo(message, System.Net.Sockets.SocketFlags.None, _endPoint);
+            int sent = _socket.SendTo(message, System.Net.Sockets.SocketFlags.None, _endPoint);
             return sent == message.Length;
         }
 
@@ -181,7 +180,7 @@ public sealed partial class Connection : IConnection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
+        public async System.Threading.Tasks.Task<bool> SendAsync(
             IPacket packet,
             System.Threading.CancellationToken cancellationToken = default)
         {
@@ -191,11 +190,11 @@ public sealed partial class Connection : IConnection
             }
             else if (packet.Length < BufferLease.StackAllocThreshold)
             {
-                System.Byte[] buffer = new System.Byte[packet.Length * 110 / 100];
-                System.Int32 written = packet.Serialize(buffer);
+                byte[] buffer = new byte[packet.Length * 110 / 100];
+                int written = packet.Serialize(buffer);
                 try
                 {
-                    return await SendAsync(new System.ReadOnlyMemory<System.Byte>(buffer, 0, written), cancellationToken)
+                    return await SendAsync(new System.ReadOnlyMemory<byte>(buffer, 0, written), cancellationToken)
                                      .ConfigureAwait(false);
                 }
                 catch
@@ -207,7 +206,7 @@ public sealed partial class Connection : IConnection
             {
                 using BufferLease lease = BufferLease.Rent(packet.Length);
 
-                System.Int32 written = packet.Serialize(lease.Span);
+                int written = packet.Serialize(lease.Span);
                 return await SendAsync(lease.Memory[..written], cancellationToken).ConfigureAwait(false);
             }
         }
@@ -217,8 +216,8 @@ public sealed partial class Connection : IConnection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
-            System.ReadOnlyMemory<System.Byte> message,
+        public async System.Threading.Tasks.Task<bool> SendAsync(
+            System.ReadOnlyMemory<byte> message,
             System.Threading.CancellationToken cancellationToken = default)
         {
             if (message.IsEmpty)
@@ -231,7 +230,7 @@ public sealed partial class Connection : IConnection
                 return false;
             }
 
-            System.Int32 sentBytes = await _socket.SendToAsync(message, _endPoint, cancellationToken)
+            int sentBytes = await _socket.SendToAsync(message, _endPoint, cancellationToken)
                                                   .ConfigureAwait(false);
             return sentBytes == message.Length;
         }
@@ -251,6 +250,9 @@ public sealed partial class Connection : IConnection
 
         /// <inheritdoc/>
         public void Initialize(IConnection outer) => throw new System.NotImplementedException();
+
+        /// <inheritdoc/>
+        public void Dispose() => throw new System.NotImplementedException();
 
         #endregion Asynchronous Methods
     }
@@ -290,7 +292,7 @@ public sealed partial class Connection : IConnection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public System.Boolean Send(IPacket packet)
+        public bool Send(IPacket packet)
         {
             if (packet.Length == 0)
             {
@@ -298,10 +300,10 @@ public sealed partial class Connection : IConnection
             }
             else if (packet.Length < BufferLease.StackAllocThreshold)
             {
-                System.Span<System.Byte> buffer = stackalloc System.Byte[packet.Length * 4];
+                System.Span<byte> buffer = stackalloc byte[packet.Length * 4];
 
-                System.Int32 written = packet.Serialize(buffer);
-                _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
+                int written = packet.Serialize(buffer);
+                _ = System.Threading.Interlocked.Add(ref _outer.BytesSent, written);
 
                 return Send(buffer[..written]);
             }
@@ -309,8 +311,8 @@ public sealed partial class Connection : IConnection
             {
                 using BufferLease lease = BufferLease.Rent(packet.Length * 4);
 
-                System.Int32 written = packet.Serialize(lease.Span);
-                _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
+                int written = packet.Serialize(lease.Span);
+                _ = System.Threading.Interlocked.Add(ref _outer.BytesSent, written);
 
                 return Send(lease.Span[..written]);
             }
@@ -326,7 +328,7 @@ public sealed partial class Connection : IConnection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public System.Boolean Send(System.ReadOnlySpan<System.Byte> message) => _outer._cstream.Send(message);
+        public bool Send(System.ReadOnlySpan<byte> message) => _outer._cstream.Send(message);
 
         /// <inheritdoc/>
         [System.Diagnostics.StackTraceHidden]
@@ -336,22 +338,22 @@ public sealed partial class Connection : IConnection
         [System.Obsolete(
             "This method may produce multiple packets for large messages. " +
             "Consider using a different approach for large data transmission.")]
-        public System.Boolean Send(System.String message)
+        public bool Send(string message)
         {
-            System.Int32 byteCount = System.Text.Encoding.UTF8.GetByteCount(message);
+            int byteCount = System.Text.Encoding.UTF8.GetByteCount(message);
 
             // 1) Try to fit in a single packet (choose the smallest that fits).
             foreach (Candidate c in UTF8_STRING.Candidates)
             {
                 if (byteCount <= c.MaxBytes)
                 {
-                    System.Object pkt = c.Rent();
+                    object pkt = c.Rent();
                     try
                     {
                         c.Initialize(pkt, message);
-                        System.Byte[] buffer = c.Serialize(pkt);
+                        byte[] buffer = c.Serialize(pkt);
 
-                        _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, buffer.Length);
+                        _ = System.Threading.Interlocked.Add(ref _outer.BytesSent, buffer.Length);
                         _ = Send(buffer);
                         return true;
                     }
@@ -364,15 +366,15 @@ public sealed partial class Connection : IConnection
 
             // 2) Fallback: chunk by UTF-8 byte limit using the largest candidate.
             Candidate max = UTF8_STRING.Candidates[^1];
-            foreach (System.String part in UTF8_STRING.Split(message, max.MaxBytes))
+            foreach (string part in UTF8_STRING.Split(message, max.MaxBytes))
             {
-                System.Object pkt = max.Rent();
+                object pkt = max.Rent();
                 try
                 {
                     max.Initialize(pkt, part);
-                    System.Byte[] buffer = max.Serialize(pkt);
+                    byte[] buffer = max.Serialize(pkt);
 
-                    _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, buffer.Length);
+                    _ = System.Threading.Interlocked.Add(ref _outer.BytesSent, buffer.Length);
                     _ = Send(buffer);
                     return true;
                 }
@@ -399,7 +401,7 @@ public sealed partial class Connection : IConnection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
+        public async System.Threading.Tasks.Task<bool> SendAsync(
             IPacket packet,
             System.Threading.CancellationToken cancellationToken = default)
         {
@@ -409,19 +411,19 @@ public sealed partial class Connection : IConnection
             }
             else if (packet.Length < BufferLease.StackAllocThreshold)
             {
-                System.Byte[] buffer = new System.Byte[packet.Length * 4];
-                System.Int32 written = packet.Serialize(buffer);
+                byte[] buffer = new byte[packet.Length * 4];
+                int written = packet.Serialize(buffer);
 
-                _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
-                return await SendAsync(new System.ReadOnlyMemory<System.Byte>(buffer, 0, written), cancellationToken)
+                _ = System.Threading.Interlocked.Add(ref _outer.BytesSent, written);
+                return await SendAsync(new System.ReadOnlyMemory<byte>(buffer, 0, written), cancellationToken)
                                  .ConfigureAwait(false);
             }
             else
             {
                 using BufferLease lease = BufferLease.Rent(packet.Length * 4);
 
-                System.Int32 written = packet.Serialize(lease.Span);
-                _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
+                int written = packet.Serialize(lease.Span);
+                _ = System.Threading.Interlocked.Add(ref _outer.BytesSent, written);
 
                 return await SendAsync(lease.Memory[..written], cancellationToken)
                                  .ConfigureAwait(false);
@@ -438,8 +440,8 @@ public sealed partial class Connection : IConnection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
-            System.ReadOnlyMemory<System.Byte> message,
+        public async System.Threading.Tasks.Task<bool> SendAsync(
+            System.ReadOnlyMemory<byte> message,
             System.Threading.CancellationToken cancellationToken = default)
             => await _outer._cstream.SendAsync(message, cancellationToken).ConfigureAwait(false);
 
@@ -451,24 +453,24 @@ public sealed partial class Connection : IConnection
         [System.Obsolete(
             "This method may produce multiple packets for large messages. " +
             "Consider using a different approach for large data transmission.")]
-        public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
-            System.String message,
+        public async System.Threading.Tasks.Task<bool> SendAsync(
+            string message,
             System.Threading.CancellationToken cancellationToken = default)
         {
-            System.Int32 byteCount = System.Text.Encoding.UTF8.GetByteCount(message);
+            int byteCount = System.Text.Encoding.UTF8.GetByteCount(message);
 
             // 1) Try to fit in a single packet (choose the smallest that fits).
             foreach (Candidate c in UTF8_STRING.Candidates)
             {
                 if (byteCount <= c.MaxBytes)
                 {
-                    System.Object pkt = c.Rent();
+                    object pkt = c.Rent();
                     try
                     {
                         c.Initialize(pkt, message);
-                        System.Byte[] buffer = c.Serialize(pkt);
+                        byte[] buffer = c.Serialize(pkt);
 
-                        _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, buffer.Length);
+                        _ = System.Threading.Interlocked.Add(ref _outer.BytesSent, buffer.Length);
                         return await SendAsync(buffer, cancellationToken)
                                          .ConfigureAwait(false);
                     }
@@ -481,15 +483,15 @@ public sealed partial class Connection : IConnection
 
             // 2) Fallback: chunk by UTF-8 byte limit using the largest candidate.
             Candidate max = UTF8_STRING.Candidates[^1];
-            foreach (System.String part in UTF8_STRING.Split(message, max.MaxBytes))
+            foreach (string part in UTF8_STRING.Split(message, max.MaxBytes))
             {
-                System.Object pkt = max.Rent();
+                object pkt = max.Rent();
                 try
                 {
                     max.Initialize(pkt, part);
-                    System.Byte[] buffer = max.Serialize(pkt);
+                    byte[] buffer = max.Serialize(pkt);
 
-                    _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, buffer.Length);
+                    _ = System.Threading.Interlocked.Add(ref _outer.BytesSent, buffer.Length);
                     return await SendAsync(buffer, cancellationToken)
                                      .ConfigureAwait(false);
                 }

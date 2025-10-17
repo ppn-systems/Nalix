@@ -37,7 +37,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        System.Boolean acquired = false;
+        bool acquired = false;
         ConcurrencyGate.Lease lease = default;
 
         try
@@ -54,7 +54,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
 
                 if (!acquired)
                 {
-                    System.UInt32 sequenceId1 = context.Packet is IPacketSequenced sequenced1
+                    uint sequenceId1 = context.Packet is IPacketSequenced sequenced1
                         ? sequenced1.SequenceId
                         : 0;
 
@@ -74,7 +74,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
         }
         catch (ConcurrencyConflictException)
         {
-            System.UInt32 sequenceId2 = context.Packet is IPacketSequenced sequenced2
+            uint sequenceId2 = context.Packet is IPacketSequenced sequenced2
                 ? sequenced2.SequenceId
                 : 0;
 

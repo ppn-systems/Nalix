@@ -11,7 +11,7 @@ public abstract partial class Protocol
 {
     #region Fields
 
-    private System.Int32 _accepting;
+    private int _accepting;
     private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     #endregion Fields
@@ -21,7 +21,7 @@ public abstract partial class Protocol
     /// <summary>
     /// Indicates whether the protocol is currently accepting connections.
     /// </summary>
-    public System.Boolean IsAccepting
+    public bool IsAccepting
     {
         get => System.Threading.Interlocked.CompareExchange(ref _accepting, 0, 0) == 1;
         protected set => System.Threading.Interlocked.Exchange(ref _accepting, value ? 1 : 0);
@@ -81,7 +81,6 @@ public abstract partial class Protocol
 
             // Connections failed validation, close immediately
             connection.Close();
-            return;
         }
         catch (System.OperationCanceledException)
         {
@@ -117,7 +116,7 @@ public abstract partial class Protocol
     /// <param name="connection">The connection to validate.</param>
     /// <returns>True if the connection is valid, false otherwise.</returns>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    protected virtual System.Boolean ValidateConnection(IConnection connection) => true;
+    protected virtual bool ValidateConnection(IConnection connection) => true;
 
     #endregion Virtual Methods
 }

@@ -8,28 +8,35 @@ namespace Nalix.Network.Connections;
 /// <summary>
 /// Provides diagnostic statistics for a <see cref="ConnectionHub"/>.
 /// </summary>
+/// <param name="connectionCount"></param>
+/// <param name="maxConnections"></param>
+/// <param name="dropPolicy"></param>
+/// <param name="shardCount"></param>
+/// <param name="anonymousQueueDepth"></param>
+/// <param name="evictedConnections"></param>
+/// <param name="rejectedConnections"></param>
 /// <remarks>
 /// Initializes a new instance of the <see cref="ConnectionHubStatistics"/> struct.
 /// </remarks>
 public readonly struct ConnectionHubStatistics(
-    System.Int32 connectionCount,
-    System.Int32 maxConnections,
+    int connectionCount,
+    int maxConnections,
     DropPolicy dropPolicy,
-    System.Int32 shardCount,
-    System.Int32 anonymousQueueDepth,
-    System.Int32 evictedConnections,
-    System.Int32 rejectedConnections)
+    int shardCount,
+    int anonymousQueueDepth,
+    int evictedConnections,
+    int rejectedConnections)
 {
 
     /// <summary>
     /// Gets the current number of registered connections.
     /// </summary>
-    public System.Int32 ConnectionCount { get; } = connectionCount;
+    public int ConnectionCount { get; } = connectionCount;
 
     /// <summary>
     /// Gets the configured maximum number of connections.
     /// </summary>
-    public System.Int32 MaxConnections { get; } = maxConnections;
+    public int MaxConnections { get; } = maxConnections;
 
     /// <summary>
     /// Gets the drop policy that is active when limits are reached.
@@ -39,20 +46,20 @@ public readonly struct ConnectionHubStatistics(
     /// <summary>
     /// Gets the number of shards used for connection storage.
     /// </summary>
-    public System.Int32 ShardCount { get; } = shardCount;
+    public int ShardCount { get; } = shardCount;
 
     /// <summary>
     /// Gets the depth of the anonymous eviction queue.
     /// </summary>
-    public System.Int32 AnonymousQueueDepth { get; } = anonymousQueueDepth;
+    public int AnonymousQueueDepth { get; } = anonymousQueueDepth;
 
     /// <summary>
     /// Gets the cumulative number of evicted connections.
     /// </summary>
-    public System.Int32 EvictedConnections { get; } = evictedConnections;
+    public int EvictedConnections { get; } = evictedConnections;
 
     /// <summary>
     /// Gets the cumulative number of rejected connection attempts.
     /// </summary>
-    public System.Int32 RejectedConnections { get; } = rejectedConnections;
+    public int RejectedConnections { get; } = rejectedConnections;
 }

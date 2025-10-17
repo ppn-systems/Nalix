@@ -48,7 +48,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public PacketDispatchOptions<TPacket> WithErrorHandling(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Action<System.Exception, System.UInt16> errorHandler)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Action<System.Exception, ushort> errorHandler)
     {
         Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithErrorHandling)}] error-handler-set");
         _errorHandler = errorHandler;
@@ -88,11 +88,12 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// If <see langword="null"/>, the dispatcher chooses automatically based on the host CPU.
     /// </param>
     /// <returns>The current options instance.</returns>
+    /// <exception cref="System.ArgumentOutOfRangeException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public PacketDispatchOptions<TPacket> WithDispatchLoopCount(System.Int32? loopCount)
+    public PacketDispatchOptions<TPacket> WithDispatchLoopCount(int? loopCount)
     {
         if (loopCount.HasValue && (loopCount.Value < 1 || loopCount.Value > 64))
         {
@@ -135,7 +136,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public PacketDispatchOptions<TPacket> WithErrorHandlingMiddleware(
-        System.Boolean continueOnError,
+        bool continueOnError,
         System.Action<System.Exception, System.Type> errorHandler = null)
     {
         _pipeline.ConfigureErrorHandling(continueOnError, errorHandler);
@@ -205,6 +206,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// interface — the cast is deferred to handler code itself.
     /// </para>
     /// </remarks>
+    /// <exception cref="System.InvalidOperationException"></exception>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
@@ -277,8 +279,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Boolean TryResolveHandler(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt16 opCode,
+    public bool TryResolveHandler(
+        [System.Diagnostics.CodeAnalysis.NotNull] ushort opCode,
         [System.Diagnostics.CodeAnalysis.AllowNull]
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Func<TPacket, IConnection, System.Threading.Tasks.Task> handler)
     {
@@ -322,8 +324,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Boolean TryResolveHandlerDescriptor(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt16 opCode,
+    public bool TryResolveHandlerDescriptor(
+        [System.Diagnostics.CodeAnalysis.NotNull] ushort opCode,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PacketHandler<TPacket> descriptor)
     {
         if (_handlerCache.TryGetValue(opCode, out descriptor))

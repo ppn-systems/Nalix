@@ -20,15 +20,15 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// Gets or sets the initial capacity for the connection dictionary.
     /// </summary>
     [IniComment("Initial dictionary capacity for connections (pre-allocates memory, minimum 1)")]
-    [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "InitialConnectionCapacity must be positive.")]
-    public System.Int32 InitialConnectionCapacity { get; init; } = 1024;
+    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "InitialConnectionCapacity must be positive.")]
+    public int InitialConnectionCapacity { get; init; } = 1024;
 
     /// <summary>
     /// Gets or sets the initial capacity for the username dictionary.
     /// </summary>
     [IniComment("Initial dictionary capacity for usernames (pre-allocates memory, minimum 1)")]
-    [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "InitialUsernameCapacity must be positive.")]
-    public System.Int32 InitialUsernameCapacity { get; init; } = 1024;
+    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "InitialUsernameCapacity must be positive.")]
+    public int InitialUsernameCapacity { get; init; } = 1024;
 
     // Limits & backpressure
 
@@ -36,8 +36,8 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// Gets or sets the maximum number of concurrent connections allowed.
     /// </summary>
     [IniComment("Maximum concurrent connections (-1 = unlimited, must not be 0)")]
-    [System.ComponentModel.DataAnnotations.Range(-1, System.Int32.MaxValue, ErrorMessage = "MaxConnections must be -1 (unlimited) or positive.")]
-    public System.Int32 MaxConnections { get; init; } = -1;
+    [System.ComponentModel.DataAnnotations.Range(-1, int.MaxValue, ErrorMessage = "MaxConnections must be -1 (unlimited) or positive.")]
+    public int MaxConnections { get; init; } = -1;
 
     /// <summary>
     /// Gets or sets the policy for handling connection rejection when limits are reached.
@@ -53,13 +53,13 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Maximum character length for usernames (1–1024)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxUsernameLength must be between 1 and 1024.")]
-    public System.Int32 MaxUsernameLength { get; init; } = 64;
+    public int MaxUsernameLength { get; init; } = 64;
 
     /// <summary>
     /// Gets or sets whether to automatically trim whitespace from usernames.
     /// </summary>
     [IniComment("Automatically strip leading and trailing whitespace from usernames")]
-    public System.Boolean TrimUsernames { get; init; } = true;
+    public bool TrimUsernames { get; init; } = true;
 
     // Concurrency
 
@@ -67,22 +67,22 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// Gets or sets the degree of parallelism for disconnect operations.
     /// </summary>
     [IniComment("Parallel tasks for bulk disconnect (-1 = ThreadPool default, must not be 0)")]
-    [System.ComponentModel.DataAnnotations.Range(-1, System.Int32.MaxValue, ErrorMessage = "ParallelDisconnectDegree must be -1 (default) or positive.")]
-    public System.Int32 ParallelDisconnectDegree { get; init; } = -1;
+    [System.ComponentModel.DataAnnotations.Range(-1, int.MaxValue, ErrorMessage = "ParallelDisconnectDegree must be -1 (default) or positive.")]
+    public int ParallelDisconnectDegree { get; init; } = -1;
 
     /// <summary>
     /// Gets or sets the batch size for broadcast operations.
     /// </summary>
     [IniComment("Connections processed per broadcast batch (0 = no batching)")]
-    [System.ComponentModel.DataAnnotations.Range(0, System.Int32.MaxValue, ErrorMessage = "BroadcastBatchSize cannot be negative.")]
-    public System.Int32 BroadcastBatchSize { get; init; } = 0;
+    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue, ErrorMessage = "BroadcastBatchSize cannot be negative.")]
+    public int BroadcastBatchSize { get; init; }
 
     /// <summary>
     /// Gets or sets the number of shards used for connection dictionaries.
     /// </summary>
     [IniComment("Shard count for connection storage (uses connection ID hash, minimum 1)")]
-    [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "ShardCount must be at least 1.")]
-    public System.Int32 ShardCount { get; init; } = System.Math.Max(1, System.Environment.ProcessorCount);
+    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "ShardCount must be at least 1.")]
+    public int ShardCount { get; init; } = System.Math.Max(1, System.Environment.ProcessorCount);
 
     // Dispose behavior
 
@@ -90,14 +90,14 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// Gets or sets the wait time before unregistering connections during disposal.
     /// </summary>
     [IniComment("Milliseconds to wait for OnCloseEvent before force-unregistering on disposal (0 = no wait)")]
-    [System.ComponentModel.DataAnnotations.Range(0, System.Int32.MaxValue, ErrorMessage = "UnregisterDrainMillis cannot be negative.")]
-    public System.Int32 UnregisterDrainMillis { get; init; } = 0;
+    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue, ErrorMessage = "UnregisterDrainMillis cannot be negative.")]
+    public int UnregisterDrainMillis { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether latency measurement is enabled.
     /// </summary>
     [IniComment("Enable latency measurement for diagnostic and performance monitoring")]
-    public System.Boolean IsEnableLatency { get; init; } = true;
+    public bool IsEnableLatency { get; init; } = true;
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.

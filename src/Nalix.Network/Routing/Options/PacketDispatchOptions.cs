@@ -21,7 +21,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     #region Fields
 
     private readonly MiddlewarePipeline<TPacket> _pipeline;
-    private readonly System.Collections.Generic.Dictionary<System.UInt16, PacketHandler<TPacket>> _handlerCache;
+    private readonly System.Collections.Generic.Dictionary<ushort, PacketHandler<TPacket>> _handlerCache;
 
     /// <summary>
     /// Maps each registered opCode to the concrete packet type expected by its handler method.
@@ -38,7 +38,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     ///         For context-style handlers (<c>PacketContext&lt;TPacket&gt;</c>) the entry is
     ///         <see langword="null"/> — no concrete-type check is needed there.
     /// </remarks>
-    private readonly System.Collections.Generic.Dictionary<System.UInt16, System.Type> _packetTypeMap;
+    private readonly System.Collections.Generic.Dictionary<ushort, System.Type> _packetTypeMap;
 
     /// <summary>
     /// Network buffer middleware pipeline for processing raw byte buffers before packet transformation.
@@ -53,7 +53,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// If not set, exceptions are only logged. You can override this to trigger alerts or retries.
     /// </remarks>
     [System.Diagnostics.CodeAnalysis.AllowNull]
-    private System.Action<System.Exception, System.UInt16> _errorHandler;
+    private System.Action<System.Exception, ushort> _errorHandler;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatchOptions{TPacket}"/> class.
@@ -86,7 +86,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// Specifies how many dispatch loops the <see cref="PacketDispatchChannel"/> should start.
     /// When <see langword="null"/>, the dispatcher chooses <c>Math.Clamp(Environment.ProcessorCount / 2, 1, 12)</c>.
     /// </summary>
-    public System.Int32? DispatchLoopCount { get; private set; }
+    public int? DispatchLoopCount { get; private set; }
 
     #endregion Properties
 }
