@@ -1,9 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
-using Nalix.Common.Infrastructure.Caching;
+using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Networking.Caching;
+using Nalix.Common.Shared.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pools;
 using Nalix.Shared.Memory.PoolTypes;

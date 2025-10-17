@@ -2,11 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Concurrency;
-using Nalix.Common.Diagnostics;
-using Nalix.Common.Infrastructure.Caching;
-using Nalix.Common.Infrastructure.Client;
-using Nalix.Common.Messaging.Abstractions;
-using Nalix.Common.Messaging.Packets;
+using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Networking.Caching;
+using Nalix.Common.Networking.Packets.Abstractions;
+using Nalix.Common.Networking.Packets.Core;
+using Nalix.Common.Networking.Transport;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;

@@ -1,12 +1,13 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Attributes;
-using Nalix.Common.Infrastructure.Caching;
-using Nalix.Common.Messaging.Abstractions;
-using Nalix.Common.Messaging.Packets;
-using Nalix.Common.Messaging.Protocols;
+using Nalix.Common.Middleware.Attributes;
+using Nalix.Common.Networking.Caching;
+using Nalix.Common.Networking.Packets.Abstractions;
+using Nalix.Common.Networking.Packets.Core;
+using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
+using Nalix.Common.Shared.Attributes;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Serialization;

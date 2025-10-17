@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Messaging.Attributes;
+using Nalix.Common.Networking.Packets.Attributes;
 
 namespace Nalix.Network.Dispatch.Delegates;
 

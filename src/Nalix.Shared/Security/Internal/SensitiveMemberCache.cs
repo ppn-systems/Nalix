@@ -1,7 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Attributes;
+using Nalix.Common.Security.Attributes;
 
 namespace Nalix.Shared.Security.Internal;
 

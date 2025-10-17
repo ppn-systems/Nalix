@@ -1,0 +1,37 @@
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+using Nalix.Common.Networking.Packets.Abstractions;
+
+namespace Nalix.Common.Networking.Transport;
+
+/// <summary>
+/// Simple packet dispatcher abstraction.
+/// </summary>
+public interface IPacketDispatcher : System.IDisposable
+{
+    /// <summary>
+    /// Gets a value indicating whether the dispatcher contains no registered handlers.
+    /// </summary>
+    System.Boolean IsEmpty { get; }
+
+    /// <summary>
+    /// Dispatch an incoming packet to registered handlers.
+    /// </summary>
+    void Dispatch(IPacket packet);
+
+    /// <summary>
+    /// Register a persistent handler for packets of type TPacket.
+    /// </summary>
+    void Register<TPacket>(System.Action<TPacket> handler) where TPacket : class, IPacket;
+
+    /// <summary>
+    /// Register a one-shot handler: handler invoked once when a packet matching predicate arrives.
+    /// The handler is removed after the first matching packet.
+    /// </summary>
+    void RegisterOnce<TPacket>(System.Func<TPacket, System.Boolean> predicate, System.Action<TPacket> handler) where TPacket : class, IPacket;
+}

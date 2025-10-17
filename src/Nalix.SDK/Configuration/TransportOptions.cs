@@ -1,7 +1,9 @@
-using Nalix.Common.Attributes;
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
-using Nalix.Common.Enums;
-using Nalix.Common.Infrastructure.Client;
+
+using Nalix.Common.Networking.Transport;
+using Nalix.Common.Security.Enums;
+using Nalix.Common.Shared.Attributes;
 using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.SDK.Configuration;
