@@ -9,6 +9,8 @@
 
 
 #if DEBUG
+using Nalix.Common.Security;
+
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
@@ -21,9 +23,9 @@ internal static class EnvelopeFormat
 {
     #region Constants
 
-    public const System.Int32 TagSize = 16;
-    public const System.Byte CurrentVersion = 1;
-    public const System.Int32 HeaderSize = EnvelopeHeader.SIZE;
+    public const int TagSize = 16;
+    public const byte CurrentVersion = 1;
+    public const int HeaderSize = EnvelopeHeader.SIZE;
 
     #endregion Constants
 
@@ -31,11 +33,13 @@ internal static class EnvelopeFormat
     /// Parse envelope into constituent spans without allocations.
     /// Supports both AEAD (with tag) and Symmetric (no tag) formats.
     /// </summary>
+    /// <param name="blob"></param>
+    /// <param name="env"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Boolean TryParseEnvelope(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> blob,
+    public static bool TryParseEnvelope(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> blob,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out ParsedEnvelope env)
     {
         env = default;
@@ -49,8 +53,8 @@ internal static class EnvelopeFormat
             return false;
         }
 
-        System.Int32 pos = HeaderSize;
-        System.Int32 nonceLen = header.NONCE_LEN;
+        int pos = HeaderSize;
+        int nonceLen = header.NONCE_LEN;
         if (nonceLen <= 0)
         {
             return false;
@@ -61,12 +65,12 @@ internal static class EnvelopeFormat
             return false;
         }
 
-        System.ReadOnlySpan<System.Byte> headerSlice = blob[..HeaderSize];
-        System.ReadOnlySpan<System.Byte> nonceSlice = blob.Slice(pos, nonceLen);
+        System.ReadOnlySpan<byte> headerSlice = blob[..HeaderSize];
+        System.ReadOnlySpan<byte> nonceSlice = blob.Slice(pos, nonceLen);
         pos += nonceLen;
 
         // Decide format by suite type: AEAD => has tag, Symmetric => no tag
-        System.Boolean hasTag = IsAeadSuite(header.TYPE);
+        bool hasTag = IsAeadSuite(header.TYPE);
 
         if (hasTag)
         {
@@ -76,14 +80,14 @@ internal static class EnvelopeFormat
                 return false;
             }
 
-            System.Int32 ctLen = blob.Length - pos - TagSize;
+            int ctLen = blob.Length - pos - TagSize;
             if (ctLen < 0)
             {
                 return false;
             }
 
-            System.ReadOnlySpan<System.Byte> ctSlice = blob.Slice(pos, ctLen);
-            System.ReadOnlySpan<System.Byte> tagSlice = blob.Slice(pos + ctLen, TagSize);
+            System.ReadOnlySpan<byte> ctSlice = blob.Slice(pos, ctLen);
+            System.ReadOnlySpan<byte> tagSlice = blob.Slice(pos + ctLen, TagSize);
 
             env = new ParsedEnvelope(
                 header.VERSION, header.TYPE, header.FLAGS, header.NONCE_LEN, header.SEQ,
@@ -94,7 +98,7 @@ internal static class EnvelopeFormat
         else
         {
             // Symmetric: all remaining is ciphertext; no tag
-            System.ReadOnlySpan<System.Byte> ctSlice = blob[pos..];
+            System.ReadOnlySpan<byte> ctSlice = blob[pos..];
             env = new ParsedEnvelope(
                 header.VERSION, header.TYPE, header.FLAGS, header.NONCE_LEN, header.SEQ,
                 headerSlice, nonceSlice, ctSlice, [], hasTag: false);
@@ -106,29 +110,36 @@ internal static class EnvelopeFormat
     /// <summary>
     /// Compose AEAD envelope: header || nonce || ciphertext || tag.
     /// </summary>
+    /// <param name="dest"></param>
+    /// <param name="type"></param>
+    /// <param name="flags"></param>
+    /// <param name="seq"></param>
+    /// <param name="nonce"></param>
+    /// <param name="ciphertext"></param>
+    /// <param name="tag"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int32 WriteEnvelope(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dest,
+    public static int WriteEnvelope(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> dest,
         [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte flags,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 seq,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> tag)
+        [System.Diagnostics.CodeAnalysis.NotNull] byte flags,
+        [System.Diagnostics.CodeAnalysis.NotNull] uint seq,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> ciphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> tag)
     {
-        System.Int32 nonceLen = nonce.Length;
-        System.Int32 required = HeaderSize + nonceLen + ciphertext.Length + tag.Length;
+        int nonceLen = nonce.Length;
+        int required = HeaderSize + nonceLen + ciphertext.Length + tag.Length;
         if (dest.Length < required)
         {
             ThrowHelper.EnvelopeDestTooSmall();
         }
 
-        EnvelopeHeader header = new(CurrentVersion, type, flags, (System.Byte)nonceLen, seq);
+        EnvelopeHeader header = new(CurrentVersion, type, flags, (byte)nonceLen, seq);
         EnvelopeHeader.Encode(dest[..HeaderSize], header);
 
-        System.Int32 pos = HeaderSize;
+        int pos = HeaderSize;
         nonce.CopyTo(dest.Slice(pos, nonceLen)); pos += nonceLen;
         ciphertext.CopyTo(dest.Slice(pos, ciphertext.Length)); pos += ciphertext.Length;
         tag.CopyTo(dest.Slice(pos, tag.Length)); pos += tag.Length;
@@ -138,28 +149,34 @@ internal static class EnvelopeFormat
     /// <summary>
     /// Compose Symmetric envelope: header || nonce || ciphertext (no tag).
     /// </summary>
+    /// <param name="dest"></param>
+    /// <param name="type"></param>
+    /// <param name="flags"></param>
+    /// <param name="seq"></param>
+    /// <param name="nonce"></param>
+    /// <param name="ciphertext"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int32 WriteEnvelope(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dest,
+    public static int WriteEnvelope(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> dest,
         [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte flags,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 seq,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext)
+        [System.Diagnostics.CodeAnalysis.NotNull] byte flags,
+        [System.Diagnostics.CodeAnalysis.NotNull] uint seq,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> ciphertext)
     {
-        System.Int32 nonceLen = nonce.Length;
-        System.Int32 required = HeaderSize + nonceLen + ciphertext.Length;
+        int nonceLen = nonce.Length;
+        int required = HeaderSize + nonceLen + ciphertext.Length;
         if (dest.Length < required)
         {
             ThrowHelper.EnvelopeDestTooSmall();
         }
 
-        EnvelopeHeader header = new(CurrentVersion, type, flags, (System.Byte)nonceLen, seq);
+        EnvelopeHeader header = new(CurrentVersion, type, flags, (byte)nonceLen, seq);
         EnvelopeHeader.Encode(dest[..HeaderSize], header);
 
-        System.Int32 pos = HeaderSize;
+        int pos = HeaderSize;
         nonce.CopyTo(dest.Slice(pos, nonceLen)); pos += nonceLen;
         ciphertext.CopyTo(dest.Slice(pos, ciphertext.Length)); pos += ciphertext.Length;
         return pos;
@@ -172,24 +189,27 @@ internal static class EnvelopeFormat
     [System.Diagnostics.DebuggerDisplay("Ver={VERSION}, Alg={AeadType}, NONCE_LEN={NONCE_LEN}, SEQ={SEQ}, Tag={HasTag}")]
     public readonly ref struct ParsedEnvelope
     {
-        public readonly System.Byte Version;
+        public readonly byte Version;
         public readonly CipherSuiteType AeadType;
-        public readonly System.Byte Flags;
-        public readonly System.Byte NonceLen;
-        public readonly System.UInt32 Seq;
-        public readonly System.Boolean HasTag;
-        public readonly System.ReadOnlySpan<System.Byte> Tag;
-        public readonly System.ReadOnlySpan<System.Byte> Nonce;
-        public readonly System.ReadOnlySpan<System.Byte> Header; // the 12 bytes
-        public readonly System.ReadOnlySpan<System.Byte> Ciphertext;
+        public readonly byte Flags;
+        public readonly byte NonceLen;
+        public readonly uint Seq;
+        public readonly bool HasTag;
+        public readonly System.ReadOnlySpan<byte> Tag;
+        public readonly System.ReadOnlySpan<byte> Nonce;
+        /// <summary>
+        /// the 12 bytes
+        /// </summary>
+        public readonly System.ReadOnlySpan<byte> Header;
+        public readonly System.ReadOnlySpan<byte> Ciphertext;
 
         public ParsedEnvelope(
-            System.Byte version, CipherSuiteType type, System.Byte flags, System.Byte nonceLen, System.UInt32 seq,
-            System.ReadOnlySpan<System.Byte> header,
-            System.ReadOnlySpan<System.Byte> nonce,
-            System.ReadOnlySpan<System.Byte> ciphertext,
-            System.ReadOnlySpan<System.Byte> tag,
-            System.Boolean hasTag)
+            byte version, CipherSuiteType type, byte flags, byte nonceLen, uint seq,
+            System.ReadOnlySpan<byte> header,
+            System.ReadOnlySpan<byte> nonce,
+            System.ReadOnlySpan<byte> ciphertext,
+            System.ReadOnlySpan<byte> tag,
+            bool hasTag)
         {
             Version = version;
             AeadType = type;
@@ -206,7 +226,7 @@ internal static class EnvelopeFormat
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Boolean IsAeadSuite(CipherSuiteType t) => t is CipherSuiteType.SALSA20_POLY1305 or CipherSuiteType.CHACHA20_POLY1305;
+    private static bool IsAeadSuite(CipherSuiteType t) => t is CipherSuiteType.SALSA20_POLY1305 or CipherSuiteType.CHACHA20_POLY1305;
 
     private static class ThrowHelper
     {
