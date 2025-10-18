@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Framework.Configuration.Binding;
-using Nalix.Network.Dispatch;
 using Nalix.Network.Internal.Pooled;
+using Nalix.Network.Routing;
 
 namespace Nalix.Network.Configurations;
 

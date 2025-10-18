@@ -4,7 +4,7 @@
 using Nalix.Common.Middleware.Attributes;
 using Nalix.Common.Middleware.Enums;
 using Nalix.Network.Abstractions;
-using Nalix.Network.Dispatch;
+using Nalix.Network.Routing;
 
 namespace Nalix.Network.Middleware;
 

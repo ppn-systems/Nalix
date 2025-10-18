@@ -11,7 +11,7 @@ using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Connections;
-using Nalix.Network.Dispatch;
+using Nalix.Network.Routing;
 
 namespace Nalix.Network.Middleware.Inbound;
 

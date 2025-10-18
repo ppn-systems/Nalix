@@ -6,7 +6,7 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Configurations;
-using Nalix.Network.Timing;
+using Nalix.Network.Timekeeping;
 
 namespace Nalix.Network.Listeners.Udp;
 

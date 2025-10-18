@@ -9,7 +9,7 @@ using Nalix.Common.Shared.Abstractions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
-using Nalix.Network.Dispatch;
+using Nalix.Network.Routing;
 using System.Linq;
 
 namespace Nalix.Network.Throttling;
