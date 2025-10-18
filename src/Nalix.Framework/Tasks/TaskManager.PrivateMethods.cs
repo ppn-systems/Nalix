@@ -81,7 +81,7 @@ public partial class TaskManager
                 System.Int32 maxMs = (System.Int32)j.TotalMilliseconds;
                 if (maxMs > 0)
                 {
-                    System.TimeSpan jitter = System.TimeSpan.FromMilliseconds(RANDOM.GetInt32(0, maxMs));
+                    System.TimeSpan jitter = System.TimeSpan.FromMilliseconds(SecureRandom.GetInt32(0, maxMs));
                     await System.Threading.Tasks.Task.Delay(jitter, ct).ConfigureAwait(false);
                 }
             }

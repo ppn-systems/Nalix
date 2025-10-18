@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Framework.Identity;
+namespace Nalix.Framework.Randomization.Core;
 
 
 /// <summary>
@@ -9,7 +9,7 @@ namespace Nalix.Framework.Identity;
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
-public static partial class OsRandom
+public static partial class OsCsprng
 {
     #region Fields
 
@@ -20,7 +20,7 @@ public static partial class OsRandom
 
     #region Constructor
 
-    static OsRandom()
+    static OsCsprng()
     {
         if (System.OperatingSystem.IsWindows())
         {
@@ -72,7 +72,7 @@ public static partial class OsRandom
     private const System.UInt32 C = 0x00000002;
 
     [System.Runtime.InteropServices.LibraryImport("Bcrypt.dll")]
-    private static partial int BCryptGenRandom(
+    private static partial System.Int32 BCryptGenRandom(
         System.IntPtr hAlgorithm,
         System.Span<System.Byte> pbBuffer,
         System.Int32 cbBuffer, System.UInt32 dwFlags);
