@@ -41,7 +41,7 @@ public static class X25519
             PrivateKey = new System.Byte[32]
         };
 
-        RANDOM.Fill(key.PrivateKey);
+        SecureRandom.Fill(key.PrivateKey);
 
         // as defined in https://cr.yp.to/ecdh.html do these operation to finalize the private key
         key.PrivateKey[0] &= 248;

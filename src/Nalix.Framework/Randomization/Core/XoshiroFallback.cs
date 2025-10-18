@@ -22,8 +22,8 @@ namespace Nalix.Framework.Randomization.Core;
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.DebuggerDisplay("FastRandom (NOT CSPRNG)")]
-public static class FastRandom
+[System.Diagnostics.DebuggerDisplay("XoshiroFallback (NOT CSPRNG)")]
+public static class XoshiroFallback
 {
     #region Fields
 
@@ -43,7 +43,7 @@ public static class FastRandom
 
     #region Constructors
 
-    static FastRandom()
+    static XoshiroFallback()
     {
         s_lock = new();
         s_state = new System.UInt64[4];
@@ -88,7 +88,7 @@ public static class FastRandom
 
         // Schedule new reseed (non-reentrant)
         s_reseedHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-            name: "FastRandom.reseed",
+            name: "XoshiroFallback.reseed",
             interval: System.TimeSpan.FromSeconds(180),
             work: static _ =>
             {
