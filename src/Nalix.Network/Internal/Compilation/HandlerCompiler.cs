@@ -315,7 +315,7 @@ internal sealed class HandlerCompiler<
             Type declaredT = parms[0].ParameterType.GetGenericArguments()[0];
             if (declaredT != typeof(TPacket))
             {
-                return throw new InvalidOperationException(
+                throw new InvalidOperationException(
                     $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
                     $"parameter type PacketContext<{declaredT.Name}> does not match " +
                     $"the dispatcher's TPacket={typeof(TPacket).Name}. " +
@@ -345,10 +345,10 @@ internal sealed class HandlerCompiler<
             if (parms.Length < 2 || !typeof(IConnection).IsAssignableFrom(parms[1].ParameterType))
             {
                 // ---- legacy-style: first param must implement IPacket ----
-                return throw new InvalidOperationException(
-                $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-                "legacy signature requires (TPacket, IConnection[, CancellationToken]). " +
-                "Second parameter must implement IConnection.");
+                throw new InvalidOperationException(
+                    $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
+                    "legacy signature requires (TPacket, IConnection[, CancellationToken]). " +
+                    "Second parameter must implement IConnection.");
             }
             else if (parms.Length == 2)
             {
@@ -363,23 +363,23 @@ internal sealed class HandlerCompiler<
             else
             {
                 // ---- legacy-style: first param must implement IPacket ----
-                return throw new InvalidOperationException(
-                $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-                "legacy signature only supports 2 or 3 parameters " +
-                $"(TPacket, IConnection[, CancellationToken]). Found {parms.Length}.");
+                throw new InvalidOperationException(
+                    $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
+                    "legacy signature only supports 2 or 3 parameters " +
+                    $"(TPacket, IConnection[, CancellationToken]). Found {parms.Length}.");
             }
         }
         else
         {
             // ---- legacy-style: first param must implement IPacket ----
-            return throw new InvalidOperationException(
-            $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-            "unrecognised signature. " +
-            "Supported forms: " +
-            "(TPacket, IConnection), " +
-            "(TPacket, IConnection, CancellationToken), " +
-            "(PacketContext<T>), " +
-            "(PacketContext<T>, CancellationToken).");
+            throw new InvalidOperationException(
+                $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
+                "unrecognised signature. " +
+                "Supported forms: " +
+                "(TPacket, IConnection), " +
+                "(TPacket, IConnection, CancellationToken), " +
+                "(PacketContext<T>), " +
+                "(PacketContext<T>, CancellationToken).");
         }
     }
 
@@ -569,8 +569,8 @@ internal sealed class HandlerCompiler<
                     Type p0 = parms[0].ParameterType;
                     Type p1 = parms[1].ParameterType;
 
-                    object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0);
-                    object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1);
+                    object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0, provider: null);
+                    object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1, provider: null);
 
                     return method.IsStatic
                         ? method.Invoke(null, [pkt, conn])
@@ -584,8 +584,8 @@ internal sealed class HandlerCompiler<
                     Type p0 = parms[0].ParameterType;
                     Type p1 = parms[1].ParameterType;
 
-                    object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0);
-                    object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1);
+                    object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0, provider: null);
+                    object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1, provider: null);
 
                     return method.IsStatic
                         ? method.Invoke(null, [pkt, conn, context.CancellationToken])
