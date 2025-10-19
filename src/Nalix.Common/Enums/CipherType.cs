@@ -13,13 +13,13 @@ public enum CipherType : System.Byte
     None = 0,
 
     /// <summary>
-    /// ChaCha20 stream cipher combined with Poly1305 for authenticated encryption.
+    /// ChaCha stream cipher combined with Poly1305 for authenticated encryption.
     /// Provides high performance and modern security guarantees.
     /// </summary>
     ChaCha20Poly1305 = 1,
 
     /// <summary>
-    /// Salsa20 stream cipher, a fast and secure algorithm similar in design to ChaCha20.
+    /// Salsa stream cipher, a fast and secure algorithm similar in design to ChaCha.
     /// </summary>
     Salsa20 = 2,
 
