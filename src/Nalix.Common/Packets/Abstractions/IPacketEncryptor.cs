@@ -17,7 +17,7 @@ public interface IPacketEncryptor<TPacket> where TPacket : IPacket
     /// <param name="key">The encryption key.</param>
     /// <param name="algorithm">The symmetric algorithm to apply.</param>
     /// <returns>Encrypted <typeparamref name="TPacket"/>.</returns>
-    static abstract TPacket Encrypt(TPacket packet, System.Byte[] key, CipherType algorithm);
+    static abstract TPacket Encrypt(TPacket packet, System.Byte[] key, CipherSuiteType algorithm);
 
     /// <summary>
     /// Decrypts the specified packet with a given key and algorithm.
@@ -26,5 +26,5 @@ public interface IPacketEncryptor<TPacket> where TPacket : IPacket
     /// <param name="key">The decryption key.</param>
     /// <param name="algorithm">The algorithm previously used for encryption.</param>
     /// <returns>Decrypted <typeparamref name="TPacket"/>.</returns>
-    static abstract TPacket Decrypt(TPacket packet, System.Byte[] key, CipherType algorithm);
+    static abstract TPacket Decrypt(TPacket packet, System.Byte[] key, CipherSuiteType algorithm);
 }

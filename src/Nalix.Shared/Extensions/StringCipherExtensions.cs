@@ -6,7 +6,7 @@ using Nalix.Framework.Cryptography;
 namespace Nalix.Shared.Extensions;
 
 /// <summary>
-/// Provides convenience methods to encrypt/decrypt UTF-8 text with Base64 I/O on top of <see cref="CIPHER"/>.
+/// Provides convenience methods to encrypt/decrypt UTF-8 text with Base64 I/O on top of <see cref="CryptoEngine"/>.
 /// </summary>
 public static class StringCipherExtensions
 {
@@ -17,8 +17,7 @@ public static class StringCipherExtensions
     /// <param name="key">The encryption key.</param>
     /// <param name="algorithm">The symmetric algorithm to use.</param>
     /// <returns>A Base64 string of the encrypted data, or <see cref="System.String.Empty"/> if <paramref name="text"/> is null or empty.</returns>
-    public static System.String EncryptToBase64(
-        this System.String text, System.Byte[] key, CipherType algorithm)
+    public static System.String EncryptToBase64(this System.String text, System.Byte[] key, CipherSuiteType algorithm)
     {
         if (System.String.IsNullOrEmpty(text))
         {
@@ -26,7 +25,7 @@ public static class StringCipherExtensions
         }
 
         System.Byte[] utf8 = System.Text.Encoding.UTF8.GetBytes(text);
-        System.ReadOnlyMemory<System.Byte> cipher = CIPHER.Encrypt(utf8, key, algorithm);
+        System.ReadOnlyMemory<System.Byte> cipher = CryptoEngine.Encrypt(utf8, key, algorithm);
         return System.Convert.ToBase64String(cipher.Span);
     }
 
@@ -35,28 +34,32 @@ public static class StringCipherExtensions
     /// </summary>
     /// <param name="base64">The Base64-encoded ciphertext. If null or empty, returns <see cref="System.String.Empty"/>.</param>
     /// <param name="key">The decryption key.</param>
-    /// <param name="algorithm">The symmetric algorithm that was used to encrypt.</param>
     /// <returns>The decrypted UTF-8 string, or <see cref="System.String.Empty"/> if <paramref name="base64"/> is null or empty.</returns>
     /// <exception cref="System.InvalidOperationException">Thrown when Base64 is invalid or decryption fails.</exception>
-    public static System.String DecryptFromBase64(
-        this System.String base64, System.Byte[] key, CipherType algorithm)
+    public static System.String DecryptFromBase64(this System.String base64, System.Byte[] key)
     {
         if (System.String.IsNullOrEmpty(base64))
         {
             return System.String.Empty;
         }
 
-        System.Byte[] encrypted;
+        System.Byte[] envelope;
         try
         {
-            encrypted = System.Convert.FromBase64String(base64);
+            envelope = System.Convert.FromBase64String(base64);
         }
         catch (System.FormatException ex)
         {
             throw new System.InvalidOperationException("Invalid Base64 input.", ex);
         }
 
-        System.ReadOnlyMemory<System.Byte> plain = CIPHER.Decrypt(encrypted, key, algorithm);
-        return System.Text.Encoding.UTF8.GetString(plain.Span);
+        if (CryptoEngine.Decrypt(key, envelope, out System.Byte[]? plaintext))
+        {
+            return System.Text.Encoding.UTF8.GetString(plaintext);
+        }
+        else
+        {
+            throw new System.InvalidOperationException("Decryption failed.");
+        }
     }
 }
