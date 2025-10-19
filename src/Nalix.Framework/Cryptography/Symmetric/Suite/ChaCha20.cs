@@ -99,7 +99,7 @@ public sealed class ChaCha20 : System.IDisposable
     {
         if (_isDisposed)
         {
-            throw new System.ObjectDisposedException("state", "The ChaCha state has been disposed");
+            throw new System.ObjectDisposedException("state", "The ChaCha20 state has been disposed");
         }
 
         // Reuse existing state update logic to produce a 64-byte block.
@@ -494,7 +494,7 @@ public sealed class ChaCha20 : System.IDisposable
     #region Private Methods
 
     /// <summary>
-    /// Set up the ChaCha state with the given key. A 32-byte key is required and enforced.
+    /// Set up the ChaCha20 state with the given key. A 32-byte key is required and enforced.
     /// </summary>
     /// <param name="key">
     /// A 32-byte (256-bit) key, treated as a concatenation of eight 32-bit little-endian integers
@@ -520,7 +520,7 @@ public sealed class ChaCha20 : System.IDisposable
     }
 
     /// <summary>
-    /// Set up the ChaCha state with the given nonce (aka Initialization Vector or IV) and block counter. A 12-byte nonce and a 4-byte counter are required.
+    /// Set up the ChaCha20 state with the given nonce (aka Initialization Vector or IV) and block counter. A 12-byte nonce and a 4-byte counter are required.
     /// </summary>
     /// <param name="nonce">
     /// A 12-byte (96-bit) nonce, treated as a concatenation of three 32-bit little-endian integers
@@ -573,7 +573,7 @@ public sealed class ChaCha20 : System.IDisposable
     {
         if (_isDisposed)
         {
-            throw new System.ObjectDisposedException("state", "The ChaCha state has been disposed");
+            throw new System.ObjectDisposedException("state", "The ChaCha20 state has been disposed");
         }
 
         if (numBytes < 0 || numBytes > input.Length || numBytes > output.Length)
@@ -627,7 +627,7 @@ public sealed class ChaCha20 : System.IDisposable
     {
         if (_isDisposed)
         {
-            throw new System.ObjectDisposedException("state", "The ChaCha state has been disposed");
+            throw new System.ObjectDisposedException("state", "The ChaCha20 state has been disposed");
         }
 
         System.UInt32[] x = new System.UInt32[StateLength];    // Working buffer
@@ -748,13 +748,13 @@ public sealed class ChaCha20 : System.IDisposable
     }
 
     /// <summary>
-    /// The ChaCha Quarter Round operation. It operates on four 32-bit unsigned integers within the given buffer at indices a, b, c, and d.
+    /// The ChaCha20 Quarter Round operation. It operates on four 32-bit unsigned integers within the given buffer at indices a, b, c, and d.
     /// </summary>
     /// <remarks>
-    /// The ChaCha state does not have four integer numbers: it has 16. So the quarter-round operation works on only four of them -- hence the name. Each quarter round operates on four predetermined numbers in the ChaCha state.
+    /// The ChaCha20 state does not have four integer numbers: it has 16. So the quarter-round operation works on only four of them -- hence the name. Each quarter round operates on four predetermined numbers in the ChaCha20 state.
     /// See <a href="https://tools.ietf.org/html/rfc7539#page-4">ChaCha20 Spec Sections 2.1 - 2.2</a>.
     /// </remarks>
-    /// <param name="x">A ChaCha state (vector). Must contain 16 elements.</param>
+    /// <param name="x">A ChaCha20 state (vector). Must contain 16 elements.</param>
     /// <param name="a">Index of the first ProtocolType</param>
     /// <param name="b">Index of the second ProtocolType</param>
     /// <param name="c">Index of the third ProtocolType</param>

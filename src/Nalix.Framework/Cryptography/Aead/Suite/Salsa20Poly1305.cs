@@ -3,7 +3,7 @@
 using Nalix.Framework.Cryptography.Hashing;
 using Nalix.Framework.Cryptography.Primitives;
 
-namespace Nalix.Framework.Cryptography.Aead.Suites;
+namespace Nalix.Framework.Cryptography.Aead.Suite;
 
 /// <summary>
 /// Provides an allocation-minimized, Span-first implementation of a
