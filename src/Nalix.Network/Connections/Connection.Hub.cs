@@ -85,6 +85,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     public ConnectionHub()
     {
         _options = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
+        _options.Validate();
 
         _shardCount = System.Environment.ProcessorCount;
         System.Int32 concurrencyLevel = System.Environment.ProcessorCount * 2;
@@ -838,9 +839,9 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Diagnostics.StackTraceHidden]
     private void HandleConnectionLimit(IConnection newConnection)
     {
-        s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] connection-limit-reached policy={_options.RejectPolicy} max={_options.MaxConnections}");
+        s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] connection-limit-reached policy={_options.DropPolicy} max={_options.MaxConnections}");
 
-        switch (_options.RejectPolicy)
+        switch (_options.DropPolicy)
         {
             case DropPolicy.DROP_NEWEST:
                 newConnection.Disconnect("connection limit reached");

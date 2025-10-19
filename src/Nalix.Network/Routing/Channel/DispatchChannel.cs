@@ -105,6 +105,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     public DispatchChannel()
     {
         _options = ConfigurationManager.Instance.Get<DispatchOptions>();
+        _options.Validate();
 
         _readyByPrio = new System.Collections.Concurrent.ConcurrentQueue<IConnection>[GetPriorityLevels];
         for (System.Int32 i = 0; i < _readyByPrio.Length; i++)
