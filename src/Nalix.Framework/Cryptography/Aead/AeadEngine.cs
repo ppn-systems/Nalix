@@ -8,9 +8,9 @@
 // Note: This is a convenience engine for your lib (Span-first-ish).
 
 using Nalix.Common.Enums;
-using Nalix.Framework.Cryptography.Aead.Formats;
-using Nalix.Framework.Cryptography.Aead.Suites;
-using Nalix.Framework.Cryptography.Symmetric;
+using Nalix.Framework.Cryptography.Aead.Suite;
+using Nalix.Framework.Cryptography.Formats;
+using Nalix.Framework.Cryptography.Symmetric.Suite;
 using Nalix.Framework.Randomization;
 
 namespace Nalix.Framework.Cryptography.Aead;
@@ -23,10 +23,10 @@ namespace Nalix.Framework.Cryptography.Aead;
 /// <para>
 /// <strong>Envelope structure:</strong>
 /// <list type="bullet">
-/// <item><description><c>header</c>: fixed <see cref="AeadFormat.HeaderSize"/> bytes (contains magic, algorithm id, flags, nonce length, sequence).</description></item>
+/// <item><description><c>header</c>: fixed <see cref="CryptoFormat.HeaderSize"/> bytes (contains magic, algorithm id, flags, nonce length, sequence).</description></item>
 /// <item><description><c>nonce</c>: suite-specific length (e.g., 12 for ChaCha20, 8 for Salsa20, 16 for Speck, 8 for XTEA).</description></item>
 /// <item><description><c>ciphertext</c>: same length as plaintext.</description></item>
-/// <item><description><c>tag</c>: authentication tag of <see cref="AeadFormat.TagSize"/> bytes (detached).</description></item>
+/// <item><description><c>tag</c>: authentication tag of <see cref="CryptoFormat.TagSize"/> bytes (detached).</description></item>
 /// </list>
 /// </para>
 /// <para>
@@ -54,7 +54,7 @@ public static class AeadEngine
     /// <param name="key">Secret key (length depends on suite; see remarks).</param>
     /// <param name="plaintext">Plaintext to encrypt.</param>
     /// <param name="algorithm">
-    /// Optional algorithm name. Defaults to <c>"ChaCha"</c>.
+    /// Optional algorithm name. Defaults to <c>"ChaCha20"</c>.
     /// Supported aliases:
     /// <list type="bullet">
     /// <item><description><c>"chacha"</c>, <c>"chacha20"</c>, <c>"chacha20-poly1305"</c></description></item>
@@ -83,12 +83,12 @@ public static class AeadEngine
     public static System.Byte[] Encrypt(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> plaintext,
-        System.String? algorithm = null,
+        CipherSuiteType algorithm = CipherSuiteType.ChaCha20Poly1305,
         System.ReadOnlySpan<System.Byte> aad = default,
         System.UInt32? seq = null)
     {
         // Resolve algorithm and nonce length
-        (AeadType algId, System.Int32 nonceLen) = ResolveAlgorithm(algorithm);
+        System.Int32 nonceLen = GetNonceLength(algorithm);
 
         // Generate nonce
         System.Span<System.Byte> nonceStack = stackalloc System.Byte[System.Math.Max(16, nonceLen)];
@@ -99,13 +99,13 @@ public static class AeadEngine
         System.UInt32 seqVal = seq ?? GenerateRandomSeq();
 
         // Build header
-        System.Span<System.Byte> header = stackalloc System.Byte[AeadFormat.HeaderSize];
-        AeadHeader headerStruct = new(
-            AeadFormat.CurrentVersion, algId,
+        System.Span<System.Byte> header = stackalloc System.Byte[CryptoFormat.HeaderSize];
+        CryptoHeader headerStruct = new(
+            CryptoFormat.CurrentVersion, algorithm,
             flags: 0, (System.Byte)nonceLen, seqVal
         );
 
-        AeadHeader.WriteTo(header, headerStruct);
+        CryptoHeader.WriteTo(header, headerStruct);
 
         // Build combined AAD = header || nonce || userAAD
         System.Int32 combinedAadLen = header.Length + nonce.Length + aad.Length;
@@ -119,12 +119,12 @@ public static class AeadEngine
 
             // Allocate ciphertext & tag
             var ct = new System.Byte[plaintext.Length];
-            var tag = new System.Byte[AeadFormat.TagSize];
+            var tag = new System.Byte[CryptoFormat.TagSize];
 
             // Dispatch
-            switch (algId)
+            switch (algorithm)
             {
-                case AeadType.ChaCha:
+                case CipherSuiteType.ChaCha20Poly1305:
                     if (key.Length != 32)
                     {
                         ThrowHelper.BadKeyLen32();
@@ -133,7 +133,7 @@ public static class AeadEngine
                     ChaCha20Poly1305.Encrypt(key, nonce, plaintext, combinedAad, ct, tag);
                     break;
 
-                case AeadType.Salsa:
+                case CipherSuiteType.Salsa20Poly1305:
                     if (key.Length is not 16 and not 32)
                     {
                         ThrowHelper.BadKeyLenSalsa();
@@ -142,7 +142,7 @@ public static class AeadEngine
                     Salsa20Poly1305.Encrypt(key, nonce, plaintext, combinedAad, ct, tag);
                     break;
 
-                case AeadType.Speck:
+                case CipherSuiteType.SpeckPoly1305:
                     if (key.Length != Speck.KeySizeBytes)
                     {
                         ThrowHelper.BadKeyLenSpeck();
@@ -151,7 +151,7 @@ public static class AeadEngine
                     SpeckPoly1305.Encrypt(key, nonce, plaintext, combinedAad, ct, tag);
                     break;
 
-                case AeadType.Xtea:
+                case CipherSuiteType.XteaPoly1305:
                     {
                         System.Span<System.Byte> k16 = stackalloc System.Byte[16];
                         if (key.Length == 32)
@@ -178,9 +178,9 @@ public static class AeadEngine
             }
 
             // Compose envelope
-            System.Int32 total = AeadFormat.HeaderSize + nonceLen + ct.Length + tag.Length;
+            System.Int32 total = CryptoFormat.HeaderSize + nonceLen + ct.Length + tag.Length;
             var outBuf = new System.Byte[total];
-            AeadFormat.WriteEnvelope(outBuf, algId, flags: 0, seqVal, nonce, ct, tag);
+            CryptoFormat.WriteEnvelope(outBuf, algorithm, flags: 0, seqVal, nonce, ct, tag);
             return outBuf;
         }
         finally
@@ -206,15 +206,15 @@ public static class AeadEngine
     /// The same AAD convention is used as in <see cref="Encrypt"/>:
     /// <c>header || nonce || userAAD</c>.
     /// </remarks>
-    public static System.Boolean TryDecrypt(
+    public static System.Boolean Decrypt(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> envelope,
-        out System.Byte[]? plaintext,
-        System.ReadOnlySpan<System.Byte> aad = default)
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
+        out System.Byte[]? plaintext, System.ReadOnlySpan<System.Byte> aad = default)
     {
         plaintext = null;
 
-        if (!AeadFormat.TryParseEnvelope(envelope, out var env))
+        if (!CryptoFormat.TryParseEnvelope(envelope, out var env))
         {
             return false;
         }
@@ -234,7 +234,7 @@ public static class AeadEngine
 
             switch (env.AeadType)
             {
-                case AeadType.ChaCha:
+                case CipherSuiteType.ChaCha20Poly1305:
                     if (key.Length != 32)
                     {
                         ThrowHelper.BadKeyLen32();
@@ -243,7 +243,7 @@ public static class AeadEngine
                     ok = ChaCha20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, combinedAad, env.Tag, pt);
                     break;
 
-                case AeadType.Salsa:
+                case CipherSuiteType.Salsa20Poly1305:
                     if (key.Length is not 16 and not 32)
                     {
                         ThrowHelper.BadKeyLenSalsa();
@@ -252,7 +252,7 @@ public static class AeadEngine
                     ok = Salsa20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, combinedAad, env.Tag, pt);
                     break;
 
-                case AeadType.Speck:
+                case CipherSuiteType.SpeckPoly1305:
                     if (key.Length != Speck.KeySizeBytes)
                     {
                         ThrowHelper.BadKeyLenSpeck();
@@ -261,7 +261,7 @@ public static class AeadEngine
                     ok = SpeckPoly1305.Decrypt(key, env.Nonce, env.Ciphertext, combinedAad, env.Tag, pt);
                     break;
 
-                case AeadType.Xtea:
+                case CipherSuiteType.XteaPoly1305:
                     {
                         System.Span<System.Byte> k16 = stackalloc System.Byte[16];
                         if (key.Length == 32)
@@ -329,37 +329,16 @@ public static class AeadEngine
 
     #region Helpers
 
-    private static (AeadType algId, System.Int32 nonceLen) ResolveAlgorithm(System.String? algorithm)
+    private static System.Int32 GetNonceLength(CipherSuiteType type)
     {
-        if (System.String.IsNullOrEmpty(algorithm))
+        return type switch
         {
-            algorithm = "chacha";
-        }
-
-        switch (algorithm!.ToLowerInvariant())
-        {
-            case "chacha":
-            case "chacha20":
-            case "chacha20-poly1305":
-                return (AeadType.ChaCha, 12);
-
-            case "salsa":
-            case "salsa20":
-            case "salsa20-poly1305":
-                return (AeadType.Salsa, 8);
-
-            case "speck":
-            case "speck-poly1305":
-                return (AeadType.Speck, 16);
-
-            case "xtea":
-            case "xtea-poly1305":
-                return (AeadType.Xtea, 8);
-
-            default:
-                ThrowHelper.UnsupportedAlg();
-                return (0, 0);
-        }
+            CipherSuiteType.ChaCha20Poly1305 => 12,
+            CipherSuiteType.Salsa20Poly1305 => 8,
+            CipherSuiteType.SpeckPoly1305 => 16,
+            CipherSuiteType.XteaPoly1305 => 8,
+            _ => throw new System.ArgumentOutOfRangeException(nameof(type))
+        };
     }
 
     private static System.UInt32 GenerateRandomSeq()
@@ -381,7 +360,7 @@ public static class AeadEngine
 
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
         public static void BadKeyLenSalsa() =>
-            throw new System.ArgumentException("Key must be 16 or 32 bytes for Salsa", "key");
+            throw new System.ArgumentException("Key must be 16 or 32 bytes for Salsa20", "key");
 
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
         public static void BadKeyLenSpeck() =>
