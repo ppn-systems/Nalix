@@ -51,7 +51,7 @@ public partial interface IConnection : System.IDisposable
     /// <summary>
     /// Gets or sets the encryption mode used.
     /// </summary>
-    CipherType Algorithm { get; set; }
+    CipherSuiteType Algorithm { get; set; }
 
     /// <summary>
     /// Occurs when the connection is closed.

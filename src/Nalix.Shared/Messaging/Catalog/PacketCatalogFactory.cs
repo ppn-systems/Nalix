@@ -183,8 +183,8 @@ public sealed class PacketCatalogFactory
 
         public static delegate* managed<TPacket, TPacket> Compress;
         public static delegate* managed<TPacket, TPacket> Decompress;
-        public static delegate* managed<TPacket, System.Byte[], CipherType, TPacket> Encrypt;
-        public static delegate* managed<TPacket, System.Byte[], CipherType, TPacket> Decrypt;
+        public static delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> Encrypt;
+        public static delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> Decrypt;
 
         /// <summary>
         /// Facade for <see cref="PacketDeserializer"/>.
@@ -212,14 +212,14 @@ public sealed class PacketCatalogFactory
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket DoEncrypt(IPacket p, System.Byte[] key, CipherType alg) => Encrypt((TPacket)p, key, alg);
+        public static IPacket DoEncrypt(IPacket p, System.Byte[] key, CipherSuiteType alg) => Encrypt((TPacket)p, key, alg);
 
         /// <summary>
         /// Facade for <see cref="PacketTransformer.Decrypt"/>.
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket DoDecrypt(IPacket p, System.Byte[] key, CipherType alg) => Decrypt((TPacket)p, key, alg);
+        public static IPacket DoDecrypt(IPacket p, System.Byte[] key, CipherSuiteType alg) => Decrypt((TPacket)p, key, alg);
     }
 
     private static unsafe delegate* managed<TPacket, TPacket> ToUnaryPtr<TPacket>(System.Reflection.MethodInfo mi)
@@ -228,11 +228,11 @@ public sealed class PacketCatalogFactory
         return (delegate* managed<TPacket, TPacket>)ptr;
     }
 
-    private static unsafe delegate* managed<TPacket, System.Byte[], CipherType, TPacket>
+    private static unsafe delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket>
         ToCryptoPtr<TPacket>(System.Reflection.MethodInfo mi)
     {
         System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
-        return (delegate* managed<TPacket, System.Byte[], CipherType, TPacket>)ptr;
+        return (delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket>)ptr;
     }
 
     private static unsafe delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket>
@@ -244,7 +244,7 @@ public sealed class PacketCatalogFactory
 
     /// <summary>
     /// Assigns function pointers to <see cref="Fn{TPacket}"/> for a specific packet type.
-    /// Any null <paramref name="miDeserialize"/>, <paramref name="miCompress"/>, 
+    /// Any null <paramref name="miDeserialize"/>, <paramref name="miCompress"/>,
     /// <paramref name="miDecompress"/>, <paramref name="miEncrypt"/>, or <paramref name="miDecrypt"/> parameters are skipped.
     /// </summary>
     private static unsafe void BindAllPtrsGeneric<TPacket>(
@@ -323,7 +323,7 @@ public sealed class PacketCatalogFactory
 
             foreach (System.Type? type in SafeGetTypes(asm))
             {
-                if (type is null || !type.IsClass || type.IsAbstract)
+                if (type?.IsClass != true || type.IsAbstract)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Trace($"[{nameof(PacketCatalogFactory)}] " +
@@ -401,14 +401,14 @@ public sealed class PacketCatalogFactory
                 name: nameof(IPacketEncryptor<IPacket>.Encrypt),
                 bindingAttr: FLAGS,
                 binder: null,
-                types: [type, typeof(System.Byte[]), typeof(CipherType)],
+                types: [type, typeof(System.Byte[]), typeof(CipherSuiteType)],
                 modifiers: null);
 
             System.Reflection.MethodInfo? miDecrypt = type.GetMethod(
                 name: nameof(IPacketEncryptor<IPacket>.Decrypt),
                 bindingAttr: FLAGS,
                 binder: null,
-                types: [type, typeof(System.Byte[]), typeof(CipherType)],
+                types: [type, typeof(System.Byte[]), typeof(CipherSuiteType)],
                 modifiers: null);
 
             // ---- Deserializer binding (required if magic exists) ----
@@ -462,8 +462,8 @@ public sealed class PacketCatalogFactory
 
             System.Func<IPacket, IPacket>? compressDel = null;
             System.Func<IPacket, IPacket>? decompressDel = null;
-            System.Func<IPacket, System.Byte[], CipherType, IPacket>? encryptDel = null;
-            System.Func<IPacket, System.Byte[], CipherType, IPacket>? decryptDel = null;
+            System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>? encryptDel = null;
+            System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>? decryptDel = null;
 
             System.Reflection.MethodInfo doEncryptMi = fnType.GetMethod(nameof(Fn<IPacket>.DoEncrypt), FLAGS)!;
             System.Reflection.MethodInfo doDecryptMi = fnType.GetMethod(nameof(Fn<IPacket>.DoDecrypt), FLAGS)!;
@@ -482,14 +482,14 @@ public sealed class PacketCatalogFactory
 
             if (miEncrypt is not null)
             {
-                encryptDel = (System.Func<IPacket, System.Byte[], CipherType, IPacket>)
-                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], CipherType, IPacket>), doEncryptMi);
+                encryptDel = (System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>)
+                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>), doEncryptMi);
             }
 
             if (miDecrypt is not null)
             {
-                decryptDel = (System.Func<IPacket, System.Byte[], CipherType, IPacket>)
-                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], CipherType, IPacket>), doDecryptMi);
+                decryptDel = (System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>)
+                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>), doDecryptMi);
             }
 
             transformers[type!] = new PacketTransformer(compressDel, decompressDel, encryptDel, decryptDel);
