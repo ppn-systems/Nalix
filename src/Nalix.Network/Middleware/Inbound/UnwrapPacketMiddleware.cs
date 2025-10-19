@@ -91,7 +91,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                     return;
                 }
-                current = t.Decrypt(current, context.Connection.Secret, context.Connection.Algorithm);
+                current = t.Decrypt(current, context.Connection.Secret);
             }
 
             if (needDecompress)

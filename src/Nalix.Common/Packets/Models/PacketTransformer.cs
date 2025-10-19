@@ -14,20 +14,16 @@ namespace Nalix.Common.Packets.Models;
 /// All operations return a new packet without mutating the original.
 /// </remarks>
 /// <param name="Compress">
-/// A delegate that compresses the given <see cref="IPacket"/> and 
-/// returns a new compressed instance.
+/// A delegate that compresses the given <see cref="IPacket"/> and returns a new compressed instance.
 /// </param>
 /// <param name="Decompress">
-/// A delegate that decompresses the given <see cref="IPacket"/> and 
-/// returns the restored instance.
+/// A delegate that decompresses the given <see cref="IPacket"/> and returns the restored instance.
 /// </param>
 /// <param name="Encrypt">
-/// A delegate that encrypts the given <see cref="IPacket"/> using the 
-/// specified <see cref="CipherSuiteType"/> and encryption key.
+/// A delegate that encrypts the given <see cref="IPacket"/> using the specified <see cref="CipherSuiteType"/> and encryption key.
 /// </param>
 /// <param name="Decrypt">
-/// A delegate that decrypts the given <see cref="IPacket"/> using the 
-/// specified <see cref="CipherSuiteType"/> and decryption key.
+/// A delegate that decrypts the given <see cref="IPacket"/> using the specified <see cref="CipherSuiteType"/> and decryption key.
 /// </param>
 [System.Diagnostics.DebuggerDisplay("PacketTransformer [C={HasCompress}, D={HasDecompress}, E={HasEncrypt}, R={HasDecrypt}]")]
 public readonly record struct PacketTransformer(
@@ -43,7 +39,7 @@ public readonly record struct PacketTransformer(
     /*----------------------------------------------------------------------------------*/
     [property: JsonIgnore]
     [System.Diagnostics.CodeAnalysis.AllowNull]
-    System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket> Decrypt
+    System.Func<IPacket, System.Byte[], IPacket> Decrypt
     /*----------------------------------------------------------------------------------*/)
 {
     /// <summary>
