@@ -5,8 +5,8 @@ using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Injection;
+using Nalix.Shared.Frames.Controls;
 using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Messaging.Controls;
 
 namespace Nalix.Network.Connections;
 

@@ -8,7 +8,7 @@ using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Common.Shared.Attributes;
 
-namespace Nalix.Shared.Messaging;
+namespace Nalix.Shared.Frames;
 
 /// <summary>
 /// Represents the base class for all packet frames in the messaging system.

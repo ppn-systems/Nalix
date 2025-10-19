@@ -6,7 +6,7 @@ using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Packets.Transformation;
 using Nalix.Shared.Extensions;
 
-namespace Nalix.Shared.Messaging.Catalog;
+namespace Nalix.Shared.Registry;
 
 /// <summary>
 /// Provides an immutable, thread-safe catalog of packet deserializers and transformers.
@@ -27,13 +27,13 @@ namespace Nalix.Shared.Messaging.Catalog;
 /// This type is safe for concurrent read access. Instances are immutable once constructed.
 /// </para>
 /// </remarks>
-public sealed class PacketCatalog : IPacketCatalog
+public sealed class PacketRegistry : IPacketCatalog
 {
     private readonly System.Collections.Frozen.FrozenDictionary<System.Type, PacketTransformer> _transformers;
     private readonly System.Collections.Frozen.FrozenDictionary<System.UInt32, PacketDeserializer> _deserializers;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PacketCatalog"/> class using the specified lookup tables.
+    /// Initializes a new instance of the <see cref="PacketRegistry"/> class using the specified lookup tables.
     /// </summary>
     /// <param name="transformers">
     /// A frozen dictionary that maps packet <see cref="System.Type"/> objects to <see cref="PacketTransformer"/> delegates.
@@ -44,7 +44,7 @@ public sealed class PacketCatalog : IPacketCatalog
     /// <remarks>
     /// Both dictionaries are assumed to be non-null and already frozen. The constructor does not copy the inputs.
     /// </remarks>
-    public PacketCatalog(
+    public PacketRegistry(
         System.Collections.Frozen.FrozenDictionary<System.Type, PacketTransformer> transformers,
         System.Collections.Frozen.FrozenDictionary<System.UInt32, PacketDeserializer> deserializers)
     {
@@ -53,23 +53,23 @@ public sealed class PacketCatalog : IPacketCatalog
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PacketCatalog"/> class by executing
-    /// the specified configuration action on a <see cref="PacketCatalogFactory"/>.
+    /// Initializes a new instance of the <see cref="PacketRegistry"/> class by executing
+    /// the specified configuration action on a <see cref="PacketRegistryFactory"/>.
     /// </summary>
     /// <param name="action">
-    /// A delegate that configures the <see cref="PacketCatalogFactory"/> by registering
+    /// A delegate that configures the <see cref="PacketRegistryFactory"/> by registering
     /// explicit packet types and/or assemblies. Must not be <see langword="null"/>.
     /// </param>
     /// <exception cref="System.ArgumentNullException">
     /// Thrown if <paramref name="action"/> is <see langword="null"/>.
     /// </exception>
-    public PacketCatalog(System.Action<PacketCatalogFactory> action)
+    public PacketRegistry(System.Action<PacketRegistryFactory> action)
     {
         System.ArgumentNullException.ThrowIfNull(action);
-        PacketCatalogFactory factory = new();
+        PacketRegistryFactory factory = new();
         action(factory);
 
-        PacketCatalog built = factory.CreateCatalog();
+        PacketRegistry built = factory.CreateCatalog();
 
         _transformers = built._transformers;
         _deserializers = built._deserializers;

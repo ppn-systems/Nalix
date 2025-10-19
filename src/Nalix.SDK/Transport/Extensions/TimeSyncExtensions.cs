@@ -9,7 +9,7 @@ using Nalix.Common.Networking.Transport;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.Shared.Extensions;
-using Nalix.Shared.Messaging.Controls;            // Control
+using Nalix.Shared.Frames.Controls;
 
 namespace Nalix.SDK.Transport.Extensions;
 
