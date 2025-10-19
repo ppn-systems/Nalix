@@ -1,11 +1,10 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Framework.Cryptography.Hashing;
-using Nalix.Framework.Cryptography.Padding;
 using Nalix.Framework.Cryptography.Primitives;
 using Nalix.Framework.Cryptography.Symmetric;
 
-namespace Nalix.Framework.Cryptography.Aead;
+namespace Nalix.Framework.Cryptography.Aead.Suites;
 
 /// <summary>
 /// Allocation-minimized, Span-first AEAD built from XTEA in CTR mode + Poly1305 MAC.
@@ -356,7 +355,7 @@ public static class XteaPoly1305
     {
         v = (v & 0x00FF00FF00FF00FFUL) << 8 | (v & 0xFF00FF00FF00FF00UL) >> 8;
         v = (v & 0x0000FFFF0000FFFFUL) << 16 | (v & 0xFFFF0000FFFF0000UL) >> 16;
-        v = (v << 32) | (v >> 32);
+        v = v << 32 | v >> 32;
         return v;
     }
 

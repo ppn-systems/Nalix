@@ -136,7 +136,7 @@ public static class XoshiroFallback
         }
 
         // Tail
-        System.Int32 rem = dst.Length - u64.Length * 8;
+        System.Int32 rem = dst.Length - (u64.Length * 8);
         if (rem > 0)
         {
             System.UInt64 x = NextU64(st);
