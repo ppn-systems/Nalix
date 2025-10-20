@@ -116,7 +116,6 @@ public static class EnvelopeCipher
         _ => throw new System.ArgumentException("Unsupported symmetric algorithm", nameof(type))
     };
 
-
     /// <summary>
     /// Gets the authentication tag length in bytes produced by the specified cipher suite.
     /// </summary>
@@ -218,22 +217,12 @@ public static class EnvelopeCipher
         System.Span<byte> nonce = nonceStack[..nonceLength];
         Csprng.Fill(nonce);
 
-        switch (algorithm)
+        return algorithm switch
         {
-            case CipherSuiteType.SALSA20:
-            case CipherSuiteType.CHACHA20:
-                // Assume SymmetricEngine.Encrypt uses an out parameter for written
-                return SymmetricEngine.Encrypt(key, plaintext, ciphertext, nonce, seq, algorithm, out written);
-
-
-            case CipherSuiteType.SALSA20_POLY1305:
-            case CipherSuiteType.CHACHA20_POLY1305:
-                return AeadEngine.Encrypt(key, plaintext, ciphertext, nonce, aad, seq, algorithm, out written);
-
-
-            default:
-                throw new System.ArgumentException("Unsupported cipher type", nameof(algorithm));
-        }
+            CipherSuiteType.SALSA20 or CipherSuiteType.CHACHA20 => SymmetricEngine.Encrypt(key, plaintext, ciphertext, nonce, seq, algorithm, out written),// Assume SymmetricEngine.Encrypt uses an out parameter for written
+            CipherSuiteType.SALSA20_POLY1305 or CipherSuiteType.CHACHA20_POLY1305 => AeadEngine.Encrypt(key, plaintext, ciphertext, nonce, aad, seq, algorithm, out written),
+            _ => throw new System.ArgumentException("Unsupported cipher type", nameof(algorithm)),
+        };
     }
 
     /// <summary>
@@ -297,7 +286,6 @@ public static class EnvelopeCipher
 
                 break;
 
-
             case CipherSuiteType.SALSA20_POLY1305:
             case CipherSuiteType.CHACHA20_POLY1305:
                 if (AeadEngine.Decrypt(key, envelope, plaintext, aad, out written))
@@ -306,7 +294,6 @@ public static class EnvelopeCipher
                 }
 
                 break;
-
 
             default:
                 return false;

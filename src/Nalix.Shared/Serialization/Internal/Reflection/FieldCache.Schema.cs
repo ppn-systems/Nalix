@@ -11,16 +11,21 @@ namespace Nalix.Shared.Serialization.Internal.Reflection;
 /// <summary>
 /// Represents metadata for a field, including its type and ordering.
 /// </summary>
+/// <param name="Order"></param>
+/// <param name="Name"></param>
+/// <param name="IsValueType"></param>
+/// <param name="FieldType"></param>
+/// <param name="FieldInfo"></param>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal readonly record struct FieldSchema(
     // The order of the field in the serialized structure.
-    System.Int32 Order,
+    int Order,
 
     // The name of the field.
-    System.String Name,
+    string Name,
 
     // Indicates whether the field is a value type.
-    System.Boolean IsValueType,
+    bool IsValueType,
 
     // The type of the field.
     System.Type FieldType,

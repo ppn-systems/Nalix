@@ -27,21 +27,21 @@ namespace Nalix.Shared.Security.Symmetric;
 /// </para>
 /// </remarks>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-public ref struct ChaCha20
+public struct ChaCha20
 {
     #region Constants
 
     /// <summary>Required key length in bytes (256-bit).</summary>
-    public const System.Byte KeySize = 32;
+    public const byte KeySize = 32;
 
     /// <summary>Required nonce length in bytes (96-bit).</summary>
-    public const System.Byte NonceSize = 12;
+    public const byte NonceSize = 12;
 
     /// <summary>Size of a single keystream block in bytes.</summary>
-    public const System.Byte BlockSize = 64;
+    public const byte BlockSize = 64;
 
     /// <summary>Number of 32-bit words in the ChaCha20 state matrix.</summary>
-    public const System.Byte StateLength = 16;
+    public const byte StateLength = 16;
 
     #endregion Constants
 
@@ -52,7 +52,7 @@ public ref struct ChaCha20
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1169:Make field read-only", Justification = "<Pending>")]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
-        private System.UInt32 _e0;
+        private uint _e0;
     }
 
     [System.Runtime.CompilerServices.InlineArray(StateLength)]
@@ -60,7 +60,7 @@ public ref struct ChaCha20
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1169:Make field read-only", Justification = "<Pending>")]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
-        private System.UInt32 _e0;
+        private uint _e0;
     }
 
     [System.Runtime.CompilerServices.InlineArray(BlockSize)]
@@ -68,14 +68,14 @@ public ref struct ChaCha20
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1169:Make field read-only", Justification = "<Pending>")]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
-        private System.Byte _e0;
+        private byte _e0;
     }
 
     #endregion Inline Array Definitions
 
     #region Fields
 
-    private System.Boolean _cleared;
+    private bool _cleared;
     private StateBuffer _state;
     private WorkingBuffer _working;
     private KeystreamBuffer _keystream;
@@ -88,23 +88,29 @@ public ref struct ChaCha20
     /// Initializes a new <see cref="ChaCha20"/> instance with the specified key, nonce, and
     /// initial block counter.
     /// </summary>
-    public ChaCha20(System.Byte[] key, System.Byte[] nonce, System.UInt32 counter)
+    /// <param name="key"></param>
+    /// <param name="nonce"></param>
+    /// <param name="counter"></param>
+    public ChaCha20(byte[] key, byte[] nonce, uint counter)
     {
         System.ArgumentNullException.ThrowIfNull(key);
         System.ArgumentNullException.ThrowIfNull(nonce);
 
-        InitializeKey(new System.ReadOnlySpan<System.Byte>(key));
-        InitializeNonce(new System.ReadOnlySpan<System.Byte>(nonce), counter);
+        InitializeKey(new System.ReadOnlySpan<byte>(key));
+        InitializeNonce(new System.ReadOnlySpan<byte>(nonce), counter);
     }
 
     /// <summary>
     /// Initializes a new <see cref="ChaCha20"/> instance with the specified key, nonce, and
     /// initial block counter using spans (zero-copy).
     /// </summary>
+    /// <param name="key"></param>
+    /// <param name="nonce"></param>
+    /// <param name="counter"></param>
     public ChaCha20(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt32 counter)
+        System.ReadOnlySpan<byte> key,
+        System.ReadOnlySpan<byte> nonce,
+        uint counter)
     {
         InitializeKey(key);
         InitializeNonce(nonce, counter);
@@ -118,19 +124,20 @@ public ref struct ChaCha20
     /// Generates one 64-byte keystream block into <paramref name="dst"/> at the current counter,
     /// then advances the internal counter by 1 (per RFC 7539).
     /// </summary>
+    /// <param name="dst"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void GenerateKeyBlock(scoped System.Span<System.Byte> dst)
+    public void GenerateKeyBlock(scoped System.Span<byte> dst)
     {
         ThrowIfCleared();
 
-        System.Span<System.UInt32> stateSpan = _state;
-        System.Span<System.UInt32> workingSpan = _working;
-        System.Span<System.Byte> keystreamSpan = _keystream;
+        System.Span<uint> stateSpan = _state;
+        System.Span<uint> workingSpan = _working;
+        System.Span<byte> keystreamSpan = _keystream;
 
         GenerateBlock(stateSpan, workingSpan, keystreamSpan);
 
-        System.Int32 n = dst.Length < BlockSize ? dst.Length : BlockSize;
+        int n = dst.Length < BlockSize ? dst.Length : BlockSize;
         keystreamSpan[..n].CopyTo(dst);
     }
 
@@ -142,11 +149,13 @@ public ref struct ChaCha20
     /// Encrypts <paramref name="src"/> into <paramref name="dst"/>.
     /// Returns number of bytes written.
     /// </summary>
+    /// <param name="src"></param>
+    /// <param name="dst"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Int32 Encrypt(
-        System.ReadOnlySpan<System.Byte> src,
-        System.Span<System.Byte> dst)
+    public int Encrypt(
+        System.ReadOnlySpan<byte> src,
+        System.Span<byte> dst)
     {
         ThrowIfCleared();
 
@@ -165,11 +174,13 @@ public ref struct ChaCha20
 
     /// <summary>
     /// Decrypts <paramref name="src"/> into <paramref name="dst"/>.
-    /// Identical to <see cref="Encrypt(System.ReadOnlySpan{System.Byte}, System.Span{System.Byte})"/>.
+    /// Identical to <see cref="Encrypt(System.ReadOnlySpan{byte}, System.Span{byte})"/>.
     /// </summary>
+    /// <param name="src"></param>
+    /// <param name="dst"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Int32 Decrypt(System.ReadOnlySpan<System.Byte> src, System.Span<System.Byte> dst) => Encrypt(src, dst);
+    public int Decrypt(System.ReadOnlySpan<byte> src, System.Span<byte> dst) => Encrypt(src, dst);
 
     #endregion Decryption Methods
 
@@ -183,8 +194,8 @@ public ref struct ChaCha20
     {
         if (!_cleared)
         {
-            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes((System.Span<System.UInt32>)_state));
-            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes((System.Span<System.UInt32>)_working));
+            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes((System.Span<uint>)_state));
+            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes((System.Span<uint>)_working));
             MemorySecurity.ZeroMemory(_keystream);
             _cleared = true;
         }
@@ -210,61 +221,58 @@ public ref struct ChaCha20
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt32 LoadLittleEndian32(System.ReadOnlySpan<System.Byte> source, System.Int32 offset)
+    private static uint LoadLittleEndian32(System.ReadOnlySpan<byte> source, int offset)
         => System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(source[offset..]);
 
-    private void InitializeKey(System.ReadOnlySpan<System.Byte> key)
+    private void InitializeKey(System.ReadOnlySpan<byte> key)
     {
         if (key.Length != KeySize)
         {
             ThrowHelper.ThrowInvalidKeyLengthException($"Key length must be {KeySize}. Actual: {key.Length}");
         }
 
-        System.Span<System.UInt32> s = _state;
+        System.Span<uint> s = _state;
         s[0] = 0x61707865;
         s[1] = 0x3320646e;
         s[2] = 0x79622d32;
         s[3] = 0x6b206574;
 
-        for (System.Int32 i = 0; i < 8; i++)
+        for (int i = 0; i < 8; i++)
         {
             s[4 + i] = LoadLittleEndian32(key, i * 4);
         }
     }
 
-    private void InitializeNonce(System.ReadOnlySpan<System.Byte> nonce, System.UInt32 counter)
+    private void InitializeNonce(System.ReadOnlySpan<byte> nonce, uint counter)
     {
         if (nonce.Length != NonceSize)
         {
             ThrowHelper.ThrowInvalidNonceLengthException($"Nonce length must be {NonceSize}. Actual: {nonce.Length}");
         }
 
-        System.Span<System.UInt32> s = _state;
+        System.Span<uint> s = _state;
         s[12] = counter;
 
-        for (System.Int32 i = 0; i < 3; i++)
+        for (int i = 0; i < 3; i++)
         {
             s[13 + i] = LoadLittleEndian32(nonce, i * 4);
         }
     }
 
     #endregion Private — Initialization
-    #region Private — SIMD Detection
-
-    #endregion Private — SIMD Detection
 
     #region Private — Core Block Function
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void GenerateBlock(
-        System.Span<System.UInt32> state,
-        System.Span<System.UInt32> working,
-        System.Span<System.Byte> keystream)
+        System.Span<uint> state,
+        System.Span<uint> working,
+        System.Span<byte> keystream)
     {
         state.CopyTo(working);
 
-        for (System.Int32 i = 0; i < 10; i++)
+        for (int i = 0; i < 10; i++)
         {
             // Column rounds
             QuarterRound(working, 0, 4, 8, 12);
@@ -278,7 +286,7 @@ public ref struct ChaCha20
             QuarterRound(working, 3, 4, 9, 14);
         }
 
-        for (System.Int32 i = 0; i < StateLength; i++)
+        for (int i = 0; i < StateLength; i++)
         {
             System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(
                 keystream[(4 * i)..],
@@ -299,8 +307,8 @@ public ref struct ChaCha20
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void QuarterRound(
-        System.Span<System.UInt32> x,
-        System.Int32 a, System.Int32 b, System.Int32 c, System.Int32 d)
+        System.Span<uint> x,
+        int a, int b, int c, int d)
     {
         x[a] = BitwiseOperations.Add(x[a], x[b]);
         x[d] = System.Numerics.BitOperations.RotateLeft(BitwiseOperations.XOr(x[d], x[a]), 16);
@@ -322,29 +330,29 @@ public ref struct ChaCha20
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void EncryptSpanInternal(
-        System.ReadOnlySpan<System.Byte> src,
-        System.Span<System.Byte> dst,
-        System.Int32 numBytes)
+        System.ReadOnlySpan<byte> src,
+        System.Span<byte> dst,
+        int numBytes)
     {
         if (numBytes < 0 || numBytes > src.Length || numBytes > dst.Length)
         {
             throw new System.ArgumentOutOfRangeException(nameof(numBytes));
         }
 
-        System.Span<System.UInt32> stateSpan = _state;
-        System.Span<System.UInt32> workingSpan = _working;
-        System.Span<System.Byte> keystreamSpan = _keystream;
+        System.Span<uint> stateSpan = _state;
+        System.Span<uint> workingSpan = _working;
+        System.Span<byte> keystreamSpan = _keystream;
 
-        System.Int32 offset = 0;
-        System.Int32 fullBlocks = numBytes / BlockSize;
-        System.Int32 tailBytes = numBytes - (fullBlocks * BlockSize);
+        int offset = 0;
+        int fullBlocks = numBytes / BlockSize;
+        int tailBytes = numBytes - (fullBlocks * BlockSize);
 
-        for (System.Int32 block = 0; block < fullBlocks; block++)
+        for (int block = 0; block < fullBlocks; block++)
         {
             GenerateBlock(stateSpan, workingSpan, keystreamSpan);
-            for (System.Int32 i = 0; i < BlockSize; i++)
+            for (int i = 0; i < BlockSize; i++)
             {
-                dst[offset + i] = (System.Byte)(src[offset + i] ^ keystreamSpan[i]);
+                dst[offset + i] = (byte)(src[offset + i] ^ keystreamSpan[i]);
             }
 
             offset += BlockSize;
@@ -353,15 +361,12 @@ public ref struct ChaCha20
         if (tailBytes > 0)
         {
             GenerateBlock(stateSpan, workingSpan, keystreamSpan);
-            for (System.Int32 i = 0; i < tailBytes; i++)
+            for (int i = 0; i < tailBytes; i++)
             {
-                dst[offset + i] = (System.Byte)(src[offset + i] ^ keystreamSpan[i]);
+                dst[offset + i] = (byte)(src[offset + i] ^ keystreamSpan[i]);
             }
         }
     }
 
     #endregion Private — Span-Based Encrypt Core
-    #region Private — Array-Based Encrypt Core (SIMD)
-
-    #endregion Private — Array-Based Encrypt Core (SIMD)
 }

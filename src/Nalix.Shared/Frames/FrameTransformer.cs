@@ -182,7 +182,6 @@ public static class FrameTransformer
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static bool Compress(IBufferLease src, IBufferLease dest)
     {
-
         if (src.Length <= Offset || dest.Capacity <= Offset)
         {
             return false;
@@ -246,6 +245,10 @@ public static class FrameTransformer
     /// <summary>
     /// Attempts to encrypt the packet payload.
     /// </summary>
+    /// <param name="src"></param>
+    /// <param name="dest"></param>
+    /// <param name="key"></param>
+    /// <param name="suite"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static bool TryEncrypt(
@@ -267,6 +270,9 @@ public static class FrameTransformer
     /// <summary>
     /// Attempts to decrypt the packet payload.
     /// </summary>
+    /// <param name="src"></param>
+    /// <param name="dest"></param>
+    /// <param name="key"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static bool TryDecrypt(
@@ -287,6 +293,8 @@ public static class FrameTransformer
     /// <summary>
     /// Attempts to compress the packet payload.
     /// </summary>
+    /// <param name="src"></param>
+    /// <param name="dest"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static bool TryCompress(IBufferLease src, IBufferLease dest)
@@ -304,6 +312,8 @@ public static class FrameTransformer
     /// <summary>
     /// Attempts to decompress the packet payload.
     /// </summary>
+    /// <param name="src"></param>
+    /// <param name="dest"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static bool TryDecompress(IBufferLease src, IBufferLease dest)

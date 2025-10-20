@@ -3,8 +3,6 @@
 
 using Nalix.Common.Serialization;
 
-
-
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
@@ -17,8 +15,8 @@ internal static partial class TypeMetadata
     [System.ThreadStatic]
     private static System.Collections.Generic.HashSet<System.Type>? t_visitedTypes;
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<System.Boolean>> s_isRefCache;
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<System.Int32>> s_sizeOfFnCache;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<bool>> s_isRefCache;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<int>> s_sizeOfFnCache;
 
     static TypeMetadata()
     {
@@ -32,16 +30,16 @@ internal static partial class TypeMetadata
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static System.Boolean IsReferenceOrContainsReferences(System.Type type)
+    private static bool IsReferenceOrContainsReferences(System.Type type)
     {
-        System.Func<System.Boolean> fn = s_isRefCache.GetOrAdd(type, static t =>
+        System.Func<bool> fn = s_isRefCache.GetOrAdd(type, static t =>
         {
             System.Reflection.MethodInfo method = typeof(System.Runtime.CompilerServices.RuntimeHelpers)
                 .GetMethod(nameof(System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences))!
                 .MakeGenericMethod(t);
 
-            System.Linq.Expressions.Expression<System.Func<System.Boolean>> call =
-                System.Linq.Expressions.Expression.Lambda<System.Func<System.Boolean>>(
+            System.Linq.Expressions.Expression<System.Func<bool>> call =
+                System.Linq.Expressions.Expression.Lambda<System.Func<bool>>(
                     System.Linq.Expressions.Expression.Call(null, method));
 
             return call.Compile();
@@ -54,16 +52,16 @@ internal static partial class TypeMetadata
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static System.Int32 UnsafeSizeOf(System.Type type)
+    private static int UnsafeSizeOf(System.Type type)
     {
-        System.Func<System.Int32> del = s_sizeOfFnCache.GetOrAdd(type, static t =>
+        System.Func<int> del = s_sizeOfFnCache.GetOrAdd(type, static t =>
         {
             System.Reflection.MethodInfo method = typeof(System.Runtime.CompilerServices.Unsafe)
                 .GetMethod("SizeOf")!
                 .MakeGenericMethod(t);
 
-            System.Linq.Expressions.Expression<System.Func<System.Int32>> call =
-                System.Linq.Expressions.Expression.Lambda<System.Func<System.Int32>>(
+            System.Linq.Expressions.Expression<System.Func<int>> call =
+                System.Linq.Expressions.Expression.Lambda<System.Func<int>>(
                     System.Linq.Expressions.Expression.Call(null, method));
 
             return call.Compile();

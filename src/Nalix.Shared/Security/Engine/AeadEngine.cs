@@ -45,7 +45,6 @@ public static class AeadEngine
     /// <param name="key">Secret key (length depends on suite; see remarks).</param>
     /// <param name="plaintext">Plaintext to encrypt.</param>
     /// <param name="ciphertext">The output ciphertext</param>
-    /// <param name="nonce"></param>
     /// <param name="aad">Optional associated data to be authenticated (not encrypted).</param>
     /// <param name="seq">Optional 4-byte sequence number stored in the header; if null, a random value is used.</param>
     /// <param name="algorithm">
@@ -103,9 +102,10 @@ public static class AeadEngine
             case CipherSuiteType.SALSA20_POLY1305:
                 _ = Salsa20Poly1305.Encrypt(key, nonce, plaintext, aad, ctDestination, tagDestination);
                 break;
+
             case CipherSuiteType.SALSA20:
             case CipherSuiteType.CHACHA20:
-                return false;
+
             default:
                 return false;
         }
@@ -131,7 +131,6 @@ public static class AeadEngine
     /// otherwise set to <c>null</c>.
     /// </param>
     /// <param name="aad">Optional associated data to be authenticated (not encrypted).</param>
-    /// <param name="written"></param>
     /// <returns><c>true</c> if decryption and tag verification succeeded; otherwise <c>false</c>.</returns>
     /// <remarks>
     /// The same AAD convention is used as in <see cref="Encrypt"/>:
@@ -166,7 +165,6 @@ public static class AeadEngine
 
         switch (env.AeadType)
         {
-
             case CipherSuiteType.CHACHA20_POLY1305:
                 result = ChaCha20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, aad, env.Tag, ptSlice);
                 break;
@@ -174,9 +172,11 @@ public static class AeadEngine
             case CipherSuiteType.SALSA20_POLY1305:
                 result = Salsa20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, aad, env.Tag, ptSlice);
                 break;
+
             case CipherSuiteType.SALSA20:
             case CipherSuiteType.CHACHA20:
                 return false;
+
             default:
                 ThrowHelper.ThrowNotSupportedException("Unsupported aead algorithm");
                 break;

@@ -25,7 +25,7 @@ internal sealed class EnumListFormatter<
     where T : struct, System.Enum
 {
     private static readonly EnumFormatter<T> _enumFormatter = new();
-    private static System.String DebuggerDisplay => $"EnumListFormatter<{typeof(T).FullName}>";
+    private static string DebuggerDisplay => $"EnumListFormatter<{typeof(T).FullName}>";
 
     /// <summary>
     /// Serializes a list of enum values into the provided writer using their underlying primitive type.
@@ -41,17 +41,17 @@ internal sealed class EnumListFormatter<
     {
         if (value is null)
         {
-            writer.Expand(sizeof(System.UInt16));
-            FormatterProvider.Get<System.UInt16>()
+            writer.Expand(sizeof(ushort));
+            FormatterProvider.Get<ushort>()
                              .Serialize(ref writer, SerializerBounds.Null);
             return;
         }
 
-        writer.Expand(sizeof(System.UInt16));
-        System.UInt16 count = (System.UInt16)value.Count;
-        FormatterProvider.Get<System.UInt16>().Serialize(ref writer, count);
+        writer.Expand(sizeof(ushort));
+        ushort count = (ushort)value.Count;
+        FormatterProvider.Get<ushort>().Serialize(ref writer, count);
 
-        for (System.Int32 i = 0; i < count; i++)
+        for (int i = 0; i < count; i++)
         {
             _enumFormatter.Serialize(ref writer, value[i]);
         }
@@ -69,7 +69,7 @@ internal sealed class EnumListFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
     {
-        System.UInt16 count = FormatterProvider.Get<System.UInt16>()
+        ushort count = FormatterProvider.Get<ushort>()
                                                .Deserialize(ref reader);
 
         if (count == 0)
@@ -88,7 +88,7 @@ internal sealed class EnumListFormatter<
         }
 
         System.Collections.Generic.List<T> result = new(count);
-        for (System.UInt16 i = 0; i < count; i++)
+        for (ushort i = 0; i < count; i++)
         {
             result.Add(_enumFormatter.Deserialize(ref reader));
         }

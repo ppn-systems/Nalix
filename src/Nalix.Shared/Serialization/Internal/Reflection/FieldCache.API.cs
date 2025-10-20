@@ -21,7 +21,7 @@ internal static partial class FieldCache<T>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 GetFieldCount() => _metadata.Length;
+    public static int GetFieldCount() => _metadata.Length;
 
     /// <summary>
     /// Retrieves all cached field metadata as a span.
@@ -41,7 +41,7 @@ internal static partial class FieldCache<T>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static FieldSchema GetField(System.Int32 index) => _metadata[index];
+    public static FieldSchema GetField(int index) => _metadata[index];
 
     /// <summary>
     /// Retrieves metadata for a field by its name.
@@ -51,18 +51,26 @@ internal static partial class FieldCache<T>
     /// <exception cref="System.Collections.Generic.KeyNotFoundException">
     /// Thrown if the field name does not exist in the cache.
     /// </exception>
+    /// <exception cref="System.ArgumentException"></exception>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static FieldSchema GetField(System.String fieldName)
+    public static FieldSchema GetField(string fieldName)
     {
         System.ArgumentNullException.ThrowIfNull(fieldName);
 
-        return fieldName.Length is 0
-            ? throw new System.ArgumentException("Field name cannot be empty.", nameof(fieldName))
-            : _fieldIndex.TryGetValue(fieldName, out System.Int32 index)
-            ? _metadata[index]
-            : throw new System.Collections.Generic.KeyNotFoundException($"Field '{fieldName}' not found in type {typeof(T).FullName}");
+        if (fieldName.Length is 0)
+        {
+            return throw new System.ArgumentException("Field name cannot be empty.", nameof(fieldName));
+        }
+        else if (_fieldIndex.TryGetValue(fieldName, out int index))
+        {
+            return _metadata[index];
+        }
+        else
+        {
+            return throw new System.Collections.Generic.KeyNotFoundException($"Field '{fieldName}' not found in type {typeof(T).FullName}");
+        }
     }
 
     /// <summary>
@@ -73,7 +81,7 @@ internal static partial class FieldCache<T>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean HasField(System.String fieldName) => _fieldIndex.ContainsKey(fieldName);
+    public static bool HasField(string fieldName) => _fieldIndex.ContainsKey(fieldName);
 
     /// <summary>
     /// Gets the type of the specified field by its name.
@@ -86,5 +94,5 @@ internal static partial class FieldCache<T>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Type GetFieldType(System.String fieldName) => GetField(fieldName).FieldType;
+    public static System.Type GetFieldType(string fieldName) => GetField(fieldName).FieldType;
 }

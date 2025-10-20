@@ -20,7 +20,7 @@ internal sealed class ReferenceArrayFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T[]> where T : class
 {
-    private static System.String DebuggerDisplay => $"ReferenceArrayFormatter<{typeof(T).FullName}>";
+    private static string DebuggerDisplay => $"ReferenceArrayFormatter<{typeof(T).FullName}>";
 
     /// <summary>
     /// Serializes an array of reference type objects into the provided writer.
@@ -33,15 +33,15 @@ internal sealed class ReferenceArrayFormatter<
     {
         if (value == null)
         {
-            writer.Expand(sizeof(System.UInt16));
-            FormatterProvider.Get<System.UInt16>()
+            writer.Expand(sizeof(ushort));
+            FormatterProvider.Get<ushort>()
                              .Serialize(ref writer, SerializerBounds.Null);
             return;
         }
 
-        writer.Expand(sizeof(System.UInt16));
-        FormatterProvider.Get<System.UInt16>()
-                         .Serialize(ref writer, (System.UInt16)value.Length);
+        writer.Expand(sizeof(ushort));
+        FormatterProvider.Get<ushort>()
+                         .Serialize(ref writer, (ushort)value.Length);
 
         if (value.Length == 0)
         {
@@ -49,7 +49,7 @@ internal sealed class ReferenceArrayFormatter<
         }
 
         IFormatter<T> formatter = FormatterProvider.Get<T>();
-        for (System.UInt16 i = 0; i < value.Length; i++)
+        for (ushort i = 0; i < value.Length; i++)
         {
             formatter.Serialize(ref writer, value[i]);
         }
@@ -64,7 +64,7 @@ internal sealed class ReferenceArrayFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T[] Deserialize(ref DataReader reader)
     {
-        System.UInt16 length = FormatterProvider.Get<System.UInt16>()
+        ushort length = FormatterProvider.Get<ushort>()
                                                 .Deserialize(ref reader);
 
         if (length == SerializerBounds.Null)
@@ -79,7 +79,7 @@ internal sealed class ReferenceArrayFormatter<
 
         IFormatter<T> formatter = FormatterProvider.Get<T>();
         T[] array = new T[length];
-        for (System.UInt16 i = 0; i < length; i++)
+        for (ushort i = 0; i < length; i++)
         {
             array[i] = formatter.Deserialize(ref reader);
         }

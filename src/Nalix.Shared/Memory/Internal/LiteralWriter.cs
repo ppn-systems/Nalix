@@ -28,11 +28,11 @@ internal static unsafe class LiteralWriter
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Write(
-        ref System.Byte* destPtr,
-        System.Byte* literalStartPtr,
-        System.Int32 length)
+        ref byte* destPtr,
+        byte* literalStartPtr,
+        int length)
     {
-        if ((System.UInt32)length == 0u)
+        if ((uint)length == 0u)
         {
             return;
         }
@@ -56,8 +56,8 @@ internal static unsafe class LiteralWriter
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Write(
-        ref System.Byte* destPtr,
-        System.ReadOnlySpan<System.Byte> literals)
+        ref byte* destPtr,
+        System.ReadOnlySpan<byte> literals)
     {
         if (literals.Length == 0)
         {

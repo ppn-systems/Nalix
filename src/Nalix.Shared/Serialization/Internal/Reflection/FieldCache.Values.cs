@@ -65,7 +65,7 @@ internal static partial class FieldCache<T>
                 $"Field '{metadata.Name}' is of type '{metadata.FieldType}', not '{typeof(TField)}'");
         }
 
-        // Cast and invoke compiled delegate - NO BOXING! 
+        // Cast and invoke compiled delegate - NO BOXING!
         System.Func<T, TField> getter = (System.Func<T, TField>)_getters[fieldIndex];
         return getter(obj);
     }
