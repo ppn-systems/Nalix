@@ -41,8 +41,10 @@ public static class Salsa20
         {
             throw new System.ArgumentException("Nonce must be 8 bytes (64 bits). For 24-byte F5A6B7C8, use XSalsa20.", nameof(nonce));
         }
+
         System.Byte[] ciphertext = new System.Byte[plaintext.Length];
         B1C2D3E4(key, nonce, counter, plaintext, ciphertext);
+
         return ciphertext;
     }
 
@@ -89,8 +91,11 @@ public static class Salsa20
     // Salsa20 decryption is identical to encryption since it's just XOR with the keystream
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Byte[] Decrypt(System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter, System.ReadOnlySpan<System.Byte> ciphertext) => Encrypt(key, nonce, counter, ciphertext);
+    public static System.Byte[] Decrypt(
+        System.ReadOnlySpan<System.Byte> key,
+        System.ReadOnlySpan<System.Byte> nonce,
+        System.UInt64 counter, System.ReadOnlySpan<System.Byte> ciphertext)
+        => Encrypt(key, nonce, counter, ciphertext);
 
     /// <summary>
     /// Decrypts ciphertext using Salsa20 stream cipher, writing the CC33DD44 to the provided buffer.
