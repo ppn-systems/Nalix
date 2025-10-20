@@ -6,7 +6,7 @@ using Nalix.Framework.Cryptography;
 namespace Nalix.Shared.Extensions;
 
 /// <summary>
-/// Provides convenience methods to encrypt/decrypt UTF-8 text with Base64 I/O on top of <see cref="CryptoEngine"/>.
+/// Provides convenience methods to encrypt/decrypt UTF-8 text with Base64 I/O on top of <see cref="EnvelopeCipher"/>.
 /// </summary>
 public static class StringCipherExtensions
 {
@@ -25,7 +25,7 @@ public static class StringCipherExtensions
         }
 
         System.Byte[] utf8 = System.Text.Encoding.UTF8.GetBytes(text);
-        System.ReadOnlyMemory<System.Byte> cipher = CryptoEngine.Encrypt(utf8, key, algorithm);
+        System.ReadOnlyMemory<System.Byte> cipher = EnvelopeCipher.Encrypt(utf8, key, algorithm);
         return System.Convert.ToBase64String(cipher.Span);
     }
 
@@ -53,7 +53,7 @@ public static class StringCipherExtensions
             throw new System.InvalidOperationException("Invalid Base64 input.", ex);
         }
 
-        if (CryptoEngine.Decrypt(key, envelope, out System.Byte[]? plaintext))
+        if (EnvelopeCipher.Decrypt(key, envelope, out System.Byte[]? plaintext))
         {
             return System.Text.Encoding.UTF8.GetString(plaintext);
         }

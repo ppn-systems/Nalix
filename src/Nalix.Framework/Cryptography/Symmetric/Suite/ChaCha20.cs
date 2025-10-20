@@ -3,10 +3,13 @@
 using Nalix.Common.Enums;
 using Nalix.Framework.Cryptography.Primitives;
 
-namespace Nalix.Framework.Cryptography.Symmetric;
+namespace Nalix.Framework.Cryptography.Symmetric.Suite;
 
 /// <summary>
 /// Class for ChaCha20 encryption / decryption
+/// NOTE: This implementation reuses internal temporary buffers to reduce allocations.
+///       As a result, the ChaCha20 instance is NOT thread-safe. For concurrent use,
+///       create separate instances or implement instance pooling.
 /// </summary>
 [System.Runtime.CompilerServices.SkipLocalsInit]
 public sealed class ChaCha20 : System.IDisposable
@@ -47,6 +50,11 @@ public sealed class ChaCha20 : System.IDisposable
     /// </summary>
     private System.UInt32[] State { get; } = new System.UInt32[StateLength];
 
+    // Reused working buffer and temporary keystream to avoid per-call allocations.
+    // NOTE: This makes instances non-thread-safe.
+    private readonly System.UInt32[] _working = new System.UInt32[StateLength];
+    private readonly System.Byte[] _keystream = new System.Byte[BlockSize];
+
     #endregion Fields
 
     #region Constructors
@@ -68,8 +76,12 @@ public sealed class ChaCha20 : System.IDisposable
     /// </param>
     public ChaCha20(System.Byte[] key, System.Byte[] nonce, System.UInt32 counter)
     {
-        this.E8F7A6B5(key);
-        this.F9E8D7C6(nonce, counter);
+        System.ArgumentNullException.ThrowIfNull(key);
+        System.ArgumentNullException.ThrowIfNull(nonce);
+
+        // Delegate to span-based initialization (no extra ToArray allocation).
+        E8F7A6B5(new System.ReadOnlySpan<System.Byte>(key));
+        F9E8D7C6(new System.ReadOnlySpan<System.Byte>(nonce), counter);
     }
 
     /// <summary>
@@ -83,8 +95,8 @@ public sealed class ChaCha20 : System.IDisposable
     /// <param name="counter">A 4-byte (32-bit) block counter, treated as a 32-bit little-endian unsigned integer</param>
     public ChaCha20(System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce, System.UInt32 counter)
     {
-        this.E8F7A6B5(key.ToArray());
-        this.F9E8D7C6(nonce.ToArray(), counter);
+        E8F7A6B5(key);
+        F9E8D7C6(nonce, counter);
     }
 
     /// <summary>
@@ -102,24 +114,15 @@ public sealed class ChaCha20 : System.IDisposable
             throw new System.ObjectDisposedException("state", "The ChaCha20 state has been disposed");
         }
 
-        // Reuse existing state update logic to produce a 64-byte block.
-        var x = new System.UInt32[StateLength];
-        var tmp = new System.Byte[BlockSize];
-
-        FA67BC89(State, x, tmp);
+        // Reuse working buffers to avoid allocations.
+        FA67BC89(State, _working, _keystream);
 
         System.Int32 n = dst.Length < BlockSize ? dst.Length : BlockSize;
-        System.Buffer.BlockCopy(tmp, 0, dst.ToArray(), 0, n); // copy via temp array view
 
-        // Note:
-        // BlockCopy needs arrays; to avoid extra alloc, copy manually when dst.Length < 64.
-        // So we do an explicit fast path:
-        if (n > 0)
+        // Copy directly into dst (no temporary array)
+        for (System.Int32 i = 0; i < n; i++)
         {
-            for (System.Int32 i = 0; i < n; i++)
-            {
-                dst[i] = tmp[i];
-            }
+            dst[i] = _keystream[i];
         }
     }
 
@@ -194,8 +197,8 @@ public sealed class ChaCha20 : System.IDisposable
 
     /// <summary>
     /// Encrypt arbitrary-length byte array (input), writing the resulting byte array that is allocated by method.
+    /// (This method still allocates a result array because it returns byte[]. Consider using TryEncrypt/Po oled variant to avoid allocation.)
     /// </summary>
-    /// <remarks>Since this is symmetric operation, it doesn't really matter if you use Encrypt or Decrypt method</remarks>
     /// <param name="input">Input byte array</param>
     /// <param name="numBytes">ProtocolType of bytes to encrypt</param>
     /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
@@ -228,10 +231,6 @@ public sealed class ChaCha20 : System.IDisposable
     /// <summary>
     /// Encrypt arbitrary-length byte array (input), writing the resulting byte array that is allocated by method.
     /// </summary>
-    /// <remarks>Since this is symmetric operation, it doesn't really matter if you use Encrypt or Decrypt method</remarks>
-    /// <param name="input">Input byte array</param>
-    /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    /// <returns>Byte array that contains encrypted bytes</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] EncryptBytes(
@@ -264,6 +263,25 @@ public sealed class ChaCha20 : System.IDisposable
         }
 
         DE45FA67(src, dst, src.Length);
+    }
+
+    /// <summary>
+    /// Encrypts <paramref name="src"/> into <paramref name="dst"/> using the current state (XOR with keystream).
+    /// </summary>
+    /// <remarks>dst.Length must equal src.Length.</remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean Encrypt(System.ReadOnlySpan<System.Byte> src, System.Span<System.Byte> dst, out System.Int32 written)
+    {
+        written = 0;
+        if (dst.Length < src.Length)
+        {
+            return false;
+        }
+
+        Encrypt(src, dst);
+        written = src.Length;
+        return true;
     }
 
     #endregion Encryption methods
@@ -310,10 +328,6 @@ public sealed class ChaCha20 : System.IDisposable
     /// <summary>
     /// Decrypt arbitrary-length byte array (input), writing the resulting byte array to preallocated output buffer.
     /// </summary>
-    /// <remarks>Since this is symmetric operation, it doesn't really matter if you use Encrypt or Decrypt method</remarks>
-    /// <param name="output">Output byte array, must have enough bytes</param>
-    /// <param name="input">Input byte array</param>
-    /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void DecryptBytes(
@@ -334,11 +348,6 @@ public sealed class ChaCha20 : System.IDisposable
     /// <summary>
     /// Decrypt arbitrary-length byte array (input), writing the resulting byte array that is allocated by method.
     /// </summary>
-    /// <remarks>Since this is symmetric operation, it doesn't really matter if you use Encrypt or Decrypt method</remarks>
-    /// <param name="input">Input byte array</param>
-    /// <param name="numBytes">ProtocolType of bytes to encrypt</param>
-    /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    /// <returns>Byte array that contains decrypted bytes</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] DecryptBytes(
@@ -366,10 +375,6 @@ public sealed class ChaCha20 : System.IDisposable
     /// <summary>
     /// Decrypt arbitrary-length byte array (input), writing the resulting byte array that is allocated by method.
     /// </summary>
-    /// <remarks>Since this is symmetric operation, it doesn't really matter if you use Encrypt or Decrypt method</remarks>
-    /// <param name="input">Input byte array</param>
-    /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    /// <returns>Byte array that contains decrypted bytes</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] DecryptBytes(
@@ -402,25 +407,26 @@ public sealed class ChaCha20 : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void EncryptInPlace(System.Span<System.Byte> buffer, SimdMode simdMode = SimdMode.AutoDetect)
     {
-        // Use a small stack buffer to avoid allocating a second array the same size as 'buffer'.
-        // We process in 64-byte blocks.
+        if (_isDisposed)
+        {
+            throw new System.ObjectDisposedException("state", "The ChaCha20 state has been disposed");
+        }
+
         if (simdMode == SimdMode.AutoDetect)
         {
             _ = AB12CD34();
         }
 
-        var tmpKeystream = new System.Byte[BlockSize];
-        var x = new System.UInt32[StateLength];
-
         System.Int32 offset = 0;
         System.Int32 remaining = buffer.Length;
 
+        // Reuse _keystream and _working for block keystream generation -> no allocation per block
         while (remaining >= BlockSize)
         {
-            FA67BC89(State, x, tmpKeystream);
+            FA67BC89(State, _working, _keystream);
             for (System.Int32 i = 0; i < BlockSize; i++)
             {
-                buffer[offset + i] = (System.Byte)(buffer[offset + i] ^ tmpKeystream[i]);
+                buffer[offset + i] = (System.Byte)(buffer[offset + i] ^ _keystream[i]);
             }
 
             offset += BlockSize;
@@ -429,10 +435,10 @@ public sealed class ChaCha20 : System.IDisposable
 
         if (remaining > 0)
         {
-            FA67BC89(State, x, tmpKeystream);
+            FA67BC89(State, _working, _keystream);
             for (System.Int32 i = 0; i < remaining; i++)
             {
-                buffer[offset + i] = (System.Byte)(buffer[offset + i] ^ tmpKeystream[i]);
+                buffer[offset + i] = (System.Byte)(buffer[offset + i] ^ _keystream[i]);
             }
         }
     }
@@ -472,12 +478,6 @@ public sealed class ChaCha20 : System.IDisposable
     /// Decrypts the input bytes using ChaCha20 in a one-shot static API.
     /// (Same as Encrypt, provided for clarity.)
     /// </summary>
-    /// <param name="key">32-byte key</param>
-    /// <param name="nonce">12-byte nonce</param>
-    /// <param name="counter">Initial block counter</param>
-    /// <param name="input">Input data to decrypt</param>
-    /// <param name="simdMode">SIMD acceleration mode (default auto)</param>
-    /// <returns>Decrypted output</returns>
     public static System.Byte[] Decrypt(
         System.Byte[] key,
         System.Byte[] nonce,
@@ -494,18 +494,27 @@ public sealed class ChaCha20 : System.IDisposable
     #region Private Methods
 
     /// <summary>
-    /// Set up the ChaCha20 state with the given key. A 32-byte key is required and enforced.
+    /// Read little-endian uint from span without allocation.
     /// </summary>
-    /// <param name="key">
-    /// A 32-byte (256-bit) key, treated as a concatenation of eight 32-bit little-endian integers
-    /// </param>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.UInt32 ReadU32Little(System.ReadOnlySpan<System.Byte> src, System.Int32 offset)
+    {
+        return (System.UInt32)(src[offset]
+            | (src[offset + 1] << 8)
+            | (src[offset + 2] << 16)
+            | (src[offset + 3] << 24));
+    }
+
+    /// <summary>
+    /// Set up the ChaCha20 state with the given key (span-based). Does NOT allocate.
+    /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void E8F7A6B5(System.Byte[] key)
+    private void E8F7A6B5(System.ReadOnlySpan<System.Byte> keySpan)
     {
-        if (key.Length != KeySize)
+        if (keySpan.Length != KeySize)
         {
-            throw new System.ArgumentException($"Key length must be {KeySize}. Actual: {key.Length}");
+            throw new System.ArgumentException($"Key length must be {KeySize}. Actual: {keySpan.Length}");
         }
 
         State[0] = 0x61707865; // Constant ("expand 32-byte k")
@@ -515,34 +524,28 @@ public sealed class ChaCha20 : System.IDisposable
 
         for (System.Int32 i = 0; i < 8; i++)
         {
-            State[4 + i] = BitwiseOperations.U8To32Little(key, i * 4);
+            State[4 + i] = ReadU32Little(keySpan, i * 4);
         }
     }
 
     /// <summary>
-    /// Set up the ChaCha20 state with the given nonce (aka Initialization Vector or IV) and block counter. A 12-byte nonce and a 4-byte counter are required.
+    /// Set up the ChaCha20 state with the given nonce (span) and block counter. A 12-byte nonce and a 4-byte counter are required.
     /// </summary>
-    /// <param name="nonce">
-    /// A 12-byte (96-bit) nonce, treated as a concatenation of three 32-bit little-endian integers
-    /// </param>
-    /// <param name="counter">
-    /// A 4-byte (32-bit) block counter, treated as a 32-bit little-endian integer
-    /// </param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void F9E8D7C6(System.Byte[] nonce, System.UInt32 counter)
+    private void F9E8D7C6(System.ReadOnlySpan<System.Byte> nonceSpan, System.UInt32 counter)
     {
-        if (nonce.Length != NonceSize)
+        if (nonceSpan.Length != NonceSize)
         {
             Dispose();
-            throw new System.ArgumentException($"Nonce length must be {NonceSize}. Actual: {nonce.Length}");
+            throw new System.ArgumentException($"Nonce length must be {NonceSize}. Actual: {nonceSpan.Length}");
         }
 
         State[12] = counter;
 
         for (System.Int32 i = 0; i < 3; i++)
         {
-            State[13 + i] = BitwiseOperations.U8To32Little(nonce, i * 4);
+            State[13 + i] = ReadU32Little(nonceSpan, i * 4);
         }
     }
 
@@ -581,44 +584,38 @@ public sealed class ChaCha20 : System.IDisposable
             throw new System.ArgumentOutOfRangeException(nameof(numBytes));
         }
 
-        // We keep this simple and robust: scalar XOR with generated blocks.
-        // (Your array-based overload already has SIMD paths.)
-        var x = new System.UInt32[StateLength];
-        var tmp = new System.Byte[BlockSize];
+        // Reuse _working and _keystream to avoid per-call allocations.
 
         System.Int32 offset = 0;
         System.Int32 full = numBytes / BlockSize;
-        System.Int32 tail = numBytes - full * BlockSize;
+        System.Int32 tail = numBytes - (full * BlockSize);
 
         for (System.Int32 loop = 0; loop < full; loop++)
         {
-            FA67BC89(State, x, tmp);
+            FA67BC89(State, _working, _keystream);
 
             // XOR 64 bytes
             for (System.Int32 i = 0; i < BlockSize; i++)
             {
-                output[offset + i] = (System.Byte)(input[offset + i] ^ tmp[i]);
+                output[offset + i] = (System.Byte)(input[offset + i] ^ _keystream[i]);
             }
             offset += BlockSize;
         }
 
         if (tail > 0)
         {
-            FA67BC89(State, x, tmp);
+            FA67BC89(State, _working, _keystream);
             for (System.Int32 i = 0; i < tail; i++)
             {
-                output[offset + i] = (System.Byte)(input[offset + i] ^ tmp[i]);
+                output[offset + i] = (System.Byte)(input[offset + i] ^ _keystream[i]);
             }
         }
     }
 
     /// <summary>
     /// Encrypt or decrypt an arbitrary-length byte array (input), writing the resulting byte array to the output buffer. The ProtocolType of bytes to read from the input buffer is determined by numBytes.
+    /// This version reuses internal buffers to reduce GC.
     /// </summary>
-    /// <param name="output">Output byte array</param>
-    /// <param name="input">Input byte array</param>
-    /// <param name="numBytes">How many bytes to process</param>
-    /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void EF56AB78(
@@ -630,12 +627,13 @@ public sealed class ChaCha20 : System.IDisposable
             throw new System.ObjectDisposedException("state", "The ChaCha20 state has been disposed");
         }
 
-        System.UInt32[] x = new System.UInt32[StateLength];    // Working buffer
-        System.Byte[] tmp = new System.Byte[BlockSize];  // Temporary buffer
+        // Reuse buffers
+        System.UInt32[] x = _working;
+        System.Byte[] tmp = _keystream;
         System.Int32 offset = 0;
 
         System.Int32 howManyFullLoops = numBytes / BlockSize;
-        System.Int32 tailByteCount = numBytes - howManyFullLoops * BlockSize;
+        System.Int32 tailByteCount = numBytes - (howManyFullLoops * BlockSize);
 
         for (System.Int32 loop = 0; loop < howManyFullLoops; loop++)
         {
@@ -718,7 +716,7 @@ public sealed class ChaCha20 : System.IDisposable
     private static void FA67BC89(
         System.UInt32[] stateToModify, System.UInt32[] workingBuffer, System.Byte[] temporaryBuffer)
     {
-        // Copy state to working buffer
+        // Copy state to working buffer (byte copy for performance)
         System.Buffer.BlockCopy(stateToModify, 0, workingBuffer, 0, StateLength * sizeof(System.UInt32));
 
         for (System.Int32 i = 0; i < 10; i++) // 20 rounds (10 double rounds)
@@ -748,17 +746,8 @@ public sealed class ChaCha20 : System.IDisposable
     }
 
     /// <summary>
-    /// The ChaCha20 Quarter Round operation. It operates on four 32-bit unsigned integers within the given buffer at indices a, b, c, and d.
+    /// The ChaCha20 Quarter Round operation.
     /// </summary>
-    /// <remarks>
-    /// The ChaCha20 state does not have four integer numbers: it has 16. So the quarter-round operation works on only four of them -- hence the name. Each quarter round operates on four predetermined numbers in the ChaCha20 state.
-    /// See <a href="https://tools.ietf.org/html/rfc7539#page-4">ChaCha20 Spec Sections 2.1 - 2.2</a>.
-    /// </remarks>
-    /// <param name="x">A ChaCha20 state (vector). Must contain 16 elements.</param>
-    /// <param name="a">Index of the first ProtocolType</param>
-    /// <param name="b">Index of the second ProtocolType</param>
-    /// <param name="c">Index of the third ProtocolType</param>
-    /// <param name="d">Index of the fourth ProtocolType</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void A0B1C2D3(
@@ -794,18 +783,12 @@ public sealed class ChaCha20 : System.IDisposable
     public void Dispose()
     {
         Dispose(true);
-        /*
-		* The Garbage Collector does not need to invoke the finalizer because Dispose(bool) has already done all the cleanup needed.
-		*/
         System.GC.SuppressFinalize(this);
     }
 
     /// <summary>
     /// This method should only be invoked from Dispose() or the finalizer. This handles the actual cleanup of the resources.
     /// </summary>
-    /// <param name="disposing">
-    /// Should be true if called by Dispose(); false if called by the finalizer
-    /// </param>
     [System.Diagnostics.DebuggerNonUserCode]
     private void Dispose(System.Boolean disposing)
     {
@@ -816,8 +799,10 @@ public sealed class ChaCha20 : System.IDisposable
                 /* Cleanup managed objects by calling their Dispose() methods */
             }
 
-            /* Cleanup any unmanaged objects here */
+            /* Clear sensitive buffers */
             System.Array.Clear(State, 0, StateLength);
+            System.Array.Clear(_working, 0, _working.Length);
+            System.Array.Clear(_keystream, 0, _keystream.Length);
         }
 
         _isDisposed = true;
