@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	  <Private>true</Private>
+	  <Nullable>enable</Nullable>
+	  <OutputType>Exe</OutputType>
+	  <SpecificVersion>false</SpecificVersion>
+	  <TargetFramework>net9.0</TargetFramework>
+	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	  <OptimizationLevel>Release</OptimizationLevel>
+	  <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+	  <ProjectReference Include="..\..\src\Nalix.Common\Nalix.Common.csproj" />
+	  <ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
+    <Reference Include="Nalix.Common">
+      <HintPath>..\..\build\bin\Release\net9.0\Nalix.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="Nalix.Framework">
+      <HintPath>..\..\build\bin\Release\net9.0\Nalix.Framework.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
