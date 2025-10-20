@@ -62,7 +62,7 @@ public enum CipherSuiteType : byte
     /// Prefer <c>CHACHA20</c> for new designs.
     /// </para>
     /// </remarks>
-    SALSA20 = 3,
+    Salsa20 = 3,
 
     /// <summary>
     /// CHACHA20 stream cipher.
@@ -71,7 +71,7 @@ public enum CipherSuiteType : byte
     /// Provides high performance across both software and hardware implementations.
     /// </para>
     /// </summary>
-    CHACHA20 = 4,
+    Chacha20 = 4,
 
     // ────────────────────────────────
     // AEAD cipher suites (cipher + Poly1305)
@@ -84,7 +84,7 @@ public enum CipherSuiteType : byte
     /// Offers fast, secure authenticated encryption with proven reliability.
     /// </para>
     /// </summary>
-    SALSA20_POLY1305 = 7,
+    Salsa20Poly1305 = 7,
 
     /// <summary>
     /// CHACHA20 cipher combined with Poly1305 MAC (<c>CHACHA20-Poly1305</c>).
@@ -93,5 +93,5 @@ public enum CipherSuiteType : byte
     /// Extensively deployed in TLS 1.3, SSH, and modern encryption frameworks.
     /// </para>
     /// </summary>
-    CHACHA20_POLY1305 = 8
+    Chacha20Poly1305 = 8
 }

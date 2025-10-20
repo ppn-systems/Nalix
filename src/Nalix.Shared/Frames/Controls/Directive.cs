@@ -17,43 +17,43 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketS
     /// <summary>
     /// DIRECTIVE type (shared ControlType).
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 0)]
+    [SerializeOrder(PacketHeaderOffset.Region + 0)]
     public ControlType Type { get; set; }
 
     /// <summary>
     /// Reason taxonomy explaining why this directive is sent.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 1)]
+    [SerializeOrder(PacketHeaderOffset.Region + 1)]
     public ProtocolReason Reason { get; set; }
 
     /// <summary>
     /// Suggested client action for this reason.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 2)]
+    [SerializeOrder(PacketHeaderOffset.Region + 2)]
     public ProtocolAdvice Action { get; set; }
 
     /// <summary>
     /// Fast-path decision flags.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 3)]
+    [SerializeOrder(PacketHeaderOffset.Region + 3)]
     public ControlFlags Control { get; set; }
 
     /// <summary>
     /// Multi-purpose argument #0.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 4)]
+    [SerializeOrder(PacketHeaderOffset.Region + 4)]
     public uint Arg0 { get; set; }
 
     /// <summary>
     /// Multi-purpose argument #1.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 5)]
+    [SerializeOrder(PacketHeaderOffset.Region + 5)]
     public uint Arg1 { get; set; }
 
     /// <summary>
     /// Multi-purpose argument #2.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 6)]
+    [SerializeOrder(PacketHeaderOffset.Region + 6)]
     public ushort Arg2 { get; set; }
 
     /// <summary>
@@ -63,7 +63,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketS
     {
         Protocol = ProtocolType.TCP;
         Priority = PacketPriority.URGENT;
-        OpCode = PacketConstants.OPCODE_DEFAULT;
+        OpCode = PacketConstants.OpcodeDefault;
     }
 
     /// <summary>

@@ -2,6 +2,15 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.Marshalling;
+using System.Security.AccessControl;
+using System.Security.Principal;
 
 namespace Nalix.Common.Environment;
 
@@ -21,12 +30,18 @@ public static partial class Directories
     /// <summary>
     /// Ensures a directory exists and applies platform-appropriate permissions. Returns the normalized full path.
     /// </summary>
-    [System.ComponentModel.EditorBrowsable(
-        System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    /// <param name="path">
+    /// The directory path to ensure exists and harden.
+    /// </param>
+    /// <param name="perms">
+    /// The Unix permission profile to apply when possible.
+    /// </param>
+    [EditorBrowsable(
+        EditorBrowsableState.Never)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static string ENSURE_AND_HARDEN(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] string path,
+        [DisallowNull] string path,
         UnixDirPerms perms = UnixDirPerms.Default755)
     {
         ENSURE_DIRECTORY_EXISTS(path);
@@ -37,26 +52,35 @@ public static partial class Directories
     /// <summary>
     /// Creates a directory if it does not already exist. Thread safe.
     /// </summary>
+    /// <param name="path">
+    /// The directory path to create or validate.
+    /// </param>
+    /// <param name="callerMemberName">
+    /// The caller member name captured for diagnostics.
+    /// </param>
+    /// <param name="callerLineNumber">
+    /// The caller source line captured for diagnostics.
+    /// </param>
     /// <exception cref="ArgumentNullException"></exception>
-    /// <exception cref="System.IO.IOException"></exception>
-    [System.ComponentModel.EditorBrowsable(
-        System.ComponentModel.EditorBrowsableState.Never)]
+    /// <exception cref="IOException"></exception>
+    [EditorBrowsable(
+        EditorBrowsableState.Never)]
     private static void ENSURE_DIRECTORY_EXISTS(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] string path,
-        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
+        [DisallowNull] string path,
+        [CallerMemberName] string callerMemberName = "",
+        [CallerLineNumber] int callerLineNumber = 0)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
             throw new ArgumentNullException(nameof(path));
         }
 
-        path = System.IO.Path.GetFullPath(path);
+        path = Path.GetFullPath(path);
 
         DirectoryLock.EnterReadLock();
         try
         {
-            if (System.IO.Directory.Exists(path))
+            if (Directory.Exists(path))
             {
                 return;
             }
@@ -69,9 +93,9 @@ public static partial class Directories
         DirectoryLock.EnterWriteLock();
         try
         {
-            if (!System.IO.Directory.Exists(path))
+            if (!Directory.Exists(path))
             {
-                _ = System.IO.Directory.CreateDirectory(path);
+                _ = Directory.CreateDirectory(path);
                 RAISE_DIRECTORY_CREATED(path);
             }
         }
@@ -80,7 +104,7 @@ public static partial class Directories
             string msg =
                 "Failed to create directory: " + path + ". ERROR: " + ex.Message +
                 " (Caller: " + callerMemberName + " at " + nameof(Directories) + ":" + callerLineNumber + ")";
-            throw new System.IO.IOException(msg, ex);
+            throw new IOException(msg, ex);
         }
         finally
         {
@@ -91,75 +115,81 @@ public static partial class Directories
     /// <summary>
     /// Attempts to set secure permissions on the specified directory depending on the platform. Fails silently if cannot be set.
     /// </summary>
-    [System.ComponentModel.EditorBrowsable(
-        System.ComponentModel.EditorBrowsableState.Never)]
+    /// <param name="path">
+    /// The directory path whose permissions should be hardened.
+    /// </param>
+    /// <param name="perms">
+    /// The Unix permission profile to apply when possible.
+    /// </param>
+    [EditorBrowsable(
+        EditorBrowsableState.Never)]
     private static void HARDEN_PERMISSIONS(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] string path, UnixDirPerms perms)
+        [DisallowNull] string path, UnixDirPerms perms)
     {
         try
         {
             if (OperatingSystem.IsWindows())
             {
-                System.IO.DirectoryInfo di = new(path);
-                System.Security.AccessControl.DirectorySecurity ds = System.IO.FileSystemAclExtensions.GetAccessControl(di);
+                DirectoryInfo di = new(path);
+                DirectorySecurity ds = di.GetAccessControl();
 
-                System.Security.Principal.SecurityIdentifier users =
-                    new(System.Security.Principal.WellKnownSidType.BuiltinUsersSid, null);
+                SecurityIdentifier users =
+                    new(WellKnownSidType.BuiltinUsersSid, null);
 
-                System.Security.Principal.SecurityIdentifier admins =
-                    new(System.Security.Principal.WellKnownSidType.BuiltinAdministratorsSid, null);
+                SecurityIdentifier admins =
+                    new(WellKnownSidType.BuiltinAdministratorsSid, null);
 
-                System.Security.AccessControl.FileSystemAccessRule ruleUsers =
+                FileSystemAccessRule ruleUsers =
                     new(users,
-                        System.Security.AccessControl.FileSystemRights.Modify,
-                        System.Security.AccessControl.InheritanceFlags.ContainerInherit |
-                        System.Security.AccessControl.InheritanceFlags.ObjectInherit,
-                        System.Security.AccessControl.PropagationFlags.None,
-                        System.Security.AccessControl.AccessControlType.Allow);
+                        FileSystemRights.Modify,
+                        InheritanceFlags.ContainerInherit |
+                        InheritanceFlags.ObjectInherit,
+                        PropagationFlags.None,
+                        AccessControlType.Allow);
 
-                System.Security.AccessControl.FileSystemAccessRule ruleAdmins =
+                FileSystemAccessRule ruleAdmins =
                     new(admins,
-                        System.Security.AccessControl.FileSystemRights.FullControl,
-                        System.Security.AccessControl.InheritanceFlags.ContainerInherit |
-                        System.Security.AccessControl.InheritanceFlags.ObjectInherit,
-                        System.Security.AccessControl.PropagationFlags.None,
-                        System.Security.AccessControl.AccessControlType.Allow);
+                        FileSystemRights.FullControl,
+                        InheritanceFlags.ContainerInherit |
+                        InheritanceFlags.ObjectInherit,
+                        PropagationFlags.None,
+                        AccessControlType.Allow);
 
                 ds.AddAccessRule(ruleUsers);
                 ds.AddAccessRule(ruleAdmins);
-                System.IO.FileSystemAclExtensions.SetAccessControl(di, ds);
+                di.SetAccessControl(ds);
             }
             else
             {
-                System.IO.UnixFileMode mode = perms switch
+                UnixFileMode mode = perms switch
                 {
                     UnixDirPerms.Private700 =>
-                        System.IO.UnixFileMode.UserRead |
-                        System.IO.UnixFileMode.UserWrite |
-                        System.IO.UnixFileMode.UserExecute,
+                        UnixFileMode.UserRead |
+                        UnixFileMode.UserWrite |
+                        UnixFileMode.UserExecute,
                     UnixDirPerms.Shared750 =>
-                        System.IO.UnixFileMode.UserRead |
-                        System.IO.UnixFileMode.UserWrite |
-                        System.IO.UnixFileMode.UserExecute |
-                        System.IO.UnixFileMode.GroupRead |
-                        System.IO.UnixFileMode.GroupExecute,
+                        UnixFileMode.UserRead |
+                        UnixFileMode.UserWrite |
+                        UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead |
+                        UnixFileMode.GroupExecute,
                     UnixDirPerms.WorldReadable =>
-                        System.IO.UnixFileMode.UserRead |
-                        System.IO.UnixFileMode.UserWrite |
-                        System.IO.UnixFileMode.UserExecute |
-                        System.IO.UnixFileMode.GroupRead |
-                        System.IO.UnixFileMode.GroupExecute |
-                        System.IO.UnixFileMode.OtherRead |
-                        System.IO.UnixFileMode.OtherExecute,
+                        UnixFileMode.UserRead |
+                        UnixFileMode.UserWrite |
+                        UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead |
+                        UnixFileMode.GroupExecute |
+                        UnixFileMode.OtherRead |
+                        UnixFileMode.OtherExecute,
                     UnixDirPerms.Default755 => throw new NotImplementedException(),
                     _ =>
-                                            System.IO.UnixFileMode.UserRead |
-                                            System.IO.UnixFileMode.UserWrite |
-                                            System.IO.UnixFileMode.UserExecute |
-                                            System.IO.UnixFileMode.GroupRead |
-                                            System.IO.UnixFileMode.GroupExecute |
-                                            System.IO.UnixFileMode.OtherRead |
-                                            System.IO.UnixFileMode.OtherExecute,
+                                            UnixFileMode.UserRead |
+                                            UnixFileMode.UserWrite |
+                                            UnixFileMode.UserExecute |
+                                            UnixFileMode.GroupRead |
+                                            UnixFileMode.GroupExecute |
+                                            UnixFileMode.OtherRead |
+                                            UnixFileMode.OtherExecute,
                 };
 
                 _ = SET_UNIX_FILE_MODE_COMPAT(path, mode);
@@ -171,10 +201,13 @@ public static partial class Directories
     /// <summary>
     /// Invokes directory created event safely per handler.
     /// </summary>
-    [System.ComponentModel.EditorBrowsable(
-        System.ComponentModel.EditorBrowsableState.Never)]
+    /// <param name="path">
+    /// The path that was created and will be passed to registered handlers.
+    /// </param>
+    [EditorBrowsable(
+        EditorBrowsableState.Never)]
     private static void RAISE_DIRECTORY_CREATED(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] string path)
+        [DisallowNull] string path)
     {
         Action<string> handlers = DirectoryCreated;
         if (handlers == null)
@@ -197,46 +230,52 @@ public static partial class Directories
     /// Combines and normalizes a child path under a base directory,
     /// preventing directory traversal outside of the base directory.
     /// </summary>
+    /// <param name="baseDir">
+    /// The trusted base directory.
+    /// </param>
+    /// <param name="name">
+    /// The child path segment to combine under the base directory.
+    /// </param>
     /// <exception cref="UnauthorizedAccessException"></exception>
-    [System.ComponentModel.EditorBrowsable(
-        System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [EditorBrowsable(
+        EditorBrowsableState.Never)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static string COMBINE_SAFE(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] string baseDir,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] string name)
+        [DisallowNull] string baseDir,
+        [DisallowNull] string name)
     {
-        string full = System.IO.Path.GetFullPath(System.IO.Path.Join(baseDir, name));
-        string baseFull = System.IO.Path.GetFullPath(baseDir);
+        string full = Path.GetFullPath(Path.Join(baseDir, name));
+        string baseFull = Path.GetFullPath(baseDir);
 
-        if (!baseFull.EndsWith(System.IO.Path.DirectorySeparatorChar))
+        if (!baseFull.EndsWith(Path.DirectorySeparatorChar))
         {
-            baseFull += System.IO.Path.DirectorySeparatorChar;
+            baseFull += Path.DirectorySeparatorChar;
         }
 
-        string rel = System.IO.Path.GetRelativePath(baseFull, full);
+        string rel = Path.GetRelativePath(baseFull, full);
 
-        char sep = System.IO.Path.DirectorySeparatorChar;
+        char sep = Path.DirectorySeparatorChar;
         StringComparison comp = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-        return System.IO.Path.IsPathRooted(rel) ||
+        return Path.IsPathRooted(rel) ||
             rel.Equals("..", comp) ||
             rel.StartsWith(".." + sep, comp)
             ? throw new UnauthorizedAccessException($"Path '{name}' escapes base directory.")
             : full;
     }
 
-    [System.ComponentModel.EditorBrowsable(
-        System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [EditorBrowsable(
+        EditorBrowsableState.Never)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static bool SET_UNIX_FILE_MODE_COMPAT(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] string path, System.IO.UnixFileMode mode)
+        [DisallowNull] string path, UnixFileMode mode)
     {
         try
         {
-            System.Reflection.MethodInfo m = typeof(System.IO.Directory).GetMethod("SetUnixFileMode",
-                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static,
-                null, [typeof(string), typeof(System.IO.UnixFileMode)], null);
+            MethodInfo m = typeof(Directory).GetMethod("SetUnixFileMode",
+                BindingFlags.Public | BindingFlags.Static,
+                null, [typeof(string), typeof(UnixFileMode)], null);
 
             if (m != null)
             {
@@ -268,74 +307,74 @@ public static partial class Directories
         return false;
     }
 
-    [System.ComponentModel.EditorBrowsable(
-        System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static uint TO_NATIVE_CHMOD_MODE(System.IO.UnixFileMode mode)
+    [EditorBrowsable(
+        EditorBrowsableState.Never)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    private static uint TO_NATIVE_CHMOD_MODE(UnixFileMode mode)
     {
         uint m = 0;
 
         // Special bits
-        if ((mode & System.IO.UnixFileMode.SetUser) != 0)
+        if ((mode & UnixFileMode.SetUser) != 0)
         {
             m |= 0x800; // 04000
         }
 
-        if ((mode & System.IO.UnixFileMode.SetGroup) != 0)
+        if ((mode & UnixFileMode.SetGroup) != 0)
         {
             m |= 0x400; // 02000
         }
 
-        if ((mode & System.IO.UnixFileMode.StickyBit) != 0)
+        if ((mode & UnixFileMode.StickyBit) != 0)
         {
             m |= 0x200; // 01000
         }
 
         // USER
-        if ((mode & System.IO.UnixFileMode.UserRead) != 0)
+        if ((mode & UnixFileMode.UserRead) != 0)
         {
             m |= 0x100; // 0400
         }
 
-        if ((mode & System.IO.UnixFileMode.UserWrite) != 0)
+        if ((mode & UnixFileMode.UserWrite) != 0)
         {
             m |= 0x080; // 0200
         }
 
-        if ((mode & System.IO.UnixFileMode.UserExecute) != 0)
+        if ((mode & UnixFileMode.UserExecute) != 0)
         {
             m |= 0x040; // 0100
         }
 
         // Group
-        if ((mode & System.IO.UnixFileMode.GroupRead) != 0)
+        if ((mode & UnixFileMode.GroupRead) != 0)
         {
             m |= 0x020; // 0040
         }
 
-        if ((mode & System.IO.UnixFileMode.GroupWrite) != 0)
+        if ((mode & UnixFileMode.GroupWrite) != 0)
         {
             m |= 0x010; // 0020
         }
 
-        if ((mode & System.IO.UnixFileMode.GroupExecute) != 0)
+        if ((mode & UnixFileMode.GroupExecute) != 0)
         {
             m |= 0x008; // 0010
         }
 
         // Others
-        if ((mode & System.IO.UnixFileMode.OtherRead) != 0)
+        if ((mode & UnixFileMode.OtherRead) != 0)
         {
             m |= 0x004; // 0004
         }
 
-        if ((mode & System.IO.UnixFileMode.OtherWrite) != 0)
+        if ((mode & UnixFileMode.OtherWrite) != 0)
         {
             m |= 0x002; // 0002
         }
 
-        if ((mode & System.IO.UnixFileMode.OtherExecute) != 0)
+        if ((mode & UnixFileMode.OtherExecute) != 0)
         {
             m |= 0x001; // 0001
         }
@@ -346,36 +385,42 @@ public static partial class Directories
     /// <summary>
     /// P/Invoke libc chmod (fallback for Unix)
     /// </summary>
-    [System.Runtime.CompilerServices.SkipLocalsInit]
-    [System.ComponentModel.EditorBrowsable(
-        System.ComponentModel.EditorBrowsableState.Never)]
-    private static unsafe int CHMOD([System.Diagnostics.CodeAnalysis.DisallowNull] string pathname, uint mode)
+    /// <param name="pathname">
+    /// The Unix path that will be passed to <c>chmod</c>.
+    /// </param>
+    /// <param name="mode">
+    /// The native mode bits to apply.
+    /// </param>
+    [SkipLocalsInit]
+    [EditorBrowsable(
+        EditorBrowsableState.Never)]
+    private static unsafe int CHMOD([DisallowNull] string pathname, uint mode)
     {
         byte* __pathname_native = default;
         int __retVal = 0;
-        System.Runtime.InteropServices.Marshalling.Utf8StringMarshaller.ManagedToUnmanagedIn __pathname_native__marshaller = default;
+        Utf8StringMarshaller.ManagedToUnmanagedIn __pathname_native__marshaller = default;
         int __lastError;
 
         try
         {
-            Span<byte> buffer = stackalloc byte[System.Runtime.InteropServices.Marshalling.Utf8StringMarshaller.ManagedToUnmanagedIn.BufferSize];
+            Span<byte> buffer = stackalloc byte[Utf8StringMarshaller.ManagedToUnmanagedIn.BufferSize];
 #pragma warning disable CS9080
             __pathname_native__marshaller.FromManaged(pathname, buffer);
 #pragma warning restore CS9080
             __pathname_native = __pathname_native__marshaller.ToUnmanaged();
-            System.Runtime.InteropServices.Marshal.SetLastSystemError(0);
+            Marshal.SetLastSystemError(0);
             __retVal = __PInvoke(__pathname_native, mode);
-            __lastError = System.Runtime.InteropServices.Marshal.GetLastSystemError();
+            __lastError = Marshal.GetLastSystemError();
         }
         finally
         {
             __pathname_native__marshaller.Free();
         }
 
-        System.Runtime.InteropServices.Marshal.SetLastPInvokeError(__lastError);
+        Marshal.SetLastPInvokeError(__lastError);
         return __retVal;
 
-        [System.Runtime.InteropServices.DllImport("libc", EntryPoint = "chmod", ExactSpelling = true)]
+        [DllImport("libc", EntryPoint = "chmod", ExactSpelling = true)]
         static extern int __PInvoke(byte* __pathname_native, uint __mode_native);
     }
 }

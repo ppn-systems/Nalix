@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Primitives;
 
 namespace Nalix.Common.Identity;
@@ -63,7 +65,7 @@ public interface ISnowflake
     /// <remarks>
     /// This method allocates a new 7-byte array and writes the identifier in little-endian format.
     /// The layout is: [0-3]=Value, [4-5]=MachineId, [6]=Type.
-    /// For better performance, use <see cref="TryWriteBytes(System.Span{byte})"/> with a pre-allocated buffer.
+    /// For better performance, use <see cref="TryWriteBytes(Span{byte})"/> with a pre-allocated buffer.
     /// </remarks>
     byte[] ToByteArray();
 
@@ -76,10 +78,10 @@ public interface ISnowflake
     /// is too small (less than 7 bytes).
     /// </returns>
     /// <remarks>
-    /// This overload is identical to <see cref="TryWriteBytes(System.Span{byte}, out int)"/> but does not
+    /// This overload is identical to <see cref="TryWriteBytes(Span{byte}, out int)"/> but does not
     /// return the number of bytes written. Use this when you don't need the byte count.
     /// </remarks>
-    bool TryWriteBytes(System.Span<byte> destination);
+    bool TryWriteBytes(Span<byte> destination);
 
     /// <summary>
     /// Attempts to write the serialized <see cref="ISnowflake"/> to the specified byte span.
@@ -99,6 +101,6 @@ public interface ISnowflake
     /// This is the recommended serialization method for performance-critical scenarios.
     /// </remarks>
     bool TryWriteBytes(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> destination,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int bytesWritten);
+        [NotNull] Span<byte> destination,
+        [NotNullWhen(true)] out int bytesWritten);
 }

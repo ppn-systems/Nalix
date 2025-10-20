@@ -42,9 +42,9 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// <summary>
     /// Gets or sets the policy for handling connection rejection when limits are reached.
     /// </summary>
-    [IniComment("Rejection strategy when the connection limit is reached (e.g. DROP_NEWEST, DROP_OLDEST)")]
+    [IniComment("Rejection strategy when the connection limit is reached (e.g. DropNewest, DropOldest)")]
     [System.ComponentModel.DataAnnotations.EnumDataType(typeof(DropPolicy), ErrorMessage = "Invalid drop policy.")]
-    public DropPolicy DropPolicy { get; init; } = DropPolicy.DROP_NEWEST;
+    public DropPolicy DropPolicy { get; init; } = DropPolicy.DropNewest;
 
     // Username policy
 

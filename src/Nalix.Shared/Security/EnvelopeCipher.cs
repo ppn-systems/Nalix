@@ -88,14 +88,14 @@ public static class EnvelopeCipher
     /// <list type="bullet">
     /// <item>
     /// <description>
-    /// <see cref="CipherSuiteType.CHACHA20"/> and
-    /// <see cref="CipherSuiteType.CHACHA20_POLY1305"/> use a nonce size defined by <see cref="ChaCha20.NonceSize"/>.
+    /// <see cref="CipherSuiteType.Chacha20"/> and
+    /// <see cref="CipherSuiteType.Chacha20Poly1305"/> use a nonce size defined by <see cref="ChaCha20.NonceSize"/>.
     /// </description>
     /// </item>
     /// <item>
     /// <description>
-    /// <see cref="CipherSuiteType.SALSA20"/> and
-    /// <see cref="CipherSuiteType.SALSA20_POLY1305"/> use a nonce size defined by <see cref="Salsa20.NonceSize"/>.
+    /// <see cref="CipherSuiteType.Salsa20"/> and
+    /// <see cref="CipherSuiteType.Salsa20Poly1305"/> use a nonce size defined by <see cref="Salsa20.NonceSize"/>.
     /// </description>
     /// </item>
     /// </list>
@@ -109,10 +109,10 @@ public static class EnvelopeCipher
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static int GetNonceLength(CipherSuiteType type) => type switch
     {
-        CipherSuiteType.CHACHA20 => ChaCha20.NonceSize,
-        CipherSuiteType.CHACHA20_POLY1305 => ChaCha20.NonceSize,
-        CipherSuiteType.SALSA20 => Salsa20.NonceSize,
-        CipherSuiteType.SALSA20_POLY1305 => Salsa20.NonceSize,
+        CipherSuiteType.Chacha20 => ChaCha20.NonceSize,
+        CipherSuiteType.Chacha20Poly1305 => ChaCha20.NonceSize,
+        CipherSuiteType.Salsa20 => Salsa20.NonceSize,
+        CipherSuiteType.Salsa20Poly1305 => Salsa20.NonceSize,
         _ => throw new System.ArgumentException("Unsupported symmetric algorithm", nameof(type))
     };
 
@@ -133,15 +133,15 @@ public static class EnvelopeCipher
     /// <list type="bullet">
     /// <item>
     /// <description>
-    /// <see cref="CipherSuiteType.CHACHA20_POLY1305"/> and
-    /// <see cref="CipherSuiteType.SALSA20_POLY1305"/> produce an authentication tag
+    /// <see cref="CipherSuiteType.Chacha20Poly1305"/> and
+    /// <see cref="CipherSuiteType.Salsa20Poly1305"/> produce an authentication tag
     /// with size <see cref="EnvelopeFormat.TagSize"/>.
     /// </description>
     /// </item>
     /// <item>
     /// <description>
-    /// <see cref="CipherSuiteType.CHACHA20"/> and
-    /// <see cref="CipherSuiteType.SALSA20"/> are stream ciphers without authentication,
+    /// <see cref="CipherSuiteType.Chacha20"/> and
+    /// <see cref="CipherSuiteType.Salsa20"/> are stream ciphers without authentication,
     /// therefore the tag length is <c>0</c>.
     /// </description>
     /// </item>
@@ -156,10 +156,10 @@ public static class EnvelopeCipher
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static int GetTagLength(CipherSuiteType type) => type switch
     {
-        CipherSuiteType.CHACHA20 => 0,
-        CipherSuiteType.CHACHA20_POLY1305 => EnvelopeFormat.TagSize,
-        CipherSuiteType.SALSA20 => 0,
-        CipherSuiteType.SALSA20_POLY1305 => EnvelopeFormat.TagSize,
+        CipherSuiteType.Chacha20 => 0,
+        CipherSuiteType.Chacha20Poly1305 => EnvelopeFormat.TagSize,
+        CipherSuiteType.Salsa20 => 0,
+        CipherSuiteType.Salsa20Poly1305 => EnvelopeFormat.TagSize,
         _ => throw new System.ArgumentException("Unsupported symmetric algorithm", nameof(type))
     };
 
@@ -219,8 +219,8 @@ public static class EnvelopeCipher
 
         return algorithm switch
         {
-            CipherSuiteType.SALSA20 or CipherSuiteType.CHACHA20 => SymmetricEngine.Encrypt(key, plaintext, ciphertext, nonce, seq, algorithm, out written),// Assume SymmetricEngine.Encrypt uses an out parameter for written
-            CipherSuiteType.SALSA20_POLY1305 or CipherSuiteType.CHACHA20_POLY1305 => AeadEngine.Encrypt(key, plaintext, ciphertext, nonce, aad, seq, algorithm, out written),
+            CipherSuiteType.Salsa20 or CipherSuiteType.Chacha20 => SymmetricEngine.Encrypt(key, plaintext, ciphertext, nonce, seq, algorithm, out written),// Assume SymmetricEngine.Encrypt uses an out parameter for written
+            CipherSuiteType.Salsa20Poly1305 or CipherSuiteType.Chacha20Poly1305 => AeadEngine.Encrypt(key, plaintext, ciphertext, nonce, aad, seq, algorithm, out written),
             _ => throw new System.ArgumentException("Unsupported cipher type", nameof(algorithm)),
         };
     }
@@ -276,8 +276,8 @@ public static class EnvelopeCipher
 
         switch (env.AeadType)
         {
-            case CipherSuiteType.SALSA20:
-            case CipherSuiteType.CHACHA20:
+            case CipherSuiteType.Salsa20:
+            case CipherSuiteType.Chacha20:
                 // Assume SymmetricEngine.Encrypt uses an out parameter for written
                 if (SymmetricEngine.Decrypt(key, envelope, plaintext, out written))
                 {
@@ -286,8 +286,8 @@ public static class EnvelopeCipher
 
                 break;
 
-            case CipherSuiteType.SALSA20_POLY1305:
-            case CipherSuiteType.CHACHA20_POLY1305:
+            case CipherSuiteType.Salsa20Poly1305:
+            case CipherSuiteType.Chacha20Poly1305:
                 if (AeadEngine.Decrypt(key, envelope, plaintext, aad, out written))
                 {
                     return true;

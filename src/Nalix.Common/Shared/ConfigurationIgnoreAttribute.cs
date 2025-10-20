@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Common.Shared;
 
 /// <summary>
@@ -14,8 +16,8 @@ namespace Nalix.Common.Shared;
 /// Initializes a new instance of the <see cref="ConfiguredIgnoreAttribute"/> class.
 /// </remarks>
 /// <param name="reason">The optional reason for ignoring the property.</param>
-[System.AttributeUsage(System.AttributeTargets.Property)]
-public class ConfiguredIgnoreAttribute(string reason = null) : System.Attribute
+[AttributeUsage(AttributeTargets.Property)]
+public class ConfiguredIgnoreAttribute(string reason = null) : Attribute
 {
     /// <summary>
     /// Optional reason for ignoring the property during configuration.

@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Threading;
+
 namespace Nalix.Common.Shared;
 
 /// <summary>
@@ -13,26 +16,24 @@ namespace Nalix.Common.Shared;
 /// Typical use cases include background services, processors,
 /// or managers that must be toggled at runtime.
 /// </remarks>
-public interface IActivatable : System.IDisposable
+public interface IActivatable : IDisposable
 {
     /// <summary>
     /// Activates the component, transitioning it into an operational state.
     /// </summary>
-    /// <param name="cancellationToken"></param>
     /// <remarks>
     /// This method should be idempotent: calling it multiple times
     /// should not cause side effects if the component is already active.
     /// </remarks>
-    void Activate(System.Threading.CancellationToken cancellationToken = default);
+    void Activate(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deactivates the component, transitioning it into a non-operational state.
     /// </summary>
-    /// <param name="cancellationToken"></param>
     /// <remarks>
     /// This method should release any resources or stop any
     /// background work started during <see cref="Activate"/>.
     /// It should be safe to call multiple times.
     /// </remarks>
-    void Deactivate(System.Threading.CancellationToken cancellationToken = default);
+    void Deactivate(CancellationToken cancellationToken = default);
 }

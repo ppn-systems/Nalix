@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using Nalix.Common.Shared;
 
 namespace Nalix.Common.Networking;
@@ -9,7 +12,7 @@ namespace Nalix.Common.Networking;
 /// Interface representing a network protocol.
 /// BuiltInHandlers this interface to define how a network protocol handles connections and messages.
 /// </summary>
-public interface IProtocol : System.IDisposable, IReportable
+public interface IProtocol : IDisposable, IReportable
 {
     /// <summary>
     /// Gets a value indicating whether the protocol should keep the connection open after receiving a packet.
@@ -23,10 +26,10 @@ public interface IProtocol : System.IDisposable, IReportable
     /// </summary>
     /// <param name="sender">The source of the event triggering the message processing.</param>
     /// <param name="args">The event arguments containing connection and message data.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown when args is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when args is null.</exception>
     void ProcessMessage(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] object sender,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args);
+        [MaybeNull] object sender,
+        [NotNull] IConnectEventArgs args);
 
     /// <summary>
     /// Executes after a message from the connection has been processed.
@@ -34,10 +37,10 @@ public interface IProtocol : System.IDisposable, IReportable
     /// </summary>
     /// <param name="sender">The source of the event triggering the post-processing.</param>
     /// <param name="args">The event arguments containing connection and message data.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown when args is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when args is null.</exception>
     void PostProcessMessage(
-        [System.Diagnostics.CodeAnalysis.NotNull] object sender,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args);
+        [NotNull] object sender,
+        [NotNull] IConnectEventArgs args);
 
     /// <summary>
     /// Handles a new connection when it is accepted.
@@ -45,8 +48,8 @@ public interface IProtocol : System.IDisposable, IReportable
     /// </summary>
     /// <param name="connection">The connection to handle.</param>
     /// <param name="cancellationToken">Identifier for cancellation</param>
-    /// <exception cref="System.ArgumentNullException">Thrown when connection is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when connection is null.</exception>
     void OnAccept(
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default);
+        [NotNull] IConnection connection,
+        [NotNull] CancellationToken cancellationToken = default);
 }

@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
@@ -12,8 +14,8 @@ namespace Nalix.Common.Networking.Packets;
 /// </remarks>
 /// <param name="requestsPerSecond">Maximum requests per second allowed.</param>
 /// <param name="burst">Burst size (default is 1).</param>
-[System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
-public sealed class PacketRateLimitAttribute(int requestsPerSecond, double burst = 1) : System.Attribute
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
+public sealed class PacketRateLimitAttribute(int requestsPerSecond, double burst = 1) : Attribute
 {
     /// <summary>
     /// The burst size allowed for requests. Default is 1.

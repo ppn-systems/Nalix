@@ -24,14 +24,14 @@ public sealed class DispatchOptions : ConfigurationLoader
     /// <summary>
     /// Drop strategy when the per-connection queue is full.
     /// </summary>
-    [IniComment("Strategy when the queue is full (e.g. DROP_NEWEST, DROP_OLDEST, BLOCK)")]
+    [IniComment("Strategy when the queue is full (e.g. DropNewest, DropOldest, Block)")]
     [System.ComponentModel.DataAnnotations.EnumDataType(typeof(DropPolicy), ErrorMessage = "Invalid drop policy.")]
-    public DropPolicy DropPolicy { get; init; } = DropPolicy.DROP_NEWEST;
+    public DropPolicy DropPolicy { get; init; } = DropPolicy.DropNewest;
 
     /// <summary>
     /// Block timeout in milliseconds for push operations when the queue is full and DropPolicy is BLOCK.
     /// </summary>
-    [IniComment("How long to wait before timing out a blocked push when DropPolicy is BLOCK (e.g. 00:00:01 = 1 second)")]
+    [IniComment("How long to wait before timing out a blocked push when DropPolicy is Block (e.g. 00:00:01 = 1 second)")]
     public System.TimeSpan BlockTimeout { get; init; } = System.TimeSpan.FromMilliseconds(1000);
 
     /// <summary>

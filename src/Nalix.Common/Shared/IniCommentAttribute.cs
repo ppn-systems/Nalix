@@ -1,24 +1,30 @@
-﻿namespace Nalix.Common.Shared;
+using System;
+using System.Diagnostics.CodeAnalysis;
+
+namespace Nalix.Common.Shared;
 
 /// <summary>
 /// Specifies a comment to be written above a section or key in the INI file.
 /// Can be applied to both classes (section comment) and properties (key comment).
 /// </summary>
-[System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
-public sealed class IniCommentAttribute : System.Attribute
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
+public sealed class IniCommentAttribute : Attribute
 {
     /// <summary>
     /// Gets the comment text. Supports multi-line via \n.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.NotNull]
+    [NotNull]
     public string Comment { get; }
 
     /// <summary>
     /// Ini comment attribute constructor.
     /// </summary>
-    public IniCommentAttribute([System.Diagnostics.CodeAnalysis.NotNull] string comment)
+    /// <param name="comment">
+    /// The comment text to write above the target section or key.
+    /// </param>
+    public IniCommentAttribute([NotNull] string comment)
     {
-        System.ArgumentException.ThrowIfNullOrWhiteSpace(comment, nameof(comment));
+        ArgumentException.ThrowIfNullOrWhiteSpace(comment, nameof(comment));
         Comment = comment;
     }
 }
