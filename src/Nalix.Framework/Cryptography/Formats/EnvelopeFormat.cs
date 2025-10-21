@@ -15,9 +15,9 @@ using Nalix.Common.Enums;
 namespace Nalix.Framework.Cryptography.Formats;
 
 [System.Diagnostics.DebuggerNonUserCode]
-internal static class CryptoFormat
+internal static class EnvelopeFormat
 {
-    public const System.Int32 HeaderSize = CryptoHeader.Size;
+    public const System.Int32 HeaderSize = EnvelopeHeader.Size;
     public const System.Byte CurrentVersion = 1;
     public const System.Int32 TagSize = 16; // AEAD tags
 
@@ -35,7 +35,7 @@ internal static class CryptoFormat
             return false;
         }
 
-        if (!CryptoHeader.TryParse(blob[..HeaderSize], out var header))
+        if (!EnvelopeHeader.TryParse(blob[..HeaderSize], out var header))
         {
             return false;
         }
@@ -111,8 +111,8 @@ internal static class CryptoFormat
             ThrowHelper.EnvelopeDestTooSmall();
         }
 
-        var header = new CryptoHeader(CurrentVersion, type, flags, (System.Byte)nonceLen, seq);
-        CryptoHeader.WriteTo(dest[..HeaderSize], header);
+        var header = new EnvelopeHeader(CurrentVersion, type, flags, (System.Byte)nonceLen, seq);
+        EnvelopeHeader.WriteTo(dest[..HeaderSize], header);
 
         System.Int32 pos = HeaderSize;
         nonce.CopyTo(dest.Slice(pos, nonceLen)); pos += nonceLen;
@@ -139,8 +139,8 @@ internal static class CryptoFormat
             ThrowHelper.EnvelopeDestTooSmall();
         }
 
-        var header = new CryptoHeader(CurrentVersion, type, flags, (System.Byte)nonceLen, seq);
-        CryptoHeader.WriteTo(dest[..HeaderSize], header);
+        var header = new EnvelopeHeader(CurrentVersion, type, flags, (System.Byte)nonceLen, seq);
+        EnvelopeHeader.WriteTo(dest[..HeaderSize], header);
 
         System.Int32 pos = HeaderSize;
         nonce.CopyTo(dest.Slice(pos, nonceLen)); pos += nonceLen;

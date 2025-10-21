@@ -21,7 +21,7 @@ using Nalix.Common.Enums;
 namespace Nalix.Framework.Cryptography.Formats;
 
 [System.Diagnostics.DebuggerNonUserCode]
-internal readonly struct CryptoHeader
+internal readonly struct EnvelopeHeader
 {
     public const System.Int32 Size = 12;
     private static readonly System.Byte[] MagicBytes = "NALX"u8.ToArray();
@@ -34,7 +34,7 @@ internal readonly struct CryptoHeader
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    public CryptoHeader(System.Byte version, CipherSuiteType type, System.Byte flags, System.Byte nonceLen, System.UInt32 seq)
+    public EnvelopeHeader(System.Byte version, CipherSuiteType type, System.Byte flags, System.Byte nonceLen, System.UInt32 seq)
     {
         Version = version;
         Type = type;
@@ -46,7 +46,7 @@ internal readonly struct CryptoHeader
     /// <summary>
     /// Writes header into dest (must be at least Size).
     /// </summary>
-    public static void WriteTo(System.Span<System.Byte> dest, CryptoHeader header)
+    public static void WriteTo(System.Span<System.Byte> dest, EnvelopeHeader header)
     {
         if (dest.Length < Size)
         {
@@ -64,7 +64,7 @@ internal readonly struct CryptoHeader
     /// <summary>
     /// Try parse header from src. Returns false if malformed/too short.
     /// </summary>
-    public static System.Boolean TryParse(System.ReadOnlySpan<System.Byte> src, out CryptoHeader header)
+    public static System.Boolean TryParse(System.ReadOnlySpan<System.Byte> src, out EnvelopeHeader header)
     {
         header = default;
         if (src.Length < Size)
@@ -78,7 +78,7 @@ internal readonly struct CryptoHeader
         }
 
         System.Byte version = src[4];
-        if (version != CryptoFormat.CurrentVersion)
+        if (version != EnvelopeFormat.CurrentVersion)
         {
             return false;
         }
@@ -95,7 +95,7 @@ internal readonly struct CryptoHeader
         System.Byte nonceLen = src[7];
         System.UInt32 seq = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(src.Slice(8, 4));
 
-        header = new CryptoHeader(version, type, flags, nonceLen, seq);
+        header = new EnvelopeHeader(version, type, flags, nonceLen, seq);
         return true;
     }
 

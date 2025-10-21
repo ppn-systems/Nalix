@@ -22,7 +22,7 @@ namespace Nalix.Framework.Cryptography;
 /// <list type="bullet">
 /// <item>
 /// <description><b>AEAD</b>: <c>header || nonce || ciphertext || tag</c> (detached tag).
-/// Header size and tag size are defined by <see cref="CryptoFormat"/>.
+/// Header size and tag size are defined by <see cref="EnvelopeFormat"/>.
 /// AAD convention: <c>header || nonce || userAAD</c>.
 /// </description>
 /// </item>
@@ -158,7 +158,7 @@ public static class EnvelopeCipher
         plaintext = null;
 
         // Quick parse to determine which engine to route to
-        if (!CryptoFormat.TryParseEnvelope(envelope, out var env))
+        if (!EnvelopeFormat.TryParseEnvelope(envelope, out var env))
         {
             return false;
         }
