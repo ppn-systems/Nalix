@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
+using System.Globalization;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
@@ -730,16 +731,16 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         Dictionary<string, int> algoCounts = new(System.StringComparer.OrdinalIgnoreCase);
         Dictionary<string, int> statusCounts = new(System.StringComparer.OrdinalIgnoreCase);
 
-        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionHub Status:");
-        _ = sb.AppendLine($"Total Connections    : {_count}");
-        _ = sb.AppendLine($"Anonymous Users      : {_count - _usernames.Count}");
-        _ = sb.AppendLine($"Authenticated Users  : {_usernames.Count}");
-        _ = sb.AppendLine($"Evicted Connections  : {_evictedConnections}");
-        _ = sb.AppendLine($"Rejected Connections : {_rejectedConnections}");
-        _ = sb.AppendLine($"Shard Count          : {stats.ShardCount}");
-        _ = sb.AppendLine($"Anonymous Queue Depth: {stats.AnonymousQueueDepth}");
-        _ = sb.AppendLine($"Max Connections      : {(stats.MaxConnections < 0 ? "Unlimited" : stats.MaxConnections.ToString())}");
-        _ = sb.AppendLine($"Drop Policy          : {stats.DropPolicy}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionHub Status:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Connections    : {_count}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Anonymous Users      : {_count - _usernames.Count}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Authenticated Users  : {_usernames.Count}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Evicted Connections  : {_evictedConnections}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Rejected Connections : {_rejectedConnections}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Shard Count          : {stats.ShardCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Anonymous Queue Depth: {stats.AnonymousQueueDepth}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Connections      : {(stats.MaxConnections < 0 ? "Unlimited" : stats.MaxConnections.ToString(CultureInfo.InvariantCulture))}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Drop Policy          : {stats.DropPolicy}");
 
         foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
         {
@@ -770,10 +771,10 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             }
         }
 
-        _ = sb.AppendLine($"Total Bytes Sent   : {sumBytesSent:N0}");
-        _ = sb.AppendLine($"Average Uptime     : {(_count > 0 ? sumUptime / _count : 0)}s");
-        _ = sb.AppendLine($"Max Connection Time: {maxUptime}s");
-        _ = sb.AppendLine($"Min Connection Time: {(minUptime == long.MaxValue ? 0 : minUptime)}s");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Bytes Sent   : {sumBytesSent:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Uptime     : {(_count > 0 ? sumUptime / _count : 0)}s");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Connection Time: {maxUptime}s");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Min Connection Time: {(minUptime == long.MaxValue ? 0 : minUptime)}s");
 
         _ = sb.AppendLine();
         // ===== Connection Status Summary =====
@@ -785,7 +786,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         foreach (KeyValuePair<string, int> kvp in statusCounts)
         {
-            _ = sb.AppendLine($"{kvp.Key,-15} | {kvp.Value,5}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{kvp.Key,-15} | {kvp.Value,5}");
         }
 
         _ = sb.AppendLine("----------------------------------------");
@@ -797,7 +798,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _ = sb.AppendLine("----------------------------------------");
         foreach (KeyValuePair<string, int> kvp in algoCounts)
         {
-            _ = sb.AppendLine($"{kvp.Key,-16} | {kvp.Value,5}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{kvp.Key,-16} | {kvp.Value,5}");
         }
         _ = sb.AppendLine("----------------------------------------");
         _ = sb.AppendLine();
@@ -815,7 +816,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                 ISnowflake id = kvp.Key;
                 string username = GetUsername(id) ?? "(anonymous)";
 
-                _ = sb.AppendLine($"{id,-14} | {username}");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{id,-14} | {username}");
 
                 if (++count >= Limit)
                 {

@@ -155,7 +155,7 @@ public static class HandshakeExtensions
             // Always dispose the lease; deserialize takes a ReadOnlySpan copy.
             using (buffer)
             {
-                if (!catalog.TryDeserialize(buffer.Span, out IPacket p))
+                if (!catalog.TryDeserialize(buffer.Span, out IPacket? p))
                 {
                     return;
                 }

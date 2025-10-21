@@ -19,7 +19,7 @@ namespace Nalix.Common.Primitives;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Unlike the standard approach of using a <see cref="UInt64"/> field (8 bytes),
+/// Unlike the standard approach of using a <see cref="ulong"/> field (8 bytes),
 /// this implementation stores the value in a compact 3-field layout of exactly 7 bytes:
 /// <list type="bullet">
 ///   <item><description><c>_lo</c>  — lower 32 bits  (4 bytes)</description></item>
@@ -32,7 +32,7 @@ namespace Nalix.Common.Primitives;
 /// <para>
 /// The value is stored across the three fields such that the full 56-bit value can be
 /// reconstructed as: <c>_lo | ((ulong)_mid &lt;&lt; 32) | ((ulong)_hi &lt;&lt; 48)</c>.
-/// All arithmetic operations unpack to <see cref="UInt64"/>, compute, validate,
+/// All arithmetic operations unpack to <see cref="ulong"/>, compute, validate,
 /// then repack — bitwise operations (&amp;, |, ^, ~) operate directly on the fields
 /// without any unpack step for maximum performance.
 /// </para>
@@ -60,7 +60,7 @@ public readonly struct UInt56 :
 
     IBitwiseOperators<UInt56, UInt56, UInt56>,
 
-    IShiftOperators<UInt56, Int32, UInt56>
+    IShiftOperators<UInt56, int, UInt56>
 
 {
     #region Private Fields — 7-byte layout
@@ -68,17 +68,17 @@ public readonly struct UInt56 :
     /// <summary>
     /// bits  0–31
     /// </summary>
-    private readonly UInt32 _lo;
+    private readonly uint _lo;
 
     /// <summary>
     /// bits 32–47
     /// </summary>
-    private readonly UInt16 _mid;
+    private readonly ushort _mid;
 
     /// <summary>
     /// bits 48–55
     /// </summary>
-    private readonly Byte _hi;
+    private readonly byte _hi;
 
     #endregion Private Fields — 7-byte layout
 
@@ -87,12 +87,12 @@ public readonly struct UInt56 :
     /// <summary>
     /// Represents the largest possible value of <see cref="UInt56"/>.
     /// </summary>
-    public const UInt64 MaxValue = (1UL << 56) - 1; // 0x00FFFFFFFFFFFFFF
+    public const ulong MaxValue = (1UL << 56) - 1; // 0x00FFFFFFFFFFFFFF
 
     /// <summary>
     /// Represents the smallest possible value of <see cref="UInt56"/>.
     /// </summary>
-    public const UInt64 MinValue = 0UL;
+    public const ulong MinValue = 0UL;
 
     /// <summary>
     /// Represents the <see cref="UInt56"/> value 0.
@@ -122,7 +122,7 @@ public readonly struct UInt56 :
     /// <summary>
     /// Gets the radix, or base, for the type.
     /// </summary>
-    static Int32 INumberBase<UInt56>.Radix => 2;
+    static int INumberBase<UInt56>.Radix => 2;
 
     /// <summary>
     /// Gets the value 0 for the type.
@@ -157,19 +157,19 @@ public readonly struct UInt56 :
     /// <remarks>
     /// <para>
     /// This is the fastest possible constructor — it assigns the three fields directly
-    /// with no arithmetic, no validation, and no intermediate <see cref="UInt64"/>
+    /// with no arithmetic, no validation, and no intermediate <see cref="ulong"/>
     /// allocation. The JIT can keep all three fields in registers.
     /// </para>
     /// <para>
     /// This constructor is <c>private</c> because callers must guarantee that the
     /// combination of <paramref name="lo"/>, <paramref name="mid"/>, and <paramref name="hi"/>
     /// represents a valid 56-bit value. In practice, any valid decomposition of a
-    /// <see cref="UInt64"/> value that is within [0, <see cref="MaxValue"/>] is safe.
+    /// <see cref="ulong"/> value that is within [0, <see cref="MaxValue"/>] is safe.
     /// </para>
     /// </remarks>
     [MethodImpl(
         MethodImplOptions.AggressiveInlining)]
-    private UInt56(UInt32 lo, UInt16 mid, Byte hi)
+    private UInt56(uint lo, ushort mid, byte hi)
     {
         _lo = lo;
         _mid = mid;
@@ -178,7 +178,7 @@ public readonly struct UInt56 :
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UInt56"/> struct
-    /// from a <see cref="UInt64"/> value with optional validation.
+    /// from a <see cref="ulong"/> value with optional validation.
     /// </summary>
     /// <param name="value">The underlying value.</param>
     /// <param name="trusted">
@@ -197,7 +197,7 @@ public readonly struct UInt56 :
     /// </remarks>
     [MethodImpl(
         MethodImplOptions.AggressiveInlining)]
-    private UInt56(UInt64 value, Boolean trusted)
+    private UInt56(ulong value, bool trusted)
     {
         if (!trusted && value > MaxValue)
         {
@@ -206,9 +206,9 @@ public readonly struct UInt56 :
         }
 
         // Pack UInt64 → 3 fields in a single pass
-        _lo = (UInt32)value;
-        _mid = (UInt16)(value >> 32);
-        _hi = (Byte)(value >> 48);
+        _lo = (uint)value;
+        _mid = (ushort)(value >> 32);
+        _hi = (byte)(value >> 48);
     }
 
     /// <summary>
@@ -223,7 +223,7 @@ public readonly struct UInt56 :
     /// <paramref name="value"/> is less than <see cref="MinValue"/> or
     /// greater than <see cref="MaxValue"/>.
     /// </exception>
-    public UInt56(UInt64 value) : this(value, false) { }
+    public UInt56(ulong value) : this(value, false) { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UInt56"/> struct from its component parts.
@@ -231,8 +231,8 @@ public readonly struct UInt56 :
     /// <param name="a">The type component (upper 8 bits).</param>
     /// <param name="b">The machine identifier component (next 16 bits).</param>
     /// <param name="c">The value component (lower 32 bits).</param>
-    public UInt56(Byte a, UInt16 b, UInt32 c)
-        : this(((UInt64)a << 48) | ((UInt64)b << 32) | c, false) { }
+    public UInt56(byte a, ushort b, uint c)
+        : this(((ulong)a << 48) | ((ulong)b << 32) | c, false) { }
 
     #endregion Constructors
 
@@ -244,7 +244,7 @@ public readonly struct UInt56 :
     /// <returns>The 64-bit unsigned integer equivalent of this value.</returns>
     /// <remarks>
     /// <para>
-    /// This method reconstructs the full <see cref="UInt64"/> value from the three
+    /// This method reconstructs the full <see cref="ulong"/> value from the three
     /// stored fields using two bitwise OR operations and two left-shift operations:
     /// <c>_lo | ((ulong)_mid &lt;&lt; 32) | ((ulong)_hi &lt;&lt; 48)</c>.
     /// </para>
@@ -261,10 +261,10 @@ public readonly struct UInt56 :
     [Pure]
     [MethodImpl(
         MethodImplOptions.AggressiveInlining)]
-    public UInt64 ToUInt64() => _lo | ((UInt64)_mid << 32) | ((UInt64)_hi << 48);
+    public ulong ToUInt64() => _lo | ((ulong)_mid << 32) | ((ulong)_hi << 48);
 
     /// <summary>
-    /// Creates a <see cref="UInt56"/> instance directly from a raw <see cref="UInt64"/>
+    /// Creates a <see cref="UInt56"/> instance directly from a raw <see cref="ulong"/>
     /// value using the trusted (non-validating) repack path.
     /// </summary>
     /// <param name="raw">
@@ -286,7 +286,7 @@ public readonly struct UInt56 :
     /// </remarks>
     [MethodImpl(
         MethodImplOptions.AggressiveInlining)]
-    private static UInt56 FromRaw(UInt64 raw) => new((UInt32)raw, (UInt16)(raw >> 32), (Byte)(raw >> 48));
+    private static UInt56 FromRaw(ulong raw) => new((uint)raw, (ushort)(raw >> 32), (byte)(raw >> 48));
 
     #endregion Core pack/unpack — hot path
 
@@ -328,7 +328,7 @@ public readonly struct UInt56 :
     /// </example>
     [MethodImpl(
         MethodImplOptions.AggressiveInlining)]
-    public void WriteBytesLittleEndian(Span<Byte> destination)
+    public void WriteBytesLittleEndian(Span<byte> destination)
     {
         if (destination.Length < 7)
         {
@@ -376,7 +376,7 @@ public readonly struct UInt56 :
     /// </example>
     [MethodImpl(
         MethodImplOptions.AggressiveInlining)]
-    public void WriteBytesBigEndian(Span<Byte> destination)
+    public void WriteBytesBigEndian(Span<byte> destination)
     {
         if (destination.Length < 7)
         {
@@ -414,16 +414,16 @@ public readonly struct UInt56 :
     /// </example>
     [MethodImpl(
         MethodImplOptions.AggressiveInlining)]
-    public static UInt56 ReadBytesLittleEndian(ReadOnlySpan<Byte> source)
+    public static UInt56 ReadBytesLittleEndian(ReadOnlySpan<byte> source)
     {
         if (source.Length < 7)
         {
             throw new ArgumentException("Source must be at least 7 bytes.", nameof(source));
         }
 
-        UInt32 lo = BinaryPrimitives.ReadUInt32LittleEndian(source);
-        UInt16 mid = BinaryPrimitives.ReadUInt16LittleEndian(source[4..]);
-        Byte hi = source[6];
+        uint lo = BinaryPrimitives.ReadUInt32LittleEndian(source);
+        ushort mid = BinaryPrimitives.ReadUInt16LittleEndian(source[4..]);
+        byte hi = source[6];
         return new UInt56(lo, mid, hi);
     }
 
@@ -455,16 +455,16 @@ public readonly struct UInt56 :
     /// </example>
     [MethodImpl(
         MethodImplOptions.AggressiveInlining)]
-    public static UInt56 ReadBytesBigEndian(ReadOnlySpan<Byte> source)
+    public static UInt56 ReadBytesBigEndian(ReadOnlySpan<byte> source)
     {
         if (source.Length < 7)
         {
             throw new ArgumentException("Source must be at least 7 bytes.", nameof(source));
         }
 
-        Byte hi = source[0];
-        UInt16 mid = BinaryPrimitives.ReadUInt16BigEndian(source[1..]);
-        UInt32 lo = BinaryPrimitives.ReadUInt32BigEndian(source[3..]);
+        byte hi = source[0];
+        ushort mid = BinaryPrimitives.ReadUInt16BigEndian(source[1..]);
+        uint lo = BinaryPrimitives.ReadUInt32BigEndian(source[3..]);
         return new UInt56(lo, mid, hi);
     }
 
@@ -473,53 +473,53 @@ public readonly struct UInt56 :
     #region Conversions
 
     /// <summary>
-    /// Defines an implicit conversion of a <see cref="Byte"/> to a <see cref="UInt56"/>.
+    /// Defines an implicit conversion of a <see cref="byte"/> to a <see cref="UInt56"/>.
     /// </summary>
     /// <param name="value">The value to convert.</param>
     /// <returns>A <see cref="UInt56"/> that represents the converted value.</returns>
-    public static implicit operator UInt56(Byte value) => new((UInt32)value, 0, 0);
+    public static implicit operator UInt56(byte value) => new((uint)value, 0, 0);
 
     /// <summary>
-    /// Defines an implicit conversion of a <see cref="UInt16"/> to a <see cref="UInt56"/>.
+    /// Defines an implicit conversion of a <see cref="ushort"/> to a <see cref="UInt56"/>.
     /// </summary>
     /// <param name="value">The value to convert.</param>
     /// <returns>A <see cref="UInt56"/> that represents the converted value.</returns>
-    public static implicit operator UInt56(UInt16 value) => new(value, 0, 0);
+    public static implicit operator UInt56(ushort value) => new(value, 0, 0);
 
     /// <summary>
-    /// Defines an implicit conversion of a <see cref="UInt32"/> to a <see cref="UInt56"/>.
+    /// Defines an implicit conversion of a <see cref="uint"/> to a <see cref="UInt56"/>.
     /// </summary>
     /// <param name="value">The value to convert.</param>
     /// <returns>A <see cref="UInt56"/> that represents the converted value.</returns>
-    public static implicit operator UInt56(UInt32 value) => new(value, 0, 0);
+    public static implicit operator UInt56(uint value) => new(value, 0, 0);
 
     /// <summary>
-    /// Defines an implicit conversion of a non-negative <see cref="Int32"/> to a <see cref="UInt56"/>.
+    /// Defines an implicit conversion of a non-negative <see cref="int"/> to a <see cref="UInt56"/>.
     /// </summary>
     /// <param name="value">The value to convert.</param>
     /// <returns>A <see cref="UInt56"/> that represents the converted value.</returns>
     /// <exception cref="OverflowException">
     /// <paramref name="value"/> is negative.
     /// </exception>
-    public static implicit operator UInt56(Int32 value)
-        => value < 0 ? throw new OverflowException("Cannot convert negative int to UInt56.") : new UInt56((UInt32)value, 0, 0);
+    public static implicit operator UInt56(int value)
+        => value < 0 ? throw new OverflowException("Cannot convert negative int to UInt56.") : new UInt56((uint)value, 0, 0);
 
     /// <summary>
-    /// Defines an explicit conversion of a <see cref="UInt56"/> to a <see cref="UInt64"/>.
+    /// Defines an explicit conversion of a <see cref="UInt56"/> to a <see cref="ulong"/>.
     /// </summary>
     /// <param name="value">The value to convert.</param>
-    /// <returns>A <see cref="UInt64"/> that is equivalent to <paramref name="value"/>.</returns>
-    public static explicit operator UInt64(UInt56 value) => value.ToUInt64();
+    /// <returns>A <see cref="ulong"/> that is equivalent to <paramref name="value"/>.</returns>
+    public static explicit operator ulong(UInt56 value) => value.ToUInt64();
 
     /// <summary>
-    /// Defines an explicit conversion of a <see cref="UInt64"/> to a <see cref="UInt56"/>.
+    /// Defines an explicit conversion of a <see cref="ulong"/> to a <see cref="UInt56"/>.
     /// </summary>
     /// <param name="value">The value to convert.</param>
     /// <returns>A <see cref="UInt56"/> that represents the converted value.</returns>
     /// <exception cref="OverflowException">
     /// <paramref name="value"/> is greater than <see cref="MaxValue"/>.
     /// </exception>
-    public static explicit operator UInt56(UInt64 value) => new(value, false);
+    public static explicit operator UInt56(ulong value) => new(value, false);
 
     #endregion Conversions
 
@@ -528,79 +528,88 @@ public readonly struct UInt56 :
     /// <inheritdoc />
     /// <remarks>
     /// Compares all three storage fields directly (<c>_lo</c>, <c>_mid</c>, <c>_hi</c>)
-    /// without unpacking to <see cref="UInt64"/>, making this the fastest possible
+    /// without unpacking to <see cref="ulong"/>, making this the fastest possible
     /// equality check for the 7-byte layout.
     /// </remarks>
     [MethodImpl(
         MethodImplOptions.AggressiveInlining)]
-    public Boolean Equals(UInt56 other) => _lo == other._lo && _mid == other._mid && _hi == other._hi;
+    public bool Equals(UInt56 other) => _lo == other._lo && _mid == other._mid && _hi == other._hi;
 
     /// <inheritdoc />
     [MethodImpl(
         MethodImplOptions.AggressiveInlining)]
-    public override Boolean Equals(Object obj) => obj is UInt56 other && Equals(other);
+    public override bool Equals(object? obj) => obj is UInt56 other && Equals(other);
 
     /// <inheritdoc />
     /// <remarks>
     /// Combines all three storage fields using <see cref="HashCode.Combine{T1,T2,T3}"/>
-    /// to produce a well-distributed hash code without unpacking to <see cref="UInt64"/>.
+    /// to produce a well-distributed hash code without unpacking to <see cref="ulong"/>.
     /// </remarks>
     [MethodImpl(
         MethodImplOptions.AggressiveInlining)]
-    public override Int32 GetHashCode() => HashCode.Combine(_lo, _mid, _hi);
+    public override int GetHashCode() => HashCode.Combine(_lo, _mid, _hi);
 
     /// <inheritdoc />
-    public Int32 CompareTo(UInt56 other) => ToUInt64().CompareTo(other.ToUInt64());
+    public int CompareTo(UInt56 other) => ToUInt64().CompareTo(other.ToUInt64());
 
     /// <inheritdoc />
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
-    Int32 IComparable.CompareTo(Object obj)
-        => obj is null ? 1
-         : obj is UInt56 other ? CompareTo(other)
-         : throw new ArgumentException("Object must be of type UInt56.", nameof(obj));
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    int IComparable.CompareTo(object? obj)
+    {
+        if (obj is not null)
+        {
+            if (obj is UInt56 other)
+            {
+                return CompareTo(other);
+            }
+
+            throw new ArgumentException("Object must be of type UInt56.", nameof(obj));
+        }
+
+        return 1;
+    }
 
     /// <summary>
     /// Indicates whether two <see cref="UInt56"/> values are equal.
     /// </summary>
     /// <param name="left">The first value to compare.</param>
     /// <param name="right">The second value to compare.</param>
-    public static Boolean operator ==(UInt56 left, UInt56 right) => left.Equals(right);
+    public static bool operator ==(UInt56 left, UInt56 right) => left.Equals(right);
 
     /// <summary>
     /// Indicates whether two <see cref="UInt56"/> values are not equal.
     /// </summary>
     /// <param name="left">The first value to compare.</param>
     /// <param name="right">The second value to compare.</param>
-    public static Boolean operator !=(UInt56 left, UInt56 right) => !left.Equals(right);
+    public static bool operator !=(UInt56 left, UInt56 right) => !left.Equals(right);
 
     /// <summary>
     /// Indicates whether a specified <see cref="UInt56"/> is less than another specified <see cref="UInt56"/>.
     /// </summary>
     /// <param name="left">The first value to compare.</param>
     /// <param name="right">The second value to compare.</param>
-    public static Boolean operator <(UInt56 left, UInt56 right) => left.ToUInt64() < right.ToUInt64();
+    public static bool operator <(UInt56 left, UInt56 right) => left.ToUInt64() < right.ToUInt64();
 
     /// <summary>
     /// Indicates whether a specified <see cref="UInt56"/> is less than or equal to another specified <see cref="UInt56"/>.
     /// </summary>
     /// <param name="left">The first value to compare.</param>
     /// <param name="right">The second value to compare.</param>
-    public static Boolean operator <=(UInt56 left, UInt56 right) => left.ToUInt64() <= right.ToUInt64();
+    public static bool operator <=(UInt56 left, UInt56 right) => left.ToUInt64() <= right.ToUInt64();
 
     /// <summary>
     /// Indicates whether a specified <see cref="UInt56"/> is greater than another specified <see cref="UInt56"/>.
     /// </summary>
     /// <param name="left">The first value to compare.</param>
     /// <param name="right">The second value to compare.</param>
-    public static Boolean operator >(UInt56 left, UInt56 right) => left.ToUInt64() > right.ToUInt64();
+    public static bool operator >(UInt56 left, UInt56 right) => left.ToUInt64() > right.ToUInt64();
 
     /// <summary>
     /// Indicates whether a specified <see cref="UInt56"/> is greater than or equal to another specified <see cref="UInt56"/>.
     /// </summary>
     /// <param name="left">The first value to compare.</param>
     /// <param name="right">The second value to compare.</param>
-    public static Boolean operator >=(UInt56 left, UInt56 right) => left.ToUInt64() >= right.ToUInt64();
+    public static bool operator >=(UInt56 left, UInt56 right) => left.ToUInt64() >= right.ToUInt64();
 
     #endregion Equality and comparison
 
@@ -614,7 +623,7 @@ public readonly struct UInt56 :
     /// </returns>
     [MethodImpl(
         MethodImplOptions.AggressiveInlining)]
-    public override String ToString() => ToUInt64().ToString(CultureInfo.InvariantCulture);
+    public override string ToString() => ToUInt64().ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Converts the numeric value of this instance to its equivalent string representation
@@ -626,7 +635,7 @@ public readonly struct UInt56 :
     /// <returns>
     /// The string representation of the value of this instance, as specified by <paramref name="provider"/>.
     /// </returns>
-    public String ToString(IFormatProvider provider) => ToUInt64().ToString(provider);
+    public string ToString(IFormatProvider provider) => ToUInt64().ToString(provider);
 
     /// <summary>
     /// Converts the numeric value of this instance to its equivalent string representation
@@ -638,7 +647,7 @@ public readonly struct UInt56 :
     /// The string representation of the value of this instance, as specified by <paramref name="format"/>
     /// and <paramref name="formatProvider"/>.
     /// </returns>
-    public String ToString(String format, IFormatProvider formatProvider) => ToUInt64().ToString(format, formatProvider);
+    public string ToString(string format, IFormatProvider formatProvider) => ToUInt64().ToString(format, formatProvider);
 
     /// <summary>
     /// Converts the string representation of a number to its <see cref="UInt56"/> equivalent.
@@ -650,9 +659,8 @@ public readonly struct UInt56 :
     /// the range of the <see cref="UInt56"/> type.
     /// </exception>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
-    public static UInt56 Parse(String s) => Parse(s, NumberStyles.Integer, CultureInfo.CurrentCulture);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static UInt56 Parse(string s) => Parse(s, NumberStyles.Integer, CultureInfo.CurrentCulture);
 
     /// <summary>
     /// Converts the string representation of a number in a specified culture-specific format
@@ -668,9 +676,8 @@ public readonly struct UInt56 :
     /// the range of the <see cref="UInt56"/> type.
     /// </exception>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
-    public static UInt56 Parse(String s, IFormatProvider provider) => Parse(s, NumberStyles.Integer, provider);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static UInt56 Parse(string s, IFormatProvider? provider) => Parse(s, NumberStyles.Integer, provider);
 
     /// <summary>
     /// Converts the string representation of a number in a specified style and culture-specific format
@@ -689,7 +696,7 @@ public readonly struct UInt56 :
     /// the range of the <see cref="UInt56"/> type.
     /// </exception>
     [Pure]
-    public static UInt56 Parse(String s, NumberStyles style, IFormatProvider provider)
+    public static UInt56 Parse(string s, NumberStyles style, IFormatProvider? provider)
         => TryParse(s, style, provider, out UInt56 result)
             ? result : throw new FormatException("Input string was not in a correct format or was out of range for UInt56.");
 
@@ -707,8 +714,8 @@ public readonly struct UInt56 :
     /// <see langword="true"/> if <paramref name="s"/> was converted successfully; otherwise, <see langword="false"/>.
     /// </returns>
     [Pure]
-    public static Boolean TryParse(
-        String s,
+    public static bool TryParse(
+        string s,
         [NotNullWhen(true)] out UInt56 result)
         => TryParse(s, NumberStyles.Integer, CultureInfo.CurrentCulture, out result);
 
@@ -732,19 +739,19 @@ public readonly struct UInt56 :
     /// <see langword="true"/> if <paramref name="s"/> was converted successfully; otherwise, <see langword="false"/>.
     /// </returns>
     [Pure]
-    public static Boolean TryParse(
-        String s,
+    public static bool TryParse(
+        string? s,
         NumberStyles style,
-        IFormatProvider provider,
+        IFormatProvider? provider,
         [NotNullWhen(true)] out UInt56 result)
     {
         result = default;
-        if (String.IsNullOrWhiteSpace(s))
+        if (string.IsNullOrWhiteSpace(s))
         {
             return false;
         }
 
-        if (!UInt64.TryParse(s, style, provider, out UInt64 u))
+        if (!ulong.TryParse(s, style, provider, out ulong u))
         {
             return false;
         }
@@ -759,8 +766,7 @@ public readonly struct UInt56 :
     }
 
     /// <inheritdoc />
-    String IFormattable.ToString(String format, IFormatProvider formatProvider)
-        => ToUInt64().ToString(format, formatProvider);
+    string IFormattable.ToString(string? format, IFormatProvider? formatProvider) => ToUInt64().ToString(format, formatProvider);
 
     #endregion Parsing
 
@@ -769,87 +775,87 @@ public readonly struct UInt56 :
     #region Byte
 
     /// <inheritdoc/>
-    public static UInt56 operator +(UInt56 a, Byte b) => a + (UInt56)b;
+    public static UInt56 operator +(UInt56 a, byte b) => a + (UInt56)b;
 
     /// <inheritdoc/>
-    public static UInt56 operator -(UInt56 a, Byte b) => a - (UInt56)b;
+    public static UInt56 operator -(UInt56 a, byte b) => a - (UInt56)b;
 
     /// <inheritdoc/>
-    public static UInt56 operator *(UInt56 a, Byte b) => a * (UInt56)b;
+    public static UInt56 operator *(UInt56 a, byte b) => a * (UInt56)b;
 
     /// <inheritdoc/>
-    public static UInt56 operator /(UInt56 a, Byte b) => a / (UInt56)b;
+    public static UInt56 operator /(UInt56 a, byte b) => a / (UInt56)b;
 
     /// <inheritdoc/>
-    public static UInt56 operator %(UInt56 a, Byte b) => a % (UInt56)b;
+    public static UInt56 operator %(UInt56 a, byte b) => a % (UInt56)b;
 
     #endregion Byte
 
     #region SByte
 
     /// <inheritdoc/>
-    public static UInt56 operator +(UInt56 a, SByte b)
-        => b < 0 ? throw new OverflowException("Do not add negative numbers to UInt56.") : a + new UInt56((UInt32)b, 0, 0);
+    public static UInt56 operator +(UInt56 a, sbyte b)
+        => b < 0 ? throw new OverflowException("Do not add negative numbers to UInt56.") : a + new UInt56((uint)b, 0, 0);
 
     /// <inheritdoc/>
-    public static UInt56 operator -(UInt56 a, SByte b)
-        => b < 0 ? throw new OverflowException("Do not subtract negative numbers from UInt56.") : a - new UInt56((UInt32)b, 0, 0);
+    public static UInt56 operator -(UInt56 a, sbyte b)
+        => b < 0 ? throw new OverflowException("Do not subtract negative numbers from UInt56.") : a - new UInt56((uint)b, 0, 0);
 
     /// <inheritdoc/>
-    public static UInt56 operator *(UInt56 a, SByte b)
-        => b < 0 ? throw new OverflowException("Do not multiply negative numbers by UInt56.") : a * new UInt56((UInt32)b, 0, 0);
+    public static UInt56 operator *(UInt56 a, sbyte b)
+        => b < 0 ? throw new OverflowException("Do not multiply negative numbers by UInt56.") : a * new UInt56((uint)b, 0, 0);
 
     /// <inheritdoc/>
-    public static UInt56 operator /(UInt56 a, SByte b)
-        => b <= 0 ? throw new OverflowException("Divisor must be > 0 for UInt56.") : a / new UInt56((UInt32)b, 0, 0);
+    public static UInt56 operator /(UInt56 a, sbyte b)
+        => b <= 0 ? throw new OverflowException("Divisor must be > 0 for UInt56.") : a / new UInt56((uint)b, 0, 0);
 
     /// <inheritdoc/>
-    public static UInt56 operator %(UInt56 a, SByte b)
-        => b <= 0 ? throw new OverflowException("Divisor must be > 0 for UInt56.") : a % new UInt56((UInt32)b, 0, 0);
+    public static UInt56 operator %(UInt56 a, sbyte b)
+        => b <= 0 ? throw new OverflowException("Divisor must be > 0 for UInt56.") : a % new UInt56((uint)b, 0, 0);
 
     #endregion SByte
 
     #region Int16
 
     /// <inheritdoc/>
-    public static UInt56 operator +(UInt56 a, Int16 b)
-        => b < 0 ? throw new OverflowException("Do not add negative numbers to UInt56.") : a + new UInt56((UInt16)b, 0, 0);
+    public static UInt56 operator +(UInt56 a, short b)
+        => b < 0 ? throw new OverflowException("Do not add negative numbers to UInt56.") : a + new UInt56((ushort)b, 0, 0);
 
     /// <inheritdoc/>
-    public static UInt56 operator -(UInt56 a, Int16 b)
-        => b < 0 ? throw new OverflowException("Do not subtract negative numbers from UInt56.") : a - new UInt56((UInt16)b, 0, 0);
+    public static UInt56 operator -(UInt56 a, short b)
+        => b < 0 ? throw new OverflowException("Do not subtract negative numbers from UInt56.") : a - new UInt56((ushort)b, 0, 0);
 
     /// <inheritdoc/>
-    public static UInt56 operator *(UInt56 a, Int16 b)
-        => b < 0 ? throw new OverflowException("Do not multiply negative numbers by UInt56.") : a * new UInt56((UInt16)b, 0, 0);
+    public static UInt56 operator *(UInt56 a, short b)
+        => b < 0 ? throw new OverflowException("Do not multiply negative numbers by UInt56.") : a * new UInt56((ushort)b, 0, 0);
 
     /// <inheritdoc/>
-    public static UInt56 operator /(UInt56 a, Int16 b)
-        => b <= 0 ? throw new OverflowException("Divisor must be > 0 for UInt56.") : a / new UInt56((UInt16)b, 0, 0);
+    public static UInt56 operator /(UInt56 a, short b)
+        => b <= 0 ? throw new OverflowException("Divisor must be > 0 for UInt56.") : a / new UInt56((ushort)b, 0, 0);
 
     /// <inheritdoc/>
-    public static UInt56 operator %(UInt56 a, Int16 b)
-        => b <= 0 ? throw new OverflowException("Divisor must be > 0 for UInt56.") : a % new UInt56((UInt16)b, 0, 0);
+    public static UInt56 operator %(UInt56 a, short b)
+        => b <= 0 ? throw new OverflowException("Divisor must be > 0 for UInt56.") : a % new UInt56((ushort)b, 0, 0);
 
     #endregion Int16
 
     #region UInt16
 
     /// <inheritdoc/>
-    public static UInt56 operator +(UInt56 a, UInt16 b) => a + (UInt56)b;
+    public static UInt56 operator +(UInt56 a, ushort b) => a + (UInt56)b;
 
     /// <inheritdoc/>
-    public static UInt56 operator -(UInt56 a, UInt16 b) => a - (UInt56)b;
+    public static UInt56 operator -(UInt56 a, ushort b) => a - (UInt56)b;
 
     /// <inheritdoc/>
-    public static UInt56 operator *(UInt56 a, UInt16 b) => a * (UInt56)b;
+    public static UInt56 operator *(UInt56 a, ushort b) => a * (UInt56)b;
 
     /// <inheritdoc/>
-    public static UInt56 operator /(UInt56 a, UInt16 b)
+    public static UInt56 operator /(UInt56 a, ushort b)
         => b == 0 ? throw new DivideByZeroException() : a / (UInt56)b;
 
     /// <inheritdoc/>
-    public static UInt56 operator %(UInt56 a, UInt16 b)
+    public static UInt56 operator %(UInt56 a, ushort b)
         => b == 0 ? throw new DivideByZeroException() : a % (UInt56)b;
 
     #endregion UInt16
@@ -857,44 +863,44 @@ public readonly struct UInt56 :
     #region Int32
 
     /// <inheritdoc/>
-    public static UInt56 operator +(UInt56 a, Int32 b)
-        => b < 0 ? throw new OverflowException("Do not add negative numbers to UInt56.") : a + (UInt56)(UInt32)b;
+    public static UInt56 operator +(UInt56 a, int b)
+        => b < 0 ? throw new OverflowException("Do not add negative numbers to UInt56.") : a + (UInt56)(uint)b;
 
     /// <inheritdoc/>
-    public static UInt56 operator -(UInt56 a, Int32 b)
-        => b < 0 ? throw new OverflowException("Do not subtract negative numbers from UInt56.") : a - (UInt56)(UInt32)b;
+    public static UInt56 operator -(UInt56 a, int b)
+        => b < 0 ? throw new OverflowException("Do not subtract negative numbers from UInt56.") : a - (UInt56)(uint)b;
 
     /// <inheritdoc/>
-    public static UInt56 operator *(UInt56 a, Int32 b)
-        => b < 0 ? throw new OverflowException("Do not multiply negative numbers by UInt56.") : a * (UInt56)(UInt32)b;
+    public static UInt56 operator *(UInt56 a, int b)
+        => b < 0 ? throw new OverflowException("Do not multiply negative numbers by UInt56.") : a * (UInt56)(uint)b;
 
     /// <inheritdoc/>
-    public static UInt56 operator /(UInt56 a, Int32 b)
-        => b <= 0 ? throw new OverflowException("Divisor must be > 0 for UInt56.") : a / (UInt56)(UInt32)b;
+    public static UInt56 operator /(UInt56 a, int b)
+        => b <= 0 ? throw new OverflowException("Divisor must be > 0 for UInt56.") : a / (UInt56)(uint)b;
 
     /// <inheritdoc/>
-    public static UInt56 operator %(UInt56 a, Int32 b)
-        => b <= 0 ? throw new OverflowException("Divisor must be > 0 for UInt56.") : a % (UInt56)(UInt32)b;
+    public static UInt56 operator %(UInt56 a, int b)
+        => b <= 0 ? throw new OverflowException("Divisor must be > 0 for UInt56.") : a % (UInt56)(uint)b;
 
     #endregion Int32
 
     #region UInt32
 
     /// <inheritdoc/>
-    public static UInt56 operator +(UInt56 a, UInt32 b) => a + (UInt56)b;
+    public static UInt56 operator +(UInt56 a, uint b) => a + (UInt56)b;
 
     /// <inheritdoc/>
-    public static UInt56 operator -(UInt56 a, UInt32 b) => a - (UInt56)b;
+    public static UInt56 operator -(UInt56 a, uint b) => a - (UInt56)b;
 
     /// <inheritdoc/>
-    public static UInt56 operator *(UInt56 a, UInt32 b) => a * (UInt56)b;
+    public static UInt56 operator *(UInt56 a, uint b) => a * (UInt56)b;
 
     /// <inheritdoc/>
-    public static UInt56 operator /(UInt56 a, UInt32 b)
+    public static UInt56 operator /(UInt56 a, uint b)
         => b == 0 ? throw new DivideByZeroException() : a / (UInt56)b;
 
     /// <inheritdoc/>
-    public static UInt56 operator %(UInt56 a, UInt32 b)
+    public static UInt56 operator %(UInt56 a, uint b)
         => b == 0 ? throw new DivideByZeroException() : a % (UInt56)b;
 
     #endregion UInt32
@@ -912,7 +918,7 @@ public readonly struct UInt56 :
     /// </exception>
     public static UInt56 operator +(UInt56 a, UInt56 b)
     {
-        UInt64 raw = a.ToUInt64() + b.ToUInt64();
+        ulong raw = a.ToUInt64() + b.ToUInt64();
         CheckOverflow(raw);
         return FromRaw(raw);
     }
@@ -928,7 +934,7 @@ public readonly struct UInt56 :
     /// </exception>
     public static UInt56 operator -(UInt56 a, UInt56 b)
     {
-        UInt64 av = a.ToUInt64(), bv = b.ToUInt64();
+        ulong av = a.ToUInt64(), bv = b.ToUInt64();
         return av < bv
             ? throw new OverflowException("Result would be negative; UInt56 is unsigned.")
             : FromRaw(av - bv);
@@ -945,7 +951,7 @@ public readonly struct UInt56 :
     /// </exception>
     public static UInt56 operator *(UInt56 a, UInt56 b)
     {
-        UInt64 av = a.ToUInt64(), bv = b.ToUInt64();
+        ulong av = a.ToUInt64(), bv = b.ToUInt64();
         if (av == 0 || bv == 0)
         {
             return Zero;
@@ -971,7 +977,7 @@ public readonly struct UInt56 :
     /// </exception>
     public static UInt56 operator /(UInt56 a, UInt56 b)
     {
-        UInt64 bv = b.ToUInt64();
+        ulong bv = b.ToUInt64();
         return bv == 0UL
             ? throw new DivideByZeroException()
             : FromRaw(a.ToUInt64() / bv);
@@ -990,7 +996,7 @@ public readonly struct UInt56 :
     /// </exception>
     public static UInt56 operator %(UInt56 a, UInt56 b)
     {
-        UInt64 bv = b.ToUInt64();
+        ulong bv = b.ToUInt64();
         return bv == 0UL
             ? throw new DivideByZeroException()
             : FromRaw(a.ToUInt64() % bv);
@@ -1003,25 +1009,25 @@ public readonly struct UInt56 :
     /// <returns>The bitwise complement of <paramref name="value"/>.</returns>
     /// <remarks>
     /// Operates directly on the three storage fields without unpacking to
-    /// <see cref="UInt64"/>. The result is automatically masked to 56 bits because
-    /// <c>~_hi</c> on a <see cref="Byte"/> and <c>~_mid</c> on a
-    /// <see cref="UInt16"/> cannot exceed their respective field widths.
+    /// <see cref="ulong"/>. The result is automatically masked to 56 bits because
+    /// <c>~_hi</c> on a <see cref="byte"/> and <c>~_mid</c> on a
+    /// <see cref="ushort"/> cannot exceed their respective field widths.
     /// </remarks>
     public static UInt56 operator ~(UInt56 value)
-        => new(~value._lo, (UInt16)~value._mid, (Byte)~value._hi);
+        => new(~value._lo, (ushort)~value._mid, (byte)~value._hi);
 
     /// <summary>
     /// Performs a bitwise AND operation on two <see cref="UInt56"/> values.
     /// </summary>
     /// <param name="left">The first operand.</param>
-    /// <param name="b">The second operand.</param>
-    /// <returns>The bitwise AND of <paramref name="left"/> and <paramref name="b"/>.</returns>
+    /// <param name="right">The second operand.</param>
+    /// <returns>The bitwise AND of <paramref name="left"/> and <paramref name="right"/>.</returns>
     /// <remarks>
     /// Operates directly on the three storage fields without any unpack/repack step,
     /// making this the fastest possible bitwise operation for the 7-byte layout.
     /// </remarks>
-    public static UInt56 operator &(UInt56 left, UInt56 b)
-        => new(left._lo & b._lo, (UInt16)(left._mid & b._mid), (Byte)(left._hi & b._hi));
+    public static UInt56 operator &(UInt56 left, UInt56 right)
+        => new(left._lo & right._lo, (ushort)(left._mid & right._mid), (byte)(left._hi & right._hi));
 
     /// <summary>
     /// Performs a bitwise OR operation on two <see cref="UInt56"/> values.
@@ -1034,7 +1040,7 @@ public readonly struct UInt56 :
     /// making this the fastest possible bitwise operation for the 7-byte layout.
     /// </remarks>
     public static UInt56 operator |(UInt56 left, UInt56 right)
-        => new(left._lo | right._lo, (UInt16)(left._mid | right._mid), (Byte)(left._hi | right._hi));
+        => new(left._lo | right._lo, (ushort)(left._mid | right._mid), (byte)(left._hi | right._hi));
 
     /// <summary>
     /// Performs a bitwise exclusive OR (XOR) operation on two <see cref="UInt56"/> values.
@@ -1047,7 +1053,7 @@ public readonly struct UInt56 :
     /// making this the fastest possible bitwise operation for the 7-byte layout.
     /// </remarks>
     public static UInt56 operator ^(UInt56 left, UInt56 right)
-        => new(left._lo ^ right._lo, (UInt16)(left._mid ^ right._mid), (Byte)(left._hi ^ right._hi));
+        => new(left._lo ^ right._lo, (ushort)(left._mid ^ right._mid), (byte)(left._hi ^ right._hi));
 
     /// <summary>
     /// Shifts a <see cref="UInt56"/> value left by a specified number of bits.
@@ -1058,7 +1064,7 @@ public readonly struct UInt56 :
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="shiftAmount"/> is negative.
     /// </exception>
-    public static UInt56 operator <<(UInt56 value, Int32 shiftAmount)
+    public static UInt56 operator <<(UInt56 value, int shiftAmount)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(shiftAmount);
         return FromRaw((value.ToUInt64() << shiftAmount) & MaxValue);
@@ -1073,7 +1079,7 @@ public readonly struct UInt56 :
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="shiftAmount"/> is negative.
     /// </exception>
-    public static UInt56 operator >>(UInt56 value, Int32 shiftAmount)
+    public static UInt56 operator >>(UInt56 value, int shiftAmount)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(shiftAmount);
         return FromRaw(value.ToUInt64() >> shiftAmount);
@@ -1118,7 +1124,7 @@ public readonly struct UInt56 :
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="shiftAmount"/> is negative.
     /// </exception>
-    public static UInt56 operator >>>(UInt56 value, Int32 shiftAmount)
+    public static UInt56 operator >>>(UInt56 value, int shiftAmount)
     {
         // Validate shift amount — negative shifts are not allowed
         ArgumentOutOfRangeException.ThrowIfNegative(shiftAmount);
@@ -1192,7 +1198,7 @@ public readonly struct UInt56 :
     /// </example>
     public static UInt56 operator -(UInt56 value)
     {
-        UInt64 v = value.ToUInt64();
+        ulong v = value.ToUInt64();
         return v == 0 ? Zero : FromRaw(MaxValue + 1 - v);
     }
 
@@ -1227,44 +1233,44 @@ public readonly struct UInt56 :
     #region Int64
 
     /// <inheritdoc/>
-    public static UInt56 operator +(UInt56 a, Int64 b)
-        => b < 0 ? throw new OverflowException("Do not add negative numbers to UInt56.") : a + new UInt56((UInt64)b);
+    public static UInt56 operator +(UInt56 a, long b)
+        => b < 0 ? throw new OverflowException("Do not add negative numbers to UInt56.") : a + new UInt56((ulong)b);
 
     /// <inheritdoc/>
-    public static UInt56 operator -(UInt56 a, Int64 b)
-        => b < 0 ? throw new OverflowException("Do not subtract negative numbers from UInt56.") : a - new UInt56((UInt64)b);
+    public static UInt56 operator -(UInt56 a, long b)
+        => b < 0 ? throw new OverflowException("Do not subtract negative numbers from UInt56.") : a - new UInt56((ulong)b);
 
     /// <inheritdoc/>
-    public static UInt56 operator *(UInt56 a, Int64 b)
-        => b < 0 ? throw new OverflowException("Do not multiply negative numbers by UInt56.") : a * new UInt56((UInt64)b);
+    public static UInt56 operator *(UInt56 a, long b)
+        => b < 0 ? throw new OverflowException("Do not multiply negative numbers by UInt56.") : a * new UInt56((ulong)b);
 
     /// <inheritdoc/>
-    public static UInt56 operator /(UInt56 a, Int64 b)
-        => b <= 0 ? throw new OverflowException("Divisor must be > 0 for UInt56.") : a / new UInt56((UInt64)b);
+    public static UInt56 operator /(UInt56 a, long b)
+        => b <= 0 ? throw new OverflowException("Divisor must be > 0 for UInt56.") : a / new UInt56((ulong)b);
 
     /// <inheritdoc/>
-    public static UInt56 operator %(UInt56 a, Int64 b)
-        => b <= 0 ? throw new OverflowException("Divisor must be > 0 for UInt56.") : a % new UInt56((UInt64)b);
+    public static UInt56 operator %(UInt56 a, long b)
+        => b <= 0 ? throw new OverflowException("Divisor must be > 0 for UInt56.") : a % new UInt56((ulong)b);
 
     #endregion Int64
 
     #region UInt64
 
     /// <inheritdoc/>
-    public static UInt56 operator +(UInt56 a, UInt64 b) => a + new UInt56(b);
+    public static UInt56 operator +(UInt56 a, ulong b) => a + new UInt56(b);
 
     /// <inheritdoc/>
-    public static UInt56 operator -(UInt56 a, UInt64 b) => a - new UInt56(b);
+    public static UInt56 operator -(UInt56 a, ulong b) => a - new UInt56(b);
 
     /// <inheritdoc/>
-    public static UInt56 operator *(UInt56 a, UInt64 b) => a * new UInt56(b);
+    public static UInt56 operator *(UInt56 a, ulong b) => a * new UInt56(b);
 
     /// <inheritdoc/>
-    public static UInt56 operator /(UInt56 a, UInt64 b)
+    public static UInt56 operator /(UInt56 a, ulong b)
         => b == 0 ? throw new DivideByZeroException() : a / new UInt56(b);
 
     /// <inheritdoc/>
-    public static UInt56 operator %(UInt56 a, UInt64 b)
+    public static UInt56 operator %(UInt56 a, ulong b)
         => b == 0 ? throw new DivideByZeroException() : a % new UInt56(b);
 
     #endregion UInt64
@@ -1272,72 +1278,72 @@ public readonly struct UInt56 :
     #region Single
 
     /// <inheritdoc/>
-    public static UInt56 operator +(UInt56 a, Single b)
-        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid float value for UInt56.") : a + new UInt56((UInt64)b);
+    public static UInt56 operator +(UInt56 a, float b)
+        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid float value for UInt56.") : a + new UInt56((ulong)b);
 
     /// <inheritdoc/>
-    public static UInt56 operator -(UInt56 a, Single b)
-        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid float value for UInt56.") : a - new UInt56((UInt64)b);
+    public static UInt56 operator -(UInt56 a, float b)
+        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid float value for UInt56.") : a - new UInt56((ulong)b);
 
     /// <inheritdoc/>
-    public static UInt56 operator *(UInt56 a, Single b)
-        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid float value for UInt56.") : a * new UInt56((UInt64)b);
+    public static UInt56 operator *(UInt56 a, float b)
+        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid float value for UInt56.") : a * new UInt56((ulong)b);
 
     /// <inheritdoc/>
-    public static UInt56 operator /(UInt56 a, Single b)
-        => b is <= 0 or > MaxValue ? throw new OverflowException("Invalid float division value for UInt56.") : a / new UInt56((UInt64)b);
+    public static UInt56 operator /(UInt56 a, float b)
+        => b is <= 0 or > MaxValue ? throw new OverflowException("Invalid float division value for UInt56.") : a / new UInt56((ulong)b);
 
     /// <inheritdoc/>
-    public static UInt56 operator %(UInt56 a, Single b)
-        => b is <= 0 or > MaxValue ? throw new OverflowException("Invalid float division value for UInt56.") : a % new UInt56((UInt64)b);
+    public static UInt56 operator %(UInt56 a, float b)
+        => b is <= 0 or > MaxValue ? throw new OverflowException("Invalid float division value for UInt56.") : a % new UInt56((ulong)b);
 
     #endregion Single
 
     #region Double
 
     /// <inheritdoc/>
-    public static UInt56 operator +(UInt56 a, Double b)
-        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid double value for UInt56.") : a + new UInt56((UInt64)b);
+    public static UInt56 operator +(UInt56 a, double b)
+        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid double value for UInt56.") : a + new UInt56((ulong)b);
 
     /// <inheritdoc/>
-    public static UInt56 operator -(UInt56 a, Double b)
-        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid double value for UInt56.") : a - new UInt56((UInt64)b);
+    public static UInt56 operator -(UInt56 a, double b)
+        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid double value for UInt56.") : a - new UInt56((ulong)b);
 
     /// <inheritdoc/>
-    public static UInt56 operator *(UInt56 a, Double b)
-        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid double value for UInt56.") : a * new UInt56((UInt64)b);
+    public static UInt56 operator *(UInt56 a, double b)
+        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid double value for UInt56.") : a * new UInt56((ulong)b);
 
     /// <inheritdoc/>
-    public static UInt56 operator /(UInt56 a, Double b)
-        => b is <= 0 or > MaxValue ? throw new OverflowException("Double value division is not suitable for UInt56.") : a / new UInt56((UInt64)b);
+    public static UInt56 operator /(UInt56 a, double b)
+        => b is <= 0 or > MaxValue ? throw new OverflowException("Double value division is not suitable for UInt56.") : a / new UInt56((ulong)b);
 
     /// <inheritdoc/>
-    public static UInt56 operator %(UInt56 a, Double b)
-        => b is <= 0 or > MaxValue ? throw new OverflowException("Double value division is not suitable for UInt56.") : a % new UInt56((UInt64)b);
+    public static UInt56 operator %(UInt56 a, double b)
+        => b is <= 0 or > MaxValue ? throw new OverflowException("Double value division is not suitable for UInt56.") : a % new UInt56((ulong)b);
 
     #endregion Double
 
     #region Decimal
 
     /// <inheritdoc/>
-    public static UInt56 operator +(UInt56 a, Decimal b)
-        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid decimal value for UInt56.") : a + new UInt56((UInt64)b);
+    public static UInt56 operator +(UInt56 a, decimal b)
+        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid decimal value for UInt56.") : a + new UInt56((ulong)b);
 
     /// <inheritdoc/>
-    public static UInt56 operator -(UInt56 a, Decimal b)
-        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid decimal value for UInt56.") : a - new UInt56((UInt64)b);
+    public static UInt56 operator -(UInt56 a, decimal b)
+        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid decimal value for UInt56.") : a - new UInt56((ulong)b);
 
     /// <inheritdoc/>
-    public static UInt56 operator *(UInt56 a, Decimal b)
-        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid decimal value for UInt56.") : a * new UInt56((UInt64)b);
+    public static UInt56 operator *(UInt56 a, decimal b)
+        => b is < 0 or > MaxValue ? throw new OverflowException("Invalid decimal value for UInt56.") : a * new UInt56((ulong)b);
 
     /// <inheritdoc/>
-    public static UInt56 operator /(UInt56 a, Decimal b)
-        => b is <= 0 or > MaxValue ? throw new OverflowException("Invalid decimal division value for UInt56.") : a / new UInt56((UInt64)b);
+    public static UInt56 operator /(UInt56 a, decimal b)
+        => b is <= 0 or > MaxValue ? throw new OverflowException("Invalid decimal division value for UInt56.") : a / new UInt56((ulong)b);
 
     /// <inheritdoc/>
-    public static UInt56 operator %(UInt56 a, Decimal b)
-        => b is <= 0 or > MaxValue ? throw new OverflowException("Invalid decimal division value for UInt56.") : a % new UInt56((UInt64)b);
+    public static UInt56 operator %(UInt56 a, decimal b)
+        => b is <= 0 or > MaxValue ? throw new OverflowException("Invalid decimal division value for UInt56.") : a % new UInt56((ulong)b);
 
     #endregion Decimal
 
@@ -1385,13 +1391,12 @@ public readonly struct UInt56 :
     /// }
     /// </code>
     /// </example>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
-    public Boolean TryFormat(
-        Span<Char> destination,
-        out Int32 charsWritten,
-        ReadOnlySpan<Char> format,
-        IFormatProvider provider)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryFormat(
+        Span<char> destination,
+        out int charsWritten,
+        ReadOnlySpan<char> format,
+        IFormatProvider? provider)
         => ToUInt64().TryFormat(destination, out charsWritten, format, provider);
 
     #endregion ISpanFormattable Implementation
@@ -1448,13 +1453,12 @@ public readonly struct UInt56 :
     /// }
     /// </code>
     /// </example>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
-    public Boolean TryFormat(
-        Span<Byte> utf8Destination,
-        out Int32 bytesWritten,
-        ReadOnlySpan<Char> format,
-        IFormatProvider provider)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryFormat(
+        Span<byte> utf8Destination,
+        out int bytesWritten,
+        ReadOnlySpan<char> format,
+        IFormatProvider? provider)
         => ToUInt64().TryFormat(utf8Destination, out bytesWritten, format, provider);
 
     #endregion IUtf8SpanFormattable Implementation
@@ -1484,7 +1488,7 @@ public readonly struct UInt56 :
     /// for high-performance scenarios where string allocation should be avoided.
     /// </para>
     /// <para>
-    /// The method supports the same format as <see cref="Parse(String, IFormatProvider)"/>
+    /// The method supports the same format as <see cref="Parse(string, IFormatProvider)"/>
     /// but operates directly on memory without creating intermediate strings.
     /// </para>
     /// </remarks>
@@ -1496,9 +1500,8 @@ public readonly struct UInt56 :
     /// </code>
     /// </example>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
-    public static UInt56 Parse(ReadOnlySpan<Char> s, IFormatProvider provider)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static UInt56 Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
         => Parse(s, NumberStyles.Integer, provider);
 
     /// <summary>
@@ -1535,9 +1538,9 @@ public readonly struct UInt56 :
     /// </example>
     [Pure]
     public static UInt56 Parse(
-        ReadOnlySpan<Char> s,
+        ReadOnlySpan<char> s,
         NumberStyles style,
-        IFormatProvider provider)
+        IFormatProvider? provider)
         => TryParse(s, style, provider, out UInt56 result)
             ? result
             : throw new FormatException(
@@ -1575,11 +1578,10 @@ public readonly struct UInt56 :
     /// </code>
     /// </example>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
-    public static Boolean TryParse(
-        ReadOnlySpan<Char> s,
-        IFormatProvider provider,
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryParse(
+        ReadOnlySpan<char> s,
+        IFormatProvider? provider,
         out UInt56 result)
         => TryParse(s, NumberStyles.Integer, provider, out result);
 
@@ -1623,10 +1625,10 @@ public readonly struct UInt56 :
     /// </code>
     /// </example>
     [Pure]
-    public static Boolean TryParse(
-        ReadOnlySpan<Char> s,
+    public static bool TryParse(
+        ReadOnlySpan<char> s,
         NumberStyles style,
-        IFormatProvider provider,
+        IFormatProvider? provider,
         out UInt56 result)
     {
         result = default;
@@ -1635,7 +1637,7 @@ public readonly struct UInt56 :
             return false;
         }
 
-        if (!UInt64.TryParse(s, style, provider, out UInt64 u))
+        if (!ulong.TryParse(s, style, provider, out ulong u))
         {
             return false;
         }
@@ -1698,15 +1700,15 @@ public readonly struct UInt56 :
     /// bool success = ParseNumber("42", CultureInfo.InvariantCulture, out UInt56 number);
     /// </code>
     /// </example>
-    /// <seealso cref="Parse(String, IFormatProvider)"/>
-    /// <seealso cref="TryParse(String, NumberStyles, IFormatProvider, out UInt56)"/>
-    /// <seealso cref="TryParse(ReadOnlySpan{Char}, IFormatProvider, out UInt56)"/>
+    /// <seealso cref="Parse(string, IFormatProvider)"/>
+    /// <seealso cref="TryParse(string, NumberStyles, IFormatProvider, out UInt56)"/>
+    /// <seealso cref="TryParse(ReadOnlySpan{char}, IFormatProvider, out UInt56)"/>
     [Pure]
     [MethodImpl(
         MethodImplOptions.AggressiveInlining)]
-    public static Boolean TryParse(
-        [NotNullWhen(true)] String s,
-        IFormatProvider provider,
+    public static bool TryParse(
+        [NotNullWhen(true)] string? s,
+        IFormatProvider? provider,
         [MaybeNullWhen(false)] out UInt56 result)
         => TryParse(s, NumberStyles.Integer, provider, out result);
 
@@ -1735,9 +1737,9 @@ public readonly struct UInt56 :
     /// otherwise, <see langword="false"/>.
     /// </returns>
     /// <remarks>
-    /// Tests bit 0 of <c>_lo</c> directly without unpacking to <see cref="UInt64"/>.
+    /// Tests bit 0 of <c>_lo</c> directly without unpacking to <see cref="ulong"/>.
     /// </remarks>
-    static Boolean INumberBase<UInt56>.IsEvenInteger(UInt56 value)
+    static bool INumberBase<UInt56>.IsEvenInteger(UInt56 value)
         => (value._lo & 1u) == 0u;
 
     /// <summary>
@@ -1749,9 +1751,9 @@ public readonly struct UInt56 :
     /// otherwise, <see langword="false"/>.
     /// </returns>
     /// <remarks>
-    /// Tests bit 0 of <c>_lo</c> directly without unpacking to <see cref="UInt64"/>.
+    /// Tests bit 0 of <c>_lo</c> directly without unpacking to <see cref="ulong"/>.
     /// </remarks>
-    static Boolean INumberBase<UInt56>.IsOddInteger(UInt56 value)
+    static bool INumberBase<UInt56>.IsOddInteger(UInt56 value)
         => (value._lo & 1u) != 0u;
 
     /// <summary>
@@ -1762,9 +1764,9 @@ public readonly struct UInt56 :
     /// <see langword="true"/> if <paramref name="value"/> is zero; otherwise, <see langword="false"/>.
     /// </returns>
     /// <remarks>
-    /// Checks all three fields directly without unpacking to <see cref="UInt64"/>.
+    /// Checks all three fields directly without unpacking to <see cref="ulong"/>.
     /// </remarks>
-    static Boolean INumberBase<UInt56>.IsZero(UInt56 value)
+    static bool INumberBase<UInt56>.IsZero(UInt56 value)
         => value._lo == 0u && value._mid == 0 && value._hi == 0;
 
     /// <summary>
@@ -1777,7 +1779,7 @@ public readonly struct UInt56 :
     /// <remarks>
     /// For unsigned types like <see cref="UInt56"/>, all values are considered positive or zero.
     /// </remarks>
-    static Boolean INumberBase<UInt56>.IsPositive(UInt56 value) => true;
+    static bool INumberBase<UInt56>.IsPositive(UInt56 value) => true;
 
     /// <summary>
     /// Determines if a value represents zero or a positive real number.
@@ -1790,7 +1792,7 @@ public readonly struct UInt56 :
     /// <remarks>
     /// For integer types like <see cref="UInt56"/>, positive infinity is not representable.
     /// </remarks>
-    static Boolean INumberBase<UInt56>.IsPositiveInfinity(UInt56 value) => false;
+    static bool INumberBase<UInt56>.IsPositiveInfinity(UInt56 value) => false;
 
     /// <summary>
     /// Determines if a value represents a negative real number.
@@ -1803,7 +1805,7 @@ public readonly struct UInt56 :
     /// <remarks>
     /// For integer types like <see cref="UInt56"/>, negative infinity is not representable.
     /// </remarks>
-    static Boolean INumberBase<UInt56>.IsNegativeInfinity(UInt56 value) => false;
+    static bool INumberBase<UInt56>.IsNegativeInfinity(UInt56 value) => false;
 
     /// <summary>
     /// Determines if a value is negative.
@@ -1815,7 +1817,7 @@ public readonly struct UInt56 :
     /// <remarks>
     /// For unsigned types like <see cref="UInt56"/>, no values are negative.
     /// </remarks>
-    static Boolean INumberBase<UInt56>.IsNegative(UInt56 value) => false;
+    static bool INumberBase<UInt56>.IsNegative(UInt56 value) => false;
 
     /// <summary>
     /// Determines if a value represents a finite value.
@@ -1827,7 +1829,7 @@ public readonly struct UInt56 :
     /// <remarks>
     /// For integer types like <see cref="UInt56"/>, all values are finite.
     /// </remarks>
-    static Boolean INumberBase<UInt56>.IsFinite(UInt56 value) => true;
+    static bool INumberBase<UInt56>.IsFinite(UInt56 value) => true;
 
     /// <summary>
     /// Determines if a value represents an infinite value.
@@ -1839,7 +1841,7 @@ public readonly struct UInt56 :
     /// <remarks>
     /// For integer types like <see cref="UInt56"/>, infinity is not representable.
     /// </remarks>
-    static Boolean INumberBase<UInt56>.IsInfinity(UInt56 value) => false;
+    static bool INumberBase<UInt56>.IsInfinity(UInt56 value) => false;
 
     /// <summary>
     /// Determines if a value represents an integral number.
@@ -1851,7 +1853,7 @@ public readonly struct UInt56 :
     /// <remarks>
     /// For integer types like <see cref="UInt56"/>, all values are integers.
     /// </remarks>
-    static Boolean INumberBase<UInt56>.IsInteger(UInt56 value) => true;
+    static bool INumberBase<UInt56>.IsInteger(UInt56 value) => true;
 
     /// <summary>
     /// Determines if a value represents <c>NaN</c>.
@@ -1863,7 +1865,7 @@ public readonly struct UInt56 :
     /// <remarks>
     /// For integer types like <see cref="UInt56"/>, NaN is not representable.
     /// </remarks>
-    static Boolean INumberBase<UInt56>.IsNaN(UInt56 value) => false;
+    static bool INumberBase<UInt56>.IsNaN(UInt56 value) => false;
 
     /// <summary>
     /// Determines if a value is normal.
@@ -1874,9 +1876,9 @@ public readonly struct UInt56 :
     /// </returns>
     /// <remarks>
     /// For integer types like <see cref="UInt56"/>, all non-zero values are considered normal.
-    /// Checks all three fields directly without unpacking to <see cref="UInt64"/>.
+    /// Checks all three fields directly without unpacking to <see cref="ulong"/>.
     /// </remarks>
-    static Boolean INumberBase<UInt56>.IsNormal(UInt56 value)
+    static bool INumberBase<UInt56>.IsNormal(UInt56 value)
         => value._lo != 0u || value._mid != 0 || value._hi != 0;
 
     /// <summary>
@@ -1889,7 +1891,7 @@ public readonly struct UInt56 :
     /// <remarks>
     /// For integer types like <see cref="UInt56"/>, subnormal values do not exist.
     /// </remarks>
-    static Boolean INumberBase<UInt56>.IsSubnormal(UInt56 value) => false;
+    static bool INumberBase<UInt56>.IsSubnormal(UInt56 value) => false;
 
     /// <summary>
     /// Compares two values to compute which is greater.
@@ -1963,7 +1965,7 @@ public readonly struct UInt56 :
     /// Console.WriteLine(isCanonical); // Output: True
     /// </code>
     /// </example>
-    static Boolean INumberBase<UInt56>.IsCanonical(UInt56 value) => true;
+    static bool INumberBase<UInt56>.IsCanonical(UInt56 value) => true;
 
     /// <summary>
     /// Determines if a value represents a complex number.
@@ -1991,7 +1993,7 @@ public readonly struct UInt56 :
     /// Console.WriteLine(isComplex); // Output: False
     /// </code>
     /// </example>
-    static Boolean INumberBase<UInt56>.IsComplexNumber(UInt56 value) => false;
+    static bool INumberBase<UInt56>.IsComplexNumber(UInt56 value) => false;
 
     /// <summary>
     /// Determines if a value represents a pure imaginary number.
@@ -2019,7 +2021,7 @@ public readonly struct UInt56 :
     /// Console.WriteLine(isImaginary); // Output: False
     /// </code>
     /// </example>
-    static Boolean INumberBase<UInt56>.IsImaginaryNumber(UInt56 value) => false;
+    static bool INumberBase<UInt56>.IsImaginaryNumber(UInt56 value) => false;
 
     /// <summary>
     /// Determines if a value represents a real number.
@@ -2051,7 +2053,7 @@ public readonly struct UInt56 :
     /// Console.WriteLine(isRealZero); // Output: True
     /// </code>
     /// </example>
-    static Boolean INumberBase<UInt56>.IsRealNumber(UInt56 value) => true;
+    static bool INumberBase<UInt56>.IsRealNumber(UInt56 value) => true;
 
     #endregion INumberBase<UInt56> Methods
 
@@ -2065,7 +2067,7 @@ public readonly struct UInt56 :
     /// <param name="value">The value to convert.</param>
     /// <param name="result">On return, contains the result of converting <paramref name="value"/> to a <see cref="UInt56"/>.</param>
     /// <returns><see langword="true"/> if the conversion was successful; otherwise, <see langword="false"/>.</returns>
-    static Boolean INumberBase<UInt56>.TryConvertFromChecked<TOther>(TOther value, out UInt56 result)
+    static bool INumberBase<UInt56>.TryConvertFromChecked<TOther>(TOther value, out UInt56 result)
         => TryConvertFrom(value, out result);
 
     /// <summary>
@@ -2076,7 +2078,7 @@ public readonly struct UInt56 :
     /// <param name="value">The value to convert.</param>
     /// <param name="result">On return, contains the result of converting <paramref name="value"/> to a <see cref="UInt56"/>.</param>
     /// <returns><see langword="true"/> if the conversion was successful; otherwise, <see langword="false"/>.</returns>
-    static Boolean INumberBase<UInt56>.TryConvertFromSaturating<TOther>(TOther value, out UInt56 result)
+    static bool INumberBase<UInt56>.TryConvertFromSaturating<TOther>(TOther value, out UInt56 result)
         => TryConvertFrom(value, out result);
 
     /// <summary>
@@ -2087,7 +2089,7 @@ public readonly struct UInt56 :
     /// <param name="value">The value to convert.</param>
     /// <param name="result">On return, contains the result of converting <paramref name="value"/> to a <see cref="UInt56"/>.</param>
     /// <returns><see langword="true"/> if the conversion was successful; otherwise, <see langword="false"/>.</returns>
-    static Boolean INumberBase<UInt56>.TryConvertFromTruncating<TOther>(TOther value, out UInt56 result)
+    static bool INumberBase<UInt56>.TryConvertFromTruncating<TOther>(TOther value, out UInt56 result)
         => TryConvertFrom(value, out result);
 
     /// <summary>
@@ -2098,7 +2100,7 @@ public readonly struct UInt56 :
     /// <param name="value">The value to convert.</param>
     /// <param name="result">On return, contains the result of converting <paramref name="value"/> to <typeparamref name="TOther"/>.</param>
     /// <returns><see langword="true"/> if the conversion was successful; otherwise, <see langword="false"/>.</returns>
-    static Boolean INumberBase<UInt56>.TryConvertToChecked<TOther>(UInt56 value, out TOther result)
+    static bool INumberBase<UInt56>.TryConvertToChecked<TOther>(UInt56 value, out TOther result)
         where TOther : default
         => TryConvertTo(value, out result);
 
@@ -2110,7 +2112,7 @@ public readonly struct UInt56 :
     /// <param name="value">The value to convert.</param>
     /// <param name="result">On return, contains the result of converting <paramref name="value"/> to <typeparamref name="TOther"/>.</param>
     /// <returns><see langword="true"/> if the conversion was successful; otherwise, <see langword="false"/>.</returns>
-    static Boolean INumberBase<UInt56>.TryConvertToSaturating<TOther>(UInt56 value, out TOther result)
+    static bool INumberBase<UInt56>.TryConvertToSaturating<TOther>(UInt56 value, out TOther result)
         where TOther : default
         => TryConvertTo(value, out result);
 
@@ -2122,7 +2124,7 @@ public readonly struct UInt56 :
     /// <param name="value">The value to convert.</param>
     /// <param name="result">On return, contains the result of converting <paramref name="value"/> to <typeparamref name="TOther"/>.</param>
     /// <returns><see langword="true"/> if the conversion was successful; otherwise, <see langword="false"/>.</returns>
-    static Boolean INumberBase<UInt56>.TryConvertToTruncating<TOther>(UInt56 value, out TOther result)
+    static bool INumberBase<UInt56>.TryConvertToTruncating<TOther>(UInt56 value, out TOther result)
         where TOther : default
         => TryConvertTo(value, out result);
 
@@ -2138,10 +2140,10 @@ public readonly struct UInt56 :
     /// <param name="provider">An object that provides culture-specific formatting information about <paramref name="s"/>.</param>
     /// <param name="result">On return, contains the result of successfully parsing <paramref name="s"/> or an undefined value on failure.</param>
     /// <returns><see langword="true"/> if <paramref name="s"/> was converted successfully; otherwise, <see langword="false"/>.</returns>
-    static Boolean INumberBase<UInt56>.TryParse(
-        ReadOnlySpan<Char> s,
+    static bool INumberBase<UInt56>.TryParse(
+        ReadOnlySpan<char> s,
         NumberStyles style,
-        IFormatProvider provider,
+        IFormatProvider? provider,
         out UInt56 result)
         => TryParse(s, style, provider, out result);
 
@@ -2153,14 +2155,14 @@ public readonly struct UInt56 :
     /// <param name="provider">An object that provides culture-specific formatting information about <paramref name="utf8Text"/>.</param>
     /// <param name="result">On return, contains the result of successfully parsing <paramref name="utf8Text"/> or an undefined value on failure.</param>
     /// <returns><see langword="true"/> if <paramref name="utf8Text"/> was converted successfully; otherwise, <see langword="false"/>.</returns>
-    static Boolean INumberBase<UInt56>.TryParse(
-        ReadOnlySpan<Byte> utf8Text,
+    static bool INumberBase<UInt56>.TryParse(
+        ReadOnlySpan<byte> utf8Text,
         NumberStyles style,
-        IFormatProvider provider,
+        IFormatProvider? provider,
         out UInt56 result)
     {
         // Convert UTF-8 bytes to string and delegate to existing parsing logic
-        String s = Encoding.UTF8.GetString(utf8Text);
+        string s = Encoding.UTF8.GetString(utf8Text);
         return TryParse(s, style, provider, out result);
     }
 
@@ -2183,7 +2185,7 @@ public readonly struct UInt56 :
     /// faster than a comparison against <see cref="MaxValue"/> because it avoids a branch
     /// on most architectures when the value is in range.
     /// </remarks>
-    private static void CheckOverflow(UInt64 raw)
+    private static void CheckOverflow(ulong raw)
     {
         if ((raw & ~MaxValue) != 0UL)
         {
@@ -2199,42 +2201,42 @@ public readonly struct UInt56 :
     /// <param name="value">The value to convert.</param>
     /// <param name="result">The converted result.</param>
     /// <returns><see langword="true"/> if conversion was successful; otherwise, <see langword="false"/>.</returns>
-    private static Boolean TryConvertFrom<TOther>(TOther value, out UInt56 result)
+    private static bool TryConvertFrom<TOther>(TOther value, out UInt56 result)
         where TOther : INumberBase<TOther>
     {
         result = default;
 
-        if (typeof(TOther) == typeof(Byte))
+        if (typeof(TOther) == typeof(byte))
         {
-            result = new UInt56((UInt32)(Object)value, 0, 0); return true;
+            result = new UInt56((uint)(object)value, 0, 0); return true;
         }
-        else if (typeof(TOther) == typeof(UInt16))
+        else if (typeof(TOther) == typeof(ushort))
         {
-            result = new UInt56((UInt16)(Object)value, 0, 0); return true;
+            result = new UInt56((ushort)(object)value, 0, 0); return true;
         }
-        else if (typeof(TOther) == typeof(UInt32))
+        else if (typeof(TOther) == typeof(uint))
         {
-            result = new UInt56((UInt32)(Object)value, 0, 0); return true;
+            result = new UInt56((uint)(object)value, 0, 0); return true;
         }
-        else if (typeof(TOther) == typeof(UInt64))
+        else if (typeof(TOther) == typeof(ulong))
         {
-            UInt64 v = (UInt64)(Object)value; if (v <= MaxValue)
+            ulong v = (ulong)(object)value; if (v <= MaxValue)
             {
                 result = FromRaw(v); return true;
             }
         }
-        else if (typeof(TOther) == typeof(Int32))
+        else if (typeof(TOther) == typeof(int))
         {
-            Int32 v = (Int32)(Object)value; if (v >= 0)
+            int v = (int)(object)value; if (v >= 0)
             {
-                result = new UInt56((UInt32)v, 0, 0); return true;
+                result = new UInt56((uint)v, 0, 0); return true;
             }
         }
-        else if (typeof(TOther) == typeof(Int64))
+        else if (typeof(TOther) == typeof(long))
         {
-            Int64 v = (Int64)(Object)value; if (v >= 0 && (UInt64)v <= MaxValue)
+            long v = (long)(object)value; if (v >= 0 && (ulong)v <= MaxValue)
             {
-                result = FromRaw((UInt64)v); return true;
+                result = FromRaw((ulong)v); return true;
             }
         }
         return false;
@@ -2247,52 +2249,52 @@ public readonly struct UInt56 :
     /// <param name="value">The <see cref="UInt56"/> value to convert.</param>
     /// <param name="result">The converted result.</param>
     /// <returns><see langword="true"/> if conversion was successful; otherwise, <see langword="false"/>.</returns>
-    private static Boolean TryConvertTo<TOther>(UInt56 value, out TOther result)
+    private static bool TryConvertTo<TOther>(UInt56 value, out TOther result)
         where TOther : INumberBase<TOther>
     {
-        UInt64 v = value.ToUInt64();
+        ulong v = value.ToUInt64();
 
-        if (typeof(TOther) == typeof(Byte))
+        if (typeof(TOther) == typeof(byte))
         {
-            if (v <= Byte.MaxValue)
+            if (v <= byte.MaxValue)
             {
-                result = (TOther)(Object)(Byte)v; return true;
+                result = (TOther)(object)(byte)v; return true;
             }
         }
-        else if (typeof(TOther) == typeof(UInt16))
+        else if (typeof(TOther) == typeof(ushort))
         {
-            if (v <= UInt16.MaxValue)
+            if (v <= ushort.MaxValue)
             {
-                result = (TOther)(Object)(UInt16)v; return true;
+                result = (TOther)(object)(ushort)v; return true;
             }
         }
-        else if (typeof(TOther) == typeof(UInt32))
+        else if (typeof(TOther) == typeof(uint))
         {
-            if (v <= UInt32.MaxValue)
+            if (v <= uint.MaxValue)
             {
-                result = (TOther)(Object)(UInt32)v; return true;
+                result = (TOther)(object)(uint)v; return true;
             }
         }
-        else if (typeof(TOther) == typeof(UInt64))
+        else if (typeof(TOther) == typeof(ulong))
         {
-            result = (TOther)(Object)v; return true;
+            result = (TOther)(object)v; return true;
         }
-        else if (typeof(TOther) == typeof(Int32))
+        else if (typeof(TOther) == typeof(int))
         {
-            if (v <= Int32.MaxValue)
+            if (v <= int.MaxValue)
             {
-                result = (TOther)(Object)(Int32)v; return true;
+                result = (TOther)(object)(int)v; return true;
             }
         }
-        else if (typeof(TOther) == typeof(Int64))
+        else if (typeof(TOther) == typeof(long))
         {
-            if (v <= Int64.MaxValue)
+            if (v <= long.MaxValue)
             {
-                result = (TOther)(Object)(Int64)v; return true;
+                result = (TOther)(object)(long)v; return true;
             }
         }
 
-        result = default;
+        result = default!;
         return false;
     }
 

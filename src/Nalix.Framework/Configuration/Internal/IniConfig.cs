@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
+using System.IO;
 using Nalix.Common.Exceptions;
 
 #if DEBUG
@@ -68,7 +69,7 @@ internal sealed class IniConfig : System.IDisposable
     /// <summary>
     /// Checks whether the file exists at the provided path.
     /// </summary>
-    public bool ExistsFile => System.IO.File.Exists(_path);
+    public bool ExistsFile => File.Exists(_path);
 
     #endregion Properties
 
@@ -96,7 +97,7 @@ internal sealed class IniConfig : System.IDisposable
         // Validate path for security - prevent path traversal
         try
         {
-            _path = System.IO.Path.GetFullPath(path);
+            _path = Path.GetFullPath(path);
         }
         catch (System.ArgumentException ex)
         {
@@ -112,7 +113,7 @@ internal sealed class IniConfig : System.IDisposable
         }
 
         // Additional validation - ensure path doesn't contain invalid characters
-        if (_path.IndexOfAny(System.IO.Path.GetInvalidPathChars()) >= 0)
+        if (_path.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
         {
             throw new System.ArgumentException(
                 $"Configuration file path contains invalid characters: {path}", nameof(path));
@@ -959,7 +960,7 @@ internal sealed class IniConfig : System.IDisposable
                 System.Enum.GetUnderlyingType(typeof(TEnum)),
                 System.Globalization.CultureInfo.InvariantCulture);
 
-            var boxed = (TEnum)System.Enum.ToObject(typeof(TEnum), numeric);
+            TEnum boxed = (TEnum)System.Enum.ToObject(typeof(TEnum), numeric);
             _valueCache[cacheKey] = boxed;
             return boxed;
         }
@@ -1040,7 +1041,7 @@ internal sealed class IniConfig : System.IDisposable
                 Load();
                 success = true;
             }
-            catch (System.IO.IOException)
+            catch (IOException)
             {
                 retryCount++;
                 if (retryCount >= maxRetries)
@@ -1057,7 +1058,7 @@ internal sealed class IniConfig : System.IDisposable
     /// <summary>
     /// Loads the data from the INI file into memory with optimized parsing.
     /// </summary>
-    /// <exception cref="System.IO.IOException">Thrown when file reading fails.</exception>
+    /// <exception cref="IOException">Thrown when file reading fails.</exception>
     /// <exception cref="System.UnauthorizedAccessException">Thrown when file access is denied.</exception>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -1085,7 +1086,7 @@ internal sealed class IniConfig : System.IDisposable
             _iniData[currentSection] = currentSectionData;
 
             // Use a buffered reader for better performance
-            using var reader = new System.IO.StreamReader(
+            using StreamReader reader = new(
                 _path, System.Text.Encoding.UTF8, true, DefaultBufferSize);
 
             int lineNumber = 0;
@@ -1155,25 +1156,25 @@ internal sealed class IniConfig : System.IDisposable
             }
 
             // Store the last read time for file change detection
-            _lastFileReadTime = System.IO.File.GetLastWriteTimeUtc(_path);
+            _lastFileReadTime = File.GetLastWriteTimeUtc(_path);
             _isDirty = false;
         }
-        catch (System.IO.FileNotFoundException ex)
+        catch (FileNotFoundException ex)
         {
-            throw new System.IO.IOException($"Configuration file not found: {_path}", ex);
+            throw new IOException($"Configuration file not found: {_path}", ex);
         }
         catch (System.UnauthorizedAccessException ex)
         {
             throw new System.UnauthorizedAccessException($"Access denied to configuration file: {_path}", ex);
         }
-        catch (System.IO.IOException)
+        catch (IOException)
         {
             // Re-throw IO exceptions as-is
             throw;
         }
         catch (System.Exception ex)
         {
-            throw new System.IO.IOException($"Error reading configuration file: {_path}", ex);
+            throw new IOException($"Error reading configuration file: {_path}", ex);
         }
         finally
         {
@@ -1194,11 +1195,10 @@ internal sealed class IniConfig : System.IDisposable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private void WriteInlineComment(
-        System.IO.StreamWriter writer,
+        StreamWriter writer,
         string section,
         string commentKey)
     {
@@ -1261,13 +1261,13 @@ internal sealed class IniConfig : System.IDisposable
 
         try
         {
-            System.DateTime lastWriteTime = System.IO.File.GetLastWriteTimeUtc(_path);
+            System.DateTime lastWriteTime = File.GetLastWriteTimeUtc(_path);
             if (lastWriteTime > _lastFileReadTime)
             {
                 Load();
             }
         }
-        catch (System.IO.IOException)
+        catch (IOException)
         {
             // Ignore file access errors - we'll use the data we have
         }
@@ -1277,7 +1277,7 @@ internal sealed class IniConfig : System.IDisposable
     /// Writes the INI data to the file with optimized I/O and error handling.
     /// Uses atomic file replacement to prevent data corruption.
     /// </summary>
-    /// <exception cref="System.IO.IOException">Thrown when file writing fails.</exception>
+    /// <exception cref="IOException">Thrown when file writing fails.</exception>
     /// <exception cref="System.UnauthorizedAccessException">Thrown when file access is denied.</exception>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -1299,18 +1299,18 @@ internal sealed class IniConfig : System.IDisposable
             try
             {
                 // Ensure directory exists with validation
-                string? directory = System.IO.Path.GetDirectoryName(_path);
+                string? directory = Path.GetDirectoryName(_path);
                 if (string.IsNullOrWhiteSpace(directory))
                 {
                     throw new System.InvalidOperationException(
                         "Cannot write configuration file: invalid directory path.");
                 }
 
-                if (!System.IO.Directory.Exists(directory))
+                if (!Directory.Exists(directory))
                 {
                     try
                     {
-                        _ = System.IO.Directory.CreateDirectory(directory);
+                        _ = Directory.CreateDirectory(directory);
                     }
                     catch (System.UnauthorizedAccessException ex)
                     {
@@ -1323,20 +1323,20 @@ internal sealed class IniConfig : System.IDisposable
                 tempFileName = _path + ".tmp";
 
                 // Delete temp file if it exists from a previous failed operation
-                if (System.IO.File.Exists(tempFileName))
+                if (File.Exists(tempFileName))
                 {
                     try
                     {
-                        System.IO.File.Delete(tempFileName);
+                        File.Delete(tempFileName);
                     }
-                    catch (System.IO.IOException)
+                    catch (IOException)
                     {
                         // If we can't delete the temp file, try with a different name
                         tempFileName = $"{_path}.{System.Guid.NewGuid():N}.tmp";
                     }
                 }
 
-                using (System.IO.StreamWriter writer = new(
+                using (StreamWriter writer = new(
                     tempFileName, false, System.Text.Encoding.UTF8, DefaultBufferSize))
                 {
                     bool isFirstSection = true;
@@ -1419,17 +1419,17 @@ internal sealed class IniConfig : System.IDisposable
                 }
 
                 // Atomic file replacement
-                if (System.IO.File.Exists(_path))
+                if (File.Exists(_path))
                 {
-                    System.IO.File.Replace(tempFileName, _path, null);
+                    File.Replace(tempFileName, _path, null);
                 }
                 else
                 {
-                    System.IO.File.Move(tempFileName, _path);
+                    File.Move(tempFileName, _path);
                 }
 
                 // Update last write time after our own modification
-                _lastFileReadTime = System.IO.File.GetLastWriteTimeUtc(_path);
+                _lastFileReadTime = File.GetLastWriteTimeUtc(_path);
                 _isDirty = false;
                 committed = true;
             }
@@ -1437,22 +1437,22 @@ internal sealed class IniConfig : System.IDisposable
             {
                 throw new System.UnauthorizedAccessException($"Access denied when writing configuration file: {_path}", ex);
             }
-            catch (System.IO.PathTooLongException ex)
+            catch (PathTooLongException ex)
             {
-                throw new System.IO.IOException($"Configuration file path is too long: {_path}", ex);
+                throw new IOException($"Configuration file path is too long: {_path}", ex);
             }
-            catch (System.IO.IOException ex) when (ex is not System.IO.IOException { InnerException: not null })
+            catch (IOException ex) when (ex is not IOException { InnerException: not null })
             {
-                throw new System.IO.IOException($"I/O error writing configuration file: {_path}", ex);
+                throw new IOException($"I/O error writing configuration file: {_path}", ex);
             }
             finally
             {
                 // Clean up temp file only if write was not successfully committed
-                if (!committed && tempFileName != null && System.IO.File.Exists(tempFileName))
+                if (!committed && tempFileName != null && File.Exists(tempFileName))
                 {
                     try
                     {
-                        System.IO.File.Delete(tempFileName);
+                        File.Delete(tempFileName);
                     }
                     catch
                     {

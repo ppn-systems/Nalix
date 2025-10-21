@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Globalization;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
@@ -32,7 +33,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
     /// <summary>
     /// All serializable properties as pre-compiled PropertyMetadata.
-    /// Lazy<T> guarantees thread-safe single initialization without explicit locking.
+    /// Lazy{T} guarantees thread-safe single initialization without explicit locking.
     /// Using System.Linq only at startup (inside the Lazy factory) — never in hot paths.
     /// </summary>
     [SerializeIgnore]
@@ -197,6 +198,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
     public static TSelf Deserialize(System.ReadOnlySpan<byte> buffer)
     {
         if (buffer.IsEmpty)
@@ -254,11 +256,11 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     public string GenerateReport()
     {
         System.Text.StringBuilder sb = new(128);
-        _ = sb.AppendLine($"[{typeof(TSelf).Name}] s_autoMagic=0x{s_autoMagic:X8} FixedSize={s_cachedFixedSize.Value?.ToString() ?? "dynamic"} Properties={s_metadata.Value.Length}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{typeof(TSelf).Name}] s_autoMagic=0x{s_autoMagic:X8} FixedSize={s_cachedFixedSize.Value?.ToString(CultureInfo.InvariantCulture) ?? "dynamic"} Properties={s_metadata.Value.Length}");
 
         foreach (PropertyMetadata meta in s_metadata.Value)
         {
-            _ = sb.AppendLine($"  {meta}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  {meta}");
         }
 
         return sb.ToString();

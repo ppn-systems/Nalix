@@ -185,7 +185,7 @@ internal static class EnvelopeFormat
     /// Tag may be empty when HasTag = false (symmetric envelopes).
     /// </summary>
     [System.Diagnostics.DebuggerDisplay("Ver={VERSION}, Alg={AeadType}, NONCE_LEN={NONCE_LEN}, SEQ={SEQ}, Tag={HasTag}")]
-    public readonly struct ParsedEnvelope
+    public readonly ref struct ParsedEnvelope
     {
         public readonly byte Version;
         public readonly CipherSuiteType AeadType;

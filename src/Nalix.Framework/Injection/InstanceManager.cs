@@ -3,7 +3,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Globalization;
 using System.Reflection;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
@@ -30,27 +30,39 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     private static readonly Lazy<Assembly> EntryAssemblyLazy = new(() =>
         Assembly.GetEntryAssembly() ?? throw new InvalidOperationException("Entry assembly is null."));
 
-    // Keep one OS mutex for lifetime to ensure correctness & performance.
+    /// <summary>
+    /// Keep one OS mutex for lifetime to ensure correctness and performance.
+    /// </summary>
     private static readonly System.Threading.Lock ProcessMutexInitSync = new();
+
     private static readonly string ApplicationMutexName = "LOW\\{{" + EntryAssemblyLazy.Value.FullName + "}}";
 
     private static bool _processMutexOwner;
     private static System.Threading.Mutex? _processMutex;
 
-    // Track disposables uniquely to avoid duplicate dispose calls.
+    /// <summary>
+    /// Track disposables uniquely to avoid duplicate dispose calls.
+    /// </summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<IDisposable, byte> _disposables = new();
 
-    // Use RuntimeTypeHandle as key to reduce hashing overhead.
+    /// <summary>
+    /// Use RuntimeTypeHandle as key to reduce hashing overhead.
+    /// </summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<RuntimeTypeHandle, object> _instanceCache = new();
 
-    // Activator cache is keyed by (Type, ctor signature) to support overloads.
+    /// <summary>
+    /// Activator cache is keyed by (Type, ctor signature) to support overloads.
+    /// </summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ActivatorKey, Func<object?[], object>> _activatorCache = new();
+
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ActivatorKey, object> _signatureInstanceCache = new();
 
     [ThreadStatic] private static RuntimeTypeHandle _tsLastKey;
     [ThreadStatic] private static object? _tsLastValue;
 
-    // Near fields
+    /// <summary>
+    /// Near fields
+    /// </summary>
     private static int _slotsInvalidated; // 0 = valid, 1 = invalid
 
     private long _instanceCreationCount;
@@ -65,7 +77,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// <summary>
     /// Lightweight hashable key for constructor signature.
     /// </summary>
-    private readonly unsafe struct ActivatorKey : IEquatable<ActivatorKey>
+    private readonly struct ActivatorKey : IEquatable<ActivatorKey>
     {
         public readonly int Arity;
         public readonly RuntimeTypeHandle P0;
@@ -313,18 +325,14 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
                     // Another thread changed the value; retry.
                     continue;
                 }
-                else
+                // No existing value; try to add.
+                if (_instanceCache.TryAdd(handleKey, instanceObj))
                 {
-                    // No existing value; try to add.
-                    if (_instanceCache.TryAdd(handleKey, instanceObj))
-                    {
-                        System.Threading.Volatile.Write(ref _slotsInvalidated, 0);
-                        return;
-                    }
-
-                    // Add failed due to race; retry loop.
-                    continue;
+                    System.Threading.Volatile.Write(ref _slotsInvalidated, 0);
+                    return;
                 }
+
+                // Add failed due to race; retry loop.
             }
         }
 
@@ -409,12 +417,10 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
             System.Threading.Volatile.Write(ref GenericSlot<T>.Value, created);
             return created;
         }
-        else
-        {
-            // Use signature cache for generic type when args provided.
-            object obj = GetOrCreateInstance(typeof(T), args);
-            return System.Runtime.CompilerServices.Unsafe.As<T>(obj);
-        }
+        // Use signature cache for generic type when args provided.
+        object obj = GetOrCreateInstance(typeof(T), args);
+
+        return System.Runtime.CompilerServices.Unsafe.As<T>(obj);
     }
 
     /// <summary>
@@ -539,7 +545,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         }
 
         // Also remove any signature instances whose target type matches
-        var sigKeys = new List<ActivatorKey>();
+        List<ActivatorKey> sigKeys = [];
         foreach (ActivatorKey k in _signatureInstanceCache.Keys)
         {
             if (k.Target.Equals(key))
@@ -647,8 +653,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         if (dispose)
         {
             // Snapshot keys to avoid modifying collection during enumeration.
-            IDisposable[] disposables = [.. _disposables.Keys];
-            foreach (IDisposable? d in disposables)
+            foreach (IDisposable? d in (IDisposable[])[.. _disposables.Keys])
             {
                 try
                 {
@@ -690,10 +695,10 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     {
         System.Text.StringBuilder sb = new(1024);
 
-        _ = sb.AppendLine($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] InstanceManager Status:");
-        _ = sb.AppendLine($"CachedInstanceCount: {CachedInstanceCount}");
-        _ = sb.AppendLine($"InstanceCreationCount: {System.Threading.Volatile.Read(ref _instanceCreationCount)}");
-        _ = sb.AppendLine($"InstanceCacheHitCount: {System.Threading.Volatile.Read(ref _instanceCacheHitCount)}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] InstanceManager Status:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CachedInstanceCount: {CachedInstanceCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"InstanceCreationCount: {System.Threading.Volatile.Read(ref _instanceCreationCount)}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"InstanceCacheHitCount: {System.Threading.Volatile.Read(ref _instanceCacheHitCount)}");
         _ = sb.AppendLine();
         _ = sb.AppendLine("Instances:");
         _ = sb.AppendLine("---------------------------------------------------------------------------");
@@ -713,7 +718,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
             bool isDisposable = instance is IDisposable;
             string source = ACTIVATOR_CACHE_CONTAINS(type) ? "ActivatorCache" : "ManualRegister";
 
-            _ = sb.AppendLine($"{typeName.PadRight(45)} | {(isDisposable ? "Yes" : "No "),10} | {source}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName.PadRight(45)} | {(isDisposable ? "Yes" : "No "),10} | {source}");
         }
 
         _ = sb.AppendLine("----------------------------------------------------------------------");
@@ -734,7 +739,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         }
     }
 
-    #endregion
+    #endregion Public API
 
     #region IDisposable
 
@@ -749,8 +754,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         }
 
         // Snapshot keys to avoid modifying collection while disposing.
-        IDisposable[] disposables = [.. _disposables.Keys];
-        foreach (IDisposable? d in disposables)
+        foreach (IDisposable? d in (IDisposable[])[.. _disposables.Keys])
         {
             try
             {
@@ -783,13 +787,15 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] disposed"));
     }
 
-    #endregion Public API
+    #endregion IDisposable
 
     #region Slow Paths & Activators
 
     private static class GenericSlot<T>
     {
-        // Published with Volatile.Write for cross-thread visibility
+        /// <summary>
+        /// Published with Volatile.Write for cross-thread visibility
+        /// </summary>
         public static object? Value;
     }
 
@@ -827,19 +833,17 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
             TRY_PUBLISH_SLOT_BY_TYPE(type, stored);
             return stored;
         }
-        else
+        // We successfully stored the created instance: track disposable and log.
+        if (created is IDisposable disp)
         {
-            // We successfully stored the created instance: track disposable and log.
-            if (created is IDisposable disp)
-            {
-                _ = _disposables.TryAdd(disp, 0);
-            }
-
-            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(CREATE_OR_GET_SIGNATURE_INSTANCE)}] created signature type={type.Name}"));
-
-            TRY_PUBLISH_SLOT_BY_TYPE(type, created);
-            return created;
+            _ = _disposables.TryAdd(disp, 0);
         }
+
+        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(CREATE_OR_GET_SIGNATURE_INSTANCE)}] created signature type={type.Name}"));
+
+        TRY_PUBLISH_SLOT_BY_TYPE(type, created);
+
+        return created;
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -1039,10 +1043,6 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         return best ?? throw new InvalidOperationException($"Type {type.Name} does not have a suitable constructor for the provided arguments.");
     }
 
-    /// <summary>
-    /// Build a DynamicMethod that reads from object?[] args and calls the ctor directly.
-    /// Supports up to 4 parameters; extend if needed.
-    /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static Func<object?[], object> BUILD_DYNAMIC_FACTORY(Type type, ConstructorInfo ctor)

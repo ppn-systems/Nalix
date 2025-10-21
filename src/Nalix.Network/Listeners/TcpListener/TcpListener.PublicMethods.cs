@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Globalization;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Identity;
 using Nalix.Framework.Injection;
@@ -232,50 +233,50 @@ public abstract partial class TcpListenerBase
         System.Text.StringBuilder sb = new(1024);
         System.Threading.ThreadPool.GetMinThreads(out int minWorker, out int minIocp);
 
-        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TcpListenerBase Status:");
-        _ = sb.AppendLine($"Port                : {_port}");
-        _ = sb.AppendLine($"StateWrapper        : {State}");
-        _ = sb.AppendLine($"Disposed            : {_isDisposed}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TcpListenerBase Status:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Port                : {_port}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"StateWrapper        : {State}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Disposed            : {_isDisposed}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Configuration:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"EnableTimeout       : {s_config.EnableTimeout}");
-        _ = sb.AppendLine($"MaxParallelAccepts  : {s_config.MaxParallel}");
-        _ = sb.AppendLine($"BufferSize          : {s_config.BufferSize}");
-        _ = sb.AppendLine($"KeepAlive           : {s_config.KeepAlive}");
-        _ = sb.AppendLine($"ReuseAddress        : {s_config.ReuseAddress}");
-        _ = sb.AppendLine($"EnableIPv6          : {s_config.EnableIPv6}");
-        _ = sb.AppendLine($"Backlog             : {s_config.Backlog}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EnableTimeout       : {s_config.EnableTimeout}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"MaxParallelAccepts  : {s_config.MaxParallel}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"BufferSize          : {s_config.BufferSize}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"KeepAlive           : {s_config.KeepAlive}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReuseAddress        : {s_config.ReuseAddress}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EnableIPv6          : {s_config.EnableIPv6}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Backlog             : {s_config.Backlog}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Metrics:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"Total Accepted      : {Metrics.TotalAccepted}");
-        _ = sb.AppendLine($"Total Rejected      : {Metrics.TotalRejected}");
-        _ = sb.AppendLine($"Total Errors        : {Metrics.TotalErrors}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Accepted      : {Metrics.TotalAccepted}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Rejected      : {Metrics.TotalRejected}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Errors        : {Metrics.TotalErrors}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Protocol:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"BoundProtocol       : {_protocol.ToString() ?? "-"}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"BoundProtocol       : {_protocol.ToString() ?? "-"}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Connections:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"ActiveConnections   : {InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?.Count}");
-        _ = sb.AppendLine($"LimiterEnabled      : {true}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ActiveConnections   : {InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?.Count}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"LimiterEnabled      : {true}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Threading:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"ThreadPool MinWorker: {minWorker}");
-        _ = sb.AppendLine($"ThreadPool MinIOCP  : {minIocp}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ThreadPool MinWorker: {minWorker}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ThreadPool MinIOCP  : {minIocp}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("TimeSync:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"IsTimeSyncEnabled   : {IsTimeSyncEnabled}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"IsTimeSyncEnabled   : {IsTimeSyncEnabled}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("--------------------------------------------");
