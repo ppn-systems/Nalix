@@ -25,6 +25,22 @@ public class LiteSerializer_Unmanaged_Tests
     }
 
     [Fact]
+    public void SerializeDeserialize_NullClass_RoundTrip()
+    {
+        var input = new NullClass { I32 = null, I16 = null };
+
+        // byte[] path (unmanaged -> không cần formatter)
+        Byte[] data = LiteSerializer.Serialize(in input);
+
+        var output = default(NullClass);
+        Int32 read = LiteSerializer.Deserialize<NullClass>(data, ref output);
+
+        Assert.Equal(data.Length, read);
+        Assert.Equal(input.I32, output.I32);
+        Assert.Equal(input.I16, output.I16);
+    }
+
+    [Fact]
     public void Serialize_UnmanagedStruct_ToProvidedBuffer_ExactSize_Ok()
     {
         var value = new ComplexStruct { I32 = 42, I16 = 7, B = 1 };
