@@ -102,16 +102,6 @@ public interface ILogger
     /// <param name="eventId">An optional event identifier for correlation and filtering.</param>
     void Debug(System.String message, EventId? eventId = null);
 
-    /// <summary>
-    /// Writes a debug-level log entry with type and member context.
-    /// </summary>
-    /// <typeparam name="TClass">The class type providing contextual information.</typeparam>
-    /// <param name="message">The message text.</param>
-    /// <param name="eventId">An optional event identifier for correlation and filtering.</param>
-    /// <param name="memberName">An optional member name where the log is emitted.</param>
-    void Debug<TClass>(System.String message, EventId? eventId = null, System.String memberName = "")
-        where TClass : class;
-
     // =========================
     // Information
     // =========================
@@ -165,12 +155,6 @@ public interface ILogger
     // =========================
 
     /// <summary>
-    /// Writes an error log entry describing a handled failure.
-    /// </summary>
-    /// <param name="message">The error message text.</param>
-    void Error(System.String message);
-
-    /// <summary>
     /// Writes an error log entry with an optional event identifier.
     /// </summary>
     /// <param name="message">The error message text.</param>
@@ -178,31 +162,11 @@ public interface ILogger
     void Error(System.String message, EventId? eventId = null);
 
     /// <summary>
-    /// Writes an error log entry from an exception.
-    /// </summary>
-    /// <param name="exception">The exception to log.</param>
-    void Error(System.Exception exception);
-
-    /// <summary>
     /// Writes an error log entry using composite formatting.
     /// </summary>
     /// <param name="format">A composite format string.</param>
     /// <param name="args">An array of objects to format.</param>
     void Error(System.String format, params System.Object[] args);
-
-    /// <summary>
-    /// Writes an error log entry from an exception with an optional event identifier.
-    /// </summary>
-    /// <param name="exception">The exception to log.</param>
-    /// <param name="eventId">An optional event identifier for correlation and filtering.</param>
-    void Error(System.Exception exception, EventId? eventId = null);
-
-    /// <summary>
-    /// Writes an error log entry with a custom message and exception details.
-    /// </summary>
-    /// <param name="message">The error message text.</param>
-    /// <param name="exception">The associated exception.</param>
-    void Error(System.String message, System.Exception exception);
 
     /// <summary>
     /// Writes an error log entry with a message, exception, and an optional event identifier.
@@ -217,24 +181,11 @@ public interface ILogger
     // =========================
 
     /// <summary>
-    /// Writes a critical log entry indicating a severe failure.
-    /// </summary>
-    /// <param name="message">The critical error message text.</param>
-    void Fatal(System.String message);
-
-    /// <summary>
     /// Writes a critical log entry using composite formatting.
     /// </summary>
     /// <param name="format">A composite format string.</param>
     /// <param name="args">An array of objects to format.</param>
     void Fatal(System.String format, params System.Object[] args);
-
-    /// <summary>
-    /// Writes a critical log entry with a custom message and exception details.
-    /// </summary>
-    /// <param name="message">The critical error message text.</param>
-    /// <param name="exception">The associated exception.</param>
-    void Fatal(System.String message, System.Exception exception);
 
     /// <summary>
     /// Writes a critical log entry with an optional event identifier.
