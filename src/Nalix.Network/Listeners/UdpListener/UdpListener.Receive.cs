@@ -31,12 +31,12 @@ public abstract partial class UdpListenerBase
                 System.Int32 idx = next & System.Int32.MaxValue;
 
                 _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.StartWorker(
-                    name: NetworkTaskNames.UdpProcessWorker(_port, idx),
-                    group: NetworkTaskNames.UdpProcessGroup(_port),
+                    name: NetTaskCatalog.UdpProcessWorker(_port, idx),
+                    group: NetTaskCatalog.UdpProcessGroup(_port),
                     work: (_, __) => { ProcessDatagram(result); return new System.Threading.Tasks.ValueTask(); },
                     options: new WorkerOptions
                     {
-                        Tag = nameof(NetworkTaskNames.Segments.Udp),
+                        Tag = nameof(NetTaskCatalog.Segments.Udp),
                         GroupConcurrencyLimit = Config.MaxGroupConcurrency,
                         TryAcquireSlotImmediately = true,
                         CancellationToken = cancellationToken

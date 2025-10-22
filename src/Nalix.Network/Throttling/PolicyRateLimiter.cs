@@ -129,7 +129,7 @@ public static class PolicyRateLimiter
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static IPAddressKey IxCP9(System.String s)
+    private static NetAddressKey IxCP9(System.String s)
     {
         // Hash key string as UTF-8 with SHA3-256, then take first 16 bytes
         // to form a stable IPv6 address (endianness-agnostic).
@@ -148,7 +148,7 @@ public static class PolicyRateLimiter
 
         // Take first 16 bytes for IPv6
         var ip = new System.Net.IPAddress(digest[..16]);
-        return IPAddressKey.FromIpAddress(ip);
+        return NetAddressKey.FromIpAddress(ip);
     }
 
 
