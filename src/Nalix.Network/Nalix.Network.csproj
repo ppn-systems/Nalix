@@ -14,20 +14,28 @@
 		<FileVersion>6.5.0.0</FileVersion>
 		<PackageVersion>6.5.0</PackageVersion>
 		<InformationalVersion>6.5.0+$(SourceRevisionId)</InformationalVersion>
-		
+
 		<Description>
-Nalix.Network is a high-performance .NET library for network communication. It provides essential components for connection management, protocol handling, transport layers, and event-driven network listeners. Designed for developers building scalable and efficient networking applications.
+Nalix.Network is the high-performance, modular networking runtime for the Nalix ecosystem.
+It provides TCP and UDP listener frameworks, connection hubs, middleware pipelines,
+protocol lifecycle management, and adaptive throttling for large-scale distributed systems.
+
+Built for real-time workloads, it emphasizes zero-allocation I/O, low-latency dispatch,
+and precise timing synchronization — delivering reliable and efficient communication
+between clients and servers under heavy concurrency.
 		</Description>
 
 		<PackageReleaseNotes>
-			- Initial release of Nalix.Network.
-			- Features include:
-			• Connection management for reliable client-server communication.
-			• Custom protocol handling for flexible network interactions.
-			• Event-driven listeners for efficient request processing.
-			• Transport layer abstractions for optimized data transmission.
-			• Scalable architecture for high-performance networking applications.
+			- Introduced TCP and UDP listeners with async event-driven connection handling.
+			- Added Connection hub and transmission extensions with high-throughput batching.
+			- Implemented middleware pipeline supporting inbound/outbound interceptors.
+			- Added Protocol subsystem for lifecycle, metrics, and public RPC methods.
+			- Introduced adaptive throttling: ConnectionLimiter, TokenBucketLimiter, and PolicyRateLimiter.
+			- Added Timing subsystem with high-resolution TimingWheel and TimeSynchronizer.
+			- Enhanced internal abstractions for extensibility and concurrent dispatch safety.
+			- Major refactors for performance, stability, and maintainability across all layers.
 		</PackageReleaseNotes>
+
 	</PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />

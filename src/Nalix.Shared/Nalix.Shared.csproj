@@ -14,21 +14,26 @@
 		<PackageVersion>6.5.0</PackageVersion>
 		<InformationalVersion>6.5.0+$(SourceRevisionId)</InformationalVersion>
 
-        <Description>
-Nalix.Shared is a .NET library that provides shared utilities and configurations across Notio components. It includes dependency injection, localization (L10N), memory management, time utilities, and configuration handling to ensure consistency and reusability across multiple projects.
-        </Description>
+		<Description>
+Nalix.Shared provides the foundational low-level primitives and shared utilities
+for the Nalix ecosystem — including configuration binding, memory pooling,
+LZ4 compression, high-performance messaging, and lightweight serialization.
 
-        <PackageReleaseNotes>
-			- Initial release of Nalix.Shared.
-			- Features include:
-			• Configuration management for shared settings.
-			• Dependency injection (DI) utilities for modular applications.
-			• Localization (L10N) support for multi-language projects.
-			• Memory utilities for efficient resource handling.
-			• Time-related utilities for date and time management.
-        </PackageReleaseNotes>
-  
-    </PropertyGroup>
+It is optimized for zero-allocation patterns, Span{T}-based APIs, and unsafe memory access 
+to achieve maximum throughput in real-time and networking environments.
+		</Description>
+
+		<PackageReleaseNotes>
+			- Added Memory subsystem with buffer pools, caches, and unsafe span utilities.
+			- Introduced LZ4 extensions with block header parser and streaming codec.
+			- Implemented Messaging primitives for binary and text frame handling.
+			- Added lightweight Serializer/Deserializer (LiteSerializer) with formatters and bounds checking.
+			- Enhanced ConfigurationManager with internal binding and extension support.
+			- Improved dependency layout for reuse across Nalix.Framework and Nalix.SDK.
+			- General performance improvements and code cleanup.
+		</PackageReleaseNotes>
+
+	</PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />
     <Import Project="..\Package.Build.props" />
