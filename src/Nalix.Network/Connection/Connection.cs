@@ -92,7 +92,7 @@ public sealed partial class Connection : IConnection
     public PermissionLevel Level { get; set; } = PermissionLevel.None;
 
     /// <inheritdoc />
-    public CipherSuiteType Algorithm { get; set; } = CipherSuiteType.ChaCha20;
+    public CipherSuiteType Algorithm { get; set; } = CipherSuiteType.ChaCha20Poly1305;
 
     /// <inheritdoc />
     public System.Byte[] Secret

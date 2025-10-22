@@ -23,13 +23,23 @@
 		<InformationalVersion>6.5.0+$(SourceRevisionId)</InformationalVersion>
 
 		<Description>
-A high-performance, configurable TCP remote client for integrating with Nalix-based systems. Provides reliable communication, automatic packet handling, and simple async connection support.
+Nalix.SDK provides the client-side development kit for the Nalix ecosystem,
+offering high-level APIs, controller abstractions, time synchronization helpers,
+and localization (L10N) utilities for building distributed applications.
+
+It acts as the bridge between application logic and the Nalix.Network layer,
+simplifying remote communication, configuration, and message orchestration
+through clean, extensible, and developer-friendly interfaces.
 		</Description>
 
 		<PackageReleaseNotes>
-			- Added async connection support
-			- Improved stream disposal and error handling
-			- Integrated RemotePacketSender and RemotePacketReceiver
+			- Introduced Controller and DirectiveController for structured client-side orchestration.
+			- Added Remote module with configurable reliable and unreliable communication clients.
+			- Implemented TimeSyncExtensions for clock alignment between client and server.
+			- Added L10N subsystem with Localization, Localizer, and MultiLocalizer support.
+			- Improved configuration and extension APIs for SDK customization.
+			- Enhanced dependency structure for modular SDK integration.
+			- General cleanup, documentation updates, and performance tuning.
 		</PackageReleaseNotes>
 
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
