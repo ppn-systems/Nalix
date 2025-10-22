@@ -55,7 +55,7 @@ internal static partial class FieldCache<T>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static TField GetValue<TField>(T obj, System.Int32 fieldIndex)
+    public static TField GetValue<TField>(T obj, int fieldIndex)
     {
         FieldSchema metadata = _metadata[fieldIndex];
 
@@ -74,7 +74,7 @@ internal static partial class FieldCache<T>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void SetValue<TField>(T obj, System.Int32 fieldIndex, TField value)
+    public static void SetValue<TField>(T obj, int fieldIndex, TField value)
     {
         FieldSchema metadata = _metadata[fieldIndex];
 
@@ -97,7 +97,7 @@ internal static partial class FieldCache<T>
     private delegate void RefSetter<TVal>(ref T obj, TVal value);
 
     // Cache riêng cho ref-setters — key là fieldIndex
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Int32, System.Object> _refSetterCache = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, object> _refSetterCache = new();
 
     /// <summary>
     /// Set field value trực tiếp lên struct gốc thông qua ref T.
@@ -107,7 +107,7 @@ internal static partial class FieldCache<T>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void SetValue<TField>(ref T obj, System.Int32 fieldIndex, TField value)
+    public static void SetValue<TField>(ref T obj, int fieldIndex, TField value)
     {
         FieldSchema metadata = _metadata[fieldIndex];
 
@@ -125,7 +125,7 @@ internal static partial class FieldCache<T>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)] // NoInlining vì chỉ chạy 1 lần per field
     private static RefSetter<TField> GetOrCreateRefSetter<TField>(
-        System.Int32 fieldIndex,
+        int fieldIndex,
         FieldSchema metadata)
     {
         return (RefSetter<TField>)_refSetterCache.GetOrAdd(fieldIndex, _ =>

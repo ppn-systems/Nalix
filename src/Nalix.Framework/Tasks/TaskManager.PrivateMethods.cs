@@ -1,7 +1,12 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
@@ -16,7 +21,7 @@ public partial class TaskManager
 {
     #region Types
 
-    private sealed record Gate(System.Threading.SemaphoreSlim SemaphoreSlim, int Capacity);
+    private sealed record Gate(SemaphoreSlim SemaphoreSlim, int Capacity);
 
     /// <summary>
     /// Snapshot of CPU metrics for safe concurrent access.
@@ -34,7 +39,7 @@ public partial class TaskManager
 
     private long _lastCpuWallClockMs;
     private long _lastCpuProcessorTime;
-    private readonly System.Diagnostics.Stopwatch _cpuMeasureStopwatch = System.Diagnostics.Stopwatch.StartNew();
+    private readonly Stopwatch _cpuMeasureStopwatch = Stopwatch.StartNew();
 
     private int _lowCpuStreak;
     private int _highCpuStreak;
@@ -45,9 +50,9 @@ public partial class TaskManager
 
     #region Internal Cleanup
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
     private void CLEANUP_WORKERS()
     {
         if (_disposed)
@@ -55,13 +60,13 @@ public partial class TaskManager
             return;
         }
 
-        System.DateTimeOffset now = System.DateTimeOffset.UtcNow;
+        DateTimeOffset now = DateTimeOffset.UtcNow;
         foreach (KeyValuePair<ISnowflake, WorkerState> kv in _workers)
         {
             WorkerState st = kv.Value;
-            System.TimeSpan? keep = st.Options.RetainFor;
+            TimeSpan? keep = st.Options.RetainFor;
 
-            if (keep is null || keep <= System.TimeSpan.Zero)
+            if (keep is null || keep <= TimeSpan.Zero)
             {
                 continue;
             }
@@ -84,7 +89,7 @@ public partial class TaskManager
                 {
                     st.Cts.Dispose();
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Warn($"[FW.{nameof(TaskManager)}] cleanup-cts-dispose-error id={st.Id} msg={ex.Message}");
@@ -95,38 +100,38 @@ public partial class TaskManager
 
     #endregion Internal Cleanup
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private async System.Threading.Tasks.Task RECURRING_LOOP_ASYNC(
-        RecurringState s, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work)
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    private async Task RECURRING_LOOP_ASYNC(
+        RecurringState s, Func<CancellationToken, ValueTask> work)
     {
-        System.Threading.CancellationToken ct = s.CancellationTokenSource.Token;
+        CancellationToken ct = s.CancellationTokenSource.Token;
 
         // Initial jitter (unchanged semantics)
-        if (s.Options.Jitter is { } j && j > System.TimeSpan.Zero)
+        if (s.Options.Jitter is { } j && j > TimeSpan.Zero)
         {
             try
             {
                 int maxMs = (int)j.TotalMilliseconds;
                 if (maxMs > 0)
                 {
-                    System.TimeSpan jitter = System.TimeSpan.FromMilliseconds(Csprng.GetInt32(0, maxMs));
-                    await System.Threading.Tasks.Task.Delay(jitter, ct).ConfigureAwait(false);
+                    TimeSpan jitter = TimeSpan.FromMilliseconds(Csprng.GetInt32(0, maxMs));
+                    await Task.Delay(jitter, ct).ConfigureAwait(false);
                 }
             }
-            catch (System.OperationCanceledException) { return; }
+            catch (OperationCanceledException) { return; }
         }
 
         // Interval in Stopwatch ticks
         long step = s.IntervalTicks;
-        long freq = System.Diagnostics.Stopwatch.Frequency;
-        long next = System.Diagnostics.Stopwatch.GetTimestamp() + step;
+        long freq = Stopwatch.Frequency;
+        long next = Stopwatch.GetTimestamp() + step;
 
         // Local helpers for fast delay
-        static void BusyWait(long untilTicks, System.Threading.CancellationToken ct)
+        static void BusyWait(long untilTicks, CancellationToken ct)
         {
-            System.Threading.SpinWait sw = new();
-            while (System.Diagnostics.Stopwatch.GetTimestamp() < untilTicks)
+            SpinWait sw = new();
+            while (Stopwatch.GetTimestamp() < untilTicks)
             {
                 if (ct.IsCancellationRequested)
                 {
@@ -156,8 +161,8 @@ public partial class TaskManager
                     }
                     else
                     {
-                        System.TimeSpan ts = System.TimeSpan.FromSeconds(delaySeconds);
-                        await System.Threading.Tasks.Task.Delay(ts, ct)
+                        TimeSpan ts = TimeSpan.FromSeconds(delaySeconds);
+                        await Task.Delay(ts, ct)
                                                          .ConfigureAwait(false);
                     }
                 }
@@ -183,10 +188,10 @@ public partial class TaskManager
                 {
                     s.MarkStart();
 
-                    if (s.Options.ExecutionTimeout is { } to && to > System.TimeSpan.Zero)
+                    if (s.Options.ExecutionTimeout is { } to && to > TimeSpan.Zero)
                     {
-                        using System.Threading.CancellationTokenSource rcts =
-                            System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+                        using CancellationTokenSource rcts =
+                            CancellationTokenSource.CreateLinkedTokenSource(ct);
 
                         rcts.CancelAfter(to);
                         await work(rcts.Token).ConfigureAwait(false);
@@ -198,8 +203,8 @@ public partial class TaskManager
 
                     s.MarkSuccess();
                 }
-                catch (System.OperationCanceledException) when (ct.IsCancellationRequested) { break; }
-                catch (System.OperationCanceledException oce)
+                catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
+                catch (OperationCanceledException oce)
                 {
                     s.MarkFailure();
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -207,7 +212,7 @@ public partial class TaskManager
 
                     await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     s.MarkFailure();
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -223,7 +228,7 @@ public partial class TaskManager
                         {
                             _ = s.Gate.Release();
                         }
-                        catch (System.Exception ex)
+                        catch (Exception ex)
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                     .Warn($"[FW.{nameof(TaskManager)}:Internal] gate-release-error name={s.Name} msg={ex.Message}");
@@ -232,8 +237,8 @@ public partial class TaskManager
                     next += step;
                 }
             }
-            catch (System.OperationCanceledException) when (ct.IsCancellationRequested) { break; }
-            catch (System.Exception ex)
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
+            catch (Exception ex)
             {
                 s.MarkFailure();
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -244,23 +249,23 @@ public partial class TaskManager
         }
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static async System.Threading.Tasks.ValueTask RECURRING_BACKOFF_ASYNC(
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    private static async ValueTask RECURRING_BACKOFF_ASYNC(
         RecurringState s,
-        System.Threading.CancellationToken ct)
+        CancellationToken ct)
     {
-        int n = System.Math.Max(1, s.Options.FailuresBeforeBackoff);
+        int n = Math.Max(1, s.Options.FailuresBeforeBackoff);
         if (s.ConsecutiveFailures < n)
         {
             return;
         }
 
-        int pow = System.Math.Min(5, s.ConsecutiveFailures - n); // cap at 2^5 = 32s
+        int pow = Math.Min(5, s.ConsecutiveFailures - n); // cap at 2^5 = 32s
         int baseMs = 1000 << pow; // base delay: 1000ms * 2^pow
-        int cap = (int)System.Math.Max(1, s.Options.BackoffCap.TotalMilliseconds);
-        int maxDelay = System.Math.Min(baseMs, cap);
+        int cap = (int)Math.Max(1, s.Options.BackoffCap.TotalMilliseconds);
+        int maxDelay = Math.Min(baseMs, cap);
 
         // Full jitter: random(0, min(base * 2^pow, cap))
         // pow = min(5, ConsecutiveFailures - FailuresBeforeBackoff)
@@ -270,13 +275,13 @@ public partial class TaskManager
 
         try
         {
-            await System.Threading.Tasks.Task.Delay(delayMs, ct).ConfigureAwait(false);
+            await Task.Delay(delayMs, ct).ConfigureAwait(false);
         }
-        catch (System.OperationCanceledException) { }
+        catch (OperationCanceledException) { }
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private int COUNT_RUNNING_WORKERS()
 
     {
@@ -291,13 +296,13 @@ public partial class TaskManager
         return n;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
     private void RETAIN_OR_REMOVE(WorkerState st)
     {
-        System.TimeSpan? keep = st.Options.RetainFor;
-        if (keep is null || keep <= System.TimeSpan.Zero)
+        TimeSpan? keep = st.Options.RetainFor;
+        if (keep is null || keep <= TimeSpan.Zero)
         {
             _ = _workers.TryRemove(st.Id, out _);
 
@@ -305,7 +310,7 @@ public partial class TaskManager
             {
                 st.Cts.Dispose();
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Warn($"[FW.{nameof(TaskManager)}] retain-cts-dispose-error id={st.Id} msg={ex.Message}");
@@ -314,7 +319,7 @@ public partial class TaskManager
             bool hasSameGroup = false;
             foreach (WorkerState other in _workers.Values)
             {
-                if (string.Equals(other.Group, st.Group, System.StringComparison.Ordinal))
+                if (string.Equals(other.Group, st.Group, StringComparison.Ordinal))
                 {
                     hasSameGroup = true;
                     break;
@@ -330,7 +335,7 @@ public partial class TaskManager
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Debug($"[FW.{nameof(TaskManager)}] group-gate-dispose-ok group={st.Group}");
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Warn($"[FW.{nameof(TaskManager)}] gate-dispose-error-retain group={st.Group} msg={ex.Message}");
@@ -341,7 +346,7 @@ public partial class TaskManager
         }
     }
 
-    private async System.Threading.Tasks.Task MONITOR_CONCURRENCY_ASYNC(IWorkerContext ctx, System.Threading.CancellationToken ct)
+    private async Task MONITOR_CONCURRENCY_ASYNC(IWorkerContext ctx, CancellationToken ct)
     {
         TaskManagerOptions options = _options;
 
@@ -349,7 +354,7 @@ public partial class TaskManager
         const int StreakRequired = 3;
 
         // Normalize threshold: config là % trên 1 core → scale lên toàn bộ core
-        double coreCount = System.Environment.ProcessorCount;
+        double coreCount = Environment.ProcessorCount;
         double threshHigh = options.ThresholdHighCpu * coreCount;
         double threshLow = options.ThresholdLowCpu * coreCount;
 
@@ -377,7 +382,7 @@ public partial class TaskManager
                     if (_highCpuStreak >= StreakRequired)
                     {
                         _highCpuStreak = 0; // reset sau khi hành động
-                        int newLimit = System.Math.Max(1, _currentConcurrencyLimit - 1);
+                        int newLimit = Math.Max(1, _currentConcurrencyLimit - 1);
                         ADJUST_CONCURRENCY(newLimit);
                     }
                 }
@@ -389,7 +394,7 @@ public partial class TaskManager
                     if (_lowCpuStreak >= StreakRequired)
                     {
                         _lowCpuStreak = 0; // reset sau khi hành động
-                        int newLimit = System.Math.Min(options.MaxWorkers, _currentConcurrencyLimit + 1);
+                        int newLimit = Math.Min(options.MaxWorkers, _currentConcurrencyLimit + 1);
                         ADJUST_CONCURRENCY(newLimit);
                     }
                 }
@@ -403,10 +408,10 @@ public partial class TaskManager
                 ctx.Beat();
                 ctx.Advance(1);
 
-                await System.Threading.Tasks.Task.Delay(options.ObservingInterval, ct);
+                await Task.Delay(options.ObservingInterval, ct);
             }
-            catch (System.OperationCanceledException) when (ct.IsCancellationRequested) { break; }
-            catch (System.Exception ex)
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
+            catch (Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Warn($"[FW.{nameof(TaskManager)}:Internal] dynamic-adjustment-error ex={ex.Message}");
@@ -414,21 +419,21 @@ public partial class TaskManager
         }
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private void INITIALIZE_CPU_MEASUREMENT()
     {
-        System.Diagnostics.Process proc = System.Diagnostics.Process.GetCurrentProcess();
-        System.Threading.Volatile.Write(ref _lastCpuProcessorTime, (long)proc.TotalProcessorTime.TotalMilliseconds);
-        System.Threading.Volatile.Write(ref _lastCpuWallClockMs, _cpuMeasureStopwatch.ElapsedMilliseconds);
+        Process proc = Process.GetCurrentProcess();
+        Volatile.Write(ref _lastCpuProcessorTime, (long)proc.TotalProcessorTime.TotalMilliseconds);
+        Volatile.Write(ref _lastCpuWallClockMs, _cpuMeasureStopwatch.ElapsedMilliseconds);
         _cpuWarmupDone = false;
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
     private double MEASURE_CPU_USAGE_PERCENT()
     {
         long currentWallMs = _cpuMeasureStopwatch.ElapsedMilliseconds;
@@ -443,25 +448,25 @@ public partial class TaskManager
             }
 
             // Đánh dấu đã xong warmup, cập nhật baseline một lần ngay lúc này
-            System.Diagnostics.Process proc0 = System.Diagnostics.Process.GetCurrentProcess();
-            System.Threading.Volatile.Write(ref _lastCpuProcessorTime, (long)proc0.TotalProcessorTime.TotalMilliseconds);
-            System.Threading.Volatile.Write(ref _lastCpuWallClockMs, currentWallMs);
+            Process proc0 = Process.GetCurrentProcess();
+            Volatile.Write(ref _lastCpuProcessorTime, (long)proc0.TotalProcessorTime.TotalMilliseconds);
+            Volatile.Write(ref _lastCpuWallClockMs, currentWallMs);
             _cpuWarmupDone = true;
             return 0.0;
         }
 
-        System.Diagnostics.Process proc = System.Diagnostics.Process.GetCurrentProcess();
+        Process proc = Process.GetCurrentProcess();
         long currentCpuMs = (long)proc.TotalProcessorTime.TotalMilliseconds;
 
-        long prevWallMs = System.Threading.Volatile.Read(ref _lastCpuWallClockMs);
-        long prevCpuMs = System.Threading.Volatile.Read(ref _lastCpuProcessorTime);
+        long prevWallMs = Volatile.Read(ref _lastCpuWallClockMs);
+        long prevCpuMs = Volatile.Read(ref _lastCpuProcessorTime);
 
         long wallDelta = currentWallMs - prevWallMs;
         long cpuDelta = currentCpuMs - prevCpuMs;
 
         // Cập nhật baseline cho lần đo tiếp theo
-        System.Threading.Volatile.Write(ref _lastCpuWallClockMs, currentWallMs);
-        System.Threading.Volatile.Write(ref _lastCpuProcessorTime, currentCpuMs);
+        Volatile.Write(ref _lastCpuWallClockMs, currentWallMs);
+        Volatile.Write(ref _lastCpuProcessorTime, currentCpuMs);
 
         // Tránh chia cho 0 hoặc delta âm (clock skew, process refresh lag)
         if (wallDelta <= 0 || cpuDelta < 0)
@@ -469,21 +474,21 @@ public partial class TaskManager
             return 0.0;
         }
 
-        double processorCount = System.Environment.ProcessorCount;
+        double processorCount = Environment.ProcessorCount;
 
         // cpuDelta / wallDelta = tỷ lệ sử dụng trên 1 core → nhân processorCount → % trên toàn bộ core
         double cpuUsagePercent = cpuDelta / (double)wallDelta * processorCount * 100.0;
 
-        return System.Math.Min(cpuUsagePercent, processorCount * 100.0);
+        return Math.Min(cpuUsagePercent, processorCount * 100.0);
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private void ADJUST_CONCURRENCY(int newLimit)
     {
         // Safety: clamp to valid range
-        newLimit = System.Math.Clamp(newLimit, 1, _options.MaxWorkers);
+        newLimit = Math.Clamp(newLimit, 1, _options.MaxWorkers);
 
         int previousLimit = _currentConcurrencyLimit;
 
@@ -525,7 +530,7 @@ public partial class TaskManager
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{_currentConcurrencyLimit}]");
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             // Revert on error
             _currentConcurrencyLimit = previousLimit;

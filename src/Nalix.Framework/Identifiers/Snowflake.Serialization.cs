@@ -1,6 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Identity;
 using Nalix.Common.Primitives;
 
@@ -19,9 +24,9 @@ public readonly partial struct Snowflake
     /// This is the most efficient deserialization method as it directly uses the pre-composed value
     /// without any decomposition or validation. Use this when the value is known to be valid.
     /// </remarks>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static Snowflake FromUInt56(UInt56 combined) => NewId(combined);
 
     /// <summary>
@@ -29,7 +34,7 @@ public readonly partial struct Snowflake
     /// </summary>
     /// <param name="bytes">The byte span containing the identifier data in little-endian format.</param>
     /// <returns>A reconstructed <see cref="Snowflake"/> instance.</returns>
-    /// <exception cref="System.ArgumentException">
+    /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="bytes"/> is not exactly <see cref="Size"/> (7) bytes.
     /// </exception>
     /// <remarks>
@@ -37,15 +42,15 @@ public readonly partial struct Snowflake
     /// The expected layout is: [0-3]=Value (32 bits), [4-5]=MachineId (16 bits), [6]=Type (8 bits),
     /// all in little-endian byte order. The method validates the buffer size before reading.
     /// </remarks>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Snowflake FromBytes(System.ReadOnlySpan<byte> bytes)
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static Snowflake FromBytes(ReadOnlySpan<byte> bytes)
     {
         // Input validation - buffer overflow protection
         if (bytes.Length != Size)
         {
-            throw new System.ArgumentException(
+            throw new ArgumentException(
                 $"Input buffer must be exactly {Size} bytes. Received {bytes.Length} bytes.",
                 nameof(bytes));
         }
@@ -64,24 +69,24 @@ public readonly partial struct Snowflake
     /// </summary>
     /// <param name="bytes">The byte array containing the identifier data in little-endian format.</param>
     /// <returns>A reconstructed <see cref="Snowflake"/> instance.</returns>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="bytes"/> is <c>null</c>.
     /// </exception>
-    /// <exception cref="System.ArgumentException">
+    /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="bytes"/> is not exactly <see cref="Size"/> (7) bytes.
     /// </exception>
     /// <remarks>
-    /// This overload accepts a byte array and delegates to the span-based <see cref="FromBytes(System.ReadOnlySpan{byte})"/> method.
+    /// This overload accepts a byte array and delegates to the span-based <see cref="FromBytes(ReadOnlySpan{byte})"/> method.
     /// Prefer using the span-based overload when possible to avoid unnecessary array allocations.
     /// </remarks>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static Snowflake FromBytes(byte[] bytes)
     {
         return bytes is null
-            ? throw new System.ArgumentNullException(nameof(bytes), "Byte array cannot be null.")
-            : FromBytes(System.MemoryExtensions.AsSpan(bytes));
+            ? throw new ArgumentNullException(nameof(bytes), "Byte array cannot be null.")
+            : FromBytes(MemoryExtensions.AsSpan(bytes));
     }
 
     #endregion Deserialize
@@ -89,17 +94,17 @@ public readonly partial struct Snowflake
     #region Serialization
 
     /// <inheritdoc/>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public UInt56 ToUInt56() => __combined;
 
     /// <inheritdoc/>
-    [System.ComponentModel.EditorBrowsable(
-        System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [EditorBrowsable(
+        EditorBrowsableState.Never)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public byte[] ToByteArray()
     {
         byte[] result = new byte[Size];
@@ -108,11 +113,11 @@ public readonly partial struct Snowflake
     }
 
     /// <inheritdoc/>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public bool TryWriteBytes(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> destination,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int bytesWritten)
+        [NotNull] Span<byte> destination,
+        [NotNullWhen(true)] out int bytesWritten)
     {
         // Buffer overflow protection - validate size before writing
         if (destination.Length < Size)
@@ -131,9 +136,9 @@ public readonly partial struct Snowflake
     }
 
     /// <inheritdoc/>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool TryWriteBytes(System.Span<byte> destination)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public bool TryWriteBytes(Span<byte> destination)
     {
         // Buffer overflow protection - validate size before writing
         if (destination.Length < Size)

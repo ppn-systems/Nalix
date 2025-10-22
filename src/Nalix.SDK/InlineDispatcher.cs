@@ -1,6 +1,11 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
+
 namespace Nalix.SDK;
 
 /// <summary>
@@ -11,9 +16,9 @@ namespace Nalix.SDK;
 /// It is typically used for testing, non-UI scenarios, or environments where
 /// thread marshalling is not required.
 /// </remarks>
-[System.Diagnostics.StackTraceHidden]
-[System.Diagnostics.DebuggerStepThrough]
-[System.Diagnostics.DebuggerNonUserCode]
+[StackTraceHidden]
+[DebuggerStepThrough]
+[DebuggerNonUserCode]
 public sealed class InlineDispatcher : IThreadDispatcher
 {
     /// <summary>
@@ -22,8 +27,7 @@ public sealed class InlineDispatcher : IThreadDispatcher
     /// <param name="action">
     /// The action to execute. If <c>null</c>, no operation is performed.
     /// </param>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public void Post(System.Action action) => action?.Invoke();
+    [Pure]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void Post(Action action) => action?.Invoke();
 }

@@ -1,6 +1,12 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
 namespace Nalix.Framework.Tasks;
 
 /// <summary>
@@ -16,10 +22,10 @@ namespace Nalix.Framework.Tasks;
 /// This is a general-purpose library. Specific domains (TCP, limiter, etc.)
 /// should build on top of these helpers rather than hardcoding names here.
 /// </remarks>
-[System.Diagnostics.StackTraceHidden]
-[System.Diagnostics.DebuggerStepThrough]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[StackTraceHidden]
+[DebuggerStepThrough]
+[ExcludeFromCodeCoverage]
+[EditorBrowsable(EditorBrowsableState.Never)]
 public static class TaskNaming
 {
     /// <summary>
@@ -67,8 +73,8 @@ public static class TaskNaming
         /// <summary>
         /// Build a recurring job id with a hex instance key, e.g. "cleanup.00BC614E".
         /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(
+            MethodImplOptions.AggressiveOptimization)]
         public static string CleanupJobId(string prefix, int instanceKey) => $"{SanitizeToken(prefix)}.{Tags.Cleanup}.{instanceKey:X8}";
     }
 
@@ -76,9 +82,9 @@ public static class TaskNaming
     /// Sanitizes an arbitrary string into a safe token for task names.
     /// Allows letters, digits, '-', '_', '.', replaces others with '_'.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [System.Runtime.CompilerServices.SkipLocalsInit]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [SkipLocalsInit]
     public static string SanitizeToken(string s)
     {
         if (string.IsNullOrEmpty(s))
@@ -86,8 +92,8 @@ public static class TaskNaming
             return "-";
         }
 
-        System.ReadOnlySpan<char> input = System.MemoryExtensions.AsSpan(s);
-        System.Span<char> buf = input.Length <= 256
+        ReadOnlySpan<char> input = MemoryExtensions.AsSpan(s);
+        Span<char> buf = input.Length <= 256
             ? stackalloc char[input.Length]
             : new char[input.Length];
 

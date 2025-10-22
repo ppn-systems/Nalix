@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Common.Shared;
 using Nalix.Framework.Configuration.Binding;
 
@@ -65,27 +66,27 @@ public sealed class TaskManagerOptions : ConfigurationLoader
     /// Time interval for monitoring system load (default 5 seconds).
     /// </summary>
     [IniComment("How often system load is sampled (e.g. 00:00:05 = 5 seconds)")]
-    public System.TimeSpan ObservingInterval { get; init; } = System.TimeSpan.FromSeconds(5);
+    public TimeSpan ObservingInterval { get; init; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
     /// Gets or sets the interval at which completed workers are cleaned up.
     /// Default is 30 seconds. Must be at least 1 second.
     /// </summary>
     /// <value>
-    /// A <see cref="System.TimeSpan"/> representing the cleanup interval.
+    /// A <see cref="TimeSpan"/> representing the cleanup interval.
     /// </value>
     [IniComment("How often completed workers are removed from memory (minimum 00:00:01)")]
-    public System.TimeSpan CleanupInterval { get; init; } = System.TimeSpan.FromSeconds(30);
+    public TimeSpan CleanupInterval { get; init; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
     /// Validates the options and throws if any values are invalid.
     /// </summary>
-    /// <exception cref="System.ArgumentOutOfRangeException">Thrown when CleanupInterval is less than 1 second.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when CleanupInterval is less than 1 second.</exception>
     public void Validate()
     {
-        if (CleanupInterval < System.TimeSpan.FromSeconds(1))
+        if (CleanupInterval < TimeSpan.FromSeconds(1))
         {
-            throw new System.ArgumentOutOfRangeException(
+            throw new ArgumentOutOfRangeException(
                 nameof(CleanupInterval),
                 CleanupInterval,
                 "CleanupInterval must be at least 1 second");

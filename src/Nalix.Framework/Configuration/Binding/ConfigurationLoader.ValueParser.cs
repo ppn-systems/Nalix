@@ -1,6 +1,13 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Globalization;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Diagnostics;
 using Nalix.Framework.Configuration.Internal;
 using Nalix.Framework.Injection;
@@ -13,33 +20,33 @@ public partial class ConfigurationLoader
     /// Cache for enum getter methods to avoid repeated reflection calls.
     /// </summary>
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        System.Type, System.Reflection.MethodInfo> _enumGetterCache = new();
+        Type, MethodInfo> _enumGetterCache = new();
 
     /// <summary>
     /// Gets the configuration value for a property using the appropriate method.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
     private static object? GetConfigValue(
         IniConfig configFile, string section, PropertyMetadata property)
     {
         // Handle Enums of any underlying type with cached reflection
         if (property.PropertyType.IsEnum)
         {
-            System.Reflection.MethodInfo method = _enumGetterCache.GetOrAdd(
+            MethodInfo method = _enumGetterCache.GetOrAdd(
                 property.PropertyType,
                 enumType =>
                 {
-                    System.Reflection.MethodInfo? baseMethod = typeof(IniConfig).GetMethod(
+                    MethodInfo? baseMethod = typeof(IniConfig).GetMethod(
                         nameof(IniConfig.GetEnum),
-                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                        BindingFlags.Public | BindingFlags.Instance);
 
                     return baseMethod == null
-                        ? throw new System.InvalidOperationException($"Could not find GetEnum method on {nameof(IniConfig)}.")
+                        ? throw new InvalidOperationException($"Could not find GetEnum method on {nameof(IniConfig)}.")
                         : baseMethod.MakeGenericMethod(enumType);
                 });
 
@@ -48,27 +55,27 @@ public partial class ConfigurationLoader
 
         return property.TypeCode switch
         {
-            System.TypeCode.Char => configFile.GetChar(section, property.Name),
-            System.TypeCode.Byte => configFile.GetByte(section, property.Name),
-            System.TypeCode.SByte => configFile.GetSByte(section, property.Name),
-            System.TypeCode.String => configFile.GetString(section, property.Name),
-            System.TypeCode.Boolean => configFile.GetBool(section, property.Name),
-            System.TypeCode.Decimal => configFile.GetDecimal(section, property.Name),
-            System.TypeCode.Int16 => configFile.GetInt16(section, property.Name),
-            System.TypeCode.UInt16 => configFile.GetUInt16(section, property.Name),
-            System.TypeCode.Int32 => configFile.GetInt32(section, property.Name),
-            System.TypeCode.UInt32 => configFile.GetUInt32(section, property.Name),
-            System.TypeCode.Int64 => configFile.GetInt64(section, property.Name),
-            System.TypeCode.UInt64 => configFile.GetUInt64(section, property.Name),
-            System.TypeCode.Single => configFile.GetSingle(section, property.Name),
-            System.TypeCode.Double => configFile.GetDouble(section, property.Name),
-            System.TypeCode.DateTime => configFile.GetDateTime(section, property.Name),
-            System.TypeCode.Object when property.PropertyType == typeof(System.Guid)
+            TypeCode.Char => configFile.GetChar(section, property.Name),
+            TypeCode.Byte => configFile.GetByte(section, property.Name),
+            TypeCode.SByte => configFile.GetSByte(section, property.Name),
+            TypeCode.String => configFile.GetString(section, property.Name),
+            TypeCode.Boolean => configFile.GetBool(section, property.Name),
+            TypeCode.Decimal => configFile.GetDecimal(section, property.Name),
+            TypeCode.Int16 => configFile.GetInt16(section, property.Name),
+            TypeCode.UInt16 => configFile.GetUInt16(section, property.Name),
+            TypeCode.Int32 => configFile.GetInt32(section, property.Name),
+            TypeCode.UInt32 => configFile.GetUInt32(section, property.Name),
+            TypeCode.Int64 => configFile.GetInt64(section, property.Name),
+            TypeCode.UInt64 => configFile.GetUInt64(section, property.Name),
+            TypeCode.Single => configFile.GetSingle(section, property.Name),
+            TypeCode.Double => configFile.GetDouble(section, property.Name),
+            TypeCode.DateTime => configFile.GetDateTime(section, property.Name),
+            TypeCode.Object when property.PropertyType == typeof(Guid)
                 => configFile.GetGuid(section, property.Name),
-            System.TypeCode.Object when property.PropertyType == typeof(System.TimeSpan)
+            TypeCode.Object when property.PropertyType == typeof(TimeSpan)
                 => configFile.GetTimeSpan(section, property.Name),
-            System.TypeCode.Empty => throw new System.NotImplementedException(),
-            System.TypeCode.DBNull => throw new System.NotImplementedException(),
+            TypeCode.Empty => throw new NotImplementedException(),
+            TypeCode.DBNull => throw new NotImplementedException(),
             _ => ThrowUnsupported(property),
         };
     }
@@ -78,10 +85,10 @@ public partial class ConfigurationLoader
     /// comment — to the file. The comment is written only when the key is new,
     /// consistent with <see cref="IniConfig.WriteValue"/> behavior.
     /// </summary>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
     private void HandleEmptyValue(
         IniConfig configFile, string section, PropertyMetadata property)
     {
@@ -89,7 +96,7 @@ public partial class ConfigurationLoader
 
         object valueToWrite = property.PropertyType.IsEnum
             ? currentValue?.ToString()
-              ?? System.Enum.GetValues(property.PropertyType).GetValue(0)!.ToString()!
+              ?? Enum.GetValues(property.PropertyType).GetValue(0)!.ToString()!
             : currentValue?.ToString()
               ?? GetDefaultValueString(property);
 
@@ -107,50 +114,50 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Gets a default value string for the specified type code.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     private static string GetDefaultValueString(PropertyMetadata propertyType)
     {
         switch (propertyType.TypeCode)
         {
-            case System.TypeCode.Object:
-                if (propertyType.PropertyType == typeof(System.Guid))
+            case TypeCode.Object:
+                if (propertyType.PropertyType == typeof(Guid))
                 {
-                    return System.Guid.Empty.ToString("c", System.Globalization.CultureInfo.InvariantCulture);
+                    return Guid.Empty.ToString("c", CultureInfo.InvariantCulture);
                 }
 
-                if (propertyType.PropertyType == typeof(System.TimeSpan))
+                if (propertyType.PropertyType == typeof(TimeSpan))
                 {
-                    return System.TimeSpan.Zero.ToString("c", System.Globalization.CultureInfo.InvariantCulture);
+                    return TimeSpan.Zero.ToString("c", CultureInfo.InvariantCulture);
                 }
 
                 break;
-            case System.TypeCode.Char:
-            case System.TypeCode.String:
+            case TypeCode.Char:
+            case TypeCode.String:
                 return string.Empty;
-            case System.TypeCode.Boolean:
+            case TypeCode.Boolean:
                 return "false";
-            case System.TypeCode.SByte:
-            case System.TypeCode.Byte:
-            case System.TypeCode.Int16:
-            case System.TypeCode.UInt16:
-            case System.TypeCode.Int32:
-            case System.TypeCode.UInt32:
-            case System.TypeCode.Int64:
-            case System.TypeCode.UInt64:
-            case System.TypeCode.Single:
-            case System.TypeCode.Double:
-            case System.TypeCode.Decimal:
+            case TypeCode.SByte:
+            case TypeCode.Byte:
+            case TypeCode.Int16:
+            case TypeCode.UInt16:
+            case TypeCode.Int32:
+            case TypeCode.UInt32:
+            case TypeCode.Int64:
+            case TypeCode.UInt64:
+            case TypeCode.Single:
+            case TypeCode.Double:
+            case TypeCode.Decimal:
                 return "0";
-            case System.TypeCode.DateTime:
-                return System.DateTime.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture);
-            case System.TypeCode.Empty:
+            case TypeCode.DateTime:
+                return DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+            case TypeCode.Empty:
                 break;
-            case System.TypeCode.DBNull:
+            case TypeCode.DBNull:
                 break;
             default:
                 break;
@@ -159,19 +166,19 @@ public partial class ConfigurationLoader
         return string.Empty;
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [DoesNotReturn]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    [return: NotNull]
     private static object ThrowUnsupported(PropertyMetadata property)
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Error($"[FW.{nameof(ConfigurationLoader)}:Internal] " +
                                        $"unsupported-type type={property.PropertyType.Name} info={property.PropertyInfo.Name} key={property.Name}");
 
-        throw new System.NotSupportedException(
+        throw new NotSupportedException(
             $"Value type {property.PropertyType.Name} is not supported for configuration files.");
     }
 }
