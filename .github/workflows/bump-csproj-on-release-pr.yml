@@ -1,0 +1,123 @@
+name: bump-csproj-on-release-pr
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened, edited, labeled]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    # Chỉ chạy trên PR do release-please tạo (có label 'autorelease: pending' hoặc title bắt đầu 'chore: release')
+    if: >
+      contains( join(fromJson(toJson(github.event.pull_request.labels)).*.name, ','), 'autorelease: pending' )
+      || startsWith(github.event.pull_request.title, 'chore: release')
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Show manifest (debug)
+        run: |
+          test -f .release-please-manifest.json && cat .release-please-manifest.json || echo "manifest missing"
+
+      - name: Patch .csproj versions from manifest
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $manifestPath = ".release-please-manifest.json"
+          if (-not (Test-Path $manifestPath)) {
+            Write-Host "No .release-please-manifest.json found. Nothing to do."
+            exit 0
+          }
+
+          $manifest = Get-Content -Raw $manifestPath | ConvertFrom-Json
+          if ($manifest.PSObject.Properties.Count -eq 0) {
+            Write-Host "Manifest is empty. Nothing to do."
+            exit 0
+          }
+
+          function Get-NumericFileVersion([string]$semver) {
+            # semver: MAJOR.MINOR.PATCH[-pre]
+            $core = $semver.Split('-',2)[0]
+            $parts = $core.Split('.')
+            while ($parts.Count -lt 3) { $parts += '0' }
+            return "{0}.{1}.{2}.0" -f $parts[0],$parts[1],$parts[2]
+          }
+
+          function Set-XmlValue([xml]$xml, [string]$elementName, [string]$value) {
+            $pg = $xml.Project.PropertyGroup | Select-Object -First 1
+            if (-not $pg) {
+              $pg = $xml.CreateElement('PropertyGroup')
+              $null = $xml.Project.AppendChild($pg)
+            }
+            $node = $pg.ChildNodes | Where-Object { $_.Name -eq $elementName } | Select-Object -First 1
+            if (-not $node) {
+              $node = $xml.CreateElement($elementName)
+              $null = $pg.AppendChild($node)
+            }
+            $node.InnerText = $value
+          }
+
+          $changed = $false
+          foreach ($prop in $manifest.PSObject.Properties) {
+            $componentPath = $prop.Name.TrimEnd('/','\')
+            $version = [string]$prop.Value
+
+            if (-not (Test-Path $componentPath)) {
+              Write-Host "::warning::Path not found in repo: $componentPath"
+              continue
+            }
+
+            $csprojs = Get-ChildItem -Path $componentPath -Recurse -Filter *.csproj
+            if ($csprojs.Count -eq 0) {
+              Write-Host "::warning::No .csproj in $componentPath"
+              continue
+            }
+
+            foreach ($proj in $csprojs) {
+              Write-Host "Patching $($proj.FullName) -> $version"
+              [xml]$xml = Get-Content $proj.FullName
+
+              Set-XmlValue -xml $xml -elementName 'Version' -value $version
+              Set-XmlValue -xml $xml -elementName 'PackageVersion' -value $version
+
+              $fileVer = Get-NumericFileVersion $version
+              Set-XmlValue -xml $xml -elementName 'FileVersion' -value $fileVer
+
+              # InformationalVersion: giữ pattern +$(SourceRevisionId) cho CI
+              Set-XmlValue -xml $xml -elementName 'InformationalVersion' -value ("{0}+$(SourceRevisionId)" -f $version)
+
+              $xml.Save($proj.FullName)
+              $changed = $true
+            }
+          }
+
+          if ($changed) {
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .
+            if ($(git status --porcelain).Length -gt 0) {
+              git commit -m "chore: bump csproj versions from release-please manifest"
+              git push
+            } else {
+              Write-Host "No changes to commit."
+            }
+          } else {
+            Write-Host "Nothing changed."
+          }
+
+      - name: Validate build (optional)
+        run: |
+          dotnet --info
+          dotnet build -c Release
