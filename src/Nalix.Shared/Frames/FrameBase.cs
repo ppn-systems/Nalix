@@ -24,6 +24,9 @@ public abstract class FrameBase : IPacket
     /// </summary>
     [SerializeIgnore] public abstract System.UInt16 Length { get; }
 
+    /// <inheritdoc/>
+    [SerializeIgnore] System.UInt16 IPacket.Length => this.Length;
+
     /// <summary>
     /// Gets the magic number used to identify the packet format.
     /// </summary>
@@ -48,8 +51,6 @@ public abstract class FrameBase : IPacket
     /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.TRANSPORT)] public ProtocolType Protocol { get; set; }
-
-    System.UInt16 IPacket.Length => this.Length;
 
     /// <inheritdoc/>
     public abstract void ResetForPool();
