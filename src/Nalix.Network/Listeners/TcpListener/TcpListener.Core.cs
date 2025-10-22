@@ -181,7 +181,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
                 try
                 {
                     _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                                .CancelGroup(NetTaskNames.TcpGroup(self._port));
+                                                .CancelGroup(NetworkTaskNames.TcpGroup(self._port));
                 }
                 catch { }
 

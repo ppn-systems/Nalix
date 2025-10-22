@@ -8,6 +8,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Connection;
+using Nalix.Network.Internal.Net;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -16,26 +17,29 @@ public abstract partial class UdpListenerBase
     private async System.Threading.Tasks.Task ReceiveDatagramsAsync(
         System.Threading.CancellationToken cancellationToken)
     {
-        System.ArgumentNullException.ThrowIfNull(this._udpClient);
-        System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
+        System.ArgumentNullException.ThrowIfNull(_udpClient);
+        System.ObjectDisposedException.ThrowIf(_isDisposed, this);
 
         while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
-                System.Net.Sockets.UdpReceiveResult result = await this._udpClient
-                    .ReceiveAsync(cancellationToken)
-                    .ConfigureAwait(false);
+                System.Net.Sockets.UdpReceiveResult result = await _udpClient.ReceiveAsync(cancellationToken)
+                                                                             .ConfigureAwait(false);
+
+                System.Int32 next = System.Threading.Interlocked.Increment(ref _procSeq);
+                System.Int32 idx = next & System.Int32.MaxValue;
 
                 _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.StartWorker(
-                    name: $"udp.proc.{_port}",
-                    group: $"udp.port.{_port}",
+                    name: NetworkTaskNames.UdpProcessWorker(_port, idx),
+                    group: NetworkTaskNames.UdpProcessGroup(_port),
                     work: (_, __) => { ProcessDatagram(result); return new System.Threading.Tasks.ValueTask(); },
                     options: new WorkerOptions
                     {
-                        Tag = "udp",
+                        Tag = nameof(NetworkTaskNames.Segments.Udp),
                         GroupConcurrencyLimit = Config.MaxGroupConcurrency,
-                        TryAcquireSlotImmediately = true
+                        TryAcquireSlotImmediately = true,
+                        CancellationToken = cancellationToken
                     });
             }
             catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
