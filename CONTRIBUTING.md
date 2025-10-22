@@ -28,13 +28,13 @@ This project and everyone participating in it is governed by the [Nalix Code of 
 2. Clone your fork locally:
 
    ```bash
-   git clone https://github.com/YOUR-USERNAME/Nalix.git
+   git clone https://github.com/ppn-systems/Nalix.git
    ```
 
 3. Add the original repository as upstream:
 
    ```bash
-   git remote add upstream https://github.com/phcnguyen/Nalix.git
+   git remote add upstream https://github.com/ppn-systems/Nalix.git
    ```
 
 4. Create a new branch for your feature or bugfix:

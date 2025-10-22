@@ -1,6 +1,6 @@
 # Code of Conduct 📜
 
-The [Nalix Organization](https://github.com/phcnguyen/nalix), its related [sinks][sinks] and [community projects][projects] have adopted the code of conduct defined by the [Contributor Covenant](http://contributor-covenant.org/) to clarify expected behavior in our community.
+The [Nalix Organization](https://github.com/ppn-systems/nalix), its related [sinks][sinks] and [community projects][projects] have adopted the code of conduct defined by the [Contributor Covenant](http://contributor-covenant.org/) to clarify expected behavior in our community.
 
 ## Our Pledge 🤝
 
@@ -36,12 +36,11 @@ This Code of Conduct applies within all project spaces, and it also applies when
 
 ## Enforcement ⚖️
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project team at [email@domain.com]. All complaints will be reviewed and investigated and will result in a response that is deemed necessary and appropriate to the circumstances. The project team is obligated to maintain confidentiality with regard to the reporter of an incident.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting the project team at [ppn.system@gmail.com]. All complaints will be reviewed and investigated and will result in a response that is deemed necessary and appropriate to the circumstances. The project team is obligated to maintain confidentiality with regard to the reporter of an incident.
 
 ## Attribution 📝
 
-This Code of Conduct is adapted from the [Contributor Covenant](http://contributor-covenant.org/), version 2.1, available at [here](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
-
+This Code of Conduct is adapted from the [Contributor Covenant](http://contributor-covenant.org/), version 2.1, available at [Contributor Covenant Code of Conduct v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
 <!-- Link definitions -->
-[sinks]: https://github.com/phcnguyen/notio#related-sinks
-[projects]: https://github.com/phcnguyen/notio#community-projects
+[sinks]: https://github.com/ppn-systems/nalix#related-sinks
+[projects]: https://github.com/ppn-systems/nalix/discussions
