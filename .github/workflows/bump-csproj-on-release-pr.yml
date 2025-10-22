@@ -2,7 +2,7 @@ name: bump-csproj-on-release-pr
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
     types: [opened, synchronize, reopened, edited, labeled]
   workflow_dispatch: {}
 
