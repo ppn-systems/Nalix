@@ -100,8 +100,8 @@ public sealed class PacketDispatchChannel
         Logger?.Trace($"[{nameof(PacketDispatchChannel)}:{Activate}] start");
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-            name: NetworkTaskNames.PacketDispatchWorker,
-            group: NetworkTaskNames.PacketDispatchGroup,
+            name: NetTaskCatalog.PacketDispatchWorker,
+            group: NetTaskCatalog.PacketDispatchGroup,
             work: async (ctx, ct) => await RunLoop(ctx, ct).ConfigureAwait(false),
             options: new WorkerOptions
             {

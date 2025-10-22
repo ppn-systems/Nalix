@@ -123,8 +123,8 @@ public abstract partial class TcpListenerBase
                     .ConfigureAwait(false);
 
                 _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-                    name: NetworkTaskNames.TcpProcessWorker(_port, connection.ID.ToString(true)),
-                    group: NetworkTaskNames.TcpProcessGroup(_port),
+                    name: NetTaskCatalog.TcpProcessWorker(_port, connection.ID.ToString(true)),
+                    group: NetTaskCatalog.TcpProcessGroup(_port),
                     work: async (_, _) =>
                     {
                         ProcessConnection(connection);
@@ -134,7 +134,7 @@ public abstract partial class TcpListenerBase
                     {
                         RetainFor = System.TimeSpan.Zero,
                         IdType = IdentifierType.System,
-                        Tag = NetworkTaskNames.Segments.Net
+                        Tag = NetTaskCatalog.Segments.Net
                     }
                 );
 
@@ -357,8 +357,8 @@ public abstract partial class TcpListenerBase
 
                     // Process the connection
                     _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-                        name: NetworkTaskNames.TcpProcessWorker(_port, connection.ID.ToString(true)),
-                        group: NetworkTaskNames.TcpProcessGroup(_port),
+                        name: NetTaskCatalog.TcpProcessWorker(_port, connection.ID.ToString(true)),
+                        group: NetTaskCatalog.TcpProcessGroup(_port),
                         work: async (_, _) =>
                         {
                             ProcessConnection(connection);
@@ -368,7 +368,7 @@ public abstract partial class TcpListenerBase
                         {
                             RetainFor = System.TimeSpan.Zero,
                             IdType = IdentifierType.System,
-                            Tag = NetworkTaskNames.Segments.Net
+                            Tag = NetTaskCatalog.Segments.Net
                         }
                     );
 
