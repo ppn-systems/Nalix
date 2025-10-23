@@ -5,7 +5,7 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
-namespace Nalix.Shared.Memory.Internal;
+namespace Nalix.Shared.Internal;
 
 /// <summary>
 /// Helper class to track disposal state and handle the actual disposal of the array.

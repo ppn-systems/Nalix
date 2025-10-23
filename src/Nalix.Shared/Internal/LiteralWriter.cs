@@ -7,7 +7,7 @@ using Nalix.Shared.Memory.Unsafe;
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.LZ4.Benchmarks")]
 #endif
 
-namespace Nalix.Shared.LZ4.Internal;
+namespace Nalix.Shared.Internal;
 
 /// <summary>
 /// Provides methods to efficiently write literal bytes directly to a memory destination.
