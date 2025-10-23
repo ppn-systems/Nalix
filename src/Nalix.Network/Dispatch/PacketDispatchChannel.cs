@@ -13,18 +13,17 @@ using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch.Channel;
 using Nalix.Network.Internal.Net;
-using Nalix.Shared.Extensions;
 
 namespace Nalix.Network.Dispatch;
 
 /// <summary>
-/// Represents an ultra-high performance raw dispatcher designed for asynchronous, queue-based processing
-/// with dependency injection (DI) support and flexible raw handling via reflection-based routing.
+/// Represents an ultra-high performance lease dispatcher designed for asynchronous, queue-based processing
+/// with dependency injection (DI) support and flexible lease handling via reflection-based routing.
 /// </summary>
 /// <remarks>
 /// <para>
 /// This dispatcher works by queuing incoming packets and processing them in a background loop. Packet handling
-/// is done asynchronously using handlers resolved via raw command IDs.
+/// is done asynchronously using handlers resolved via lease command IDs.
 /// </para>
 /// <para>
 /// It is suitable for high-throughput systems such as custom Reliable servers, IoT message brokers, or game servers
@@ -81,7 +80,7 @@ public sealed class PacketDispatchChannel
     #region Public Methods
 
     /// <summary>
-    /// Starts the raw processing loop
+    /// Starts the lease processing loop
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -112,7 +111,7 @@ public sealed class PacketDispatchChannel
     }
 
     /// <summary>
-    /// Stops the raw processing loop
+    /// Stops the lease processing loop
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -147,44 +146,21 @@ public sealed class PacketDispatchChannel
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void HandlePacket(IBufferLease? raw, IConnection connection)
+    public void HandlePacket(IBufferLease? lease, IConnection connection)
     {
-        try
+        if (lease is null || lease.Length <= 0)
         {
-            // 1) Fast-fail: empty payload
-            if (raw == null)
-            {
-                Logger?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] " +
-                             $"empty-payload ep={connection.RemoteEndPoint}");
-                return;
-            }
+            Logger?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] empty-payload ep={connection.RemoteEndPoint}");
+            lease?.Dispose();
 
-            // 2) Capture basic context once
-            System.Int32 len = raw.Length;
-            System.UInt32 magic = len >= 4 ? raw.Memory.Span.ReadMagicNumberLE() : 0u;
-
-            // 3) Try deserialize
-            if (!_catalog.TryDeserialize(raw.Span, out IPacket? packet) || packet is null)
-            {
-                // Log only a small head preview to avoid leaking large/secret data
-                System.String head = System.Convert.ToHexString(raw.Span[..System.Math.Min(16, len)]);
-                Logger?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] " +
-                             $"deserialize-none ep={connection.RemoteEndPoint} len={len} magic=0x{magic:X8} head={head}");
-                return;
-            }
-
-            // 4) Success trace (can be disabled in production)
-            Logger?.Trace($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] " +
-                          $"deserialized ep={connection.RemoteEndPoint} type={packet.GetType().Name} len={len} magic=0x{magic:X8}");
-
-            // 5) Dispatch to typed handler
-
-            this.HandlePacket(packet, connection);
+            return;
         }
-        finally
-        {
-            raw?.Dispose();
-        }
+
+        // Enqueue lease into the priority-aware channel (per-connection).
+        _dispatch.Push(connection, lease);
+
+        // Signal the worker that an item is available.
+        _ = _semaphore.Release();
     }
 
     /// <inheritdoc />
@@ -193,8 +169,9 @@ public sealed class PacketDispatchChannel
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(IPacket packet, IConnection connection)
     {
-        _dispatch.Push(packet, connection);
-        _ = _semaphore.Release();
+        // If you want typed fast-path, you can implement a separate typed channel.
+        // For now, process immediately to avoid mixing typed/lease queues.
+        _ = base.ExecutePacketHandlerAsync(packet, connection);
     }
 
     #endregion Public Methods
@@ -216,15 +193,38 @@ public sealed class PacketDispatchChannel
                 await _semaphore.WaitAsync(_cts.Token)
                                 .ConfigureAwait(false);
 
-                // Dequeue and process raw
-                if (!_dispatch.Pull(out IPacket packet, out IConnection connection))
+                // Pull from channel (priority-aware)
+                if (!_dispatch.Pull(out IConnection connection, out IBufferLease? lease))
                 {
-                    Logger?.Warn($"[{nameof(PacketDispatch)}:{nameof(RunLoop)}] dequeue-failed");
+                    // Rare: signaled but nothing pulled (remove/drain race)
+                    Logger?.Trace($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] pull-empty");
+                    lease?.Dispose();
+
                     continue;
                 }
 
-                await base.ExecutePacketHandlerAsync(packet, connection)
-                          .ConfigureAwait(false);
+                // Deserialize late (zero-alloc header reads were already done in the channel)
+                try
+                {
+                    if (!_catalog.TryDeserialize(lease.Span, out IPacket? packet) || packet is null)
+                    {
+                        // Warn with small head preview
+                        System.Int32 len = lease.Length;
+                        System.String head = System.Convert.ToHexString(lease.Span[..System.Math.Min(16, len)]);
+                        Logger?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.RemoteEndPoint} len={len} head={head}");
+                        continue;
+                    }
+
+                    await base.ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false);
+                }
+                catch (System.Exception ex)
+                {
+                    Logger?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] handle-error ep={connection.RemoteEndPoint}", ex);
+                }
+                finally
+                {
+                    lease?.Dispose();
+                }
 
                 ctx.Advance(1);
                 ctx.Beat();
@@ -232,7 +232,7 @@ public sealed class PacketDispatchChannel
         }
         catch (System.OperationCanceledException)
         {
-            // Normal cancellation, no need to log
+            // None cancellation, no need to log
         }
         catch (System.Exception ex)
         {
