@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Common.Packets.Abstractions;
 
@@ -25,31 +26,31 @@ public interface IDispatchChannel<TPacket> where TPacket : IPacket
     /// <summary>
     /// Adds a packet to the dispatch queue, associating it with a specific connection.
     /// </summary>
-    /// <param name="packet">
-    /// The packet to be added to the queue.
-    /// </param>
     /// <param name="connection">
     /// The connection associated with the packet.
     /// </param>
+    /// <param name="raw">
+    /// The packet to be added to the queue.
+    /// </param>
     /// <exception cref="System.ArgumentNullException">
-    /// Thrown when <paramref name="packet"/> or <paramref name="connection"/> is <see langword="null"/>.
+    /// Thrown when <paramref name="raw"/> or <paramref name="connection"/> is <see langword="null"/>.
     /// </exception>
-    void Push(TPacket packet, IConnection connection);
+    void Push(IConnection connection, IBufferLease raw);
 
     /// <summary>
     /// Attempts to retrieve a packet and its associated connection from the dispatch queue.
     /// </summary>
-    /// <param name="packet">
-    /// When this method returns, contains the retrieved packet,
-    /// or the default value of <typeparamref name="TPacket"/> if the queue is empty.
-    /// </param>
     /// <param name="connection">
     /// When this method returns, contains the connection associated with the retrieved packet,
     /// or <see langword="null"/> if the queue is empty.
+    /// </param>
+    /// <param name="raw">
+    /// When this method returns, contains the retrieved packet,
+    /// or the default value of <typeparamref name="TPacket"/> if the queue is empty.
     /// </param>
     /// <returns>
     /// <see langword="true"/> if a packet was successfully retrieved; otherwise,
     /// <see langword="false"/> if the queue is empty.
     /// </returns>
-    System.Boolean Pull(out TPacket packet, out IConnection connection);
+    System.Boolean Pull(out IConnection connection, out IBufferLease? raw);
 }
