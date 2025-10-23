@@ -1,7 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Enums;
-using Nalix.Common.Logging.Abstractions;
+using Nalix.Common.Logging;
 using Nalix.Common.Tasks;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;

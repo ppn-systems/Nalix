@@ -2,7 +2,6 @@
 
 using Nalix.Common.Enums;
 using Nalix.Framework.Cryptography.Aead;
-using Nalix.Framework.Cryptography.Formats;
 using Nalix.Framework.Cryptography.Symmetric;
 
 namespace Nalix.Framework.Cryptography;

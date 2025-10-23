@@ -2,7 +2,6 @@
 
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
-using Nalix.Common.Packets.Models;
 using Nalix.Shared.Extensions;
 
 namespace Nalix.Shared.Messaging.Catalog;
