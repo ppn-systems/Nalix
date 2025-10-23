@@ -49,7 +49,7 @@ public class Binary1024 : FrameBase, IPoolable, IPacketDeserializer<Binary1024>,
     {
         Data = [];
         Flags = PacketFlags.None;
-        Priority = PacketPriority.Normal;
+        Priority = PacketPriority.None;
         Transport = ProtocolType.NONE;
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)FrameMagicCode.BINARY1024;
@@ -162,7 +162,7 @@ public class Binary1024 : FrameBase, IPoolable, IPacketDeserializer<Binary1024>,
     {
         this.Data = [];
         this.Flags = PacketFlags.None;
-        this.Priority = PacketPriority.Normal;
+        this.Priority = PacketPriority.None;
         this.Transport = ProtocolType.NONE;
     }
 
