@@ -1,5 +1,5 @@
 ﻿using Nalix.Common.Attributes;
-using Nalix.Network.Dispatch;
+using Nalix.Network.Dispatch.Options;
 using Nalix.Shared.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;

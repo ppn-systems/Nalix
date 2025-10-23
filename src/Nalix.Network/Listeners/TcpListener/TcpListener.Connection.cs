@@ -3,7 +3,7 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Enums;
 using Nalix.Common.Exceptions;
-using Nalix.Common.Logging.Abstractions;
+using Nalix.Common.Logging;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;

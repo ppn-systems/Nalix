@@ -2,7 +2,6 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Tasks;
-using Nalix.Common.Tasks.Options;
 
 namespace Nalix.Framework.Tasks;
 

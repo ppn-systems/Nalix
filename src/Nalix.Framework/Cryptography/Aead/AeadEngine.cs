@@ -9,7 +9,6 @@
 
 using Nalix.Common.Enums;
 using Nalix.Framework.Cryptography.Aead.Suite;
-using Nalix.Framework.Cryptography.Formats;
 using Nalix.Framework.Cryptography.Symmetric.Suite;
 using Nalix.Framework.Randomization;
 

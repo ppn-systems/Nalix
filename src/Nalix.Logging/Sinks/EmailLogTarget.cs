@@ -1,8 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Exceptions;
-using Nalix.Common.Logging.Abstractions;
-using Nalix.Common.Logging.Models;
+using Nalix.Common.Logging;
 using Nalix.Logging.Options;
 
 namespace Nalix.Logging.Sinks;

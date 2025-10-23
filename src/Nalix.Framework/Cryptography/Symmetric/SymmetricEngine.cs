@@ -7,7 +7,6 @@
 // Now includes envelope helpers using SymmetricFormat (header || nonce || ciphertext).
 
 using Nalix.Common.Enums;
-using Nalix.Framework.Cryptography.Formats;
 using Nalix.Framework.Cryptography.Symmetric.Suite;
 using Nalix.Framework.Randomization;
 

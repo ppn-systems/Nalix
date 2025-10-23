@@ -1,7 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Abstractions;
-using Nalix.Common.Logging.Abstractions;
+using Nalix.Common.Logging;
 using Nalix.Common.Packets;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;

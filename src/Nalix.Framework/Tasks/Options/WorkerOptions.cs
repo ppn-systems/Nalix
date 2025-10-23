@@ -2,7 +2,6 @@
 
 using Nalix.Common.Enums;
 using Nalix.Common.Tasks;
-using Nalix.Common.Tasks.Options;
 
 namespace Nalix.Framework.Tasks.Options;
 
