@@ -1,7 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
-using Nalix.Logging.Engine;
 using Nalix.Logging.Internal.File;
 using Nalix.Logging.Options;
 
@@ -40,9 +39,9 @@ public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
     /// Initializes a new instance of the <see cref="ChannelFileLogTarget"/> class with default options.
     /// </summary>
     /// <remarks>
-    /// Uses the default <see cref="LogFormatter"/> and <see cref="FileLogOptions"/>.
+    /// Uses the default <see cref="NLogixFormatter"/> and <see cref="FileLogOptions"/>.
     /// </remarks>
-    public ChannelFileLogTarget() : this(new LogFormatter(false), new FileLogOptions())
+    public ChannelFileLogTarget() : this(new NLogixFormatter(false), new FileLogOptions())
     {
     }
 
@@ -50,7 +49,7 @@ public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
     /// Initializes a new instance of the <see cref="ChannelFileLogTarget"/> class with the specified options.
     /// </summary>
     /// <param name="options">The file log options to configure file paths, size limits, and rolling behavior.</param>
-    public ChannelFileLogTarget(FileLogOptions options) : this(new LogFormatter(false), options)
+    public ChannelFileLogTarget(FileLogOptions options) : this(new NLogixFormatter(false), options)
     {
     }
 
@@ -59,7 +58,7 @@ public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     /// <param name="configureOptions">An action that configures the <see cref="FileLogOptions"/> before use.</param>
     public ChannelFileLogTarget(System.Action<FileLogOptions> configureOptions)
-        : this(new LogFormatter(false), Configure(configureOptions))
+        : this(new NLogixFormatter(false), Configure(configureOptions))
     {
     }
 

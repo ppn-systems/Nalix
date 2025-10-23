@@ -1,7 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
-using Nalix.Logging.Engine;
 using Nalix.Logging.Options;
 using Nalix.Logging.Sinks;
 
@@ -35,7 +34,7 @@ public static partial class NLogixFx
     static NLogixFx()
     {
         MinimumLevel = LogLevel.Trace;
-        Publisher = new LogDistributor();
+        Publisher = new NLogixDistributor();
 
         FileLogOptions fileLoggerOpts = new()
         {

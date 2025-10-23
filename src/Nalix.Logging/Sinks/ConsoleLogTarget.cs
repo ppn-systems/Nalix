@@ -1,7 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
-using Nalix.Logging.Engine;
 
 namespace Nalix.Logging.Sinks;
 
@@ -36,7 +35,7 @@ public sealed class ConsoleLogTarget : ILoggerTarget
     /// <summary>
     /// Initializes a new instance of the <see cref="ConsoleLogTarget"/> class with a default log formatter.
     /// </summary>
-    public ConsoleLogTarget() : this(new LogFormatter(true))
+    public ConsoleLogTarget() : this(new NLogixFormatter(true))
     {
     }
 

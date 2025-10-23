@@ -3,14 +3,14 @@
 using Nalix.Common.Logging;
 using Nalix.Logging.Internal.Formatters;
 
-namespace Nalix.Logging.Engine;
+namespace Nalix.Logging;
 
 /// <summary>
 /// The Logging Formatter class provides methods for formatting log output.
 /// </summary>
 [System.Diagnostics.DebuggerDisplay("Colors={_colors}")]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-public class LogFormatter(System.Boolean colors = false) : ILoggerFormatter
+public class NLogixFormatter(System.Boolean colors = false) : ILoggerFormatter
 {
     private readonly System.Boolean _colors = colors;
 
@@ -20,7 +20,7 @@ public class LogFormatter(System.Boolean colors = false) : ILoggerFormatter
     /// <param name="logMsg">The log message to format.</param>
     /// <returns>The log format string.</returns>
     /// <example>
-    /// var formatter = new LogFormatter();
+    /// var formatter = new NLogixFormatter();
     /// string log = formatter.FormatLog(logEntry);
     /// </example>
     [System.Diagnostics.Contracts.Pure]
@@ -42,7 +42,7 @@ public class LogFormatter(System.Boolean colors = false) : ILoggerFormatter
     /// <param name="exception">The exception included (if any).</param>
     /// <returns>Log format string.</returns>
     /// <example>
-    /// string log = LogFormatter.FormatLogEntry(TimeStamp.UtcNow, LogLevel.Information, new EventId(1), "Sample message", null);
+    /// string log = NLogixFormatter.FormatLogEntry(TimeStamp.UtcNow, LogLevel.Information, new EventId(1), "Sample message", null);
     /// </example>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
