@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging.Abstractions;
 using Nalix.Framework.Injection;
@@ -19,7 +19,19 @@ public partial class ConfigurationLoader
     private static System.Object? GetConfigValue(
         IniConfig configFile,
         System.String section, PropertyMetadata property)
-        => property.TypeCode switch
+    {
+        // Handle Enums of any underlying type
+        if (property.PropertyType.IsEnum)
+        {
+            // Use reflection to call generic method
+            var method = typeof(IniConfig)
+                .GetMethod(nameof(IniConfig.GetEnum))
+                ?.MakeGenericMethod(property.PropertyType);
+
+            return method?.Invoke(configFile, [section, property.Name]);
+        }
+
+        return property.TypeCode switch
         {
             System.TypeCode.Char => configFile.GetChar(section, property.Name),
             System.TypeCode.Byte => configFile.GetByte(section, property.Name),
@@ -38,6 +50,7 @@ public partial class ConfigurationLoader
             System.TypeCode.DateTime => configFile.GetDateTime(section, property.Name),
             _ => ThrowUnsupported(property),
         };
+    }
 
     /// <summary>
     /// Handles empty configuration values by writing defaults to the file.
@@ -45,15 +58,24 @@ public partial class ConfigurationLoader
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void HandleEmptyValue(
         IniConfig configFile,
         System.String section,
         PropertyMetadata property)
     {
         System.Object? currentValue = property.PropertyInfo.GetValue(this);
-        System.String valueToWrite = currentValue?.ToString() ?? GetDefaultValueString(property.TypeCode);
+        System.String valueToWrite;
+
+        if (property.PropertyType.IsEnum)
+        {
+            valueToWrite = currentValue?.ToString() ?? System.Enum.GetValues(property.PropertyType).GetValue(0)!.ToString()!;
+        }
+        else
+        {
+            valueToWrite = currentValue?.ToString() ?? GetDefaultValueString(property.TypeCode);
+        }
 
         configFile.WriteValue(section, property.Name, valueToWrite);
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
