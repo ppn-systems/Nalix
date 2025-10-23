@@ -607,6 +607,56 @@ internal sealed class IniConfig
     }
 
     /// <summary>
+    /// Gets the value for the specified key in the specified section as an enum of type <typeparamref name="TEnum"/>.
+    /// </summary>
+    /// <typeparam name="TEnum">The enum type to parse.</typeparam>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The enum value if parsed successfully, otherwise null.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public TEnum? GetEnum<TEnum>(System.String section, System.String key)
+        where TEnum : struct, System.Enum
+    {
+        System.String cacheKey = $"{section}:{key}:enum:{typeof(TEnum).FullName}";
+
+        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        {
+            return (TEnum?)cachedValue;
+        }
+
+        System.String stringValue = GetString(section, key);
+        if (System.String.IsNullOrEmpty(stringValue))
+        {
+            return null;
+        }
+
+        // Try parse name (case-insensitive)
+        if (System.Enum.TryParse<TEnum>(stringValue, true, out var result))
+        {
+            _valueCache[cacheKey] = result;
+            return result;
+        }
+
+        // Try parse numeric value (handles all underlying types)
+        try
+        {
+            System.Object numeric = System.Convert.ChangeType(stringValue,
+                System.Enum.GetUnderlyingType(typeof(TEnum)),
+                System.Globalization.CultureInfo.InvariantCulture);
+
+            var boxed = (TEnum)System.Enum.ToObject(typeof(TEnum), numeric);
+            _valueCache[cacheKey] = boxed;
+            return boxed;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+
+    /// <summary>
     /// Gets all sections in the INI file.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
