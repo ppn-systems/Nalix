@@ -164,7 +164,7 @@ public sealed partial class Connection : IConnection
         {
             if (this._outer._cstream.Send(message))
             {
-                this._outer._onPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this._outer));
+                this._outer._onPostProcessEvent?.Invoke(this, _outer._evtArgs);
                 return true;
             }
 
@@ -176,6 +176,9 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc/>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [System.Obsolete(
+            "This method may produce multiple packets for large messages. " +
+            "Consider using a different approach for large data transmission.")]
         public System.Boolean Send(System.String message)
         {
             System.Int32 byteCount = System.Text.Encoding.UTF8.GetByteCount(message);
@@ -240,7 +243,7 @@ public sealed partial class Connection : IConnection
         {
             if (await this._outer._cstream.SendAsync(message, cancellationToken).ConfigureAwait(false))
             {
-                this._outer._onPostProcessEvent?.Invoke(this, new ConnectionEventArgs(this._outer));
+                this._outer._onPostProcessEvent?.Invoke(this, _outer._evtArgs);
                 return true;
             }
 
@@ -250,6 +253,9 @@ public sealed partial class Connection : IConnection
         }
 
         /// <inheritdoc/>
+        [System.Obsolete(
+            "This method may produce multiple packets for large messages. " +
+            "Consider using a different approach for large data transmission.")]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             System.String message,
             System.Threading.CancellationToken cancellationToken = default)

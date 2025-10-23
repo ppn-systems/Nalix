@@ -57,7 +57,7 @@ public static class ConnectionExtensions
 
             if (len >= STACK_THRESHOLD)
             {
-                System.Byte[] rented = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(len + 16);
+                System.Byte[] rented = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(len + 32);
 
                 try
                 {
