@@ -52,6 +52,7 @@ public sealed class PacketDispatchChannel
     private readonly System.Threading.CancellationTokenSource _cts = new();
 
     private System.Int32 _running;
+    private System.Int32 _dispatchLoops;
 
     #endregion Fields
 
@@ -96,18 +97,26 @@ public sealed class PacketDispatchChannel
                 ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token).Token
                 : _cts.Token;
 
-        Logger?.Trace($"[{nameof(PacketDispatchChannel)}:{Activate}] start");
+        // Decide how many parallel dispatch loops to start.
+        // Rule of thumb: cores/2, clamped to [2..12]
+        System.Int32 cores = System.Environment.ProcessorCount;
+        _dispatchLoops = System.Math.Clamp(cores / 2, 2, 12);
 
-        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-            name: NetTaskCatalog.PacketDispatchWorker,
-            group: NetTaskCatalog.PacketDispatchGroup,
-            work: async (ctx, ct) => await RunLoop(ctx, ct).ConfigureAwait(false),
-            options: new WorkerOptions
-            {
-                CancellationToken = linkedToken,
-                RetainFor = System.TimeSpan.Zero,
-                Tag = TaskNames.Tags.Dispatch
-            });
+        for (System.Int32 i = 0; i < _dispatchLoops; i++)
+        {
+            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+                name: $"{NetTaskCatalog.PacketDispatchWorker}_{i}",
+                group: NetTaskCatalog.PacketDispatchGroup,
+                work: async (ctx, ct) => await RunLoop(ctx, ct).ConfigureAwait(false),
+                options: new WorkerOptions
+                {
+                    CancellationToken = linkedToken,
+                    RetainFor = System.TimeSpan.Zero,
+                    Tag = TaskNames.Tags.Dispatch
+                });
+        }
+
+        Logger?.Trace($"[{nameof(PacketDispatchChannel)}:{Activate}] start");
     }
 
     /// <summary>
@@ -130,7 +139,15 @@ public sealed class PacketDispatchChannel
                 Logger?.Trace($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop");
             }
 
-            try { _ = _semaphore.Release(); } catch { /* ignore over-release */ }
+            try
+            {
+                System.Int32 releases = System.Math.Max(_dispatchLoops, 1);
+                for (System.Int32 i = 0; i < releases; i++)
+                {
+                    _ = _semaphore.Release();
+                }
+            }
+            catch { /* ignore over-release */ }
         }
         catch (System.ObjectDisposedException)
         {
