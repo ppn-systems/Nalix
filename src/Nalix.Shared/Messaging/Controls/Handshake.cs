@@ -49,7 +49,7 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     {
         Data = [];
         Flags = PacketFlags.None;
-        Priority = PacketPriority.Normal;
+        Priority = PacketPriority.None;
         Transport = ProtocolType.NONE;
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)FrameMagicCode.HANDSHAKE;
@@ -112,7 +112,7 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     {
         this.Data = [];
         this.Flags = PacketFlags.None;
-        this.Priority = PacketPriority.Normal;
+        this.Priority = PacketPriority.None;
         this.Transport = ProtocolType.NONE;
     }
 

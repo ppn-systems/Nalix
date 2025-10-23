@@ -44,7 +44,7 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
     {
         Flags = PacketFlags.None;
         Content = System.String.Empty;
-        Priority = PacketPriority.Normal;
+        Priority = PacketPriority.None;
         Transport = ProtocolType.NONE;
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)FrameMagicCode.TEXT256;
@@ -136,7 +136,7 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
     {
         this.Flags = PacketFlags.None;
         this.Content = System.String.Empty;
-        this.Priority = PacketPriority.Normal;
+        this.Priority = PacketPriority.None;
         this.Transport = ProtocolType.NONE;
     }
 

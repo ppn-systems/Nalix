@@ -52,7 +52,7 @@ public class Binary256 : FrameBase, IPoolable, IPacketDeserializer<Binary256>, I
     {
         Data = [];
         Flags = PacketFlags.None;
-        Priority = PacketPriority.Normal;
+        Priority = PacketPriority.None;
         Transport = ProtocolType.NONE;
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)FrameMagicCode.BINARY256;
@@ -165,7 +165,7 @@ public class Binary256 : FrameBase, IPoolable, IPacketDeserializer<Binary256>, I
     {
         this.Data = [];
         this.Flags = PacketFlags.None;
-        this.Priority = PacketPriority.Normal;
+        this.Priority = PacketPriority.None;
         this.Transport = ProtocolType.NONE;
     }
 
