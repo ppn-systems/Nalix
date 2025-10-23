@@ -1,12 +1,18 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
+using System.Text;
 using Nalix.Common.Diagnostics;
 using Nalix.Logging.Internal.Pooling;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Logging.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Logging.Benchmarks")]
 #endif
 
 namespace Nalix.Logging.Internal.Formatters;
@@ -14,8 +20,8 @@ namespace Nalix.Logging.Internal.Formatters;
 /// <summary>
 /// The Logging Formatter class provides methods for formatting log output.
 /// </summary>
-[System.Diagnostics.DebuggerDisplay("Colors={_colors}")]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[DebuggerDisplay("Colors={_colors}")]
+[ExcludeFromCodeCoverage]
 internal class LogFormatter(bool colors = false) : ILoggerFormatter
 {
     #region Fields
@@ -35,10 +41,10 @@ internal class LogFormatter(bool colors = false) : ILoggerFormatter
     /// var formatter = new NLogixFormatter();
     /// string log = formatter.FormatLog(logEntry);
     /// </example>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public string Format(LogEntry logMsg) => Format(logMsg.TimeStamp, logMsg.LogLevel, logMsg.EventId, logMsg.Message, logMsg.Exception);
 
     /// <summary>
@@ -53,16 +59,16 @@ internal class LogFormatter(bool colors = false) : ILoggerFormatter
     /// <example>
     /// string log = NLogixFormatter.FormatLogEntry(TimeStamp.UtcNow, LogLevel.Information, new EventId(1), "Sample message", null);
     /// </example>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public string Format(
-        System.DateTime timeStamp, LogLevel logLevel,
-        EventId eventId, string message, System.Exception? exception)
+        DateTime timeStamp, LogLevel logLevel,
+        EventId eventId, string message, Exception? exception)
     {
         // Use pooled StringBuilder for optimal memory usage
-        System.Text.StringBuilder logBuilder = StringBuilderPool.Rent(capacity: 256);
+        StringBuilder logBuilder = StringBuilderPool.Rent(capacity: 256);
 
         try
         {

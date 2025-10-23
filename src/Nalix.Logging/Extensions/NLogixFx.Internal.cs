@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Runtime.CompilerServices;
+
 using Nalix.Common.Diagnostics;
 
 namespace Nalix.Logging.Extensions;
@@ -9,8 +12,8 @@ public static partial class NLogixFx
 {
     private const string Sep = "================================================================================";
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static void PUBLISH_LOG_ENTRY(
         LogLevel level,
         string message,
@@ -32,8 +35,8 @@ public static partial class NLogixFx
         Publisher.Publish(new LogEntry(level, EventId.Empty, fullMessage, null));
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     internal static string FORMAT_LOG_MESSAGE(
         string message,
         string? sourceName,
@@ -61,7 +64,7 @@ public static partial class NLogixFx
 
         try
         {
-            if (extendedData is System.Exception ex)
+            if (extendedData is Exception ex)
             {
                 string m = ex.Message ?? "";
                 return $"{ex.GetType().Name}: {m}";

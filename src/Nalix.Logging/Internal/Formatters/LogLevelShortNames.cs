@@ -1,12 +1,15 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Diagnostics;
 
-
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Logging.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Logging.Benchmarks")]
 #endif
 
 namespace Nalix.Logging.Internal.Formatters;
@@ -14,8 +17,8 @@ namespace Nalix.Logging.Internal.Formatters;
 /// <summary>
 /// Provides high-performance formatting of logging levels with zero allocations.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[DebuggerNonUserCode]
+[ExcludeFromCodeCoverage]
 internal static class LogLevelShortNames
 {
     #region Constants
@@ -39,7 +42,7 @@ internal static class LogLevelShortNames
     /// Character buffer is organized as fixed-length segments with null terminators
     /// This enables fast slicing without calculating offsets each time
     /// </summary>
-    private static System.ReadOnlySpan<char> LogLevelChars =>
+    private static ReadOnlySpan<char> LogLevelChars =>
     [
         'N', 'O', 'N', 'E', '\0', // LogLevel.NONE        (0)
         'M', 'E', 'T', 'A', '\0', // LogLevel.Meta        (1)
@@ -55,16 +58,16 @@ internal static class LogLevelShortNames
 
     #region APIs
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.ReadOnlySpan<char> GetShortName(LogLevel logLevel)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public static ReadOnlySpan<char> GetShortName(LogLevel logLevel)
     {
         // Bounds checking with bitwise operation for performance
         if ((byte)logLevel >= MaxLogLevels)
         {
             // Fall back to the string representation for unknown levels
-            return System.MemoryExtensions.AsSpan(logLevel.ToString().ToUpperInvariant());
+            return MemoryExtensions.AsSpan(logLevel.ToString().ToUpperInvariant());
         }
 
         // Get the pre-computed span for this log level

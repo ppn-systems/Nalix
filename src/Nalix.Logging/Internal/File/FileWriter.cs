@@ -1,13 +1,21 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Environment;
 using Nalix.Logging.Exceptions;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Logging.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Logging.Benchmarks")]
 #endif
 
 namespace Nalix.Logging.Internal.File;
@@ -17,8 +25,8 @@ namespace Nalix.Logging.Internal.File;
 /// Daily rolling với index và file sharing an toàn giữa nhiều process.
 /// Không bao giờ throw trên IO — báo lỗi qua HandleFileError và drop gracefully.
 /// </summary>
-[System.Diagnostics.DebuggerDisplay("File={_currentPath,nq}, Size={_writtenBytesForCurrentFile}")]
-internal sealed class FileWriter : System.IDisposable
+[DebuggerDisplay("File={_currentPath,nq}, Size={_writtenBytesForCurrentFile}")]
+internal sealed class FileWriter : IDisposable
 {
     #region Constants
 
@@ -34,28 +42,28 @@ internal sealed class FileWriter : System.IDisposable
     /// <summary>
     /// ✅ Tạo 1 lần duy nhất — tránh allocation mỗi batch
     /// </summary>
-    private static readonly System.Text.UTF8Encoding s_utf8NoBom =
+    private static readonly UTF8Encoding s_utf8NoBom =
         new(encoderShouldEmitUTF8Identifier: false);
 
     /// <summary>
     /// ✅ Cache số byte của newline (không đổi trong suốt lifetime)
     /// </summary>
     private static readonly int s_newlineByteCount =
-        s_utf8NoBom.GetByteCount(System.Environment.NewLine);
+        s_utf8NoBom.GetByteCount(Environment.NewLine);
 
     #endregion Static Fields
 
     #region Fields
 
     private readonly FileLoggerProvider _provider;
-    private readonly System.Threading.Lock _fileLock = new();
+    private readonly Lock _fileLock = new();
 
     private bool _disposed;
     private int _currentIndex;
     private string? _currentPath;
-    private System.IO.FileStream? _stream;
-    private System.IO.StreamWriter? _writer;
-    private System.DateTime _currentDayLocal;
+    private FileStream? _stream;
+    private StreamWriter? _writer;
+    private DateTime _currentDayLocal;
     private long _writtenBytesForCurrentFile;
 
     #endregion Fields
@@ -64,14 +72,14 @@ internal sealed class FileWriter : System.IDisposable
 
     public FileWriter(FileLoggerProvider provider)
     {
-        _provider = provider ?? throw new System.ArgumentNullException(nameof(provider));
+        _provider = provider ?? throw new ArgumentNullException(nameof(provider));
         _currentIndex = 0;
         _writtenBytesForCurrentFile = 0;
-        _currentDayLocal = System.DateTime.MinValue;
+        _currentDayLocal = DateTime.MinValue;
 
         lock (_fileLock)
         {
-            _currentDayLocal = System.DateTime.Now.Date;
+            _currentDayLocal = DateTime.Now.Date;
             _currentIndex = 0;
             OPEN_NEXT_LOG_FILE_LOCKED();
         }
@@ -87,11 +95,11 @@ internal sealed class FileWriter : System.IDisposable
     /// </summary>
     /// <param name="entries">Danh sách entries cần ghi.</param>
     /// <param name="formatter">Formatter dùng để chuyển entry thành string.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     internal void WriteBatch(
-        System.Collections.Generic.List<LogEntry> entries,
+        List<LogEntry> entries,
         ILoggerFormatter formatter)
     {
         if (entries.Count == 0)
@@ -144,7 +152,7 @@ internal sealed class FileWriter : System.IDisposable
                 // ✅ Flush 1 lần sau toàn bộ batch — giảm số lần syscall
                 _writer.Flush();
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _provider.Options.HandleFileError?.Invoke(
                     new FileError(ex, _currentPath ?? "<unknown>"));
@@ -156,9 +164,9 @@ internal sealed class FileWriter : System.IDisposable
     }
 
     /// <summary>Flush buffer xuống disk ngay lập tức.</summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     internal void Flush()
     {
         lock (_fileLock)
@@ -209,9 +217,9 @@ internal sealed class FileWriter : System.IDisposable
 
         try
         {
-            _ = System.IO.Directory.CreateDirectory(Directories.LogsDirectory);
+            _ = Directory.CreateDirectory(Directories.LogsDirectory);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             _provider.Options.HandleFileError?.Invoke(new FileError(ex, Directories.LogsDirectory));
             CLOSE_LOG_FILE_LOCKED();
@@ -225,13 +233,13 @@ internal sealed class FileWriter : System.IDisposable
                 _currentIndex = 1;
             }
 
-            string filename = System.IO.Path.Combine(
+            string filename = Path.Combine(
                 Directories.LogsDirectory,
                 _provider.Options.BuildCustomFileName(_currentDayLocal, _currentIndex));
 
             try
             {
-                System.IO.FileInfo info = new(filename);
+                FileInfo info = new(filename);
 
                 // File đã tồn tại và đã vượt size limit → thử index tiếp theo
                 if (info.Exists && info.Length >= _provider.Options.MaxFileSizeBytes)
@@ -241,15 +249,15 @@ internal sealed class FileWriter : System.IDisposable
                 }
 
                 // Mở với FileShare.ReadWrite|Delete để nhiều process có thể dùng chung
-                _stream = new System.IO.FileStream(
+                _stream = new FileStream(
                     filename,
-                    System.IO.FileMode.Append,
-                    System.IO.FileAccess.Write,
-                    System.IO.FileShare.ReadWrite | System.IO.FileShare.Delete,
+                    FileMode.Append,
+                    FileAccess.Write,
+                    FileShare.ReadWrite | FileShare.Delete,
                     WriteBufferSize,
-                    System.IO.FileOptions.WriteThrough);
+                    FileOptions.WriteThrough);
 
-                _writer = new System.IO.StreamWriter(_stream, s_utf8NoBom)
+                _writer = new StreamWriter(_stream, s_utf8NoBom)
                 {
                     AutoFlush = false // Flush thủ công sau mỗi batch
                 };
@@ -265,7 +273,7 @@ internal sealed class FileWriter : System.IDisposable
 
                 return; // Thành công
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _provider.Options.HandleFileError?.Invoke(new FileError(ex, filename));
                 CLOSE_LOG_FILE_LOCKED();
@@ -275,7 +283,7 @@ internal sealed class FileWriter : System.IDisposable
 
         // Hết probe → báo lỗi và drop logs cho đến lần thử tiếp theo
         _provider.Options.HandleFileError?.Invoke(new FileError(
-            new System.IO.IOException("Exceeded max probes while selecting log file index."),
+            new IOException("Exceeded max probes while selecting log file index."),
             Directories.LogsDirectory));
 
         CLOSE_LOG_FILE_LOCKED();
@@ -290,12 +298,12 @@ internal sealed class FileWriter : System.IDisposable
 
         try
         {
-            System.Text.StringBuilder sb = new(256);
+            StringBuilder sb = new(256);
             _ = sb.AppendLine("-----------------------------------------------------");
-            _ = sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"Log File Created: {System.DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
-            _ = sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"USER: {System.Environment.UserName}");
-            _ = sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"Machine: {System.Environment.MachineName}");
-            _ = sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"OS: {System.Environment.OSVersion}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Log File Created: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"USER: {Environment.UserName}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Machine: {Environment.MachineName}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"OS: {Environment.OSVersion}");
             _ = sb.AppendLine("-----------------------------------------------------");
 
             string header = sb.ToString();
@@ -306,7 +314,7 @@ internal sealed class FileWriter : System.IDisposable
             // → chỉ cần đếm bytes của header, không cộng thêm newline
             _writtenBytesForCurrentFile += s_utf8NoBom.GetByteCount(header);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             _provider.Options.HandleFileError?.Invoke(
                 new FileError(ex, _currentPath ?? "<unknown>"));
@@ -319,7 +327,7 @@ internal sealed class FileWriter : System.IDisposable
     /// </summary>
     private void ENSURE_LOG_FILE_IS_READY_LOCKED()
     {
-        System.DateTime day = System.DateTime.Now.Date;
+        DateTime day = DateTime.Now.Date;
 
         // Sang ngày mới → reset và mở file mới
         if (day != _currentDayLocal)
