@@ -5,7 +5,6 @@ using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Protocols;
 using Nalix.Common.Serialization;
-using Nalix.Common.Serialization.Attributes;
 
 namespace Nalix.Shared.Messaging;
 
