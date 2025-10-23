@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Shared.Memory.Internal;
+using Nalix.Shared.Internal;
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
