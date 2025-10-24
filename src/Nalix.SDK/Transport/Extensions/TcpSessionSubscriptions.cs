@@ -1,6 +1,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Transport;
@@ -23,27 +27,27 @@ namespace Nalix.SDK.Transport.Extensions;
 /// underlying <c>FRAME_READER</c> receive loop is never faulted by subscriber code.
 /// </para>
 /// </remarks>
-[System.Runtime.CompilerServices.SkipLocalsInit]
+[SkipLocalsInit]
 public static class TcpSessionSubscriptions
 {
     // ── On<TPacket> ──────────────────────────────────────────────────────────
 
     /// <summary>
     /// Subscribes to strongly-typed packets.
-    /// Returns <see cref="System.IDisposable"/> for easy unsubscription.
+    /// Returns <see cref="IDisposable"/> for easy unsubscription.
     /// </summary>
     /// <typeparam name="TPacket"></typeparam>
     /// <param name="client"></param>
     /// <param name="handler"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.IDisposable On<TPacket>(
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static IDisposable On<TPacket>(
         this IClientConnection client,
-        System.Action<TPacket> handler)
+        Action<TPacket> handler)
         where TPacket : class, IPacket
     {
-        System.ArgumentNullException.ThrowIfNull(client);
-        System.ArgumentNullException.ThrowIfNull(handler);
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(handler);
 
         void Wrapper(object? _, IBufferLease buffer)
         {
@@ -57,7 +61,7 @@ public static class TcpSessionSubscriptions
 
                 handler(t);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 // Swallow handler exceptions — must not fault FRAME_READER receive loop.
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -78,21 +82,21 @@ public static class TcpSessionSubscriptions
 
     /// <summary>
     /// Subscribes with a predicate filter.
-    /// Returns <see cref="System.IDisposable"/> for easy unsubscription.
+    /// Returns <see cref="IDisposable"/> for easy unsubscription.
     /// </summary>
     /// <param name="client"></param>
     /// <param name="predicate"></param>
     /// <param name="handler"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.IDisposable On(
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static IDisposable On(
         this IClientConnection client,
-        System.Func<IPacket, bool> predicate,
-        System.Action<IPacket> handler)
+        Func<IPacket, bool> predicate,
+        Action<IPacket> handler)
     {
-        System.ArgumentNullException.ThrowIfNull(client);
-        System.ArgumentNullException.ThrowIfNull(predicate);
-        System.ArgumentNullException.ThrowIfNull(handler);
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(predicate);
+        ArgumentNullException.ThrowIfNull(handler);
 
         void Wrapper(object? _, IBufferLease buffer)
         {
@@ -110,7 +114,7 @@ public static class TcpSessionSubscriptions
 
                 handler(p);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"[SDK.On(predicate)] handler-error: {ex.Message}", ex);
@@ -129,22 +133,22 @@ public static class TcpSessionSubscriptions
 
     /// <summary>
     /// One-shot subscription: auto-unsubscribes after the first matching packet.
-    /// Thread-safe via <see cref="System.Threading.Interlocked"/>.
+    /// Thread-safe via <see cref="Interlocked"/>.
     /// </summary>
     /// <typeparam name="TPacket"></typeparam>
     /// <param name="client"></param>
     /// <param name="predicate"></param>
     /// <param name="handler"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.IDisposable OnOnce<TPacket>(
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static IDisposable OnOnce<TPacket>(
         this IClientConnection client,
-        System.Func<TPacket, bool> predicate,
-        System.Action<TPacket> handler)
+        Func<TPacket, bool> predicate,
+        Action<TPacket> handler)
         where TPacket : class, IPacket
     {
-        System.ArgumentNullException.ThrowIfNull(client);
-        System.ArgumentNullException.ThrowIfNull(handler);
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(handler);
 
         int fired = 0;
 
@@ -170,7 +174,7 @@ public static class TcpSessionSubscriptions
                 }
 
                 // Atomic once-guard: only the first arriving thread proceeds.
-                if (System.Threading.Interlocked.Exchange(ref fired, 1) != 0)
+                if (Interlocked.Exchange(ref fired, 1) != 0)
                 {
                     return;
                 }
@@ -181,7 +185,7 @@ public static class TcpSessionSubscriptions
 
                 handler(t);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 // Swallow — must not bubble up to FRAME_READER receive loop.
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -202,7 +206,7 @@ public static class TcpSessionSubscriptions
 
     /// <summary>
     /// Subscribes to strongly-typed packets for the duration of a scoped operation.
-    /// Automatically unsubscribes when the returned <see cref="System.IDisposable"/> is disposed.
+    /// Automatically unsubscribes when the returned <see cref="IDisposable"/> is disposed.
     /// </summary>
     /// <typeparam name="TPacket">The expected packet type.</typeparam>
     /// <param name="client">The connected client.</param>
@@ -214,7 +218,7 @@ public static class TcpSessionSubscriptions
     /// Optional handler invoked when the client disconnects while the subscription is active.
     /// </param>
     /// <returns>
-    /// An <see cref="System.IDisposable"/> that unsubscribes both handlers when disposed.
+    /// An <see cref="IDisposable"/> that unsubscribes both handlers when disposed.
     /// Always wrap in a <c>using</c> statement.
     /// </returns>
     /// <example>
@@ -227,25 +231,25 @@ public static class TcpSessionSubscriptions
     /// var response = await tcs.Task;
     /// </code>
     /// </example>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.IDisposable SubscribeTemp<TPacket>(
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static IDisposable SubscribeTemp<TPacket>(
         this IClientConnection client,
-        System.Action<TPacket> onMessage,
-        System.Action<System.Exception>? onDisconnected = null)
+        Action<TPacket> onMessage,
+        Action<Exception>? onDisconnected = null)
         where TPacket : class, IPacket
     {
-        System.ArgumentNullException.ThrowIfNull(client);
-        System.ArgumentNullException.ThrowIfNull(onMessage);
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(onMessage);
 
-        System.IDisposable msgSub = client.On(onMessage);
+        IDisposable msgSub = client.On(onMessage);
 
         if (onDisconnected is null)
         {
             return msgSub;
         }
 
-        void DisconnectHandler(object? _, System.Exception ex)
+        void DisconnectHandler(object? _, Exception ex)
         {
             try { onDisconnected(ex); } catch { }
         }
@@ -266,22 +270,22 @@ public static class TcpSessionSubscriptions
     /// <param name="predicate">Filter — only packets for which this returns <c>true</c> are forwarded.</param>
     /// <param name="onMessage">Handler invoked for each matching packet.</param>
     /// <param name="onDisconnected">Optional disconnect handler.</param>
-    /// <returns>An <see cref="System.IDisposable"/> that unsubscribes when disposed.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.IDisposable SubscribeTemp<TPacket>(
+    /// <returns>An <see cref="IDisposable"/> that unsubscribes when disposed.</returns>
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static IDisposable SubscribeTemp<TPacket>(
         this IClientConnection client,
-        System.Func<TPacket, bool> predicate,
-        System.Action<TPacket> onMessage,
-        System.Action<System.Exception>? onDisconnected = null)
+        Func<TPacket, bool> predicate,
+        Action<TPacket> onMessage,
+        Action<Exception>? onDisconnected = null)
         where TPacket : class, IPacket
     {
-        System.ArgumentNullException.ThrowIfNull(client);
-        System.ArgumentNullException.ThrowIfNull(predicate);
-        System.ArgumentNullException.ThrowIfNull(onMessage);
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(predicate);
+        ArgumentNullException.ThrowIfNull(onMessage);
 
         // Wrap predicate + handler into a single On<TPacket> subscription.
-        System.IDisposable msgSub = client.On<TPacket>(p =>
+        IDisposable msgSub = client.On<TPacket>(p =>
         {
             if (predicate(p))
             {
@@ -294,7 +298,7 @@ public static class TcpSessionSubscriptions
             return msgSub;
         }
 
-        void DisconnectHandler(object? _, System.Exception ex)
+        void DisconnectHandler(object? _, Exception ex)
         {
             try { onDisconnected(ex); } catch { }
         }
@@ -313,54 +317,54 @@ public static class TcpSessionSubscriptions
     /// </summary>
     /// <param name="_"></param>
     /// <param name="subs"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static CompositeSubscription Subscribe(
         this IClientConnection _,
-        params System.IDisposable[] subs)
+        params IDisposable[] subs)
         => new(subs);
 
     // ── Internal ─────────────────────────────────────────────────────────────
 
-    private sealed class Unsub(System.Action dispose) : System.IDisposable
+    private sealed class Unsub(Action dispose) : IDisposable
     {
-        private System.Action _dispose = dispose;
+        private Action _dispose = dispose;
 
         /// <inheritdoc/>
         public void Dispose()
-            => System.Threading.Interlocked.Exchange(ref _dispose!, null)?.Invoke();
+            => Interlocked.Exchange(ref _dispose!, null)?.Invoke();
     }
 }
 
 /// <summary>
-/// Groups multiple <see cref="System.IDisposable"/> subscriptions into one disposable handle.
+/// Groups multiple <see cref="IDisposable"/> subscriptions into one disposable handle.
 /// Thread-safe; supports adding new subscriptions after construction.
 /// </summary>
-public sealed class CompositeSubscription : System.IDisposable
+public sealed class CompositeSubscription : IDisposable
 {
     private int _disposed;
-    private volatile System.IDisposable[] _subs;
+    private volatile IDisposable[] _subs;
 
     /// <summary>
     /// Initializes a new <see cref="CompositeSubscription"/> with the specified subscriptions.
     /// </summary>
     /// <param name="subs"></param>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    public CompositeSubscription(params System.IDisposable[] subs) => _subs = subs ?? [];
+    [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
+    public CompositeSubscription(params IDisposable[] subs) => _subs = subs ?? [];
 
     /// <summary>
     /// Adds a new subscription.
     /// If already disposed, the subscription is disposed immediately.
     /// </summary>
     /// <param name="sub"></param>
-    public void Add(System.IDisposable sub)
+    public void Add(IDisposable sub)
     {
         if (sub is null)
         {
             return;
         }
 
-        if (System.Threading.Volatile.Read(ref _disposed) == 1)
+        if (Volatile.Read(ref _disposed) == 1)
         {
             sub.Dispose();
             return;
@@ -368,19 +372,19 @@ public sealed class CompositeSubscription : System.IDisposable
 
         while (true)
         {
-            System.IDisposable[] current = _subs;
-            System.IDisposable[] updated = new System.IDisposable[current.Length + 1];
-            System.Array.Copy(current, updated, current.Length);
+            IDisposable[] current = _subs;
+            IDisposable[] updated = new IDisposable[current.Length + 1];
+            Array.Copy(current, updated, current.Length);
             updated[^1] = sub;
 
-            if (System.Threading.Interlocked.CompareExchange(ref _subs, updated, current) == current)
+            if (Interlocked.CompareExchange(ref _subs, updated, current) == current)
             {
                 break;
             }
         }
 
         // Re-check disposed after insertion to handle race between Add and Dispose.
-        if (System.Threading.Volatile.Read(ref _disposed) == 1)
+        if (Volatile.Read(ref _disposed) == 1)
         {
             sub.Dispose();
         }
@@ -389,12 +393,12 @@ public sealed class CompositeSubscription : System.IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (System.Threading.Interlocked.Exchange(ref _disposed, 1) == 1)
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
         {
             return;
         }
 
-        foreach (System.IDisposable s in System.Threading.Interlocked.Exchange(ref _subs, []))
+        foreach (IDisposable s in Interlocked.Exchange(ref _subs, []))
         {
             try { s?.Dispose(); }
             catch { /* one bad subscription must not prevent others from being disposed */ }
@@ -403,16 +407,16 @@ public sealed class CompositeSubscription : System.IDisposable
 }
 
 /// <summary>
-/// An <see cref="System.IDisposable"/> that executes a delegate on disposal.
+/// An <see cref="IDisposable"/> that executes a delegate on disposal.
 /// Used internally to wrap event unsubscription delegates into a disposable handle.
 /// Thread-safe: the delegate is invoked at most once.
 /// </summary>
 /// <param name="onDispose"></param>
-internal sealed class DelegateDisposable(System.Action onDispose) : System.IDisposable
+internal sealed class DelegateDisposable(Action onDispose) : IDisposable
 {
-    private System.Action _onDispose = onDispose;
+    private Action _onDispose = onDispose;
 
     /// <inheritdoc/>
     public void Dispose()
-        => System.Threading.Interlocked.Exchange(ref _onDispose!, null)?.Invoke();
+        => Interlocked.Exchange(ref _onDispose!, null)?.Invoke();
 }
