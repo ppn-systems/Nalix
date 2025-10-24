@@ -1,12 +1,15 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Runtime.CompilerServices;
+
 namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
 {
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static string EllipseLeft(string value, int maxLen)
     {
         if (string.IsNullOrEmpty(value) || value.Length <= maxLen)
@@ -15,7 +18,7 @@ public abstract partial class UdpListenerBase
         }
         else
         {
-            return maxLen <= 3 ? new string('.', maxLen) : $"...{System.MemoryExtensions.AsSpan(value, value.Length - (maxLen - 3))}";
+            return maxLen <= 3 ? new string('.', maxLen) : $"...{MemoryExtensions.AsSpan(value, value.Length - (maxLen - 3))}";
         }
     }
 }

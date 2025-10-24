@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Common.Identity;
 using Nalix.Common.Security;
 
@@ -24,7 +25,7 @@ public sealed class ConnectionHubEventArgs(
     int maxConnections,
     ISnowflake triggeredConnectionId,
     string reason,
-    ConnectionHubStatistics snapshot) : System.EventArgs
+    ConnectionHubStatistics snapshot) : EventArgs
 {
 
     /// <summary>

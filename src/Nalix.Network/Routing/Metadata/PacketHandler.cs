@@ -1,6 +1,12 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 
 namespace Nalix.Network.Routing.Metadata;
@@ -15,14 +21,14 @@ namespace Nalix.Network.Routing.Metadata;
 /// <param name="method"></param>
 /// <param name="returnType"></param>
 /// <param name="compiledInvoker"></param>
-[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-[method: System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[StructLayout(LayoutKind.Sequential)]
+[method: MethodImpl(
+    MethodImplOptions.AggressiveInlining)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 public readonly struct PacketHandler<TPacket>(
     ushort opCode, PacketMetadata metadata,
-    object controllerInstance, System.Reflection.MethodInfo method, System.Type returnType,
-    System.Func<object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<object>> compiledInvoker) where TPacket : IPacket
+    object controllerInstance, MethodInfo method, Type returnType,
+    Func<object, PacketContext<TPacket>, ValueTask<object>> compiledInvoker) where TPacket : IPacket
 {
     #region Fields
 
@@ -34,7 +40,7 @@ public readonly struct PacketHandler<TPacket>(
     /// <summary>
     /// The return type of the handler method.
     /// </summary>
-    public readonly System.Type ReturnType = returnType;
+    public readonly Type ReturnType = returnType;
 
     /// <summary>
     /// Metadata metadata for this handler (e.g., timeout, rate limiting, permissions).
@@ -49,14 +55,14 @@ public readonly struct PacketHandler<TPacket>(
     /// <summary>
     /// The original method info, useful for debugging or reflection fallback.
     /// </summary>
-    public readonly System.Reflection.MethodInfo MethodInfo = method;
+    public readonly MethodInfo MethodInfo = method;
 
     /// <summary>
     /// A compiled delegate for invoking the handler directly.
     /// PERFORMANCE CRITICAL: avoids reflection and allocations.
     /// </summary>
-    public readonly System.Func<object, PacketContext<TPacket>,
-                    System.Threading.Tasks.ValueTask<object>> Invoker = compiledInvoker;
+    public readonly Func<object, PacketContext<TPacket>,
+                    ValueTask<object>> Invoker = compiledInvoker;
 
     #endregion Fields
 
@@ -68,11 +74,11 @@ public readonly struct PacketHandler<TPacket>(
     /// </summary>
     /// <param name="context">The packet context containing the request and metadata.</param>
     /// <returns>
-    /// A <see cref="System.Threading.Tasks.ValueTask{TResult}"/> that completes with the handler’s result.
+    /// A <see cref="ValueTask{TResult}"/> that completes with the handler’s result.
     /// </returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Threading.Tasks.ValueTask<object> ExecuteAsync(PacketContext<TPacket> context) => Invoker(Instance, context);
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    public ValueTask<object> ExecuteAsync(PacketContext<TPacket> context) => Invoker(Instance, context);
 
     /// <summary>
     /// Determines whether this handler can be executed for the specified packet context.
@@ -87,8 +93,8 @@ public readonly struct PacketHandler<TPacket>(
     /// <item><description>Custom filters</description></item>
     /// </list>
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
     public bool CanExecute(PacketContext<TPacket> _) => true;
 
     #endregion Methods

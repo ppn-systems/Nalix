@@ -1,6 +1,12 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Net;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Networking;
 
 namespace Nalix.Network.Connections;
@@ -8,11 +14,11 @@ namespace Nalix.Network.Connections;
 public sealed partial class Connection
 {
     /// <inheritdoc />
-    [System.Diagnostics.DebuggerNonUserCode]
-    [System.Runtime.CompilerServices.SkipLocalsInit]
-    [System.Diagnostics.DebuggerDisplay("{ToString()}")]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    internal readonly struct Endpoint : INetworkEndpoint, System.IEquatable<Endpoint>
+    [DebuggerNonUserCode]
+    [SkipLocalsInit]
+    [DebuggerDisplay("{ToString()}")]
+    [ExcludeFromCodeCoverage]
+    internal readonly struct Endpoint : INetworkEndpoint, IEquatable<Endpoint>
     {
         /// <summary>
         /// Gets an empty endpoint (no IP, no port).
@@ -30,54 +36,54 @@ public sealed partial class Connection
         #region Factory
 
         /// <inheritdoc />
-        [System.Diagnostics.Contracts.Pure]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [Pure]
+        [MethodImpl(
+            MethodImplOptions.AggressiveOptimization)]
+        [return: NotNull]
         public static Endpoint FromIpAddress(
-            [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress ip)
+            [NotNull] IPAddress ip)
         {
             NormalizeAddress(ip, out ulong hi, out ulong lo, out bool isV6);
             return new Endpoint(hi, lo, 0, isV6, hasPort: false);
         }
 
         /// <inheritdoc />
-        [System.Diagnostics.Contracts.Pure]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [Pure]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining |
+            MethodImplOptions.AggressiveOptimization)]
+        [return: NotNull]
         public static Endpoint FromEndPoint(
-            [System.Diagnostics.CodeAnalysis.AllowNull] System.Net.EndPoint endpoint)
+            [AllowNull] EndPoint endpoint)
         {
-            if (endpoint is not System.Net.IPEndPoint ipEndPoint)
+            if (endpoint is not IPEndPoint ipEndPoint)
             {
-                throw new System.ArgumentException("Endpoint must be of type IPEndPoint.", nameof(endpoint));
+                throw new ArgumentException("Endpoint must be of type IPEndPoint.", nameof(endpoint));
             }
 
             NormalizeAddress(ipEndPoint.Address, out ulong hi, out ulong lo, out bool isV6);
             return new Endpoint(hi, lo, ipEndPoint.Port, isV6, hasPort: true);
         }
 
-        [System.Diagnostics.Contracts.Pure]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        [Pure]
+        [MethodImpl(
+            MethodImplOptions.AggressiveOptimization)]
         private static void NormalizeAddress(
-            [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress ip,
-            [System.Diagnostics.CodeAnalysis.NotNull] out ulong hi,
-            [System.Diagnostics.CodeAnalysis.NotNull] out ulong lo,
-            [System.Diagnostics.CodeAnalysis.NotNull] out bool isV6)
+            [NotNull] IPAddress ip,
+            [NotNull] out ulong hi,
+            [NotNull] out ulong lo,
+            [NotNull] out bool isV6)
         {
             if (ip.IsIPv4MappedToIPv6)
             {
                 ip = ip.MapToIPv4();
             }
 
-            System.Span<byte> buf = stackalloc byte[16];
+            Span<byte> buf = stackalloc byte[16];
             if (!ip.TryWriteBytes(buf, out int written))
             {
                 byte[] tmp = ip.GetAddressBytes();
-                System.MemoryExtensions.CopyTo(tmp, buf);
+                MemoryExtensions.CopyTo(tmp, buf);
                 written = tmp.Length;
             }
 
@@ -118,10 +124,10 @@ public sealed partial class Connection
         /// <inheritdoc />
         public string Address
         {
-            [System.Diagnostics.Contracts.Pure]
-            [System.Runtime.CompilerServices.MethodImpl(
-                System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-                System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+            [Pure]
+            [MethodImpl(
+                MethodImplOptions.NoInlining |
+                MethodImplOptions.AggressiveOptimization)]
             get
             {
                 if (!IsIPv6)
@@ -130,40 +136,40 @@ public sealed partial class Connection
                     uint v4 = (uint)_lo;
                     byte[] bytes = new byte[4];
                     System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(bytes, v4);
-                    return new System.Net.IPAddress(bytes).ToString();
+                    return new IPAddress(bytes).ToString();
                 }
-                System.Span<byte> buf = stackalloc byte[16];
+                Span<byte> buf = stackalloc byte[16];
                 System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(buf, _hi);
                 System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(buf[8..], _lo);
 
-                return new System.Net.IPAddress(buf).ToString();
+                return new IPAddress(buf).ToString();
             }
         }
 
         /// <inheritdoc />
         public int Port
         {
-            [System.Diagnostics.Contracts.Pure]
-            [System.Runtime.CompilerServices.MethodImpl(
-                System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            [Pure]
+            [MethodImpl(
+                MethodImplOptions.AggressiveInlining)]
             get => HasPort ? _port : 0;
         }
 
         /// <inheritdoc />
         public bool HasPort
         {
-            [System.Diagnostics.Contracts.Pure]
-            [System.Runtime.CompilerServices.MethodImpl(
-                System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            [Pure]
+            [MethodImpl(
+                MethodImplOptions.AggressiveInlining)]
             get;
         }
 
         /// <inheritdoc />
         public bool IsIPv6
         {
-            [System.Diagnostics.Contracts.Pure]
-            [System.Runtime.CompilerServices.MethodImpl(
-                System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            [Pure]
+            [MethodImpl(
+                MethodImplOptions.AggressiveInlining)]
             get;
         }
 
@@ -172,10 +178,10 @@ public sealed partial class Connection
         #region Equality & hashing
 
         /// <inheritdoc />
-        [System.Diagnostics.Contracts.Pure]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [Pure]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
+        [return: NotNull]
         public bool Equals(Endpoint other)
         {
             return _hi == other._hi &&
@@ -186,11 +192,11 @@ public sealed partial class Connection
         }
 
         /// <inheritdoc />
-        [System.Diagnostics.Contracts.Pure]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public bool Equals([System.Diagnostics.CodeAnalysis.AllowNull] INetworkEndpoint other)
+        [Pure]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
+        [return: NotNull]
+        public bool Equals([AllowNull] INetworkEndpoint other)
         {
             if (other is null)
             {
@@ -203,38 +209,38 @@ public sealed partial class Connection
                 : string.Equals(
                 Address,
                 other.Address,
-                System.StringComparison.Ordinal);
+                StringComparison.Ordinal);
         }
 
         /// <inheritdoc />
-        [System.Diagnostics.Contracts.Pure]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public override bool Equals([System.Diagnostics.CodeAnalysis.AllowNull] object obj) =>
+        [Pure]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
+        [return: NotNull]
+        public override bool Equals([AllowNull] object obj) =>
             obj is Endpoint k && Equals(k);
 
         /// <inheritdoc />
-        [System.Diagnostics.Contracts.Pure]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [Pure]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
+        [return: NotNull]
         public override int GetHashCode()
         {
             int port = HasPort ? _port : 0;
-            return System.HashCode.Combine(_hi, _lo, IsIPv6, HasPort, port);
+            return HashCode.Combine(_hi, _lo, IsIPv6, HasPort, port);
         }
 
         /// <inheritdoc />
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
+        [return: NotNull]
         public static bool operator ==(Endpoint left, Endpoint right) => left.Equals(right);
 
         /// <inheritdoc />
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
+        [return: NotNull]
         public static bool operator !=(Endpoint left, Endpoint right) => !left.Equals(right);
 
         #endregion Equality & hashing
@@ -242,10 +248,10 @@ public sealed partial class Connection
         #region Formatting
 
         /// <inheritdoc />
-        [System.Diagnostics.Contracts.Pure]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [Pure]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
+        [return: NotNull]
         public override string ToString()
         {
             string addr = Address;

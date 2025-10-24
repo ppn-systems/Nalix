@@ -1,6 +1,12 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Nalix.Common.Networking.Packets;
 
 namespace Nalix.Network.Routing.Metadata;
@@ -21,19 +27,19 @@ namespace Nalix.Network.Routing.Metadata;
 /// This struct uses sequential layout and is optimized for performance in network dispatch systems.
 /// All attributes are immutable for safe usage in high-throughput scenarios.
 /// </remarks>
-[System.Runtime.InteropServices.StructLayout(
-    System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]
-[method: System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[StructLayout(
+    LayoutKind.Sequential, Pack = 1)]
+[method: MethodImpl(
+    MethodImplOptions.AggressiveInlining)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 public readonly struct PacketMetadata(
-    [System.Diagnostics.CodeAnalysis.NotNull] PacketOpcodeAttribute opCode,
-    [System.Diagnostics.CodeAnalysis.AllowNull] PacketTimeoutAttribute timeout,
-    [System.Diagnostics.CodeAnalysis.AllowNull] PacketPermissionAttribute permission,
-    [System.Diagnostics.CodeAnalysis.AllowNull] PacketEncryptionAttribute encryption,
-    [System.Diagnostics.CodeAnalysis.AllowNull] PacketRateLimitAttribute rateLimit,
-    [System.Diagnostics.CodeAnalysis.AllowNull] PacketConcurrencyLimitAttribute concurrencyLimit,
-    System.Collections.Generic.IReadOnlyDictionary<System.Type, System.Attribute> customAttributes = null)
+    [NotNull] PacketOpcodeAttribute opCode,
+    [AllowNull] PacketTimeoutAttribute timeout,
+    [AllowNull] PacketPermissionAttribute permission,
+    [AllowNull] PacketEncryptionAttribute encryption,
+    [AllowNull] PacketRateLimitAttribute rateLimit,
+    [AllowNull] PacketConcurrencyLimitAttribute concurrencyLimit,
+    IReadOnlyDictionary<Type, Attribute> customAttributes = null)
 {
     /// <summary>
     /// Gets the operation code attribute which uniquely identifies the type of packet.
@@ -72,10 +78,10 @@ public readonly struct PacketMetadata(
 
     /// <summary>
     /// Gets a read-only dictionary of custom metadata attributes,
-    /// keyed by their concrete <see cref="System.Type"/>.
+    /// keyed by their concrete <see cref="Type"/>.
     /// </summary>
-    public readonly System.Collections.Generic.IReadOnlyDictionary<System.Type, System.Attribute> CustomAttributes = customAttributes
-        ?? new System.Collections.Generic.Dictionary<System.Type, System.Attribute>();
+    public readonly IReadOnlyDictionary<Type, Attribute> CustomAttributes = customAttributes
+        ?? new Dictionary<Type, Attribute>();
 
     /// <summary>
     /// Gets a custom attribute of the specified type if it exists.
@@ -84,6 +90,6 @@ public readonly struct PacketMetadata(
     /// <returns>
     /// The attribute instance if it exists; otherwise, <see langword="null"/>.
     /// </returns>
-    public TAttribute GetCustomAttribute<TAttribute>() where TAttribute : System.Attribute
-        => CustomAttributes.TryGetValue(typeof(TAttribute), out System.Attribute value) ? (TAttribute)value : null;
+    public TAttribute GetCustomAttribute<TAttribute>() where TAttribute : Attribute
+        => CustomAttributes.TryGetValue(typeof(TAttribute), out Attribute value) ? (TAttribute)value : null;
 }

@@ -1,6 +1,10 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Threading;
+
 namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
@@ -26,17 +30,17 @@ public abstract partial class TcpListenerBase
         /// <summary>
         /// Gets the total number of acceptance errors.
         /// </summary>
-        public long TotalErrors => System.Threading.Volatile.Read(ref _totalErrors);
+        public long TotalErrors => Volatile.Read(ref _totalErrors);
 
         /// <summary>
         /// Gets the total number of accepted connections.
         /// </summary>
-        public long TotalAccepted => System.Threading.Volatile.Read(ref _totalAccepted);
+        public long TotalAccepted => Volatile.Read(ref _totalAccepted);
 
         /// <summary>
         /// Gets the total number of rejected connections.
         /// </summary>
-        public long TotalRejected => System.Threading.Volatile.Read(ref _totalRejected);
+        public long TotalRejected => Volatile.Read(ref _totalRejected);
 
         #endregion Properties
 
@@ -45,23 +49,23 @@ public abstract partial class TcpListenerBase
         /// <summary>
         /// Records a successfully accepted connection.
         /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        internal void RECORD_ACCEPTED() => System.Threading.Interlocked.Increment(ref _totalAccepted);
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
+        internal void RECORD_ACCEPTED() => Interlocked.Increment(ref _totalAccepted);
 
         /// <summary>
         /// Records a rejected connection attempt.
         /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        internal void RECORD_REJECTED() => System.Threading.Interlocked.Increment(ref _totalRejected);
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
+        internal void RECORD_REJECTED() => Interlocked.Increment(ref _totalRejected);
 
         /// <summary>
         /// Records an acceptance error.
         /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        internal void RECORD_ERROR() => System.Threading.Interlocked.Increment(ref _totalErrors);
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
+        internal void RECORD_ERROR() => Interlocked.Increment(ref _totalErrors);
 
         #endregion Internal Methods
     }
@@ -72,9 +76,9 @@ public abstract partial class TcpListenerBase
     /// <inheritdoc/>
     public LMetrics Metrics
     {
-        [System.Diagnostics.DebuggerStepThrough]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [DebuggerStepThrough]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
         get;
     } = new();
 

@@ -1,6 +1,10 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Shared;
@@ -8,7 +12,7 @@ using Nalix.Common.Shared;
 namespace Nalix.Network.Routing.Channel;
 
 /// <inheritdoc/>
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TPacket : IPacket
 {
     #region Fields
@@ -60,17 +64,17 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
 
     /// <inheritdoc/>
     public void Push(
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection,
-        [System.Diagnostics.CodeAnalysis.NotNull] IBufferLease raw)
+        [NotNull] IConnection connection,
+        [NotNull] IBufferLease raw)
         => GET_SHARD(connection).Push(connection, raw);
 
     /// <inheritdoc/>
     public bool Pull(
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IConnection connection,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease raw)
+        [NotNullWhen(true)] out IConnection connection,
+        [NotNullWhen(true)] out IBufferLease raw)
     {
         // Simple round-robin or random over shards
-        int start = System.Threading.Interlocked.Increment(ref _pullIndex) & _mask;
+        int start = Interlocked.Increment(ref _pullIndex) & _mask;
 
         for (int i = 0; i < _shards.Length; i++)
         {
@@ -95,8 +99,8 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
     /// </summary>
     /// <param name="connection"></param>
     /// <returns></returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private DispatchChannel<TPacket> GET_SHARD(IConnection connection) => _shards[connection.ID.GetHashCode() & _mask];
 
     #endregion Private Methods

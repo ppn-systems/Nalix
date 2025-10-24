@@ -1,6 +1,11 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Diagnostics;
 using Nalix.Framework.Injection;
 
@@ -8,12 +13,12 @@ namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
 {
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private void Initialize()
     {
-        _udpClient = new System.Net.Sockets.UdpClient(_port)
+        _udpClient = new UdpClient(_port)
         {
             Client = { ExclusiveAddressUse = !Config.ReuseAddress }
         };
@@ -24,14 +29,14 @@ public abstract partial class UdpListenerBase
                                 .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] init-ok port={_port} reuse={Config.ReuseAddress} buf={Config.BufferSize}");
     }
 
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    [SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+    [SuppressMessage(
         "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
-    private static void ConfigureHighPerformanceSocket(System.Net.Sockets.Socket socket)
+    private static void ConfigureHighPerformanceSocket(Socket socket)
     {
         socket.Blocking = false;
         socket.NoDelay = Config.NoDelay;
@@ -40,21 +45,21 @@ public abstract partial class UdpListenerBase
 
         if (Config.KeepAlive)
         {
-            socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Socket,
-                                   System.Net.Sockets.SocketOptionName.KeepAlive, true);
+            socket.SetSocketOption(SocketOptionLevel.Socket,
+                                   SocketOptionName.KeepAlive, true);
 
-            if (System.OperatingSystem.IsWindows())
+            if (OperatingSystem.IsWindows())
             {
                 const int on = 1;
                 const int time = 3_000;
                 const int interval = 1_000;
 
-                System.Span<byte> keepAlive = stackalloc byte[12];
+                Span<byte> keepAlive = stackalloc byte[12];
                 System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(keepAlive[..4], on);
                 System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(keepAlive.Slice(4, 4), time);
                 System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(keepAlive.Slice(8, 4), interval);
 
-                _ = socket.IOControl(System.Net.Sockets.IOControlCode.KeepAliveValues, keepAlive.ToArray(), null);
+                _ = socket.IOControl(IOControlCode.KeepAliveValues, keepAlive.ToArray(), null);
             }
         }
     }
