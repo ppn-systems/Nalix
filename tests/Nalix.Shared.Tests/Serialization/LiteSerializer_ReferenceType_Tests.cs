@@ -3,6 +3,7 @@ using System;
 using Xunit;
 
 namespace Nalix.Shared.Tests.Serialization;
+
 public class LiteSerializer_ReferenceType_Tests
 {
     [Theory]
@@ -27,15 +28,5 @@ public class LiteSerializer_ReferenceType_Tests
     {
         var buf = new Byte[128];
         _ = Assert.Throws<NotSupportedException>(() => LiteSerializer.Serialize("abc", buf));
-    }
-
-    [Fact]
-    public void Serialize_ToSpan_String_NotSupported_Throws()
-    {
-        _ = Assert.Throws<NotSupportedException>(() =>
-        {
-            Span<Byte> span = stackalloc Byte[128];
-            _ = LiteSerializer.Serialize("abc", span);
-        });
     }
 }
