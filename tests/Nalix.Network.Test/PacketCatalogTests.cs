@@ -1,8 +1,6 @@
 ﻿using Nalix.Common.Caching;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
-using Nalix.Common.Packets.Enums;
-using Nalix.Common.Packets.Models;
 using Nalix.Common.Protocols;
 using Nalix.Shared.Messaging.Catalog;
 using System;

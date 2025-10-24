@@ -1,13 +1,15 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Shared.Memory.Unsafe;
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.LZ4.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.LZ4.Benchmarks")]
 #endif
 
-namespace Nalix.Shared.Internal;
+namespace Nalix.Shared.Memory.Internal;
 
 /// <summary>
 /// Provides methods to efficiently write literal bytes directly to a memory destination.

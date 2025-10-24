@@ -2,7 +2,7 @@
 
 using Nalix.Framework.Cryptography.Primitives;
 
-namespace Nalix.Framework.Cryptography.Symmetric.Suite;
+namespace Nalix.Framework.Cryptography.Symmetric;
 
 /// <summary>
 /// Speck 128/256: 128-bit block cipher with a 256-bit s.

@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Shared.Memory.Unsafe;
+namespace Nalix.Shared.Memory.Internal;
 
 /// <summary>
 /// Helper methods for working with Spans.
@@ -8,7 +8,7 @@ namespace Nalix.Shared.Memory.Unsafe;
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-public static unsafe class SpanOps
+internal static unsafe class SpanOps
 {
     /// <summary>
     /// Ensures the requested slice is within the span bounds.

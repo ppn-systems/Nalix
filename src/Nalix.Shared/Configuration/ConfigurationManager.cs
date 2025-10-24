@@ -252,7 +252,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         _configLock.Dispose();
         _configContainerDict.Clear();
 
-        base.Dispose();
+        Dispose();
     }
 
     #endregion Protected Methods
