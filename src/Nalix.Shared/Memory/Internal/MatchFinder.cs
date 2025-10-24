@@ -1,14 +1,14 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Shared.LZ4.Encoders;
-using Nalix.Shared.Memory.Unsafe;
+
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.LZ4.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.LZ4.Benchmarks")]
 #endif
 
-namespace Nalix.Shared.Internal;
+namespace Nalix.Shared.Memory.Internal;
 
 /// <summary>
 /// Provides functionality for finding matches in input data using a hash table.

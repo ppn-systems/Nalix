@@ -5,14 +5,6 @@
 // and Symmetric (header || nonce || ciphertext) formats.
 // Header + nonce SHOULD be included in AEAD AAD.
 
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-//
-// Span-first envelope serializer/parser for Nalix envelopes.
-// Supports both AEAD (header || nonce || ciphertext || tag16)
-// and Symmetric (header || nonce || ciphertext) formats.
-// Header + nonce SHOULD be included in AEAD AAD.
-
 using Nalix.Common.Enums;
 
 #if DEBUG
