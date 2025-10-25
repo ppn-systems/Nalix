@@ -6,10 +6,12 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Networking.Protocols;
+using Nalix.Common.Security.Enums;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Registry;
+using Nalix.Shared.Security;
 using Nalix.Shared.Serialization;
 using System.Linq;
 
@@ -166,6 +168,51 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
 
         return packet;
     }
+
+    /// <summary>
+    /// Encrypts the provided packet using the specified symmetric key and cipher suite.
+    /// </summary>
+    /// <param name="packet">The packet to encrypt. Must not be <c>null</c>.</param>
+    /// <param name="key">The symmetric key bytes used for encryption. Must not be <c>null</c> or empty.</param>
+    /// <param name="algorithm">The cipher suite to use for encryption.</param>
+    /// <returns>
+    /// A new instance of <typeparamref name="TSelf"/> representing the encrypted packet
+    /// (the returned instance may be the same object mutated by the underlying encryptor).
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown when <paramref name="packet"/> or <paramref name="key"/> is <c>null</c>.
+    /// </exception>
+    /// <exception cref="System.ArgumentException">
+    /// Thrown when <paramref name="key"/> is empty or has an invalid length for the chosen algorithm.
+    /// </exception>
+    /// <exception cref="System.Security.Cryptography.CryptographicException">
+    /// Thrown when a cryptographic operation fails.
+    /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static TSelf Encrypt(TSelf packet, System.Byte[] key, CipherSuiteType algorithm) => EnvelopeEncryptor.Encrypt<TSelf>(packet, key, algorithm);
+
+    /// <summary>
+    /// Decrypts the provided packet using the specified symmetric key.
+    /// </summary>
+    /// <param name="packet">The packet to decrypt. Must not be <c>null</c>.</param>
+    /// <param name="key">The symmetric key bytes used for decryption. Must not be <c>null</c> or empty.</param>
+    /// <returns>
+    /// A new instance of <typeparamref name="TSelf"/> representing the decrypted packet
+    /// (the returned instance may be the same object mutated by the underlying decryptor).
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown when <paramref name="packet"/> or <paramref name="key"/> is <c>null</c>.
+    /// </exception>
+    /// <exception cref="System.ArgumentException">
+    /// Thrown when <paramref name="key"/> is empty or has an invalid length.
+    /// </exception>
+    /// <exception cref="System.Security.Cryptography.CryptographicException">
+    /// Thrown when a cryptographic operation fails or the payload is tampered.
+    /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static TSelf Decrypt(TSelf packet, System.Byte[] key) => EnvelopeEncryptor.Decrypt<TSelf>(packet, key);
 
     /// <inheritdoc/>
     public override void ResetForPool()
