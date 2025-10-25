@@ -1,6 +1,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Security;
 using Nalix.Framework.Random;
 using Nalix.Shared.Security.Engine;
@@ -55,7 +59,7 @@ namespace Nalix.Shared.Security;
 /// <b>Thread safety:</b> This class is stateless and safe for concurrent use.
 /// </para>
 /// </remarks>
-[System.Diagnostics.DebuggerNonUserCode]
+[DebuggerNonUserCode]
 public static class EnvelopeCipher
 {
     /// <summary>
@@ -102,18 +106,18 @@ public static class EnvelopeCipher
     /// The returned value can be used when allocating buffers or generating nonces
     /// for encryption operations.
     /// </remarks>
-    /// <exception cref="System.ArgumentException">
+    /// <exception cref="ArgumentException">
     /// Thrown when the specified cipher suite is not supported.
     /// </exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static int GetNonceLength(CipherSuiteType type) => type switch
     {
         CipherSuiteType.Chacha20 => ChaCha20.NonceSize,
         CipherSuiteType.Chacha20Poly1305 => ChaCha20.NonceSize,
         CipherSuiteType.Salsa20 => Salsa20.NonceSize,
         CipherSuiteType.Salsa20Poly1305 => Salsa20.NonceSize,
-        _ => throw new System.ArgumentException("Unsupported symmetric algorithm", nameof(type))
+        _ => throw new ArgumentException("Unsupported symmetric algorithm", nameof(type))
     };
 
     /// <summary>
@@ -149,18 +153,18 @@ public static class EnvelopeCipher
     /// This value is typically used when calculating the final ciphertext buffer size
     /// or parsing envelope encryption formats.
     /// </remarks>
-    /// <exception cref="System.ArgumentException">
+    /// <exception cref="ArgumentException">
     /// Thrown when the specified cipher suite is not supported.
     /// </exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static int GetTagLength(CipherSuiteType type) => type switch
     {
         CipherSuiteType.Chacha20 => 0,
         CipherSuiteType.Chacha20Poly1305 => EnvelopeFormat.TagSize,
         CipherSuiteType.Salsa20 => 0,
         CipherSuiteType.Salsa20Poly1305 => EnvelopeFormat.TagSize,
-        _ => throw new System.ArgumentException("Unsupported symmetric algorithm", nameof(type))
+        _ => throw new ArgumentException("Unsupported symmetric algorithm", nameof(type))
     };
 
     /// <summary>
@@ -187,7 +191,7 @@ public static class EnvelopeCipher
     /// <returns>
     /// A newly allocated byte array containing the full envelope.
     /// </returns>
-    /// <exception cref="System.ArgumentException">
+    /// <exception cref="ArgumentException">
     /// Thrown if <paramref name="algorithm"/> is not recognized. Key/nonce length errors may be
     /// thrown by the underlying engines.
     /// </exception>
@@ -200,28 +204,28 @@ public static class EnvelopeCipher
     /// var ct2 = EnvelopeCipher.Encrypt(key32, data, CipherSuiteType.CHACHA20);
     /// </code>
     /// </example>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public static bool Encrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> plaintext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> ciphertext,
-        System.ReadOnlySpan<byte> aad, uint? seq, CipherSuiteType algorithm,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int written)
+        [NotNull] ReadOnlySpan<byte> key,
+        [NotNull] ReadOnlySpan<byte> plaintext,
+        [NotNull] Span<byte> ciphertext,
+        ReadOnlySpan<byte> aad, uint? seq, CipherSuiteType algorithm,
+        [NotNullWhen(true)] out int written)
     {
         written = 0;
 
         int nonceLength = GetNonceLength(algorithm);
-        System.Span<byte> nonceStack = stackalloc byte[System.Math.Max(16, nonceLength)];
-        System.Span<byte> nonce = nonceStack[..nonceLength];
+        Span<byte> nonceStack = stackalloc byte[Math.Max(16, nonceLength)];
+        Span<byte> nonce = nonceStack[..nonceLength];
         Csprng.Fill(nonce);
 
         return algorithm switch
         {
             CipherSuiteType.Salsa20 or CipherSuiteType.Chacha20 => SymmetricEngine.Encrypt(key, plaintext, ciphertext, nonce, seq, algorithm, out written),// Assume SymmetricEngine.Encrypt uses an out parameter for written
             CipherSuiteType.Salsa20Poly1305 or CipherSuiteType.Chacha20Poly1305 => AeadEngine.Encrypt(key, plaintext, ciphertext, nonce, aad, seq, algorithm, out written),
-            _ => throw new System.ArgumentException("Unsupported cipher type", nameof(algorithm)),
+            _ => throw new ArgumentException("Unsupported cipher type", nameof(algorithm)),
         };
     }
 
@@ -257,15 +261,15 @@ public static class EnvelopeCipher
     /// }
     /// </code>
     /// </example>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public static bool Decrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> envelope,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> plaintext,
-        System.ReadOnlySpan<byte> aad,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int written)
+        [NotNull] ReadOnlySpan<byte> key,
+        [NotNull] ReadOnlySpan<byte> envelope,
+        [NotNull] Span<byte> plaintext,
+        ReadOnlySpan<byte> aad,
+        [NotNullWhen(true)] out int written)
     {
         written = 0;
 
@@ -321,7 +325,7 @@ public static class EnvelopeCipher
     /// <returns>
     /// A newly allocated byte array containing the full envelope.
     /// </returns>
-    /// <exception cref="System.ArgumentException">
+    /// <exception cref="ArgumentException">
     /// Thrown if <paramref name="algorithm"/> is not recognized. Key/nonce length errors may be
     /// thrown by the underlying engines.
     /// </exception>
@@ -334,15 +338,15 @@ public static class EnvelopeCipher
     /// var ct2 = EnvelopeCipher.Encrypt(key32, data, CipherSuiteType.CHACHA20);
     /// </code>
     /// </example>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public static bool Encrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> plaintext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> ciphertext,
+        [NotNull] ReadOnlySpan<byte> key,
+        [NotNull] ReadOnlySpan<byte> plaintext,
+        [NotNull] Span<byte> ciphertext,
         uint? seq, CipherSuiteType algorithm,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int written) => Encrypt(key, plaintext, ciphertext, default, seq, algorithm, out written);
+        [NotNullWhen(true)] out int written) => Encrypt(key, plaintext, ciphertext, default, seq, algorithm, out written);
 
     /// <summary>
     /// Attempts to decrypt an encrypted envelope.
@@ -372,12 +376,12 @@ public static class EnvelopeCipher
     /// }
     /// </code>
     /// </example>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public static bool Decrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> envelope,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> plaintext,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int written) => Decrypt(key, envelope, plaintext, default, out written);
+        [NotNull] ReadOnlySpan<byte> key,
+        [NotNull] ReadOnlySpan<byte> envelope,
+        [NotNull] Span<byte> plaintext,
+        [NotNullWhen(true)] out int written) => Decrypt(key, envelope, plaintext, default, out written);
 }

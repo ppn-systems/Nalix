@@ -1,6 +1,10 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Nalix.Shared.LZ4.Encoders;
 using Nalix.Shared.Memory.Internal;
 
@@ -9,8 +13,8 @@ namespace Nalix.Shared.LZ4.Engine;
 /// <summary>
 /// Provides functionality to compress data using the LZ4 algorithm, optimized for zero-allocation and high efficiency.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[DebuggerNonUserCode]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal static class LZ4Encoder
 {
     #region APIs
@@ -18,19 +22,19 @@ internal static class LZ4Encoder
     /// <summary>
     /// Compresses the provided input data into the specified output buffer.
     /// </summary>
-    /// <param name="input">The input data to compress as a <see cref="System.ReadOnlySpan{T}"/>.</param>
+    /// <param name="input">The input data to compress as a <see cref="ReadOnlySpan{T}"/>.</param>
     /// <param name="output">The buffer where the compressed data will be written. Must have enough capacity.</param>
     /// <returns>
     /// The total number of bytes written to the output buffer (including the header),
     /// or -1 if the output buffer is too small or compression fails.
     /// </returns>
-    /// <exception cref="System.InvalidOperationException"></exception>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static unsafe int Encode(System.ReadOnlySpan<byte> input, System.Span<byte> output)
+    /// <exception cref="InvalidOperationException"></exception>
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public static unsafe int Encode(ReadOnlySpan<byte> input, Span<byte> output)
     {
         if (input.IsEmpty)
         {
@@ -45,7 +49,7 @@ internal static class LZ4Encoder
 #if DEBUG
         if (output.Length < LZ4BlockEncoder.GetMaxLength(input.Length))
         {
-            System.Diagnostics.Debug.WriteLine(
+            Debug.WriteLine(
                 $"Warn: Output buffer may be too small. Required: {LZ4BlockEncoder.GetMaxLength(input.Length)}, Available: {output.Length}");
         }
 #endif
@@ -59,10 +63,10 @@ internal static class LZ4Encoder
             fixed (int* hashTable = table)
             {
 #if DEBUG
-                System.Diagnostics.Debug.Assert(hashTable is not null, "Hash table pinning failed");
+                Debug.Assert(hashTable is not null, "Hash table pinning failed");
 #endif
 
-                System.Span<byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
+                Span<byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
                 int compressedDataLength =
                     LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable);
 
@@ -74,14 +78,14 @@ internal static class LZ4Encoder
                 int totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
 
 #if DEBUG
-                System.Diagnostics.Debug.Assert(
+                Debug.Assert(
                     totalCompressedLength <= output.Length,
                     $"Compressed data ({totalCompressedLength} bytes) exceeds output buffer ({output.Length} bytes)");
 #endif
 
                 if (totalCompressedLength > output.Length)
                 {
-                    throw new System.InvalidOperationException(
+                    throw new InvalidOperationException(
                         $"Compressed data ({totalCompressedLength} bytes) exceeds output buffer ({output.Length} bytes)");
                 }
 
@@ -101,10 +105,10 @@ internal static class LZ4Encoder
 
     #region Private Methods
 
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static int WriteEmptyHeader(System.Span<byte> output)
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    private static int WriteEmptyHeader(Span<byte> output)
     {
         if (output.Length < LZ4BlockHeader.Size)
         {
@@ -116,10 +120,10 @@ internal static class LZ4Encoder
         return LZ4BlockHeader.Size;
     }
 
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void WriteHeader(System.Span<byte> output, int originalLength, int compressedLength)
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    private static void WriteHeader(Span<byte> output, int originalLength, int compressedLength)
     {
         LZ4BlockHeader header = new(originalLength, compressedLength);
         MemOps.WriteUnaligned(output, header);

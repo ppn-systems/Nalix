@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -13,8 +15,8 @@ namespace Nalix.Shared.Frames.Controls;
 /// </summary>
 [PipelineManagedTransform]
 [SerializePackable(SerializeLayout.Explicit)]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("HANDSHAKE OPCODE={OpCode}, Length={Length}, Flags={Flags}")]
+[ExcludeFromCodeCoverage]
+[DebuggerDisplay("HANDSHAKE OPCODE={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class Handshake : PacketBase<Handshake>
 {
     /// <summary>

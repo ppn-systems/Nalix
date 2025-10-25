@@ -1,7 +1,10 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Linq.Expressions;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Serialization;
 
 namespace Nalix.Shared.Frames.Internal;
@@ -20,11 +23,11 @@ internal sealed class PropertyMetadata
     #region Public Properties
 
     /// <summary>
-    /// The underlying <see cref="System.Reflection.PropertyInfo"/>.
+    /// The underlying <see cref="PropertyInfo"/>.
     /// Retained for interop with APIs that require it (e.g. LiteSerializer).
     /// Prefer <see cref="GetValue"/> / <see cref="SetValue"/> in hot paths.
     /// </summary>
-    public System.Reflection.PropertyInfo Property { get; }
+    public PropertyInfo Property { get; }
 
     /// <summary>
     /// Pre-computed fixed byte-size of this property on the wire.
@@ -50,7 +53,7 @@ internal sealed class PropertyMetadata
     public bool IsByteArray { get; }
 
     /// <summary>
-    /// Cached result of <see cref="System.Reflection.PropertyInfo.CanWrite"/>.
+    /// Cached result of <see cref="PropertyInfo.CanWrite"/>.
     /// </summary>
     public bool IsWritable { get; }
 
@@ -62,9 +65,9 @@ internal sealed class PropertyMetadata
     /// <summary>
     /// Pre-computed default value used by <c>ResetForPool</c>.
     /// <list type="bullet">
-    ///   <item><see cref="byte"/>[] → <see cref="System.Array.Empty{T}"/></item>
+    ///   <item><see cref="byte"/>[] → <see cref="Array.Empty{T}"/></item>
     ///   <item><see cref="string"/> → <see cref="string.Empty"/></item>
-    ///   <item>Value type → <see cref="System.Activator.CreateInstance(System.Type)"/></item>
+    ///   <item>Value type → <see cref="Activator.CreateInstance(Type)"/></item>
     ///   <item>Reference type → <see langword="null"/></item>
     /// </list>
     /// </summary>
@@ -78,9 +81,9 @@ internal sealed class PropertyMetadata
     /// True compiled open-instance delegates via Expression Trees.
     /// No MethodInfo.Invoke — no argument array allocation, no boxing round-trip.
     /// </summary>
-    private readonly System.Func<object, object?>? _getter;
+    private readonly Func<object, object?>? _getter;
 
-    private readonly System.Action<object, object?>? _setter;
+    private readonly Action<object, object?>? _setter;
 
     #endregion Private Fields
 
@@ -92,17 +95,17 @@ internal sealed class PropertyMetadata
     /// </summary>
     /// <param name="prop">A public instance property decorated with
     /// <see cref="SerializeOrderAttribute"/>.</param>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="prop"/> is <see langword="null"/>.
     /// </exception>
-    public PropertyMetadata(System.Reflection.PropertyInfo prop)
+    public PropertyMetadata(PropertyInfo prop)
     {
-        System.ArgumentNullException.ThrowIfNull(prop);
+        ArgumentNullException.ThrowIfNull(prop);
 
         // Guard: DeclaringType must be known to build open-instance delegates.
         if (prop.DeclaringType is null)
         {
-            throw new System.ArgumentException(
+            throw new ArgumentException(
                 $"Property '{prop.Name}' has no declaring type.", nameof(prop));
         }
 
@@ -111,7 +114,7 @@ internal sealed class PropertyMetadata
         IsReadable = prop.CanRead;
         IsString = prop.PropertyType == typeof(string);
         IsByteArray = prop.PropertyType == typeof(byte[]);
-        IsDynamic = System.Reflection.CustomAttributeExtensions
+        IsDynamic = CustomAttributeExtensions
                            .GetCustomAttribute<SerializeDynamicSizeAttribute>(prop) is not null;
 
         DefaultValue = ComputeDefaultValue(prop.PropertyType);
@@ -128,7 +131,7 @@ internal sealed class PropertyMetadata
             UnaryExpression boxResult = Expression.Convert(propAccess, typeof(object));
 
             _getter = Expression
-                          .Lambda<System.Func<object, object?>>(boxResult, instanceParam)
+                          .Lambda<Func<object, object?>>(boxResult, instanceParam)
                           .Compile();
         }
 
@@ -148,13 +151,13 @@ internal sealed class PropertyMetadata
                 BinaryExpression assignExpr = Expression.Assign(propAccess, castValue);
 
                 _setter = Expression
-                              .Lambda<System.Action<object, object?>>(assignExpr, instanceParam, valueParam)
+                              .Lambda<Action<object, object?>>(assignExpr, instanceParam, valueParam)
                               .Compile();
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 // Fail fast at startup — better than a silent NullReferenceException at runtime.
-                throw new System.InvalidOperationException(
+                throw new InvalidOperationException(
                     $"Failed to compile setter delegate for property '{prop.DeclaringType.Name}.{prop.Name}' " +
                     $"(type: {prop.PropertyType.Name}). " +
                     "Ensure the property type is compatible with its default value.", ex);
@@ -171,11 +174,11 @@ internal sealed class PropertyMetadata
     /// using a compiled delegate. Returns <see langword="null"/> if no getter is available.
     /// </summary>
     /// <param name="instance">The packet object to read from. Must not be <see langword="null"/>.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public object? GetValue(object instance)
     {
-        System.ArgumentNullException.ThrowIfNull(instance);
+        ArgumentNullException.ThrowIfNull(instance);
         return _getter?.Invoke(instance);
     }
 
@@ -185,11 +188,11 @@ internal sealed class PropertyMetadata
     /// </summary>
     /// <param name="instance">The packet object to write to. Must not be <see langword="null"/>.</param>
     /// <param name="value">The value to assign. Must be compatible with the property type.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public void SetValue(object instance, object? value)
     {
-        System.ArgumentNullException.ThrowIfNull(instance);
+        ArgumentNullException.ThrowIfNull(instance);
         _setter?.Invoke(instance, value);
     }
 
@@ -212,39 +215,39 @@ internal sealed class PropertyMetadata
     /// Missing from previous version: SByte, Char, DateTime, Guid, TimeSpan, DateTimeOffset.
     /// </summary>
     /// <param name="type"></param>
-    /// <exception cref="System.NotImplementedException"></exception>
-    private static ushort ComputeFixedSize(System.Type type) =>
-        System.Type.GetTypeCode(type) switch
+    /// <exception cref="NotImplementedException"></exception>
+    private static ushort ComputeFixedSize(Type type) =>
+        Type.GetTypeCode(type) switch
         {
-            System.TypeCode.Byte => 1,
-            System.TypeCode.SByte => 1,
-            System.TypeCode.Boolean => 1,
-            System.TypeCode.Char => 2,
-            System.TypeCode.Int16 => 2,
-            System.TypeCode.UInt16 => 2,
-            System.TypeCode.Int32 => 4,
-            System.TypeCode.UInt32 => 4,
-            System.TypeCode.Single => 4,
-            System.TypeCode.Int64 => 8,
-            System.TypeCode.UInt64 => 8,
-            System.TypeCode.Double => 8,
-            System.TypeCode.Decimal => 16,
+            TypeCode.Byte => 1,
+            TypeCode.SByte => 1,
+            TypeCode.Boolean => 1,
+            TypeCode.Char => 2,
+            TypeCode.Int16 => 2,
+            TypeCode.UInt16 => 2,
+            TypeCode.Int32 => 4,
+            TypeCode.UInt32 => 4,
+            TypeCode.Single => 4,
+            TypeCode.Int64 => 8,
+            TypeCode.UInt64 => 8,
+            TypeCode.Double => 8,
+            TypeCode.Decimal => 16,
 
             // DateTime / DateTimeOffset / TimeSpan / Guid have no TypeCode entry —
             // check by type identity before falling back to enum recursion.
-            System.TypeCode.Object when type == typeof(System.Guid) => 16,
-            System.TypeCode.Object when type == typeof(System.DateTime) => 8,
-            System.TypeCode.Object when type == typeof(System.DateTimeOffset) => 10,
-            System.TypeCode.Object when type == typeof(System.TimeSpan) => 8,
-            System.TypeCode.Object when type == typeof(System.TimeOnly) => 8,
-            System.TypeCode.Object when type == typeof(System.DateOnly) => 4,
+            TypeCode.Object when type == typeof(Guid) => 16,
+            TypeCode.Object when type == typeof(DateTime) => 8,
+            TypeCode.Object when type == typeof(DateTimeOffset) => 10,
+            TypeCode.Object when type == typeof(TimeSpan) => 8,
+            TypeCode.Object when type == typeof(TimeOnly) => 8,
+            TypeCode.Object when type == typeof(DateOnly) => 4,
 
             // Recursively resolve enum underlying type.
-            _ when type.IsEnum => ComputeFixedSize(System.Enum.GetUnderlyingType(type)),
-            System.TypeCode.Empty => throw new System.NotImplementedException(),
-            System.TypeCode.DBNull => throw new System.NotImplementedException(),
-            System.TypeCode.DateTime => throw new System.NotImplementedException(),
-            System.TypeCode.String => throw new System.NotImplementedException(),
+            _ when type.IsEnum => ComputeFixedSize(Enum.GetUnderlyingType(type)),
+            TypeCode.Empty => throw new NotImplementedException(),
+            TypeCode.DBNull => throw new NotImplementedException(),
+            TypeCode.DateTime => throw new NotImplementedException(),
+            TypeCode.String => throw new NotImplementedException(),
 
             // Unknown / reference / dynamic — caller must handle as IsDynamic.
             _ => 0
@@ -255,11 +258,11 @@ internal sealed class PropertyMetadata
     /// so that <c>ResetForPool</c> never allocates new objects on repeated calls.
     /// </summary>
     /// <param name="type"></param>
-    private static object? ComputeDefaultValue(System.Type type)
+    private static object? ComputeDefaultValue(Type type)
     {
         if (type == typeof(byte[]))
         {
-            return System.Array.Empty<byte>();
+            return Array.Empty<byte>();
         }
         else if (type == typeof(string))
         {
@@ -267,7 +270,7 @@ internal sealed class PropertyMetadata
         }
         else if (type.IsValueType)
         {
-            return System.Activator.CreateInstance(type);
+            return Activator.CreateInstance(type);
         }
         else
         {

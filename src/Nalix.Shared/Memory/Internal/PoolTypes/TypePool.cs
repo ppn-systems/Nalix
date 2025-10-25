@@ -1,11 +1,14 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Nalix.Common.Shared;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
 namespace Nalix.Shared.Memory.Internal.PoolTypes;
@@ -17,8 +20,8 @@ namespace Nalix.Shared.Memory.Internal.PoolTypes;
 /// Initializes a new instance of the <see cref="TypePool"/> class.
 /// </remarks>
 /// <param name="maxCapacity">The maximum capacity of this pool.</param>
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[SkipLocalsInit]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal class TypePool(int maxCapacity)
 {
     #region Fields
@@ -39,7 +42,7 @@ internal class TypePool(int maxCapacity)
     /// <summary>
     /// Gets the maximum capacity of this pool.
     /// </summary>
-    public int MaxCapacity => System.Threading.Volatile.Read(ref _maxCapacity);
+    public int MaxCapacity => Volatile.Read(ref _maxCapacity);
 
     #endregion Properties
 
@@ -49,8 +52,8 @@ internal class TypePool(int maxCapacity)
     /// Sets the maximum capacity of this pool.
     /// </summary>
     /// <param name="maxCapacity">The maximum capacity of this pool.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public void SetMaxCapacity(int maxCapacity)
     {
         if (maxCapacity < 0)
@@ -58,7 +61,7 @@ internal class TypePool(int maxCapacity)
             return;
         }
 
-        int oldCapacity = System.Threading.Interlocked.Exchange(ref _maxCapacity, maxCapacity);
+        int oldCapacity = Interlocked.Exchange(ref _maxCapacity, maxCapacity);
 
         // If the new capacity is less than the old one, trim the pool
         if (maxCapacity < oldCapacity)
@@ -72,15 +75,15 @@ internal class TypePool(int maxCapacity)
     /// </summary>
     /// <param name="obj">The object to add.</param>
     /// <returns>True if the object was added, false if the pool is full.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public bool TryPush(IPoolable obj)
     {
-        int newCount = System.Threading.Interlocked.Increment(ref _count);
+        int newCount = Interlocked.Increment(ref _count);
 
         if (newCount > _maxCapacity)
         {
-            _ = System.Threading.Interlocked.Decrement(ref _count);
+            _ = Interlocked.Decrement(ref _count);
             return false;
         }
 
@@ -93,13 +96,13 @@ internal class TypePool(int maxCapacity)
     /// </summary>
     /// <param name="obj">The object from the pool.</param>
     /// <returns>True if an object was retrieved, false if the pool is empty.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public bool TryPop(out IPoolable? obj)
     {
         if (_objects.TryPop(out obj))
         {
-            _ = System.Threading.Interlocked.Decrement(ref _count);
+            _ = Interlocked.Decrement(ref _count);
             return true;
         }
 
@@ -110,13 +113,13 @@ internal class TypePool(int maxCapacity)
     /// Clears all objects from this pool.
     /// </summary>
     /// <returns>The ProtocolType of objects removed.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public int Clear()
     {
         int count = _objects.Count;
         _objects.Clear();
-        _ = System.Threading.Interlocked.Exchange(ref _count, 0);
+        _ = Interlocked.Exchange(ref _count, 0);
         return count;
     }
 
@@ -125,9 +128,9 @@ internal class TypePool(int maxCapacity)
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
     /// <returns>The ProtocolType of objects removed.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public int Trim(int percentage)
     {
         if (percentage >= 100)
@@ -160,7 +163,7 @@ internal class TypePool(int maxCapacity)
         {
             if (_objects.TryPop(out _))
             {
-                _ = System.Threading.Interlocked.Decrement(ref _count);
+                _ = Interlocked.Decrement(ref _count);
                 removed++;
             }
             else
@@ -177,8 +180,8 @@ internal class TypePool(int maxCapacity)
     /// </summary>
     /// <remarks>This is primarily for diagnostic purposes and should not be used in performance-critical code.</remarks>
     /// <returns>An array containing the objects in this pool.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public IPoolable[] ToArray() => [.. _objects];
 
     #endregion Public Methods

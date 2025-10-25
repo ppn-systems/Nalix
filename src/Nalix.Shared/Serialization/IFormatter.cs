@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics.CodeAnalysis;
 using Nalix.Shared.Memory.Buffers;
 
 namespace Nalix.Shared.Serialization;
@@ -10,10 +11,10 @@ namespace Nalix.Shared.Serialization;
 /// </summary>
 /// <typeparam name="T">The type to serialize and deserialize.</typeparam>
 public interface IFormatter<[
-    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
+    DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.PublicConstructors |
+        DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
 {
     /// <summary>
     /// Serializes the specified value into the provided serialization writer.
