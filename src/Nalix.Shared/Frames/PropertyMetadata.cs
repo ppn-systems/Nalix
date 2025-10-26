@@ -90,12 +90,10 @@ internal sealed class PropertyMetadata
         Property = prop;
         IsWritable = prop.CanWrite;
         IsString = prop.PropertyType == typeof(System.String);
+        IsDynamic = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeDynamicSizeAttribute>(prop) is not null;
 
-        IsDynamic = System.Reflection.CustomAttributeExtensions
-                          .GetCustomAttribute<SerializeDynamicSizeAttribute>(prop) is not null;
-
-        FixedSize = IsDynamic ? (System.UInt16)0 : ComputeFixedSize(prop.PropertyType);
         DefaultValue = ComputeDefaultValue(prop.PropertyType);
+        FixedSize = IsDynamic ? (System.UInt16)0 : ComputeFixedSize(prop.PropertyType);
 
         // Compile open-instance delegates once.
         // CreateDelegate with a null first argument creates an open delegate where

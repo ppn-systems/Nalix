@@ -26,10 +26,6 @@ namespace Nalix.SDK.Transport.Extensions;
 [System.Runtime.CompilerServices.SkipLocalsInit]
 public static class ReliableClientSubscriptions
 {
-    // Cached logger — avoids repeated DI lookups on the hot receive path.
-    private static ILogger Logger
-        => InstanceManager.Instance.GetExistingInstance<ILogger>();
-
     // ── On<TPacket> ──────────────────────────────────────────────────────────
 
     /// <summary>
@@ -51,7 +47,7 @@ public static class ReliableClientSubscriptions
             // Wrapper is the sole owner of the lease; always dispose in finally.
             try
             {
-                if (!InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
+                if (!InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
                         .TryDeserialize(buffer.Span, out IPacket p) || p is not TPacket t)
                 {
                     return;
@@ -62,7 +58,8 @@ public static class ReliableClientSubscriptions
             catch (System.Exception ex)
             {
                 // Swallow handler exceptions — must not fault FRAME_READER receive loop.
-                Logger?.Error($"[SDK.On<{typeof(TPacket).Name}>] handler-error: {ex.Message}", ex);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[SDK.On<{typeof(TPacket).Name}>] handler-error: {ex.Message}", ex);
             }
             finally
             {
@@ -96,7 +93,7 @@ public static class ReliableClientSubscriptions
         {
             try
             {
-                if (!InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
+                if (!InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
                         .TryDeserialize(buffer.Span, out IPacket p))
                 {
                     return;
@@ -111,7 +108,8 @@ public static class ReliableClientSubscriptions
             }
             catch (System.Exception ex)
             {
-                Logger?.Error($"[SDK.On(predicate)] handler-error: {ex.Message}", ex);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[SDK.On(predicate)] handler-error: {ex.Message}", ex);
             }
             finally
             {
@@ -148,7 +146,7 @@ public static class ReliableClientSubscriptions
             try
             {
                 // Deserialize — if it fails, we still fall through to finally and dispose.
-                if (!InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
+                if (!InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
                         .TryDeserialize(buffer.Span, out IPacket p))
                 {
                     return;
@@ -179,8 +177,8 @@ public static class ReliableClientSubscriptions
             catch (System.Exception ex)
             {
                 // Swallow — must not bubble up to FRAME_READER receive loop.
-                Logger?.Error(
-                    $"[SDK.OnOnce<{typeof(TPacket).Name}>] handler-error: {ex.Message}", ex);
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[SDK.OnOnce<{typeof(TPacket).Name}>] handler-error: {ex.Message}", ex);
             }
             finally
             {
@@ -229,6 +227,7 @@ public sealed class CompositeSubscription : System.IDisposable
     /// <summary>
     /// Initializes a new <see cref="CompositeSubscription"/> with the specified subscriptions.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public CompositeSubscription(params System.IDisposable[] subs) => _subs = subs ?? [];
 
     /// <summary>

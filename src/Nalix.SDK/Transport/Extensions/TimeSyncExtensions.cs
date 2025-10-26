@@ -68,7 +68,7 @@ public static class TimeSyncExtensions
             return false;
         }
 
-        IPacketCatalog catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>();
+        IPacketRegistry catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
 
         System.Threading.Tasks.TaskCompletionSource<Control> tcs =
             new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
