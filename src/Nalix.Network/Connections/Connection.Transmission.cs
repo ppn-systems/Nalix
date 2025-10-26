@@ -56,7 +56,7 @@ public sealed partial class Connection : IConnection
         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
         args.Initialize(lease, this);
 
-        bool queued = AsyncCallback.Invoke(OnProcessEventBridge, this, args);
+        bool queued = Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args);
 
 #if DEBUG
         s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{InjectIncoming}] inject-bytes len={lease.Length}");
