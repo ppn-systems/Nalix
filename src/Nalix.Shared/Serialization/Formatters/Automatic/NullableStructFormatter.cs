@@ -40,12 +40,14 @@ internal sealed class NullableStructFormatter<
     {
         if (!value.HasValue)
         {
+            writer.Expand(sizeof(System.Byte));
             FormatterProvider.Get<System.Byte>()
                              .Serialize(ref writer, 0); // 0 = null
 
             return;
         }
 
+        writer.Expand(sizeof(System.Byte));
         FormatterProvider.Get<System.Byte>()
                          .Serialize(ref writer, 1); // 1 = not null
 

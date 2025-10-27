@@ -30,11 +30,14 @@ internal sealed class NullableValueListFormatter<
         // List null?
         if (value == null)
         {
-            FormatterProvider.Get<System.UInt16>().Serialize(ref writer, SerializerBounds.Null);
+            writer.Expand(sizeof(System.UInt16));
+            FormatterProvider.Get<System.UInt16>()
+                             .Serialize(ref writer, SerializerBounds.Null);
             return;
         }
 
         // Write length
+        writer.Expand(sizeof(System.UInt16));
         System.UInt16 count = (System.UInt16)value.Count;
         FormatterProvider.Get<System.UInt16>().Serialize(ref writer, count);
 
