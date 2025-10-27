@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -39,19 +39,16 @@ internal class PropertyMetadata
     /// <summary>
     /// Gets or sets the name of the property.
     /// </summary>
-    [NotNull]
     public string Name { get; init; } = null!;
 
     /// <summary>
     /// Gets or sets the type of the property.
     /// </summary>
-    [NotNull]
     public Type PropertyType { get; init; } = null!;
 
     /// <summary>
     /// Gets or sets the property information.
     /// </summary>
-    [NotNull]
     public PropertyInfo PropertyInfo { get; init; } = null!;
 
     #endregion Properties

@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -50,8 +50,6 @@ internal sealed class IniConfig : IDisposable
 
     // Thread synchronization for file operations
     private readonly ReaderWriterLockSlim _fileLock;
-
-    [NotNull]
     private readonly string _path;
     private readonly Dictionary<string,
                      Dictionary<string, string>> _iniData;

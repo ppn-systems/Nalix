@@ -1,4 +1,6 @@
-﻿// Ensures environment variables are set before Directories is touched.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+// Ensures environment variables are set before Directories is touched.
 namespace Nalix.Shared.Tests.Environment;
 
 public sealed class DirectoriesFixture
