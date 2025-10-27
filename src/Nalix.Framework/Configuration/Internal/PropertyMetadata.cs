@@ -65,8 +65,7 @@ internal class PropertyMetadata
     /// <param name="value">The value to set.</param>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     public void SetValue(
         [NotNull] object target,

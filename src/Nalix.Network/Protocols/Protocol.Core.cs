@@ -35,8 +35,7 @@ public abstract partial class Protocol : IProtocol
     /// <exception cref="ArgumentNullException">Thrown when args is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void PostProcessMessage(object sender, IConnectEventArgs args)
     {
         ArgumentNullException.ThrowIfNull(args);

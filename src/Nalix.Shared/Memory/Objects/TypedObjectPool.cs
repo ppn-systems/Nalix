@@ -41,24 +41,21 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// Gets an object from the pool.
     /// </summary>
     /// <returns>An instance of <typeparamref name="T"/>.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Get() => _parentPool.Get<T>();
 
     /// <summary>
     /// Clears this type's pool.
     /// </summary>
     /// <returns>The ProtocolType of objects removed.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Clear() => _parentPool.ClearType<T>();
 
     /// <summary>
     /// Returns an object to the pool.
     /// </summary>
     /// <param name="obj">The object to return.</param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Return(T obj) => _parentPool.Return(obj);
 
     /// <summary>
@@ -66,8 +63,7 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// </summary>
     /// <param name="count">The ProtocolType of objects to preallocate.</param>
     /// <returns>The ProtocolType of objects successfully preallocated.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Prealloc(int count) => _parentPool.Prealloc<T>(count);
 
     /// <summary>
@@ -75,16 +71,14 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// </summary>
     /// <param name="count">The ProtocolType of objects to get.</param>
     /// <returns>A list containing the requested objects.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public List<T> GetMultiple(int count) => _parentPool.GetMultiple<T>(count);
 
     /// <summary>
     /// Gets information about this type's pool.
     /// </summary>
     /// <returns>A dictionary containing pool statistics for this type.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Dictionary<string, object> GetInfo() => _parentPool.GetTypeInfo<T>();
 
     /// <summary>
@@ -92,16 +86,14 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// </summary>
     /// <param name="objects">The objects to return.</param>
     /// <returns>The ProtocolType of objects successfully returned to the pool.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int ReturnMultiple(IEnumerable<T> objects) => _parentPool.ReturnMultiple(objects);
 
     /// <summary>
     /// Sets the maximum capacity for this type's pool.
     /// </summary>
     /// <param name="maxCapacity">The maximum capacity.</param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetMaxCapacity(int maxCapacity) => _parentPool.SetMaxCapacity<T>(maxCapacity);
 
     #endregion Public Methods

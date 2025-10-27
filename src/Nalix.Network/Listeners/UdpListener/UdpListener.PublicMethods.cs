@@ -35,8 +35,7 @@ public abstract partial class UdpListenerBase : IListener
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the listening process.</param>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Activate(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
@@ -136,8 +135,7 @@ public abstract partial class UdpListenerBase : IListener
     /// <param name="cancellationToken"></param>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Deactivate(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
@@ -174,8 +172,7 @@ public abstract partial class UdpListenerBase : IListener
     /// </summary>
     /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public virtual void SynchronizeTime(long milliseconds)
     {
         // Record last sync and drift vs local clock
@@ -194,8 +191,7 @@ public abstract partial class UdpListenerBase : IListener
     /// <param name="localMs">The local time in milliseconds since the Unix epoch.</param>
     /// <param name="driftMs">The calculated drift in milliseconds between server and local time.</param>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected virtual void OnTimeSynchronized(long serverMs, long localMs, long driftMs)
     {
         // No-op by default
@@ -208,8 +204,7 @@ public abstract partial class UdpListenerBase : IListener
     /// <param name="connection"></param>
     /// <param name="result"></param>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     protected abstract bool IsAuthenticated(
         IConnection connection, in UdpReceiveResult result);
@@ -218,8 +213,7 @@ public abstract partial class UdpListenerBase : IListener
     /// Generates a human-readable diagnostic report of the current listener status.
     /// </summary>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     public string GenerateReport()
     {

@@ -89,13 +89,11 @@ public sealed class PacketRegistry : IPacketRegistry
     #region Public API
 
     /// <inheritdoc/>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsKnownMagic(uint magic) => _deserializers.ContainsKey(magic);
 
     /// <inheritdoc/>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsRegistered<TPacket>() where TPacket : IPacket => _deserializers.ContainsKey(PacketRegistryFactory.Compute(typeof(TPacket)));
 
     /// <inheritdoc/>

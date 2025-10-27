@@ -42,8 +42,7 @@ internal sealed class FieldAccessorImpl<
 
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override void Serialize(ref DataWriter writer, T obj)
     {
         ArgumentNullException.ThrowIfNull(obj);
@@ -54,8 +53,7 @@ internal sealed class FieldAccessorImpl<
 
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override void Deserialize(ref DataReader reader, T obj)
     {
         ArgumentNullException.ThrowIfNull(obj);
@@ -66,8 +64,7 @@ internal sealed class FieldAccessorImpl<
 
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-    MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override void Deserialize(ref DataReader reader, ref T obj)
     {
         TField value = _formatter.Deserialize(ref reader);

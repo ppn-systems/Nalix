@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -45,8 +45,7 @@ internal sealed class PooledConnectEventContext : IPoolable
     /// <param name="callback">The event handler to invoke.</param>
     /// <param name="sender">The source of the event.</param>
     /// <param name="args">The event arguments.</param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Initialize(EventHandler<IConnectEventArgs> callback, object sender, IConnectEventArgs args)
     {
         Args = args;
@@ -58,8 +57,7 @@ internal sealed class PooledConnectEventContext : IPoolable
     public static PooledConnectEventContext Get() => s_pool.Get<PooledConnectEventContext>();
 
     /// <inheritdoc/>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()
     {
         Args = null;

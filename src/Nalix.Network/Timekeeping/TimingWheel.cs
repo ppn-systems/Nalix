@@ -196,8 +196,7 @@ public sealed class TimingWheel : IActivatable
     /// Starts the background timing loop if it is not already running.
     /// </summary>
     /// <param name="cancellationToken"></param>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Activate(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, nameof(TimingWheel));
@@ -235,8 +234,7 @@ public sealed class TimingWheel : IActivatable
     /// Stops the background timing loop and drains all buckets back to the pool.
     /// </summary>
     /// <param name="cancellationToken"></param>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Deactivate(CancellationToken cancellationToken = default)
     {
         CancellationTokenSource cts = Interlocked.Exchange(ref _cts, null);
@@ -274,8 +272,7 @@ public sealed class TimingWheel : IActivatable
     /// The method subscribes to <see cref="IConnection.OnCloseEvent"/> once so that
     /// the connection is automatically unregistered when it closes.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Register(IConnection connection)
     {
         ArgumentNullException.ThrowIfNull(connection);
@@ -334,8 +331,7 @@ public sealed class TimingWheel : IActivatable
     /// task to the pool itself — safely, after the task is no longer in any queue.
     /// </para>
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Unregister(IConnection connection)
     {
         if (connection is null)
@@ -370,8 +366,7 @@ public sealed class TimingWheel : IActivatable
 
     #region Loop
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private async Task RUN_LOOP(
         IWorkerContext ctx,
         CancellationToken ct)
@@ -489,8 +484,7 @@ public sealed class TimingWheel : IActivatable
 
     #region Helpers
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnConnectionClosed(object sender, IConnectEventArgs args)
     {
         if (args?.Connection is not null)

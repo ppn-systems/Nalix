@@ -143,8 +143,7 @@ public unsafe struct DataReader : IDisposable
     /// </exception>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ref byte GetSpanReference(int sizeHint)
     {
         if (sizeHint > BytesRemaining)
@@ -165,8 +164,7 @@ public unsafe struct DataReader : IDisposable
     /// Thrown if the advance count exceeds the available buffer size.
     /// </exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Advance(int count)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
@@ -184,8 +182,7 @@ public unsafe struct DataReader : IDisposable
     /// </summary>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (_pinned)

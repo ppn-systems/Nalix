@@ -53,8 +53,7 @@ public sealed partial class NLogix : NLogixEngine, ILogger
     /// Removes potentially dangerous characters (e.g., newlines or control characters)
     /// </summary>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string SanitizeLogMessage(string? message)
     {
         if (string.IsNullOrEmpty(message))
@@ -75,8 +74,7 @@ public sealed partial class NLogix : NLogixEngine, ILogger
     /// Writes a log entry with the specified level, event ProtocolType, message, and optional exception.
     /// </summary>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void WriteLog(
         LogLevel level,
         EventId eventId,

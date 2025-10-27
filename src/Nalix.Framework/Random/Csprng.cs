@@ -65,8 +65,7 @@ public static class Csprng
     /// Suitable for cryptographic purposes including key generation, nonces, and IVs.
     /// </remarks>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static void Fill([NotNull] Span<byte> data)
     {
@@ -114,8 +113,7 @@ public static class Csprng
     /// Thread-safe. Returns an empty array if length is 0.
     /// Use this for generating cryptographic keys, tokens, and other security-sensitive data.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static byte[] GetBytes([NotNull] int length)
@@ -146,8 +144,7 @@ public static class Csprng
     /// Uses rejection sampling to ensure unbiased distribution across the entire range.
     /// Thread-safe. Suitable for security-sensitive applications requiring unpredictable integers.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static int GetInt32(
         [NotNull] int min,
@@ -182,8 +179,7 @@ public static class Csprng
     /// <remarks>
     /// Thread-safe. Uses unbiased rejection sampling for uniform distribution.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static int GetInt32(
@@ -202,8 +198,7 @@ public static class Csprng
     /// Thread-safe. Equivalent to Fill(buffer.AsSpan()).
     /// </remarks>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static void NextBytes(
         [NotNull] byte[] buffer)
@@ -220,8 +215,7 @@ public static class Csprng
     /// Thread-safe. Preferred over the array overload for performance-critical code.
     /// </remarks>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static void NextBytes(
         [NotNull] Span<byte> buffer) => Fill(buffer);
@@ -234,8 +228,7 @@ public static class Csprng
     /// Thread-safe. Suitable for generating unpredictable identifiers and tokens.
     /// </remarks>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static uint NextUInt32()
@@ -253,8 +246,7 @@ public static class Csprng
     /// Thread-safe. Useful for generating high-entropy identifiers and session tokens.
     /// </remarks>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static ulong NextUInt64()
@@ -272,8 +264,7 @@ public static class Csprng
     /// Thread-safe. Uses 53 bits of precision (full mantissa of double).
     /// Suitable for Monte Carlo simulations and statistical sampling.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static double NextDouble() => (NextUInt64() >> 11) * (1.0 / 9007199254740992.0);

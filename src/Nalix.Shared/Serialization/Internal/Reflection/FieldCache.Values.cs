@@ -59,8 +59,7 @@ internal static partial class FieldCache<T>
 
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TField GetValue<TField>(T obj, int fieldIndex)
     {
         FieldSchema metadata = _metadata[fieldIndex];
@@ -78,8 +77,7 @@ internal static partial class FieldCache<T>
 
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void SetValue<TField>(T obj, int fieldIndex, TField value)
     {
         FieldSchema metadata = _metadata[fieldIndex];
@@ -111,8 +109,7 @@ internal static partial class FieldCache<T>
     /// </summary>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void SetValue<TField>(ref T obj, int fieldIndex, TField value)
     {
         FieldSchema metadata = _metadata[fieldIndex];
@@ -128,8 +125,7 @@ internal static partial class FieldCache<T>
         setter(ref obj, value);
     }
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining)] // NoInlining vì chỉ chạy 1 lần per field
+    [MethodImpl(MethodImplOptions.NoInlining)] // NoInlining vì chỉ chạy 1 lần per field
     private static RefSetter<TField> GetOrCreateRefSetter<TField>(
         int fieldIndex,
         FieldSchema metadata)

@@ -166,8 +166,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// the gate timed out, or an auto-reload failed (path is rolled back in that case).
     /// </returns>
     /// <exception cref="ArgumentException"></exception>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public bool SetConfigFilePath(string newConfigFilePath, bool autoReload = true)
     {
         if (string.IsNullOrWhiteSpace(newConfigFilePath))
@@ -287,8 +286,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// potential deadlocks if the container initialization requires additional resources.
     /// </remarks>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public TClass Get<TClass>() where TClass : ConfigurationLoader, new()
     {
@@ -356,8 +354,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </para>
     /// </remarks>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public TClass Get<TClass>(string configFilePath, bool autoReload = true)
         where TClass : ConfigurationLoader, new()
@@ -380,8 +377,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// the test calls <see cref="ReloadAll"/> manually; the old <c>Interlocked</c> flag would
     /// cause the manual call to return <see langword="false"/> immediately.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public bool ReloadAll()
     {
         if (!_reloadGate.Wait(TimeSpan.FromSeconds(5)))
@@ -457,8 +453,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// This method is thread-safe and lock-free.
     /// </remarks>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public bool IsLoaded<TClass>() where TClass : ConfigurationLoader => _configContainerDict.ContainsKey(typeof(TClass));
 
@@ -474,8 +469,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// This method is thread-safe. Removing a configuration will cause it to be
     /// reinitialized on the next call to <see cref="Get{TClass}()"/>.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public bool Remove<TClass>() where TClass : ConfigurationLoader
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -491,8 +485,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// This method is thread-safe. All configurations will be reinitialized on
     /// the next call to <see cref="Get{TClass}()"/> for each type.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void ClearAll()
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -507,8 +500,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <remarks>
     /// This method is thread-safe and will flush pending changes to the INI file.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Flush()
     {
         // Snapshot under read lock — avoids TOCTOU race between IsValueCreated and .Value.
@@ -645,8 +637,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void ENSURE_CONFIG_DIRECTORY_EXISTS()
     {
         if (_directoryChecked) // volatile read — no lock needed

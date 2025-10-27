@@ -21,8 +21,7 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, byte value)
     {
         writer.Expand(sizeof(byte));
@@ -36,8 +35,7 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, ushort value)
     {
         writer.Expand(sizeof(ushort));
@@ -51,8 +49,7 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, uint value)
     {
         writer.Expand(sizeof(uint));
@@ -66,8 +63,7 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, int value)
     {
         writer.Expand(sizeof(int));
@@ -81,8 +77,7 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, long value)
     {
         writer.Expand(sizeof(long));
@@ -96,8 +91,7 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, ulong value)
     {
         writer.Expand(sizeof(ulong));
@@ -111,8 +105,7 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, bool value) => writer.Write((byte)(value ? 1 : 0));
 
     #endregion Primitive Types
@@ -126,8 +119,7 @@ public static class DataWriterExtensions
     /// <param name="writer"></param>
     /// <param name="value"></param>
     /// <exception cref="NotSupportedException"></exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void WriteEnum<TEnum>(this ref DataWriter writer, TEnum value) where TEnum : Enum
     {
         Type underlyingType = Enum.GetUnderlyingType(typeof(TEnum));
@@ -163,8 +155,7 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, byte[] value)
     {
         if (value is null || value.Length == 0)
@@ -194,8 +185,7 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, ReadOnlySpan<byte> value)
     {
         if (value.IsEmpty)
@@ -218,8 +208,7 @@ public static class DataWriterExtensions
     /// <typeparam name="T"></typeparam>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void WriteUnmanaged<T>(this ref DataWriter writer, T value) where T : unmanaged
     {
         writer.Expand(Unsafe.SizeOf<T>());

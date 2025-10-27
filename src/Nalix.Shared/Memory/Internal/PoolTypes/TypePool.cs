@@ -52,8 +52,7 @@ internal class TypePool(int maxCapacity)
     /// Sets the maximum capacity of this pool.
     /// </summary>
     /// <param name="maxCapacity">The maximum capacity of this pool.</param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetMaxCapacity(int maxCapacity)
     {
         if (maxCapacity < 0)
@@ -75,8 +74,7 @@ internal class TypePool(int maxCapacity)
     /// </summary>
     /// <param name="obj">The object to add.</param>
     /// <returns>True if the object was added, false if the pool is full.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryPush(IPoolable obj)
     {
         int newCount = Interlocked.Increment(ref _count);
@@ -96,8 +94,7 @@ internal class TypePool(int maxCapacity)
     /// </summary>
     /// <param name="obj">The object from the pool.</param>
     /// <returns>True if an object was retrieved, false if the pool is empty.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryPop(out IPoolable? obj)
     {
         if (_objects.TryPop(out obj))
@@ -113,8 +110,7 @@ internal class TypePool(int maxCapacity)
     /// Clears all objects from this pool.
     /// </summary>
     /// <returns>The ProtocolType of objects removed.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Clear()
     {
         int count = _objects.Count;
@@ -128,8 +124,7 @@ internal class TypePool(int maxCapacity)
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
     /// <returns>The ProtocolType of objects removed.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public int Trim(int percentage)
     {
@@ -180,8 +175,7 @@ internal class TypePool(int maxCapacity)
     /// </summary>
     /// <remarks>This is primarily for diagnostic purposes and should not be used in performance-critical code.</remarks>
     /// <returns>An array containing the objects in this pool.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IPoolable[] ToArray() => [.. _objects];
 
     #endregion Public Methods

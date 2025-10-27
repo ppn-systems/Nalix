@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -191,8 +191,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     /// <param name="newArgs"></param>
     /// <exception cref="ArgumentNullException"></exception>
     [MemberNotNull(nameof(_args))]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void BindArgs(SocketAsyncEventArgs newArgs)
     {
         _args?.Completed -= AsyncReceiveCompleted;
@@ -225,8 +224,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     /// A <see cref="ValueTask{T}"/> resolving to the number of bytes
     /// received. Returns 0 when the peer has closed the connection.
     /// </returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask<int> ReceiveAsync(
         Socket socket,
         byte[] buffer,
@@ -355,8 +353,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     // Private: active-op counter helpers
     // -------------------------------------------------------------------------
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void BeginOperation()
     {
         // First in-flight op → reset the idle event.
@@ -366,8 +363,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
         }
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EndOperation()
     {
         // Last completing op → signal idle.

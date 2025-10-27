@@ -207,8 +207,7 @@ public static class DirectiveClientExtensions
     /// </param>
     /// <returns><c>true</c> if a throttle window is active; otherwise <c>false</c>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsThrottled(this IClientConnection client, out TimeSpan remaining)
     {
         ArgumentNullException.ThrowIfNull(client);
@@ -246,8 +245,7 @@ public static class DirectiveClientExtensions
     /// Thrown when <paramref name="client"/> or <paramref name="packet"/> is <c>null</c>.
     /// </exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static async Task SendWithThrottleAsync(
         this IClientConnection client,
         IPacket packet,
@@ -270,8 +268,7 @@ public static class DirectiveClientExtensions
     /// </summary>
     /// <param name="client">The reliable client.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ClearThrottle(this IClientConnection client)
     {
         ArgumentNullException.ThrowIfNull(client);

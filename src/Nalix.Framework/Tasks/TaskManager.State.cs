@@ -123,8 +123,7 @@ public partial class TaskManager
 
         #region Computed Methods
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining |
+        [MethodImpl(MethodImplOptions.AggressiveInlining |
             MethodImplOptions.AggressiveOptimization)]
         public void MarkStart()
         {
@@ -135,8 +134,7 @@ public partial class TaskManager
             IsRunning = true;
         }
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining |
+        [MethodImpl(MethodImplOptions.AggressiveInlining |
             MethodImplOptions.AggressiveOptimization)]
         public void MarkStop()
         {
@@ -147,8 +145,7 @@ public partial class TaskManager
             _ = Interlocked.Exchange(ref _lastHeartbeatUtcTicks, nowTicks);
         }
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining |
+        [MethodImpl(MethodImplOptions.AggressiveInlining |
             MethodImplOptions.AggressiveOptimization)]
         public void MarkError(Exception __)
         {
@@ -160,8 +157,7 @@ public partial class TaskManager
             _ = Interlocked.Exchange(ref _lastHeartbeatUtcTicks, ticks);
         }
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining |
+        [MethodImpl(MethodImplOptions.AggressiveInlining |
             MethodImplOptions.AggressiveOptimization)]
         public void Beat()
         {
@@ -171,8 +167,7 @@ public partial class TaskManager
 
         public long Progress => Interlocked.Read(ref _progress);
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public void Add(long delta, string? note)
         {
             if (delta != 0)
@@ -189,12 +184,10 @@ public partial class TaskManager
             _ = Interlocked.Exchange(ref _lastHeartbeatUtcTicks, nowTicks);
         }
 
-        [MethodImpl(
-            MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void Cancel() => Cts.Cancel();
 
-        [MethodImpl(
-            MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         void IDisposable.Dispose() => Cancel();
 
         #endregion Computed Methods
@@ -308,8 +301,7 @@ public partial class TaskManager
 
         #region Computed Methods
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining |
+        [MethodImpl(MethodImplOptions.AggressiveInlining |
             MethodImplOptions.AggressiveOptimization)]
         public void MarkStart()
         {
@@ -317,8 +309,7 @@ public partial class TaskManager
             LastRunUtc = DateTimeOffset.UtcNow;
         }
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining |
+        [MethodImpl(MethodImplOptions.AggressiveInlining |
             MethodImplOptions.AggressiveOptimization)]
         public void MarkSuccess()
         {
@@ -327,8 +318,7 @@ public partial class TaskManager
             _ = Interlocked.Increment(ref _totalRuns);
         }
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining |
+        [MethodImpl(MethodImplOptions.AggressiveInlining |
             MethodImplOptions.AggressiveOptimization)]
         public void MarkFailure()
         {
@@ -337,12 +327,10 @@ public partial class TaskManager
             _ = Interlocked.Increment(ref _totalRuns);
         }
 
-        [MethodImpl(
-            MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void Cancel() => CancellationTokenSource.Cancel();
 
-        [MethodImpl(
-            MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         void IDisposable.Dispose() => Cancel();
 
         #endregion Computed Methods
@@ -384,13 +372,11 @@ public partial class TaskManager
         public string Name => _st.Name;
         public string Group => _st.Group;
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining |
+        [MethodImpl(MethodImplOptions.AggressiveInlining |
             MethodImplOptions.AggressiveOptimization)]
         public void Beat() => _st.Beat();
 
-        [MethodImpl(
-            MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void Advance(long delta, string? note = null) => _st.Add(delta, note);
 
         public bool IsCancellationRequested => _st.Cts.IsCancellationRequested;

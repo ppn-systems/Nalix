@@ -28,8 +28,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public PacketDispatchOptions<TPacket> WithLogging([NotNull] ILogger logger)
@@ -50,8 +49,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public PacketDispatchOptions<TPacket> WithErrorHandling(
@@ -72,8 +70,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public PacketDispatchOptions<TPacket> WithMiddleware([NotNull] IPacketMiddleware<TPacket> middleware)
@@ -96,8 +93,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </param>
     /// <returns>The current options instance.</returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public PacketDispatchOptions<TPacket> WithDispatchLoopCount(int? loopCount)
@@ -138,8 +134,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <exception cref="ArgumentNullException">
     /// Thrown if required dependencies within the pipeline are not initialized.
     /// </exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public PacketDispatchOptions<TPacket> WithErrorHandlingMiddleware(
@@ -158,8 +153,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// The type of the controller to register. Must have a parameterless constructor.
     /// </typeparam>
     /// <returns>The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public PacketDispatchOptions<TPacket> WithHandler<[
@@ -176,8 +170,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.
     /// </returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public PacketDispatchOptions<TPacket> WithHandler<[
@@ -215,8 +208,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </remarks>
     /// <exception cref="InvalidOperationException"></exception>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public PacketDispatchOptions<TPacket> WithHandler<
@@ -282,8 +274,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <see langword="true"/> if a handler delegate was found for the specified opcode; otherwise, <see langword="false"/>.
     /// </returns>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public bool TryResolveHandler(
@@ -327,8 +318,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// <see langword="true"/> if a handler descriptor was found; otherwise, <see langword="false"/>.
     /// </returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public bool TryResolveHandlerDescriptor(

@@ -16,8 +16,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs a trace-level message with class and member context.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Trace<T>(
         this ILogger logger, string message, EventId? eventId = null,
         [CallerMemberName] string member = "")
@@ -27,8 +26,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs a debug message with class and member context.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Debug<T>(
         this ILogger logger, string message, EventId? eventId = null,
         [CallerMemberName] string member = "")
@@ -38,8 +36,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs an informational message with class and member context.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Info<T>(
         this ILogger logger, string message, EventId? eventId = null,
         [CallerMemberName] string member = "")
@@ -49,8 +46,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs a warning message with class and member context.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Warn<T>(
         this ILogger logger, string message, EventId? eventId = null,
         [CallerMemberName] string member = "")
@@ -62,8 +58,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs an error message with class and member context.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Error<T>(
         this ILogger logger, string message, EventId? eventId = null,
         [CallerMemberName] string member = "")
@@ -73,8 +68,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs an exception as an error with class and member context.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static void Error<T>(
         this ILogger logger, Exception ex, EventId? eventId = null,
         [CallerMemberName] string member = "")
@@ -88,8 +82,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs a fatal error message with class and member context.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Fatal<T>(
         this ILogger logger, string message, EventId? eventId = null,
         [CallerMemberName] string member = "")
@@ -99,8 +92,7 @@ public static class NLogixExtensions
     /// <summary>
     /// Logs an exception as a fatal error with class and member context.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static void Fatal<T>(
         this ILogger logger, Exception ex, EventId? eventId = null,
         [CallerMemberName] string member = "")

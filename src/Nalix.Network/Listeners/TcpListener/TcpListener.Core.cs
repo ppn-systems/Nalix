@@ -70,13 +70,11 @@ public abstract partial class TcpListenerBase : IListener
     public bool IsTimeSyncEnabled
     {
         [DebuggerStepThrough]
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled;
 
         [DebuggerStepThrough]
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
             if ((ListenerState)Volatile.Read(ref _state) != ListenerState.STOPPED)
@@ -108,8 +106,7 @@ public abstract partial class TcpListenerBase : IListener
 
     static TcpListenerBase() => s_config.Validate();
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private TcpListenerBase()
     {
         if (OperatingSystem.IsWindows() && s_config.TuneThreadPool)
@@ -187,8 +184,7 @@ public abstract partial class TcpListenerBase : IListener
     #region Private Methods
 
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void SCHEDULE_STOP()
     {
         if (Interlocked.Exchange(ref _stopInitiated, 1) != 0)

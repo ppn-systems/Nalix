@@ -78,8 +78,7 @@ public abstract class SingletonBase<T> : IDisposable where T : class
     }
 
     /// <summary>Force-creates the instance (useful for warmup).</summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static void EnsureCreated() => _ = s_instance.Value;
 
     #endregion APIs
@@ -101,8 +100,7 @@ public abstract class SingletonBase<T> : IDisposable where T : class
     /// <summary>
     /// Override to release managed state. Base does nothing.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     protected virtual void DisposeManaged()
     { }
 
@@ -110,8 +108,7 @@ public abstract class SingletonBase<T> : IDisposable where T : class
 
     #region Finalizer
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static T CREATE_INSTANCE_INTERNAL()
     {
@@ -132,8 +129,7 @@ public abstract class SingletonBase<T> : IDisposable where T : class
     /// This runs once per closed generic T.
     /// </summary>
     /// <exception cref="MissingMethodException"></exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static Func<T> CREATE_CONSTRUCTORS()
     {
         const BindingFlags Flags =

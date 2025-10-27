@@ -31,8 +31,7 @@ internal static class LZ4Decoder
     /// The number of bytes written to the output buffer (equal to the original length),
     /// or -1 if decompression fails.
     /// </returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Decode(
         ReadOnlySpan<byte> input,
         Span<byte> output) => !DecodeInternal(input, output, out int written) ? -1 : written;
@@ -45,8 +44,7 @@ internal static class LZ4Decoder
     /// <param name="bytesWritten">The number of bytes written to the output buffer.</param>
     /// <returns><c>true</c> if decompression succeeds; otherwise, <c>false</c>.</returns>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool Decode(
         ReadOnlySpan<byte> input,
         [NotNullWhen(true)] out byte[]? output,
@@ -89,8 +87,7 @@ internal static class LZ4Decoder
     /// <param name="bytesWritten">The number of bytes written to the lease.</param>
     /// <returns><c>true</c> if decompression succeeds; otherwise, <c>false</c>.</returns>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool Decode(
         ReadOnlySpan<byte> input,
         out BufferLease? lease,
@@ -133,8 +130,7 @@ internal static class LZ4Decoder
     /// </summary>
     /// <param name="input"></param>
     /// <param name="header"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryReadAndValidateHeader(
         ReadOnlySpan<byte> input,
         out LZ4BlockHeader header)
@@ -155,8 +151,7 @@ internal static class LZ4Decoder
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     internal static unsafe bool DecodeInternal(
         ReadOnlySpan<byte> input,

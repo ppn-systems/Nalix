@@ -32,8 +32,7 @@ public abstract partial class UdpListenerBase
 
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private async Task ReceiveDatagramsAsync(
         CancellationToken cancellationToken)
     {
@@ -199,8 +198,7 @@ public abstract partial class UdpListenerBase
         return isValid;
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int EncodeRemoteEndpoint(EndPoint remoteEndPoint, Span<byte> destination)
     {
         if (remoteEndPoint is not IPEndPoint endpoint)
@@ -224,8 +222,7 @@ public abstract partial class UdpListenerBase
         return 1 + addressBytes.Length + sizeof(ushort);
     }
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static bool FixedTimeEquals(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right)
     {
         if (left.Length != right.Length)

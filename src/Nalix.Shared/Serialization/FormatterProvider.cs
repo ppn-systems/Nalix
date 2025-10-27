@@ -191,8 +191,7 @@ public static class FormatterProvider
     /// Thrown if the provided formatter is null.
     /// </exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Register<
         [DynamicallyAccessedMembers(
             DynamicallyAccessedMemberTypes.PublicProperties |
@@ -261,8 +260,7 @@ public static class FormatterProvider
     /// Thrown if the type is unsupported (neither a struct nor a class).
     /// </exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void RegisterComplex<
     [DynamicallyAccessedMembers(
         DynamicallyAccessedMemberTypes.PublicProperties |
@@ -303,8 +301,7 @@ public static class FormatterProvider
     /// Thrown if no formatter is registered for the given type.
     /// </exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IFormatter<T> Get<
         [DynamicallyAccessedMembers(
             DynamicallyAccessedMemberTypes.PublicProperties |
@@ -421,8 +418,7 @@ public static class FormatterProvider
     /// Thrown if no formatter is registered for the specified type.
     /// </exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IFormatter<T> GetComplex<
         [DynamicallyAccessedMembers(
             DynamicallyAccessedMemberTypes.PublicProperties |
@@ -472,8 +468,7 @@ public static class FormatterProvider
 
     #region Private Methods
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T> CacheOrGetExisting<T>(IFormatter<T> created)
     {
         IFormatter<T>? existing = Interlocked.CompareExchange(ref FormatterCache<T>.Formatter, created, null);
@@ -498,8 +493,7 @@ public static class FormatterProvider
         });
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static EnumFormatter<T>? TryCreateEnumFormatter<
     [DynamicallyAccessedMembers(
         DynamicallyAccessedMemberTypes.PublicProperties |
@@ -516,8 +510,7 @@ public static class FormatterProvider
         return null;
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T>? TryCreateArrayFormatter<
     [DynamicallyAccessedMembers(
         DynamicallyAccessedMemberTypes.PublicProperties |
@@ -560,8 +553,7 @@ public static class FormatterProvider
         return (IFormatter<T>)Activator.CreateInstance(refArrF)!;
     }
 
-    [MethodImpl(
-    MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T>? TryCreateListFormatter<
     [DynamicallyAccessedMembers(
         DynamicallyAccessedMemberTypes.PublicProperties |
@@ -600,8 +592,7 @@ public static class FormatterProvider
         return (IFormatter<T>)Activator.CreateInstance(typeof(ReferenceListFormatter<>).MakeGenericType(elem))!;
     }
 
-    [MethodImpl(
-    MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T>? TryCreateDictionaryFormatter<
     [DynamicallyAccessedMembers(
         DynamicallyAccessedMemberTypes.PublicProperties |

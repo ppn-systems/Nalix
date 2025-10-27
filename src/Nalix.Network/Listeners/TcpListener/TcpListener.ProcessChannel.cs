@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -156,8 +156,7 @@ public abstract partial class TcpListenerBase
     /// no additional ThreadPool hop needed.
     /// </summary>
     /// <param name="connection"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void INVOKE_PROCESS(IConnection connection)
     {
         try

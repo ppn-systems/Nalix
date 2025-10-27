@@ -50,8 +50,7 @@ public partial class TaskManager
 
     #region Internal Cleanup
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     private void CLEANUP_WORKERS()
     {
@@ -100,8 +99,7 @@ public partial class TaskManager
 
     #endregion Internal Cleanup
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private async Task RECURRING_LOOP_ASYNC(
         RecurringState s, Func<CancellationToken, ValueTask> work)
     {
@@ -250,8 +248,7 @@ public partial class TaskManager
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static async ValueTask RECURRING_BACKOFF_ASYNC(
         RecurringState s,
         CancellationToken ct)
@@ -280,8 +277,7 @@ public partial class TaskManager
         catch (OperationCanceledException) { }
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int COUNT_RUNNING_WORKERS()
 
     {
@@ -296,8 +292,7 @@ public partial class TaskManager
         return n;
     }
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     private void RETAIN_OR_REMOVE(WorkerState st)
     {
@@ -420,8 +415,7 @@ public partial class TaskManager
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void INITIALIZE_CPU_MEASUREMENT()
     {
         Process proc = Process.GetCurrentProcess();
@@ -431,8 +425,7 @@ public partial class TaskManager
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     private double MEASURE_CPU_USAGE_PERCENT()
     {
@@ -483,8 +476,7 @@ public partial class TaskManager
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void ADJUST_CONCURRENCY(int newLimit)
     {
         // Safety: clamp to valid range

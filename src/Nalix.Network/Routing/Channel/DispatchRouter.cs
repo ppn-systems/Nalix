@@ -99,8 +99,7 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
     /// </summary>
     /// <param name="connection"></param>
     /// <returns></returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private DispatchChannel<TPacket> GET_SHARD(IConnection connection) => _shards[connection.ID.GetHashCode() & _mask];
 
     #endregion Private Methods

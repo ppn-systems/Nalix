@@ -41,8 +41,7 @@ internal static class StringBuilderPool
     /// </summary>
     /// <param name="capacity">The initial capacity of the StringBuilder.</param>
     /// <returns>A StringBuilder instance from the pool or a new instance.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static StringBuilder Rent(int capacity = DefaultCapacity)
     {
         // Fast path: thread-local cache
@@ -81,8 +80,7 @@ internal static class StringBuilderPool
     /// Returns a StringBuilder to the pool for reuse.
     /// </summary>
     /// <param name="builder">The StringBuilder to return to the pool.</param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Return(StringBuilder? builder)
     {
         if (builder == null)

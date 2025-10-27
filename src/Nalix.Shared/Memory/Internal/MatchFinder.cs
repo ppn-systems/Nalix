@@ -84,8 +84,7 @@ internal static unsafe class MatchFinder
     /// <param name="searchStartPtr">Pointer to the start of the sliding window for searching.</param>
     /// <param name="currentInputOffset">Offset of the current input pointer relative to the input base.</param>
     /// <returns>A <see cref="Match"/> struct representing the longest match found, or a default value if no match is found.</returns>
-    [MethodImpl(
-    MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Match FindLongestMatch(
         int* hashTable,
         byte* inputBase,

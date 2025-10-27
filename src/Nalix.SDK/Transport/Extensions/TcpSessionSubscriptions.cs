@@ -39,8 +39,7 @@ public static class TcpSessionSubscriptions
     /// <typeparam name="TPacket"></typeparam>
     /// <param name="client"></param>
     /// <param name="handler"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable On<TPacket>(
         this IClientConnection client,
         Action<TPacket> handler)
@@ -87,8 +86,7 @@ public static class TcpSessionSubscriptions
     /// <param name="client"></param>
     /// <param name="predicate"></param>
     /// <param name="handler"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable On(
         this IClientConnection client,
         Func<IPacket, bool> predicate,
@@ -139,8 +137,7 @@ public static class TcpSessionSubscriptions
     /// <param name="client"></param>
     /// <param name="predicate"></param>
     /// <param name="handler"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable OnOnce<TPacket>(
         this IClientConnection client,
         Func<TPacket, bool> predicate,
@@ -231,8 +228,7 @@ public static class TcpSessionSubscriptions
     /// var response = await tcs.Task;
     /// </code>
     /// </example>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable SubscribeTemp<TPacket>(
         this IClientConnection client,
         Action<TPacket> onMessage,
@@ -271,8 +267,7 @@ public static class TcpSessionSubscriptions
     /// <param name="onMessage">Handler invoked for each matching packet.</param>
     /// <param name="onDisconnected">Optional disconnect handler.</param>
     /// <returns>An <see cref="IDisposable"/> that unsubscribes when disposed.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable SubscribeTemp<TPacket>(
         this IClientConnection client,
         Func<TPacket, bool> predicate,
@@ -317,8 +312,7 @@ public static class TcpSessionSubscriptions
     /// </summary>
     /// <param name="_"></param>
     /// <param name="subs"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static CompositeSubscription Subscribe(
         this IClientConnection _,
         params IDisposable[] subs)

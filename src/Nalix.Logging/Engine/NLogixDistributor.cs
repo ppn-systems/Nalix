@@ -75,8 +75,7 @@ public sealed class NLogixDistributor : ILogDistributor
     /// <param name="entry">The log entry to be published.</param>
     /// <exception cref="ArgumentNullException">Thrown if entry is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public void Publish(LogEntry? entry)
     {
@@ -161,8 +160,7 @@ public sealed class NLogixDistributor : ILogDistributor
     /// <returns>The current instance of <see cref="ILogDistributor"/>, allowing method chaining.</returns>
     /// <exception cref="ArgumentNullException">Thrown if target is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public ILogDistributor RegisterTarget([NotNull] ILoggerTarget loggerHandler)
     {
@@ -181,8 +179,7 @@ public sealed class NLogixDistributor : ILogDistributor
     /// <returns><c>true</c> if the target was successfully removed; otherwise, <c>false</c>.</returns>
     /// <exception cref="ArgumentNullException">Thrown if target is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public bool UnregisterTarget([NotNull] ILoggerTarget loggerHandler)
     {
@@ -198,8 +195,7 @@ public sealed class NLogixDistributor : ILogDistributor
     /// <param name="target">The target that caused the error.</param>
     /// <param name="exception">The exception that occurred.</param>
     /// <param name="entry">The log entry being published.</param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static void HandleTargetError(ILoggerTarget target, Exception exception, LogEntry entry)
     {
@@ -225,8 +221,7 @@ public sealed class NLogixDistributor : ILogDistributor
     /// <summary>
     /// Disposes of the logging publisher and its targets if applicable.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public void Dispose()
     {
