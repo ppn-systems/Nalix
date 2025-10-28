@@ -2,10 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
+using System;
 using Nalix.Common.Security;
 using Nalix.Shared.Security.Engine;
 using Nalix.Shared.Security.Symmetric;
-using System;
 using Xunit;
 
 namespace Nalix.Shared.Tests.Cryptography;
@@ -24,50 +24,47 @@ public sealed class SymmetricEngineTests
     // =========================================================================
 
     /// <summary>Fixed header size in bytes (MAGIC + version + type + flags + nonceLen + seq).</summary>
-    private const Int32 HeaderSize = 12;
+    private const int HeaderSize = 12;
 
     /// <summary>ChaCha20 nonce length in bytes (96-bit per RFC 7539).</summary>
-    private const Int32 ChaCha20NonceSize = 12;
+    private const int ChaCha20NonceSize = 12;
 
     /// <summary>Salsa20 nonce length in bytes (64-bit per Salsa20 spec).</summary>
-    private const Int32 Salsa20NonceSize = 8;
+    private const int Salsa20NonceSize = 8;
 
     // =========================================================================
     //  Shared test material
     // =========================================================================
 
     // 32-byte all-zero key (deterministic)
-    private static readonly Byte[] Key32 = new Byte[32];
-
-    // 16-byte all-zero key (Salsa20 128-bit mode)
-    private static readonly Byte[] Key16 = new Byte[16];
+    private static readonly byte[] Key32 = new byte[32];
 
     // 12-byte all-zero nonce for ChaCha20
-    private static readonly Byte[] Nonce12 = new Byte[12];
+    private static readonly byte[] Nonce12 = new byte[12];
 
     // 8-byte all-zero nonce for Salsa20
-    private static readonly Byte[] Nonce8 = new Byte[8];
+    private static readonly byte[] Nonce8 = new byte[8];
 
     // Short plaintext (< 1 block = 64 bytes)
-    private static readonly Byte[] PlaintextShort =
+    private static readonly byte[] PlaintextShort =
         System.Text.Encoding.UTF8.GetBytes("Hello, Nalix!");
 
     // Exactly 1 block (64 bytes)
-    private static readonly Byte[] PlaintextOneBlock = new Byte[64];
+    private static readonly byte[] PlaintextOneBlock = new byte[64];
 
     // Multi-block plaintext (3 full blocks + a tail)
-    private static readonly Byte[] PlaintextMultiBlock = new Byte[200];
+    private static readonly byte[] PlaintextMultiBlock = new byte[200];
 
     static SymmetricEngineTests()
     {
-        for (Int32 i = 0; i < PlaintextOneBlock.Length; i++)
+        for (int i = 0; i < PlaintextOneBlock.Length; i++)
         {
-            PlaintextOneBlock[i] = (Byte)(i + 1);
+            PlaintextOneBlock[i] = (byte)(i + 1);
         }
 
-        for (Int32 i = 0; i < PlaintextMultiBlock.Length; i++)
+        for (int i = 0; i < PlaintextMultiBlock.Length; i++)
         {
-            PlaintextMultiBlock[i] = (Byte)(i & 0xFF);
+            PlaintextMultiBlock[i] = (byte)(i & 0xFF);
         }
     }
 
@@ -75,11 +72,11 @@ public sealed class SymmetricEngineTests
     //  Helper: hex string → byte[]
     // =========================================================================
 
-    private static Byte[] HexToBytes(String hex)
+    private static byte[] HexToBytes(string hex)
     {
         hex = hex.Replace(" ", "").Replace("\n", "");
-        Byte[] result = new Byte[hex.Length / 2];
-        for (Int32 i = 0; i < result.Length; i++)
+        byte[] result = new byte[hex.Length / 2];
+        for (int i = 0; i < result.Length; i++)
         {
             result[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
         }
@@ -92,44 +89,44 @@ public sealed class SymmetricEngineTests
     //  Layout: header(12) || nonce(nonceLen) || ciphertext(plaintextLen)
     // =========================================================================
 
-    private static Int32 EnvelopeSize(Int32 nonceLen, Int32 plaintextLen)
+    private static int EnvelopeSize(int nonceLen, int plaintextLen)
         => HeaderSize + nonceLen + plaintextLen;
 
     // =========================================================================
     //  Helper: resolve nonce length per algorithm
     // =========================================================================
 
-    private static Int32 NonceLength(CipherSuiteType algorithm)
-        => algorithm is CipherSuiteType.CHACHA20 ? ChaCha20NonceSize : Salsa20NonceSize;
+    private static int NonceLength(CipherSuiteType algorithm)
+        => algorithm is CipherSuiteType.Chacha20 ? ChaCha20NonceSize : Salsa20NonceSize;
 
-    private static Byte[] NonceFor(CipherSuiteType algorithm)
-        => algorithm is CipherSuiteType.CHACHA20 ? Nonce12 : Nonce8;
+    private static byte[] NonceFor(CipherSuiteType algorithm)
+        => algorithm is CipherSuiteType.Chacha20 ? Nonce12 : Nonce8;
 
     // =========================================================================
     //  1. ChaCha20 — RFC 7539 Test Vector
     // =========================================================================
 
     [Fact]
-    public void ChaCha20_GenerateKeyBlock_RFC7539_Section2_4_2_Vector()
+    public void ChaCha20GenerateKeyBlockRFC7539Section242Vector()
     {
         // RFC 7539 §2.4.2: key = 0x00..0x1f, nonce = 000000090000004a00000000, counter = 1
         // Expected keystream block 1 (first 64 bytes).
-        Byte[] key = new Byte[32];
-        for (Int32 i = 0; i < 32; i++)
+        byte[] key = new byte[32];
+        for (int i = 0; i < 32; i++)
         {
-            key[i] = (Byte)i;
+            key[i] = (byte)i;
         }
 
-        Byte[] nonce = HexToBytes("000000090000004a00000000");
+        byte[] nonce = HexToBytes("000000090000004a00000000");
 
-        Byte[] expected = HexToBytes(
+        byte[] expected = HexToBytes(
             "10f1e7e4d13b5915500fdd1fa32071c4" +
             "c7d1f4c733c068030422aa9ac3d46c4e" +
             "d2826446079faa0914c2d705d98b02a2" +
             "b5129cd1de164eb9cbd083e8a2503c4e");
 
         ChaCha20 cipher = new(key, nonce, 1u);
-        Byte[] keystream = new Byte[64];
+        byte[] keystream = new byte[64];
         cipher.GenerateKeyBlock(keystream);
         cipher.Clear();
 
@@ -137,18 +134,18 @@ public sealed class SymmetricEngineTests
     }
 
     [Fact]
-    public void Salsa20_OutputBufferTooSmall_ThrowsArgumentException()
+    public void Salsa20OutputBufferTooSmallThrowsArgumentException()
     {
-        Byte[] tooSmall = new Byte[1];
-        Assert.Throws<ArgumentException>(() =>
+        byte[] tooSmall = new byte[1];
+        _ = Assert.Throws<ArgumentException>(() =>
             Salsa20.Encrypt(Key32, Nonce8, 0UL, PlaintextShort, tooSmall));
     }
 
     [Fact]
-    public void Salsa20_SpanOverload_ReturnsCorrectByteCount()
+    public void Salsa20SpanOverloadReturnsCorrectByteCount()
     {
-        Byte[] dst = new Byte[PlaintextShort.Length];
-        Int32 written = Salsa20.Encrypt(Key32, Nonce8, 0UL, PlaintextShort, dst);
+        byte[] dst = new byte[PlaintextShort.Length];
+        int written = Salsa20.Encrypt(Key32, Nonce8, 0UL, PlaintextShort, dst);
         Assert.Equal(PlaintextShort.Length, written);
     }
 
@@ -160,23 +157,23 @@ public sealed class SymmetricEngineTests
 
 
     [Theory]
-    [InlineData(CipherSuiteType.CHACHA20)]
-    [InlineData(CipherSuiteType.SALSA20)]
-    public void SymmetricEngine_Envelope_MultiBlock_RoundTrips(CipherSuiteType algorithm)
+    [InlineData(CipherSuiteType.Chacha20)]
+    [InlineData(CipherSuiteType.Salsa20)]
+    public void SymmetricEngineEnvelopeMultiBlockRoundTrips(CipherSuiteType algorithm)
     {
-        Byte[] nonce = NonceFor(algorithm);
-        Int32 nLen = NonceLength(algorithm);
-        Byte[] envelope = new Byte[EnvelopeSize(nLen, PlaintextMultiBlock.Length)];
-        Byte[] plaintext = new Byte[PlaintextMultiBlock.Length];
+        byte[] nonce = NonceFor(algorithm);
+        int nLen = NonceLength(algorithm);
+        byte[] envelope = new byte[EnvelopeSize(nLen, PlaintextMultiBlock.Length)];
+        byte[] plaintext = new byte[PlaintextMultiBlock.Length];
 
-        Boolean encOk = SymmetricEngine.Encrypt(
+        bool encOk = SymmetricEngine.Encrypt(
             Key32, PlaintextMultiBlock, envelope, nonce,
-            seq: 99u, algorithm, out Int32 encWritten);
+            seq: 99u, algorithm, out int encWritten);
 
         Assert.True(encOk);
         Assert.Equal(EnvelopeSize(nLen, PlaintextMultiBlock.Length), encWritten);
 
-        Boolean decOk = SymmetricEngine.Decrypt(Key32, envelope, plaintext, out Int32 decWritten);
+        bool decOk = SymmetricEngine.Decrypt(Key32, envelope, plaintext, out int decWritten);
 
         Assert.True(decOk);
         Assert.Equal(PlaintextMultiBlock.Length, decWritten);
@@ -184,66 +181,66 @@ public sealed class SymmetricEngineTests
     }
 
     [Theory]
-    [InlineData(CipherSuiteType.CHACHA20)]
-    [InlineData(CipherSuiteType.SALSA20)]
-    public void SymmetricEngine_Envelope_BufferTooSmall_ReturnsFalse(CipherSuiteType algorithm)
+    [InlineData(CipherSuiteType.Chacha20)]
+    [InlineData(CipherSuiteType.Salsa20)]
+    public void SymmetricEngineEnvelopeBufferTooSmallReturnsFalse(CipherSuiteType algorithm)
     {
-        Byte[] nonce = NonceFor(algorithm);
-        Byte[] tinyBuffer = new Byte[1]; // far too small
+        byte[] nonce = NonceFor(algorithm);
+        byte[] tinyBuffer = new byte[1]; // far too small
 
-        Boolean ok = SymmetricEngine.Encrypt(
+        bool ok = SymmetricEngine.Encrypt(
             Key32, PlaintextShort, tinyBuffer, nonce,
-            seq: 0u, algorithm, out Int32 written);
+            seq: 0u, algorithm, out int written);
 
         Assert.False(ok);
         Assert.Equal(0, written);
     }
 
     [Fact]
-    public void SymmetricEngine_Envelope_CorruptMagicBytes_DecryptReturnsFalse()
+    public void SymmetricEngineEnvelopeCorruptMagicBytesDecryptReturnsFalse()
     {
-        Int32 nLen = ChaCha20NonceSize;
-        Byte[] envelope = new Byte[EnvelopeSize(nLen, PlaintextShort.Length)];
-        Byte[] ptBuf = new Byte[PlaintextShort.Length];
+        int nLen = ChaCha20NonceSize;
+        byte[] envelope = new byte[EnvelopeSize(nLen, PlaintextShort.Length)];
+        byte[] ptBuf = new byte[PlaintextShort.Length];
 
-        SymmetricEngine.Encrypt(
+        _ = SymmetricEngine.Encrypt(
             Key32, PlaintextShort, envelope, Nonce12,
-            seq: 1u, CipherSuiteType.CHACHA20, out _);
+            seq: 1u, CipherSuiteType.Chacha20, out _);
 
         // Corrupt the first byte of MAGIC "NALX"
         envelope[0] ^= 0xFF;
 
-        Boolean decOk = SymmetricEngine.Decrypt(Key32, envelope, ptBuf, out Int32 decWritten);
+        bool decOk = SymmetricEngine.Decrypt(Key32, envelope, ptBuf, out int decWritten);
 
         Assert.False(decOk);
         Assert.Equal(0, decWritten);
     }
 
     [Fact]
-    public void SymmetricEngine_Envelope_EmptyEnvelope_DecryptReturnsFalse()
+    public void SymmetricEngineEnvelopeEmptyEnvelopeDecryptReturnsFalse()
     {
-        Byte[] ptBuf = new Byte[10];
-        Boolean ok = SymmetricEngine.Decrypt(Key32, Array.Empty<Byte>(), ptBuf, out Int32 written);
+        byte[] ptBuf = new byte[10];
+        bool ok = SymmetricEngine.Decrypt(Key32, [], ptBuf, out int written);
 
         Assert.False(ok);
         Assert.Equal(0, written);
     }
 
     [Fact]
-    public void SymmetricEngine_Envelope_TruncatedEnvelope_DecryptReturnsFalse()
+    public void SymmetricEngineEnvelopeTruncatedEnvelopeDecryptReturnsFalse()
     {
-        Int32 nLen = ChaCha20NonceSize;
-        Byte[] envelope = new Byte[EnvelopeSize(nLen, PlaintextShort.Length)];
-        Byte[] ptBuf = new Byte[PlaintextShort.Length];
+        int nLen = ChaCha20NonceSize;
+        byte[] envelope = new byte[EnvelopeSize(nLen, PlaintextShort.Length)];
+        byte[] ptBuf = new byte[PlaintextShort.Length];
 
-        SymmetricEngine.Encrypt(
+        _ = SymmetricEngine.Encrypt(
             Key32, PlaintextShort, envelope, Nonce12,
-            seq: 5u, CipherSuiteType.CHACHA20, out _);
+            seq: 5u, CipherSuiteType.Chacha20, out _);
 
         // Truncate to just the header (missing nonce + ciphertext)
-        Byte[] truncated = envelope[..HeaderSize];
+        byte[] truncated = envelope[..HeaderSize];
 
-        Boolean ok = SymmetricEngine.Decrypt(Key32, truncated, ptBuf, out Int32 written);
+        bool ok = SymmetricEngine.Decrypt(Key32, truncated, ptBuf, out int written);
 
         Assert.False(ok);
         Assert.Equal(0, written);

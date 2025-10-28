@@ -5,20 +5,20 @@ using Xunit;
 
 namespace Nalix.Shared.Tests.Serialization;
 
-public class LiteSerializer_StringTests
+public class LiteSerializerStringTests
 {
     // Kiểm thử serialize/deserialize chuỗi với các giá trị đầu vào ("Hello", "").
     [Theory]
     [InlineData("Hello")]
     [InlineData("")]
-    public void SerializeDeserialize_String(System.String input)
+    public void SerializeDeserializeString(string input)
     {
         // Chuyển chuỗi đầu vào thành mảng byte.
-        System.Byte[] buffer = LiteSerializer.Serialize(input);
+        byte[] buffer = LiteSerializer.Serialize(input);
         // Khởi tạo biến output để lưu kết quả deserialize.
-        System.String output = null;
+        string output = null;
         // Chuyển mảng byte về chuỗi và lưu vào output.
-        LiteSerializer.Deserialize(buffer, ref output);
+        _ = LiteSerializer.Deserialize(buffer, ref output);
 
         // Kiểm tra xem output có khớp với input không.
         Assert.Equal(input, output);

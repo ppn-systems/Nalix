@@ -1,8 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
-using Nalix.Shared.Security.Aead;
-using System;
 using System.Security.Cryptography;
+using Nalix.Shared.Security.Aead;
 using Xunit;
 
 namespace Nalix.Shared.Tests.Cryptography;
@@ -12,9 +11,9 @@ namespace Nalix.Shared.Tests.Cryptography;
 /// </summary>
 public class Salsa20Poly1305Tests
 {
-    private static Byte[] RandomBytes(Int32 length)
+    private static byte[] RandomBytes(int length)
     {
-        var buf = new Byte[length];
+        byte[] buf = new byte[length];
         RandomNumberGenerator.Fill(buf);
         return buf;
     }
@@ -25,24 +24,24 @@ public class Salsa20Poly1305Tests
     [Theory]
     [InlineData(16)]
     [InlineData(32)]
-    public void EncryptDecrypt_RoundTrip_Span(Int32 keySize)
+    public void EncryptDecryptRoundTripSpan(int keySize)
     {
         // Arrange
-        Byte[] key = RandomBytes(keySize);
-        Byte[] nonce = RandomBytes(8); // Salsa20 nonce size (8)
-        Byte[] plaintext = RandomBytes(128);
-        Byte[] aad = RandomBytes(20);
+        byte[] key = RandomBytes(keySize);
+        byte[] nonce = RandomBytes(8); // Salsa20 nonce size (8)
+        byte[] plaintext = RandomBytes(128);
+        byte[] aad = RandomBytes(20);
 
-        var ciphertext = new Byte[plaintext.Length];
-        var tag = new Byte[Salsa20Poly1305.TagSize];
-        var recovered = new Byte[plaintext.Length];
+        byte[] ciphertext = new byte[plaintext.Length];
+        byte[] tag = new byte[Salsa20Poly1305.TagSize];
+        byte[] recovered = new byte[plaintext.Length];
 
         // Act: encrypt (Span API)
-        Int32 ctWritten = Salsa20Poly1305.Encrypt(key, nonce, plaintext, aad, ciphertext, tag);
+        int ctWritten = Salsa20Poly1305.Encrypt(key, nonce, plaintext, aad, ciphertext, tag);
         Assert.Equal(plaintext.Length, ctWritten);
 
         // Act: decrypt (Span API)
-        Int32 ptWritten = Salsa20Poly1305.Decrypt(key, nonce, ciphertext, aad, tag, recovered);
+        int ptWritten = Salsa20Poly1305.Decrypt(key, nonce, ciphertext, aad, tag, recovered);
         Assert.Equal(plaintext.Length, ptWritten);
 
         // Assert: plaintext matches
@@ -53,27 +52,27 @@ public class Salsa20Poly1305Tests
     /// Tampering with the authentication tag should cause Span-based decryption to return a negative value.
     /// </summary>
     [Fact]
-    public void Decrypt_TamperedTag_ReturnsNegative_Span()
+    public void DecryptTamperedTagReturnsNegativeSpan()
     {
         // Arrange
-        Byte[] key = RandomBytes(32);
-        Byte[] nonce = RandomBytes(8);
-        Byte[] plaintext = RandomBytes(32);
-        Byte[] aad = RandomBytes(4);
+        byte[] key = RandomBytes(32);
+        byte[] nonce = RandomBytes(8);
+        byte[] plaintext = RandomBytes(32);
+        byte[] aad = RandomBytes(4);
 
-        var ciphertext = new Byte[plaintext.Length];
-        var tag = new Byte[Salsa20Poly1305.TagSize];
+        byte[] ciphertext = new byte[plaintext.Length];
+        byte[] tag = new byte[Salsa20Poly1305.TagSize];
 
-        Salsa20Poly1305.Encrypt(key, nonce, plaintext, aad, ciphertext, tag);
+        _ = Salsa20Poly1305.Encrypt(key, nonce, plaintext, aad, ciphertext, tag);
 
         // Tamper with tag
         tag[0] ^= 0xFF;
 
         // Destination buffer for plaintext
-        var recovered = new Byte[plaintext.Length];
+        byte[] recovered = new byte[plaintext.Length];
 
         // Act
-        Int32 result = Salsa20Poly1305.Decrypt(key, nonce, ciphertext, aad, tag, recovered);
+        int result = Salsa20Poly1305.Decrypt(key, nonce, ciphertext, aad, tag, recovered);
 
         // Assert: decryption should fail (method returns negative according to implementation)
         Assert.True(result < 0, "Span-based Decrypt should return a negative value on authentication failure.");

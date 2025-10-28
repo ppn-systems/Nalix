@@ -1,7 +1,5 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
-using System;
-
 namespace Nalix.Shared.Tests.Serialization;
 
 /// <summary>
@@ -9,7 +7,7 @@ namespace Nalix.Shared.Tests.Serialization;
 /// </summary>
 public struct SmallStruct
 {
-    public Byte A;
+    public byte A;
 }
 
 /// <summary>
@@ -17,14 +15,14 @@ public struct SmallStruct
 /// </summary>
 public struct ComplexStruct
 {
-    public Int32 I32;
-    public Int16 I16;
-    public Byte B;
+    public int I32;
+    public short I16;
+    public byte B;
 }
 
 public class NullClass
 {
-    public Int32[] I32;
+    public int[] I32;
 
-    public Int16? I16;
+    public short? I16;
 }
