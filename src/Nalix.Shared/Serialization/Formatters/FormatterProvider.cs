@@ -55,6 +55,7 @@ public static class FormatterProvider
         Register<System.Decimal>(new UnmanagedFormatter<System.Decimal>());
 
         Register<System.Guid>(new UnmanagedFormatter<System.Guid>());
+        Register<System.DateOnly>(new UnmanagedFormatter<System.DateOnly>());
         Register<System.TimeSpan>(new UnmanagedFormatter<System.TimeSpan>());
         Register<System.DateTime>(new UnmanagedFormatter<System.DateTime>());
         Register<System.DateTimeOffset>(new UnmanagedFormatter<System.DateTimeOffset>());
@@ -74,6 +75,12 @@ public static class FormatterProvider
         Register<System.Double[]>(new ArrayFormatter<System.Double>());
         Register<System.Boolean[]>(new ArrayFormatter<System.Boolean>());
 
+        Register<System.Guid[]>(new ArrayFormatter<System.Guid>());
+        Register<System.DateOnly[]>(new ArrayFormatter<System.DateOnly>());
+        Register<System.DateTime[]>(new ArrayFormatter<System.DateTime>());
+        Register<System.TimeSpan[]>(new ArrayFormatter<System.TimeSpan>());
+        Register<System.DateTimeOffset[]>(new ArrayFormatter<System.DateTimeOffset>());
+
         // ============================================================ //
         // Nullable types
         Register<System.Char?>(new NullableFormatter<System.Char>());
@@ -92,6 +99,7 @@ public static class FormatterProvider
 
         // Nullable complex types
         Register<System.Guid?>(new NullableFormatter<System.Guid>());
+        Register<System.DateOnly?>(new NullableFormatter<System.DateOnly>());
         Register<System.DateTime?>(new NullableFormatter<System.DateTime>());
         Register<System.TimeSpan?>(new NullableFormatter<System.TimeSpan>());
         Register<System.DateTimeOffset?>(new NullableFormatter<System.DateTimeOffset>());
@@ -111,6 +119,7 @@ public static class FormatterProvider
         Register<System.Decimal?[]>(new NullableArrayFormatter<System.Decimal>());
 
         Register<System.Guid?[]>(new NullableArrayFormatter<System.Guid>());
+        Register<System.DateOnly?[]>(new NullableArrayFormatter<System.DateOnly>());
         Register<System.DateTime?[]>(new NullableArrayFormatter<System.DateTime>());
         Register<System.TimeSpan?[]>(new NullableArrayFormatter<System.TimeSpan>());
         Register<System.DateTimeOffset?[]>(new NullableArrayFormatter<System.DateTimeOffset>());
