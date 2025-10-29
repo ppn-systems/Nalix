@@ -108,7 +108,6 @@ dotnet add package Nalix.Framework
 dotnet add package Nalix.SDK
 dotnet add package Nalix.Network
 dotnet add package Nalix.Logging
-dotnet add package Nalix.Cryptography
 ```
 
 ### Basic Usage Example
