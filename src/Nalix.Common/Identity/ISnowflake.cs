@@ -101,6 +101,6 @@ public interface ISnowflake
     /// This is the recommended serialization method for performance-critical scenarios.
     /// </remarks>
     bool TryWriteBytes(
-        [NotNull] Span<byte> destination,
+        Span<byte> destination,
         [NotNullWhen(true)] out int bytesWritten);
 }

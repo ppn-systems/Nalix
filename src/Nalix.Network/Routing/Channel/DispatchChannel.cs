@@ -235,8 +235,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// <param name="raw">The buffer lease containing the packet data.</param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Push(
-        [NotNull] IConnection connection,
-        [NotNull] IBufferLease raw)
+        IConnection connection,
+        IBufferLease raw)
     {
         ConnectionState cs = GET_STATE(connection);
         ConnectionQueues cqs = _queues.GetOrAdd(connection, static _ => new ConnectionQueues());
@@ -353,13 +353,13 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    private ConnectionState GET_STATE([NotNull] IConnection c) => _states.GetOrAdd(c, static _ => new ConnectionState());
+    private ConnectionState GET_STATE(IConnection c) => _states.GetOrAdd(c, static _ => new ConnectionState());
 
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static bool HAS_ANY(
-        [NotNull] ConnectionQueues cqs,
-        [NotNull] out int highest)
+        ConnectionQueues cqs,
+        out int highest)
     {
         for (int p = HighestPriorityIndex; p >= LowestPriorityIndex; p--)
         {
@@ -376,11 +376,11 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static bool TRY_DEQUEUE_HIGHEST(
-        [NotNull] ConnectionQueues cqs,
-        [NotNull] int startPrio,
+        ConnectionQueues cqs,
+        int startPrio,
         [AllowNull]
         [NotNullWhen(true)] out IBufferLease raw,
-        [NotNull] out int dequeuedFromPrio)
+        out int dequeuedFromPrio)
     {
         // Try from requested priority down to lowest, to avoid a miss due to racing push/pop.
         for (int p = startPrio; p >= LowestPriorityIndex; p--)
@@ -406,8 +406,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static bool TRY_EVICT_OLDEST(
-        [NotNull] ConnectionQueues cqs,
-        [NotNull] ConnectionState cs,
+        ConnectionQueues cqs,
+        ConnectionState cs,
         [AllowNull]
         [NotNullWhen(true)] out IBufferLease lease)
     {
@@ -436,7 +436,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    private static int CLASSIFY_PRIORITY_INDEX([NotNull] ReadOnlySpan<byte> span)
+    private static int CLASSIFY_PRIORITY_INDEX(ReadOnlySpan<byte> span)
     {
         PacketPriority pr = span.ReadPriorityLE();
         int idx = (int)pr;
@@ -455,7 +455,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    private void OnUnregistered([NotNull] IConnection connection) => RemoveConnection(connection);
+    private void OnUnregistered(IConnection connection) => RemoveConnection(connection);
 
     /// <summary>
     /// Removes a connection, draining all per-priority queues and adjusting counters.
@@ -464,7 +464,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
-    private void RemoveConnection([NotNull] IConnection connection)
+    private void RemoveConnection(IConnection connection)
     {
         if (_queues.TryRemove(connection, out ConnectionQueues cqs))
         {

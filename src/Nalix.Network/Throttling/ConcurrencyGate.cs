@@ -423,7 +423,7 @@ public sealed class ConcurrencyGate : IReportable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool TryEnter(
         ushort opcode,
-        [NotNull] PacketConcurrencyLimitAttribute attr,
+        PacketConcurrencyLimitAttribute attr,
         out Lease lease)
     {
         // FIX #12: Check and reset circuit breaker
@@ -490,7 +490,7 @@ public sealed class ConcurrencyGate : IReportable
     [MethodImpl(MethodImplOptions.NoInlining)]
     public async ValueTask<Lease> EnterAsync(
         ushort opcode,
-        [NotNull] PacketConcurrencyLimitAttribute attr,
+        PacketConcurrencyLimitAttribute attr,
         CancellationToken ct = default)
     {
         VALIDATE_ATTRIBUTE(attr);

@@ -191,7 +191,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
-    public byte[] Rent([NotNull] int minimumLength = 256)
+    public byte[] Rent(int minimumLength = 256)
     {
         if (IS_FAST_COMMON_SIZE(minimumLength))
         {
@@ -283,7 +283,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RentForSaea(
-        [NotNull] SocketAsyncEventArgs saea,
+        SocketAsyncEventArgs saea,
         int size = 256)
     {
         ArgumentNullException.ThrowIfNull(saea);
@@ -302,7 +302,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ReturnFromSaea(
-        [NotNull] SocketAsyncEventArgs saea)
+        SocketAsyncEventArgs saea)
     {
         ArgumentNullException.ThrowIfNull(saea);
 
@@ -322,7 +322,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
-    public double GetAllocationForSize([NotNull] int size)
+    public double GetAllocationForSize(int size)
     {
         if (size > MaxBufferSize)
         {

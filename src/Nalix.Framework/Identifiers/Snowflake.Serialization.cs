@@ -110,7 +110,7 @@ public readonly partial struct Snowflake
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryWriteBytes(
-        [NotNull] Span<byte> destination,
+        Span<byte> destination,
         [NotNullWhen(true)] out int bytesWritten)
     {
         // Buffer overflow protection - validate size before writing

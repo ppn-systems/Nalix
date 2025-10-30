@@ -220,7 +220,7 @@ public sealed class BufferLease : IBufferLease
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void CommitLength([NotNull] int length)
+    public void CommitLength(int length)
     {
         if ((uint)length > (uint)Capacity)
         {
@@ -305,8 +305,8 @@ public sealed class BufferLease : IBufferLease
     [return: NotNull]
     public bool ReleaseOwnership(
         [MaybeNull] out byte[]? buffer,
-        [NotNull] out int start,
-        [NotNull] out int length)
+        out int start,
+        out int length)
     {
         // Ensure single-owner detach (avoid breaking other holders)
         if (Volatile.Read(ref _refCount) != 1)
@@ -340,8 +340,8 @@ public sealed class BufferLease : IBufferLease
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static BufferLease Rent(
-        [NotNull] int capacity,
-        [NotNull] bool zeroOnDispose = false)
+        int capacity,
+        bool zeroOnDispose = false)
     {
         byte[] arr = ByteArrayPool.Rent(capacity);
         return new BufferLease(arr, start: 0, length: 0, zeroOnDispose: zeroOnDispose);
@@ -354,8 +354,8 @@ public sealed class BufferLease : IBufferLease
     /// <param name="zeroOnDispose"></param>
     [return: NotNull]
     public static BufferLease CopyFrom(
-        [NotNull] ReadOnlySpan<byte> src,
-        [NotNull] bool zeroOnDispose = false)
+        ReadOnlySpan<byte> src,
+        bool zeroOnDispose = false)
     {
         byte[] arr = ByteArrayPool.Rent(src.Length);
         src.CopyTo(MemoryExtensions.AsSpan(arr, 0, src.Length));
@@ -372,9 +372,9 @@ public sealed class BufferLease : IBufferLease
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static BufferLease FromRented(
-        [NotNull] byte[] buffer,
-        [NotNull] int length,
-        [NotNull] bool zeroOnDispose = false)
+        byte[] buffer,
+        int length,
+        bool zeroOnDispose = false)
         => new(buffer, start: 0, length: length, zeroOnDispose: zeroOnDispose);
 
     /// <summary>
@@ -388,10 +388,10 @@ public sealed class BufferLease : IBufferLease
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static BufferLease TakeOwnership(
-        [NotNull] byte[] buffer,
-        [NotNull] int start,
-        [NotNull] int length,
-        [NotNull] bool zeroOnDispose = false)
+        byte[] buffer,
+        int start,
+        int length,
+        bool zeroOnDispose = false)
         => new(buffer, start, length, zeroOnDispose);
 
     #endregion APIs

@@ -23,8 +23,8 @@ public class CustomMiddleware : IPacketMiddleware<IPacket>
     /// <param name="next">The next middleware delegate in the pipeline.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     public async System.Threading.Tasks.Task InvokeAsync(
-        [NotNull] PacketContext<IPacket> context,
-        [NotNull] Func<CancellationToken, Task> next)
+        PacketContext<IPacket> context,
+        Func<CancellationToken, Task> next)
     {
         // Try get the attribute instance from the custom attribute dictionary.
         // The dictionary is keyed by Type, so use typeof(PacketCustomAttribute).

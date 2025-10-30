@@ -78,7 +78,7 @@ public static class LZ4Codec
     public static bool Encode(
         [DisallowNull] ReadOnlySpan<byte> input,
         [NotNullWhen(true)] out BufferLease? lease,
-        [NotNull] out int bytesWritten)
+        out int bytesWritten)
     {
         lease = null;
         bytesWritten = 0;
@@ -165,5 +165,5 @@ public static class LZ4Codec
     public static bool Decode(
         [DisallowNull] ReadOnlySpan<byte> input,
         [NotNullWhen(true)] out BufferLease? lease,
-        [NotNull] out int bytesWritten) => LZ4Decoder.Decode(input, out lease, out bytesWritten);
+        out int bytesWritten) => LZ4Decoder.Decode(input, out lease, out bytesWritten);
 }

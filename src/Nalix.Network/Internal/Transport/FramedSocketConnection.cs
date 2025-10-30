@@ -143,8 +143,8 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     /// <exception cref="ArgumentNullException"></exception>
     [MemberNotNull(nameof(_sender), nameof(_cachedArgs))]
     public void SetCallback(
-        [NotNull] IConnection sender,
-        [NotNull] IConnectEventArgs args,
+        IConnection sender,
+        IConnectEventArgs args,
         [AllowNull] EventHandler<IConnectEventArgs> close,
         [AllowNull] EventHandler<IConnectEventArgs> post,
         [AllowNull] EventHandler<IConnectEventArgs> process)

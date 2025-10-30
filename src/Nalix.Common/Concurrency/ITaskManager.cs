@@ -65,21 +65,21 @@ public interface ITaskManager : IDisposable, IReportable
     /// </summary>
     /// <param name="id">The worker's identifier.</param>
     /// <returns>True if the worker was cancelled; otherwise, false.</returns>
-    bool CancelWorker([NotNull] ISnowflake id);
+    bool CancelWorker(ISnowflake id);
 
     /// <summary>
     /// Cancels all workers in a group.
     /// </summary>
     /// <param name="group">The name of the group.</param>
     /// <returns>The number of workers cancelled.</returns>
-    int CancelGroup([NotNull] string group);
+    int CancelGroup(string group);
 
     /// <summary>
     /// Cancels a recurring job by name.
     /// </summary>
     /// <param name="name">The name of the recurring job.</param>
     /// <returns>True if the job was cancelled; otherwise, false.</returns>
-    bool CancelRecurring([MaybeNull] string name);
+    bool CancelRecurring(string name);
 
     /// <summary>
     /// Lists all workers, optionally filtered by running status and/or group.

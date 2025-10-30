@@ -95,7 +95,7 @@ public static class LZ4BlockEncoder
     private static unsafe int EncodeInternal(
         byte* inputBase, int inputLength,
         byte* outputBase, int outputLength,
-        [NotNull] int* hashTable)
+        int* hashTable)
     {
 #if DEBUG
         Debug.Assert(hashTable is not null, "Hash table cannot be null");

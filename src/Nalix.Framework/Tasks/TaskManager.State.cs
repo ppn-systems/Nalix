@@ -16,11 +16,11 @@ public partial class TaskManager
 {
     [DebuggerDisplay("Worker {Name} (Running={IsRunning}, Runs={TotalRuns})")]
     private sealed class WorkerState(
-        [NotNull] ISnowflake id,
-        [NotNull] string name,
-        [NotNull] string group,
-        [NotNull] IWorkerOptions opt,
-        [NotNull] CancellationTokenSource cts) : IWorkerHandle
+        ISnowflake id,
+        string name,
+        string group,
+        IWorkerOptions opt,
+        CancellationTokenSource cts) : IWorkerHandle
     {
         #region Backing fields (thread-safe)
 
@@ -221,10 +221,10 @@ public partial class TaskManager
 
     [DebuggerDisplay("Recurring {Name} (Every={Interval}, Runs={TotalRuns}, Failures={ConsecutiveFailures})")]
     private sealed class RecurringState(
-        [NotNull] string name,
-        [NotNull] TimeSpan iv,
-        [NotNull] IRecurringOptions opt,
-        [NotNull] CancellationTokenSource cts) : IRecurringHandle
+        string name,
+        TimeSpan iv,
+        IRecurringOptions opt,
+        CancellationTokenSource cts) : IRecurringHandle
     {
         #region Properties / fields
 
@@ -360,8 +360,8 @@ public partial class TaskManager
 
     [SkipLocalsInit]
     private sealed class WorkerContext(
-        [NotNull] WorkerState st,
-        [NotNull] TaskManager owner) : IWorkerContext
+        WorkerState st,
+        TaskManager owner) : IWorkerContext
     {
         private readonly WorkerState _st = st;
 

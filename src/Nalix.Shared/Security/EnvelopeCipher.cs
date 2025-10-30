@@ -205,9 +205,9 @@ public static class EnvelopeCipher
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static bool Encrypt(
-        [NotNull] ReadOnlySpan<byte> key,
-        [NotNull] ReadOnlySpan<byte> plaintext,
-        [NotNull] Span<byte> ciphertext,
+        ReadOnlySpan<byte> key,
+        ReadOnlySpan<byte> plaintext,
+        Span<byte> ciphertext,
         ReadOnlySpan<byte> aad, uint? seq, CipherSuiteType algorithm,
         [NotNullWhen(true)] out int written)
     {
@@ -261,9 +261,9 @@ public static class EnvelopeCipher
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static bool Decrypt(
-        [NotNull] ReadOnlySpan<byte> key,
-        [NotNull] ReadOnlySpan<byte> envelope,
-        [NotNull] Span<byte> plaintext,
+        ReadOnlySpan<byte> key,
+        ReadOnlySpan<byte> envelope,
+        Span<byte> plaintext,
         ReadOnlySpan<byte> aad,
         [NotNullWhen(true)] out int written)
     {
@@ -337,9 +337,9 @@ public static class EnvelopeCipher
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static bool Encrypt(
-        [NotNull] ReadOnlySpan<byte> key,
-        [NotNull] ReadOnlySpan<byte> plaintext,
-        [NotNull] Span<byte> ciphertext,
+        ReadOnlySpan<byte> key,
+        ReadOnlySpan<byte> plaintext,
+        Span<byte> ciphertext,
         uint? seq, CipherSuiteType algorithm,
         [NotNullWhen(true)] out int written) => Encrypt(key, plaintext, ciphertext, default, seq, algorithm, out written);
 
@@ -374,8 +374,8 @@ public static class EnvelopeCipher
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static bool Decrypt(
-        [NotNull] ReadOnlySpan<byte> key,
-        [NotNull] ReadOnlySpan<byte> envelope,
-        [NotNull] Span<byte> plaintext,
+        ReadOnlySpan<byte> key,
+        ReadOnlySpan<byte> envelope,
+        Span<byte> plaintext,
         [NotNullWhen(true)] out int written) => Decrypt(key, envelope, plaintext, default, out written);
 }

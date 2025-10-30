@@ -31,7 +31,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
-    public PacketDispatchOptions<TPacket> WithLogging([NotNull] ILogger logger)
+    public PacketDispatchOptions<TPacket> WithLogging(ILogger logger)
     {
         Logging = logger;
         Logging.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithLogging)}] logger-attached");
@@ -53,7 +53,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public PacketDispatchOptions<TPacket> WithErrorHandling(
-        [NotNull] Action<Exception, ushort> errorHandler)
+        Action<Exception, ushort> errorHandler)
     {
         Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithErrorHandling)}] error-handler-set");
         _errorHandler = errorHandler;
@@ -73,7 +73,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
-    public PacketDispatchOptions<TPacket> WithMiddleware([NotNull] IPacketMiddleware<TPacket> middleware)
+    public PacketDispatchOptions<TPacket> WithMiddleware(IPacketMiddleware<TPacket> middleware)
     {
         ArgumentNullException.ThrowIfNull(middleware);
 
@@ -177,7 +177,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         DynamicallyAccessedMembers(
             DynamicallyAccessedMemberTypes.PublicMethods |
             DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TController>(
-        [NotNull] TController instance)
+        TController instance)
         where TController : class => WithHandler(() => ThrowIfNull(instance, nameof(instance)));
 
     /// <summary>
@@ -214,7 +214,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithHandler<
         [DynamicallyAccessedMembers(
             DynamicallyAccessedMemberTypes.PublicMethods)] TController>(
-        [NotNull] Func<TController> factory) where TController : class
+        Func<TController> factory) where TController : class
     {
         Type controllerType = typeof(TController);
 
@@ -278,7 +278,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public bool TryResolveHandler(
-        [NotNull] ushort opCode,
+        ushort opCode,
         [AllowNull]
         [NotNullWhen(true)] out Func<TPacket, IConnection, Task> handler)
     {
@@ -322,7 +322,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public bool TryResolveHandlerDescriptor(
-        [NotNull] ushort opCode,
+        ushort opCode,
         [NotNullWhen(true)] out PacketHandler<TPacket> descriptor)
     {
         if (_handlerCache.TryGetValue(opCode, out descriptor))

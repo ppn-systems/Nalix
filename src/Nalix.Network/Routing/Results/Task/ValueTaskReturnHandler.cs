@@ -15,7 +15,7 @@ internal sealed class ValueTaskReturnHandler<TPacket, TResult>(IReturnHandler<TP
     /// <inheritdoc/>
     public async ValueTask HandleAsync(
         [AllowNull] object result,
-        [NotNull] PacketContext<TPacket> context)
+        PacketContext<TPacket> context)
     {
         if (result is not ValueTask<TResult> valueTask)
         {

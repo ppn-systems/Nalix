@@ -182,7 +182,7 @@ public abstract partial class TcpListenerBase
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [SuppressMessage(
         "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
-    protected static void InitializeOptions([NotNull] Socket socket)
+    protected static void InitializeOptions(Socket socket)
     {
         // When you want to disconnect immediately without making sure the data has been sent.
         // socket.LingerState = new LingerOption(true, NetworkSocketOptions.False);
@@ -242,8 +242,8 @@ public abstract partial class TcpListenerBase
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     private static bool IsIgnorableAcceptError(
-        [NotNull] SocketError code,
-        [NotNull] CancellationToken token)
+        SocketError code,
+        CancellationToken token)
         => token.IsCancellationRequested || code
         is SocketError.Shutdown
         or SocketError.TimedOut
