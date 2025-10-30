@@ -130,16 +130,19 @@ public static class DirectiveClientExtensions
                         delayMs = 0;
                     }
 
-                    // Convert milliseconds → monotonic ticks
-                    // ticks = seconds * Clock.TicksPerSecond
+                    // Convert ms -> ticks with integer math and overflow safety
+                    // ticks = delayMs * TicksPerSecond / 1000
                     System.Int64 nowTicks = Clock.MonoTicksNow();
-                    System.Int64 delayTicks = (System.Int64)(delayMs / 1000.0 * Clock.TicksPerSecond);
+
+                    System.Int64 delayTicks = System.Math.BigMul(
+                        (System.Int32)System.Math.Min(delayMs, System.Int32.MaxValue),  // or use long BigMul(long,long) on .NET 10 if available
+                        (System.Int32)Clock.TicksPerSecond) / 1000;
 
                     var state = _states.GetOrCreateValue(client);
                     state.ThrottleUntilMonoTicks = nowTicks + delayTicks;
 
                     callbacks?.OnThrottle?.Invoke(d, System.TimeSpan.FromMilliseconds(delayMs));
-                    Log?.Info("DIRECTIVE THROTTLE: {0} ms (Seq={1})", delayMs, d.SequenceId);
+                    Log?.Info($"DIRECTIVE THROTTLE: {delayMs} ms (Seq={d.SequenceId})");
                     return true;
                 }
 
@@ -162,7 +165,7 @@ public static class DirectiveClientExtensions
                         // Fallback: keep host, only update port if provided
                         if (d.Arg2 == 0)
                         {
-                            Log?.Warn("DIRECTIVE REDIRECT ignored (no resolver, no port). Seq={0}", d.SequenceId);
+                            Log?.Warn($"DIRECTIVE REDIRECT ignored (no resolver, no port). Seq={d.SequenceId}");
                             return true;
                         }
                         ep = (client.Options.Address, d.Arg2);
@@ -173,7 +176,7 @@ public static class DirectiveClientExtensions
                     client.Options.Address = ep.Value.host;
                     client.Options.Port = ep.Value.port;
 
-                    Log?.Info("DIRECTIVE REDIRECT → {0}:{1} (Seq={2})", ep.Value.host, ep.Value.port, d.SequenceId);
+                    Log?.Info($"DIRECTIVE REDIRECT → {ep.Value.host}:{ep.Value.port} (Seq={d.SequenceId})");
                     await client.ConnectAsync(cancellationToken: ct).ConfigureAwait(false);
                     return true;
                 }
@@ -182,19 +185,19 @@ public static class DirectiveClientExtensions
                 {
                     // Typically indicates request failed; SequenceId correlates to the original request.
                     callbacks?.OnNack?.Invoke(d);
-                    Log?.Warn("DIRECTIVE NACK: Reason={0}, Action={1}, Seq={2}", d.Reason, d.Action, d.SequenceId);
+                    Log?.Warn($"DIRECTIVE NACK: Reason={d.Reason}, Action={d.Action}, Seq={d.SequenceId}");
                     return true;
                 }
 
             case ControlType.NOTICE:
                 {
                     callbacks?.OnNotice?.Invoke(d);
-                    Log?.Info("DIRECTIVE NOTICE: Reason={0}, Action={1}, Seq={2}", d.Reason, d.Action, d.SequenceId);
+                    Log?.Info($"DIRECTIVE NOTICE: Reason={d.Reason}, Action={d.Action}, Seq={d.SequenceId}");
                     return true;
                 }
 
             default:
-                Log?.Debug("DIRECTIVE (unhandled type {0}) Seq={1}", d.Type, d.SequenceId);
+                Log?.Debug($"DIRECTIVE (unhandled type {d.Type}) Seq={d.SequenceId}");
                 return true;
         }
     }
@@ -257,7 +260,7 @@ public static class DirectiveClientExtensions
 
         if (client.IsThrottled(out var wait))
         {
-            Log?.Debug("SendWithThrottle: waiting {0} ms", (System.Int32)wait.TotalMilliseconds);
+            Log?.Debug($"SendWithThrottle: waiting {(System.Int32)wait.TotalMilliseconds} ms");
             if (wait > System.TimeSpan.Zero)
             {
                 await System.Threading.Tasks.Task.Delay(wait, ct).ConfigureAwait(false);

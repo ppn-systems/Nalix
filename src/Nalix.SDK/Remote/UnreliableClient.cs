@@ -13,6 +13,8 @@ namespace Nalix.SDK.Remote;
 /// Represents a singleton UDP client transport used for sending and receiving packets of type IPacket.
 /// This client is designed to communicate with a predefined remote endpoint using the UDP protocol.
 /// </summary>
+[System.Obsolete("UnreliableClient is deprecated and will be removed in future releases. " +
+    "Please use ReliableClient with appropriate configurations for reliable transport.")]
 [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)]

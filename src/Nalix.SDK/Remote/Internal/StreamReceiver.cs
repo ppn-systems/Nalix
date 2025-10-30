@@ -1,27 +1,14 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Framework.Injection;
-
-#if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.SDK.Remote.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.SDK.Remote.Benchmarks")]
-#endif
 
 namespace Nalix.SDK.Remote.Internal;
 
 /// <summary>
-/// Handles receiving packets from a network stream with unsafe optimizations.
+/// Receives framed packets: [len:2 (little-endian, payload only)] + [payload].
 /// </summary>
-/// <typeparam name="TPacket">The packet type implementing <see cref="IPacket"/>.</typeparam>
-/// <remarks>
-/// Initializes a new instance of the <see cref="StreamReceiver{TPacket}"/> class with the specified network stream.
-/// </remarks>
-/// <param name="stream">The <see cref="System.Net.Sockets.NetworkStream"/> used for receiving data.</param>
-/// <exception cref="System.ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
-[System.ComponentModel.EditorBrowsable(
-    System.ComponentModel.EditorBrowsableState.Never)]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 [System.Diagnostics.DebuggerDisplay("Readable={_stream?.CanRead}")]
 internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream stream) where TPacket : IPacket
 {
@@ -32,65 +19,60 @@ internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream s
         ?? throw new System.InvalidOperationException(
             "Packet catalog instance is not registered in the dependency injection container.");
 
+    // Reuse the header buffer to avoid tiny allocations on every call.
+    private readonly System.Byte[] _header2 = new System.Byte[2];
+
+    // You can expose this from options if you want it configurable.
+    private const System.Int32 DefaultMaxPacketSize = 64 * 1024; // 64 KiB
+    private readonly System.Int32 _maxPacketSize = DefaultMaxPacketSize;
+
     /// <summary>
-    /// Asynchronously receives a packet from the network stream with unsafe optimizations.
+    /// Asynchronously receives and deserializes a packet frame from the stream.
+    /// Frame format: [uint16 le length (payload only)] + [payload].
     /// </summary>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task that represents the asynchronous operation, containing the deserialized packet.</returns>
-    /// <exception cref="System.InvalidOperationException">Thrown when the stream is not readable or the packet size is invalid.</exception>
-    /// <exception cref="System.IO.EndOfStreamException">Thrown when the stream ends unexpectedly.</exception>
-    /// <exception cref="System.IO.IOException">Thrown when an error occurs while reading from the stream.</exception>
-    /// <exception cref="System.OperationCanceledException">Thrown when the operation is canceled via <paramref name="cancellationToken"/>.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [System.Runtime.CompilerServices.SkipLocalsInit]
     public async System.Threading.Tasks.Task<TPacket> ReceiveAsync(
         System.Threading.CancellationToken cancellationToken = default)
     {
-        if (!_stream.CanRead)
+        if (_stream?.CanRead != true)
         {
             throw new System.InvalidOperationException("The network stream is not readable.");
         }
 
-        // Read 2-byte size header
-        System.Byte[] header = new System.Byte[2];
-        await _stream.ReadExactlyAsync(header, cancellationToken).ConfigureAwait(false);
+        // 1) Read 2-byte payload length (little-endian)
+        await _stream.ReadExactlyAsync(_header2, cancellationToken).ConfigureAwait(false);
+        System.UInt16 length = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(_header2);
 
-        // Unsafe fast conversion to ushort (big-endian)
-        System.UInt16 length = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(header);
-
-        if (length < 2)
+        // Defensive bounds
+        if (length == 0 || length > _maxPacketSize)
         {
-            throw new System.InvalidOperationException("Invalid packet size: must be at least 2 bytes.");
+            throw new System.InvalidOperationException($"Invalid packet size: {length} bytes.");
         }
 
-        // For small packets, use array with unsafe optimization
-        if (length <= PacketConstants.StackAllocLimit)
-        {
-            System.Byte[] sbuffer = new System.Byte[length - 2];
-
-            await _stream.ReadExactlyAsync(
-                System.MemoryExtensions.AsMemory(sbuffer, 0, length - 2),
-                cancellationToken).ConfigureAwait(false);
-
-            return (TPacket)(_catalog.TryDeserialize(
-                System.MemoryExtensions.AsSpan(sbuffer, 0, length - 2), out IPacket packet)
-                ? packet : throw new System.InvalidOperationException("Failed to deserialize packet."));
-        }
-
-        // Rent buffer for larger packets
-        System.Byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length - 2);
+        // 2) Rent buffer for payload
+        System.Byte[] buffer = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(length);
         try
         {
-            // Read remaining packet data
+            // Read payload fully
             await _stream.ReadExactlyAsync(
-                System.MemoryExtensions.AsMemory(buffer, 0, length - 2),
-                cancellationToken).ConfigureAwait(false);
+                System.MemoryExtensions.AsMemory(buffer, 0, length),
+                cancellationToken
+            ).ConfigureAwait(false);
 
-            // FromBytes from buffer
-            return (TPacket)(_catalog.TryDeserialize(
-                System.MemoryExtensions.AsSpan(buffer, 0, length - 2), out IPacket packet)
-                ? packet : throw new System.InvalidOperationException("Failed to deserialize packet."));
+            // 3) Deserialize directly over the rented buffer span (no extra copy)
+            if (_catalog.TryDeserialize(
+                    System.MemoryExtensions.AsSpan(buffer, 0, length), out IPacket packet))
+            {
+                return (TPacket)packet;
+            }
+
+            throw new System.InvalidOperationException("Failed to deserialize packet.");
+        }
+        catch (System.IO.EndOfStreamException)
+        {
+            // Surface clean EOF (peer closed while reading) to the caller
+            throw;
         }
         finally
         {

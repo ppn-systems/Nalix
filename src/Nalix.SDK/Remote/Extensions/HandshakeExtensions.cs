@@ -2,53 +2,33 @@
 
 using Nalix.Common.Logging;
 using Nalix.Common.Packets.Abstractions;
-using Nalix.Common.Protocols;            // ProtocolType
-using Nalix.Framework.Cryptography.Asymmetric;
-using Nalix.Framework.Cryptography.Hashing;
+using Nalix.Common.Protocols;                     // ProtocolType
+using Nalix.Framework.Cryptography.Asymmetric;    // X25519
+using Nalix.Framework.Cryptography.Hashing;       // SHA3256 (SHA3-256)
 using Nalix.Framework.Injection;
-using Nalix.Shared.Messaging.Controls;
+using Nalix.Shared.Messaging.Controls;            // Handshake
 
 namespace Nalix.SDK.Remote.Extensions;
 
 /// <summary>
-/// Provides extension methods to perform a cryptographic handshake on <see cref="ReliableClient"/>.
+/// Client-side cryptographic handshake for ReliableClient (event-driven).
+/// Flow:
+/// 1) Generate X25519 keypair.
+/// 2) Send Handshake(opCode, clientPublicKey, ProtocolType.TCP).
+/// 3) Await server Handshake containing 32-byte server public key.
+/// 4) Derive shared secret and install a 32-byte session key via SHA3-256(secret).
 /// </summary>
-/// <remarks>
-/// This client-side flow mirrors the server:
-/// generate an X25519 keypair, send a <see cref="Handshake"/> containing the client public key,
-/// receive the server's public key, derive a shared secret, and install a 32-byte key using SHA-256.
-/// </remarks>
-/// <seealso cref="ReliableClient"/>
-/// <seealso cref="Handshake"/>
 public static class HandshakeExtensions
 {
+    private const System.Int32 PublicKeyLen = 32;
+
     /// <summary>
-    /// Initiates the handshake by generating an X25519 keypair and sending a <see cref="Handshake"/>
-    /// that carries the client's 32-byte public key to the server.
+    /// Initiates the handshake by sending client public key.
     /// </summary>
-    /// <param name="client">The connected <see cref="ReliableClient"/>.</param>
-    /// <param name="opCode">The operation code for the handshake packet.</param>
-    /// <param name="ct">A token used to observe cancellation.</param>
-    /// <returns>
-    /// The generated <see cref="X25519.X25519KeyPair"/> that must be supplied to
-    /// <see cref="FinishHandshake(ReliableClient, X25519.X25519KeyPair, IPacket)"/>.
-    /// </returns>
-    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
-    /// <exception cref="System.InvalidOperationException">Thrown when the client is not connected or a key is already installed.</exception>
-    /// <exception cref="System.OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
-    /// <remarks>
-    /// If a 32-byte encryption key is already present on the client, this method throws to prevent
-    /// a repeated handshake attempt on an upgraded connection (aligns with server behavior).
-    /// </remarks>
-    /// <example>
-    /// <code>
-    /// var keyPair = await client.InitiateHandshakeAsync(ct);
-    /// var response = await client.ReceiveAsync(ct); // expecting a Handshake packet from server
-    /// bool ok = client.FinishHandshake(keyPair, response);
-    /// </code>
-    /// </example>
-    public static async System.Threading.Tasks.Task<X25519.X25519KeyPair> InitiateHandshakeAsync(
-        this ReliableClient client, System.UInt16 opCode,
+    /// <exception cref="System.InvalidOperationException">Client not connected or key already installed.</exception>
+    public static System.Threading.Tasks.Task<X25519.X25519KeyPair> InitiateHandshakeAsync(
+        this ReliableClient client,
+        System.UInt16 opCode,
         System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(client);
@@ -58,51 +38,36 @@ public static class HandshakeExtensions
             throw new System.InvalidOperationException("Client not connected.");
         }
 
-        // Optional guard: avoid re-handshake on an upgraded connection.
-        if (client.Options.EncryptionKey is { Length: 32 })
+        if (client.Options.EncryptionKey is { Length: PublicKeyLen })
         {
-            throw new System.InvalidOperationException("Handshake already completed: encryption key is installed.");
+            throw new System.InvalidOperationException(
+                "Handshake already completed: encryption key is installed.");
         }
 
         X25519.X25519KeyPair keyPair = X25519.GenerateKeyPair();
 
-        await client.SendAsync(new Handshake(opCode, keyPair.PublicKey, ProtocolType.TCP), ct)
-                    .ConfigureAwait(false);
+        return SendAndReturnAsync(client, keyPair, opCode, ct);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug("Handshake request sent (client public key).");
-        return keyPair;
+        static async System.Threading.Tasks.Task<X25519.X25519KeyPair> SendAndReturnAsync(
+            ReliableClient c,
+            X25519.X25519KeyPair kp,
+            System.UInt16 code,
+            System.Threading.CancellationToken token)
+        {
+            await c.SendAsync(new Handshake(code, kp.PublicKey, ProtocolType.TCP), token)
+                   .ConfigureAwait(false);
+
+            InstanceManager.Instance.GetExistingInstance<ILogger>()
+                ?.Debug("Handshake request sent (client public key).");
+
+            return kp;
+        }
     }
 
     /// <summary>
-    /// Completes the handshake using the server's response <see cref="Handshake"/> packet.
+    /// Completes the handshake using a received <see cref="Handshake"/> packet (server public key).
     /// </summary>
-    /// <param name="client">The connected <see cref="ReliableClient"/>.</param>
-    /// <param name="clientKeyPair">The X25519 keypair previously generated by
-    /// <see cref="InitiateHandshakeAsync(ReliableClient, System.UInt16, System.Threading.CancellationToken)"/>.</param>
-    /// <param name="packet">The packet received from the server (must be a <see cref="Handshake"/> with a 32-byte public key).</param>
-    /// <returns>
-    /// <c>true</c> if a 32-byte encryption key was derived and installed successfully; otherwise <c>false</c>
-    /// (e.g., the packet is not a valid <see cref="Handshake"/>).
-    /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    /// Thrown when <paramref name="client"/> is <c>null</c> or <paramref name="clientKeyPair"/> has no private key.
-    /// </exception>
-    /// <remarks>
-    /// The shared secret is derived via <see cref="X25519.Agreement(System.Byte[], System.Byte[])"/> and
-    /// hashed with <see cref="SHA3256.HashData(System.ReadOnlySpan{System.Byte})"/>.
-    /// Sensitive material (private key and derived secret) is cleared from memory once the operation completes.
-    /// </remarks>
-    /// <example>
-    /// <code>
-    /// var keyPair = await client.InitiateHandshakeAsync(ct);
-    /// var serverPacket = await client.ReceiveAsync(ct); // expect Handshake
-    /// if (!client.FinishHandshake(keyPair, serverPacket))
-    /// {
-    ///     // handle error (unexpected packet)
-    /// }
-    /// </code>
-    /// </example>
+    /// <returns>true if key installed; otherwise false.</returns>
     public static System.Boolean FinishHandshake(
         this ReliableClient client,
         X25519.X25519KeyPair clientKeyPair,
@@ -112,10 +77,11 @@ public static class HandshakeExtensions
 
         if (clientKeyPair.PrivateKey is null)
         {
-            throw new System.ArgumentNullException(nameof(clientKeyPair), "X25519 private key is required.");
+            throw new System.ArgumentNullException(nameof(clientKeyPair),
+                "X25519 private key is required.");
         }
 
-        if (packet is not Handshake hs || hs.Data is not { Length: 32 })
+        if (packet is not Handshake hs || hs.Data is not { Length: PublicKeyLen })
         {
             return false;
         }
@@ -124,19 +90,19 @@ public static class HandshakeExtensions
 
         try
         {
-            // Derive X25519 shared secret (clientPriv, serverPub)
+            // X25519 shared secret (clientPriv, serverPub)
             secret = X25519.Agreement(clientKeyPair.PrivateKey, hs.Data);
 
-            // Derive 32-byte session key using SHA-256(secret)
+            // Derive 32-byte session key using SHA3-256(secret)
             client.Options.EncryptionKey = SHA3256.HashData(secret);
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info("Handshake completed. EncryptionKey installed.");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()
+                ?.Info("Handshake completed. EncryptionKey installed.");
+
             return true;
         }
         finally
         {
-            // Best-effort scrub of sensitive material
             if (clientKeyPair.PrivateKey is not null)
             {
                 System.Array.Clear(clientKeyPair.PrivateKey, 0, clientKeyPair.PrivateKey.Length);
@@ -147,5 +113,36 @@ public static class HandshakeExtensions
                 System.Array.Clear(secret, 0, secret.Length);
             }
         }
+    }
+
+    /// <summary>
+    /// One-shot helper: send client key, then await matching server Handshake and install the session key.
+    /// </summary>
+    /// <param name="client"></param>
+    /// <param name="opCode">Operation code to match on both request and response.</param>
+    /// <param name="timeoutMs">Total timeout (send + await response).</param>
+    /// <param name="ct"></param>
+    /// <exception cref="System.TimeoutException">If no matching response arrives in time.</exception>
+    /// <exception cref="System.InvalidOperationException">If not connected or key already installed.</exception>
+    public static async System.Threading.Tasks.Task<System.Boolean> WaitAndFinishHandshakeAsync(
+        this ReliableClient client,
+        System.UInt16 opCode,
+        System.Int32 timeoutMs = 5000,
+        System.Threading.CancellationToken ct = default)
+    {
+        // 1) Send client pubkey
+        X25519.X25519KeyPair keyPair = await client
+            .InitiateHandshakeAsync(opCode, ct)
+            .ConfigureAwait(false);
+
+        // 2) Await server Handshake that matches opCode (and optionally protocol TCP)
+        Handshake serverHs = await client.AwaitPacketAsync<Handshake>(
+            predicate: hs => hs.OpCode == opCode /* && hs.Protocol == ProtocolType.TCP */,
+            timeoutMs: timeoutMs,
+            ct: ct
+        ).ConfigureAwait(false);
+
+        // 3) Derive & install key
+        return client.FinishHandshake(keyPair, serverHs);
     }
 }
