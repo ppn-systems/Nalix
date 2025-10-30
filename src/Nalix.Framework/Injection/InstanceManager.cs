@@ -39,6 +39,12 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     private readonly System.Collections.Concurrent.ConcurrentDictionary<
         ConstructorSignatureKey, System.Func<System.Object?[], System.Object>> _activatorCache = new();
 
+    [System.ThreadStatic] private static System.RuntimeTypeHandle _tsLastKey;
+    [System.ThreadStatic] private static System.Object? _tsLastValue;
+
+    // Near fields
+    private static System.Int32 _slotsInvalidated; // 0 = valid, 1 = invalid
+
     private System.Int32 _isDisposed;
 
     #endregion Fields
@@ -203,6 +209,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         }
 
         _instanceCache[key] = instance;
+        System.Threading.Volatile.Write(ref GenericSlot<T>.Value, instance);
+        System.Threading.Volatile.Write(ref _slotsInvalidated, 0); // re-validate slots
 
         if (registerInterfaces)
         {
@@ -217,6 +225,9 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
                 }
 
                 _instanceCache[itfKey] = instance;
+
+                // Publish to generic slot for interface (registration is rare; reflection cost is acceptable)
+                PublishToInterfaceSlot(itfs[i], instance);
             }
         }
 
@@ -251,13 +262,23 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
 
+        // Slot first
+        if (TryGetFromGenericSlot<T>(out var viaSlot))
+        {
+            return viaSlot!;
+        }
+
         System.RuntimeTypeHandle key = typeof(T).TypeHandle;
         if (_instanceCache.TryGetValue(key, out var existing))
         {
             return System.Runtime.CompilerServices.Unsafe.As<T>(existing);
         }
 
-        return System.Runtime.CompilerServices.Unsafe.As<T>(GetOrCreateInstanceSlow(typeof(T), args));
+        T created = System.Runtime.CompilerServices.Unsafe.As<T>(GetOrCreateInstanceSlow(typeof(T), args));
+
+        // Publish to slot after creation
+        System.Threading.Volatile.Write(ref GenericSlot<T>.Value, created);
+        return created;
     }
 
     /// <summary>
@@ -281,10 +302,13 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         System.RuntimeTypeHandle key = type.TypeHandle;
         if (_instanceCache.TryGetValue(key, out System.Object? existing))
         {
+            TryPublishSlotByType(type, existing);
             return existing;
         }
 
-        return GetOrCreateInstanceSlow(type, args);
+        System.Object created = GetOrCreateInstanceSlow(type, args);
+        TryPublishSlotByType(type, created);     // new line
+        return created;
     }
 
     /// <summary>
@@ -320,10 +344,22 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         System.RuntimeTypeHandle key = type.TypeHandle;
         if (_instanceCache.TryRemove(key, out var instance))
         {
+            ClearGenericSlot(type);
+
+            System.Type actual = instance.GetType();
+            foreach (System.Type itf in actual.GetInterfaces())
+            {
+                ClearGenericSlot(itf);
+            }
+
             if (instance is System.IDisposable d)
             {
                 _disposables.TryRemove(d, out _);
-                try { d.Dispose(); } catch { }
+                try
+                {
+                    d.Dispose();
+                }
+                catch { }
             }
             return true;
         }
@@ -355,7 +391,30 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
 
-        _instanceCache.TryGetValue(typeof(T).TypeHandle, out var instance);
+        // 1) Generic slot (fastest)
+        if (TryGetFromGenericSlot<T>(out T? viaSlot))
+        {
+            return viaSlot;
+        }
+
+        // 2) Thread L1
+        System.RuntimeTypeHandle key = typeof(T).TypeHandle;
+        if (_tsLastValue is not null && _tsLastKey.Equals(key))
+        {
+            return _tsLastValue as T;
+        }
+
+        // 3) Dictionary fallback
+        _instanceCache.TryGetValue(key, out System.Object? instance);
+
+        // Publish to L1 + slot
+        _tsLastKey = key;
+        _tsLastValue = instance;
+        if (instance is not null)
+        {
+            System.Threading.Volatile.Write(ref GenericSlot<T>.Value, instance);
+        }
+
         return instance as T;
     }
 
@@ -382,6 +441,13 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         _instanceCache.Clear();
         _activatorCache.Clear();
         _disposables.Clear();
+
+        // Invalidate all generic slots at once (no need to enumerate)
+        System.Threading.Volatile.Write(ref _slotsInvalidated, 1);
+
+        // Optional: clear thread L1 (best-effort)
+        _tsLastKey = default;
+        _tsLastValue = null;
     }
 
     /// <summary>
@@ -464,6 +530,63 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     #endregion Public API
 
     #region Slow Paths & Activators
+
+    private static class GenericSlot<T>
+    {
+        // Published with Volatile.Write for cross-thread visibility
+        public static System.Object? Value;
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Boolean TryGetFromGenericSlot<T>(out T? value) where T : class
+    {
+        if (System.Threading.Volatile.Read(ref _slotsInvalidated) != 0)
+        {
+            value = null;
+            return false;
+        }
+
+        var obj = System.Threading.Volatile.Read(ref GenericSlot<T>.Value);
+        value = obj as T;
+        return value is not null;
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void TryPublishSlotByType(System.Type type, System.Object instance)
+    {
+        // Publish for the exact type
+        System.Type gslot = typeof(InstanceManager)
+            .GetNestedType("GenericSlot`1", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+            .MakeGenericType(type);
+        System.Reflection.FieldInfo fld = gslot.GetField("Value", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!;
+        fld.SetValue(null, instance);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void PublishToInterfaceSlot(System.Type iface, System.Object instance)
+    {
+        System.Reflection.MethodInfo method = typeof(InstanceManager)
+            .GetMethod(nameof(PublishGenericSlot), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+            .MakeGenericMethod(iface);
+        method.Invoke(null, [instance]);
+    }
+
+    private static void PublishGenericSlot<T>(System.Object instance) => System.Threading.Volatile.Write(ref GenericSlot<T>.Value, instance);
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void ClearGenericSlot(System.Type type)
+    {
+        System.Type gslot = typeof(InstanceManager)
+            .GetNestedType("GenericSlot`1", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+            .MakeGenericType(type);
+        System.Reflection.FieldInfo fld = gslot.GetField("Value", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!;
+
+        fld.SetValue(null, null);
+    }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
