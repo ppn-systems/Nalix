@@ -17,7 +17,26 @@ public partial class TaskManager
 
     private sealed record Gate(System.Threading.SemaphoreSlim SemaphoreSlim, System.Int32 Capacity);
 
+    /// <summary>
+    /// Snapshot of CPU metrics for safe concurrent access.
+    /// </summary>
+    private sealed class CpuMetricsSnapshot
+    {
+        public System.Double CurrentUsagePercent { get; set; }
+        public System.Int64 LastUpdateUtc { get; set; }
+        public System.Double ProcessorCount { get; set; }
+    }
+
     #endregion Types
+
+    #region Fields (CPU Monitoring)
+
+    private CpuMetricsSnapshot? _cpuMetrics;
+    private System.Int64 _lastCpuProcessorTime;
+    private System.Int64 _lastCpuWallClockMs;
+    private System.Diagnostics.Stopwatch _cpuMeasureStopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+    #endregion Fields (CPU Monitoring)
 
     #region Internal Cleanup
 
@@ -310,18 +329,32 @@ public partial class TaskManager
         }
     }
 
+    /// <summary>
+    /// Monitors and dynamically adjusts concurrency based on REAL CPU usage.
+    /// Uses delta-based CPU calculation instead of cumulative TotalProcessorTime.
+    /// </summary>
     private async System.Threading.Tasks.Task MONITOR_CONCURRENCY_ASYNC(IWorkerContext ctx, System.Threading.CancellationToken ct)
     {
         TaskManagerOptions options = _options;
+
+        // Initialize CPU measurement baseline
+        INITIALIZE_CPU_MEASUREMENT();
 
         while (!ct.IsCancellationRequested && options.DynamicAdjustmentEnabled)
         {
             try
             {
-                // Measure CPU Usage
-                System.Double cpuUsage = System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime.TotalMilliseconds / (System.Environment.ProcessorCount * 1000.0);
+                // Get real-time CPU usage (delta-based, not cumulative)
+                System.Double cpuUsage = MEASURE_CPU_USAGE_PERCENT();
 
-                // Adjust based on CPU thresholds
+                // Log CPU metric for diagnostics
+                if (cpuUsage > 80.0)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Trace($"[FW.{nameof(TaskManager)}:Internal] cpu-high usage={cpuUsage:F1}%");
+                }
+
+                // Adjust based on CPU thresholds with safety bounds
                 if (cpuUsage > options.ThresholdHighCpu && _currentConcurrencyLimit > 1)
                 {
                     System.Int32 newLimit = System.Math.Max(1, _currentConcurrencyLimit - 1);
@@ -329,7 +362,7 @@ public partial class TaskManager
                 }
                 else if (cpuUsage < options.ThresholdLowCpu && _currentConcurrencyLimit < options.MaxWorkers)
                 {
-                    System.Int32 newLimit = System.Math.Min(_options.MaxWorkers, _currentConcurrencyLimit + 1);
+                    System.Int32 newLimit = System.Math.Min(options.MaxWorkers, _currentConcurrencyLimit + 1);
                     ADJUST_CONCURRENCY(newLimit);
                 }
 
@@ -342,18 +375,82 @@ public partial class TaskManager
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[FW.{nameof(TaskManager)}] dynamic-adjustment ex={ex.Message}");
+                                        .Warn($"[FW.{nameof(TaskManager)}:Internal] dynamic-adjustment-error ex={ex.Message}");
             }
         }
     }
 
     /// <summary>
-    /// Adjusts the SemaphoreSlim concurrency limit dynamically.
+    /// Initializes CPU measurement baseline using delta-based calculation.
+    /// Call once at monitor start.
     /// </summary>
-    /// <param name="newLimit">The new concurrency limit.</param>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private void INITIALIZE_CPU_MEASUREMENT()
+    {
+        System.Diagnostics.Process proc = System.Diagnostics.Process.GetCurrentProcess();
+        _lastCpuProcessorTime = (System.Int64)proc.TotalProcessorTime.TotalMilliseconds;
+        _lastCpuWallClockMs = _cpuMeasureStopwatch.ElapsedMilliseconds;
+    }
+
+    /// <summary>
+    /// Measures real-time CPU usage as a percentage (0-100+).
+    /// Uses delta calculation: (delta_cpu_time / delta_wall_clock) * processor_count * 100.
+    /// </summary>
+    /// <returns>CPU usage percentage. Values > 100 indicate multi-core saturation.</returns>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private System.Double MEASURE_CPU_USAGE_PERCENT()
+    {
+        System.Diagnostics.Process proc = System.Diagnostics.Process.GetCurrentProcess();
+        System.Int64 currentCpuMs = (System.Int64)proc.TotalProcessorTime.TotalMilliseconds;
+        System.Int64 currentWallMs = _cpuMeasureStopwatch.ElapsedMilliseconds;
+
+        System.Int64 cpuDelta = currentCpuMs - _lastCpuProcessorTime;
+        System.Int64 wallDelta = currentWallMs - _lastCpuWallClockMs;
+
+        // Update baseline for next measurement
+        _lastCpuProcessorTime = currentCpuMs;
+        _lastCpuWallClockMs = currentWallMs;
+
+        // Avoid division by zero
+        if (wallDelta <= 0)
+        {
+            return 0.0;
+        }
+
+        // CPU % = (cpu_time_delta / wall_time_delta) * processor_count * 100
+        // With multi-core, can exceed 100%
+        System.Double processorCount = System.Environment.ProcessorCount;
+        System.Double cpuUsagePercent = cpuDelta / (System.Double)wallDelta * processorCount * 100.0;
+
+        // Clamp to reasonable range (0-500% for 8 cores = max reasonable)
+        return System.Math.Min(cpuUsagePercent, 500.0);
+    }
+
+    /// <summary>
+    /// Adjusts the SemaphoreSlim concurrency limit dynamically with safety checks.
+    /// </summary>
+    /// <param name="newLimit">The new concurrency limit (will be clamped to [1, MaxWorkers]).</param>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void ADJUST_CONCURRENCY(System.Int32 newLimit)
     {
+        // Safety: clamp to valid range
+        newLimit = System.Math.Clamp(newLimit, 1, _options.MaxWorkers);
+
         System.Int32 previousLimit = _currentConcurrencyLimit;
+
+        // No change = skip
+        if (previousLimit == newLimit)
+        {
+            return;
+        }
+
         _currentConcurrencyLimit = newLimit;
         System.Int32 delta = newLimit - previousLimit;
 
@@ -361,10 +458,12 @@ public partial class TaskManager
         {
             if (delta > 0)
             {
+                // Increase capacity
                 _globalConcurrencyGate.Release(delta);
             }
             else if (delta < 0)
             {
+                // Decrease capacity (acquire semaphore slots)
                 for (System.Int32 i = 0; i < -delta; i++)
                 {
                     _globalConcurrencyGate.Wait();
@@ -376,8 +475,11 @@ public partial class TaskManager
         }
         catch (System.Exception ex)
         {
+            // Revert on error
+            _currentConcurrencyLimit = previousLimit;
+
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[FW.TaskManager.Internal] failed-adjust-concurrency ex={ex.Message}");
+                                    .Error($"[FW.TaskManager.Internal] failed-adjust-concurrency ex={ex.Message} from={previousLimit} to={newLimit}");
         }
     }
 }
