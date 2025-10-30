@@ -121,7 +121,9 @@ public sealed class ReliableClient : IClientConnection
 
     #region Properties
 
-    /// <summary>Gets the transport options used by this client.</summary>
+    /// <summary>
+    /// Gets the transport options used by this client.
+    /// </summary>
     public readonly TransportOptions Options;
 
     /// <inheritdoc/>
@@ -143,21 +145,28 @@ public sealed class ReliableClient : IClientConnection
         get { lock (_heartbeatLock) { return _lastHeartbeatPong; } }
     }
 
-    /// <inheritdoc/>
-    public System.Boolean IsConnected
-        => _socket?.Connected == true && System.Threading.Volatile.Read(ref _disposed) == 0;
-
-    /// <summary>Gets the total number of bytes sent since connection.</summary>
+    /// <summary>
+    /// Gets the total number of bytes sent since connection.
+    /// </summary>
     public System.Int64 BytesSent => System.Threading.Interlocked.Read(ref _bytesSent);
 
-    /// <summary>Gets the total number of bytes received since connection.</summary>
+    /// <summary>
+    /// Gets the total number of bytes received since connection.
+    /// </summary>
     public System.Int64 BytesReceived => System.Threading.Interlocked.Read(ref _bytesReceived);
 
-    /// <summary>Gets the average send bandwidth in bytes per second over the last sample interval.</summary>
+    /// <summary>
+    /// Gets the average send bandwidth in bytes per second over the last sample interval.
+    /// </summary>
     public System.Int64 SendBytesPerSecond => System.Threading.Interlocked.Read(ref _lastSendBps);
 
-    /// <summary>Gets the average receive bandwidth in bytes per second over the last sample interval.</summary>
+    /// <summary>
+    /// Gets the average receive bandwidth in bytes per second over the last sample interval.
+    /// </summary>
     public System.Int64 ReceiveBytesPerSecond => System.Threading.Interlocked.Read(ref _lastReceiveBps);
+
+    /// <inheritdoc/>
+    public System.Boolean IsConnected => _socket?.Connected == true && System.Threading.Volatile.Read(ref _disposed) == 0;
 
     #endregion Properties
 

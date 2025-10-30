@@ -2,7 +2,6 @@
 
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
-using Nalix.Benchmark.Shared.Security;
 
 namespace Nalix.Benchmark.Shared;
 
@@ -14,6 +13,5 @@ public static class Program
         ManualConfig config = DefaultConfig.Instance.WithArtifactsPath(System.IO.Path.GetFullPath(artifactsPath));
 
         BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, config);
-        BenchmarkRunner.Run<EnvelopeCipherBenchmarks>();
     }
 }

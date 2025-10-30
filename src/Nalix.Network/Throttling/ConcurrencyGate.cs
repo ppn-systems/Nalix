@@ -71,7 +71,7 @@ public sealed class ConcurrencyGate : IReportable
                 options: new RecurringOptions
                 {
                     NonReentrant = true,
-                    Tag = nameof(ConcurrencyGate),
+                    Tag = TaskNaming.Tags.Service,
                     Jitter = System.TimeSpan.FromSeconds(10),
                     ExecutionTimeout = System.TimeSpan.FromSeconds(5)
                 });
