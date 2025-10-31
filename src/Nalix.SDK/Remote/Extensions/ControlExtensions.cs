@@ -251,10 +251,9 @@ public static class ControlExtensions
     /// This helper does not enqueue packets into an <c>Incoming</c> buffer; it directly awaits from the stream.
     /// </remarks>
     public static async System.Threading.Tasks.Task<Control> AwaitControlAsync(
-        this ReliableClient client,
-        System.Func<Control, System.Boolean> predicate,
-        System.Int32 timeoutMs,
-        System.Threading.CancellationToken ct = default) => await client.AwaitPacketAsync<Control>(predicate, timeoutMs, ct);
+        this ReliableClient client, System.Func<Control, System.Boolean> predicate,
+        System.Int32 timeoutMs, System.Threading.CancellationToken ct = default)
+        => await AwaitPacketAsync<Control>(client, predicate, timeoutMs, ct);
 
     /// <summary>
     /// Sends a CONTROL frame with a single call using a fluent configuration callback.
