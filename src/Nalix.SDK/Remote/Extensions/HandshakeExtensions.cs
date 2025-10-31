@@ -20,129 +20,137 @@ namespace Nalix.SDK.Remote.Extensions;
 /// </summary>
 public static class HandshakeExtensions
 {
-    private const System.Int32 PublicKeyLen = 32;
+    /// <summary>
+    /// Length of X25519 public keys in bytes.
+    /// </summary>
+    public const System.Int32 PublicKeyLength = 32;
 
     /// <summary>
-    /// Initiates the handshake by sending client public key.
+    /// Perform X25519 handshake end-to-end:
+    /// - Generate ephemeral keypair
+    /// - Send Handshake(opCode, clientPublicKey, TCP)
+    /// - Await server Handshake with 32-byte public key
+    /// - Derive shared secret, install 32-byte session key (SHA3-256)
+    /// Auto-unsubscribes the temporary listener and aborts on disconnect/timeout.
     /// </summary>
-    /// <exception cref="System.InvalidOperationException">Client not connected or key already installed.</exception>
-    public static System.Threading.Tasks.Task<X25519.X25519KeyPair> InitiateHandshakeAsync(
+    /// <param name="client">Reliable client.</param>
+    /// <param name="opCode">Operation code to match request/response.</param>
+    /// <param name="timeoutMs">Total timeout (send + await).</param>
+    /// <param name="validateServerPublicKey">
+    /// Optional pinning check: return true to accept the server's public key.
+    /// </param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>true if handshake succeeded (or already done); false on timeout/failure.</returns>
+    public static async System.Threading.Tasks.Task<System.Boolean> HandshakeAsync(
         this ReliableClient client,
-        System.UInt16 opCode,
+        System.UInt16 opCode = 1,
+        System.Int32 timeoutMs = 5_000,
+        System.Func<System.Byte[], System.Boolean> validateServerPublicKey = null,
         System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(client);
 
         if (!client.IsConnected)
         {
-            throw new System.InvalidOperationException("Client not connected.");
+            return false; // not connected
         }
 
-        if (client.Options.EncryptionKey is { Length: PublicKeyLen })
+        // Idempotent: already handshaked
+        if (client.IsHandshaked)
         {
-            throw new System.InvalidOperationException(
-                "Handshake already completed: encryption key is installed.");
+            return true;
         }
 
-        X25519.X25519KeyPair keyPair = X25519.GenerateKeyPair();
+        // Prepare TCS and timeout
+        var tcs = new System.Threading.Tasks.TaskCompletionSource<Handshake>(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+        using var linked = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+        linked.CancelAfter(timeoutMs);
 
-        return SendAndReturnAsync(client, keyPair, opCode, ct);
+        // Generate ephemeral keypair
+        var kp = X25519.GenerateKeyPair();
 
-        static async System.Threading.Tasks.Task<X25519.X25519KeyPair> SendAndReturnAsync(
-            ReliableClient c,
-            X25519.X25519KeyPair kp,
-            System.UInt16 code,
-            System.Threading.CancellationToken token)
+        // Temporary listener (auto-removed in finally)
+        void OnPacket(IPacket p)
         {
-            await c.SendAsync(new Handshake(code, kp.PublicKey, ProtocolType.TCP), token)
-                   .ConfigureAwait(false);
+            if (p is Handshake hs && hs.OpCode == opCode /* && hs.Protocol == ProtocolType.TCP */)
+            {
+                tcs.TrySetResult(hs);
+            }
+        }
+
+        // Abort on disconnect
+        void OnDisconnected(System.Exception ex)
+        {
+            tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected during handshake."));
+        }
+
+        client.PacketReceived += OnPacket;
+        client.Disconnected += OnDisconnected;
+
+        try
+        {
+            // Send client hello AFTER subscribing to avoid race
+            await client.SendAsync(new Handshake(opCode, kp.PublicKey, ProtocolType.TCP), linked.Token)
+                        .ConfigureAwait(false);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()
                 ?.Debug("Handshake request sent (client public key).");
 
-            return kp;
+            // Await server response (with timeout/ct)
+            using (linked.Token.Register(() => tcs.TrySetCanceled(linked.Token)))
+            {
+                var hs = await tcs.Task.ConfigureAwait(false);
+
+                // Basic checks
+                if (hs.Data is not { Length: PublicKeyLength })
+                {
+                    return false;
+                }
+
+                if (validateServerPublicKey is not null && !validateServerPublicKey(hs.Data))
+                {
+                    return false;
+                }
+
+                // Derive & install session key
+                System.Byte[] secret = null;
+                try
+                {
+                    secret = X25519.Agreement(kp.PrivateKey, hs.Data);
+                    client.Options.EncryptionKey = SHA3256.HashData(secret);
+
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()
+                        ?.Info("Handshake completed. EncryptionKey installed.");
+
+                    return true;
+                }
+                finally
+                {
+                    if (kp.PrivateKey is not null)
+                    {
+                        System.Array.Clear(kp.PrivateKey, 0, kp.PrivateKey.Length);
+                    }
+
+                    if (secret is not null)
+                    {
+                        System.Array.Clear(secret, 0, secret.Length);
+                    }
+                }
+            }
         }
-    }
-
-    /// <summary>
-    /// Completes the handshake using a received <see cref="Handshake"/> packet (server public key).
-    /// </summary>
-    /// <returns>true if key installed; otherwise false.</returns>
-    public static System.Boolean FinishHandshake(
-        this ReliableClient client,
-        X25519.X25519KeyPair clientKeyPair,
-        IPacket packet)
-    {
-        System.ArgumentNullException.ThrowIfNull(client);
-
-        if (clientKeyPair.PrivateKey is null)
-        {
-            throw new System.ArgumentNullException(nameof(clientKeyPair),
-                "X25519 private key is required.");
-        }
-
-        if (packet is not Handshake hs || hs.Data is not { Length: PublicKeyLen })
+        catch (System.OperationCanceledException)
         {
             return false;
         }
-
-        System.Byte[] secret = null;
-
-        try
+        catch
         {
-            // X25519 shared secret (clientPriv, serverPub)
-            secret = X25519.Agreement(clientKeyPair.PrivateKey, hs.Data);
-
-            // Derive 32-byte session key using SHA3-256(secret)
-            client.Options.EncryptionKey = SHA3256.HashData(secret);
-
-            InstanceManager.Instance.GetExistingInstance<ILogger>()
-                ?.Info("Handshake completed. EncryptionKey installed.");
-
-            return true;
+            return false;
         }
         finally
         {
-            if (clientKeyPair.PrivateKey is not null)
-            {
-                System.Array.Clear(clientKeyPair.PrivateKey, 0, clientKeyPair.PrivateKey.Length);
-            }
-
-            if (secret is not null)
-            {
-                System.Array.Clear(secret, 0, secret.Length);
-            }
+            // Auto-unsubscribe
+            client.PacketReceived -= OnPacket;
+            client.Disconnected -= OnDisconnected;
         }
-    }
-
-    /// <summary>
-    /// One-shot helper: send client key, then await matching server Handshake and install the session key.
-    /// </summary>
-    /// <param name="client"></param>
-    /// <param name="opCode">Operation code to match on both request and response.</param>
-    /// <param name="timeoutMs">Total timeout (send + await response).</param>
-    /// <param name="ct"></param>
-    /// <exception cref="System.TimeoutException">If no matching response arrives in time.</exception>
-    /// <exception cref="System.InvalidOperationException">If not connected or key already installed.</exception>
-    public static async System.Threading.Tasks.Task<System.Boolean> WaitAndFinishHandshakeAsync(
-        this ReliableClient client,
-        System.UInt16 opCode,
-        System.Int32 timeoutMs = 5000,
-        System.Threading.CancellationToken ct = default)
-    {
-        // 1) Send client pubkey
-        X25519.X25519KeyPair keyPair = await client
-            .InitiateHandshakeAsync(opCode, ct)
-            .ConfigureAwait(false);
-
-        // 2) Await server Handshake that matches opCode (and optionally protocol TCP)
-        Handshake serverHs = await client.AwaitPacketAsync<Handshake>(
-            predicate: hs => hs.OpCode == opCode /* && hs.Protocol == ProtocolType.TCP */,
-            timeoutMs: timeoutMs,
-            ct: ct
-        ).ConfigureAwait(false);
-
-        // 3) Derive & install key
-        return client.FinishHandshake(keyPair, serverHs);
     }
 }
