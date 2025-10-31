@@ -51,6 +51,13 @@ public abstract partial class TcpListenerBase
         _ = sb.AppendLine($"Backlog             : {_config.Backlog}");
         _ = sb.AppendLine();
 
+        _ = sb.AppendLine("Metrics:");
+        _ = sb.AppendLine("--------------------------------------------");
+        _ = sb.AppendLine($"Total Accepted      : {_metrics.TotalAccepted}");
+        _ = sb.AppendLine($"Total Rejected      : {_metrics.TotalRejected}");
+        _ = sb.AppendLine($"Total Errors        : {_metrics.TotalErrors}");
+        _ = sb.AppendLine();
+
         _ = sb.AppendLine("Protocol:");
         _ = sb.AppendLine("--------------------------------------------");
         _ = sb.AppendLine($"BoundProtocol       : {_protocol.ToString() ?? "-"}");
