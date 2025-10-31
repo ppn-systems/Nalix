@@ -124,6 +124,7 @@ public sealed class ObjectPool(System.Int32 defaultMaxItemsPerType)
     /// <returns>An instance of <typeparamref name="T"/>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public T Get<T>() where T : IPoolable, new()
     {
         System.Type type = typeof(T);
