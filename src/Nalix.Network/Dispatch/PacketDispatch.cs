@@ -14,8 +14,8 @@ namespace Nalix.Network.Dispatch;
 /// Ultra-high performance raw dispatcher with advanced dependency injection (DI) integration and async support.
 /// This implementation uses reflection to map raw command IDs to controller methods.
 /// </summary>
-
 [System.Diagnostics.DebuggerDisplay("PacketDispatch: Logger={Logger != null}")]
+[System.Obsolete("Use more advanced PacketDispatchChannel with explicit handler registration instead.")]
 public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispatch<IPacket>
 {
     private readonly IPacketCatalog _catalog;
