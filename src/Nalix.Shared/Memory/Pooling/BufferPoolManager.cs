@@ -102,7 +102,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         MinBufferSize = System.Linq.Enumerable.Min(_bufferAllocations, alloc => alloc.BufferSize);
         MaxBufferSize = System.Linq.Enumerable.Max(_bufferAllocations, alloc => alloc.BufferSize);
 
-        _poolManager = new BufferPoolCollection(secureClear: _secureClear, autoTuneThreshold: _autoTuneOpThreshold);
+        _poolManager = new BufferPoolCollection(bufferConfig: config);
         _poolManager.EventShrink += ShrinkBufferPoolSize;
         _poolManager.EventIncrease += IncreaseBufferPoolSize;
 
