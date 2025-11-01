@@ -2,12 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Framework.Injection;
 
 namespace Nalix.Network.Routing.Results.Primitives;
 
 /// <inheritdoc/>
-internal sealed class ByteArrayReturnHandler<TPacket> : IReturnHandler<TPacket>
+internal sealed class ByteArrayReturnHandler<TPacket> : IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <inheritdoc/>
     public async System.Threading.Tasks.ValueTask HandleAsync(

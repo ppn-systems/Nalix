@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 #if DEBUG
+using Nalix.Common.Networking.Packets.Abstractions;
+
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
@@ -13,7 +15,7 @@ namespace Nalix.Network.Routing.Results;
 /// in a zero-allocation manner.
 /// </summary>
 /// <typeparam name="TPacket">The packet type being handled.</typeparam>
-internal interface IReturnHandler<TPacket>
+internal interface IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Handles the result of a method call asynchronously.

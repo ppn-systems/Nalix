@@ -1,10 +1,12 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Networking.Packets.Abstractions;
+
 namespace Nalix.Network.Routing.Results.Task;
 
 /// <inheritdoc/>
-internal sealed class ValueTaskVoidReturnHandler<TPacket> : IReturnHandler<TPacket>
+internal sealed class ValueTaskVoidReturnHandler<TPacket> : IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <inheritdoc/>
     public async System.Threading.Tasks.ValueTask HandleAsync(
