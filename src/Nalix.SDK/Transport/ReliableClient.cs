@@ -683,6 +683,7 @@ public sealed class ReliableClient : IClientConnection
         // GetInvocationList() trả về array snapshot tại thời điểm gọi.
         // An toàn với concurrent subscribe/unsubscribe vì delegate là immutable.
         System.Delegate[] syncHandlers = OnMessageReceived?.GetInvocationList() ?? [];
+
         System.Func<ReliableClient, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task> asyncHandler = OnMessageReceivedAsync;
 
         // ── Chuẩn bị data cho async handler TRƯỚC KHI dispose lease ─────
