@@ -5,6 +5,16 @@ This project follows [Semantic Versioning](https://semver.org/) guidelines.
 
 ---
 
+## [11.4.0] - 2026-03-15
+
+### Documentation
+
+- **DOCUMENTATION.md:** Added Nalix.Common and Nalix.SDK to the documentation index.
+- **docs/README.md:** Fixed Framework doc links (Configuration, Csprng, Snowflake, TaskManager) to use `Nalix.Framework/` paths; added Protocol, Connection & IConnection, and PacketContext to Detailed Module Docs; fixed Send-from-handler link (removed broken anchor).
+- **New docs:** `docs/Nalix.Network/Connections/Connection.md` (Connection & IConnection), `docs/Nalix.Network/Routing/PacketContext.md` (PacketContext), `docs/Nalix.Common/README.md` (Common overview), `docs/Nalix.SDK/README.md` (SDK overview).
+
+---
+
 ## [6.8.0] - 2025-10-22
 
 ### Added (6.8.0)
