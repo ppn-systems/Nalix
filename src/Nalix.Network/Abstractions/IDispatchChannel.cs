@@ -19,7 +19,7 @@ public interface IDispatchChannel<TPacket> where TPacket : IPacket
     /// <value>
     /// The total number of packets currently enqueued for processing.
     /// </value>
-    System.Int32 TotalPackets { get; }
+    System.Int64 TotalPackets { get; }
 
     /// <summary>
     /// Adds a packet to the dispatch queue, associating it with a specific connection.
