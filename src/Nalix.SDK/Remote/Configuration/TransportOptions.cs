@@ -70,6 +70,11 @@ public sealed class TransportOptions : ConfigurationLoader
     }
 
     /// <summary>
+    /// Outbound queue size for the transport.
+    /// </summary>
+    public System.Int32 OutboundQueueSize { get; set; } = 512;
+
+    /// <summary>
     /// Gets or sets the encryption mode for the connection.
     /// This property is ignored during configuration binding.
     /// </summary>
