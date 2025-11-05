@@ -2,6 +2,7 @@
 
 using Nalix.Common.Connection;
 using Nalix.Framework.Time;
+using Nalix.Network.Configurations;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Memory.Caches;
@@ -24,8 +25,7 @@ internal sealed class BufferLeaseCache : System.IDisposable
     private IConnectEventArgs? _cachedArgs;
     private System.EventHandler<IConnectEventArgs>? _callback;
 
-    private static Configurations.CacheSizeOptions Config
-        => ConfigurationManager.Instance.Get<Configurations.CacheSizeOptions>();
+    private static CacheSizeOptions Config => ConfigurationManager.Instance.Get<CacheSizeOptions>();
 
     private readonly System.Int64 _startTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
 
