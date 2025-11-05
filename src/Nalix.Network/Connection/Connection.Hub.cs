@@ -2,9 +2,12 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Connection;
+using Nalix.Common.Enums;
 using Nalix.Common.Logging;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
+using Nalix.Network.Configurations;
+using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Connection;
 
@@ -20,15 +23,13 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     #region Fields
 
     // Separate dictionaries for better cache locality and reduced contention
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<IIdentifier, System.String> _usernames =
-        new(System.Environment.ProcessorCount * 2, 1024);
-
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<IIdentifier, IConnection> _connections =
-        new(System.Environment.ProcessorCount * 2, 1024);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<IIdentifier, IConnection> _connections;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<IIdentifier, System.String> _usernames;
 
     // Username-to-ID reverse lookup for fast user-based operations
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, IIdentifier> _usernameToId =
-        new(System.Environment.ProcessorCount * 2, 1024, System.StringComparer.OrdinalIgnoreCase);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, IIdentifier> _usernameToId;
+
+    private readonly ConnectionHubOptions _options;
 
     // Connection statistics for monitoring
     private volatile System.Int32 _count;
@@ -62,6 +63,20 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         // Static constructor initializes the shared ArrayPool
         s_connectionPool = System.Buffers.ArrayPool<IConnection>.Shared;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ConnectionHub"/> class.
+    /// </summary>
+    public ConnectionHub()
+    {
+        _options = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
+
+        System.Int32 concurrencyLevel = System.Environment.ProcessorCount * 2;
+
+        _usernames = new(concurrencyLevel, _options.InitialUsernameCapacity);
+        _connections = new(concurrencyLevel, _options.InitialConnectionCapacity);
+        _usernameToId = new(concurrencyLevel, _options.InitialUsernameCapacity, System.StringComparer.OrdinalIgnoreCase);
+    }
+
     #endregion Constructor
 
     #region APIs
@@ -82,20 +97,32 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return false;
         }
 
+        if (_options.MaxConnections.HasValue && _count >= _options.MaxConnections.Value)
+        {
+            this.HandleConnectionLimit(connection);
+            return false;
+        }
+
         if (_connections.TryAdd(connection.ID, connection))
         {
             connection.OnCloseEvent += this.OnClientDisconnected;
             _ = System.Threading.Interlocked.Increment(ref _count);
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(ConnectionHub)}] " +
-                                           $"register id={connection.ID} total={_count}");
+            if (_options.EnableTraceLogs)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[{nameof(ConnectionHub)}] register id={connection.ID} total={_count}");
+            }
 
             return true;
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(ConnectionHub)}] register-dup id={connection.ID}");
+        if (_options.EnableTraceLogs)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Info($"[{nameof(ConnectionHub)}] register-dup id={connection.ID}");
+        }
+
         return false;
     }
 
@@ -114,6 +141,12 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return false;
         }
 
+        // Wait for OnCloseEvent to complete if configured
+        if (_options.UnregisterDrainMillis > 0)
+        {
+            System.Threading.Thread.Sleep(_options.UnregisterDrainMillis);
+        }
+
         if (!_connections.TryRemove(connection.ID, out IConnection? existing))
         {
             if (_usernames.TryRemove(connection.ID, out System.String? orphanUser) && orphanUser is not null)
@@ -121,9 +154,12 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                 _ = _usernameToId.TryRemove(orphanUser, out _);
             }
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(ConnectionHub)}] " +
-                                          $"unregister-miss id={connection.ID}");
+            if (_options.EnableTraceLogs)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Info($"[{nameof(ConnectionHub)}] unregister-miss id={connection.ID}");
+            }
+
             return false;
         }
 
@@ -136,9 +172,11 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         _ = System.Threading.Interlocked.Decrement(ref _count);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[{nameof(ConnectionHub)}] " +
-                                       $"unregister id={connection.ID} total={_count}");
+        if (_options.EnableTraceLogs)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[{nameof(ConnectionHub)}] unregister id={connection.ID} total={_count}");
+        }
 
         ConnectionUnregistered?.Invoke(existing ?? connection);
 
@@ -164,23 +202,40 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return;
         }
 
+        // Apply username policies
+        if (_options.TrimUsernames)
+        {
+            username = username.Trim();
+        }
+
+        if (username.Length > _options.MaxUsernameLength)
+        {
+            username = username[.._options.MaxUsernameLength];
+        }
+
         IIdentifier id = connection.ID;
 
         // Remove old association if exists
         if (_usernames.TryGetValue(id, out System.String? oldUsername) && oldUsername != username)
         {
             _ = _usernameToId.TryRemove(oldUsername, out _);
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(ConnectionHub)}] " +
-                                           $"map-rebind id={id} old={oldUsername} new={username}");
+
+            if (_options.EnableTraceLogs)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[{nameof(ConnectionHub)}] map-rebind id={id} old={oldUsername} new={username}");
+            }
         }
 
         // Push new associations
         _usernames[id] = username;
         _usernameToId[username] = id;
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[{nameof(ConnectionHub)}] map user=\"{username}\" id={id}");
+        if (_options.EnableTraceLogs)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[{nameof(ConnectionHub)}] map user=\"{username}\" id={id}");
+        }
     }
 
     /// <inheritdoc />
@@ -293,6 +348,14 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return;
         }
 
+        // Use batching if configured
+        if (_options.BroadcastBatchSize > 0)
+        {
+            await this.BroadcastBatchedAsync(connections, message, sendFunc, cancellationToken)
+                      .ConfigureAwait(false);
+            return;
+        }
+
         System.Threading.Tasks.Task[] tasks = new System.Threading.Tasks.Task[connections.Count];
         System.Int32 index = 0;
 
@@ -388,7 +451,12 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         System.Collections.Generic.IReadOnlyCollection<IConnection> connections = this.ListConnections();
 
-        _ = System.Threading.Tasks.Parallel.ForEach(connections, connection =>
+        System.Threading.Tasks.ParallelOptions parallelOptions = new()
+        {
+            MaxDegreeOfParallelism = _options.ParallelDisconnectDegree ?? -1
+        };
+
+        _ = System.Threading.Tasks.Parallel.ForEach(connections, parallelOptions, connection =>
         {
             try
             {
@@ -478,6 +546,91 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnClientDisconnected(System.Object? sender, IConnectEventArgs args) => this.UnregisterConnection(args.Connection);
+
+    /// <summary>
+    /// Handles connection limit enforcement based on the configured reject policy.
+    /// </summary>
+    /// <param name="newConnection">The new connection attempting to register.</param>
+    private void HandleConnectionLimit(IConnection newConnection)
+    {
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Info($"[{nameof(ConnectionHub)}] connection-limit-reached " +
+                                      $"policy={_options.RejectPolicy} max={_options.MaxConnections}");
+
+        switch (_options.RejectPolicy)
+        {
+            case RejectPolicy.RejectNew:
+                newConnection.Disconnect("connection limit reached");
+                break;
+
+            case RejectPolicy.DropOldestAnonymous:
+                // Find oldest anonymous connection (connection without username)
+                IConnection? oldestAnonymous = null;
+                foreach (var kvp in _connections)
+                {
+                    if (!_usernames.ContainsKey(kvp.Key))
+                    {
+                        oldestAnonymous = kvp.Value;
+                        break; // Take first anonymous found (oldest due to dictionary order)
+                    }
+                }
+
+                if (oldestAnonymous is not null)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Info($"[{nameof(ConnectionHub)}] evicting-anonymous id={oldestAnonymous.ID}");
+
+                    oldestAnonymous.Disconnect("evicted to make room for new connection");
+                }
+                else
+                {
+                    // No anonymous connections found, reject new connection instead
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Info($"[{nameof(ConnectionHub)}] no-anonymous-to-evict, rejecting-new");
+
+                    newConnection.Disconnect("connection limit reached, no anonymous connections to evict");
+                }
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Broadcasts a message using batching to reduce memory pressure.
+    /// </summary>
+    private async System.Threading.Tasks.Task BroadcastBatchedAsync<T>(
+        System.Collections.Generic.IReadOnlyCollection<IConnection> connections,
+        T message,
+        System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
+        System.Threading.CancellationToken cancellationToken)
+        where T : class
+    {
+        System.Int32 batchSize = _options.BroadcastBatchSize;
+        System.Collections.Generic.List<System.Threading.Tasks.Task> currentBatch = new(batchSize);
+
+        foreach (IConnection connection in connections)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+
+            currentBatch.Add(sendFunc(connection, message));
+
+            if (currentBatch.Count >= batchSize)
+            {
+                await System.Threading.Tasks.Task.WhenAll(currentBatch)
+                                                 .ConfigureAwait(false);
+                currentBatch.Clear();
+            }
+        }
+
+        // Send remaining batch
+        if (currentBatch.Count > 0)
+        {
+            await System.Threading.Tasks.Task.WhenAll(currentBatch)
+                                             .ConfigureAwait(false);
+        }
+    }
 
     #endregion Private Methods
 }
