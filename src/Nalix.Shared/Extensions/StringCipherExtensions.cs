@@ -25,7 +25,7 @@ public static class StringCipherExtensions
         }
 
         System.Byte[] utf8 = System.Text.Encoding.UTF8.GetBytes(text);
-        System.ReadOnlyMemory<System.Byte> cipher = EnvelopeCipher.Encrypt(utf8, key, algorithm);
+        System.ReadOnlyMemory<System.Byte> cipher = EnvelopeCipher.Encrypt(key, utf8, algorithm);
         return System.Convert.ToBase64String(cipher.Span);
     }
 
