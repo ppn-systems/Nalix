@@ -17,6 +17,8 @@ public enum DropPolicy
     /// </summary>
     Block = 2,
 
-    /// <summary>Coalesce duplicate packets (by key) and keep only the latest.</summary>
+    /// <summary>
+    /// Coalesce duplicate packets (by key) and keep only the latest.
+    /// </summary>
     Coalesce = 3
 }

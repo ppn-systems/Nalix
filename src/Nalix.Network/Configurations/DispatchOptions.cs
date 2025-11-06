@@ -1,5 +1,4 @@
-﻿using Nalix.Common.Attributes;
-using Nalix.Network.Dispatch.Options;
+﻿using Nalix.Network.Dispatch.Options;
 using Nalix.Shared.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;
@@ -19,11 +18,4 @@ public sealed class DispatchOptions : ConfigurationLoader
     /// Drop strategy when the per-connection queue is full.
     /// </summary>
     public DropPolicy DropPolicy { get; init; } = DropPolicy.DropNewest;
-
-    /// <summary>
-    /// Optional coalescing key selector. If provided and DropPolicy = Coalesce,
-    /// packets with the same key may be merged by keeping only the latest one.
-    /// </summary>
-    [ConfiguredIgnore]
-    public System.Func<System.ReadOnlySpan<System.Byte>, System.Int32>? CoalesceKeySelector { get; init; }
 }

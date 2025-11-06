@@ -29,14 +29,6 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// </value>
     public System.Int32 InitialUsernameCapacity { get; init; } = 1024;
 
-    /// <summary>
-    /// Gets or sets the extra capacity added when creating connection snapshots.
-    /// </summary>
-    /// <value>
-    /// The padding size to prevent resizing during snapshot operations. Default is 16.
-    /// </value>
-    public System.Int32 SnapshotPadding { get; init; } = 16;
-
     // Limits & backpressure
 
     /// <summary>
