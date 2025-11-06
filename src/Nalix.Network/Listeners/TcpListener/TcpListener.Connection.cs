@@ -93,10 +93,9 @@ public abstract partial class TcpListenerBase
         try
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] " +
-                                           $"new={connection.RemoteEndPoint}");
+                                    .Debug($"[{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection.RemoteEndPoint}");
 
-            this._protocol.OnAccept(connection, _cancellationToken);
+            _protocol.OnAccept(connection, _cancellationToken);
         }
         catch (System.Exception ex)
         {
