@@ -18,6 +18,7 @@ namespace Nalix.SDK.Remote.Extensions;
 /// <seealso cref="Control"/>
 /// <seealso cref="Clock"/>
 /// <seealso cref="ReliableClient"/>
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public static class ControlExtensions
 {
     /// <summary>
@@ -32,6 +33,8 @@ public static class ControlExtensions
         /// </summary>
         /// <param name="seq">The sequence identifier to assign.</param>
         /// <returns>The current builder.</returns>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public ControlBuilder WithSeq(System.UInt32 seq) { c.SequenceId = seq; return this; }
 
         /// <summary>
@@ -39,6 +42,8 @@ public static class ControlExtensions
         /// </summary>
         /// <param name="reason">The protocol reason code.</param>
         /// <returns>The current builder.</returns>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public ControlBuilder WithReason(ProtocolCode reason) { c.Reason = reason; return this; }
 
         /// <summary>
@@ -46,18 +51,24 @@ public static class ControlExtensions
         /// </summary>
         /// <param name="tr">The transport type (e.g., <see cref="ProtocolType.TCP"/> or <see cref="ProtocolType.UDP"/>).</param>
         /// <returns>The current builder.</returns>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public ControlBuilder WithTransport(ProtocolType tr) { c.Transport = tr; return this; }
 
         /// <summary>
         /// Stamps the control with the current Unix timestamp (milliseconds) and the sender's monotonic ticks.
         /// </summary>
         /// <returns>The current builder.</returns>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public ControlBuilder StampNow() { c.MonoTicks = Clock.MonoTicksNow(); c.Timestamp = Clock.UnixMillisecondsNow(); return this; }
 
         /// <summary>
         /// Builds and returns the configured <see cref="Control"/> instance.
         /// </summary>
         /// <returns>The configured <see cref="Control"/>.</returns>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public Control Build() => c;
     }
 
@@ -74,6 +85,8 @@ public static class ControlExtensions
     /// ControlBuilder c = client.NewControl(ControlType.PING).WithSeq(123).StampNow().Build();
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static ControlBuilder NewControl(this ReliableClient _, System.UInt16 opCode, ControlType type, ProtocolType transport = ProtocolType.TCP)
     {
         Control c = new();
@@ -85,12 +98,11 @@ public static class ControlExtensions
     /// Awaits until a packet of type <typeparamref name="TPkt"/> satisfying the predicate arrives.
     /// Uses PacketReceived/Disconnected events; no cache popping to avoid reordering.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<TPkt> AwaitPacketAsync<TPkt>(
-        this ReliableClient client,
-        System.Func<TPkt, System.Boolean> predicate,
-        System.Int32 timeoutMs,
-        System.Threading.CancellationToken ct = default)
-        where TPkt : class, IPacket
+        this ReliableClient client, System.Func<TPkt, System.Boolean> predicate,
+        System.Int32 timeoutMs, System.Threading.CancellationToken ct = default) where TPkt : class, IPacket
     {
         System.ArgumentNullException.ThrowIfNull(client);
         System.ArgumentNullException.ThrowIfNull(predicate);
@@ -121,6 +133,7 @@ public static class ControlExtensions
 
         return await AwaitCoreAsync(client, OnPkt, OnDisc, tcs.Task, ct);
 
+        [System.Diagnostics.DebuggerStepThrough]
         static async System.Threading.Tasks.Task<TPkt> AwaitCoreAsync(
             ReliableClient c,
             System.Action<IPacket> pktHandler,
@@ -181,6 +194,8 @@ public static class ControlExtensions
     /// var (rtt, pong) = await client.PingAsync(timeoutMs: 2000, syncClock: true, ct);
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<(System.Double rttMs, Control pong)> PingAsync(
         this ReliableClient client,
         System.UInt16 opCode,
@@ -250,6 +265,8 @@ public static class ControlExtensions
     /// <remarks>
     /// This helper does not enqueue packets into an <c>Incoming</c> buffer; it directly awaits from the stream.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<Control> AwaitControlAsync(
         this ReliableClient client, System.Func<Control, System.Boolean> predicate,
         System.Int32 timeoutMs, System.Threading.CancellationToken ct = default)
@@ -273,6 +290,8 @@ public static class ControlExtensions
     ///     ct);
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Threading.Tasks.ValueTask SendControlAsync(
         this ReliableClient client,
         System.UInt16 opCode,
@@ -300,6 +319,8 @@ public static class ControlExtensions
     /// await client.SendDisconnectAsync(seq: 7, tr: ProtocolType.TCP, ct);
     /// </code>
     /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Threading.Tasks.ValueTask SendDisconnectAsync(
         this ReliableClient client,
         System.UInt16 opCode,

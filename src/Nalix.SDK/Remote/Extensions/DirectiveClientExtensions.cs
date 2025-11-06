@@ -20,6 +20,7 @@ namespace Nalix.SDK.Remote.Extensions;
 /// <seealso cref="Directive"/>
 /// <seealso cref="Clock"/>
 /// <seealso cref="ReliableClient"/>
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public static class DirectiveClientExtensions
 {
     private static readonly ILogger Log = InstanceManager.Instance.GetExistingInstance<ILogger>();
@@ -104,6 +105,8 @@ public static class DirectiveClientExtensions
     /// <item><description><see cref="ControlType.NACK"/> and <see cref="ControlType.NOTICE"/>: invoke respective callbacks and log.</description></item>
     /// </list>
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<System.Boolean> TryHandleDirectiveAsync(
         this ReliableClient client,
         IPacket packet,
@@ -215,6 +218,8 @@ public static class DirectiveClientExtensions
     /// The remaining delay is computed from monotonic ticks (Stopwatch frequency)
     /// and is therefore resilient to wall-clock changes.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean IsThrottled(this ReliableClient client, out System.TimeSpan remaining)
     {
         System.ArgumentNullException.ThrowIfNull(client);
@@ -251,6 +256,8 @@ public static class DirectiveClientExtensions
     /// <remarks>
     /// If no throttle is active, the packet is sent immediately.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task SendWithThrottleAsync(
         this ReliableClient client,
         IPacket packet, System.Threading.CancellationToken ct = default)
@@ -275,6 +282,8 @@ public static class DirectiveClientExtensions
     /// </summary>
     /// <param name="client">The reliable client.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void ClearThrottle(this ReliableClient client)
     {
         System.ArgumentNullException.ThrowIfNull(client);
