@@ -30,8 +30,9 @@ internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream s
     /// Asynchronously receives and deserializes a packet frame from the stream.
     /// Frame format: [uint16 le length (payload only)] + [payload].
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [System.Runtime.CompilerServices.SkipLocalsInit]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public async System.Threading.Tasks.Task<TPacket> ReceiveAsync(
         System.Threading.CancellationToken cancellationToken = default)
     {
@@ -41,7 +42,9 @@ internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream s
         }
 
         // 1) Read 2-byte payload length (little-endian)
-        await _stream.ReadExactlyAsync(_header2, cancellationToken).ConfigureAwait(false);
+        await _stream.ReadExactlyAsync(_header2, cancellationToken)
+                     .ConfigureAwait(false);
+
         System.UInt16 length = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(_header2);
 
         // Defensive bounds
@@ -55,14 +58,13 @@ internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream s
         try
         {
             // Read payload fully
-            await _stream.ReadExactlyAsync(
-                System.MemoryExtensions.AsMemory(buffer, 0, length),
-                cancellationToken
-            ).ConfigureAwait(false);
+            await _stream.ReadExactlyAsync(System.MemoryExtensions
+                         .AsMemory(buffer, 0, length), cancellationToken)
+                         .ConfigureAwait(false);
 
             // 3) Deserialize directly over the rented buffer span (no extra copy)
-            if (_catalog.TryDeserialize(
-                    System.MemoryExtensions.AsSpan(buffer, 0, length), out IPacket packet))
+            if (_catalog.TryDeserialize(System.MemoryExtensions
+                        .AsSpan(buffer, 0, length), out IPacket packet))
             {
                 return (TPacket)packet;
             }
