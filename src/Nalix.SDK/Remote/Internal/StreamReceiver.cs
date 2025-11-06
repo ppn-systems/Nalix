@@ -8,7 +8,9 @@ using Nalix.Framework.Injection;
 namespace Nalix.SDK.Remote.Internal;
 
 /// <summary>
-/// Receives framed packets: [len:2 (little-endian, payload only)] + [payload].
+/// Receives framed packets using a 2‑byte little-endian TOTAL length header:
+/// frame = [total: UInt16 (header + payload)] + [payload].
+/// The header value includes the 2-byte header itself (TOTAL >= 2).
 /// </summary>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 [System.Diagnostics.DebuggerDisplay("Readable={_stream?.CanRead}")]
@@ -24,9 +26,6 @@ internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream s
     private readonly System.Byte[] _header2 = new System.Byte[2];
     private readonly System.Threading.SemaphoreSlim _rxGate = new(1, 1);
 
-    /// <summary>
-    /// Receives framed packets: [len:2 (little-endian, TOTAL=header+payload)] + [payload].
-    /// </summary>
     [System.Runtime.CompilerServices.SkipLocalsInit]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
