@@ -7,16 +7,21 @@ namespace Nalix.SDK.Remote.Extensions;
 /// <summary>
 /// Convenience subscriptions for ReliableClient to reduce boilerplate.
 /// </summary>
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public static class ReliableClientSubscriptions
 {
     /// <summary>
     /// Subscribe to a typed packet. Returns IDisposable for quick unsubscribe.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.IDisposable On<TPacket>(
         this ReliableClient client,
         System.Action<TPacket> handler)
         where TPacket : class, IPacket
     {
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         void Wrapper(IPacket p)
         {
             if (p is TPacket t)
@@ -31,11 +36,16 @@ public static class ReliableClientSubscriptions
     /// <summary>
     /// Subscribe with predicate filter. Returns IDisposable for quick unsubscribe.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.IDisposable On(
         this ReliableClient client,
         System.Func<IPacket, System.Boolean> predicate,
         System.Action<IPacket> handler)
     {
+
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         void Wrapper(IPacket p)
         {
             if (predicate(p))
@@ -50,6 +60,8 @@ public static class ReliableClientSubscriptions
     /// <summary>
     /// One-shot subscribe: auto-unsubscribe after the first matching packet.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.IDisposable OnOnce<TPacket>(
         this ReliableClient client,
         System.Func<TPacket, System.Boolean> predicate,
@@ -57,6 +69,10 @@ public static class ReliableClientSubscriptions
         where TPacket : class, IPacket
     {
         System.Int32 fired = 0;
+
+
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         void Wrapper(IPacket p)
         {
             if (p is not TPacket t)
@@ -83,8 +99,9 @@ public static class ReliableClientSubscriptions
     /// <summary>
     /// Helper to group multiple subscriptions and dispose once.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static CompositeSubscription Subscribe(this ReliableClient _, params System.IDisposable[] subs) => new(subs);
-
 
     private sealed class Unsub(System.Action dispose) : System.IDisposable
     {
@@ -105,6 +122,8 @@ public sealed class CompositeSubscription(params System.IDisposable[] subs) : Sy
     /// <summary>
     /// Adds a new subscription to the composite.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Add(System.IDisposable sub)
     {
         if (System.Threading.Interlocked.CompareExchange(ref _disposed, 0, 0) == 1)

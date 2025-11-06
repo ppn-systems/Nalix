@@ -18,6 +18,7 @@ namespace Nalix.SDK.Remote.Extensions;
 /// 3) Await server Handshake containing 32-byte server public key.
 /// 4) Derive shared secret and install a 32-byte session key via SHA3-256(secret).
 /// </summary>
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public static class HandshakeExtensions
 {
     /// <summary>
@@ -41,6 +42,8 @@ public static class HandshakeExtensions
     /// </param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>true if handshake succeeded (or already done); false on timeout/failure.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<System.Boolean> HandshakeAsync(
         this ReliableClient client,
         System.UInt16 opCode = 1,
@@ -70,6 +73,8 @@ public static class HandshakeExtensions
         var kp = X25519.GenerateKeyPair();
 
         // Temporary listener (auto-removed in finally)
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         void OnPacket(IPacket p)
         {
             if (p is Handshake hs && hs.OpCode == opCode /* && hs.Protocol == ProtocolType.TCP */)
@@ -79,6 +84,8 @@ public static class HandshakeExtensions
         }
 
         // Abort on disconnect
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         void OnDisconnected(System.Exception ex)
         {
             tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected during handshake."));
