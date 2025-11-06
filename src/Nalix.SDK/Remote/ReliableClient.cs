@@ -129,6 +129,7 @@ public sealed class ReliableClient : System.IDisposable
             System.Threading.CancellationToken cancellationToken = default)
     {
         _closed = false;
+        _ioHealthy = true;
         _discNotified = 0;
 
         _client?.Close();
@@ -291,6 +292,7 @@ public sealed class ReliableClient : System.IDisposable
     public void Disconnect()
     {
         _closed = true;
+        _ioHealthy = false;
         _lifectx?.Cancel();
 
         if (_workerId is not null)
