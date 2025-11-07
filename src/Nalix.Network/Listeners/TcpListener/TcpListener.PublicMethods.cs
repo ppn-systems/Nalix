@@ -216,7 +216,11 @@ public abstract partial class TcpListenerBase
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Deactivate([System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref this._isDisposed) != 0, this);
+        // Skip throwing if already disposed; just return calmly or let ListenerState check handle it.
+        if (System.Threading.Volatile.Read(ref this._isDisposed) != 0 && State == ListenerState.STOPPED)
+        {
+             return;
+        }
 
         s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] deactivate-request port={_port}");
 

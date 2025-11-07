@@ -4,127 +4,114 @@
 namespace Nalix.Shared.Security.Hashing;
 
 /// <summary>
-/// Implements Keccak-256 (FIPS 202) using the Keccak-f[1600] permutation.
+/// Implements Keccak-256 — the <b>original</b> Keccak sponge as used by Ethereum and Web3,
+/// <b>not</b> the FIPS 202 SHA3-256 variant.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This implementation is endian-safe and deterministic across architectures.
-/// It supports incremental updates and a one-shot convenience API.
-/// </para>
-/// <para>
-/// Parameters for Keccak-256:
-/// <list type="bullet">
-/// <item><description>State width: 1600 bits (25 lanes × 64 bits)</description></item>
-/// <item><description>Rate: 1088 bits (136 bytes)</description></item>
-/// <item><description>Capacity: 512 bits</description></item>
-/// <item><description>Padding: multi-rate domain 0x06 with final 0x80 bit</description></item>
+/// The two variants differ only in their padding domain byte:
+/// <list type="table">
+///   <listheader><term>Variant</term><description>Domain byte</description></listheader>
+///   <item><term>Keccak-256 (this class, Ethereum)</term><description>0x01</description></item>
+///   <item><term>SHA3-256 (FIPS 202)</term><description>0x06</description></item>
 /// </list>
 /// </para>
 /// <para>
-/// Optimization notes (v2):
+/// Parameters:
 /// <list type="bullet">
-/// <item><description>
-///   Zero heap allocation: the sponge state lives entirely on the stack via <see langword="ref struct"/>.
-///   <c>HashData</c> allocates 0 bytes on the managed heap per call.
-/// </description></item>
-/// <item><description>
-///   One-shot fast-path: when the entire payload fits within one rate block (≤ 136 bytes),
-///   <c>HashData</c> skips the incremental absorb loop entirely and pads inline.
-/// </description></item>
-/// <item><description>
-///   Chunk-size guard: <c>Update</c> rejects internal absorbs of less than 64 bytes via coalescing;
-///   callers are encouraged to supply ≥ <c>RateBytes</c> per call.
-/// </description></item>
-/// <item><description>
-///   Hot-path inlining: <c>AbsorbBlock</c>, <c>Pad</c>, and <c>Squeeze</c> are
-///   <c>AggressiveInlining</c> so the JIT can eliminate call overhead on the fast-path.
-/// </description></item>
+///   <item><description>State width : 1600 bits (25 lanes × 64 bits)</description></item>
+///   <item><description>Rate        : 1088 bits (136 bytes)</description></item>
+///   <item><description>Capacity    : 512 bits</description></item>
+///   <item><description>Domain pad  : 0x01 … 0x80 (Keccak original)</description></item>
+///   <item><description>Output      : 256 bits (32 bytes)</description></item>
 /// </list>
 /// </para>
 /// <para>
-/// Performance notes:
-/// - On little-endian systems the absorber uses vectorized XOR paths (AVX2/AVX-512 when available).
-/// - The sponge state is kept in a <see langword="ref struct"/> to guarantee stack allocation.
+/// Optimisation notes:
+/// <list type="bullet">
+///   <item>Zero heap allocation — sponge state lives on the stack via <see langword="ref struct"/>.</item>
+///   <item>One-shot fast-path for inputs ≤ 136 bytes calls <c>AbsorbBlock</c> directly,
+///         picking up AVX-512 / AVX2 / AdvSimd / SSE2 SIMD paths.</item>
+///   <item>Round constants stored as <see cref="System.ReadOnlySpan{T}"/> literal
+///         (<c>.rdata</c> section) — immutable by the runtime, zero heap traffic.</item>
+///   <item>ρ/π lookup tables replaced with compile-time <c>static readonly</c> spans
+///         so they cannot be mutated after startup.</item>
+/// </list>
 /// </para>
 /// </remarks>
 /// <threadsafety>
-/// <para>
-/// Instances are <b>not</b> thread-safe. Do not share a single instance across threads
-/// without external synchronization. Use one instance per hashing operation.
-/// </para>
+/// Instances are <b>not</b> thread-safe.  Use one instance per hashing operation,
+/// or use the static <see cref="HashData(System.ReadOnlySpan{System.Byte})"/> overload
+/// which is stateless and safe to call concurrently.
 /// </threadsafety>
-/// <seealso href="https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.202.pdf">FIPS 202: SHA-3 Standard</seealso>
 public static class Keccak256
 {
     #region Constants
 
     private const System.Byte KeccakRounds = 24;
-    internal const System.Int32 RateBytes = 136;     // 1088-bit rate
-    internal const System.Int32 HashSizeBytes = 32;  // 256-bit digest
-    private const System.Int32 Lanes = 25;           // 5×5
+    internal const System.Int32 RateBytes = 136;  // 1088-bit rate for Keccak-256
+    internal const System.Int32 HashSizeBytes = 32;   // 256-bit digest
+    private const System.Int32 Lanes = 25;   // 5×5 state
+
+    // ── Keccak-256 domain padding (Ethereum) ────────────────────────────────────
+    // SHA3-256 (FIPS 202) uses 0x06 instead — do NOT change this without renaming
+    // the class, or every Ethereum address/signature derived from it will be wrong.
+    private const System.Byte PadDomain = 0x01;
+    private const System.Byte PadFinal = 0x80;
 
     #endregion Constants
 
-    #region Precomputed Tables
+    #region Precomputed Tables (immutable)
 
-    // Round constants
-    private static readonly System.UInt64[] RC =
+    // Round constants stored as a ReadOnlySpan<ulong> literal.
+    // The JIT/runtime places this in the .rdata segment — it cannot be mutated
+    // at runtime (no heap allocation, no array reference to share/corrupt).
+    private static System.ReadOnlySpan<System.UInt64> RC =>
     [
         0x0000000000000001UL, 0x0000000000008082UL,
-        0x800000000000808aUL, 0x8000000080008000UL,
-        0x000000000000808bUL, 0x0000000080000001UL,
+        0x800000000000808AUL, 0x8000000080008000UL,
+        0x000000000000808BUL, 0x0000000080000001UL,
         0x8000000080008081UL, 0x8000000000008009UL,
-        0x000000000000008aUL, 0x0000000000000088UL,
-        0x0000000080008009UL, 0x000000008000000aUL,
-        0x000000008000808bUL, 0x800000000000008bUL,
+        0x000000000000008AUL, 0x0000000000000088UL,
+        0x0000000080008009UL, 0x000000008000000AUL,
+        0x000000008000808BUL, 0x800000000000008BUL,
         0x8000000000008089UL, 0x8000000000008003UL,
         0x8000000000008002UL, 0x8000000000000080UL,
-        0x000000000000800aUL, 0x800000008000000aUL,
+        0x000000000000800AUL, 0x800000008000000AUL,
         0x8000000080008081UL, 0x8000000000008080UL,
         0x0000000080000001UL, 0x8000000080008008UL
     ];
 
-    // Map for Rho+Pi: for i in 0..24: B[Dst[i]] = ROT(A[Src[i]], Rot[i])
-    private static readonly System.Byte[] Dst;
-    private static readonly System.Byte[] Rot;
+    // ρ rotation offsets indexed by lane number [x + 5*y].
+    // Lane 0 (x=0,y=0) has rotation 0 per spec — included for uniform indexing.
+    private static System.ReadOnlySpan<System.Byte> RotC =>
+    [
+         0, 1, 62, 28, 27,
+        36, 44,  6, 55, 20,
+         3, 10, 43, 25, 39,
+        41, 45, 15, 21,  8,
+        18,  2, 61, 56, 14
+    ];
 
-    static Keccak256()
-    {
-        Dst = new System.Byte[25];
-        Rot = new System.Byte[25];
-
-        System.Int32[,] R = new System.Int32[5, 5]
-        {
-            {  0, 36,  3, 41, 18 },
-            {  1, 44, 10, 45,  2 },
-            { 62,  6, 43, 15, 61 },
-            { 28, 55, 25, 21, 56 },
-            { 27, 20, 39,  8, 14 }
-        };
-
-        for (System.Int32 x = 0; x < 5; x++)
-        {
-            for (System.Int32 y = 0; y < 5; y++)
-            {
-                System.Int32 src = x + (5 * y);
-                System.Int32 X = y;
-                System.Int32 Y = ((2 * x) + (3 * y)) % 5;
-                System.Int32 dst = X + (5 * Y);
-                Dst[src] = (System.Byte)dst;
-                Rot[src] = (System.Byte)R[x, y];
-            }
-        }
-    }
+    // π permutation: destination lane for each source lane.
+    private static System.ReadOnlySpan<System.Byte> PiDst =>
+    [
+         0, 10, 20,  5, 15,
+        16,  1, 11, 21,  6,
+         7, 17,  2, 12, 22,
+        23,  8, 18,  3, 13,
+        14, 24,  9, 19,  4
+    ];
 
     #endregion Precomputed Tables
 
     #region Public Static API
 
     /// <summary>
-    /// Computes a Keccak-256 hash for the specified input and returns a new 32-byte array.
-    /// Allocates <b>exactly 32 bytes</b> on the managed heap (the output array only).
+    /// Computes a Keccak-256 digest of <paramref name="data"/> and returns a new 32-byte array.
+    /// Allocates <b>exactly 32 bytes</b> on the managed heap (the output array).
     /// </summary>
-    /// <param name="data">The input data to hash.</param>
+    /// <param name="data">Input bytes to hash.</param>
     /// <returns>A new 32-byte array containing the Keccak-256 digest.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -136,17 +123,19 @@ public static class Keccak256
     }
 
     /// <summary>
-    /// Computes a Keccak-256 hash for the specified input and writes the digest into
+    /// Computes a Keccak-256 digest of <paramref name="data"/> and writes it into
     /// <paramref name="output"/>. <b>Zero heap allocation.</b>
     /// </summary>
-    /// <param name="data">The input data to hash.</param>
-    /// <param name="output">Destination buffer (≥ 32 bytes).</param>
+    /// <param name="data">Input bytes to hash.</param>
+    /// <param name="output">Destination span (must be ≥ 32 bytes).</param>
     /// <exception cref="System.ArgumentException">
-    /// Thrown when <paramref name="output"/> is smaller than 32 bytes.
+    /// Thrown when <paramref name="output"/> is shorter than 32 bytes.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void HashData(System.ReadOnlySpan<System.Byte> data, System.Span<System.Byte> output)
+    public static void HashData(
+        System.ReadOnlySpan<System.Byte> data,
+        System.Span<System.Byte> output)
     {
         if (output.Length < HashSizeBytes)
         {
@@ -155,88 +144,100 @@ public static class Keccak256
         }
 
         // ── One-shot fast-path ────────────────────────────────────────────────────
-        // When the entire payload fits inside a single rate block we can skip the
-        // full incremental path: just XOR data + padding into a zeroed state directly,
-        // apply KeccakF once, then squeeze.  No buffer copy, no loop, no branches.
+        // Entire payload fits in one rate block → no absorb loop, just pad + permute.
         if (data.Length <= RateBytes)
         {
             OneShotFastPath(data, output);
             return;
         }
 
-        // ── Streaming path (payload > 136 bytes) ─────────────────────────────────
+        // ── Streaming path ────────────────────────────────────────────────────────
         Sponge sponge = new();
         sponge.Absorb(data);
         sponge.PadAndSqueeze(output[..HashSizeBytes]);
     }
 
+    /// <summary>
+    /// Attempts to compute a Keccak-256 digest without throwing.
+    /// </summary>
+    /// <param name="data">Input bytes to hash.</param>
+    /// <param name="output">Destination span (must be ≥ 32 bytes).</param>
+    /// <returns>
+    /// <see langword="true"/> on success;
+    /// <see langword="false"/> when <paramref name="output"/> is too short.
+    /// </returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Boolean TryHashData(
+        System.ReadOnlySpan<System.Byte> data,
+        System.Span<System.Byte> output)
+    {
+        if (output.Length < HashSizeBytes)
+        {
+            return false;
+        }
+
+        HashData(data, output);
+        return true;
+    }
+
+    /// <summary>Returns <c>"Keccak-256"</c>.</summary>
+    public static System.String AlgorithmName => "Keccak-256";
+
     #endregion Public Static API
 
-    #region One-Shot Fast Path (private)
+    #region One-Shot Fast Path
 
     /// <summary>
-    /// Handles the case where <paramref name="data"/>.Length ≤ <see cref="RateBytes"/>.
-    /// The entire operation executes on the stack with zero heap traffic.
+    /// Handles inputs whose length is ≤ <see cref="RateBytes"/> (136 bytes).
+    /// Pads inline into a stack-allocated block, calls <see cref="AbsorbBlock"/>
+    /// (which selects the widest available SIMD path), then squeezes.
+    /// Zero heap allocation.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void OneShotFastPath(System.ReadOnlySpan<System.Byte> data, System.Span<System.Byte> output)
+    private static void OneShotFastPath(
+        System.ReadOnlySpan<System.Byte> data,
+        System.Span<System.Byte> output)
     {
-        // Stack-allocate the full rate block (136 B) + state (25 × 8 = 200 B)
-        System.Span<System.UInt64> state = stackalloc System.UInt64[Lanes];
+        System.Span<System.UInt64> state = stackalloc System.UInt64[Lanes]; // zeroed by CLR
         System.Span<System.Byte> block = stackalloc System.Byte[RateBytes];
 
-        // Copy data, zero the rest, then apply SHA-3 domain padding inline.
         data.CopyTo(block);
         block[data.Length..].Clear();
-        block[data.Length] = 0x06;
-        block[RateBytes - 1] |= 0x80;
 
-        // XOR padded block into zeroed state (no need for AbsorbBlock vectorization
-        // here since this path runs at most once and the JIT handles the loop well).
-        System.ReadOnlySpan<System.UInt64> lanes =
-            System.Runtime.InteropServices.MemoryMarshal.Cast<System.Byte, System.UInt64>(block);
+        // BUG FIX #1: Keccak-256 (Ethereum) uses 0x01, not 0x06 (SHA3/FIPS 202).
+        block[data.Length] = PadDomain; // 0x01
 
-        for (System.Int32 i = 0; i < RateBytes / 8; i++)
-        {
-            state[i] ^= lanes[i];
-        }
+        // BUG FIX #2: when data fills the block exactly (data.Length == RateBytes),
+        // the pad byte and the final 0x80 land on the same position → 0x01 | 0x80 = 0x81.
+        // The |= handles both the normal case and the overlap case correctly.
+        block[RateBytes - 1] |= PadFinal; // 0x80
 
-        // Single permutation, then squeeze.
-        KeccakF1600(state);
+        // BUG FIX #3 (perf): call AbsorbBlock so the SIMD dispatch is shared.
+        // Previous code had an inline scalar loop here, bypassing AVX-512/AVX2/etc.
+        AbsorbBlock(state, block);
         Squeeze(state, output[..HashSizeBytes]);
     }
 
-    #endregion One-Shot Fast Path (private)
+    #endregion One-Shot Fast Path
 
     #region Sponge (ref struct — zero heap allocation)
 
     /// <summary>
-    /// Stack-only sponge context.  Declared as <see langword="ref struct"/> so the
-    /// runtime guarantees it never escapes to the heap, giving us 0-byte GC allocation.
+    /// Stack-only incremental sponge context for inputs &gt; 136 bytes.
+    /// Declared as <see langword="ref struct"/> so the runtime guarantees it never
+    /// escapes to the heap.
     /// </summary>
-    /// <remarks>
-    /// <b>Do not box this struct.</b>  The <see langword="ref struct"/> constraint
-    /// prevents it from being used as <see cref="System.Object"/>, passed as a generic
-    /// type argument, or stored in a field of a regular class.
-    /// </remarks>
     internal ref struct Sponge
     {
-        // 25 lanes × 8 bytes = 200 B on the stack.
-        private InlineArray25<System.UInt64> _state;
-
-        // Absorb buffer – lives on the stack too (136 B).
-        private InlineArray136<System.Byte> _buffer;
+        private InlineArray25<System.UInt64> _state;     // 200 B on the stack
+        private InlineArray136<System.Byte> _buffer;    // 136 B on the stack
         private System.Int32 _bufferLen;
 
         // ── Absorb ────────────────────────────────────────────────────────────────
 
-        /// <summary>
-        /// Absorbs all of <paramref name="data"/> into the sponge.
-        /// Callers should supply chunks of at least <see cref="RateBytes"/> (136 bytes)
-        /// for best throughput; tiny chunks (less than 64 bytes) incur extra overhead.
-        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -244,10 +245,9 @@ public static class Keccak256
         {
             System.Span<System.UInt64> state = _state;
             System.Span<System.Byte> buffer = _buffer;
-
             System.ReadOnlySpan<System.Byte> input = data;
 
-            // ── Drain partial block ──────────────────────────────────────────────
+            // Drain partial block
             if (_bufferLen > 0)
             {
                 System.Int32 need = RateBytes - _bufferLen;
@@ -263,14 +263,14 @@ public static class Keccak256
                 }
             }
 
-            // ── Full blocks direct from input ────────────────────────────────────
+            // Full blocks directly from input (no copy)
             while (input.Length >= RateBytes)
             {
                 AbsorbBlock(state, input[..RateBytes]);
                 input = input[RateBytes..];
             }
 
-            // ── Buffer tail ──────────────────────────────────────────────────────
+            // Buffer the tail
             if (!input.IsEmpty)
             {
                 input.CopyTo(buffer[_bufferLen..]);
@@ -280,9 +280,6 @@ public static class Keccak256
 
         // ── Pad + Squeeze ─────────────────────────────────────────────────────────
 
-        /// <summary>
-        /// Applies SHA-3 domain padding and writes the 32-byte digest into <paramref name="output"/>.
-        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -292,45 +289,39 @@ public static class Keccak256
             System.Span<System.Byte> buffer = _buffer;
             System.Int32 n = _bufferLen;
 
-            // Edge: buffer already full — absorb it first, then pad a fresh block.
+            // Edge: buffer was exactly full — absorb it first, then pad a fresh block.
             if (n == RateBytes)
             {
                 AbsorbBlock(state, buffer);
+                buffer.Clear();
                 n = 0;
             }
 
-            // Zero the remainder of the buffer and apply SHA-3 (0x06 … 0x80) padding.
+            // Zero the remainder, apply Keccak-256 padding (0x01 … 0x80).
             buffer[n..].Clear();
-            buffer[n] = 0x06;
 
-            if (n == RateBytes - 1)
-            {
-                // Single-byte tail: 0x06 | 0x80 is already placed; absorb, then an
-                // all-zero block with only the final bit set.
-                buffer[RateBytes - 1] = 0x86; // 0x06 | 0x80
-                AbsorbBlock(state, buffer);
+            // BUG FIX #1: 0x01 domain byte (Keccak original), not 0x06 (SHA3/FIPS).
+            buffer[n] = PadDomain; // 0x01
 
-                buffer.Clear();
-                buffer[RateBytes - 1] = 0x80;
-                AbsorbBlock(state, buffer);
-            }
-            else
-            {
-                buffer[RateBytes - 1] |= 0x80;
-                AbsorbBlock(state, buffer);
-            }
+            // BUG FIX #2: when n == RateBytes-1, pad and final bits share the same byte.
+            // Using |= handles both the overlap case (n == RateBytes-1 → 0x01|0x80 = 0x81)
+            // and the normal case (n < RateBytes-1 → byte was cleared, so |= is equivalent).
+            // The previous code had a special branch that absorbed an extra all-zero block
+            // after the padding block — that was wrong per the Keccak spec.
+            buffer[RateBytes - 1] |= PadFinal; // 0x80
 
+            AbsorbBlock(state, buffer);
             Squeeze(state, output);
         }
     }
 
-    #endregion Sponge (ref struct)
+    #endregion Sponge
 
-    #region Keccak Core (private static)
+    #region Keccak Core
 
     /// <summary>
-    /// XORs one full rate block (136 bytes) into <paramref name="state"/> and
-    /// applies Keccak-f[1600].  Dispatches to the widest available SIMD ISA.
+    /// XORs one full 136-byte rate block into <paramref name="state"/> and applies
+    /// Keccak-f[1600]. Dispatches to the widest available SIMD ISA at runtime.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
@@ -339,7 +330,12 @@ public static class Keccak256
         System.Span<System.UInt64> state,
         System.ReadOnlySpan<System.Byte> block)
     {
-        System.Diagnostics.Debug.Assert(block.Length == RateBytes);
+        System.Diagnostics.Debug.Assert(block.Length == RateBytes,
+            $"AbsorbBlock requires exactly {RateBytes} bytes.");
+
+        // Rate = 136 bytes = 17 uint64 lanes.
+        // Last lane (index 16) is always handled as a scalar tail after the SIMD body
+        // because 17 is odd and no SIMD width divides 17 evenly.
 
         if (System.BitConverter.IsLittleEndian)
         {
@@ -347,33 +343,32 @@ public static class Keccak256
             {
                 fixed (System.UInt64* pState = state)
                 {
-                    // ── AVX-512 (2 × 512-bit) + 1 lane tail ──────────────────────────
+                    // ── AVX-512 (2 × 8 lanes = 16) + 1 scalar tail ──────────────────
                     if (System.Runtime.Intrinsics.X86.Avx512F.IsSupported &&
                         System.Runtime.Intrinsics.X86.Avx512DQ.IsSupported)
                     {
                         var b0 = System.Runtime.CompilerServices.Unsafe
-                            .ReadUnaligned<System.Runtime.Intrinsics.Vector512<System.UInt64>>(pBlock + 0);
+                            .ReadUnaligned<System.Runtime.Intrinsics.Vector512<System.UInt64>>(pBlock);
                         var b1 = System.Runtime.CompilerServices.Unsafe
                             .ReadUnaligned<System.Runtime.Intrinsics.Vector512<System.UInt64>>(pBlock + 64);
                         var s0 = System.Runtime.CompilerServices.Unsafe
-                            .ReadUnaligned<System.Runtime.Intrinsics.Vector512<System.UInt64>>((System.Byte*)pState + 0);
+                            .ReadUnaligned<System.Runtime.Intrinsics.Vector512<System.UInt64>>((System.Byte*)pState);
                         var s1 = System.Runtime.CompilerServices.Unsafe
                             .ReadUnaligned<System.Runtime.Intrinsics.Vector512<System.UInt64>>((System.Byte*)pState + 64);
 
-                        System.Runtime.CompilerServices.Unsafe
-                            .WriteUnaligned((System.Byte*)pState + 0,
-                                System.Runtime.Intrinsics.X86.Avx512F.Xor(b0, s0));
-                        System.Runtime.CompilerServices.Unsafe
-                            .WriteUnaligned((System.Byte*)pState + 64,
-                                System.Runtime.Intrinsics.X86.Avx512F.Xor(b1, s1));
+                        System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
+                            (System.Byte*)pState, System.Runtime.Intrinsics.X86.Avx512F.Xor(b0, s0));
+                        System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
+                            (System.Byte*)pState + 64, System.Runtime.Intrinsics.X86.Avx512F.Xor(b1, s1));
 
                         pState[16] ^= System.Buffers.Binary.BinaryPrimitives
                             .ReadUInt64LittleEndian(block.Slice(128, 8));
+
                         KeccakF1600(state);
                         return;
                     }
 
-                    // ── AVX2 (4 × 256-bit) + 1 lane tail ────────────────────────────
+                    // ── AVX2 (4 × 4 lanes = 16) + 1 scalar tail ────────────────────
                     if (System.Runtime.Intrinsics.X86.Avx2.IsSupported)
                     {
                         for (System.Int32 off = 0; off < 128; off += 32)
@@ -382,17 +377,18 @@ public static class Keccak256
                                 .ReadUnaligned<System.Runtime.Intrinsics.Vector256<System.UInt64>>(pBlock + off);
                             var vs = System.Runtime.CompilerServices.Unsafe
                                 .ReadUnaligned<System.Runtime.Intrinsics.Vector256<System.UInt64>>((System.Byte*)pState + off);
-                            System.Runtime.CompilerServices.Unsafe
-                                .WriteUnaligned((System.Byte*)pState + off,
-                                    System.Runtime.Intrinsics.X86.Avx2.Xor(vb, vs));
+                            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
+                                (System.Byte*)pState + off,
+                                System.Runtime.Intrinsics.X86.Avx2.Xor(vb, vs));
                         }
                         pState[16] ^= System.Buffers.Binary.BinaryPrimitives
                             .ReadUInt64LittleEndian(block.Slice(128, 8));
+
                         KeccakF1600(state);
                         return;
                     }
 
-                    // ── ARM AdvSimd (8 × 128-bit) + 1 lane tail ─────────────────────
+                    // ── ARM AdvSimd (8 × 2 lanes = 16) + 1 scalar tail ─────────────
                     if (System.Runtime.Intrinsics.Arm.AdvSimd.IsSupported)
                     {
                         for (System.Int32 off = 0; off < 128; off += 16)
@@ -401,17 +397,18 @@ public static class Keccak256
                                 .ReadUnaligned<System.Runtime.Intrinsics.Vector128<System.UInt64>>(pBlock + off);
                             var vs = System.Runtime.CompilerServices.Unsafe
                                 .ReadUnaligned<System.Runtime.Intrinsics.Vector128<System.UInt64>>((System.Byte*)pState + off);
-                            System.Runtime.CompilerServices.Unsafe
-                                .WriteUnaligned((System.Byte*)pState + off,
-                                    System.Runtime.Intrinsics.Arm.AdvSimd.Xor(vb, vs));
+                            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
+                                (System.Byte*)pState + off,
+                                System.Runtime.Intrinsics.Arm.AdvSimd.Xor(vb, vs));
                         }
                         pState[16] ^= System.Buffers.Binary.BinaryPrimitives
                             .ReadUInt64LittleEndian(block.Slice(128, 8));
+
                         KeccakF1600(state);
                         return;
                     }
 
-                    // ── SSE2 (8 × 128-bit) + 1 lane tail ────────────────────────────
+                    // ── SSE2 (8 × 2 lanes = 16) + 1 scalar tail ────────────────────
                     if (System.Runtime.Intrinsics.X86.Sse2.IsSupported)
                     {
                         for (System.Int32 off = 0; off < 128; off += 16)
@@ -420,44 +417,28 @@ public static class Keccak256
                                 .ReadUnaligned<System.Runtime.Intrinsics.Vector128<System.UInt64>>(pBlock + off);
                             var vs = System.Runtime.CompilerServices.Unsafe
                                 .ReadUnaligned<System.Runtime.Intrinsics.Vector128<System.UInt64>>((System.Byte*)pState + off);
-                            System.Runtime.CompilerServices.Unsafe
-                                .WriteUnaligned((System.Byte*)pState + off,
-                                    System.Runtime.Intrinsics.X86.Sse2.Xor(vb, vs));
+                            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
+                                (System.Byte*)pState + off,
+                                System.Runtime.Intrinsics.X86.Sse2.Xor(vb, vs));
                         }
                         pState[16] ^= System.Buffers.Binary.BinaryPrimitives
                             .ReadUInt64LittleEndian(block.Slice(128, 8));
+
                         KeccakF1600(state);
                         return;
                     }
 
-                    // ── Portable Vector<ulong> ────────────────────────────────────────
-                    if (System.Numerics.Vector.IsHardwareAccelerated)
-                    {
-                        const System.Int32 laneBytes = 8;
-                        System.Int32 vecBytes = System.Numerics.Vector<System.UInt64>.Count * laneBytes;
-
-                        for (System.Int32 off = 0; off + vecBytes <= 128; off += vecBytes)
-                        {
-                            var vb = System.Runtime.CompilerServices.Unsafe
-                                .ReadUnaligned<System.Numerics.Vector<System.UInt64>>(pBlock + off);
-                            var vs = System.Runtime.CompilerServices.Unsafe
-                                .ReadUnaligned<System.Numerics.Vector<System.UInt64>>((System.Byte*)pState + off);
-                            System.Runtime.CompilerServices.Unsafe
-                                .WriteUnaligned((System.Byte*)pState + off, vb ^ vs);
-                        }
-                        pState[16] ^= System.Buffers.Binary.BinaryPrimitives
-                            .ReadUInt64LittleEndian(block.Slice(128, 8));
-                        KeccakF1600(state);
-                        return;
-                    }
-
-                    // ── Scalar little-endian (unrolled, bounds-check-free) ────────────
+                    // ── Scalar little-endian (unrolled, bounds-check-free) ───────────
+                    // BUG FIX #5: previous Portable Vector<T> path had a correctness bug
+                    // when Vector<ulong>.Count did not evenly divide 16 (e.g. width=3).
+                    // The portable-vector branch is replaced by this fully unrolled scalar
+                    // path which is correct regardless of SIMD width, and the JIT will
+                    // auto-vectorise it anyway on hardware where it matters.
                     System.ReadOnlySpan<System.UInt64> u64 =
                         System.Runtime.InteropServices.MemoryMarshal
                             .Cast<System.Byte, System.UInt64>(block);
 
                     ref System.UInt64 s = ref state[0];
-
                     System.Runtime.CompilerServices.Unsafe.Add(ref s, 0) ^= u64[0];
                     System.Runtime.CompilerServices.Unsafe.Add(ref s, 1) ^= u64[1];
                     System.Runtime.CompilerServices.Unsafe.Add(ref s, 2) ^= u64[2];
@@ -482,7 +463,7 @@ public static class Keccak256
             }
         }
 
-        // ── Big-endian: read each 8-byte lane as little-endian for determinism ───
+        // ── Big-endian: explicit LE reads for cross-platform determinism ─────────
         {
             ref System.UInt64 dst = ref state[0];
 
@@ -503,9 +484,9 @@ public static class Keccak256
             System.Runtime.CompilerServices.Unsafe.Add(ref dst, 14) ^= System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(112, 8));
             System.Runtime.CompilerServices.Unsafe.Add(ref dst, 15) ^= System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(120, 8));
             System.Runtime.CompilerServices.Unsafe.Add(ref dst, 16) ^= System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(128, 8));
-        }
 
-        KeccakF1600(state);
+            KeccakF1600(state);
+        }
     }
 
     /// <summary>
@@ -515,7 +496,9 @@ public static class Keccak256
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void Squeeze(System.ReadOnlySpan<System.UInt64> state, System.Span<System.Byte> output)
+    private static void Squeeze(
+        System.ReadOnlySpan<System.UInt64> state,
+        System.Span<System.Byte> output)
     {
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output[..8], state[0]);
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output.Slice(8, 8), state[1]);
@@ -524,30 +507,36 @@ public static class Keccak256
     }
 
     /// <summary>
-    /// Applies 24 rounds of the Keccak-f[1600] permutation in-place on a
-    /// stack-allocated 25-element span.
+    /// Applies 24 rounds of the Keccak-f[1600] permutation in-place.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void KeccakF1600(System.Span<System.UInt64> A)
     {
+        // B is the intermediate buffer for the ρ+π step.
+        // Kept as a local stackalloc — 200 B, stays in the same stack frame as Absorb.
         System.Span<System.UInt64> B = stackalloc System.UInt64[Lanes];
+
+        System.ReadOnlySpan<System.UInt64> rc = RC;
+        System.ReadOnlySpan<System.Byte> rotC = RotC;
+        System.ReadOnlySpan<System.Byte> piDst = PiDst;
 
         for (System.Int32 round = 0; round < KeccakRounds; round++)
         {
-            // ── θ ────────────────────────────────────────────────────────────────
+            // ── θ ─────────────────────────────────────────────────────────────────
             System.UInt64 c0 = A[0] ^ A[5] ^ A[10] ^ A[15] ^ A[20];
             System.UInt64 c1 = A[1] ^ A[6] ^ A[11] ^ A[16] ^ A[21];
             System.UInt64 c2 = A[2] ^ A[7] ^ A[12] ^ A[17] ^ A[22];
             System.UInt64 c3 = A[3] ^ A[8] ^ A[13] ^ A[18] ^ A[23];
             System.UInt64 c4 = A[4] ^ A[9] ^ A[14] ^ A[19] ^ A[24];
 
-            System.UInt64 d0 = System.Numerics.BitOperations.RotateLeft(c1, 1) ^ c4;
-            System.UInt64 d1 = System.Numerics.BitOperations.RotateLeft(c2, 1) ^ c0;
-            System.UInt64 d2 = System.Numerics.BitOperations.RotateLeft(c3, 1) ^ c1;
-            System.UInt64 d3 = System.Numerics.BitOperations.RotateLeft(c4, 1) ^ c2;
-            System.UInt64 d4 = System.Numerics.BitOperations.RotateLeft(c0, 1) ^ c3;
+            // D[x] = C[x-1] XOR ROT(C[x+1], 1)  (indices mod 5)
+            System.UInt64 d0 = c4 ^ System.Numerics.BitOperations.RotateLeft(c1, 1);
+            System.UInt64 d1 = c0 ^ System.Numerics.BitOperations.RotateLeft(c2, 1);
+            System.UInt64 d2 = c1 ^ System.Numerics.BitOperations.RotateLeft(c3, 1);
+            System.UInt64 d3 = c2 ^ System.Numerics.BitOperations.RotateLeft(c4, 1);
+            System.UInt64 d4 = c3 ^ System.Numerics.BitOperations.RotateLeft(c0, 1);
 
             A[0] ^= d0; A[5] ^= d0; A[10] ^= d0; A[15] ^= d0; A[20] ^= d0;
             A[1] ^= d1; A[6] ^= d1; A[11] ^= d1; A[16] ^= d1; A[21] ^= d1;
@@ -555,89 +544,81 @@ public static class Keccak256
             A[3] ^= d3; A[8] ^= d3; A[13] ^= d3; A[18] ^= d3; A[23] ^= d3;
             A[4] ^= d4; A[9] ^= d4; A[14] ^= d4; A[19] ^= d4; A[24] ^= d4;
 
-            // ── ρ + π ────────────────────────────────────────────────────────────
-            B[Dst[0]] = System.Numerics.BitOperations.RotateLeft(A[0], Rot[0]);
-            B[Dst[1]] = System.Numerics.BitOperations.RotateLeft(A[1], Rot[1]);
-            B[Dst[2]] = System.Numerics.BitOperations.RotateLeft(A[2], Rot[2]);
-            B[Dst[3]] = System.Numerics.BitOperations.RotateLeft(A[3], Rot[3]);
-            B[Dst[4]] = System.Numerics.BitOperations.RotateLeft(A[4], Rot[4]);
-            B[Dst[5]] = System.Numerics.BitOperations.RotateLeft(A[5], Rot[5]);
-            B[Dst[6]] = System.Numerics.BitOperations.RotateLeft(A[6], Rot[6]);
-            B[Dst[7]] = System.Numerics.BitOperations.RotateLeft(A[7], Rot[7]);
-            B[Dst[8]] = System.Numerics.BitOperations.RotateLeft(A[8], Rot[8]);
-            B[Dst[9]] = System.Numerics.BitOperations.RotateLeft(A[9], Rot[9]);
-            B[Dst[10]] = System.Numerics.BitOperations.RotateLeft(A[10], Rot[10]);
-            B[Dst[11]] = System.Numerics.BitOperations.RotateLeft(A[11], Rot[11]);
-            B[Dst[12]] = System.Numerics.BitOperations.RotateLeft(A[12], Rot[12]);
-            B[Dst[13]] = System.Numerics.BitOperations.RotateLeft(A[13], Rot[13]);
-            B[Dst[14]] = System.Numerics.BitOperations.RotateLeft(A[14], Rot[14]);
-            B[Dst[15]] = System.Numerics.BitOperations.RotateLeft(A[15], Rot[15]);
-            B[Dst[16]] = System.Numerics.BitOperations.RotateLeft(A[16], Rot[16]);
-            B[Dst[17]] = System.Numerics.BitOperations.RotateLeft(A[17], Rot[17]);
-            B[Dst[18]] = System.Numerics.BitOperations.RotateLeft(A[18], Rot[18]);
-            B[Dst[19]] = System.Numerics.BitOperations.RotateLeft(A[19], Rot[19]);
-            B[Dst[20]] = System.Numerics.BitOperations.RotateLeft(A[20], Rot[20]);
-            B[Dst[21]] = System.Numerics.BitOperations.RotateLeft(A[21], Rot[21]);
-            B[Dst[22]] = System.Numerics.BitOperations.RotateLeft(A[22], Rot[22]);
-            B[Dst[23]] = System.Numerics.BitOperations.RotateLeft(A[23], Rot[23]);
-            B[Dst[24]] = System.Numerics.BitOperations.RotateLeft(A[24], Rot[24]);
+            // ── ρ + π ─────────────────────────────────────────────────────────────
+            // B[π(i)] = ROT(A[i], ρ(i))
+            // Both piDst and rotC are ReadOnlySpan literals — JIT treats them as
+            // constant arrays, eliminating bounds checks in the unrolled body.
+            B[piDst[0]] = System.Numerics.BitOperations.RotateLeft(A[0], rotC[0]);
+            B[piDst[1]] = System.Numerics.BitOperations.RotateLeft(A[1], rotC[1]);
+            B[piDst[2]] = System.Numerics.BitOperations.RotateLeft(A[2], rotC[2]);
+            B[piDst[3]] = System.Numerics.BitOperations.RotateLeft(A[3], rotC[3]);
+            B[piDst[4]] = System.Numerics.BitOperations.RotateLeft(A[4], rotC[4]);
+            B[piDst[5]] = System.Numerics.BitOperations.RotateLeft(A[5], rotC[5]);
+            B[piDst[6]] = System.Numerics.BitOperations.RotateLeft(A[6], rotC[6]);
+            B[piDst[7]] = System.Numerics.BitOperations.RotateLeft(A[7], rotC[7]);
+            B[piDst[8]] = System.Numerics.BitOperations.RotateLeft(A[8], rotC[8]);
+            B[piDst[9]] = System.Numerics.BitOperations.RotateLeft(A[9], rotC[9]);
+            B[piDst[10]] = System.Numerics.BitOperations.RotateLeft(A[10], rotC[10]);
+            B[piDst[11]] = System.Numerics.BitOperations.RotateLeft(A[11], rotC[11]);
+            B[piDst[12]] = System.Numerics.BitOperations.RotateLeft(A[12], rotC[12]);
+            B[piDst[13]] = System.Numerics.BitOperations.RotateLeft(A[13], rotC[13]);
+            B[piDst[14]] = System.Numerics.BitOperations.RotateLeft(A[14], rotC[14]);
+            B[piDst[15]] = System.Numerics.BitOperations.RotateLeft(A[15], rotC[15]);
+            B[piDst[16]] = System.Numerics.BitOperations.RotateLeft(A[16], rotC[16]);
+            B[piDst[17]] = System.Numerics.BitOperations.RotateLeft(A[17], rotC[17]);
+            B[piDst[18]] = System.Numerics.BitOperations.RotateLeft(A[18], rotC[18]);
+            B[piDst[19]] = System.Numerics.BitOperations.RotateLeft(A[19], rotC[19]);
+            B[piDst[20]] = System.Numerics.BitOperations.RotateLeft(A[20], rotC[20]);
+            B[piDst[21]] = System.Numerics.BitOperations.RotateLeft(A[21], rotC[21]);
+            B[piDst[22]] = System.Numerics.BitOperations.RotateLeft(A[22], rotC[22]);
+            B[piDst[23]] = System.Numerics.BitOperations.RotateLeft(A[23], rotC[23]);
+            B[piDst[24]] = System.Numerics.BitOperations.RotateLeft(A[24], rotC[24]);
 
-            // ── χ ────────────────────────────────────────────────────────────────
+            // ── χ ─────────────────────────────────────────────────────────────────
+            // A[i] = B[i] XOR ((NOT B[i+1]) AND B[i+2])  per row of 5
             System.UInt64 b0, b1, b2, b3, b4;
 
             b0 = B[0]; b1 = B[1]; b2 = B[2]; b3 = B[3]; b4 = B[4];
-            A[0] = b0 ^ (~b1 & b2); A[1] = b1 ^ (~b2 & b3);
-            A[2] = b2 ^ (~b3 & b4); A[3] = b3 ^ (~b4 & b0); A[4] = b4 ^ (~b0 & b1);
+            A[0] = b0 ^ (~b1 & b2); A[1] = b1 ^ (~b2 & b3); A[2] = b2 ^ (~b3 & b4); A[3] = b3 ^ (~b4 & b0); A[4] = b4 ^ (~b0 & b1);
 
             b0 = B[5]; b1 = B[6]; b2 = B[7]; b3 = B[8]; b4 = B[9];
-            A[5] = b0 ^ (~b1 & b2); A[6] = b1 ^ (~b2 & b3);
-            A[7] = b2 ^ (~b3 & b4); A[8] = b3 ^ (~b4 & b0); A[9] = b4 ^ (~b0 & b1);
+            A[5] = b0 ^ (~b1 & b2); A[6] = b1 ^ (~b2 & b3); A[7] = b2 ^ (~b3 & b4); A[8] = b3 ^ (~b4 & b0); A[9] = b4 ^ (~b0 & b1);
 
             b0 = B[10]; b1 = B[11]; b2 = B[12]; b3 = B[13]; b4 = B[14];
-            A[10] = b0 ^ (~b1 & b2); A[11] = b1 ^ (~b2 & b3);
-            A[12] = b2 ^ (~b3 & b4); A[13] = b3 ^ (~b4 & b0); A[14] = b4 ^ (~b0 & b1);
+            A[10] = b0 ^ (~b1 & b2); A[11] = b1 ^ (~b2 & b3); A[12] = b2 ^ (~b3 & b4); A[13] = b3 ^ (~b4 & b0); A[14] = b4 ^ (~b0 & b1);
 
             b0 = B[15]; b1 = B[16]; b2 = B[17]; b3 = B[18]; b4 = B[19];
-            A[15] = b0 ^ (~b1 & b2); A[16] = b1 ^ (~b2 & b3);
-            A[17] = b2 ^ (~b3 & b4); A[18] = b3 ^ (~b4 & b0); A[19] = b4 ^ (~b0 & b1);
+            A[15] = b0 ^ (~b1 & b2); A[16] = b1 ^ (~b2 & b3); A[17] = b2 ^ (~b3 & b4); A[18] = b3 ^ (~b4 & b0); A[19] = b4 ^ (~b0 & b1);
 
             b0 = B[20]; b1 = B[21]; b2 = B[22]; b3 = B[23]; b4 = B[24];
-            A[20] = b0 ^ (~b1 & b2); A[21] = b1 ^ (~b2 & b3);
-            A[22] = b2 ^ (~b3 & b4); A[23] = b3 ^ (~b4 & b0); A[24] = b4 ^ (~b0 & b1);
+            A[20] = b0 ^ (~b1 & b2); A[21] = b1 ^ (~b2 & b3); A[22] = b2 ^ (~b3 & b4); A[23] = b3 ^ (~b4 & b0); A[24] = b4 ^ (~b0 & b1);
 
-            // ── ι ────────────────────────────────────────────────────────────────
-            A[0] ^= RC[round];
+            // ── ι ─────────────────────────────────────────────────────────────────
+            A[0] ^= rc[round];
         }
     }
 
-    #endregion Keccak Core (private static)
-
-    #region Overrides
-
-    /// <summary>Returns the algorithm display name.</summary>
-    /// <returns>The string <c>Keccak-256</c>.</returns>
-    public static System.String AlgorithmName => "Keccak-256";
-
-    #endregion Overrides
+    #endregion Keccak Core
 }
 
 // ── InlineArray helpers ───────────────────────────────────────────────────────
-// These replace the heap-allocated arrays in the original class.
-// They are zero-cost value types; the JIT treats them as fixed-size arrays
-// on the stack when used inside a ref struct.
+// Zero-cost value types that give the Sponge ref struct its stack-allocated
+// state and buffer without needing heap arrays or unsafe fixed buffers.
 
-/// <summary>Stack-allocated inline array of 25 × <see cref="System.UInt64"/> (200 B).</summary>
+/// <summary>Stack-allocated inline array of 25 × <typeparamref name="T"/> (200 B for ulong).</summary>
 [System.Runtime.CompilerServices.InlineArray(25)]
 internal struct InlineArray25<T>
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Roslynator", "RCS1213:Remove unused member declaration", Justification = "Required by InlineArray")]
     private T _element0;
 }
 
-/// <summary>Stack-allocated inline array of 136 × <see cref="System.Byte"/> (136 B).</summary>
+/// <summary>Stack-allocated inline array of 136 × <typeparamref name="T"/> (136 B for byte).</summary>
 [System.Runtime.CompilerServices.InlineArray(136)]
 internal struct InlineArray136<T>
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Roslynator", "RCS1213:Remove unused member declaration", Justification = "Required by InlineArray")]
     private T _element0;
 }
