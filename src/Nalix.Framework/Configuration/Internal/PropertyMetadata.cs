@@ -20,6 +20,11 @@ internal class PropertyMetadata
     #region Properties
 
     /// <summary>
+    /// Gets or sets the optional comment written above this key in the INI file.
+    /// </summary>
+    public System.String? Comment { get; init; }
+
+    /// <summary>
     /// Gets or sets the type code of the property.
     /// </summary>
     public System.TypeCode TypeCode { get; init; }

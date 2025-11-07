@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Shared.Attributes;
 using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;
@@ -8,11 +9,7 @@ namespace Nalix.Network.Configurations;
 /// <summary>
 /// Provides configuration options for a high-performance token-bucket rate limiter.
 /// </summary>
-/// <remarks>
-/// This limiter is used to control request rates per endpoint or client, based on
-/// the classic token-bucket algorithm.
-/// Legacy <c>RateLimitOptions</c> can be mapped into this configuration.
-/// </remarks>
+[IniComment("Token-bucket rate limiter configuration — controls burst capacity, refill rate, sharding, and violation policy")]
 public sealed class TokenBucketOptions : ConfigurationLoader
 {
     #region Properties
@@ -20,126 +17,84 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// <summary>
     /// Gets or sets the maximum number of tokens (bucket capacity).
     /// </summary>
-    /// <remarks>
-    /// Typical values: 10–100.
-    /// Determines the maximum burst size allowed.
-    /// Default is 12.
-    /// </remarks>
+    [IniComment("Maximum burst size in tokens — determines how many requests can fire at once (minimum 1)")]
     [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "CapacityTokens must be positive")]
     public System.Int32 CapacityTokens { get; set; } = 12;
 
     /// <summary>
     /// Gets or sets the refill rate in tokens per second.
     /// </summary>
-    /// <remarks>
-    /// Typically set to <c>CapacityTokens / windowSeconds</c>.
-    /// Controls the sustained throughput rate.
-    /// Default is 6.0 tokens per second.
-    /// </remarks>
+    [IniComment("Sustained throughput rate in tokens per second (typically CapacityTokens / window)")]
     [System.ComponentModel.DataAnnotations.Range(0.001, System.Double.MaxValue, ErrorMessage = "RefillTokensPerSecond must be positive")]
     public System.Double RefillTokensPerSecond { get; set; } = 6.0;
 
     /// <summary>
     /// Gets or sets the hard lockout duration in seconds after a throttle decision.
     /// </summary>
-    /// <remarks>
-    /// If set to 0, no hard lockout is applied (only soft backoff via Retry-After).
-    /// Use this to enforce stricter penalties on abusive clients.
-    /// Default is 0 (disabled).
-    /// </remarks>
+    [IniComment("Hard lockout duration in seconds after throttling (0 = disabled)")]
     [System.ComponentModel.DataAnnotations.Range(0, System.Int32.MaxValue, ErrorMessage = "HardLockoutSeconds cannot be negative")]
     public System.Int32 HardLockoutSeconds { get; set; } = 0;
 
     /// <summary>
-    /// Gets or sets the duration in seconds after which an idle endpoint entry
-    /// is considered stale and removed by cleanup.
+    /// Gets or sets the duration in seconds after which an idle endpoint entry is considered stale.
     /// </summary>
-    /// <remarks>
-    /// Default is 300 seconds (5 minutes).
-    /// </remarks>
+    [IniComment("Seconds before an idle endpoint entry is eligible for cleanup (minimum 1)")]
     [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "StaleEntrySeconds must be positive")]
     public System.Int32 StaleEntrySeconds { get; set; } = 300;
 
     /// <summary>
     /// Gets or sets the cleanup interval in seconds.
     /// </summary>
-    /// <remarks>
-    /// Default is 120 seconds (2 minute).
-    /// Controls how often stale entries are removed.
-    /// </remarks>
+    [IniComment("How often stale endpoint entries are purged in seconds (minimum 1)")]
     [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "CleanupIntervalSeconds must be positive")]
     public System.Int32 CleanupIntervalSeconds { get; set; } = 120;
 
     /// <summary>
-    /// Gets or sets the fixed-point resolution for token arithmetic
-    /// (micro-tokens per token).
+    /// Gets or sets the fixed-point resolution for token arithmetic (micro-tokens per token).
     /// </summary>
-    /// <remarks>
-    /// Default is 1,000.
-    /// Higher values improve precision but may add overhead.
-    /// </remarks>
+    [IniComment("Fixed-point precision for token arithmetic (1–1,000,000; higher = more precise)")]
     [System.ComponentModel.DataAnnotations.Range(1, 10_000, ErrorMessage = "TokenScale must be positive")]
     public System.Int32 TokenScale { get; set; } = 1_000;
 
     /// <summary>
     /// Gets or sets the number of shards for endpoint partitioning.
     /// </summary>
-    /// <remarks>
-    /// A power-of-two value is recommended (e.g., 64).
-    /// Sharding reduces contention on hot paths by distributing state.
-    /// Default is 32.
-    /// </remarks>
+    [IniComment("Shard count for endpoint partitioning — must be a power of two (e.g. 16, 32, 64)")]
     [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "ShardCount must be positive")]
     public System.Int32 ShardCount { get; set; } = 32;
 
     /// <summary>
     /// Gets or sets the time window in seconds for tracking soft rate limit violations.
     /// </summary>
-    /// <remarks>
-    /// Determines the period during which soft violations are counted before escalation.
-    /// Default is 5 seconds.
-    /// </remarks>
+    [IniComment("Window in seconds for counting soft violations before escalation (minimum 1)")]
     [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "SoftViolationWindowSeconds must be positive")]
     public System.Int32 SoftViolationWindowSeconds { get; set; } = 5;
 
     /// <summary>
-    /// Gets or sets the maximum number of soft violations allowed within the soft violation window before escalation.
+    /// Gets or sets the maximum number of soft violations allowed within the soft violation window.
     /// </summary>
-    /// <remarks>
-    /// If the number of soft violations within <see cref="SoftViolationWindowSeconds"/> exceeds this value,
-    /// stricter rate limiting or penalties may be applied.
-    /// Default is 3.
-    /// </remarks>
+    [IniComment("Max soft violations within SoftViolationWindowSeconds before stricter penalties apply (minimum 1)")]
     [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "MaxSoftViolations must be positive")]
     public System.Int32 MaxSoftViolations { get; set; } = 3;
 
     /// <summary>
     /// Gets or sets the cooldown reset duration in seconds.
     /// </summary>
-    /// <remarks>
-    /// After a hard or soft violation, this value determines how long before the violation count or lockout state is reset.
-    /// Default is 10 seconds.
-    /// </remarks>
+    [IniComment("Seconds before violation count or lockout state is reset after a penalty (minimum 1)")]
     [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "CooldownResetSec must be positive")]
     public System.Int32 CooldownResetSec { get; set; } = 10;
 
     /// <summary>
     /// Gets or sets the maximum number of endpoints that can be tracked simultaneously.
     /// </summary>
-    /// <remarks>
-    /// This limit prevents unbounded memory growth and DoS attacks via endpoint exhaustion.
-    /// When the limit is reached, the oldest stale entries are evicted.
-    /// A value of 0 means no limit (not recommended for production).
-    /// Default is 10,000 endpoints.
-    /// </remarks>
+    [IniComment("Max tracked endpoints to prevent unbounded memory growth (0 = unlimited, not recommended)")]
     [System.ComponentModel.DataAnnotations.Range(0, System.Int32.MaxValue, ErrorMessage = "MaxTrackedEndpoints cannot be negative")]
     public System.Int32 MaxTrackedEndpoints { get; set; } = 10_000;
 
     /// <summary>
     /// Gets or sets the initial number of tokens for new endpoints.
-    /// Default is -1 (start with full capacity).
-    /// Set to 0 to start empty (cold-start mode for aggressive rate limiting).
     /// </summary>
+    [IniComment("Initial tokens for new endpoints (-1 = full capacity, 0 = empty/cold-start mode)")]
     public System.Int32 InitialTokens { get; set; } = -1;
 
     #endregion Properties
@@ -155,33 +110,29 @@ public sealed class TokenBucketOptions : ConfigurationLoader
         System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
         System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
 
-        // Additional checks
         if (ShardCount <= 0)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("ShardCount must be positive and power-of-two.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException(
+                "ShardCount must be positive and power-of-two.");
         }
 
-        // Ensure shard count is power-of-two for bitmasking in shard selection (performance)
         static System.Boolean IsPowerOfTwo(System.Int32 x) => (x & (x - 1)) == 0;
         if (!IsPowerOfTwo(ShardCount))
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("ShardCount must be a power of two (e.g., 16, 32, 64) to ensure correct shard distribution.");
         }
 
-        // Allow zero refill (no refill) if desired
         if (RefillTokensPerSecond < 0.0)
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("RefillTokensPerSecond cannot be negative.");
         }
 
-        // Prevent potential overflow when computing capacityMicro = CapacityTokens * TokenScale
         const System.Int64 maxSafe = System.Int64.MaxValue;
         if (CapacityTokens * (System.Int64)TokenScale > maxSafe)
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("CapacityTokens * TokenScale is too large and may overflow Int64. Reduce values.");
         }
 
-        // Reasonable upper bound for TokenScale to avoid extreme precision causing overhead/overflow
         if (TokenScale is <= 0 or > 1_000_000)
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("TokenScale must be between 1 and 1_000_000.");
