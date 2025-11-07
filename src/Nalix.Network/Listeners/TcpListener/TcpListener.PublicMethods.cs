@@ -238,7 +238,6 @@ public abstract partial class TcpListenerBase
     /// <returns>A formatted string report.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     public virtual string GenerateReport()
     {
         StringBuilder sb = new(1024);

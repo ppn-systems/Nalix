@@ -42,7 +42,6 @@ public abstract partial class Protocol : IReportable
     /// </summary>
     /// <returns>A formatted string containing the protocol status report.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     public virtual string GenerateReport()
     {
         StringBuilder sb = new(128);
