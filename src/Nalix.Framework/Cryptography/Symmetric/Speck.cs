@@ -1,7 +1,5 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Framework.Cryptography.Primitives;
-
 namespace Nalix.Framework.Cryptography.Symmetric;
 
 /// <summary>
@@ -68,7 +66,7 @@ public sealed class Speck
     /// <param name="plaintext">Exact 16-byte input.</param>
     /// <param name="output">Exact 16-byte output buffer.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void EncryptBlock(System.ReadOnlySpan<System.Byte> plaintext, System.Span<System.Byte> output)
     {
         if (plaintext.Length != BlockSizeBytes)
@@ -96,7 +94,7 @@ public sealed class Speck
     /// <param name="ciphertext">Exact 16-byte input.</param>
     /// <param name="output">Exact 16-byte output buffer.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void DecryptBlock(System.ReadOnlySpan<System.Byte> ciphertext, System.Span<System.Byte> output)
     {
         if (ciphertext.Length != BlockSizeBytes)
@@ -122,14 +120,14 @@ public sealed class Speck
     /// Encrypts a block given as two 64-bit words (in/out). Useful in higher-level modes.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void EncryptBlock(ref System.UInt64 x, ref System.UInt64 y) => F1A2B3C4(ref x, ref y, _D4E3F2A);
 
     /// <summary>
     /// Decrypts a block given as two 64-bit words (in/out). Useful in higher-level modes.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void DecryptBlock(ref System.UInt64 x, ref System.UInt64 y) => A9B8C7D6(ref x, ref y, _D4E3F2A);
 
     #endregion Instance APIs (single-block)
@@ -139,6 +137,8 @@ public sealed class Speck
     /// <summary>
     /// One-shot encrypt of a single 128-bit block with a 256-bit s.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Encrypt(
         System.ReadOnlySpan<System.Byte> plaintext,
         System.ReadOnlySpan<System.Byte> key, System.Span<System.Byte> output)
@@ -150,6 +150,8 @@ public sealed class Speck
     /// <summary>
     /// One-shot decrypt of a single 128-bit block with a 256-bit s.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Decrypt(
         System.ReadOnlySpan<System.Byte> ciphertext,
         System.ReadOnlySpan<System.Byte> key, System.Span<System.Byte> output)
@@ -177,11 +179,11 @@ public sealed class Speck
 
         for (System.Int32 i = 0; i < Rounds - 1; i++)
         {
-            System.UInt64 li = BitwiseOperations.RotateRight(l0, B7C6D5E4);
+            System.UInt64 li = System.Numerics.BitOperations.RotateRight(l0, B7C6D5E4);
             li = unchecked(li + k[i]);
             li ^= (System.UInt64)i;
 
-            System.UInt64 ki = BitwiseOperations.RotateLeft(k[i], C3D2E1F0) ^ li;
+            System.UInt64 ki = System.Numerics.BitOperations.RotateLeft(k[i], C3D2E1F0) ^ li;
 
             k[i + 1] = ki;
             l0 = l1;
@@ -195,7 +197,7 @@ public sealed class Speck
     #region Round functions (core)
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void F1A2B3C4(ref System.UInt64 p0, ref System.UInt64 p1, System.ReadOnlySpan<System.UInt64> rk)
     {
         // For i = 0..ROUNDS-1:
@@ -203,23 +205,23 @@ public sealed class Speck
         // p1 = ROL(p1, β) ^ p0;
         for (System.Int32 i = 0; i < Rounds; i++)
         {
-            p0 = BitwiseOperations.RotateRight(p0, B7C6D5E4);
+            p0 = System.Numerics.BitOperations.RotateRight(p0, B7C6D5E4);
             p0 = unchecked(p0 + p1);
             p0 ^= rk[i];
-            p1 = BitwiseOperations.RotateLeft(p1, C3D2E1F0) ^ p0;
+            p1 = System.Numerics.BitOperations.RotateLeft(p1, C3D2E1F0) ^ p0;
         }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void A9B8C7D6(ref System.UInt64 p0, ref System.UInt64 p1, System.ReadOnlySpan<System.UInt64> rk)
     {
         // Reverse of encryption
         for (System.Int32 i = Rounds - 1; i >= 0; i--)
         {
-            p1 = BitwiseOperations.RotateRight(p1 ^ p0, C3D2E1F0);
+            p1 = System.Numerics.BitOperations.RotateRight(p1 ^ p0, C3D2E1F0);
             p0 ^= rk[i];
-            p0 = BitwiseOperations.RotateLeft(unchecked(p0 - p1), B7C6D5E4);
+            p0 = System.Numerics.BitOperations.RotateLeft(unchecked(p0 - p1), B7C6D5E4);
         }
     }
 

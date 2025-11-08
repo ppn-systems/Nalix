@@ -25,6 +25,8 @@ public static class SymmetricEngine
     /// <summary>
     /// Generates keystream for the selected algorithm and XORs it with <paramref name="src"/> into <paramref name="dst"/>.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Encrypt(
         CipherSuiteType type,
         System.ReadOnlySpan<System.Byte> key,
@@ -62,6 +64,8 @@ public static class SymmetricEngine
     /// Convenience one-shot API: returns a newly allocated buffer containing
     /// the XOR result (ciphertext or plaintext).
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(
         CipherSuiteType type,
         System.ReadOnlySpan<System.Byte> key,
@@ -78,6 +82,8 @@ public static class SymmetricEngine
     /// Decrypts by XOR-ing keystream with <paramref name="src"/> into <paramref name="dst"/>.
     /// Identical to Encrypt(...)
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Decrypt(
         CipherSuiteType type,
         System.ReadOnlySpan<System.Byte> key,
@@ -89,6 +95,8 @@ public static class SymmetricEngine
     /// <summary>
     /// Convenience one-shot decrypt returning a newly allocated buffer.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Decrypt(
         CipherSuiteType type,
         System.ReadOnlySpan<System.Byte> key,
@@ -105,13 +113,14 @@ public static class SymmetricEngine
     /// If <paramref name="seq"/> is null a random 4-byte seq is generated and used as counter.
     /// The seq value is written into the header and also used as the initial counter for keystream.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> plaintext,
         CipherSuiteType algorithm = CipherSuiteType.ChaCha20,
         System.ReadOnlySpan<System.Byte> nonce = default,
-        System.UInt32? seq = null,
-        System.Byte flags = 0)
+        System.UInt32? seq = null, System.Byte flags = 0)
     {
         System.Int32 nonceLen = GetDefaultNonceLen(algorithm);
 
@@ -151,6 +160,8 @@ public static class SymmetricEngine
     /// Attempts to decrypt an envelope produced by Encrypt(...).
     /// On success plaintext is allocated and returned via out parameter.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Decrypt(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> envelope,
@@ -184,6 +195,8 @@ public static class SymmetricEngine
 
     #region Paths (internal algorithm implementations)
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void ChaChaPath(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> nonce,
@@ -205,6 +218,8 @@ public static class SymmetricEngine
         chacha.Encrypt(src, dst);
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void SalsaPath(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> nonce,
@@ -225,6 +240,8 @@ public static class SymmetricEngine
         _ = Salsa20.Encrypt(key, nonce, counter, src, dst);
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void SpeckCtrPath(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> nonce,
@@ -281,6 +298,8 @@ public static class SymmetricEngine
         }
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void XteaCtrPath(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> nonce,
@@ -348,6 +367,8 @@ public static class SymmetricEngine
     /// out[i] = key32[i] XOR key32[i + 16].
     /// Public to match AeadEngine API.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void ConvertKeyToXtea(System.ReadOnlySpan<System.Byte> key32, System.Span<System.Byte> out16)
     {
         if (key32.Length != 32)
@@ -366,6 +387,8 @@ public static class SymmetricEngine
         }
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Int32 GetDefaultNonceLen(CipherSuiteType type) => type switch
     {
         CipherSuiteType.ChaCha20 => ChaCha20.NonceSize,
@@ -375,6 +398,8 @@ public static class SymmetricEngine
         _ => throw new System.ArgumentException("Unsupported cipher type", nameof(type))
     };
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.UInt32 GenerateRandomSeq()
     {
         System.Span<System.Byte> tmp = stackalloc System.Byte[4];
