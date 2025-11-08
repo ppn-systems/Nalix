@@ -7,15 +7,20 @@
 
 namespace Nalix.Network.Internal.Net;
 
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.DebuggerDisplay("{Address}")]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal readonly struct NetAddressKey : System.IEquatable<NetAddressKey>
 {
     private readonly System.UInt64 _hi;
     private readonly System.UInt64 _lo;
     private readonly System.Boolean _isV6;
 
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static NetAddressKey FromIpAddress(System.Net.IPAddress ip)
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public static NetAddressKey FromIpAddress([System.Diagnostics.CodeAnalysis.DisallowNull] System.Net.IPAddress ip)
     {
         if (ip.IsIPv4MappedToIPv6)
         {
@@ -43,9 +48,11 @@ internal readonly struct NetAddressKey : System.IEquatable<NetAddressKey>
         }
     }
 
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static NetAddressKey FromEndPoint(System.Net.IPEndPoint ep) => FromIpAddress(ep.Address);
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public static NetAddressKey FromEndPoint([System.Diagnostics.CodeAnalysis.DisallowNull] System.Net.IPEndPoint ep) => FromIpAddress(ep.Address);
 
     private NetAddressKey(System.UInt64 hi, System.UInt64 lo, System.Boolean isV6)
     {
@@ -54,18 +61,35 @@ internal readonly struct NetAddressKey : System.IEquatable<NetAddressKey>
         _isV6 = isV6;
     }
 
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override System.Int32 GetHashCode() => System.HashCode.Combine(_hi, _lo, _isV6);
 
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override System.Boolean Equals(System.Object? obj) => obj is NetAddressKey k && Equals(k);
 
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean Equals(NetAddressKey other) => _hi == other._hi && _lo == other._lo && _isV6 == other._isV6;
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean operator ==(NetAddressKey left, NetAddressKey right) => left.Equals(right);
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean operator !=(NetAddressKey left, NetAddressKey right) => !left.Equals(right);
 
     public System.String Address
     {
+        [System.Diagnostics.Contracts.Pure]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         get
         {
             if (!_isV6)
@@ -86,5 +110,8 @@ internal readonly struct NetAddressKey : System.IEquatable<NetAddressKey>
         }
     }
 
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override System.String ToString() => this.Address;
 }
