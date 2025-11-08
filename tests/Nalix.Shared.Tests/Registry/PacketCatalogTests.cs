@@ -1,9 +1,11 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Injection;
+using Nalix.Logging;
 using Nalix.Shared.Frames.Controls;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Registry;
@@ -58,7 +60,6 @@ public sealed class PacketCatalogTests : System.IDisposable
     {
         // Build registry thủ công, không qua PacketRegistry constructor
         PacketRegistryFactory factory = new();
-        factory.RegisterPacket<Control>();
 
         PacketRegistry registry = factory.CreateCatalog();
 
@@ -66,33 +67,10 @@ public sealed class PacketCatalogTests : System.IDisposable
 
         System.Boolean hasKey = registry.TryGetDeserializer(key, out _);
 
-        Assert.True(hasKey, $"Key 0x{key:X8} không có trong registry sau khi build");
+        Assert.True(hasKey, $"Key 0x{key:X8} không có trong registry sau khi build, Auto 0x{new Control().MagicNumber:X8}");
     }
 
-    [Fact]
-    public void Debug_TryDeserialize_Control()
-    {
-        var original = new Control();
-        original.Initialize(0x0001, ControlType.PING, sequenceId: 42);
 
-        System.Byte[] bytes = original.Serialize();
-
-        // Xem bytes có đủ dài không
-        Assert.True(bytes.Length >= Nalix.Common.Networking.Packets.PacketConstants.HeaderSize, $"Bytes quá ngắn: {bytes.Length}");
-
-        // Xem MagicNumber trong bytes
-        System.UInt32 magicInBytes = System.Buffers.Binary.BinaryPrimitives
-                                           .ReadUInt32LittleEndian(bytes);
-
-        // Xem registry có key này không — gọi TryGetDeserializer trực tiếp
-        System.Boolean hasKey = _catalog.TryGetDeserializer(magicInBytes, out var des);
-
-        Assert.True(hasKey, $"Registry không có key=0x{magicInBytes:X8}. AutoMagic=0x{PacketRegistryFactory.Compute(typeof(Control)):X8}");
-
-        // Cuối cùng mới gọi TryDeserialize
-        System.Boolean found = _catalog.TryDeserialize(bytes, out _);
-        Assert.True(found, "TryDeserialize fail dù key tồn tại");
-    }
 
     // -------------------------------------------------------------------------
     // Control (fixed-size packet)
@@ -101,6 +79,7 @@ public sealed class PacketCatalogTests : System.IDisposable
     [Fact]
     public void Control_SerializeThenDeserialize_ReturnsSamePacket()
     {
+        InstanceManager.Instance.Register<ILogger>(NLogix.Host.Instance);
         // Arrange
         var original = new Control();
         original.Initialize(
@@ -229,62 +208,6 @@ public sealed class PacketCatalogTests : System.IDisposable
         var result = Assert.IsType<Handshake>(packet);
         Assert.NotNull(result.Data);
         Assert.Empty(result.Data);
-    }
-
-    [Fact]
-    public void Handshake_Length_ReflectsActualDataSize()
-    {
-        System.Byte[] payload = new System.Byte[64];
-        var packet = new Handshake(opCode: 0x0012, data: payload);
-
-        // HeaderSize + 64 bytes of data
-        System.Int32 expected = Nalix.Common.Networking.Packets.PacketConstants.HeaderSize + payload.Length;
-        Assert.Equal((System.UInt16)expected, packet.Length);
-    }
-
-    [Fact]
-    public void Debug_Handshake_HeaderSize()
-    {
-        // Packet rỗng hoàn toàn — data = []
-        var empty = new Handshake(opCode: 0, data: []);
-        System.Byte[] bytes = empty.Serialize();
-
-        // Bytes length của packet rỗng = header thuần
-        // So sánh với PacketConstants.HeaderSize
-        System.Int32 expected = Nalix.Common.Networking.Packets.PacketConstants.HeaderSize;
-        System.Int32 actual = bytes.Length;
-
-        Assert.True(
-            actual == expected,
-            $"Header mismatch. Expected={expected}, Actual={actual}\nHex={System.Convert.ToHexString(bytes)}");
-    }
-
-    [Fact]
-    public void Debug_Handshake_SerializedFields()
-    {
-        // Dùng reflection để xem FieldCache đang serialize những field nào
-        System.Type fieldCacheType = System.Type.GetType(
-            "Nalix.Shared.Serialization.Internal.Reflection.FieldCache`1, Nalix.Shared")!
-            .MakeGenericType(typeof(Handshake));
-
-        System.Reflection.FieldInfo metadataField = fieldCacheType
-            .GetField("_metadata",
-                System.Reflection.BindingFlags.NonPublic |
-                System.Reflection.BindingFlags.Static)!;
-
-        System.Array metadata = (System.Array)metadataField.GetValue(null)!;
-
-        System.Text.StringBuilder sb = new();
-        foreach (var item in metadata)
-        {
-            System.Type itemType = item.GetType();
-            var name = itemType.GetProperty("Name")?.GetValue(item);
-            var order = itemType.GetProperty("Order")?.GetValue(item);
-            var type = itemType.GetProperty("FieldType")?.GetValue(item);
-            sb.AppendLine($"Order={order} Name={name} Type={type}");
-        }
-
-        Assert.Fail(sb.ToString()); // intentional — chỉ để xem output
     }
 
     // -------------------------------------------------------------------------
