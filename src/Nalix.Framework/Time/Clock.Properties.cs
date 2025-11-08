@@ -25,9 +25,4 @@ public static partial class Clock
     /// Gets the time when the last synchronization occurred.
     /// </summary>
     public static System.DateTime LastSyncTime { get; private set; }
-
-    /// <summary>
-    /// Gets the current offset in milliseconds between the system time and the synchronized time.
-    /// </summary>
-    public static System.Double CurrentOffsetMs => System.TimeSpan.FromTicks(_timeOffset).TotalMilliseconds;
 }
