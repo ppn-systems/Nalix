@@ -94,53 +94,66 @@ internal static class NetTaskCatalog
     /// <summary>
     /// Worker name for TCP acceptor loop (per port and worker index).
     /// </summary>
-    public static System.String TcpAcceptWorker(System.Int32 port, System.Int32 index) =>
-        TaskNames.Workers.Build(Segments.Tcp, Segments.Accept, port.ToString(), index.ToString());
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.String TcpAcceptWorker(System.Int32 port, System.Int32 index)
+        => TaskNames.Workers.Build(Segments.Tcp, Segments.Accept, port.ToString(), index.ToString());
 
     /// <summary>
     /// Worker name for TCP packet processing.
     /// </summary>
-    public static System.String TcpProcessWorker(System.Int32 port, System.String id) =>
-        TaskNames.Workers.Build(Segments.Tcp, Segments.Process, port.ToString(), TaskNames.Safe(id));
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.String TcpProcessWorker(System.Int32 port, System.String id)
+        => TaskNames.Workers.Build(Segments.Tcp, Segments.Process, port.ToString(), TaskNames.Safe(id));
 
     /// <summary>
     /// Worker name for UDP processing loop (no extra id),
     /// e.g., <c>udp.proc.7777</c>.
     /// </summary>
-    public static System.String UdpProcessWorker(System.Int32 port) =>
-        TaskNames.Workers.Build(Segments.Udp, Segments.Process, port.ToString());
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.String UdpProcessWorker(System.Int32 port)
+        => TaskNames.Workers.Build(Segments.Udp, Segments.Process, port.ToString());
 
     /// <summary>
     /// Worker name for UDP processing loop with a custom id
     /// (safe-encoded), e.g., <c>udp.proc.7777.shardA</c>.
     /// </summary>
-    public static System.String UdpProcessWorker(System.Int32 port, System.Int32 id) =>
-        TaskNames.Workers.Build(Segments.Udp, Segments.Process, port.ToString(), id.ToString());
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.String UdpProcessWorker(System.Int32 port, System.Int32 id)
+        => TaskNames.Workers.Build(Segments.Udp, Segments.Process, port.ToString(), id.ToString());
 
     /// <summary>
     /// Worker name for UDP receive worker by index,
     /// e.g., <c>udp.recv.7777.0</c>.
     /// </summary>
-    public static System.String UdpReceiveWorker(System.Int32 port, System.Int32 index) =>
-        TaskNames.Workers.Build(Segments.Udp, Segments.Receive, port.ToString(), index.ToString());
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.String UdpReceiveWorker(System.Int32 port, System.Int32 index)
+        => TaskNames.Workers.Build(Segments.Udp, Segments.Receive, port.ToString(), index.ToString());
 
     /// <summary>
     /// Worker name for periodic time synchronization task.
     /// </summary>
-    public static System.String TimeSyncWorker(System.TimeSpan period) =>
-        $"{Segments.Time}.{Segments.Sync}.{period.TotalMilliseconds:0.#}ms";
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.String TimeSyncWorker(System.TimeSpan period)
+        => $"{Segments.Time}.{Segments.Sync}.{period.TotalMilliseconds:0.#}ms";
 
     /// <summary>
     /// Worker name for timing wheel tick handler.
     /// </summary>
-    public static System.String TimingWheelWorker(System.Int32 tickIntervalMs, System.Int32 wheelSize) =>
-        $"{Segments.Time}.{Segments.Wheel}.{tickIntervalMs}ms.w{wheelSize}";
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.String TimingWheelWorker(System.Int32 tickIntervalMs, System.Int32 wheelSize)
+        => $"{Segments.Time}.{Segments.Wheel}.{tickIntervalMs}ms.w{wheelSize}";
 
     /// <summary>
     /// Worker name for packet dispatching loop.
     /// </summary>
-    public static readonly System.String PacketDispatchWorker =
-        TaskNames.Workers.Build(Segments.Packet, Segments.Dispatch);
+    public static readonly System.String PacketDispatchWorker = TaskNames.Workers.Build(Segments.Packet, Segments.Dispatch);
 
     #endregion
 }
