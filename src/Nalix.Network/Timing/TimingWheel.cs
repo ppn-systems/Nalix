@@ -53,6 +53,8 @@ namespace Nalix.Network.Timing;
 /// </code>
 /// </example>
 /// <seealso cref="IActivatable"/>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public sealed class TimingWheel : IActivatable
 {
     #region Fields
@@ -150,6 +152,9 @@ public sealed class TimingWheel : IActivatable
     /// This method is idempotent. Subsequent calls have no effect while the timer is active.
     /// A dedicated long-running task is used to minimize scheduling jitter.
     /// </remarks>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Activate(System.Threading.CancellationToken cancellationToken = default)
     {
         // If already running, skip.
@@ -190,6 +195,9 @@ public sealed class TimingWheel : IActivatable
     /// The method waits briefly for the loop to finish (<c>~2s</c>) and then drains all buckets
     /// to release pooled items early.
     /// </remarks>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
     {
         var cts = System.Threading.Interlocked.Exchange(ref _cts, null);
@@ -219,6 +227,8 @@ public sealed class TimingWheel : IActivatable
     /// If the connection is already registered, the call is ignored.
     /// The method attaches to <see cref="IConnection.OnCloseEvent"/> once to auto-unregister on close.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Register(IConnection connection)
     {
         // Add to Active; only attach event once (on first registration).
@@ -259,6 +269,8 @@ public sealed class TimingWheel : IActivatable
     /// <remarks>
     /// This method is called automatically when the connection raises <see cref="IConnection.OnCloseEvent"/>.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Unregister(IConnection connection)
     {
         if (Active.TryRemove(connection, out _))
@@ -281,6 +293,8 @@ public sealed class TimingWheel : IActivatable
     #region Loop
 
     // Private loop; not part of the public API surface.
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private async System.Threading.Tasks.Task RunLoop(
         IWorkerContext? ctx = null,
         System.Threading.CancellationToken ct = default)
@@ -362,6 +376,9 @@ public sealed class TimingWheel : IActivatable
 
     #region Helpers
 
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnConnectionClosed(System.Object? sender, IConnectEventArgs args)
     {
         if (args.Connection is null)
@@ -372,6 +389,7 @@ public sealed class TimingWheel : IActivatable
         Unregister(args.Connection);
     }
 
+    [System.Diagnostics.StackTraceHidden]
     private void DrainAndReleaseAllBuckets()
     {
         for (System.Int32 i = 0; i < Wheel.Length; i++)
