@@ -29,6 +29,7 @@ namespace Nalix.Framework.Cryptography.Aead;
 /// </list>
 /// </para>
 /// </remarks>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
@@ -63,13 +64,12 @@ public static class Salsa20Poly1305
     /// Thrown when any length precondition is violated:
     /// key ∉ {16,32}, nonce != 8, tag != 16, or dstCiphertext length != plaintext length.
     /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Encrypt(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.ReadOnlySpan<System.Byte> plaintext,
-        System.ReadOnlySpan<System.Byte> aad,
-        System.Span<System.Byte> dstCiphertext,
-        System.Span<System.Byte> tag)
+        System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce,
+        System.ReadOnlySpan<System.Byte> plaintext, System.ReadOnlySpan<System.Byte> aad,
+        System.Span<System.Byte> dstCiphertext, System.Span<System.Byte> tag)
     {
         ValidateKeyNonceSizes(key, nonce);
 
@@ -121,13 +121,12 @@ public static class Salsa20Poly1305
     /// <exception cref="System.ArgumentException">
     /// Thrown when key ∉ {16,32}, nonce != 8, tag != 16, or dstPlaintext length != ciphertext length.
     /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Decrypt(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.ReadOnlySpan<System.Byte> ciphertext,
-        System.ReadOnlySpan<System.Byte> aad,
-        System.ReadOnlySpan<System.Byte> tag,
-        System.Span<System.Byte> dstPlaintext)
+        System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce,
+        System.ReadOnlySpan<System.Byte> ciphertext, System.ReadOnlySpan<System.Byte> aad,
+        System.ReadOnlySpan<System.Byte> tag, System.Span<System.Byte> dstPlaintext)
     {
         ValidateKeyNonceSizes(key, nonce);
 
@@ -181,9 +180,11 @@ public static class Salsa20Poly1305
     /// <summary>
     /// Encrypts plaintext and returns a newly allocated buffer containing <c>ciphertext || tag</c>.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] plaintext, System.Byte[]? aad = null)
     {
-        if (key is null || key.Length != KEY16 && key.Length != KEY32)
+        if (key is null || (key.Length != KEY16 && key.Length != KEY32))
         {
             ThrowHelper.BadKeyLen();
         }
@@ -206,9 +207,11 @@ public static class Salsa20Poly1305
     /// <summary>
     /// Decrypts a buffer in the form <c>ciphertext || tag</c> and returns the plaintext (or throws if tag invalid).
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Decrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] cipherWithTag, System.Byte[]? aad = null)
     {
-        if (key is null || key.Length != KEY16 && key.Length != KEY32)
+        if (key is null || (key.Length != KEY16 && key.Length != KEY32))
         {
             ThrowHelper.BadKeyLen();
         }
@@ -242,12 +245,11 @@ public static class Salsa20Poly1305
     /// <summary>
     /// Updates Poly1305 with AEAD transcript and writes the final tag.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void BuildTranscriptAndFinalize(
-        Poly1305 mac,
-        System.ReadOnlySpan<System.Byte> aad,
-        System.ReadOnlySpan<System.Byte> ciphertext,
-        System.Span<System.Byte> tagOut16)
+        Poly1305 mac, System.ReadOnlySpan<System.Byte> aad,
+        System.ReadOnlySpan<System.Byte> ciphertext, System.Span<System.Byte> tagOut16)
     {
         // AAD
         if (!aad.IsEmpty)
@@ -275,7 +277,8 @@ public static class Salsa20Poly1305
     }
 
     /// <summary>Writes zero padding to align to 16-byte boundary if needed.</summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void Pad16(Poly1305 mac, System.Int32 length)
     {
         System.Int32 rem = length & 0x0F;
@@ -290,8 +293,11 @@ public static class Salsa20Poly1305
     }
 
     /// <summary>Writes two little-endian UInt64 values into destination at offset.</summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe void WriteUInt64LEPair(System.Span<System.Byte> dest, System.Int32 offset, System.UInt64 a, System.UInt64 b)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe void WriteUInt64LEPair(
+        System.Span<System.Byte> dest,
+        System.Int32 offset, System.UInt64 a, System.UInt64 b)
     {
         if ((System.UInt32)offset > (System.UInt32)(dest.Length - 16))
         {
@@ -312,7 +318,8 @@ public static class Salsa20Poly1305
     }
 
     /// <summary>Byte-swap a 64-bit unsigned integer.</summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.UInt64 ReverseBytes(System.UInt64 v)
     {
         v = (v & 0x00FF00FF00FF00FFUL) << 8 | (v & 0xFF00FF00FF00FF00UL) >> 8;
@@ -321,8 +328,11 @@ public static class Salsa20Poly1305
         return v;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void ValidateKeyNonceSizes(System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void ValidateKeyNonceSizes(
+        System.ReadOnlySpan<System.Byte> key,
+        System.ReadOnlySpan<System.Byte> nonce)
     {
         if (key.Length is not KEY16 and not KEY32)
         {
@@ -335,6 +345,7 @@ public static class Salsa20Poly1305
     }
 
     /// <summary>Centralized throw helpers (names styled to match your ChaCha20Poly1305).</summary>
+    [System.Diagnostics.StackTraceHidden]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     private static class ThrowHelper
     {

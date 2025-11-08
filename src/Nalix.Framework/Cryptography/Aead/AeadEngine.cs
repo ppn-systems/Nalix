@@ -78,6 +78,8 @@ public static class AeadEngine
     /// </list>
     /// </para>
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> plaintext,
@@ -204,6 +206,8 @@ public static class AeadEngine
     /// The same AAD convention is used as in <see cref="Encrypt"/>:
     /// <c>header || nonce || userAAD</c>.
     /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Decrypt(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> envelope,
@@ -307,6 +311,8 @@ public static class AeadEngine
     /// <param name="key32">Source 32-byte key.</param>
     /// <param name="out16">Destination span (must be at least 16 bytes).</param>
     /// <exception cref="System.ArgumentException">Thrown if <paramref name="key32"/> is not 32 bytes or <paramref name="out16"/> is too small.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void ConvertKeyToXtea(System.ReadOnlySpan<System.Byte> key32, System.Span<System.Byte> out16)
     {
         if (key32.Length != 32)
@@ -327,6 +333,8 @@ public static class AeadEngine
 
     #region Helpers
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Int32 GetNonceLength(CipherSuiteType type)
     {
         return type switch
@@ -339,6 +347,8 @@ public static class AeadEngine
         };
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.UInt32 GenerateRandomSeq()
     {
         System.Span<System.Byte> tmp = stackalloc System.Byte[4];
