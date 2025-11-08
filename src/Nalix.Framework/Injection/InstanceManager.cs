@@ -37,7 +37,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
     // Activator cache is keyed by (Type, ctor signature) to support overloads.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<
-        ConstructorSignatureKey, System.Func<System.Object?[], System.Object>> _activatorCache = new();
+        ActivatorKey, System.Func<System.Object?[], System.Object>> _activatorCache = new();
 
     [System.ThreadStatic] private static System.RuntimeTypeHandle _tsLastKey;
     [System.ThreadStatic] private static System.Object? _tsLastValue;
@@ -54,24 +54,25 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// <summary>
     /// Lightweight hashable key for constructor signature.
     /// </summary>
-    private readonly unsafe struct ConstructorSignatureKey : System.IEquatable<ConstructorSignatureKey>
+    private readonly unsafe struct ActivatorKey : System.IEquatable<ActivatorKey>
     {
         public readonly System.Int32 Arity;
         public readonly System.RuntimeTypeHandle P0;
         public readonly System.RuntimeTypeHandle P1;
         public readonly System.RuntimeTypeHandle P2;
         public readonly System.RuntimeTypeHandle P3;
+        public readonly System.RuntimeTypeHandle P4;
         public readonly System.RuntimeTypeHandle Target;
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-        public ConstructorSignatureKey(System.Type t, System.Object?[]? args)
+        public ActivatorKey(System.Type t, System.Object?[]? args)
         {
             Target = t.TypeHandle;
             Arity = args?.Length ?? 0;
 
-            P0 = default; P1 = default; P2 = default; P3 = default;
+            P0 = default; P1 = default; P2 = default; P3 = default; P4 = default;
             if (Arity > 0)
             {
                 P0 = (args![0]?.GetType() ?? typeof(System.Object)).TypeHandle;
@@ -91,35 +92,35 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
             {
                 P3 = (args![3]?.GetType() ?? typeof(System.Object)).TypeHandle;
             }
+
+            if (Arity > 4)
+            {
+                P4 = (args![4]?.GetType() ?? typeof(System.Object)).TypeHandle;
+            }
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public System.Boolean Equals(ConstructorSignatureKey other)
+        public System.Boolean Equals(ActivatorKey other)
             => Target.Equals(other.Target) && P0.Equals(other.P0)
             && P1.Equals(other.P1) && P2.Equals(other.P2)
             && P3.Equals(other.P3) && Arity == other.Arity;
 
         public override System.Boolean Equals(System.Object? obj)
-            => obj is ConstructorSignatureKey k && Equals(k);
+            => obj is ActivatorKey k && Equals(k);
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public override System.Int32 GetHashCode()
         {
-            unchecked
-            {
-                System.Int32 hash = 17;
-                fixed (ConstructorSignatureKey* k = &this)
-                {
-                    System.Int32* ptr = (System.Int32*)k;
-                    for (System.Int32 i = 0; i < 11; ++i)
-                    {
-                        hash = (hash * 31) + ptr[i];
-                    }
-                }
-                return hash;
-            }
+            System.HashCode hc = new();
+            hc.Add(Target);
+            hc.Add(Arity);
+            hc.Add(P0);
+            hc.Add(P1);
+            hc.Add(P2);
+            hc.Add(P3);
+            return hc.ToHashCode();
         }
     }
 
@@ -487,7 +488,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         System.Boolean _activatorCacheContains(System.Type t)
         {
             // Quick scan by key prefix (Target == t) — cheap since dictionary is relatively small.
-            foreach (ConstructorSignatureKey k in _activatorCache.Keys)
+            foreach (ActivatorKey k in _activatorCache.Keys)
             {
                 if (k.Target.Equals(t.TypeHandle))
                 {
@@ -574,6 +575,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         method.Invoke(null, [instance]);
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void PublishGenericSlot<T>(System.Object instance) => System.Threading.Volatile.Write(ref GenericSlot<T>.Value, instance);
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -613,7 +616,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Object CreateViaActivator(System.Type type, System.Object?[] args)
     {
-        ConstructorSignatureKey sigKey = new(type, args);
+        ActivatorKey sigKey = new(type, args);
         if (!_activatorCache.TryGetValue(sigKey, out var factory))
         {
             System.Reflection.ConstructorInfo ctor = ResolveBestCtor(type, args);
@@ -705,8 +708,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static System.Func<System.Object?[], System.Object> BuildDynamicFactory(
-        System.Type type, System.Reflection.ConstructorInfo ctor)
+    private static System.Func<System.Object?[], System.Object> BuildDynamicFactory(System.Type type, System.Reflection.ConstructorInfo ctor)
     {
         System.Reflection.ParameterInfo[] ps = ctor.GetParameters();
         System.Reflection.Emit.DynamicMethod dm = new(

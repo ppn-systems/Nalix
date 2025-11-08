@@ -111,8 +111,7 @@ public static class Singleton
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void Register<TInterface, TImplementation>(
-        System.Func<TImplementation>? factory = null)
+    public static void Register<TInterface, TImplementation>(System.Func<TImplementation>? factory = null)
         where TImplementation : class, TInterface
     {
         System.Type interfaceType = typeof(TInterface);
