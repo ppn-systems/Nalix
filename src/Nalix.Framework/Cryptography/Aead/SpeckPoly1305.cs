@@ -20,6 +20,7 @@ namespace Nalix.Framework.Cryptography.Aead;
 /// This is a custom AEAD to align APIs across your Nalix cipher suite; for new designs prefer AES-GCM / ChaCha20-Poly1305.
 /// </remarks>
 /// </summary>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
@@ -53,13 +54,12 @@ public static class SpeckPoly1305
     /// <param name="aad">Associated data to authenticate (may be empty).</param>
     /// <param name="dstCiphertext">Destination for ciphertext; length must equal <paramref name="plaintext"/> length.</param>
     /// <param name="tag">Destination for the 16-byte authentication tag.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Encrypt(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.ReadOnlySpan<System.Byte> plaintext,
-        System.ReadOnlySpan<System.Byte> aad,
-        System.Span<System.Byte> dstCiphertext,
-        System.Span<System.Byte> tag)
+        System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce,
+        System.ReadOnlySpan<System.Byte> plaintext, System.ReadOnlySpan<System.Byte> aad,
+        System.Span<System.Byte> dstCiphertext, System.Span<System.Byte> tag)
     {
         ValidateKeyNonce(key, nonce);
 
@@ -102,13 +102,12 @@ public static class SpeckPoly1305
     /// <param name="tag">16-byte authentication tag to verify.</param>
     /// <param name="dstPlaintext">Destination for plaintext; length must equal <paramref name="ciphertext"/> length.</param>
     /// <returns><c>true</c> if tag verification succeeds and plaintext is written; otherwise <c>false</c>.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Decrypt(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.ReadOnlySpan<System.Byte> ciphertext,
-        System.ReadOnlySpan<System.Byte> aad,
-        System.ReadOnlySpan<System.Byte> tag,
-        System.Span<System.Byte> dstPlaintext)
+        System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce,
+        System.ReadOnlySpan<System.Byte> ciphertext, System.ReadOnlySpan<System.Byte> aad,
+        System.ReadOnlySpan<System.Byte> tag, System.Span<System.Byte> dstPlaintext)
     {
         ValidateKeyNonce(key, nonce);
 
@@ -160,6 +159,8 @@ public static class SpeckPoly1305
     /// <summary>
     /// Encrypts plaintext and returns a newly allocated buffer containing <c>ciphertext || tag</c>.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] plaintext, System.Byte[]? aad = null)
     {
         if (key is null || key.Length != KEY32)
@@ -186,6 +187,8 @@ public static class SpeckPoly1305
     /// <summary>
     /// Decrypts a buffer in the form <c>ciphertext || tag</c> and returns the plaintext (or throws if tag invalid).
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Decrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] cipherWithTag, System.Byte[]? aad = null)
     {
         if (key is null || key.Length != KEY32)
@@ -225,10 +228,11 @@ public static class SpeckPoly1305
     /// <summary>
     /// Fills a 32-byte Poly1305 one-time key using two CTR keystream blocks with counters 0 and 1.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void FillPolyKeyCtr(
         System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.Span<System.Byte> oneTimeKey32)
+        System.ReadOnlySpan<System.Byte> nonce, System.Span<System.Byte> oneTimeKey32)
     {
         // block 0
         GenKeystreamBlock(key, nonce, 0UL, oneTimeKey32[..BLOCK16]);
@@ -241,10 +245,8 @@ public static class SpeckPoly1305
     /// </summary>
     private static void CtrXor(
         System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 startCounter,
-        System.ReadOnlySpan<System.Byte> src,
-        System.Span<System.Byte> dst)
+        System.ReadOnlySpan<System.Byte> nonce, System.UInt64 startCounter,
+        System.ReadOnlySpan<System.Byte> src, System.Span<System.Byte> dst)
     {
         System.Int32 offset = 0;
         System.UInt64 ctr = startCounter;
@@ -274,11 +276,12 @@ public static class SpeckPoly1305
     /// Generates one 16-byte CTR keystream block: Speck_Encrypt( nonce_128 + counter ) with 128-bit LE addition.
     /// (Overload that reuses an existing Speck instance to avoid re-expansion.)
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void GenKeystreamBlock(
         Speck speck,
         System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        System.Span<System.Byte> out16)
+        System.UInt64 counter, System.Span<System.Byte> out16)
     {
         // Read nonce into (low, high) 64-bit little-endian
         System.UInt64 n0 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(nonce[..8]);
@@ -301,11 +304,12 @@ public static class SpeckPoly1305
     /// <summary>
     /// Generates one 16-byte CTR keystream block using a temporary Speck instance (for short one-off calls).
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void GenKeystreamBlock(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        System.Span<System.Byte> out16)
+        System.UInt64 counter, System.Span<System.Byte> out16)
     {
         var speck = new Speck(key);
         GenKeystreamBlock(speck, nonce, counter, out16);
@@ -315,10 +319,8 @@ public static class SpeckPoly1305
     /// Updates Poly1305 with AEAD transcript and writes the final tag.
     /// </summary>
     private static void BuildTranscriptAndFinalize(
-        Poly1305 mac,
-        System.ReadOnlySpan<System.Byte> aad,
-        System.ReadOnlySpan<System.Byte> ciphertext,
-        System.Span<System.Byte> tagOut16)
+        Poly1305 mac, System.ReadOnlySpan<System.Byte> aad,
+        System.ReadOnlySpan<System.Byte> ciphertext, System.Span<System.Byte> tagOut16)
     {
         if (!aad.IsEmpty)
         {
@@ -407,6 +409,7 @@ public static class SpeckPoly1305
     }
 
     /// <summary>Centralized throw helpers (style aligned with your AEAD classes).</summary>
+    [System.Diagnostics.StackTraceHidden]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     private static class ThrowHelper
     {

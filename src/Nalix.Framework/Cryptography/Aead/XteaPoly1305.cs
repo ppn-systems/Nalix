@@ -10,6 +10,7 @@ namespace Nalix.Framework.Cryptography.Aead;
 /// Allocation-minimized, Span-first AEAD built from XTEA in CTR mode + Poly1305 MAC.
 /// See remarks: legacy cipher; prefer AES-GCM/ChaCha20-Poly1305 for new designs.
 /// </summary>
+[System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
@@ -44,13 +45,12 @@ public static class XteaPoly1305
     /// <param name="dstCiphertext">The destination buffer for the ciphertext. Must be the same length as <paramref name="plaintext"/>.</param>
     /// <param name="tag">The destination buffer for the authentication tag. Must be <c>TagSize</c> bytes long.</param>
     /// <exception cref="System.ArgumentException">Thrown if output lengths are invalid.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Encrypt(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.ReadOnlySpan<System.Byte> plaintext,
-        System.ReadOnlySpan<System.Byte> aad,
-        System.Span<System.Byte> dstCiphertext,
-        System.Span<System.Byte> tag)
+        System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce,
+        System.ReadOnlySpan<System.Byte> plaintext, System.ReadOnlySpan<System.Byte> aad,
+        System.Span<System.Byte> dstCiphertext, System.Span<System.Byte> tag)
     {
         ValidateKeyNonce(key, nonce);
 
@@ -90,13 +90,12 @@ public static class XteaPoly1305
     /// <param name="dstPlaintext">The destination buffer for the plaintext. Must be the same length as <paramref name="ciphertext"/>.</param>
     /// <returns><c>true</c> if authentication succeeds and decryption is successful; otherwise, <c>false</c>.</returns>
     /// <exception cref="System.ArgumentException">Thrown if input or output lengths are invalid.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Decrypt(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.ReadOnlySpan<System.Byte> ciphertext,
-        System.ReadOnlySpan<System.Byte> aad,
-        System.ReadOnlySpan<System.Byte> tag,
-        System.Span<System.Byte> dstPlaintext)
+        System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce,
+        System.ReadOnlySpan<System.Byte> ciphertext, System.ReadOnlySpan<System.Byte> aad,
+        System.ReadOnlySpan<System.Byte> tag, System.Span<System.Byte> dstPlaintext)
     {
         ValidateKeyNonce(key, nonce);
 
@@ -150,6 +149,8 @@ public static class XteaPoly1305
     /// <param name="aad">Optional additional authenticated data (AAD).</param>
     /// <returns>A byte array containing the ciphertext followed by the authentication tag.</returns>
     /// <exception cref="System.ArgumentException">Thrown if key or nonce lengths are invalid.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] plaintext, System.Byte[]? aad = null)
     {
         if (key is null || key.Length != KEY16)
@@ -183,6 +184,8 @@ public static class XteaPoly1305
     /// <returns>The decrypted plaintext.</returns>
     /// <exception cref="System.ArgumentException">Thrown if key, nonce, or input lengths are invalid.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown if authentication fails.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Decrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] cipherWithTag, System.Byte[]? aad = null)
     {
         if (key is null || key.Length != KEY16)
@@ -223,7 +226,11 @@ public static class XteaPoly1305
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Int32 PadLen16(System.Int32 length) => 16 - (length & 0x0F) & 0x0F;
 
-    /// <summary>Derive 32-byte Poly1305 OTK from counters 0..3 using Xtea.Encrypt.</summary>
+    /// <summary>
+    /// Derive 32-byte Poly1305 OTK from counters 0..3 using Xtea.Encrypt.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void FillPolyKeyCtr(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> nonce,
@@ -236,7 +243,9 @@ public static class XteaPoly1305
         }
     }
 
-    /// <summary>XOR src with CTR keystream starting at startCounter into dst.</summary>
+    /// <summary>
+    /// XOR src with CTR keystream starting at startCounter into dst.
+    /// </summary>
     private static void CtrXor(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> nonce,
@@ -269,6 +278,8 @@ public static class XteaPoly1305
     /// Generate one 8-byte keystream block using your Xtea.Encrypt over a single 8-byte block.
     /// Input block = LE(nonce + counter) mod 2^64.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void GenKeystreamBlock(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> nonce,
@@ -378,6 +389,7 @@ public static class XteaPoly1305
         }
     }
 
+    [System.Diagnostics.StackTraceHidden]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     private static class ThrowHelper
     {
