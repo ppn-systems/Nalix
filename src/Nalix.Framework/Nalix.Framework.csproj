@@ -9,10 +9,10 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<!-- Versions -->
-		<Version>7.0.5</Version>
-		<FileVersion>7.0.5.0</FileVersion>
-		<PackageVersion>7.0.5</PackageVersion>
-		<InformationalVersion>7.0.5+$(SourceRevisionId)</InformationalVersion>
+		<Version>7.1.2</Version>
+		<FileVersion>7.1.2.0</FileVersion>
+		<PackageVersion>7.1.2</PackageVersion>
+		<InformationalVersion>7.1.2+$(SourceRevisionId)</InformationalVersion>
 
 		<Description>
 Nalix.Framework is a high-performance foundational library that provides core building blocks
