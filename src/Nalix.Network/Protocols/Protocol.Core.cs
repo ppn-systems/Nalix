@@ -11,6 +11,8 @@ namespace Nalix.Network.Protocols;
 /// Represents an abstract base class for network protocols.
 /// This class defines the common logic for handling connections and processing messages.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("Disposed={_isDisposed}, KeepConnectionOpen={KeepConnectionOpen}")]
 public abstract partial class Protocol : IProtocol
 {
@@ -20,8 +22,6 @@ public abstract partial class Protocol : IProtocol
     /// </summary>
     /// <param name="sender">The sender of the message.</param>
     /// <param name="args">Event arguments containing the connection and message data.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public abstract void ProcessMessage(System.Object? sender, IConnectEventArgs args);
 
     /// <summary>
@@ -29,8 +29,6 @@ public abstract partial class Protocol : IProtocol
     /// This method is called automatically by <see cref="PostProcessMessage"/>.
     /// </summary>
     /// <param name="args">Event arguments containing connection and processing details.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual void OnPostProcess(IConnectEventArgs args)
     {
     }
@@ -43,6 +41,9 @@ public abstract partial class Protocol : IProtocol
     /// <param name="args">Event arguments containing the connection and additional data.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when args is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void PostProcessMessage(System.Object? sender, IConnectEventArgs args)
     {
         System.ArgumentNullException.ThrowIfNull(args);

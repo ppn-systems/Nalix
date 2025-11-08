@@ -100,8 +100,6 @@ public abstract partial class Protocol
     /// <param name="isEnabled">
     /// True to allow new connections; false to reject them.
     /// </param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetConnectionAcceptance(System.Boolean isEnabled)
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -117,8 +115,6 @@ public abstract partial class Protocol
     /// </summary>
     /// <param name="connection">The connection where the error occurred.</param>
     /// <param name="exception">The exception that was thrown.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual void OnConnectionError(IConnection connection, System.Exception exception)
         => _ = System.Threading.Interlocked.Increment(ref _totalErrors);
 
@@ -128,7 +124,5 @@ public abstract partial class Protocol
     /// </summary>
     /// <param name="connection">The connection to validate.</param>
     /// <returns>True if the connection is valid, false otherwise.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual System.Boolean ValidateConnection(IConnection connection) => true;
 }
