@@ -15,7 +15,9 @@ public partial class TaskManager
     #endregion Types
 
     #region Internal Cleanup
-
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void CleanupWorkers()
     {
         if (_disposed)
@@ -68,8 +70,7 @@ public partial class TaskManager
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private async System.Threading.Tasks.Task RecurringLoopAsync(
-        RecurringState s,
-        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work)
+        RecurringState s, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work)
     {
         System.Threading.CancellationToken ct = s.Cts.Token;
 
@@ -208,6 +209,9 @@ public partial class TaskManager
         }
     }
 
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static async System.Threading.Tasks.ValueTask RecurringBackoffAsync(
         RecurringState s,
         System.Threading.CancellationToken ct)
@@ -249,7 +253,8 @@ public partial class TaskManager
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void RetainOrRemove(WorkerState st)
     {
         System.TimeSpan? keep = st.Options.RetainFor;
