@@ -160,7 +160,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// Checks and consumes 1 token for the given endpoint. Returns decision with RetryAfter and Credit.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal LimitDecision Check(NetAddressKey key)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(TokenBucketLimiter));
@@ -396,6 +396,8 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// Includes config overview, shard stats, and top endpoints by pressure.
     /// </summary>
     /// <returns>Formatted string report.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public System.String GenerateReport()
     {
         // Snapshot all endpoints into a single list (allocation-bounded by map sizes).
@@ -551,6 +553,8 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>
     /// Periodic cleanup of stale endpoints to bound memory use.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void Cleanup()
     {
         if (_disposed)

@@ -31,13 +31,20 @@ public static class ConcurrencyGate
         private readonly System.Threading.SemaphoreSlim? _sem = sem;
 
         /// <inheritdoc/>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void Dispose() => _sem?.Release();
     }
 
     /// <summary>
     /// Try to enter immediately (no waiting). Returns false when full.
     /// </summary>
-    public static System.Boolean TryEnter(System.UInt16 opcode, PacketConcurrencyLimitAttribute attr, out Lease lease)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Boolean TryEnter(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt16 opcode,
+        [System.Diagnostics.CodeAnalysis.NotNull] PacketConcurrencyLimitAttribute attr,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Lease lease)
     {
         Entry e = s_table.GetOrAdd(opcode, _ => new Entry(attr.Max, attr.Queue, attr.QueueMax));
 
@@ -55,10 +62,12 @@ public static class ConcurrencyGate
     /// Enter with optional waiting when Queue == true. Throws OperationCanceledException if cancelled.
     /// Enforces QueueMax if > 0.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static async System.Threading.Tasks.ValueTask<Lease> EnterAsync(
-        System.UInt16 opcode,
-        PacketConcurrencyLimitAttribute attr,
-        System.Threading.CancellationToken ct)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt16 opcode,
+        [System.Diagnostics.CodeAnalysis.NotNull] PacketConcurrencyLimitAttribute attr,
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.Threading.CancellationToken ct = default)
     {
         Entry e = s_table.GetOrAdd(opcode, _ => new Entry(attr.Max, attr.Queue, attr.QueueMax));
 
