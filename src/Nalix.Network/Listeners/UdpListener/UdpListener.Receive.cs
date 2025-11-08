@@ -14,6 +14,10 @@ namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
 {
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private async System.Threading.Tasks.Task ReceiveDatagramsAsync(
         System.Threading.CancellationToken cancellationToken)
     {

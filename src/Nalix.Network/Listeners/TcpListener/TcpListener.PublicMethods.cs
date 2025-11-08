@@ -26,10 +26,13 @@ public abstract partial class TcpListenerBase
     /// The listening process can be cancelled using the provided <see cref="System.Threading.CancellationToken"/>.
     /// </summary>
     /// <param name="cancellationToken">A <see cref="System.Threading.CancellationToken"/> to cancel the listening process.</param>
+    [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Activate(System.Threading.CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
+        System.ObjectDisposedException.ThrowIf(_isDisposed, this);
 
         if (Config.MaxParallel < 1)
         {
@@ -141,7 +144,10 @@ public abstract partial class TcpListenerBase
     /// <summary>
     /// Stops the listener from accepting further connections.
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
@@ -207,15 +213,20 @@ public abstract partial class TcpListenerBase
     /// <summary>
     /// Updates the listener with the current server time, provided as a Unix timestamp.
     /// </summary>
-    /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
+    /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), 
+    /// as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
     [System.Diagnostics.DebuggerStepThrough]
-    public virtual void SynchronizeTime(System.Int64 milliseconds)
-    { }
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public virtual void SynchronizeTime(System.Int64 milliseconds) { }
 
     /// <summary>
     /// Generates a diagnostic report of the TCP listener state and metrics.
     /// </summary>
     /// <returns>A formatted string report.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public virtual System.String GenerateReport()
     {
         System.Text.StringBuilder sb = new();

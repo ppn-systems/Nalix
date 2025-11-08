@@ -13,7 +13,7 @@ public abstract partial class TcpListenerBase
     /// <param name="socket">The socket to configure.</param>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -78,7 +78,7 @@ public abstract partial class TcpListenerBase
 
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void Initialize()
     {
         if (Config.EnableIPv6)
