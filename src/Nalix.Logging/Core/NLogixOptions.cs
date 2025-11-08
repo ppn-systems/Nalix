@@ -3,7 +3,7 @@
 using Nalix.Common.Logging;
 using Nalix.Logging.Options;
 
-namespace Nalix.Logging;
+namespace Nalix.Logging.Core;
 
 /// <summary>
 /// Provides configuration options for the logging system with a fluent interface.
