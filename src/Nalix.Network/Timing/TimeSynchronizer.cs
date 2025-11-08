@@ -7,7 +7,6 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Framework.Time;
 using Nalix.Network.Internal.Net;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Network.Timing;
 
@@ -15,6 +14,8 @@ namespace Nalix.Network.Timing;
 /// Emits periodic time synchronization ticks at a target cadence (~16 ms, ~60 Hz).
 /// Designed as a lightweight singleton-style service with explicit enable/disable control.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public sealed class TimeSynchronizer : System.IDisposable, IActivatable
 {
     #region Constants
@@ -58,10 +59,12 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     /// <summary>True if synchronization is enabled (and the loop should run).</summary>
     public System.Boolean IsTimeSyncEnabled
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get => System.Threading.Volatile.Read(ref _enabled) == 1;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         set
         {
             if (value)
@@ -80,7 +83,12 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     /// </summary>
     public System.TimeSpan Period
     {
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get => _period;
+
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         set
         {
             if (value <= System.TimeSpan.Zero)
@@ -100,13 +108,18 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     /// </summary>
     public System.Boolean FireAndForget
     {
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get => _fireAndForget;
+
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         set => _fireAndForget = value;
     }
 
     #endregion
 
-    #region Lifecycle
+    #region APIs
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TimeSynchronizer"/> class.
@@ -117,7 +130,11 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
             .Debug($"[{nameof(TimeSynchronizer)}] init");
     }
 
-    /// <summary>Enables synchronization and ensures the loop is running.</summary>
+    /// <summary>
+    /// Enables synchronization and ensures the loop is running.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Activate(System.Threading.CancellationToken cancellationToken = default)
     {
         if (System.Threading.Volatile.Read(ref _enabled) == 1)
@@ -129,7 +146,11 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
         StartLoopIfNeeded();
     }
 
-    /// <summary>Disables synchronization and stops the loop.</summary>
+    /// <summary>
+    /// Disables synchronization and stops the loop.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
     {
         if (System.Threading.Volatile.Read(ref _enabled) == 0)
@@ -142,6 +163,8 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     }
 
     /// <summary>Starts or restarts the loop to apply new settings.</summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Restart()
     {
         if (!IsTimeSyncEnabled)
@@ -153,6 +176,9 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
         StartLoopIfNeeded();
     }
 
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void StartLoopIfNeeded()
     {
         if (System.Threading.Interlocked.CompareExchange(ref _isRunning, 1, 0) == 1)
@@ -260,6 +286,9 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
         );
     }
 
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void StopLoop()
     {
         if (System.Threading.Interlocked.Exchange(ref _isRunning, 0) == 0)
@@ -277,11 +306,12 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
         try { toCancel?.Dispose(); } catch { }
     }
 
-    #endregion
+    #endregion APIs
 
     #region Dispose
 
     /// <inheritdoc/>
+    [System.Diagnostics.StackTraceHidden]
     public void Dispose()
     {
         if (System.Threading.Interlocked.Exchange(ref _isDisposed, 1) == 1)
