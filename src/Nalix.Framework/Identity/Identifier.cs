@@ -31,7 +31,7 @@ namespace Nalix.Framework.Identity;
 [System.Runtime.InteropServices.StructLayout(
     System.Runtime.InteropServices.LayoutKind.Explicit, Size = 7,
     CharSet = System.Runtime.InteropServices.CharSet.Ansi)]
-[System.Diagnostics.DebuggerDisplay("{Value}-{MachineId}-{Type} ({ToBase36()})")]
+[System.Diagnostics.DebuggerDisplay("{Value}-{MachineId}-{(IdentifierType)_type}")]
 public readonly partial struct Identifier : IIdentifier
 {
     #region Const
@@ -119,7 +119,7 @@ public readonly partial struct Identifier : IIdentifier
     /// </code>
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static Identifier NewId(System.UInt32 value, System.UInt16 machineId, IdentifierType type) => new(value, machineId, type);
 
     /// <summary>
@@ -135,7 +135,7 @@ public readonly partial struct Identifier : IIdentifier
     /// </code>
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static Identifier NewId(IdentifierType type, System.UInt16 machineId = 1) => new(SecureRandom.NextUInt32(), machineId, type);
 
     #endregion Constructors and Factory Methods
