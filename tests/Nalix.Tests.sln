@@ -11,8 +11,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Framework.Tests", "Na
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Network.Tests", "Nalix.Network.Test\Nalix.Network.Tests.csproj", "{ED15C3AE-B417-4702-86E5-D207F54C3DA0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Logging.Tests", "Nalix.Logging.Tests\Nalix.Logging.Tests.csproj", "{AE137907-BE9F-4CD5-BC92-202C2C343BE2}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,10 +33,6 @@ Global
 		{ED15C3AE-B417-4702-86E5-D207F54C3DA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ED15C3AE-B417-4702-86E5-D207F54C3DA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ED15C3AE-B417-4702-86E5-D207F54C3DA0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{AE137907-BE9F-4CD5-BC92-202C2C343BE2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AE137907-BE9F-4CD5-BC92-202C2C343BE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AE137907-BE9F-4CD5-BC92-202C2C343BE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AE137907-BE9F-4CD5-BC92-202C2C343BE2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
