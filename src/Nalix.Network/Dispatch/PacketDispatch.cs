@@ -38,7 +38,7 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(IBufferLease? raw, IConnection connection)
     {
         try

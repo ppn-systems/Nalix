@@ -1,14 +1,18 @@
-﻿namespace Nalix.Network.Dispatch.Options;
+﻿namespace Nalix.Common.Enums;
 
 /// <summary>
 /// Behavior when a per-connection queue is full.
 /// </summary>
 public enum DropPolicy
 {
-    /// <summary>Drop the incoming (newest) packet.</summary>
+    /// <summary>
+    /// Drop the incoming (newest) packet.
+    /// </summary>
     DropNewest = 0,
 
-    /// <summary>Drop the oldest packet in the queue to make room for the new one.</summary>
+    /// <summary>
+    /// Drop the oldest packet in the queue to make room for the new one.
+    /// </summary>
     DropOldest = 1,
 
     /// <summary>
