@@ -80,6 +80,8 @@ public static class XoshiroFallback
     /// Safe to call multiple times; will cancel the previous recurring reseed if any.
     /// </summary>
     /// <remarks>Recommended interval: 1-5 minutes for long-running servers.</remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static void Attach()
     {
         // Cancel previous schedule if exists
@@ -107,6 +109,8 @@ public static class XoshiroFallback
     /// <summary>
     /// Detach from TaskManager (stop periodic reseeding).
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static void Detach()
     {
         IRecurringHandle? h = System.Threading.Interlocked.Exchange(ref s_reseedHandle, null);
@@ -117,7 +121,8 @@ public static class XoshiroFallback
     /// Fills the span with pseudo-random bytes (NOT cryptographic).
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Fill(System.Span<System.Byte> dst)
     {
         if (dst.Length == 0)
@@ -151,7 +156,7 @@ public static class XoshiroFallback
     #region Privates
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static System.UInt64[] GetThreadState()
     {
         var st = t_state;
@@ -183,7 +188,8 @@ public static class XoshiroFallback
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.UInt64 NextU64(System.UInt64[] st)
     {
         // xoshiro256++ core
@@ -191,17 +197,18 @@ public static class XoshiroFallback
 
         // Mix per-thread counter and process tag to mitigate repeats
         System.UInt64 c = ++t_counter;
-        r ^= RotateLeft(c, 17);
+        r ^= System.Numerics.BitOperations.RotateLeft(c, 17);
         r ^= ReadU64(s_instanceTag, (System.Int32)(c >> 3 & 8)); // alternate 0/8 offsets
 
         return r;
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.UInt64 XoshiroNext(System.UInt64[] s)
     {
-        System.UInt64 result = RotateLeft(s[0] + s[3], 23) + s[0];
+        System.UInt64 result = System.Numerics.BitOperations.RotateLeft(s[0] + s[3], 23) + s[0];
         System.UInt64 t = s[1] << 17;
 
         s[2] ^= s[0];
@@ -210,11 +217,13 @@ public static class XoshiroFallback
         s[0] ^= s[3];
 
         s[2] ^= t;
-        s[3] = RotateLeft(s[3], 45);
+        s[3] = System.Numerics.BitOperations.RotateLeft(s[3], 45);
 
         return result;
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void InitializeState(System.ReadOnlySpan<System.Byte> seed)
     {
         // Expand 32 bytes into 4x64 via SplitMix64 to avoid linearities
@@ -245,6 +254,8 @@ public static class XoshiroFallback
         }
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void ReseedGlobal()
     {
         System.Span<System.Byte> seed = stackalloc System.Byte[32];
@@ -262,7 +273,7 @@ public static class XoshiroFallback
         System.UInt64 tag1 = ReadU64(s_instanceTag, 8);
         System.UInt64 mono = (System.UInt64)System.Diagnostics.Stopwatch.GetTimestamp();
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(
-            seed[24..32], tag0 ^ RotateLeft(tag1, 13) ^ mono ^ (System.UInt64)System.Environment.WorkingSet);
+            seed[24..32], tag0 ^ System.Numerics.BitOperations.RotateLeft(tag1, 13) ^ mono ^ (System.UInt64)System.Environment.WorkingSet);
 
         System.UInt64 a = SplitMix64(ReadU64(seed, 0) ^ 0x9E3779B97F4A7C15UL);
         System.UInt64 b = SplitMix64(ReadU64(seed, 8) ^ 0xBF58476D1CE4E5B9UL);
@@ -271,10 +282,10 @@ public static class XoshiroFallback
 
         lock (s_lock)
         {
-            s_state[0] = RotateLeft(s_state[0], 7) + a;
+            s_state[0] = System.Numerics.BitOperations.RotateLeft(s_state[0], 7) + a;
             s_state[1] ^= b;
-            s_state[2] = RotateLeft(s_state[2] + c, 17);
-            s_state[3] ^= RotateLeft(d, 29);
+            s_state[2] = System.Numerics.BitOperations.RotateLeft(s_state[2] + c, 17);
+            s_state[3] ^= System.Numerics.BitOperations.RotateLeft(d, 29);
 
             for (System.Int32 i = 0; i < 8; i++)
             {
@@ -286,7 +297,8 @@ public static class XoshiroFallback
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.UInt64 SplitMix64(System.UInt64 z)
     {
         z += 0x9E3779B97F4A7C15UL;
@@ -298,11 +310,8 @@ public static class XoshiroFallback
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt64 RotateLeft(System.UInt64 x, System.Int32 k) => x << k | x >> 64 - k;
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.UInt64 ReadU64(System.ReadOnlySpan<System.Byte> s, System.Int32 offset)
         => System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(s.Slice(offset, 8));
 

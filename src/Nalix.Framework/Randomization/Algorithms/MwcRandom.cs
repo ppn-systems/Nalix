@@ -94,7 +94,7 @@ public abstract class MwcRandom
     public System.UInt32 Get()
     {
         // MWC algorithm: state = (multiplier * (state & 0xFFFFFFFF) + (state >> 32))
-        _state = Multiplier * (_state & 0xFFFFFFFF) + (_state >> 32);
+        _state = (Multiplier * (_state & 0xFFFFFFFF)) + (_state >> 32);
         return (System.UInt32)_state;
     }
 
@@ -120,7 +120,7 @@ public abstract class MwcRandom
         }
 
         // Avoid modulo bias by rejecting values in the unfair region
-        System.UInt32 threshold = RandMax - RandMax % max;
+        System.UInt32 threshold = RandMax - (RandMax % max);
         System.UInt32 result;
         do
         {

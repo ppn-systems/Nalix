@@ -78,7 +78,8 @@ public static partial class OsCsprng
         System.Int32 cbBuffer, System.UInt32 dwFlags);
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     private static void W(System.Span<System.Byte> b)
     {
         System.Int32 s = BCryptGenRandom(System.IntPtr.Zero, b, b.Length, C);
@@ -94,7 +95,8 @@ public static partial class OsCsprng
     private static partial System.IntPtr getrandom(System.IntPtr buf, System.IntPtr buflen, System.UInt32 flags);
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     private static unsafe void L(System.Span<System.Byte> b)
     {
         fixed (System.Byte* p = b)
@@ -130,7 +132,11 @@ public static partial class OsCsprng
     private static partial System.Int32 SecRandomCopyBytes(System.IntPtr rnd, System.IntPtr count, System.IntPtr bytes);
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [System.Runtime.Versioning.SupportedOSPlatform("ios")]
+    [System.Runtime.Versioning.SupportedOSPlatform("tvos")]
+    [System.Runtime.Versioning.SupportedOSPlatform("macos")]
+    [System.Runtime.Versioning.SupportedOSPlatform("watchos")]
     private static unsafe void A(System.Span<System.Byte> b)
     {
         fixed (System.Byte* p = b)
@@ -146,7 +152,7 @@ public static partial class OsCsprng
     // -------------------- Fallback: /dev/urandom --------------------
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void D(System.Span<System.Byte> b)
     {
         using System.IO.FileStream fs = new(

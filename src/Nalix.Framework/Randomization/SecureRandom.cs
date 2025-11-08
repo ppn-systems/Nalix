@@ -11,6 +11,7 @@ namespace Nalix.Framework.Randomization;
 /// based on the Xoshiro256++ algorithm with additional entropy sources.
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
+[System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
@@ -63,8 +64,10 @@ public static class SecureRandom
     /// Fills the provided span with cryptographically strong random bytes.
     /// </summary>
     /// <param name="data">The span to fill with random bytes.</param>
+    [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Fill(System.Span<System.Byte> data)
     {
         if (data.Length == 0)
@@ -82,7 +85,8 @@ public static class SecureRandom
     /// <returns>A byte array filled with random data.</returns>
     /// <exception cref="System.ArgumentException">Thrown if length is negative.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] GetBytes(System.Int32 length)
     {
         if (length < 0)
@@ -107,7 +111,7 @@ public static class SecureRandom
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random integer in the specified range.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Int32 GetInt32(System.Int32 min, System.Int32 max)
     {
         if (min >= max)
@@ -136,15 +140,18 @@ public static class SecureRandom
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random integer in the specified range.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Int32 GetInt32(System.Int32 max) => GetInt32(0, max);
 
     /// <summary>
     /// Fills the given byte array with cryptographically strong random values.
     /// </summary>
     /// <param name="buffer">The buffer to fill with random bytes.</param>
+    [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void NextBytes(System.Byte[] buffer)
     {
         System.ArgumentNullException.ThrowIfNull(buffer);
@@ -155,16 +162,20 @@ public static class SecureRandom
     /// Fills the given span with cryptographically strong random values.
     /// </summary>
     /// <param name="buffer">The span to fill with random bytes.</param>
+    [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void NextBytes(System.Span<System.Byte> buffer) => Fill(buffer);
 
     /// <summary>
     /// Generates a cryptographically strong 32-bit random integer.
     /// </summary>
     /// <returns>A random 32-bit unsigned integer.</returns>
+    [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.UInt32 NextUInt32()
     {
         System.Span<System.Byte> b = stackalloc System.Byte[4];
@@ -176,8 +187,10 @@ public static class SecureRandom
     /// Generates a cryptographically strong 64-bit random integer.
     /// </summary>
     /// <returns>A random 64-bit unsigned integer.</returns>
+    [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.UInt64 NextUInt64()
     {
         System.Span<System.Byte> b = stackalloc System.Byte[8];
@@ -190,7 +203,8 @@ public static class SecureRandom
     /// </summary>
     /// <returns>A random double with uniform distribution.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Double NextDouble() => (NextUInt64() >> 11) * (1.0 / 9007199254740992.0);
 
     #endregion APIs
