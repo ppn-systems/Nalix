@@ -12,6 +12,8 @@ namespace Nalix.Network.Dispatch.Options;
 /// error handling, and logging.
 /// </summary>
 /// <typeparam name="TPacket">The type of packet being dispatched.</typeparam>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket
 {
     #region Fields

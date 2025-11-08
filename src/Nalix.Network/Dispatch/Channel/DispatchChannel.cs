@@ -2,6 +2,7 @@
 
 using Nalix.Common.Caching;
 using Nalix.Common.Connection;
+using Nalix.Common.Enums;
 using Nalix.Common.Logging;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
@@ -9,7 +10,6 @@ using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Configurations;
 using Nalix.Network.Connection;
-using Nalix.Network.Dispatch.Options;
 using Nalix.Shared.Configuration;
 using Nalix.Shared.Extensions;
 
@@ -21,6 +21,8 @@ namespace Nalix.Network.Dispatch.Channel;
 /// connections currently have items to dispatch.
 /// </summary>
 /// <typeparam name="TPacket">Packet type transported by this channel.</typeparam>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("TotalPackets={TotalPackets}")]
 public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where TPacket : IPacket
 {
@@ -125,7 +127,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// <param name="lease">The lease to enqueue.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="lease"/> or <paramref name="connection"/> is null.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean Pull(
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IConnection connection,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease? lease)
@@ -183,7 +185,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// <param name="lease">Output lease if available.</param>
     /// <returns><c>true</c> if a packet was dequeued; otherwise <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Push(IConnection connection, IBufferLease lease)
     {
         var cqs = _queues.GetOrAdd(connection, static _ => new ConnectionQueues());
@@ -255,14 +257,18 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         _ = _semaphore.Release();
     }
 
-    #endregion
+    #endregion Public APIs
 
     #region Private helpers
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private ConnectionState GetState(IConnection c) => _states.GetOrAdd(c, static _ => new ConnectionState());
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Boolean HasAny(ConnectionQueues cqs, out System.Int32 highest)
     {
         for (System.Int32 p = HighestPriorityIndex; p >= LowestPriorityIndex; p--)
@@ -278,7 +284,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Boolean TryDequeueHighest(
         ConnectionQueues cqs, System.Int32 startPrio,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease? raw, out System.Int32 dequeuedFromPrio)
@@ -301,6 +308,9 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// <summary>
     /// Evicts one oldest packet across all priorities (low → high) for DropOldest/Coalesce.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Boolean TryEvictOldest(
         ConnectionQueues cqs, ConnectionState cs,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease? lease)
@@ -323,8 +333,10 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// Classifies the packet priority from header without allocations.
     /// Assumes you have an extension ReadPriorityLE() that reads byte at fixed offset.
     /// </summary>
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Int32 ClassifyPriorityIndex(System.ReadOnlySpan<System.Byte> span)
     {
         var pr = span.ReadPriorityLE();
@@ -337,19 +349,29 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         return idx;
     }
 
-    #endregion
+    #endregion Private helpers
 
     #region Events / Cleanup
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void OnUnregistered(IConnection connection) => this.RemoveConnection(connection);
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void OnConnectionClosed(System.Object? sender, IConnectEventArgs e) => this.RemoveConnection(e.Connection);
 
     /// <summary>
     /// Removes a connection, draining all per-priority queues and adjusting counters.
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void RemoveConnection(IConnection connection)
     {
         connection.OnCloseEvent -= this.OnConnectionClosed;
@@ -377,5 +399,5 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         _ = _states.TryRemove(connection, out _);
     }
 
-    #endregion 
+    #endregion Events / Cleanup
 }

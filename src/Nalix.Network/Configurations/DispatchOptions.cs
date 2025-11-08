@@ -1,4 +1,4 @@
-﻿using Nalix.Network.Dispatch.Options;
+﻿using Nalix.Common.Enums;
 using Nalix.Shared.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;

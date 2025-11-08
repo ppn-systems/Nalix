@@ -41,7 +41,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     /// Get handler cho specific return type.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static IReturnHandler<TPacket> GetHandler(System.Type returnType)
     {
         if (_handlers.TryGetValue(returnType, out IReturnHandler<TPacket>? handler))
@@ -76,7 +76,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     /// Create base handlers dictionary.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Collections.Frozen.FrozenDictionary<System.Type, IReturnHandler<TPacket>> CreateHandlers()
     {
         System.Collections.Generic.Dictionary<System.Type, IReturnHandler<TPacket>> handlers = new()
@@ -95,7 +95,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static IReturnHandler<TPacket> CreateTaskHandler(
         IReturnHandler<TPacket> innerHandler,
         System.Type resultType)
@@ -105,7 +105,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static IReturnHandler<TPacket> CreateValueTaskHandler(
         IReturnHandler<TPacket> innerHandler,
         System.Type resultType)

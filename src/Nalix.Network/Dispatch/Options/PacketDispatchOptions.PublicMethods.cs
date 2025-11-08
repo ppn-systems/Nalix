@@ -25,8 +25,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// If logging is not configured, the dispatcher will not produce any logs.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public PacketDispatchOptions<TPacket> WithLogging(ILogger logger)
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public PacketDispatchOptions<TPacket> WithLogging([System.Diagnostics.CodeAnalysis.DisallowNull] ILogger logger)
     {
         this.Logger = logger;
         this.Logger.Debug($"[{nameof(PacketDispatchOptions<TPacket>)}:{WithLogging}] logger-attached");
@@ -50,9 +51,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// If no custom error handler is configured, the default behavior is to log the exception.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithErrorHandling(
-        System.Action<System.Exception, System.UInt16> errorHandler)
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Action<System.Exception, System.UInt16> errorHandler)
     {
         this.Logger?.Debug($"[{nameof(PacketDispatchOptions<TPacket>)}:{WithErrorHandling}] error-handler-set");
         this._errorHandler = errorHandler;
@@ -75,9 +77,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// order it is added.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public PacketDispatchOptions<TPacket> WithInbound(
-        IPacketMiddleware<TPacket> middleware)
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public PacketDispatchOptions<TPacket> WithInbound([System.Diagnostics.CodeAnalysis.DisallowNull] IPacketMiddleware<TPacket> middleware)
     {
         _pipeline.UseInbound(middleware);
         return this;
@@ -97,9 +99,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// or response transformation. Middleware is executed in the order it is added.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public PacketDispatchOptions<TPacket> WithOutbound(
-        IPacketMiddleware<TPacket> middleware)
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public PacketDispatchOptions<TPacket> WithOutbound([System.Diagnostics.CodeAnalysis.DisallowNull] IPacketMiddleware<TPacket> middleware)
     {
         _pipeline.UseOutbound(middleware);
         return this;
@@ -119,9 +121,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// or response transformation. Middleware is executed in the order it is added.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public PacketDispatchOptions<TPacket> WithOutboundAlways(
-        IPacketMiddleware<TPacket> middleware)
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public PacketDispatchOptions<TPacket> WithOutboundAlways([System.Diagnostics.CodeAnalysis.DisallowNull] IPacketMiddleware<TPacket> middleware)
     {
         _pipeline.UseOutboundAlways(middleware);
         return this;
@@ -140,13 +142,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// Thrown if a method with an unsupported return type is encountered.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithHandler<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TController>()
-        where TController : class, new()
-        => this.WithHandler(() => new TController());
+        where TController : class, new() => this.WithHandler(() => new TController());
 
     /// <summary>
     /// Registers a handler using an existing instance of the specified controller type.
@@ -164,13 +166,14 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// Thrown if <paramref name="instance"/> is <see langword="null"/>.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithHandler<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TController>(TController instance)
-        where TController : class
-        => this.WithHandler(() => EnsureNotNull(instance, nameof(instance)));
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TController>(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] TController instance)
+        where TController : class => this.WithHandler(() => EnsureNotNull(instance, nameof(instance)));
 
     /// <summary>
     /// Registers a handler by creating an instance of the specified controller type
@@ -188,10 +191,14 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <exception cref="System.InvalidOperationException">
     /// Thrown if a method with an unsupported return type is encountered.
     /// </exception>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithHandler<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController>(
-        System.Func<TController> factory)
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Func<TController> factory)
         where TController : class
     {
         System.Type controllerType = typeof(TController);
@@ -232,12 +239,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// <see langword="true"/> if a handler delegate was found for the specified opcode; otherwise, <see langword="false"/>.
     /// </returns>
+    [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TryResolveHandler(
-        System.UInt16 opCode,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out System.Func<TPacket, IConnection, System.Threading.Tasks.Task>? handler)
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.UInt16 opCode,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Func<TPacket, IConnection, System.Threading.Tasks.Task>? handler)
     {
         if (TryResolveHandlerDescriptor(opCode,
             out PacketHandler<TPacket> descriptor))
@@ -278,11 +286,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <see langword="true"/> if a handler descriptor was found for the specified opcode; otherwise, <see langword="false"/>.
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TryResolveHandlerDescriptor(
-        System.UInt16 opCode,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out PacketHandler<TPacket> descriptor)
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.UInt16 opCode,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PacketHandler<TPacket> descriptor)
     {
         if (this._handlerCache.TryGetValue(opCode, out descriptor))
         {
