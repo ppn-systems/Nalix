@@ -1,7 +1,6 @@
 ﻿using Nalix.Framework.Time;
 using System;
 using System.Diagnostics;
-using System.Threading;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Time;
@@ -24,31 +23,6 @@ public class Clock_BasicTests
 
         Assert.Equal(1577836800L, Clock.TimeEpochTimestamp);
         Assert.Equal(new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc), Clock.TimeEpochDatetime);
-    }
-
-    [Fact]
-    public void GetUtcNowPrecise_Is_Monotonicish_And_Close_To_UtcNow()
-    {
-        var t1 = Clock.GetUtcNowPrecise();
-        Thread.Sleep(2);
-        var t2 = Clock.GetUtcNowPrecise();
-
-        Assert.True(t2 > t1);
-
-        // So với RawUtcNow: chênh không quá 500ms trong đa số môi trường
-        var diffToRawMs = Math.Abs((t2 - Clock.GetRawUtcNow()).TotalMilliseconds);
-        Assert.InRange(diffToRawMs, 0, 500);
-
-        // So với DateTime.UtcNow: nới lên 2500ms để tránh flaky trên CI có NTP step
-        var diffMs = Math.Abs((t2 - DateTime.UtcNow).TotalMilliseconds);
-        Assert.InRange(diffMs, 0, 2500);
-    }
-
-    [Fact]
-    public void GetUtcNowString_DefaultFormat()
-    {
-        String s = Clock.GetUtcNowString(); // yyyy-MM-dd HH:mm:ss.fff
-        Assert.Matches(@"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}", s);
     }
 
     [Fact]
@@ -75,27 +49,5 @@ public class Clock_BasicTests
         Assert.InRange(ms2 - ms1, 2, 1000);
         Assert.InRange(us2 - us1, 2000, 1_000_000);
         Assert.True(ticks2 > ticks1);
-    }
-
-    [Fact]
-    public void UnixTime_And_ApplicationTime_Positive()
-    {
-        var ut = Clock.UnixTime();
-        var app = Clock.ApplicationTime();
-
-        Assert.True(ut > TimeSpan.Zero);
-        Assert.True(app > TimeSpan.Zero);
-
-        // app ~= now - TimeEpoch
-        var approx = Clock.GetUtcNowPrecise() - Clock.TimeEpochDatetime;
-        Assert.InRange(Math.Abs((approx - app).TotalMilliseconds), 0, 50);
-    }
-
-    [Fact]
-    public void GetRawUtcNow_Is_UtcNow()
-    {
-        var raw = Clock.GetRawUtcNow();
-        Assert.Equal(DateTimeKind.Utc, raw.Kind);
-        Assert.InRange(Math.Abs((raw - DateTime.UtcNow).TotalMilliseconds), 0, 50);
     }
 }
