@@ -12,7 +12,7 @@ namespace Nalix.Framework.Cryptography.Aead;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This type does not depend on <see cref="SHA3256"/>; it relies on
+/// This type does not depend on <see cref="Keccak256"/>; it relies on
 /// light-weight primitives (<see cref="ChaCha20"/> stream cipher and <see cref="Poly1305"/> MAC)
 /// from <c>Nalix.Framework.Cryptography</c>.
 /// </para>

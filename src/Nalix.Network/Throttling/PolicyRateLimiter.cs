@@ -144,7 +144,7 @@ public static class PolicyRateLimiter
 
         // Compute SHA3-256
         System.Span<System.Byte> digest = stackalloc System.Byte[32];
-        SHA3256.HashData(utf8, digest);
+        Keccak256.HashData(utf8, digest);
 
         // Take first 16 bytes for IPv6
         var ip = new System.Net.IPAddress(digest[..16]);

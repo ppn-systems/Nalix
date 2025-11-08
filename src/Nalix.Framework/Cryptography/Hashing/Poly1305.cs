@@ -251,7 +251,7 @@ public sealed class Poly1305 : System.IDisposable
             offset += blockSize;
         }
 
-        // Finalize the tag
+        // Finish the tag
         FinalizeTag(accumulator, destination);
     }
 
