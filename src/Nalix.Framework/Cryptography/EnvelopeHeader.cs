@@ -46,6 +46,8 @@ internal readonly struct EnvelopeHeader
     /// <summary>
     /// Writes header into dest (must be at least Size).
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void WriteTo(System.Span<System.Byte> dest, EnvelopeHeader header)
     {
         if (dest.Length < Size)
@@ -64,7 +66,9 @@ internal readonly struct EnvelopeHeader
     /// <summary>
     /// Try parse header from src. Returns false if malformed/too short.
     /// </summary>
-    public static System.Boolean TryParse(System.ReadOnlySpan<System.Byte> src, out EnvelopeHeader header)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    internal static System.Boolean TryParse(System.ReadOnlySpan<System.Byte> src, out EnvelopeHeader header)
     {
         header = default;
         if (src.Length < Size)
