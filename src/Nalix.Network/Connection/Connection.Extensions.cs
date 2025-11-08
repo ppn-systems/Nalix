@@ -29,6 +29,9 @@ public static class ConnectionExtensions
     /// <param name="arg1">Optional argument 1 for the directive (default is 0).</param>
     /// <param name="arg2">Optional argument 2 for the directive (default is 0).</param>
     /// <returns>A task representing the asynchronous send operation.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static async System.Threading.Tasks.Task SendAsync(
         this IConnection connection,
         ControlType controlType, ProtocolCode reason, ProtocolAction action,
