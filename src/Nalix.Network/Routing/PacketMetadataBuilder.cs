@@ -17,32 +17,32 @@ public sealed class PacketMetadataBuilder
     /// <summary>
     /// Gets or sets the opcode attribute associated with the handler.
     /// </summary>
-    public PacketOpcodeAttribute Opcode { get; set; }
+    public PacketOpcodeAttribute? Opcode { get; set; }
 
     /// <summary>
     /// Gets or sets the timeout attribute associated with the handler.
     /// </summary>
-    public PacketTimeoutAttribute Timeout { get; set; }
+    public PacketTimeoutAttribute? Timeout { get; set; }
 
     /// <summary>
     /// Gets or sets the permission attribute associated with the handler.
     /// </summary>
-    public PacketPermissionAttribute Permission { get; set; }
+    public PacketPermissionAttribute? Permission { get; set; }
 
     /// <summary>
     /// Gets or sets the encryption attribute associated with the handler.
     /// </summary>
-    public PacketEncryptionAttribute Encryption { get; set; }
+    public PacketEncryptionAttribute? Encryption { get; set; }
 
     /// <summary>
     /// Gets or sets the rate limit attribute associated with the handler.
     /// </summary>
-    public PacketRateLimitAttribute RateLimit { get; set; }
+    public PacketRateLimitAttribute? RateLimit { get; set; }
 
     /// <summary>
     /// Gets or sets the concurrency limit attribute associated with the handler.
     /// </summary>
-    public PacketConcurrencyLimitAttribute ConcurrencyLimit { get; set; }
+    public PacketConcurrencyLimitAttribute? ConcurrencyLimit { get; set; }
 
     private readonly Dictionary<Type, Attribute> _custom = [];
 
@@ -66,7 +66,7 @@ public sealed class PacketMetadataBuilder
     /// <returns>
     /// The attribute instance if it exists; otherwise, <see langword="null"/>.
     /// </returns>
-    public TAttribute Get<TAttribute>() where TAttribute : Attribute => _custom.TryGetValue(typeof(TAttribute), out Attribute value) ? (TAttribute)value : null;
+    public TAttribute? Get<TAttribute>() where TAttribute : Attribute => _custom.TryGetValue(typeof(TAttribute), out Attribute? value) ? value as TAttribute : null;
 
     /// <summary>
     /// Builds an immutable <see cref="PacketMetadata"/> instance from

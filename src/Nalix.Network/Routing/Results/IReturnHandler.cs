@@ -28,6 +28,6 @@ internal interface IReturnHandler<TPacket> where TPacket : IPacket
     /// <param name="result">The method return value, may be null.</param>
     /// <param name="context">The context associated with the packet and connection.</param>
     ValueTask HandleAsync(
-        [AllowNull] object result,
+        object result,
         PacketContext<TPacket> context);
 }
