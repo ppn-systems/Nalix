@@ -4,7 +4,7 @@ using Nalix.Common.Logging;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Protocols;                     // ProtocolType
 using Nalix.Framework.Cryptography.Asymmetric;    // X25519
-using Nalix.Framework.Cryptography.Hashing;       // SHA3256 (SHA3-256)
+using Nalix.Framework.Cryptography.Hashing;       // Keccak256 (SHA3-256)
 using Nalix.Framework.Injection;
 using Nalix.Shared.Messaging.Controls;            // Handshake
 
@@ -124,7 +124,7 @@ public static class HandshakeExtensions
                 try
                 {
                     secret = X25519.Agreement(kp.PrivateKey, hs.Data);
-                    client.Options.EncryptionKey = SHA3256.HashData(secret);
+                    client.Options.EncryptionKey = Keccak256.HashData(secret);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Info("Handshake completed. EncryptionKey installed.");

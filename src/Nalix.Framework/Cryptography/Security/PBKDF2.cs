@@ -217,7 +217,7 @@ public sealed class PBKDF2 : System.IDisposable
         if (key.Length > blockSize)
         {
             System.Span<System.Byte> kh = stackalloc System.Byte[32];
-            SHA3256.HashData(key, kh);
+            Keccak256.HashData(key, kh);
             kh.CopyTo(k0);
             kh.Clear();
         }
@@ -242,19 +242,19 @@ public sealed class PBKDF2 : System.IDisposable
 
         // inner = H(ipad || data)
         System.Span<System.Byte> inner = stackalloc System.Byte[32];
-        using (var hInner = new SHA3256())
+        using (var hInner = new Keccak256())
         {
             hInner.Update(ipad);
             hInner.Update(data);
-            hInner.Finalize(inner);
+            hInner.Finish(inner);
         }
 
         // outer = H(opad || inner)
-        using (var hOuter = new SHA3256())
+        using (var hOuter = new Keccak256())
         {
             hOuter.Update(opad);
             hOuter.Update(inner);
-            hOuter.Finalize(output);
+            hOuter.Finish(output);
         }
 
         k0.Clear();
