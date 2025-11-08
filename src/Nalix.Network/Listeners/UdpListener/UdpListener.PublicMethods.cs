@@ -24,9 +24,11 @@ public abstract partial class UdpListenerBase : IListener
     /// The listening process can be cancelled using the provided <see cref="System.Threading.CancellationToken"/>.
     /// </summary>
     /// <param name="cancellationToken">A <see cref="System.Threading.CancellationToken"/> to cancel the listening process.</param>
+    [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
-    public void Activate(
-        System.Threading.CancellationToken cancellationToken = default)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public void Activate(System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
 
@@ -126,9 +128,11 @@ public abstract partial class UdpListenerBase : IListener
     /// <summary>
     /// Stops the listener from receiving further UDP datagrams.
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
-    public void Deactivate(
-        System.Threading.CancellationToken cancellationToken = default)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
 
@@ -161,6 +165,8 @@ public abstract partial class UdpListenerBase : IListener
     /// </summary>
     /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
     [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public virtual void SynchronizeTime(System.Int64 milliseconds)
     {
         // Record last sync and drift vs local clock
@@ -179,6 +185,8 @@ public abstract partial class UdpListenerBase : IListener
     /// <param name="localMs">The local time in milliseconds since the Unix epoch.</param>
     /// <param name="driftMs">The calculated drift in milliseconds between server and local time.</param>
     [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     protected virtual void OnTimeSynchronized(System.Int64 serverMs, System.Int64 localMs, System.Int64 driftMs)
     {
         // No-op by default
@@ -189,12 +197,17 @@ public abstract partial class UdpListenerBase : IListener
     /// Default returns true (i.e., trusted). Override in derived class.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     protected abstract System.Boolean IsAuthenticated(
         IConnection connection, in System.Net.Sockets.UdpReceiveResult result);
 
     /// <summary>
     /// Generates a human-readable diagnostic report of the current listener status.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public System.String GenerateReport()
     {
         System.Text.StringBuilder sb = new(512);

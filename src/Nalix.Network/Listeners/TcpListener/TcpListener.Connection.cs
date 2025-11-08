@@ -18,11 +18,7 @@ namespace Nalix.Network.Listeners.Tcp;
 public abstract partial class TcpListenerBase
 {
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private IConnection InitializeConnection(
-        System.Net.Sockets.Socket socket,
-        PooledAcceptContext context)
+    private IConnection InitializeConnection(System.Net.Sockets.Socket socket, PooledAcceptContext context)
     {
         ConfigureHighPerformanceSocket(socket);
 
@@ -59,8 +55,6 @@ public abstract partial class TcpListenerBase
     /// <param name="sender">The source of the event.</param>
     /// <param name="args">The connection event arguments.</param>
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void HandleConnectionClose(System.Object? sender, IConnectEventArgs args)
     {
         if (args?.Connection == null)
@@ -86,8 +80,6 @@ public abstract partial class TcpListenerBase
     /// Processes a new connection using the protocol handler.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void ProcessConnection(IConnection connection)
     {
         try
@@ -110,8 +102,7 @@ public abstract partial class TcpListenerBase
     /// Accepts connections in a loop until cancellation is requested
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
-    private async System.Threading.Tasks.Task AcceptConnectionsAsync(
-        System.Threading.CancellationToken cancellationToken)
+    private async System.Threading.Tasks.Task AcceptConnectionsAsync(System.Threading.CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -184,8 +175,7 @@ public abstract partial class TcpListenerBase
         "Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    private async System.Threading.Tasks.ValueTask<IConnection> CreateConnectionAsync(
-        System.Threading.CancellationToken cancellationToken)
+    private async System.Threading.Tasks.ValueTask<IConnection> CreateConnectionAsync(System.Threading.CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -227,8 +217,6 @@ public abstract partial class TcpListenerBase
     }
 
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnSyncAcceptCompleted(
         System.Object? sender,
         System.Net.Sockets.SocketAsyncEventArgs e)
@@ -263,6 +251,8 @@ public abstract partial class TcpListenerBase
     }
 
     [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void AcceptNext(
         System.Net.Sockets.SocketAsyncEventArgs args,
         System.Threading.CancellationToken token)
@@ -442,9 +432,10 @@ public abstract partial class TcpListenerBase
         }
     }
 
+    [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void SafeCloseSocket(System.Net.Sockets.Socket socket)
     {
         try
