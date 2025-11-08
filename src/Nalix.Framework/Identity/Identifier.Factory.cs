@@ -17,7 +17,7 @@ public readonly partial struct Identifier : System.IEquatable<Identifier>
     /// </returns>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean Equals(IIdentifier? other)
         => other is Identifier compactId && Equals(compactId);
 
@@ -30,7 +30,7 @@ public readonly partial struct Identifier : System.IEquatable<Identifier>
     /// </returns>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean Equals(Identifier other)
     {
         // Optimize comparison by treating the struct as a single 64-bit value
@@ -61,7 +61,7 @@ public readonly partial struct Identifier : System.IEquatable<Identifier>
     /// </remarks>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public override System.Int32 GetHashCode()
     {
         // Use the combined value for consistent hashing
@@ -83,7 +83,7 @@ public readonly partial struct Identifier : System.IEquatable<Identifier>
     /// </returns>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean operator ==(Identifier left, Identifier right) => left.Equals(right);
 
     /// <summary>
@@ -96,7 +96,7 @@ public readonly partial struct Identifier : System.IEquatable<Identifier>
     /// </returns>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean operator !=(Identifier left, Identifier right) => !left.Equals(right);
 
     #endregion Operators
@@ -118,7 +118,7 @@ public readonly partial struct Identifier : System.IEquatable<Identifier>
     /// <param name="value">The value to encode.</param>
     /// <returns>A Base36 encoded string.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.String EncodeToBase36(System.UInt64 value)
     {
         if (value == 0)

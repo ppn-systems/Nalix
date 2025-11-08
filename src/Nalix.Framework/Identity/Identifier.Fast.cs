@@ -41,7 +41,6 @@ public readonly partial struct Identifier : System.ISpanFormattable, System.IUtf
     /// Writes the 7-byte little-endian layout directly. Destination must be >= 7 bytes.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TryWriteBytes(System.Span<System.Byte> destination)
     {
@@ -102,7 +101,6 @@ public readonly partial struct Identifier : System.ISpanFormattable, System.IUtf
     /// Parses a Base36 UTF-8 byte sequence into an Identifier.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean TryParse(System.ReadOnlySpan<System.Byte> utf8, out Identifier id)
     {
@@ -137,12 +135,10 @@ public readonly partial struct Identifier : System.ISpanFormattable, System.IUtf
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TryFormat(
-        System.Span<System.Char> destination,
-        out System.Int32 charsWritten,
-        System.ReadOnlySpan<System.Char> format,
-        System.IFormatProvider? _)
+        System.Span<System.Char> destination, out System.Int32 charsWritten,
+        System.ReadOnlySpan<System.Char> format, System.IFormatProvider? _)
     {
         // If "X" -> Hex, else Base36 (default).
         System.Boolean hex = format.Length == 1 && (format[0] == 'X' || format[0] == 'x');
