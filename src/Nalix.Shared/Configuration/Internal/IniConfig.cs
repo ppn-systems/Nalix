@@ -129,7 +129,7 @@ internal sealed class IniConfig
             }
 
             // Only write if the key doesn't exist
-            if (!sectionData.ContainsKey(key))
+            if (!sectionData.TryGetValue(key, out System.String? existing) || System.String.IsNullOrEmpty(existing))
             {
                 _fileLock.EnterWriteLock();
                 try
