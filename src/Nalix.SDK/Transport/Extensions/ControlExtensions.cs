@@ -1,13 +1,12 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Networking.Caching;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Transport;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Random;
 using Nalix.Framework.Time;
+using Nalix.SDK.Transport.Internal;
 using Nalix.Shared.Frames.Controls;
 
 namespace Nalix.SDK.Transport.Extensions;
@@ -123,7 +122,7 @@ public static class ControlExtensions
     /// <exception cref="System.InvalidOperationException">Thrown when the client is not connected.</exception>
     /// <exception cref="System.TimeoutException">Thrown when no matching packet is received within <paramref name="timeoutMs"/>.</exception>
     /// <exception cref="System.OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
-    public static async System.Threading.Tasks.Task<TPkt> AwaitPacketAsync<TPkt>(
+    public static System.Threading.Tasks.Task<TPkt> AwaitPacketAsync<TPkt>(
         this IClientConnection client,
         System.Func<TPkt, System.Boolean> predicate,
         System.Int32 timeoutMs,
@@ -138,55 +137,14 @@ public static class ControlExtensions
             throw new System.InvalidOperationException("Client not connected.");
         }
 
-        IPacketRegistry catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
-        System.Threading.Tasks.TaskCompletionSource<TPkt> tcs = new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using System.Threading.CancellationTokenSource lcts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
-        lcts.CancelAfter(timeoutMs);
-
-        await using System.Threading.CancellationTokenRegistration reg = lcts.Token.Register(() => tcs.TrySetCanceled(lcts.Token));
-
-        client.OnDisconnected += OnDisconnected;
-        client.OnMessageReceived += OnMessageReceived;
-
-        try
-        {
-            return await tcs.Task.ConfigureAwait(false);
-        }
-        catch (System.Threading.Tasks.TaskCanceledException) when (!ct.IsCancellationRequested)
-        {
-            // Our internal linked CTS fired — surface as TimeoutException.
-            throw new System.TimeoutException($"Timeout waiting for {typeof(TPkt).Name}.");
-        }
-        catch (System.Threading.Tasks.TaskCanceledException) when (ct.IsCancellationRequested)
-        {
-            // Caller canceled — propagate as OperationCanceledException.
-            throw new System.OperationCanceledException(ct);
-        }
-        finally
-        {
-            client.OnDisconnected -= OnDisconnected;
-            client.OnMessageReceived -= OnMessageReceived;
-        }
-
-        void OnMessageReceived(System.Object _, IBufferLease buffer)
-        {
-            // Always dispose the lease; deserialize takes a ReadOnlySpan copy.
-            using (buffer)
-            {
-                if (!catalog.TryDeserialize(buffer.Span, out IPacket p))
-                {
-                    return;
-                }
-
-                if (p is TPkt pp && predicate(pp))
-                {
-                    tcs.TrySetResult(pp);
-                }
-            }
-        }
-
-        void OnDisconnected(System.Object _, System.Exception ex) => tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected before a matching packet arrived."));
+        // Delegate all TCS + subscribe + timeout logic to PacketAwaiter.
+        // sendAsync = no-op because the caller has already sent (or will send externally).
+        return PacketAwaiter.AwaitAsync(
+            client,
+            predicate,
+            timeoutMs,
+            sendAsync: _ => System.Threading.Tasks.Task.CompletedTask,
+            ct);
     }
 
     /// <summary>
@@ -237,33 +195,24 @@ public static class ControlExtensions
 
         System.UInt32 seq = sequenceId ?? Csprng.NextUInt32();
 
-        // Build PING — Initialize already stamps MonoTicks; capture it for RTT fallback.
         Control ping = client.NewControl(opCode, ControlType.PING)
                              .WithSeq(seq)
                              .Build();
 
-        // Capture send mono for RTT fallback (Initialize stamps MonoTicks, use that directly).
         System.Int64 sendMono = ping.MonoTicks != 0 ? ping.MonoTicks : Clock.MonoTicksNow();
 
-        using System.Threading.CancellationTokenSource lcts =
-            System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
-        lcts.CancelAfter(timeoutMs);
-
-        await client.SendAsync(ping, lcts.Token).ConfigureAwait(false);
-
-        // Await matching PONG (same SequenceId).
-        Control pong = await client.AwaitControlAsync(
-            predicate: c => c.Type == ControlType.PONG && c.SequenceId == seq,
+        // RequestAsync: subscribe → send → await PONG in one race-condition-free call.
+        Control pong = await client.RequestAsync<Control, Control>(
+            ping,
+            predicate: p => p.Type == ControlType.PONG && p.SequenceId == seq,
             timeoutMs: timeoutMs,
-            ct: lcts.Token).ConfigureAwait(false);
+            ct: ct).ConfigureAwait(false);
 
-        // Prefer echoed MonoTicks (server round-trips sender's ticks); fall back to local capture.
         System.Int64 nowMono = Clock.MonoTicksNow();
         System.Double rtt = pong.MonoTicks > 0 && pong.MonoTicks <= nowMono
             ? Clock.MonoTicksToMilliseconds(nowMono - pong.MonoTicks)
             : Clock.MonoTicksToMilliseconds(nowMono - sendMono);
 
-        // Optional clock synchronization using server Unix ms + RTT/2 bias.
         if (syncClock && pong.Timestamp > 0)
         {
             System.DateTime serverUtc = System.DateTime.UnixEpoch.AddMilliseconds(pong.Timestamp + (rtt * 0.5));
