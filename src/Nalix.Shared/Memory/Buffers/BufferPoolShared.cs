@@ -7,7 +7,7 @@ namespace Nalix.Shared.Memory.Buffers;
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.DebuggerDisplay("Size={_bufferSize}, Total={_totalBuffers}, Free={_freeBuffers.Count}")]
-public sealed class BufferPoolShared : System.IDisposable
+internal sealed class BufferPoolShared : System.IDisposable
 {
     #region Fields
 
@@ -64,14 +64,17 @@ public sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Gets or creates a shared buffer pool for the specified buffer size.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static BufferPoolShared GetOrCreatePool(System.Int32 bufferSize, System.Int32 initialCapacity, System.Boolean secureClear)
         => Pools.GetOrAdd(bufferSize, size => new BufferPoolShared(size, initialCapacity, secureClear));
 
     /// <summary>
     /// Acquires a buffer from the pool with fast path optimization.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] AcquireBuffer()
     {
         if (_freeBuffers.TryDequeue(out System.Byte[]? buffer))
@@ -88,7 +91,9 @@ public sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Releases a buffer back into the pool.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public unsafe void ReleaseBuffer(System.Byte[] buffer)
     {
         if (buffer is null || buffer.Length != _bufferSize)
@@ -107,6 +112,9 @@ public sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Increases the capacity of the pool by adding buffers.
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void IncreaseCapacity(System.Int32 additionalCapacity)
     {
         if (additionalCapacity <= 0)
@@ -145,6 +153,9 @@ public sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Decreases the capacity of the pool by removing buffers.
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void DecreaseCapacity(System.Int32 capacityToRemove)
     {
         if (capacityToRemove <= 0 || _isOptimizing)
@@ -198,7 +209,9 @@ public sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Gets information about the buffer pool by value (cheap snapshot).
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public BufferPoolState GetPoolInfo()
         => new()
         {
@@ -211,7 +224,9 @@ public sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Gets information about the buffer pool by reference for better performance.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public ref readonly BufferPoolState GetPoolInfoRef()
     {
         _poolInfo = new BufferPoolState
@@ -230,6 +245,8 @@ public sealed class BufferPoolShared : System.IDisposable
     #region IDisposable
 
     /// <inheritdoc/>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Dispose()
     {
         this.Dispose(true);
@@ -248,7 +265,8 @@ public sealed class BufferPoolShared : System.IDisposable
 
     #region Private Helpers
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private unsafe void ClearBuffer(System.Byte[] buffer)
     {
         fixed (System.Byte* ptr = buffer)
@@ -260,7 +278,9 @@ public sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Pre-allocates buffers to the specified capacity.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void PreallocateBuffers(System.Int32 capacity)
     {
         if (capacity <= 0)
@@ -286,6 +306,9 @@ public sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Performs the actual resource cleanup.
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void Dispose(System.Boolean disposing)
     {
         if (_disposed)

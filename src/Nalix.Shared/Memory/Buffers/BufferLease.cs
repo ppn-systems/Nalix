@@ -10,6 +10,7 @@ namespace Nalix.Shared.Memory.Buffers;
 /// Represents an owned lease of a pooled byte[] rented from <see cref="BufferPoolManager"/>.
 /// Supports slice ownership (start + length) to enable zero-copy handoffs.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.DebuggerDisplay("BufferLease Start={_start}, Len={Length}, Cap={Capacity}, Detached={_detached != 0}")]
 public sealed class BufferLease : IBufferLease
 {
@@ -18,7 +19,7 @@ public sealed class BufferLease : IBufferLease
     /// <summary>
     /// Gets the shared <see cref="BufferPoolManager"/> instance used for buffer pooling.
     /// </summary>
-    public static readonly BufferPoolManager Pool = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
+    internal static readonly BufferPoolManager Pool = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
 
     // ====== Fields ======
     private System.Byte[]? _buffer;
@@ -101,13 +102,18 @@ public sealed class BufferLease : IBufferLease
     /// <summary>
     /// Convenient ArraySegment over the valid payload slice.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.ArraySegment<System.Byte> AsSegment()
         => _buffer is null ? default : new System.ArraySegment<System.Byte>(_buffer, _start, Length);
 
     /// <summary>
     /// Increases the reference count so multiple consumers can hold this lease safely.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Retain()
     {
         System.ObjectDisposedException.ThrowIf(_buffer is null, nameof(BufferLease));
@@ -118,7 +124,9 @@ public sealed class BufferLease : IBufferLease
     /// <summary>
     /// Sets the valid payload length (must be 0..Capacity).
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetLength(System.Int32 length)
     {
         if ((System.UInt32)length > (System.UInt32)Capacity)
@@ -132,6 +140,10 @@ public sealed class BufferLease : IBufferLease
     /// <summary>
     /// Releases a reference. When the count reaches zero and not detached, returns the array to <see cref="BufferPoolManager"/>.
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (System.Threading.Interlocked.Decrement(ref _refCount) != 0)
@@ -170,6 +182,10 @@ public sealed class BufferLease : IBufferLease
     /// After a successful detach, this instance becomes empty and disposing it is a no-op.
     /// Only allowed when this is the last reference (refCount == 1).
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public System.Boolean TryDetach(out System.Byte[]? buffer, out System.Int32 start, out System.Int32 length)
     {
         // Ensure single-owner detach (avoid breaking other holders)
@@ -198,9 +214,12 @@ public sealed class BufferLease : IBufferLease
     /// Auto-rents a buffer from <see cref="BufferPoolManager"/> and returns a new empty slice [start=0, length=0].
     /// Caller writes to <see cref="SpanFull"/> then calls <see cref="SetLength(System.Int32)"/>.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static BufferLease Rent(System.Int32 capacity, System.Boolean zeroOnDispose = false)
     {
-        var arr = Pool.Rent(capacity);
+        System.Byte[] arr = Pool.Rent(capacity);
         return new BufferLease(arr, start: 0, length: 0, zeroOnDispose: zeroOnDispose);
     }
 
@@ -218,6 +237,8 @@ public sealed class BufferLease : IBufferLease
     /// Wraps an array that was previously rented from <see cref="BufferPoolManager"/> (payload starts at 0).
     /// Caller asserts the array comes from the same pool and is safe to own here.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static BufferLease FromRented(System.Byte[] buffer, System.Int32 length, System.Boolean zeroOnDispose = false)
         => new(buffer, start: 0, length: length, zeroOnDispose: zeroOnDispose);
 
@@ -225,12 +246,16 @@ public sealed class BufferLease : IBufferLease
     /// Wraps a slice [<paramref name="start"/>..&lt;start+length&gt;) of a previously rented array from <see cref="BufferPoolManager"/>.
     /// This is the key API for zero-copy handoff of a payload located after a protocol header.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static BufferLease FromRentedSlice(System.Byte[] buffer, System.Int32 start, System.Int32 length, System.Boolean zeroOnDispose = false)
         => new(buffer, start, length, zeroOnDispose);
 
     /// <summary>
     /// Alias for <see cref="FromRentedSlice"/> for readability at call sites performing ownership transfer.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static BufferLease TakeOwnership(System.Byte[] buffer, System.Int32 start, System.Int32 length, System.Boolean zeroOnDispose = false)
         => new(buffer, start, length, zeroOnDispose);
 
