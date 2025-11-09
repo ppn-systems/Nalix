@@ -11,8 +11,10 @@ internal static partial class FieldCache<T>
 {
     #region Generic Value Operations - Zero Boxing
 
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static TField GetValue<TField>(T obj, System.Int32 fieldIndex)
     {
         var metadata = _metadata[fieldIndex];
@@ -23,17 +25,10 @@ internal static partial class FieldCache<T>
             : (TField)metadata.FieldInfo.GetValue(obj)!;
     }
 
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static TField GetValue<TField>(T obj, System.String fieldName)
-    {
-        return !_fieldIndex.TryGetValue(fieldName, out var index)
-            ? throw new System.ArgumentException($"Field '{fieldName}' not found in {typeof(T).Name}")
-            : GetValue<TField>(obj, index);
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static void SetValue<TField>(T obj, System.Int32 fieldIndex, TField value)
     {
         var metadata = _metadata[fieldIndex];
@@ -47,34 +42,5 @@ internal static partial class FieldCache<T>
         metadata.FieldInfo.SetValue(obj, value);
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void SetValue<TField>(T obj, System.String fieldName, TField value)
-    {
-        if (!_fieldIndex.TryGetValue(fieldName, out var index))
-        {
-            throw new System.ArgumentException($"Field '{fieldName}' not found in {typeof(T).Name}");
-        }
-
-        SetValue(obj, index, value);
-    }
-
     #endregion Generic Value Operations - Zero Boxing
-
-    #region Boxed Value Operations - Fallback
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Object GetValueBoxed(T obj, System.Int32 fieldIndex) => _metadata[fieldIndex].FieldInfo.GetValue(obj)!;
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Object GetValueBoxed(T obj, System.String fieldName)
-    {
-        return !_fieldIndex.TryGetValue(fieldName, out var index)
-            ? throw new System.ArgumentException($"Field '{fieldName}' not found in {typeof(T).Name}")
-            : GetValueBoxed(obj, index);
-    }
-
-    #endregion Boxed Value Operations - Fallback
 }

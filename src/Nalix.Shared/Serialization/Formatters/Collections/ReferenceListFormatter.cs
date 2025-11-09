@@ -14,7 +14,7 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-public sealed class ReferenceListFormatter<T> : IFormatter<System.Collections.Generic.List<T>> where T : class
+internal sealed class ReferenceListFormatter<T> : IFormatter<System.Collections.Generic.List<T>> where T : class
 {
     private static readonly IFormatter<T> _elementFormatter = FormatterProvider.Get<T>();
     private static System.String DebuggerDisplay => $"ReferenceListFormatter<{typeof(T).FullName}>";
@@ -28,8 +28,7 @@ public sealed class ReferenceListFormatter<T> : IFormatter<System.Collections.Ge
     /// Thrown if the underlying formatter for type <typeparamref name="T"/> encounters an error during serialization.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, System.Collections.Generic.List<T> value)
     {
         if (value is null)
@@ -58,8 +57,7 @@ public sealed class ReferenceListFormatter<T> : IFormatter<System.Collections.Ge
     /// Thrown if the list length is out of range or if the underlying formatter for type <typeparamref name="T"/> encounters an error during deserialization.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
     {
         System.UInt16 count = FormatterProvider.Get<System.UInt16>()

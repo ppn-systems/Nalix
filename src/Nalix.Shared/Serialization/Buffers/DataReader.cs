@@ -179,8 +179,7 @@ public unsafe struct DataReader : System.IDisposable
     /// </exception>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Advance(System.Int32 count)
     {
         System.ArgumentOutOfRangeException.ThrowIfNegative(count);
@@ -198,6 +197,8 @@ public unsafe struct DataReader : System.IDisposable
     /// </summary>
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (_pinned)

@@ -10,6 +10,7 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
+[System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed class StringFormatter : IFormatter<System.String>
@@ -23,8 +24,7 @@ public sealed class StringFormatter : IFormatter<System.String>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The string value to serialize.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public unsafe void Serialize(ref DataWriter writer, System.String value)
     {
         if (value == null)
@@ -58,14 +58,16 @@ public sealed class StringFormatter : IFormatter<System.String>
             ref System.Byte destination = ref writer.GetFreeBufferReference();
 
             fixed (System.Char* src = value)
-            fixed (System.Byte* dest = &destination)
             {
-                // Encode trực tiếp vào dest
-                System.Int32 bytesWritten = Utf8.GetBytes(src, value.Length, dest, byteCount);
-
-                if (bytesWritten != byteCount)
+                fixed (System.Byte* dest = &destination)
                 {
-                    throw new SerializationException("UTF8 encoding error for the string.");
+                    // Encode trực tiếp vào dest
+                    System.Int32 bytesWritten = Utf8.GetBytes(src, value.Length, dest, byteCount);
+
+                    if (bytesWritten != byteCount)
+                    {
+                        throw new SerializationException("UTF8 encoding error for the string.");
+                    }
                 }
             }
 
@@ -82,8 +84,7 @@ public sealed class StringFormatter : IFormatter<System.String>
     /// Thrown if the string length exceeds the maximum allowed limit.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public unsafe System.String Deserialize(ref DataReader reader)
     {
         System.UInt16 length = FormatterProvider.Get<System.UInt16>()

@@ -24,8 +24,7 @@ internal static partial class TypeMetadata
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 SizeOf<T>()
-        => System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
+    public static System.Int32 SizeOf<T>() => System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
 
     /// <summary>
     /// Determines whether the specified type is unmanaged.
@@ -35,8 +34,7 @@ internal static partial class TypeMetadata
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean IsUnmanaged<[
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>()
+    public static System.Boolean IsUnmanaged<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>()
         => Cache<T>.IsUnmanaged;
 
     /// <summary>
@@ -46,7 +44,9 @@ internal static partial class TypeMetadata
     /// <returns>True if the type is unmanaged; otherwise, false.</returns>
     /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="type"/> is null.</exception>
     [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static System.Boolean IsUnmanaged(System.Type type)
     {
         try
@@ -68,9 +68,7 @@ internal static partial class TypeMetadata
     /// <typeparam name="T">The type to check.</typeparam>
     /// <returns>True if the type is nullable; otherwise, false.</returns>
     [System.Diagnostics.Contracts.Pure]
-    public static System.Boolean IsNullable<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>()
-        => Cache<T>.IsNullable;
+    public static System.Boolean IsNullable<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>() => Cache<T>.IsNullable;
 
     /// <summary>
     /// Determines whether the type is a reference type or nullable.
@@ -80,8 +78,7 @@ internal static partial class TypeMetadata
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean IsReferenceOrNullable<[
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>()
+    public static System.Boolean IsReferenceOrNullable<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>()
         => Cache<T>.IsReference || Cache<T>.IsNullable;
 
     /// <summary>
@@ -93,8 +90,7 @@ internal static partial class TypeMetadata
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static TypeKind TryGetFixedOrUnmanagedSize<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>(out System.Int32 size)
+    public static TypeKind TryGetFixedOrUnmanagedSize<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>(out System.Int32 size)
     {
         if (Cache<T>.IsUnmanagedSZArray)
         {

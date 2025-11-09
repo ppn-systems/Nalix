@@ -12,7 +12,7 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-public sealed class ListFormatter<T> : IFormatter<System.Collections.Generic.List<T>>
+internal sealed class ListFormatter<T> : IFormatter<System.Collections.Generic.List<T>>
 {
     private static System.String DebuggerDisplay => $"ListFormatter<{typeof(T).FullName}>";
 
@@ -22,8 +22,7 @@ public sealed class ListFormatter<T> : IFormatter<System.Collections.Generic.Lis
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The list of elements to serialize.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, System.Collections.Generic.List<T> value)
     {
         if (value == null)
@@ -54,8 +53,7 @@ public sealed class ListFormatter<T> : IFormatter<System.Collections.Generic.Lis
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized list of elements, or null if the serialized data represents a null list.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
     {
         System.UInt16 length = FormatterProvider.Get<System.UInt16>()

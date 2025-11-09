@@ -17,6 +17,7 @@ namespace Nalix.Shared.Serialization.Internal.Accessors;
 /// </summary>
 /// <typeparam name="T">Object type chứa field.</typeparam>
 /// <typeparam name="TField">Field type.</typeparam>
+[System.Diagnostics.DebuggerNonUserCode]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class FieldAccessorImpl<T, TField>(System.Int32 index) : FieldAccessor<T>
 {
@@ -32,6 +33,8 @@ internal sealed class FieldAccessorImpl<T, TField>(System.Int32 index) : FieldAc
     /// <summary>
     /// Serializes field sử dụng FieldCache cho zero-boxing access.
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override void Serialize(ref DataWriter writer, T obj)
@@ -45,6 +48,8 @@ internal sealed class FieldAccessorImpl<T, TField>(System.Int32 index) : FieldAc
     /// <summary>
     /// Deserializes field sử dụng FieldCache cho zero-boxing access.
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override void Deserialize(ref DataReader reader, T obj)

@@ -16,7 +16,7 @@ namespace Nalix.Shared.Serialization.Formatters.Automatic;
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-public sealed class NullableStructFormatter<T> : IFormatter<T?> where T : struct
+internal sealed class NullableStructFormatter<T> : IFormatter<T?> where T : struct
 {
     private static System.String DebuggerDisplay => $"NullableStructFormatter<{typeof(T).FullName}>";
 
@@ -30,8 +30,7 @@ public sealed class NullableStructFormatter<T> : IFormatter<T?> where T : struct
     /// The serialization of the underlying value is handled by an instance of <see cref="StructFormatter{T}"/>.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T? value)
     {
         if (!value.HasValue)
@@ -61,8 +60,7 @@ public sealed class NullableStructFormatter<T> : IFormatter<T?> where T : struct
     /// is deserialized using an instance of <see cref="StructFormatter{T}"/>.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T? Deserialize(ref DataReader reader)
     {
         System.Byte marker = FormatterProvider.Get<System.Byte>()

@@ -44,8 +44,7 @@ public sealed class EnumFormatter<T> : IFormatter<T>
     /// Thrown if the underlying type of the enum is not supported.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T value)
         => _serialize(ref writer, value);
 
@@ -58,8 +57,7 @@ public sealed class EnumFormatter<T> : IFormatter<T>
     /// Thrown if the underlying type of the enum is not supported.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T Deserialize(ref DataReader reader)
         => _deserialize(ref reader);
 
@@ -70,7 +68,7 @@ public sealed class EnumFormatter<T> : IFormatter<T>
     private delegate T DeserializeDelegate(ref DataReader reader);
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static (SerializeDelegate serialize, DeserializeDelegate deserialize) CreateEnumFormatterDelegates()
     {
         return UnderlyingTypeCode switch

@@ -13,7 +13,7 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-public sealed class EnumArrayFormatter<T> : IFormatter<T[]> where T : struct, System.Enum
+internal sealed class EnumArrayFormatter<T> : IFormatter<T[]> where T : struct, System.Enum
 {
     private static readonly System.Int32 _elementSize;
     private static System.String DebuggerDisplay => $"EnumArrayFormatter<{typeof(T).FullName}>";
@@ -37,8 +37,7 @@ public sealed class EnumArrayFormatter<T> : IFormatter<T[]> where T : struct, Sy
     /// Thrown if the underlying type size of the enum is not supported.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public unsafe void Serialize(ref DataWriter writer, T[] value)
     {
         if (value == null)
@@ -79,8 +78,7 @@ public sealed class EnumArrayFormatter<T> : IFormatter<T[]> where T : struct, Sy
     /// Thrown if the array length is out of range or the underlying type size is not supported.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public unsafe T[] Deserialize(ref DataReader reader)
     {
         System.UInt16 length = FormatterProvider.Get<System.UInt16>()

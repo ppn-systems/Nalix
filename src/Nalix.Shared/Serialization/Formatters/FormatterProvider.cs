@@ -80,6 +80,25 @@ public static class FormatterProvider
         Register<System.DateTime?>(new NullableFormatter<System.DateTime>());
         Register<System.TimeSpan?>(new NullableFormatter<System.TimeSpan>());
         Register<System.DateTimeOffset?>(new NullableFormatter<System.DateTimeOffset>());
+
+        Register<System.Char?[]>(new NullableArrayFormatter<System.Char>());
+        Register<System.Byte?[]>(new NullableArrayFormatter<System.Byte>());
+        Register<System.SByte?[]>(new NullableArrayFormatter<System.SByte>());
+        Register<System.Int16?[]>(new NullableArrayFormatter<System.Int16>());
+        Register<System.UInt16?[]>(new NullableArrayFormatter<System.UInt16>());
+        Register<System.Int32?[]>(new NullableArrayFormatter<System.Int32>());
+        Register<System.UInt32?[]>(new NullableArrayFormatter<System.UInt32>());
+        Register<System.Int64?[]>(new NullableArrayFormatter<System.Int64>());
+        Register<System.UInt64?[]>(new NullableArrayFormatter<System.UInt64>());
+        Register<System.Single?[]>(new NullableArrayFormatter<System.Single>());
+        Register<System.Double?[]>(new NullableArrayFormatter<System.Double>());
+        Register<System.Boolean?[]>(new NullableArrayFormatter<System.Boolean>());
+        Register<System.Decimal?[]>(new NullableArrayFormatter<System.Decimal>());
+
+        Register<System.Guid?[]>(new NullableArrayFormatter<System.Guid>());
+        Register<System.DateTime?[]>(new NullableArrayFormatter<System.DateTime>());
+        Register<System.TimeSpan?[]>(new NullableArrayFormatter<System.TimeSpan>());
+        Register<System.DateTimeOffset?[]>(new NullableArrayFormatter<System.DateTimeOffset>());
     }
 
     /// <summary>
@@ -219,7 +238,17 @@ public static class FormatterProvider
         }
 
         // ============================================================
-        // CASE 6: Complex type (struct or class has fields/properties)
+        // CASE 6: List formatter
+        // ============================================================
+        formatter = TryCreateullableArrayFormatter<T>();
+        if (formatter is not null)
+        {
+            FormatterCache<T>.Formatter ??= formatter;
+            return FormatterCache<T>.Formatter!;
+        }
+
+        // ============================================================
+        // CASE 7: Complex type (struct or class has fields/properties)
         // ============================================================
         try
         {
@@ -312,25 +341,50 @@ public static class FormatterProvider
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T>? TryCreateArrayFormatter<T>()
     {
         System.Type type = typeof(T);
-        if (!typeof(T).IsArray && !typeof(T).IsSZArray)
+        if (!type.IsArray)
         {
             return null;
         }
 
         System.Type elementType = type.GetElementType()!;
-        System.Type formatterGeneric = elementType.IsEnum
-            ? typeof(EnumArrayFormatter<>)
-            : elementType.IsValueType && !elementType.IsEnum ? typeof(ArrayFormatter<>) : typeof(ReferenceArrayFormatter<>);
+        if (!(elementType.IsGenericType &&
+              elementType.GetGenericTypeDefinition() == typeof(System.Nullable<>)))
+        {
+            return null;
+        }
 
-        // T = int[] -> elementType = int -> formatterGeneric<int> = IFormatter<int[]>
-        System.Type actualFormatterType = formatterGeneric.MakeGenericType(elementType);
+        System.Type underlying = elementType.GetGenericArguments()[0];
+        System.Type formatterType = typeof(NullableArrayFormatter<>).MakeGenericType(underlying);
+        return (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
+    }
 
-        // object → IFormatter<int[]>
-        return (IFormatter<T>)System.Activator.CreateInstance(actualFormatterType)!;
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<T>? TryCreateullableArrayFormatter<T>()
+    {
+        // Handle only 1-D arrays like T[]; bail out early otherwise
+        System.Type type = typeof(T);
+        if (!type.IsArray)
+        {
+            return null;
+        }
+
+        // elementType should be Nullable<U> (i.e., U?)
+        System.Type elementType = type.GetElementType()!;
+        if (!(elementType.IsGenericType &&
+              elementType.GetGenericTypeDefinition() == typeof(System.Nullable<>)))
+        {
+            return null;
+        }
+
+        // Create NullableArrayFormatter<U> and return as IFormatter<T>
+        System.Type underlying = elementType.GetGenericArguments()[0]; // U
+        System.Type formatterType = typeof(NullableArrayFormatter<>).MakeGenericType(underlying);
+        return (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
