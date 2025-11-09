@@ -25,7 +25,6 @@ internal sealed class PooledSocketAsyncEventArgs : SocketAsyncEventArgs, IPoolab
     /// <summary>
     /// The pooled accept context associated with this event args.
     /// </summary>
-    [AllowNull]
     public PooledAcceptContext Context { get; set; }
 
     /// <summary>

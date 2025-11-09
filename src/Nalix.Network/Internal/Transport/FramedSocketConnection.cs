@@ -78,12 +78,12 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     /// PooledReceiveContext wraps a PooledSocketAsyncEventArgs from ObjectPoolManager.
     /// One context per connection; returned to the pool on Dispose.
     /// </summary>
-    [AllowNull] private IConnection _sender;
-    [AllowNull] private IConnectEventArgs _cachedArgs;
-    [AllowNull] private PooledSocketReceiveContext _recvCtx;
-    [AllowNull] private EventHandler<IConnectEventArgs> _callbackPost;
-    [AllowNull] private EventHandler<IConnectEventArgs> _callbackClose;
-    [AllowNull] private EventHandler<IConnectEventArgs> _callbackProcess;
+    private IConnection _sender;
+    private IConnectEventArgs _cachedArgs;
+    private PooledSocketReceiveContext _recvCtx;
+    private EventHandler<IConnectEventArgs> _callbackPost;
+    private EventHandler<IConnectEventArgs> _callbackClose;
+    private EventHandler<IConnectEventArgs> _callbackProcess;
 
     private int _pendingProcessCallbacks;
 
@@ -101,7 +101,6 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     /// </summary>
     private int _cancelSignaled;
 
-    [AllowNull]
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
@@ -109,7 +108,6 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     /// Receive buffer — owned by this connection during its lifetime.
     /// Swapped atomically when a larger packet arrives (rare).
     /// </summary>
-    [AllowNull]
     private byte[] buffer = BufferLease.ByteArrayPool.Rent();
 
     #endregion Fields
@@ -145,9 +143,9 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     public void SetCallback(
         IConnection sender,
         IConnectEventArgs args,
-        [AllowNull] EventHandler<IConnectEventArgs> close,
-        [AllowNull] EventHandler<IConnectEventArgs> post,
-        [AllowNull] EventHandler<IConnectEventArgs> process)
+        EventHandler<IConnectEventArgs> close,
+        EventHandler<IConnectEventArgs> post,
+        EventHandler<IConnectEventArgs> process)
     {
         _callbackPost = post;
         _callbackClose = close;

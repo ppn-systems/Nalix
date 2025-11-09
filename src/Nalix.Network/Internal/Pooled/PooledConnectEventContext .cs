@@ -46,7 +46,7 @@ internal sealed class PooledConnectEventContext : IPoolable
     /// <param name="sender">The source of the event.</param>
     /// <param name="args">The event arguments.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Initialize(EventHandler<IConnectEventArgs> callback, object sender, IConnectEventArgs args)
+    public void Initialize(EventHandler<IConnectEventArgs> callback, object? sender, IConnectEventArgs args)
     {
         Args = args;
         Sender = sender;
