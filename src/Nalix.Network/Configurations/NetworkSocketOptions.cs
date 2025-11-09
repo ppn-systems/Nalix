@@ -110,6 +110,11 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     public System.Int32 MaxGroupConcurrency { get; set; } = 8;
 
     /// <summary>
+    /// Tunes the thread pool settings for optimal network performance.
+    /// </summary>
+    public System.Boolean TuneThreadPool { get; set; } = false;
+
+    /// <summary>
     /// Gets a value indicating whether the current operating system is Windows.
     /// </summary>
     /// <value>
