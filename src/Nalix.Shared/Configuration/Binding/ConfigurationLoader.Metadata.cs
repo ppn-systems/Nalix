@@ -13,8 +13,7 @@ public partial class ConfigurationLoader
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static ConfigurationMetadata CreateConfigurationMetadata(System.Type type)
     {
@@ -60,9 +59,7 @@ public partial class ConfigurationLoader
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static ConfigurationMetadata GetOrCreateMetadata(System.Type type)
-        => _metadataCache.GetOrAdd(type, CreateConfigurationMetadata);
+    private static ConfigurationMetadata GetOrCreateMetadata(System.Type type) => _metadataCache.GetOrAdd(type, CreateConfigurationMetadata);
 }

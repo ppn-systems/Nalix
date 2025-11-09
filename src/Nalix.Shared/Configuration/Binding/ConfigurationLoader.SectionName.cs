@@ -10,8 +10,7 @@ public partial class ConfigurationLoader
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static System.String GetSectionName(System.Type type)
         => _sectionNameCache.GetOrAdd(type, t =>
@@ -37,10 +36,8 @@ public partial class ConfigurationLoader
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static System.String Capitalize(System.String input)
-        => System.String.IsNullOrEmpty(input) ? input :
-           System.Char.ToUpperInvariant(input[0]) + input[1..];
+        => System.String.IsNullOrEmpty(input) ? input : System.Char.ToUpperInvariant(input[0]) + input[1..];
 }

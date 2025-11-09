@@ -16,6 +16,8 @@ namespace Nalix.Shared.Configuration;
 /// <remarks>
 /// This implementation includes thread safety, caching optimizations, and lazy loading.
 /// </remarks>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("ConfigFilePath = {ConfigFilePath,nq}, LoadedTypes = {_configContainerDict.Count}")]
 public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 {
@@ -83,7 +85,6 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <returns>An instance of type <typeparamref name="TClass"/>.</returns>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public TClass Get<TClass>() where TClass : ConfigurationLoader, new()
@@ -112,6 +113,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </summary>
     /// <returns>True if the reload was successful; otherwise, false.</returns>
     [System.Diagnostics.CodeAnalysis.MemberNotNull]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public System.Boolean ReloadAll()
     {
         // Ensure only one reload happens at a time
@@ -170,14 +173,15 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean IsLoaded<TClass>() where TClass : ConfigurationLoader
-        => _configContainerDict.ContainsKey(typeof(TClass));
+    public System.Boolean IsLoaded<TClass>() where TClass : ConfigurationLoader => _configContainerDict.ContainsKey(typeof(TClass));
 
     /// <summary>
     /// Removes a specific configuration from the cache.
     /// </summary>
     /// <typeparam name="TClass">The configuration type to remove.</typeparam>
     /// <returns>True if the configuration was removed; otherwise, false.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public System.Boolean Remove<TClass>() where TClass : ConfigurationLoader
     {
         _configLock.EnterWriteLock();
@@ -194,6 +198,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <summary>
     /// Clears all cached configurations.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void ClearAll()
     {
         _configLock.EnterWriteLock();
@@ -210,6 +216,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <summary>
     /// Ensures that changes are written to disk.
     /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Flush()
     {
         if (_iniFile.IsValueCreated)
@@ -262,9 +270,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <summary>
     /// Ensures the configuration directory exists.
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void EnsureConfigDirectoryExists()
     {
         if (!_directoryChecked)
