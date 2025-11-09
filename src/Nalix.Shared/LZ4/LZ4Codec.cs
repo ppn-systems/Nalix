@@ -19,10 +19,11 @@ public static class LZ4Codec
     /// <param name="output">The output buffer to receive the compressed data.</param>
     /// <returns>The number of bytes written to the output buffer, or -1 if compression fails.</returns>
     [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 Encode(System.ReadOnlySpan<System.Byte> input, System.Span<System.Byte> output)
-        => LZ4Encoder.Encode(input, output);
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public static System.Int32 Encode(System.ReadOnlySpan<System.Byte> input, System.Span<System.Byte> output) => LZ4Encoder.Encode(input, output);
 
     /// <summary>
     /// Compresses the input byte array into the specified output byte array.
@@ -31,8 +32,10 @@ public static class LZ4Codec
     /// <param name="output">The output byte array to receive the compressed data.</param>
     /// <returns>The number of bytes written to the output array, or -1 if compression fails.</returns>
     [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 Encode(System.Byte[] input, System.Byte[] output)
         => LZ4Encoder.Encode(System.MemoryExtensions.AsSpan(input), System.MemoryExtensions.AsSpan(output));
 
@@ -42,6 +45,10 @@ public static class LZ4Codec
     /// <param name="input">The input byte array to compress.</param>
     /// <returns>The number of bytes written to the output array.</returns>
     [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Encode(System.ReadOnlySpan<System.Byte> input)
     {
         System.Int32 maxOutputSize = LZ4BlockEncoder.GetMaxLength(input.Length);
@@ -58,12 +65,11 @@ public static class LZ4Codec
     /// <param name="output">The output buffer to receive the decompressed data.</param>
     /// <returns>The number of bytes written to the output buffer, or -1 if decompression fails.</returns>
     [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 Decode(
-        System.ReadOnlySpan<System.Byte> input,
-        System.Span<System.Byte> output)
-        => LZ4Decoder.Decode(input, output);
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public static System.Int32 Decode(System.ReadOnlySpan<System.Byte> input, System.Span<System.Byte> output) => LZ4Decoder.Decode(input, output);
 
     /// <summary>
     /// Decompresses the compressed input byte array into the specified output byte array.
@@ -72,8 +78,10 @@ public static class LZ4Codec
     /// <param name="output">The output byte array to receive the decompressed data.</param>
     /// <returns>The number of bytes written to the output array, or -1 if decompression fails.</returns>
     [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 Decode(System.Byte[] input, System.Byte[] output)
         => LZ4Decoder.Decode(System.MemoryExtensions.AsSpan(input), System.MemoryExtensions.AsSpan(output));
 
@@ -85,11 +93,13 @@ public static class LZ4Codec
     /// <param name="bytesWritten">The number of bytes actually written to the output array.</param>
     /// <returns>True if decompression succeeds; otherwise, false.</returns>
     [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Boolean Decode(
         System.ReadOnlySpan<System.Byte> input,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte[]? output,
-        out System.Int32 bytesWritten)
+        [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 bytesWritten)
         => LZ4Decoder.Decode(input, out output, out bytesWritten);
 }
