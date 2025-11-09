@@ -15,7 +15,7 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-public sealed class EnumListFormatter<T> : IFormatter<System.Collections.Generic.List<T>>
+internal sealed class EnumListFormatter<T> : IFormatter<System.Collections.Generic.List<T>>
     where T : struct, System.Enum
 {
     private static readonly EnumFormatter<T> _enumFormatter = new();
@@ -30,8 +30,7 @@ public sealed class EnumListFormatter<T> : IFormatter<System.Collections.Generic
     /// Thrown if the underlying type of the enum is not supported by the <see cref="EnumFormatter{T}"/>.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, System.Collections.Generic.List<T> value)
     {
         if (value is null)
@@ -60,8 +59,7 @@ public sealed class EnumListFormatter<T> : IFormatter<System.Collections.Generic
     /// Thrown if the list length is out of range or if the underlying type of the enum is not supported by the <see cref="EnumFormatter{T}"/>.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
     {
         System.UInt16 count = FormatterProvider.Get<System.UInt16>()

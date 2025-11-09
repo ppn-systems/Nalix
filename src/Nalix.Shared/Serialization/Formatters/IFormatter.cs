@@ -8,7 +8,11 @@ namespace Nalix.Shared.Serialization.Formatters;
 /// Defines methods to serialize and deserialize a value of type <typeparamref name="T"/>.
 /// </summary>
 /// <typeparam name="T">The type to serialize and deserialize.</typeparam>
-public interface IFormatter<T>
+public interface IFormatter<[
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
 {
     /// <summary>
     /// Serializes the specified value into the provided serialization writer.

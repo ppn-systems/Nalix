@@ -23,9 +23,10 @@ internal static partial class TypeMetadata
         _sizeOfFnCache = new();
     }
 
-    // Phương thức trợ giúp để xác định nếu một kiểu chứa tham chiếu
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static System.Boolean IsReferenceOrContainsReferences(System.Type type)
     {
         System.Func<System.Boolean> fn = _isRefCache.GetOrAdd(type, static t =>
@@ -44,8 +45,10 @@ internal static partial class TypeMetadata
         return fn();
     }
 
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static System.Int32 UnsafeSizeOf(System.Type type)
     {
         System.Func<System.Int32> del = _sizeOfFnCache.GetOrAdd(type, static t =>

@@ -23,9 +23,10 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 /// </remarks>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
+[System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unmanaged
+internal sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unmanaged
 {
     private static System.String DebuggerDisplay => $"UnmanagedFormatter<{typeof(T).FullName}>";
 
@@ -35,8 +36,7 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
     /// <param name="writer">The <see cref="DataWriter"/> to write to.</param>
     /// <param name="value">The unmanaged value to write.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T value)
     {
         System.Int32 size = System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
@@ -109,8 +109,7 @@ public sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unma
     /// <param name="reader">The <see cref="DataReader"/> to read from.</param>
     /// <returns>The unmanaged value read from the buffer.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T Deserialize(ref DataReader reader)
     {
         System.Int32 size = System.Runtime.CompilerServices.Unsafe.SizeOf<T>();

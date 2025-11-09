@@ -136,7 +136,8 @@ public ref struct DataWriter
     /// <param name="count">Number of bytes to commit (must fit into <see cref="FreeBuffer"/>).</param>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if out of bounds or non-positive.</exception>
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Advance(System.Int32 count)
     {
         if (count <= 0 || (System.UInt32)(WrittenCount + count) > (System.UInt32)_span.Length)
@@ -153,7 +154,8 @@ public ref struct DataWriter
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Diagnostics.CodeAnalysis.UnscopedRef]
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public readonly ref System.Byte GetFreeBufferReference()
         => ref System.Runtime.InteropServices.MemoryMarshal.GetReference(FreeBuffer);
 
@@ -165,9 +167,35 @@ public ref struct DataWriter
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if non-positive.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown when expansion is not allowed.</exception>
     [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Expand(System.Int32 minimumSize)
     {
+        [System.Diagnostics.StackTraceHidden]
+        [System.Diagnostics.DebuggerStepThrough]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        static unsafe void CopyBytes(System.Byte[]? src, System.Byte[] dst, System.Int32 count)
+        {
+            System.ArgumentNullException.ThrowIfNull(src);
+            System.ArgumentNullException.ThrowIfNull(dst);
+            System.ArgumentOutOfRangeException.ThrowIfNegative(count);
+
+            if ((System.UInt32)count > (System.UInt32)src.Length || (System.UInt32)count > (System.UInt32)dst.Length)
+            {
+                throw new System.ArgumentOutOfRangeException(nameof(count));
+            }
+
+            fixed (System.Byte* pSrc = &System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(src))
+            {
+                fixed (System.Byte* pDst = &System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(dst))
+                {
+                    System.Buffer.MemoryCopy(pSrc, pDst, (System.UIntPtr)count, (System.UIntPtr)count);
+                }
+            }
+        }
+
         if (minimumSize <= 0)
         {
             throw new System.ArgumentOutOfRangeException(nameof(minimumSize), "Size must be greater than zero.");
@@ -191,7 +219,14 @@ public ref struct DataWriter
         System.Byte[] newOwner = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(newSize);
         if (WrittenCount > 0)
         {
-            _span[..WrittenCount].CopyTo(newOwner);
+            if (current <= 128)
+            {
+                _span[..WrittenCount].CopyTo(newOwner);
+            }
+            else
+            {
+                CopyBytes(_owner, newOwner, WrittenCount);
+            }
         }
 
         if (_owner is not null)
@@ -226,6 +261,8 @@ public ref struct DataWriter
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (_owner is not null)
