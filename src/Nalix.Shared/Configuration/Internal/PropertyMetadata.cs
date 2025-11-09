@@ -10,6 +10,8 @@ namespace Nalix.Shared.Configuration.Internal;
 /// <summary>
 /// Stores metadata about a configuration property.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{Naming,nq} ({PropertyType.Naming})")]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal class PropertyMetadata
@@ -48,8 +50,11 @@ internal class PropertyMetadata
     /// </summary>
     /// <param name="target">The target object.</param>
     /// <param name="value">The value to set.</param>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void SetValue(System.Object target, System.Object? value)
     {
         // Only set if the types are compatible
