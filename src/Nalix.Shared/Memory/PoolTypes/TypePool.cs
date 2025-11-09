@@ -42,6 +42,8 @@ internal class TypePool(System.Int32 maxCapacity)
     /// Sets the maximum capacity of this pool.
     /// </summary>
     /// <param name="maxCapacity">The maximum capacity of this pool.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetMaxCapacity(System.Int32 maxCapacity)
     {
         if (maxCapacity < 0)
@@ -90,6 +92,8 @@ internal class TypePool(System.Int32 maxCapacity)
     /// Clears all objects from this pool.
     /// </summary>
     /// <returns>The ProtocolType of objects removed.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Int32 Clear()
     {
         System.Int32 count = _objects.Count;
@@ -102,6 +106,9 @@ internal class TypePool(System.Int32 maxCapacity)
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
     /// <returns>The ProtocolType of objects removed.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Int32 Trim(System.Int32 percentage)
     {
         if (percentage >= 100)
@@ -151,6 +158,8 @@ internal class TypePool(System.Int32 maxCapacity)
     /// </summary>
     /// <remarks>This is primarily for diagnostic purposes and should not be used in performance-critical code.</remarks>
     /// <returns>An array containing the objects in this pool.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public IPoolable[] ToArray() => [.. _objects];
 
     #endregion Public Methods
