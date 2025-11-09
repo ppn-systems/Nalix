@@ -7,78 +7,9 @@ namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
 {
-    /// <summary>
-    /// Configures the socket for high-performance operation by setting buffer sizes, timeouts, and keep-alive options.
-    /// </summary>
-    /// <param name="socket">The socket to configure.</param>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
-    private static void ConfigureHighPerformanceSocket(System.Net.Sockets.Socket socket)
-    {
-        // Performance tuning
-        socket.NoDelay = Config.NoDelay;
-        socket.SendBufferSize = Config.BufferSize;
-        socket.ReceiveBufferSize = Config.BufferSize;
-
-        // When you want to disconnect immediately without making sure the data has been sent.
-        // socket.LingerState = new LingerOption(true, NetworkSocketOptions.False);
-
-        // Keep the accepted socket in blocking mode; Task-based async works fine with blocking sockets.
-        // If you really want non-blocking I/O, ensure your Accept/Receive loops expect WouldBlock.
-        socket.Blocking = true;
-
-        if (Config.KeepAlive)
-        {
-            // Windows specific settings
-            socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Socket,
-                                   System.Net.Sockets.SocketOptionName.KeepAlive, true);
-
-            if (Config.IsWindows)
-            {
-                // Win32 SIO_KEEPALIVE_VALS: [on(4)][time(4 ms)][interval(4 ms)]
-                // 1. Turning on Keep-Alive
-                // 2. 3 seconds without data, send Keep-Alive
-                // 3. Send every 1 second if there is no response
-
-                const System.Int32 on = 1;
-                const System.Int32 time = 3_000;
-                const System.Int32 interval = 1_000;
-
-                System.Span<System.Byte> keepAlive = stackalloc System.Byte[12];
-
-                System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(keepAlive[..4], on);
-                System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(keepAlive.Slice(4, 4), time);
-                System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(keepAlive.Slice(8, 4), interval);
-
-                // Windows specific settings
-                _ = socket.IOControl(System.Net.Sockets.IOControlCode.KeepAliveValues, keepAlive.ToArray(), null);
-            }
-            else if (!Config.IsWindows)
-            {
-                try
-                {
-                    // These may be supported on modern .NET / kernels:
-                    // TcpKeepAliveTime (seconds), value example: 3
-                    // TcpKeepAliveInterval (seconds), value example: 1
-                    // TcpKeepAliveRetryCount, value example: 5
-
-                    socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp, System.Net.Sockets.SocketOptionName.DontRoute, 3);
-                    socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp, System.Net.Sockets.SocketOptionName.UnblockSource, 1);
-                    socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp, System.Net.Sockets.SocketOptionName.TcpKeepAliveInterval, 5);
-                }
-                catch { /* best-effort, ignore if not supported */ }
-            }
-        }
-    }
-
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void Initialize()
     {
         if (Config.EnableIPv6)
@@ -119,10 +50,10 @@ public abstract partial class TcpListenerBase
                 listener.Bind(epV6Any);
                 listener.Listen(Config.Backlog);
 
-                this._listener = listener;
+                _listener = listener;
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug($"[{nameof(TcpListenerBase)}:{nameof(Initialize)}] " +
-                                               $"config-listen {this._listener.LocalEndPoint} (dual)");
+                                               $"config-listen {_listener.LocalEndPoint} (dual)");
                 return;
             }
             catch
@@ -135,7 +66,7 @@ public abstract partial class TcpListenerBase
         }
 
         // Fallback: IPv4-only
-        this._listener = new System.Net.Sockets.Socket(
+        _listener = new System.Net.Sockets.Socket(
             System.Net.Sockets.AddressFamily.InterNetwork,
             System.Net.Sockets.SocketType.Stream,
             System.Net.Sockets.ProtocolType.Tcp)
@@ -145,12 +76,12 @@ public abstract partial class TcpListenerBase
             Blocking = true
         };
 
-        this._listener.SetSocketOption(
+        _listener.SetSocketOption(
             System.Net.Sockets.SocketOptionLevel.Socket,
             System.Net.Sockets.SocketOptionName.ReuseAddress,
             Config.ReuseAddress ? 1 : 0);
 
-        this._listener.SetSocketOption(
+        _listener.SetSocketOption(
             System.Net.Sockets.SocketOptionLevel.Socket,
             System.Net.Sockets.SocketOptionName.ReceiveBuffer,
             Config.BufferSize);
@@ -164,12 +95,72 @@ public abstract partial class TcpListenerBase
         _listener.Listen(Config.Backlog);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {this._listener.LocalEndPoint}");
+                                .Debug($"[{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}");
     }
 
-    /// <summary>
-    /// Classifies socket errors that are expected/ignorable during shutdown.
-    /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
+    private static void InitializeSocketOptions(System.Net.Sockets.Socket socket)
+    {
+        // Performance tuning
+        socket.NoDelay = Config.NoDelay;
+        socket.SendBufferSize = Config.BufferSize;
+        socket.ReceiveBufferSize = Config.BufferSize;
+
+        // When you want to disconnect immediately without making sure the data has been sent.
+        // socket.LingerState = new LingerOption(true, NetworkSocketOptions.False);
+
+        // Keep the accepted socket in blocking mode; Task-based async works fine with blocking sockets.
+        // If you really want non-blocking I/O, ensure your Accept/Receive loops expect WouldBlock.
+        socket.Blocking = true;
+
+        if (Config.KeepAlive)
+        {
+            // Windows specific settings
+            socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Socket,
+                                   System.Net.Sockets.SocketOptionName.KeepAlive, true);
+
+            try
+            {
+                // Cross-platform in modern .NET
+                socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp,
+                                       System.Net.Sockets.SocketOptionName.TcpKeepAliveTime, 3);
+
+                socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp,
+                                       System.Net.Sockets.SocketOptionName.TcpKeepAliveInterval, 1);
+
+                socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp,
+                                       System.Net.Sockets.SocketOptionName.TcpKeepAliveRetryCount, 3);
+            }
+            catch
+            {
+                // Fallback Windows-only SIO_KEEPALIVE_VALS if needed
+                if (Config.IsWindows)
+                {
+                    // Win32 SIO_KEEPALIVE_VALS: [on(4)][time(4 ms)][interval(4 ms)]
+                    // 1. Turning on Keep-Alive
+                    // 2. 3 seconds without data, send Keep-Alive
+                    // 3. Send every 1 second if there is no response
+
+                    const System.Int32 on = 1;
+                    const System.Int32 time = 3_000;
+                    const System.Int32 interval = 1_000;
+
+                    System.Byte[] vals = new System.Byte[12];
+                    System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(System.MemoryExtensions.AsSpan(vals)[0..4], on);
+                    System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(System.MemoryExtensions.AsSpan(vals)[4..8], time);
+                    System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(System.MemoryExtensions.AsSpan(vals)[8..12], interval);
+                    socket.IOControl(System.Net.Sockets.IOControlCode.KeepAliveValues, vals, null);
+                }
+            }
+        }
+    }
+
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
