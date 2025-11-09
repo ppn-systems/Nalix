@@ -13,7 +13,11 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-public sealed class EnumFormatter<T> : IFormatter<T>
+public sealed class EnumFormatter<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T>
 {
     private static readonly SerializeDelegate _serialize;
     private static readonly DeserializeDelegate _deserialize;

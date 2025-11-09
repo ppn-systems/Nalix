@@ -14,7 +14,11 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class ArrayFormatter<T> : IFormatter<T[]> where T : unmanaged
+internal sealed class ArrayFormatter<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T[]> where T : unmanaged
 {
     private static System.String DebuggerDisplay => $"ArrayFormatter<{typeof(T).FullName}>";
 

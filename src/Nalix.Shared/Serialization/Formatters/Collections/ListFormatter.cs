@@ -12,7 +12,11 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class ListFormatter<T> : IFormatter<System.Collections.Generic.List<T>>
+internal sealed class ListFormatter<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<System.Collections.Generic.List<T>>
 {
     private static System.String DebuggerDisplay => $"ListFormatter<{typeof(T).FullName}>";
 

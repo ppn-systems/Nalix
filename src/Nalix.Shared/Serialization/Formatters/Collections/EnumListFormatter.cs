@@ -15,7 +15,11 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class EnumListFormatter<T> : IFormatter<System.Collections.Generic.List<T>>
+internal sealed class EnumListFormatter<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<System.Collections.Generic.List<T>>
     where T : struct, System.Enum
 {
     private static readonly EnumFormatter<T> _enumFormatter = new();
