@@ -109,8 +109,8 @@ public static class FormatterProvider
         Register<System.TimeSpan?[]>(new NullableArrayFormatter<System.TimeSpan>());
         Register<System.DateTimeOffset?[]>(new NullableArrayFormatter<System.DateTimeOffset>());
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Debug(
-            "[FormatterProvider] init in {0} ms. Total={1} " +
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info(
+            "[FormatterProvider] init-ok in {0} ms. Total={1} " +
             "| Primitives={2}, Nullables={3}, Arrays={4}, NullableArrays={5}, Lists={6}, Enums={7}, Strings={8} |",
             _sw.ElapsedMilliseconds, _cntTotal,
             _cntPrimitives, _cntNullables, _cntArrays, _cntNullableArrays, _cntLists, _cntEnums, _cntStrings);

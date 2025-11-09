@@ -2,8 +2,6 @@
 
 using Nalix.Common.Caching;
 using Nalix.Shared.Memory.Pools;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 
 namespace Nalix.Shared.Memory.PoolTypes;
 
@@ -35,21 +33,24 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// Gets an object from the pool.
     /// </summary>
     /// <returns>An instance of <typeparamref name="T"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T Get() => _parentPool.Get<T>();
 
     /// <summary>
     /// Clears this type's pool.
     /// </summary>
     /// <returns>The ProtocolType of objects removed.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Int32 Clear() => _parentPool.ClearType<T>();
 
     /// <summary>
     /// Returns an object to the pool.
     /// </summary>
     /// <param name="obj">The object to return.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Return(T obj) => _parentPool.Return(obj);
 
     /// <summary>
@@ -57,6 +58,8 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// </summary>
     /// <param name="count">The ProtocolType of objects to preallocate.</param>
     /// <returns>The ProtocolType of objects successfully preallocated.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Int32 Prealloc(System.Int32 count) => _parentPool.Prealloc<T>(count);
 
     /// <summary>
@@ -64,25 +67,33 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// </summary>
     /// <param name="count">The ProtocolType of objects to get.</param>
     /// <returns>A list containing the requested objects.</returns>
-    public List<T> GetMultiple(System.Int32 count) => _parentPool.GetMultiple<T>(count);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Collections.Generic.List<T> GetMultiple(System.Int32 count) => _parentPool.GetMultiple<T>(count);
 
     /// <summary>
     /// Gets information about this type's pool.
     /// </summary>
     /// <returns>A dictionary containing pool statistics for this type.</returns>
-    public Dictionary<System.String, System.Object> GetInfo() => _parentPool.GetTypeInfo<T>();
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Collections.Generic.Dictionary<System.String, System.Object> GetInfo() => _parentPool.GetTypeInfo<T>();
 
     /// <summary>
     /// Returns multiple objects to the pool.
     /// </summary>
     /// <param name="objects">The objects to return.</param>
     /// <returns>The ProtocolType of objects successfully returned to the pool.</returns>
-    public System.Int32 ReturnMultiple(IEnumerable<T> objects) => _parentPool.ReturnMultiple(objects);
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Int32 ReturnMultiple(System.Collections.Generic.IEnumerable<T> objects) => _parentPool.ReturnMultiple(objects);
 
     /// <summary>
     /// Sets the maximum capacity for this type's pool.
     /// </summary>
     /// <param name="maxCapacity">The maximum capacity.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void SetMaxCapacity(System.Int32 maxCapacity) => _parentPool.SetMaxCapacity<T>(maxCapacity);
 
     #endregion Public Methods
