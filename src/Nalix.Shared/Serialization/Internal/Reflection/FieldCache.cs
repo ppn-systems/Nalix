@@ -10,7 +10,11 @@ using Nalix.Shared.Messaging.Binary;
 
 namespace Nalix.Shared.Serialization.Internal.Reflection;
 
-internal static partial class FieldCache<T>
+internal static partial class FieldCache<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
 {
     #region Static Fields
 

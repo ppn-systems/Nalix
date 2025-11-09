@@ -1,11 +1,12 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Logging;
 using Nalix.Common.Serialization;
+using Nalix.Framework.Injection;
 using Nalix.Shared.Serialization.Formatters.Automatic;
 using Nalix.Shared.Serialization.Formatters.Cache;
 using Nalix.Shared.Serialization.Formatters.Collections;
 using Nalix.Shared.Serialization.Formatters.Primitives;
-using Nalix.Shared.Serialization.Internal.Types;
 
 namespace Nalix.Shared.Serialization.Formatters;
 
@@ -14,6 +15,14 @@ namespace Nalix.Shared.Serialization.Formatters;
 /// </summary>
 public static class FormatterProvider
 {
+    #region Fields
+
+    private static System.Int32 _cntTotal, _cntPrimitives, _cntNullables, _cntArrays, _cntNullableArrays, _cntLists, _cntEnums, _cntStrings;
+    private static readonly System.Diagnostics.Stopwatch _sw = System.Diagnostics.Stopwatch.StartNew();
+
+
+    #endregion Fields
+
     /// <summary>
     /// Initializes the static <see cref="FormatterProvider"/> class by registering formatters.
     /// </summary>
@@ -99,6 +108,12 @@ public static class FormatterProvider
         Register<System.DateTime?[]>(new NullableArrayFormatter<System.DateTime>());
         Register<System.TimeSpan?[]>(new NullableArrayFormatter<System.TimeSpan>());
         Register<System.DateTimeOffset?[]>(new NullableArrayFormatter<System.DateTimeOffset>());
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Debug(
+            "[FormatterProvider] init in {0} ms. Total={1} " +
+            "| Primitives={2}, Nullables={3}, Arrays={4}, NullableArrays={5}, Lists={6}, Enums={7}, Strings={8} |",
+            _sw.ElapsedMilliseconds, _cntTotal,
+            _cntPrimitives, _cntNullables, _cntArrays, _cntNullableArrays, _cntLists, _cntEnums, _cntStrings);
     }
 
     /// <summary>
@@ -117,7 +132,57 @@ public static class FormatterProvider
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(IFormatter<T> formatter)
-        => FormatterCache<T>.Formatter = formatter ?? throw new System.ArgumentNullException(nameof(formatter));
+    {
+        System.ArgumentNullException.ThrowIfNull(formatter);
+
+        System.Type t = typeof(T);
+        System.Type ut = t;
+        System.Boolean isArray = ut.IsArray;
+        System.Boolean isNullable = ut.IsGenericType && ut.GetGenericTypeDefinition() == typeof(System.Nullable<>);
+
+        System.Threading.Interlocked.Increment(ref _cntTotal);
+        if (t == typeof(System.String))
+        {
+            System.Threading.Interlocked.Increment(ref _cntStrings); return;
+        }
+
+        if (isArray)
+        {
+            System.Type elem = ut.GetElementType()!;
+            if (elem.IsGenericType && elem.GetGenericTypeDefinition() == typeof(System.Nullable<>))
+            {
+                System.Threading.Interlocked.Increment(ref _cntNullableArrays);
+            }
+            else
+            {
+                System.Threading.Interlocked.Increment(ref _cntArrays);
+            }
+
+            return;
+        }
+
+        if (isNullable)
+        {
+            System.Threading.Interlocked.Increment(ref _cntNullables); return;
+        }
+        if (ut.IsEnum)
+        {
+            System.Threading.Interlocked.Increment(ref _cntEnums); return;
+        }
+
+        if (ut.IsPrimitive || ut == typeof(System.Decimal) || ut == typeof(System.DateTime) ||
+            ut == typeof(System.DateTimeOffset) || ut == typeof(System.TimeSpan) || ut == typeof(System.Guid) || ut == typeof(System.Char))
+        {
+            System.Threading.Interlocked.Increment(ref _cntPrimitives);
+            return;
+        }
+
+        if (ut.IsGenericType && ut.GetGenericTypeDefinition() == typeof(System.Collections.Generic.List<>))
+        {
+            System.Threading.Interlocked.Increment(ref _cntLists);
+            return;
+        }
+    }
 
     /// <summary>
     /// Registers a formatter for complex types, distinguishing between value types and reference types.
@@ -170,108 +235,63 @@ public static class FormatterProvider
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
-        // Formatter has been cached → return immediately
-        if (FormatterCache<T>.Formatter is not null)
+        // Fast path: cached
+        IFormatter<T> cached = FormatterCache<T>.Formatter;
+        if (cached is not null)
         {
-            return FormatterCache<T>.Formatter;
+            return cached;
         }
 
-        System.Type targetType = typeof(T);
-        IFormatter<T>? formatter;
+        System.Type t = typeof(T);
 
-        // ============================================================
-        // CASE 1: Nullable struct (int?, DateTime?, ...)
-        // ============================================================
-        if (targetType.IsGenericType &&
-            targetType.GetGenericTypeDefinition() == typeof(System.Nullable<>))
+        // 1) Array
+        IFormatter<T>? f = TryCreateArrayFormatter<T>();
+        if (f is not null)
         {
-            if (FormatterCache<T>.Formatter is not null)
-            {
-                return FormatterCache<T>.Formatter;
-            }
+            return FormatterCache<T>.Formatter ??= f;
+        }
 
-            var underlying = System.Nullable.GetUnderlyingType(targetType)!;
+        // 2) List<T>
+        f = TryCreateListFormatter<T>();
+        if (f is not null)
+        {
+            return FormatterCache<T>.Formatter ??= f;
+        }
+
+        // 3) Enum
+        f = TryCreateEnumFormatter<T>();
+        if (f is not null)
+        {
+            return FormatterCache<T>.Formatter ??= f;
+        }
+
+        // 4) Nullable<TUnderlying>
+        if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(System.Nullable<>))
+        {
+            var underlying = System.Nullable.GetUnderlyingType(t)!;
             var created = (IFormatter<T>)System.Activator
                 .CreateInstance(typeof(NullableFormatter<>).MakeGenericType(underlying))!;
-
-            FormatterCache<T>.Formatter ??= created;
-            return FormatterCache<T>.Formatter!;
+            return FormatterCache<T>.Formatter ??= created;
         }
 
-        // ============================================================
-        // CASE 2: Reference type (class) → null marker support
-        //  - Subtract string because it has its own StringFormatter
-        // ============================================================
-        if (targetType.IsClass && targetType != typeof(System.String))
+        // 5) Class (exclude string)
+        if (t.IsClass && t != typeof(System.String))
         {
-            // Skip null marker for packable classes (explicit serialization)
-            if (System.Attribute.IsDefined(targetType, typeof(SerializePackableAttribute)))
+            if (System.Attribute.IsDefined(t, typeof(SerializePackableAttribute)))
             {
-                formatter = GetComplex<T>(); // will use ObjectFormatter<T>
+                f = GetComplex<T>(); // explicit packable → no per-object null marker
             }
             else
             {
-                System.Type formatterType = typeof(NullableObjectFormatter<>).MakeGenericType(targetType);
-                formatter = (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
+                var ft = typeof(NullableObjectFormatter<>).MakeGenericType(t);
+                f = (IFormatter<T>)System.Activator.CreateInstance(ft)!;
             }
-            FormatterCache<T>.Formatter ??= formatter;
-            return FormatterCache<T>.Formatter!;
+            return FormatterCache<T>.Formatter ??= f;
         }
 
-        // ============================================================
-        // CASE 3: Enum formatter
-        // ============================================================
-        formatter = TryCreateEnumFormatter<T>();
-        if (formatter is not null)
-        {
-            FormatterCache<T>.Formatter ??= formatter;
-            return FormatterCache<T>.Formatter!;
-        }
-
-        // ============================================================
-        // CASE 4: Array formatter
-        // ============================================================
-        formatter = TryCreateArrayFormatter<T>();
-        if (formatter is not null)
-        {
-            FormatterCache<T>.Formatter ??= formatter;
-            return FormatterCache<T>.Formatter!;
-        }
-
-        // ============================================================
-        // CASE 5: List formatter
-        // ============================================================
-        formatter = TryCreateListFormatter<T>();
-        if (formatter is not null)
-        {
-            FormatterCache<T>.Formatter ??= formatter;
-            return FormatterCache<T>.Formatter!;
-        }
-
-        // ============================================================
-        // CASE 6: List formatter
-        // ============================================================
-        formatter = TryCreateullableArrayFormatter<T>();
-        if (formatter is not null)
-        {
-            FormatterCache<T>.Formatter ??= formatter;
-            return FormatterCache<T>.Formatter!;
-        }
-
-        // ============================================================
-        // CASE 7: Complex type (struct or class has fields/properties)
-        // ============================================================
-        try
-        {
-            formatter = GetComplex<T>();
-            FormatterCache<T>.Formatter ??= formatter;
-            return FormatterCache<T>.Formatter!;
-        }
-        catch (System.Exception ex)
-        {
-            throw new System.InvalidOperationException(
-                $"No formatter registered for type {targetType.FullName} and could not auto-generate one.", ex);
-        }
+        // 6) Complex auto-gen (struct/class)
+        f = GetComplex<T>();
+        return FormatterCache<T>.Formatter ??= f;
     }
 
     /// <summary>
@@ -358,7 +378,7 @@ public static class FormatterProvider
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T>? TryCreateArrayFormatter<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
@@ -371,85 +391,77 @@ public static class FormatterProvider
             return null;
         }
 
-        System.Type elementType = type.GetElementType()!;
-        if (!(elementType.IsGenericType &&
-              elementType.GetGenericTypeDefinition() == typeof(System.Nullable<>)))
+        System.Type elem = type.GetElementType()!;
+
+        // Nullable<U>[] → NullableArrayFormatter<U>
+        if (elem.IsGenericType && elem.GetGenericTypeDefinition() == typeof(System.Nullable<>))
         {
-            return null;
+            System.Type u = elem.GetGenericArguments()[0];
+            System.Type f = typeof(NullableArrayFormatter<>).MakeGenericType(u);
+            return (IFormatter<T>)System.Activator.CreateInstance(f)!;
         }
 
-        System.Type underlying = elementType.GetGenericArguments()[0];
-        System.Type formatterType = typeof(NullableArrayFormatter<>).MakeGenericType(underlying);
-        return (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
+        // Enum[] → EnumArrayFormatter<Enum>
+        if (elem.IsEnum)
+        {
+            System.Type f = typeof(EnumArrayFormatter<>).MakeGenericType(elem);
+            return (IFormatter<T>)System.Activator.CreateInstance(f)!;
+        }
+
+        // ValueType[] (managed or unmanaged) → ArrayFormatter<U>
+        if (elem.IsValueType)
+        {
+            System.Type f = typeof(ArrayFormatter<>).MakeGenericType(elem);
+            return (IFormatter<T>)System.Activator.CreateInstance(f)!;
+        }
+
+        // ReferenceType[] → ReferenceArrayFormatter<U>
+        // Cần có formatter này (hoặc mở rộng ArrayFormatter để support ref-type).
+        System.Type refArrF = typeof(ReferenceArrayFormatter<>).MakeGenericType(elem);
+        return (IFormatter<T>)System.Activator.CreateInstance(refArrF)!;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T>? TryCreateullableArrayFormatter<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
-    {
-        // Handle only 1-D arrays like T[]; bail out early otherwise
-        System.Type type = typeof(T);
-        if (!type.IsArray)
-        {
-            return null;
-        }
-
-        // elementType should be Nullable<U> (i.e., U?)
-        System.Type elementType = type.GetElementType()!;
-        if (!(elementType.IsGenericType &&
-              elementType.GetGenericTypeDefinition() == typeof(System.Nullable<>)))
-        {
-            return null;
-        }
-
-        // Create NullableArrayFormatter<U> and return as IFormatter<T>
-        System.Type underlying = elementType.GetGenericArguments()[0]; // U
-        System.Type formatterType = typeof(NullableArrayFormatter<>).MakeGenericType(underlying);
-        return (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
-    }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T>? TryCreateListFormatter<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
-        if (!typeof(T).IsGenericType ||
-            typeof(T).GetGenericTypeDefinition() != typeof(System.Collections.Generic.List<>))
+        System.Type t = typeof(T);
+        if (!t.IsGenericType || t.GetGenericTypeDefinition() != typeof(System.Collections.Generic.List<>))
         {
             return null;
         }
 
-        System.Type formatterType;
-        System.Type elementType = typeof(T).GetGenericArguments()[0];
+        System.Type elem = t.GetGenericArguments()[0];
 
-        if (elementType.IsEnum)
+        // List<Enum>
+        if (elem.IsEnum)
         {
-            formatterType = typeof(EnumListFormatter<>).MakeGenericType(elementType);
-        }
-        else if (elementType.IsValueType &&
-                !elementType.IsEnum && TypeMetadata.IsUnmanaged(elementType))
-        {
-            formatterType = typeof(ListFormatter<>).MakeGenericType(elementType);
-        }
-        else if (elementType.IsClass ||
-                (elementType.IsValueType && !elementType.IsPrimitive && !elementType.IsEnum))
-        {
-            formatterType = typeof(ReferenceListFormatter<>).MakeGenericType(elementType);
-        }
-        else
-        {
-            return null;
+            return (IFormatter<T>)System.Activator.CreateInstance(typeof(EnumListFormatter<>).MakeGenericType(elem))!;
         }
 
-        return (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
+        // List<Nullable<U>>
+        if (elem.IsGenericType && elem.GetGenericTypeDefinition() == typeof(System.Nullable<>))
+        {
+            System.Type u = elem.GetGenericArguments()[0];
+            return (IFormatter<T>)System.Activator.CreateInstance(typeof(NullableValueListFormatter<>).MakeGenericType(u))!;
+        }
+
+        // List<value-type non-nullable> (managed or unmanaged)
+        if (elem.IsValueType && !elem.IsEnum)
+        {
+            // Dùng ListFormatter<U> để không ghi null-flag per element
+            return (IFormatter<T>)System.Activator.CreateInstance(typeof(ListFormatter<>).MakeGenericType(elem))!;
+        }
+
+        // List<class>
+        return (IFormatter<T>)System.Activator.CreateInstance(typeof(ReferenceListFormatter<>).MakeGenericType(elem))!;
     }
+
 
     #endregion Private Methods
 }
