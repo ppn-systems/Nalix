@@ -13,6 +13,7 @@ namespace Nalix.Shared.Memory.Pooling;
 /// <summary>
 /// Manages buffers of various sizes with optimized allocation/deallocation and optional trimming.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
 public sealed class BufferPoolManager : System.IDisposable, IReportable
 {
     #region Fields & Constants
@@ -40,7 +41,6 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     private readonly System.Buffers.ArrayPool<System.Byte> _fallbackArrayPool = System.Buffers.ArrayPool<System.Byte>.Shared;
     private readonly BufferPoolCollection _poolManager;
 
-    private System.Threading.Timer? _trimTimer;
     private System.Int32 _trimCycleCount;
     private System.Boolean _isInitialized;
 
@@ -137,6 +137,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// <summary>
     /// Rents a buffer of at least the requested size with optimized caching and optional fallback.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] Rent(System.Int32 size = 256)
@@ -189,6 +190,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// <summary>
     /// Returns the buffer to the appropriate pool with safety checks and fallback.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Return(System.Byte[]? buffer)
@@ -233,6 +235,9 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// <summary>
     /// Gets the allocation ratio for a given buffer size with caching for performance.
     /// </summary>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public System.Double GetAllocationForSize(System.Int32 size)
     {
         if (size > MaxBufferSize)
@@ -276,6 +281,9 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// Generates a report on the current state of the buffer pools.
     /// </summary>
     /// <returns>A string containing the report.</returns>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public System.String GenerateReport()
     {
         System.Text.StringBuilder sb = new();
@@ -324,8 +332,9 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// <summary>
     /// Allocates buffers based on the configuration settings.
     /// </summary>
+    [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void AllocateBuffers()
     {
         if (_isInitialized)
@@ -348,7 +357,10 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// <summary>
     /// Periodically trims excess buffers to reduce memory footprint.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void TrimExcessBuffers(System.Object? _)
     {
         System.Int32 cycle = System.Threading.Interlocked.Increment(ref _trimCycleCount);
@@ -403,7 +415,9 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// <summary>
     /// Shrinks the buffer pool size using an optimized algorithm.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void ShrinkBufferPoolSize(BufferPoolShared pool)
     {
         ref readonly BufferPoolState poolInfo = ref pool.GetPoolInfoRef();
@@ -447,7 +461,9 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// <summary>
     /// Increases the buffer pool size using an optimized algorithm.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void IncreaseBufferPoolSize(BufferPoolShared pool)
     {
         ref readonly BufferPoolState poolInfo = ref pool.GetPoolInfoRef();
@@ -498,7 +514,9 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// <summary>
     /// Parses the buffer allocation settings with caching for repeated configurations.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static (System.Int32, System.Double)[] ParseBufferAllocations(System.String bufferAllocationsString)
     {
         return System.String.IsNullOrWhiteSpace(bufferAllocationsString)
@@ -526,6 +544,9 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         });
     }
 
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static (System.Int32 allocationSize, System.Double ratio)[] ParseAllocations(System.String key, System.String bufferAllocationsString)
     {
         // Split by ';'
@@ -576,9 +597,6 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// </summary>
     public void Dispose()
     {
-        _trimTimer?.Dispose();
-        _trimTimer = null;
-
         _suitablePoolSizeCache.Clear();
         _poolManager.Dispose();
 
