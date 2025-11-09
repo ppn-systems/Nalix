@@ -26,7 +26,11 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed partial class UnmanagedFormatter<T> : IFormatter<T> where T : unmanaged
+internal sealed partial class UnmanagedFormatter<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T> where T : unmanaged
 {
     private static System.String DebuggerDisplay => $"UnmanagedFormatter<{typeof(T).FullName}>";
 

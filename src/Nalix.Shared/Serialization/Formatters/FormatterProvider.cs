@@ -112,9 +112,12 @@ public static class FormatterProvider
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void Register<T>(IFormatter<T> formatter)
-        => FormatterCache<T>.Formatter = formatter
-        ?? throw new System.ArgumentNullException(nameof(formatter));
+    public static void Register<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(IFormatter<T> formatter)
+        => FormatterCache<T>.Formatter = formatter ?? throw new System.ArgumentNullException(nameof(formatter));
 
     /// <summary>
     /// Registers a formatter for complex types, distinguishing between value types and reference types.
@@ -127,7 +130,11 @@ public static class FormatterProvider
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void RegisterComplex<T>(IFormatter<T> formatter)
+    public static void RegisterComplex<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(IFormatter<T> formatter)
     {
         // Check if the type is a value type and not an enum
         System.Type type = typeof(T);
@@ -157,7 +164,11 @@ public static class FormatterProvider
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static IFormatter<T> Get<T>()
+    public static IFormatter<T> Get<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         // Formatter has been cached → return immediately
         if (FormatterCache<T>.Formatter is not null)
@@ -274,9 +285,11 @@ public static class FormatterProvider
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static IFormatter<T> GetComplex<[
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>()
+    internal static IFormatter<T> GetComplex<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         IFormatter<T> formatter;
         System.Type type = typeof(T);
@@ -326,7 +339,11 @@ public static class FormatterProvider
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static EnumFormatter<T>? TryCreateEnumFormatter<T>()
+    private static EnumFormatter<T>? TryCreateEnumFormatter<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         if (typeof(T).IsEnum)
         {
@@ -342,7 +359,11 @@ public static class FormatterProvider
 
     [System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T>? TryCreateArrayFormatter<T>()
+    private static IFormatter<T>? TryCreateArrayFormatter<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         System.Type type = typeof(T);
         if (!type.IsArray)
@@ -364,7 +385,11 @@ public static class FormatterProvider
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T>? TryCreateullableArrayFormatter<T>()
+    private static IFormatter<T>? TryCreateullableArrayFormatter<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         // Handle only 1-D arrays like T[]; bail out early otherwise
         System.Type type = typeof(T);
@@ -389,7 +414,11 @@ public static class FormatterProvider
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T>? TryCreateListFormatter<T>()
+    private static IFormatter<T>? TryCreateListFormatter<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         if (!typeof(T).IsGenericType ||
             typeof(T).GetGenericTypeDefinition() != typeof(System.Collections.Generic.List<>))

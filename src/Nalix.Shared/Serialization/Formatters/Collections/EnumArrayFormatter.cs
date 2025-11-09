@@ -13,7 +13,11 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class EnumArrayFormatter<T> : IFormatter<T[]> where T : struct, System.Enum
+internal sealed class EnumArrayFormatter<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T[]> where T : struct, System.Enum
 {
     private static readonly System.Int32 _elementSize;
     private static System.String DebuggerDisplay => $"EnumArrayFormatter<{typeof(T).FullName}>";
