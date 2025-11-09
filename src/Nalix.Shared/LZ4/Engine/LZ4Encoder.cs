@@ -8,9 +8,8 @@ namespace Nalix.Shared.LZ4.Engine;
 /// Provides functionality to compress data using the LZ4 algorithm, optimized for zero-allocation and high efficiency.
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-internal readonly struct LZ4Encoder
+internal static class LZ4Encoder
 {
     /// <summary>
     /// Compresses the provided input data into the specified output buffer.
@@ -21,12 +20,12 @@ internal readonly struct LZ4Encoder
     /// The total number of bytes written to the output buffer (including the header),
     /// or -1 if the output buffer is too small or compression fails.
     /// </returns>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static unsafe System.Int32 Encode(
-        System.ReadOnlySpan<System.Byte> input,
-        System.Span<System.Byte> output)
+    public static unsafe System.Int32 Encode(System.ReadOnlySpan<System.Byte> input, System.Span<System.Byte> output)
     {
         // Token empty input
         if (input.IsEmpty)
@@ -60,6 +59,8 @@ internal readonly struct LZ4Encoder
                 }
 
                 System.Int32 totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
+                System.Diagnostics.Debug.Assert(totalCompressedLength <= output.Length);
+
                 WriteHeader(output, input.Length, totalCompressedLength);
                 return totalCompressedLength;
             }
@@ -75,6 +76,7 @@ internal readonly struct LZ4Encoder
     /// </summary>
     /// <param name="output">The output buffer to write the header into.</param>
     /// <returns>The size of the header, or -1 if the buffer is too small.</returns>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Int32 WriteEmptyHeader(System.Span<System.Byte> output)
@@ -95,12 +97,10 @@ internal readonly struct LZ4Encoder
     /// <param name="output">The output buffer to write the header into.</param>
     /// <param name="originalLength">The original length of the input data.</param>
     /// <param name="compressedLength">The total compressed length, including the header.</param>
+    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void WriteHeader(
-        System.Span<System.Byte> output,
-        System.Int32 originalLength,
-        System.Int32 compressedLength)
+    private static void WriteHeader(System.Span<System.Byte> output, System.Int32 originalLength, System.Int32 compressedLength)
     {
         LZ4BlockHeader header = new(originalLength, compressedLength);
         MemOps.WriteUnaligned(output, header);
