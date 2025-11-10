@@ -49,8 +49,7 @@ public sealed class ConsoleLogTarget : ILoggerTarget
     /// </summary>
     /// <param name="logMessage">The log message to be outputted.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Publish(LogEntry logMessage) => System.Console.WriteLine(_loggerFormatter.FormatLog(logMessage));
 
     #endregion Public Methods

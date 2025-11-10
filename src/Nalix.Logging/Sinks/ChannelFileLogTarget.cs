@@ -16,6 +16,8 @@ namespace Nalix.Logging.Sinks;
 /// <see cref="FileLogTarget"/>, but it uses <see cref="ChannelFileLoggerProvider"/> internally
 /// to buffer and asynchronously write logs to the file system.
 /// </remarks>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Diagnostics.DebuggerDisplay("ChannelFileLogTarget")]
 public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
 {
     private readonly ILoggerFormatter _formatter;
@@ -67,6 +69,9 @@ public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
     /// Publishes a log entry to the file logging channel.
     /// </summary>
     /// <param name="logMessage">The log entry to be written.</param>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Publish(LogEntry logMessage)
         => _provider.WriteEntry(_formatter.FormatLog(logMessage));
 
@@ -76,6 +81,10 @@ public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
     /// <remarks>
     /// Ensures the log queue is flushed before disposal.
     /// </remarks>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Dispose()
     {
         _provider.FlushQueue();
@@ -88,6 +97,9 @@ public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     /// <param name="configure">The action that configures the file log options.</param>
     /// <returns>A configured <see cref="FileLogOptions"/> instance.</returns>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static FileLogOptions Configure(System.Action<FileLogOptions> configure)
     {
         FileLogOptions opts = new();
