@@ -19,6 +19,7 @@ namespace Nalix.Logging;
 /// The <see cref="NLogix"/> logger supports dependency injection or can be accessed via <see cref="Host"/>.
 /// Logging targets and behavior can be customized during initialization using <see cref="NLogixOptions"/>.
 /// </remarks>
+[System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Logger=NLogix, {GetType().Name,nq}")]
 public sealed partial class NLogix : NLogixEngine, ILogger
@@ -42,17 +43,16 @@ public sealed partial class NLogix : NLogixEngine, ILogger
 
     // Sanitize log message to prevent log forging
     // Removes potentially dangerous characters (e.g., newlines or control characters)
+    [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.String SanitizeLogMessage(System.String? message)
         => message?.Replace("\n", "").Replace("\r", "") ?? System.String.Empty;
 
     // Writes a log entry with the specified level, event ProtocolType, message, and optional exception.
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void WriteLog(
         LogLevel level, EventId eventId,
         System.String message, System.Exception? exception = null)
