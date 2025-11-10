@@ -36,7 +36,7 @@ internal sealed class IniConfig
 
     #region Fields
 
-    private static readonly System.String SectionSeparator = "; " + new System.String('=', 78);
+    private static readonly System.String SectionSeparator = "; " + new System.String('-', 78);
 
     // Thread synchronization for file operations
     private readonly System.Threading.ReaderWriterLockSlim _fileLock;
@@ -1253,175 +1253,170 @@ internal sealed class IniConfig
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void WriteFile()
     {
-        if (!_isDirty)
-        {
-            return;
-        }
-
         _fileLock.EnterWriteLock();
-        System.String? tempFileName = null;
-
         try
         {
-            // Ensure directory exists with validation
-            System.String? directory = System.IO.Path.GetDirectoryName(_path);
-            if (System.String.IsNullOrWhiteSpace(directory))
+            // Re-check under lock to avoid unnecessary writes
+            if (!_isDirty)
             {
-                throw new System.InvalidOperationException(
-                    "Cannot write configuration file: invalid directory path.");
+                return;
             }
 
-            if (!System.IO.Directory.Exists(directory))
-            {
-                try
-                {
-                    _ = System.IO.Directory.CreateDirectory(directory);
-                }
-                catch (System.UnauthorizedAccessException ex)
-                {
-                    throw new System.UnauthorizedAccessException(
-                        $"Access denied when creating directory: {directory}", ex);
-                }
-            }
+            System.String? tempFileName = null;
+            System.Boolean committed = false;
 
-            // Write to a temporary file first to prevent corruption
-            tempFileName = _path + ".tmp";
-
-            // Delete temp file if it exists from a previous failed operation
-            if (System.IO.File.Exists(tempFileName))
+            try
             {
-                try
+                // Ensure directory exists with validation
+                System.String? directory = System.IO.Path.GetDirectoryName(_path);
+                if (System.String.IsNullOrWhiteSpace(directory))
                 {
-                    System.IO.File.Delete(tempFileName);
+                    throw new System.InvalidOperationException(
+                        "Cannot write configuration file: invalid directory path.");
                 }
-                catch (System.IO.IOException)
-                {
-                    // If we can't delete the temp file, try with a different name
-                    tempFileName = $"{_path}.{System.Guid.NewGuid():N}.tmp";
-                }
-            }
 
-            using (System.IO.StreamWriter writer = new(
-                tempFileName, false, System.Text.Encoding.UTF8, DefaultBufferSize))
-            {
-                System.Boolean isFirstSection = true;
-                foreach (var section in _iniData)
+                if (!System.IO.Directory.Exists(directory))
                 {
-                    if (section.Key != System.String.Empty)
+                    try
                     {
-                        if (!isFirstSection)
-                        {
-                            writer.WriteLine();
-                        }
-
-                        System.String sectionCommentKey = section.Key;
-                        System.Boolean hasSectionComment = _comments.ContainsKey(sectionCommentKey);
-
-                        if (hasSectionComment)
-                        {
-                            // Có comment → 3 dòng: separator + comment + separator
-                            writer.WriteLine(SectionSeparator);
-                            WriteInlineComment(writer, section.Key, commentKey: sectionCommentKey);
-                            writer.WriteLine(SectionSeparator);
-                        }
-                        else
-                        {
-                            // Không có comment → chỉ 1 dòng separator
-                            writer.WriteLine(SectionSeparator);
-                        }
-
-                        writer.Write(SectionStart);
-                        writer.Write(section.Key);
-                        writer.WriteLine(SectionEnd);
-
-                        isFirstSection = false;
+                        _ = System.IO.Directory.CreateDirectory(directory);
                     }
-
-                    System.Int32 maxKeyLength = 0;
-                    foreach (var kv in section.Value)
+                    catch (System.UnauthorizedAccessException ex)
                     {
-                        if (kv.Key.Length > maxKeyLength)
-                        {
-                            maxKeyLength = kv.Key.Length;
-                        }
-                    }
-
-                    System.Boolean isFirstKey = true;
-                    foreach (var keyValue in section.Value)
-                    {
-                        System.String cacheKey = CreateCacheKey(section.Key, keyValue.Key);
-                        System.Boolean hasComment = _comments.ContainsKey(cacheKey);
-
-                        if (!isFirstKey && hasComment)
-                        {
-                            writer.WriteLine();
-                        }
-
-                        isFirstKey = false;
-
-                        // Write property-level comment (keyed by "Section:Key")
-                        WriteInlineComment(writer, section.Key, commentKey: CreateCacheKey(section.Key, keyValue.Key));
-
-                        writer.Write(keyValue.Key.PadRight(maxKeyLength));
-                        writer.Write(" = ");
-                        writer.WriteLine(keyValue.Value);
+                        throw new System.UnauthorizedAccessException(
+                            $"Access denied when creating directory: {directory}", ex);
                     }
                 }
 
-                // Ensure all data is written to disk
-                writer.Flush();
-            }
+                // Write to a temporary file first to prevent corruption
+                tempFileName = _path + ".tmp";
 
-            // Atomic file replacement
-            if (System.IO.File.Exists(_path))
-            {
-                System.IO.File.Replace(tempFileName, _path, null);
-            }
-            else
-            {
-                System.IO.File.Move(tempFileName, _path);
-            }
+                // Delete temp file if it exists from a previous failed operation
+                if (System.IO.File.Exists(tempFileName))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(tempFileName);
+                    }
+                    catch (System.IO.IOException)
+                    {
+                        // If we can't delete the temp file, try with a different name
+                        tempFileName = $"{_path}.{System.Guid.NewGuid():N}.tmp";
+                    }
+                }
 
-            // Update last write time after our own modification
-            _lastFileReadTime = System.IO.File.GetLastWriteTimeUtc(_path);
-            _isDirty = false;
-            tempFileName = null; // Mark as successfully processed
-        }
-        catch (System.UnauthorizedAccessException ex)
-        {
-            throw new System.UnauthorizedAccessException(
-                $"Access denied when writing configuration file: {_path}", ex);
-        }
-        catch (System.IO.PathTooLongException ex)
-        {
-            throw new System.IO.IOException(
-                $"Configuration file path is too long: {_path}", ex);
-        }
-        catch (System.IO.IOException ex)
-        {
-            throw new System.IO.IOException(
-                $"I/O error writing configuration file: {_path}", ex);
-        }
-        catch (System.Exception ex)
-        {
-            throw new System.IO.IOException(
-                $"Unexpected error writing configuration file: {_path}", ex);
+                using (System.IO.StreamWriter writer = new(
+                    tempFileName, false, System.Text.Encoding.UTF8, DefaultBufferSize))
+                {
+                    System.Boolean isFirstSection = true;
+                    foreach (var section in _iniData)
+                    {
+                        if (section.Key != System.String.Empty)
+                        {
+                            if (!isFirstSection)
+                            {
+                                writer.WriteLine("\n");
+                            }
+
+                            System.String sectionCommentKey = section.Key;
+                            System.Boolean hasSectionComment = _comments.ContainsKey(sectionCommentKey);
+
+                            if (hasSectionComment)
+                            {
+                                // Has comment → 3 lines: separator + comment + separator
+                                writer.WriteLine(SectionSeparator);
+                                WriteInlineComment(writer, section.Key, commentKey: sectionCommentKey);
+
+                                foreach (var keyValue in section.Value)
+                                {
+                                    System.String cacheKey = CreateCacheKey(section.Key, keyValue.Key);
+                                    System.Boolean hasComment = _comments.ContainsKey(cacheKey);
+
+                                    // Write property-level comment (keyed by "Section:Key")
+                                    WriteInlineComment(writer, section.Key, commentKey: CreateCacheKey(section.Key, keyValue.Key));
+                                }
+
+                                writer.WriteLine(SectionSeparator);
+                            }
+                            else
+                            {
+                                // No comment → single separator line
+                                writer.WriteLine(SectionSeparator);
+                            }
+
+                            writer.Write(SectionStart);
+                            writer.Write(section.Key);
+                            writer.WriteLine(SectionEnd);
+
+                            isFirstSection = false;
+                        }
+
+                        System.Int32 maxKeyLength = 0;
+                        foreach (var kv in section.Value)
+                        {
+                            if (kv.Key.Length > maxKeyLength)
+                            {
+                                maxKeyLength = kv.Key.Length;
+                            }
+                        }
+
+                        foreach (var keyValue in section.Value)
+                        {
+                            writer.Write(keyValue.Key.PadRight(maxKeyLength));
+                            writer.Write(" = ");
+                            writer.WriteLine(keyValue.Value);
+                        }
+                    }
+
+                    // Ensure all data is written to disk
+                    writer.Flush();
+                }
+
+                // Atomic file replacement
+                if (System.IO.File.Exists(_path))
+                {
+                    System.IO.File.Replace(tempFileName, _path, null);
+                }
+                else
+                {
+                    System.IO.File.Move(tempFileName, _path);
+                }
+
+                // Update last write time after our own modification
+                _lastFileReadTime = System.IO.File.GetLastWriteTimeUtc(_path);
+                _isDirty = false;
+                committed = true;
+            }
+            catch (System.UnauthorizedAccessException ex)
+            {
+                throw new System.UnauthorizedAccessException($"Access denied when writing configuration file: {_path}", ex);
+            }
+            catch (System.IO.PathTooLongException ex)
+            {
+                throw new System.IO.IOException($"Configuration file path is too long: {_path}", ex);
+            }
+            catch (System.IO.IOException ex) when (ex is not System.IO.IOException { InnerException: not null })
+            {
+                throw new System.IO.IOException($"I/O error writing configuration file: {_path}", ex);
+            }
+            finally
+            {
+                // Clean up temp file only if write was not successfully committed
+                if (!committed && tempFileName != null && System.IO.File.Exists(tempFileName))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(tempFileName);
+                    }
+                    catch
+                    {
+                        // Ignore cleanup errors
+                    }
+                }
+            }
         }
         finally
         {
-            // Clean up temp file if write failed
-            if (tempFileName != null && System.IO.File.Exists(tempFileName))
-            {
-                try
-                {
-                    System.IO.File.Delete(tempFileName);
-                }
-                catch
-                {
-                    // Ignore cleanup errors
-                }
-            }
-
             _fileLock.ExitWriteLock();
         }
     }
