@@ -203,7 +203,6 @@ public static class EnvelopeCipher
     /// </code>
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public static bool Encrypt(
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> plaintext,
@@ -259,7 +258,6 @@ public static class EnvelopeCipher
     /// </code>
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public static bool Decrypt(
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> envelope,
@@ -335,7 +333,6 @@ public static class EnvelopeCipher
     /// </code>
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public static bool Encrypt(
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> plaintext,
@@ -372,7 +369,6 @@ public static class EnvelopeCipher
     /// </code>
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public static bool Decrypt(
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> envelope,

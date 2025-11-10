@@ -187,7 +187,6 @@ public sealed class BufferLease : IBufferLease
     /// </summary>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     public ArraySegment<byte> AsSegment()
         => _buffer is null ? default : new ArraySegment<byte>(_buffer, _start, Length);
 
@@ -302,7 +301,6 @@ public sealed class BufferLease : IBufferLease
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     public bool ReleaseOwnership(
         [MaybeNull] out byte[]? buffer,
         out int start,
@@ -338,7 +336,6 @@ public sealed class BufferLease : IBufferLease
     /// <param name="zeroOnDispose"></param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     public static BufferLease Rent(
         int capacity,
         bool zeroOnDispose = false)
@@ -352,7 +349,6 @@ public sealed class BufferLease : IBufferLease
     /// </summary>
     /// <param name="src"></param>
     /// <param name="zeroOnDispose"></param>
-    [return: NotNull]
     public static BufferLease CopyFrom(
         ReadOnlySpan<byte> src,
         bool zeroOnDispose = false)
@@ -370,7 +366,6 @@ public sealed class BufferLease : IBufferLease
     /// <param name="length"></param>
     /// <param name="zeroOnDispose"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     public static BufferLease FromRented(
         byte[] buffer,
         int length,
@@ -386,7 +381,6 @@ public sealed class BufferLease : IBufferLease
     /// <param name="length"></param>
     /// <param name="zeroOnDispose"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     public static BufferLease TakeOwnership(
         byte[] buffer,
         int start,

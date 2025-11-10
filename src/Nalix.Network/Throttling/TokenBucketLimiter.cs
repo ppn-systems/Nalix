@@ -124,7 +124,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     private readonly int _cleanupIntervalSec;
     private readonly long _initialBalanceMicro;
 
-    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>()!;
 
     private int _totalEndpointCount;
     private volatile bool _disposed;
@@ -149,7 +149,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     /// </summary>
     /// <param name="options">Configuration options for the limiter.</param>
     /// <exception cref="InternalErrorException">Thrown when options validation fails.</exception>
-    public TokenBucketLimiter(TokenBucketOptions options = null)
+    public TokenBucketLimiter(TokenBucketOptions? options = null)
     {
         _options = options ?? ConfigurationManager.Instance.Get<TokenBucketOptions>();
         _options.Validate();

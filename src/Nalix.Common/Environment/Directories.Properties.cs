@@ -27,7 +27,6 @@ public static partial class Directories
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static bool IsRunningInContainer
     {
-        [return: NotNull]
         get => IsContainerLazy.Value;
     }
 
@@ -50,7 +49,6 @@ public static partial class Directories
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string BaseAssetsDirectory
     {
-        [return: NotNull]
         get => BasePathLazy.Value;
     }
 
@@ -70,7 +68,6 @@ public static partial class Directories
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string LogsDirectory
     {
-        [return: NotNull]
         get => LogsPathLazy.Value;
     }
 
@@ -89,7 +86,6 @@ public static partial class Directories
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string DataDirectory
     {
-        [return: NotNull]
         get => DataPathLazy.Value;
     }
 
@@ -109,7 +105,6 @@ public static partial class Directories
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string ConfigurationDirectory
     {
-        [return: NotNull]
         get => ConfigPathLazy.Value;
     }
 
@@ -131,7 +126,6 @@ public static partial class Directories
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string TemporaryDirectory
     {
-        [return: NotNull]
         get => TempPathLazy.Value;
     }
 
@@ -151,7 +145,6 @@ public static partial class Directories
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string StorageDirectory
     {
-        [return: NotNull]
         get => StoragePathLazy.Value;
     }
 
@@ -171,7 +164,6 @@ public static partial class Directories
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string DatabaseDirectory
     {
-        [return: NotNull]
         get => DatabasePathLazy.Value;
     }
 
@@ -185,7 +177,6 @@ public static partial class Directories
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string CacheDirectory
     {
-        [return: NotNull]
         get => CachesPathLazy.Value;
     }
 
@@ -199,7 +190,6 @@ public static partial class Directories
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string UploadsDirectory
     {
-        [return: NotNull]
         get => UploadsPathLazy.Value;
     }
 
@@ -213,7 +203,6 @@ public static partial class Directories
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string BackupsDirectory
     {
-        [return: NotNull]
         get => BackupsPathLazy.Value;
     }
 }

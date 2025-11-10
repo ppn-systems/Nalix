@@ -17,7 +17,7 @@ internal sealed class ByteArrayReturnHandler<TPacket> : IReturnHandler<TPacket> 
 {
     /// <inheritdoc/>
     public async ValueTask HandleAsync(
-        object result,
+        object? result,
         PacketContext<TPacket> context)
     {
         if (result is not byte[] data)

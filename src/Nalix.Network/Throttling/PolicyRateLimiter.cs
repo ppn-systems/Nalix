@@ -61,7 +61,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     private static readonly int[] s_rpsTiers = [1, 2, 4, 8, 16, 32, 64, 128];
     private static readonly double[] s_burstTiers = [0.1, 0.2, 0.5, 1, 2, 4, 8, 16, 32, 64];
 
-    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>()!;
     private static readonly TokenBucketOptions s_defaults = ConfigurationManager.Instance.Get<TokenBucketOptions>();
 
     #endregion Fields

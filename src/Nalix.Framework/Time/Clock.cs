@@ -82,7 +82,6 @@ public static partial class Clock
     /// <param name="maxAllowedDriftMs">Maximum allowed drift in milliseconds before adjustment is applied.</param>
     /// <returns>The adjustment made in milliseconds.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     public static double SynchronizeTime(
         DateTime externalTime,
         double maxAllowedDriftMs = 1000.0)
@@ -138,7 +137,6 @@ public static partial class Clock
     /// <returns>The adjustment made in milliseconds, or 0 if inputs are invalid or adjustment exceeds limits.</returns>
     /// <exception cref="ArgumentException">Thrown when input parameters are invalid.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     public static double SynchronizeUnixMilliseconds(
         long serverUnixMs,
         double rttMs = 0,
@@ -186,7 +184,6 @@ public static partial class Clock
     /// Resets time synchronization to use the local system time.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     public static void ResetSynchronization()
     {
         _ = Interlocked.Exchange(ref _timeOffset, 0);
@@ -202,14 +199,12 @@ public static partial class Clock
     /// A value less than 1.0 means the local clock is running faster than the reference clock.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public static double DriftRate() => Volatile.Read(ref _driftCorrection);
 
     /// <summary>
     /// Gets the current error estimate between the synchronized time and system time in milliseconds.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public static double CurrentErrorEstimateMs()
     {
         if (!IsSynchronized)

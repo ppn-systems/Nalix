@@ -17,7 +17,6 @@ public partial class ConfigurationLoader
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     private static string GetSectionName(Type type)
         => _sectionNameCache.GetOrAdd(type, t =>
         {
@@ -51,7 +50,6 @@ public partial class ConfigurationLoader
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     private static string Capitalize(string input)
         => string.IsNullOrEmpty(input) ? input : char.ToUpperInvariant(input[0]) + input[1..];
 }

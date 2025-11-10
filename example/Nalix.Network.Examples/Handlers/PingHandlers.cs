@@ -27,18 +27,18 @@ public sealed class PingHandlers
     [PacketOpcode(0)]
     [PacketEncryption(true)]
     [PacketPermission(PermissionLevel.GUEST)]
-    public static async System.Threading.Tasks.Task Ping(PacketContext<IPacket> context)
+    public static async Task Ping(PacketContext<IPacket> context)
     {
         Handshake packet = (Handshake)context.Packet;
-        UInt32 fallbackSeq = context.Packet.SequenceId;
-        System.Console.WriteLine("Received PING from " + context.Connection.NetworkEndpoint.Address);
+        uint fallbackSeq = context.Packet.SequenceId;
+        Console.WriteLine("Received PING from " + context.Connection.NetworkEndpoint.Address);
 
         try
         {
             // Gửi Control PONG về client
-            await context.Sender.SendAsync(packet).ConfigureAwait(false);
+            _ = await context.Sender.SendAsync(packet).ConfigureAwait(false);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             s_logger?.Error($"[APP.{nameof(PingHandlers)}] failed ep={context.Connection.NetworkEndpoint.Address} ex={ex.Message}\nStackTrace: {ex.StackTrace}");
 
@@ -47,7 +47,7 @@ public sealed class PingHandlers
                 ProtocolReason.INTERNAL_ERROR,
                 ProtocolAdvice.BACKOFF_RETRY,
                 sequenceId: packet.SequenceId,
-                flags: ControlFlags.IS_TRANSIENT).ConfigureAwait(false);
+                flags: ControlFlags.IsTransient).ConfigureAwait(false);
         }
     }
 
@@ -59,7 +59,7 @@ public sealed class PingHandlers
         // Chỉ nhận gói Control có type = PING
         if (p.Packet is not Control pong || pong.Type != ControlType.PING)
         {
-            System.UInt32 fallbackSeq = p.Packet is IPacketSequenced ps ? ps.SequenceId : 0;
+            uint fallbackSeq = p.Packet is IPacketSequenced ps ? ps.SequenceId : 0;
 
             // Not auto enc, compress
             await p.Connection.SendAsync(
@@ -87,9 +87,9 @@ public sealed class PingHandlers
 
             // Gửi Control PONG về client
             // Auto encrypt, compress theo thiết lập attribute [PacketEncryption], [PacketCompression] trên handler
-            await p.Sender.SendAsync(ping).ConfigureAwait(false);
+            _ = await p.Sender.SendAsync(ping).ConfigureAwait(false);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             s_logger?.Error($"[APP.{nameof(PingHandlers)}] failed ep={p.Connection.NetworkEndpoint.Address} ex={ex.Message}");
 
@@ -98,11 +98,11 @@ public sealed class PingHandlers
                 ProtocolReason.INTERNAL_ERROR,
                 ProtocolAdvice.BACKOFF_RETRY,
                 sequenceId: pong.SequenceId,
-                flags: ControlFlags.IS_TRANSIENT).ConfigureAwait(false);
+                flags: ControlFlags.IsTransient).ConfigureAwait(false);
         }
         finally
         {
-            s_pool.Return<Control>(pong);
+            s_pool.Return(pong);
         }
     }
 }

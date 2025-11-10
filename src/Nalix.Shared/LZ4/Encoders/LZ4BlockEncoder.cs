@@ -31,13 +31,11 @@ public static class LZ4BlockEncoder
     /// <returns>The estimated maximum length after compression, including overhead.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     public static int GetMaxLength(int input) => input + (input / 255) + 16 + LZ4BlockHeader.Size;
 
     /// <inheritdoc />
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     public static int GetMinOutputBufferSize(int inputLength) => inputLength + (inputLength / 255) + 16;
 
     /// <summary>
@@ -54,7 +52,6 @@ public static class LZ4BlockEncoder
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public static unsafe int EncodeBlock(ReadOnlySpan<byte> input, Span<byte> output, int* hashTable)
     {
         if (input.IsEmpty || output.IsEmpty)
@@ -91,7 +88,6 @@ public static class LZ4BlockEncoder
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     private static unsafe int EncodeInternal(
         byte* inputBase, int inputLength,
         byte* outputBase, int outputLength,
@@ -211,7 +207,6 @@ public static class LZ4BlockEncoder
     /// </summary>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     private static unsafe bool WriteSequence(
         ref byte* outputPtr,
         byte* outputEnd, byte* literalStartPtr,
@@ -272,7 +267,6 @@ public static class LZ4BlockEncoder
     /// </summary>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     private static unsafe bool WriteFinalLiterals(
         ref byte* outputPtr, byte* outputEnd, byte* literalStartPtr, int literalLength)
     {
