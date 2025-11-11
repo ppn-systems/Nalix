@@ -46,54 +46,6 @@ public static class LZ4Codec
     }
 
     /// <summary>
-    /// Compresses the input byte array into the specified output byte array.
-    /// </summary>
-    /// <param name="input">The input byte array to compress.</param>
-    /// <param name="output">The output byte array to receive the compressed data.</param>
-    /// <returns>The number of bytes written to the output array, or -1 if compression fails.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int32 Encode(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Byte[] input,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Byte[] output)
-        => LZ4Encoder.Encode(System.MemoryExtensions.AsSpan(input), System.MemoryExtensions.AsSpan(output));
-
-    /// <summary>
-    /// Compresses the input data into a newly allocated byte array.
-    /// </summary>
-    /// <param name="input">The input data to compress.</param>
-    /// <returns>A byte array containing the compressed data.</returns>
-    /// <remarks>
-    /// This overload allocates a new byte[] for the result.
-    /// For hot paths, prefer <see cref="Encode(System.ReadOnlySpan{System.Byte}, out BufferLease, out System.Int32)"/>
-    /// which rents from the pool instead.
-    /// </remarks>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Byte[] Encode(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> input)
-    {
-        System.Int32 maxOutputSize = LZ4BlockEncoder.GetMaxLength(input.Length);
-        System.Byte[] buffer = new System.Byte[maxOutputSize];
-
-        System.Int32 written = Encode(input, buffer);
-
-        if (written < 0)
-        {
-            throw new System.InvalidOperationException("Compression failed.");
-        }
-
-        System.Array.Resize(ref buffer, written);
-        return buffer;
-    }
-
-    /// <summary>
     /// Compresses the input data into a <see cref="BufferLease"/> rented from the pool.
     /// Caller is responsible for disposing the lease when done.
     /// </summary>
@@ -159,22 +111,6 @@ public static class LZ4Codec
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> input,
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.Span<System.Byte> output)
         => LZ4Decoder.Decode(input, output);
-
-    /// <summary>
-    /// Decompresses the compressed input byte array into the specified output byte array.
-    /// </summary>
-    /// <param name="input">The compressed input byte array, including header information.</param>
-    /// <param name="output">The output byte array to receive the decompressed data.</param>
-    /// <returns>The number of bytes written to the output array, or -1 if decompression fails.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int32 Decode(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Byte[] input,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Byte[] output)
-        => LZ4Decoder.Decode(System.MemoryExtensions.AsSpan(input), System.MemoryExtensions.AsSpan(output));
 
     /// <summary>
     /// Decompresses the compressed input into a newly allocated byte array.
