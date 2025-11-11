@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Shared.Serialization.Buffers;
+namespace Nalix.Shared.Memory.Buffers;
 
 /// <summary>
 /// A mutable, growable write buffer for high-performance serialization.
