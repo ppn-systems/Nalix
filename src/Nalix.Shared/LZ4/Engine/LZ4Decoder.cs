@@ -112,6 +112,7 @@ internal static class LZ4Decoder
                 {
                     if (inputPtr >= inputEnd)
                     {
+                        MemorySecurity.ZeroMemory(output);
                         return false;
                     }
 
@@ -124,6 +125,7 @@ internal static class LZ4Decoder
                         System.Int32 bytesRead = SpanOps.ReadVarInt(ref inputPtr, inputEnd, out System.Int32 extraLength);
                         if (bytesRead == -1 || extraLength < 0)
                         {
+                            MemorySecurity.ZeroMemory(output);
                             return false;
                         }
 
@@ -134,6 +136,7 @@ internal static class LZ4Decoder
                     {
                         if (inputPtr + literalLength > inputEnd || outputPtr + literalLength > outputEnd)
                         {
+                            MemorySecurity.ZeroMemory(output);
                             return false;
                         }
 
@@ -149,6 +152,7 @@ internal static class LZ4Decoder
 
                     if (inputPtr + sizeof(System.UInt16) > inputEnd)
                     {
+                        MemorySecurity.ZeroMemory(output);
                         return false;
                     }
 
@@ -156,6 +160,7 @@ internal static class LZ4Decoder
                     inputPtr += sizeof(System.UInt16);
                     if (offset == 0 || offset > (outputPtr - outputBase))
                     {
+                        MemorySecurity.ZeroMemory(output);
                         return false;
                     }
 
@@ -165,6 +170,7 @@ internal static class LZ4Decoder
                         System.Int32 bytesRead = SpanOps.ReadVarInt(ref inputPtr, inputEnd, out System.Int32 extraLength);
                         if (bytesRead == -1 || extraLength < 0)
                         {
+                            MemorySecurity.ZeroMemory(output);
                             return false;
                         }
 
@@ -175,6 +181,7 @@ internal static class LZ4Decoder
                     System.Byte* matchSourcePtr = outputPtr - offset;
                     if (outputPtr + matchLength > outputEnd)
                     {
+                        MemorySecurity.ZeroMemory(output);
                         return false;
                     }
 
@@ -184,6 +191,7 @@ internal static class LZ4Decoder
 
                 if (outputPtr != outputEnd || inputPtr != inputEnd)
                 {
+                    MemorySecurity.ZeroMemory(output);
                     return false;
                 }
 

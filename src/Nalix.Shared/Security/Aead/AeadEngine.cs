@@ -9,6 +9,7 @@
 
 using Nalix.Common.Enums;
 using Nalix.Framework.Randomization;
+using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Symmetric;
 
 namespace Nalix.Shared.Security.Aead;
@@ -167,7 +168,7 @@ public static class AeadEngine
                         }
 
                         XteaPoly1305.Encrypt(k16, nonce, plaintext, combinedAad, ct, tag);
-                        k16.Clear();
+                        MemorySecurity.ZeroMemory(k16);
                         break;
                     }
 
@@ -184,8 +185,8 @@ public static class AeadEngine
         }
         finally
         {
-            System.MemoryExtensions.AsSpan(combinedAad).Clear();
-            nonce.Clear();
+            MemorySecurity.ZeroMemory(combinedAad);
+            MemorySecurity.ZeroMemory(nonce);
         }
     }
 
@@ -279,7 +280,7 @@ public static class AeadEngine
                         }
 
                         ok = XteaPoly1305.Decrypt(k16, env.Nonce, env.Ciphertext, combinedAad, env.Tag, pt);
-                        k16.Clear();
+                        MemorySecurity.ZeroMemory(k16);
                         break;
                     }
 
@@ -290,7 +291,7 @@ public static class AeadEngine
 
             if (!ok)
             {
-                System.Array.Clear(pt, 0, pt.Length);
+                MemorySecurity.ZeroMemory(pt);
                 return false;
             }
 
@@ -299,7 +300,7 @@ public static class AeadEngine
         }
         finally
         {
-            System.MemoryExtensions.AsSpan(combinedAad).Clear();
+            MemorySecurity.ZeroMemory(combinedAad);
         }
     }
 

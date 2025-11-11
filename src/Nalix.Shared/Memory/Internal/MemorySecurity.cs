@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Shared.Security;
+namespace Nalix.Shared.Memory.Internal;
 
 /// <summary>
 /// Provides helper methods for securely clearing sensitive data from memory.
@@ -9,7 +9,7 @@ namespace Nalix.Shared.Security;
 /// from memory immediately after usage.
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
-public static class MemorySecurity
+internal static class MemorySecurity
 {
     /// <summary>
     /// Overwrites the provided <paramref name="buffer"/> with zeros.
@@ -18,6 +18,8 @@ public static class MemorySecurity
     /// <param name="buffer">
     /// The byte array containing sensitive information that should be cleared.
     /// </param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void ZeroMemory(System.Byte[] buffer)
     {
         if (buffer is null || buffer.Length == 0)
@@ -25,7 +27,9 @@ public static class MemorySecurity
             return;
         }
 
-        System.MemoryExtensions.AsSpan(buffer).Clear();
+        ZeroMemory(System.MemoryExtensions.AsSpan(buffer));
+
+        System.GC.KeepAlive(buffer);
     }
 
     /// <summary>
@@ -34,9 +38,20 @@ public static class MemorySecurity
     /// <param name="buffer">
     /// The span representing sensitive byte data that should be cleared.
     /// </param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void ZeroMemory(System.Span<System.Byte> buffer)
     {
-        buffer.Clear();
+        if (buffer.Length == 0)
+        {
+            return;
+        }
+
+        for (System.Int32 i = 0; i < buffer.Length; i++)
+        {
+            System.Threading.Volatile.Write(ref buffer[i], 0);
+        }
     }
 
     /// <summary>
@@ -48,6 +63,8 @@ public static class MemorySecurity
     /// The <see cref="System.ArraySegment{T}"/> referencing memory containing
     /// sensitive data that must be cleared.
     /// </param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void ZeroMemory(System.ArraySegment<System.Byte> segment)
     {
         if (segment.Array is null)
@@ -55,6 +72,8 @@ public static class MemorySecurity
             return;
         }
 
-        System.MemoryExtensions.AsSpan(segment).Clear();
+        ZeroMemory(System.MemoryExtensions.AsSpan(segment));
+
+        System.GC.KeepAlive(segment.Array);
     }
 }

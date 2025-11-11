@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Hashing;
 using Nalix.Shared.Security.Primitives;
 using Nalix.Shared.Security.Symmetric;
@@ -69,12 +70,12 @@ public static class XteaPoly1305
             FillPolyKeyCtr(key, nonce, otk);              // counters 0..3 -> 32B OTK
             CtrXor(key, nonce, 1UL, plaintext, dstCiphertext); // counter starts at 1
 
-            using var poly = new Poly1305(otk);
+            using Poly1305 poly = new(otk);
             BuildTranscriptAndFinalize(poly, aad, dstCiphertext, tag);
         }
         finally
         {
-            otk.Clear();
+            MemorySecurity.ZeroMemory(otk);
         }
     }
 
@@ -115,7 +116,7 @@ public static class XteaPoly1305
         {
             FillPolyKeyCtr(key, nonce, otk);
 
-            using (var poly = new Poly1305(otk))
+            using (Poly1305 poly = new(otk))
             {
                 BuildTranscriptAndFinalize(poly, aad, ciphertext, computed);
             }
@@ -130,8 +131,8 @@ public static class XteaPoly1305
         }
         finally
         {
-            otk.Clear();
-            computed.Clear();
+            MemorySecurity.ZeroMemory(otk);
+            MemorySecurity.ZeroMemory(computed);
         }
     }
 
@@ -162,12 +163,12 @@ public static class XteaPoly1305
             ThrowHelper.BadNonceLen();
         }
 
-        var ct = new System.Byte[plaintext.Length];
-        var tag = new System.Byte[TagSize];
+        System.Byte[] tag = new System.Byte[TagSize];
+        System.Byte[] ct = new System.Byte[plaintext.Length];
 
         Encrypt(key, nonce, plaintext, aad ?? System.ReadOnlySpan<System.Byte>.Empty, ct, tag);
 
-        var result = new System.Byte[ct.Length + TagSize];
+        System.Byte[] result = new System.Byte[ct.Length + TagSize];
         System.MemoryExtensions.AsSpan(ct).CopyTo(result);
         System.MemoryExtensions.AsSpan(tag).CopyTo(System.MemoryExtensions.AsSpan(result, ct.Length));
         return result;
@@ -203,10 +204,10 @@ public static class XteaPoly1305
         }
 
         System.Int32 ctLen = cipherWithTag.Length - TagSize;
-        var pt = new System.Byte[ctLen];
+        System.Byte[] pt = new System.Byte[ctLen];
 
-        var ctSpan = System.MemoryExtensions.AsSpan(cipherWithTag, 0, ctLen);
-        var tagSpan = System.MemoryExtensions.AsSpan(cipherWithTag, ctLen, TagSize);
+        System.Span<System.Byte> ctSpan = System.MemoryExtensions.AsSpan(cipherWithTag, 0, ctLen);
+        System.Span<System.Byte> tagSpan = System.MemoryExtensions.AsSpan(cipherWithTag, ctLen, TagSize);
 
         System.Boolean ok = Decrypt(key, nonce, ctSpan, aad ?? System.ReadOnlySpan<System.Byte>.Empty, tagSpan, pt);
         if (!ok)
@@ -237,7 +238,7 @@ public static class XteaPoly1305
     {
         for (System.UInt64 ctr = 0; ctr < 4; ctr++)
         {
-            var block = oneTimeKey32.Slice((System.Int32)(ctr * BLOCK8), BLOCK8);
+            System.Span<System.Byte> block = oneTimeKey32.Slice((System.Int32)(ctr * BLOCK8), BLOCK8);
             GenKeystreamBlock(key, nonce, ctr, block);
         }
     }
@@ -270,7 +271,7 @@ public static class XteaPoly1305
             ctr++;
         }
 
-        ks.Clear();
+        MemorySecurity.ZeroMemory(ks);
     }
 
     /// <summary>
@@ -299,8 +300,8 @@ public static class XteaPoly1305
 
         // Return the encrypted 8 bytes as keystream block
         tmp8.CopyTo(out8);
-        in8.Clear();
-        tmp8.Clear();
+        MemorySecurity.ZeroMemory(in8);
+        MemorySecurity.ZeroMemory(tmp8);
     }
 
     private static void BuildTranscriptAndFinalize(
@@ -338,7 +339,7 @@ public static class XteaPoly1305
         mac.Update(lens);
 
         mac.FinalizeTag(tagOut16);
-        lens.Clear();
+        MemorySecurity.ZeroMemory(lens);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
