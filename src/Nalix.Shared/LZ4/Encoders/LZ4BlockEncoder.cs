@@ -91,7 +91,7 @@ public static class LZ4BlockEncoder
             System.Int32 literalLen = inputLength;
 
             // exact varint length for literals
-            System.Int32 litVarBytes = (literalLen > LZ4CompressionConstants.TokenLiteralMask)
+            System.Int32 litVarBytes = (literalLen >= LZ4CompressionConstants.TokenLiteralMask)
                 ? ((literalLen - LZ4CompressionConstants.TokenLiteralMask) / 255) + 1
                 : 0;
 
@@ -179,30 +179,18 @@ public static class LZ4BlockEncoder
         System.Int32 literalLength, System.Int32 matchLength, System.Int32 offset)
     {
         const System.Int32 tokenLen = 1;
-        const System.Int32 matchThreshold = LZ4CompressionConstants.MinMatchLength + LZ4CompressionConstants.TokenMatchMask + 1;
+        const System.Int32 matchThreshold = LZ4CompressionConstants.MinMatchLength
+                                          + LZ4CompressionConstants.TokenMatchMask;
 
-        System.Int32 litVarBytes;
-        System.Int32 matchVarBytes;
+        // literal varint bytes
+        System.Int32 litVarBytes = (literalLength >= LZ4CompressionConstants.TokenLiteralMask)
+            ? ((literalLength - LZ4CompressionConstants.TokenLiteralMask) / 255) + 1
+            : 0;
 
-        // literal varint bytes 
-        if (literalLength > LZ4CompressionConstants.TokenLiteralMask)
-        {
-            litVarBytes = ((literalLength - LZ4CompressionConstants.TokenLiteralMask) / 255) + 1;
-        }
-        else
-        {
-            litVarBytes = 0;
-        }
-
-        // match varint bytes (NOTE: threshold includes MinMatchLength)
-        if (matchLength >= matchThreshold)
-        {
-            matchVarBytes = ((matchLength - (LZ4CompressionConstants.MinMatchLength + LZ4CompressionConstants.TokenMatchMask)) / 255) + 1;
-        }
-        else
-        {
-            matchVarBytes = 0;
-        }
+        // match varint bytes
+        System.Int32 matchVarBytes = (matchLength >= matchThreshold)
+            ? ((matchLength - (LZ4CompressionConstants.MinMatchLength + LZ4CompressionConstants.TokenMatchMask)) / 255) + 1
+            : 0;
 
         // exact required space
         System.Int32 required = tokenLen + litVarBytes + literalLength + sizeof(System.UInt16) + matchVarBytes;
@@ -257,15 +245,9 @@ public static class LZ4BlockEncoder
             return true;
         }
 
-        System.Int32 litVarBytes;
-        if (literalLength > LZ4CompressionConstants.TokenLiteralMask)
-        {
-            litVarBytes = ((literalLength - LZ4CompressionConstants.TokenLiteralMask) / 255) + 1;
-        }
-        else
-        {
-            litVarBytes = 0;
-        }
+        System.Int32 litVarBytes = (literalLength >= LZ4CompressionConstants.TokenLiteralMask)
+            ? ((literalLength - LZ4CompressionConstants.TokenLiteralMask) / 255) + 1
+            : 0;
 
         System.Int32 required = tokenLen + litVarBytes + literalLength;
         if (outputPtr + required > outputEnd)
