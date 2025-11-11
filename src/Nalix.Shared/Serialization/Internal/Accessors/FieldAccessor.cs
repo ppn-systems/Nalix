@@ -10,11 +10,6 @@ using Nalix.Shared.Serialization.Internal.Reflection;
 
 namespace Nalix.Shared.Serialization.Internal.Accessors;
 
-/// <summary>
-/// Abstract base class cho field serialization, theo Strategy Pattern.
-/// Generic design cho reusability across different object types.
-/// </summary>
-/// <typeparam name="T">Type của object chứa field.</typeparam>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal abstract class FieldAccessor<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
@@ -22,57 +17,72 @@ internal abstract class FieldAccessor<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
 {
-    /// <summary>
-    /// Serializes một field của object sử dụng field cache optimization.
-    /// </summary>
-    /// <param name="writer">Binary writer cho serialization.</param>
-    /// <param name="obj">Object chứa field cần serialize.</param>
+    #region Fields
+
+    // Cached MethodInfo to avoid repeated reflection lookups
+    private static readonly System.Reflection.MethodInfo s_createTypedGeneric;
+
+    // Cache of compiled factories per field runtime type
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<System.Int32, FieldAccessor<T>>> s_factories;
+
+    #endregion Fields
+
+    static FieldAccessor()
+    {
+        s_factories = new();
+        s_createTypedGeneric = typeof(FieldAccessor<T>).GetMethod(
+            nameof(CreateTyped), System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+                ?? throw new System.MissingMethodException(typeof(FieldAccessor<T>).FullName, nameof(CreateTyped));
+    }
+
     [System.Diagnostics.DebuggerStepThrough]
     public abstract void Serialize(ref DataWriter writer, T obj);
 
-    /// <summary>
-    /// Deserializes một field vào object sử dụng field cache optimization.
-    /// </summary>
-    /// <param name="reader">Binary reader chứa serialized data.</param>
-    /// <param name="obj">Object để populate data.</param>
     [System.Diagnostics.DebuggerStepThrough]
     public abstract void Deserialize(ref DataReader reader, T obj);
 
-    /// <summary>
-    /// Factory method tạo strongly typed field accessor.
-    /// Sử dụng reflection nhưng cached cho performance.
-    /// </summary>
-    /// <param name="schema">Field schema từ FieldCache.</param>
-    /// <param name="index">Field index cho fast access.</param>
-    /// <returns>Optimized field accessor instance.</returns>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static FieldAccessor<T> Create(FieldSchema schema, System.Int32 index)
     {
-        System.ArgumentNullException.ThrowIfNull(schema.FieldInfo);
+        System.ArgumentNullException.ThrowIfNull(schema.FieldInfo, "schema.FieldInfo");
+
+        // Normalize and validate target field type
+        System.Type fieldType = schema.FieldType ?? throw new System.ArgumentException("schema.FieldType is null", nameof(schema));
+        fieldType = System.Nullable.GetUnderlyingType(fieldType) ?? fieldType;
+
+        if (fieldType.IsByRef || fieldType.IsPointer)
+        {
+            throw new System.NotSupportedException($"ByRef/Pointer types are not supported: {fieldType}");
+        }
+
+        if (fieldType.ContainsGenericParameters)
+        {
+            throw new System.NotSupportedException($"Open generic field type is not supported: {fieldType}");
+        }
 
         try
         {
-            // TODO: Cache reflection calls cho production performance
-            System.Reflection.MethodInfo method = typeof(FieldAccessor<T>)
-                .GetMethod(nameof(CreateTyped),
-                System.Reflection.BindingFlags.Static |
-                System.Reflection.BindingFlags.NonPublic)
-                ?? throw new System.InvalidOperationException("CreateTyped method not found");
+            // Get or create compiled factory for this fieldType
+            System.Func<System.Int32, FieldAccessor<T>> factory = s_factories.GetOrAdd(fieldType, static ft =>
+            {
+                // Build closed generic method: CreateTyped<TField>(int)
+                System.Reflection.MethodInfo mi = s_createTypedGeneric.MakeGenericMethod(ft);
 
-            return (FieldAccessor<T>)method.MakeGenericMethod(schema.FieldType).Invoke(null, [index])!;
+                // Compile to delegate to avoid MethodInfo.Invoke overhead
+                // Signature: Func<int, FieldAccessor<T>>
+                return mi.CreateDelegate<System.Func<System.Int32, FieldAccessor<T>>>();
+            });
+
+            return factory(index);
         }
         catch (System.Exception ex)
         {
-            throw new System.InvalidOperationException($"Failed to create accessor for field {schema.Name}", ex);
+            throw new System.InvalidOperationException($"Failed to create accessor for field '{schema.Name}' of type '{fieldType}'.", ex);
         }
     }
 
-    /// <summary>
-    /// Generic helper method tạo FieldAccessorImpl.
-    /// Private để enforce factory pattern usage.
-    /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
