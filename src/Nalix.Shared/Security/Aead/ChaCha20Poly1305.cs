@@ -45,7 +45,6 @@ namespace Nalix.Shared.Security.Aead;
 /// </threadsafety>
 /// <seealso href="https://www.rfc-editor.org/rfc/rfc8439">RFC 8439</seealso>
 [System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("ChaCha20-Poly1305 AEAD")]
 public static class ChaCha20Poly1305

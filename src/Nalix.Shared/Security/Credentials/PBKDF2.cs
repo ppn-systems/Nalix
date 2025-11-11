@@ -28,7 +28,6 @@ namespace Nalix.Shared.Security.Credentials;
 /// Note: Outputs from this implementation are <b>not interoperable</b> with PBKDF2 using SHA-256 or SHA-512.
 /// </para>
 /// </remarks>
-[System.Runtime.CompilerServices.SkipLocalsInit]
 internal sealed class PBKDF2 : System.IDisposable
 {
     private readonly System.Byte[] _salt;

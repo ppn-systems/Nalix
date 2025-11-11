@@ -30,7 +30,6 @@ namespace Nalix.Shared.Security.Symmetric;
 /// <c>AES-GCM</c> or <c>ChaCha20-Poly1305</c> where possible.
 /// </para>
 /// </remarks>
-[System.Runtime.CompilerServices.SkipLocalsInit]
 public static class Xtea
 {
     #region Constants

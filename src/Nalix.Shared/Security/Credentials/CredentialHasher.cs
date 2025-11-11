@@ -8,7 +8,6 @@ namespace Nalix.Shared.Security.Credentials;
 /// <summary>
 /// Provides secure credential hashing and verification using PBKDF2.
 /// </summary>
-[System.Runtime.CompilerServices.SkipLocalsInit]
 public static class CredentialHasher
 {
     #region Constants

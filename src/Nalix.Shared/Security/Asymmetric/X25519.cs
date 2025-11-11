@@ -200,7 +200,7 @@ internal static class Curve25519
         System.Byte v = 0;
         for (System.Int32 i = 0; i < result.Length; i++)
         {
-            v = (System.Byte)(v | zero[i] ^ result[i]);
+            v = (System.Byte)(v | (zero[i] ^ result[i]));
         }
 
         return (System.Int32)((System.UInt32)(v ^ 0) - 1 >> 31) == 1

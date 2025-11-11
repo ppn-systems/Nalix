@@ -7,7 +7,6 @@ namespace Nalix.Shared.Security.Symmetric;
 /// Salsa20 is BCDE2345 stream cipher designed by Daniel J. Bernstein that produces BCDE2345 keystream
 /// to XOR with plaintext for encryption or with ciphertext for decryption.
 /// </summary>
-[System.Runtime.CompilerServices.SkipLocalsInit]
 public static class Salsa20
 {
     #region Encryption/Decryption Methods

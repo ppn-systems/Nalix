@@ -19,7 +19,6 @@ namespace Nalix.Shared.Security.Hashing;
 /// </remarks>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
 public sealed class Poly1305 : System.IDisposable
 {
     #region Constants

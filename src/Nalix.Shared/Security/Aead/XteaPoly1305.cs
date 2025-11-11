@@ -12,7 +12,6 @@ namespace Nalix.Shared.Security.Aead;
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("XTEA-Poly1305 AEAD (CTR)")]
 public static class XteaPoly1305
