@@ -1,11 +1,11 @@
 ﻿using Nalix.Common.Enums;
-using Nalix.Framework.Cryptography;
+using Nalix.Shared.Security;
 using System;
 using System.Linq;
 using System.Security.Cryptography;
 using Xunit;
 
-namespace Nalix.Framework.Tests.Cryptography;
+namespace Nalix.Shared.Tests.Cryptography;
 
 /// <summary>
 /// xUnit tests cho EnvelopeCipher.

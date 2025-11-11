@@ -1,8 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Configuration.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Configuration.Benchmarks")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Configuration.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Configuration.Benchmarks")]
 #endif
 
 namespace Nalix.Framework.Configuration.Internal;

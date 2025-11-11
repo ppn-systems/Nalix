@@ -18,6 +18,6 @@ public class LiteSerializer_Guards_Tests
     public void Serialize_ToProvidedBuffer_NullBuffer_Throws()
     {
         var value = 123;
-        _ = Assert.Throws<ArgumentNullException>(() => LiteSerializer.Serialize(in value, null!));
+        _ = Assert.Throws<ArgumentNullException>(() => LiteSerializer.Serialize(in value, (Byte[])null!));
     }
 }

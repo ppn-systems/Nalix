@@ -287,7 +287,7 @@ public class LZ4CodecTests
 
         // decode span overload
         var dest = new Byte[size];
-        Int32 decoded = LZ4Codec.Decode(outBuf.AsSpan(0, written), dest);
+        Int32 decoded = LZ4Codec.Decode(outBuf.AsSpan(0, written), dest.AsSpan());
         Assert.Equal(size, decoded);
         Assert.Equal(input, dest);
 

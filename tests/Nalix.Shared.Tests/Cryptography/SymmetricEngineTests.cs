@@ -2,9 +2,9 @@
 using Xunit;
 using Nalix.Common.Enums;
 using System.Text;
-using Nalix.Framework.Cryptography.Symmetric;
+using Nalix.Shared.Security.Symmetric;
 
-namespace Nalix.Framework.Tests.Cryptography;
+namespace Nalix.Shared.Tests.Cryptography;
 
 public class SymmetricEngineTests
 {
@@ -79,7 +79,7 @@ public class SymmetricEngineTests
         var key = new Byte[ChaCha20.KeySize];
         for (Int32 i = 0; i < key.Length; i++)
         {
-            key[i] = (Byte)((i * 3) + 1);
+            key[i] = (Byte)(i * 3 + 1);
         }
 
         var nonce = new Byte[ChaCha20.NonceSize];

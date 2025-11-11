@@ -1,9 +1,9 @@
 ﻿using System;
 using Xunit;
 using Nalix.Common.Enums;
-using Nalix.Framework.Cryptography.Aead;
+using Nalix.Shared.Security.Aead;
 
-namespace Nalix.Framework.Tests.Cryptography;
+namespace Nalix.Shared.Tests.Cryptography;
 
 public class AeadEngineTests
 {

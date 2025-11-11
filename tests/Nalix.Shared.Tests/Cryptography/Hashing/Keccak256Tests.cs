@@ -3,10 +3,10 @@
 using System;
 using System.Text;
 using FluentAssertions;
-using Nalix.Framework.Cryptography.Hashing;
+using Nalix.Shared.Security.Hashing;
 using Xunit;
 
-namespace Nalix.Framework.Tests.Cryptography.Hashing;
+namespace Nalix.Shared.Tests.Cryptography.Hashing;
 
 /// <summary>
 /// Property-based and edge-case tests for the custom Keccak256 (non-standard).
@@ -298,7 +298,7 @@ public sealed class Keccak256Tests
         Int32[] lengths = { 0, 1, 2, 7, 15, 31, 63, 64, 127, 135, 136, 137, 255, 511, 1024, 4096 };
         foreach (var len in lengths)
         {
-            var data = MakeBytes(len, (seedBase * 1000) + k);
+            var data = MakeBytes(len, seedBase * 1000 + k);
             var a = OneShot(data);
             var b = Chunked(data, MakeChunks(len, seedBase * 100 + k));
             a.Should().Equal(b, $"len={len}");
