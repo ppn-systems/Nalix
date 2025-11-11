@@ -52,26 +52,11 @@ Nalix is a real-time server solution designed for efficient communication and da
 
     [![Technologies](https://skillicons.dev/icons?i=dotnet,cs,docker,git)](https://skillicons.dev)
 
-# 📈 Benchmarks
+## 📈 Benchmarks
 
 > **Note:** All benchmarks are performed on **.NET 10.0**, **Intel i7-13620H**, **Windows 11**, using **BenchmarkDotNet v0.15.8**.
 
----
-
-## 🔥 LZ4 Compression
-
-| **Method**                                              | **Payload** | **Compressible** | **Mean (ns)** | **Allocated** |
-|---------------------------------------------------------|:-----------:|:----------------:|--------------:|--------------:|
-| Encode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)      |   8192      |      True        |    3,452      |      -        |
-| Encode(ReadOnlySpan&lt;byte&gt;) ➔ new byte[]           |   8192      |      True        |    3,825      |  8,368 B      |
-| Decode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)      |   8192      |      True        |    2,961      |      -        |
-| Decode(ReadOnlySpan&lt;byte&gt;, out byte[], out int)   |   8192      |      True        |    3,226      |  8,216 B      |
-
-... *See more in the detailed benchmark report file.*
-
----
-
-## 🔒 Envelope Encryption
+### 🔒 Envelope Encryption
 
 | **Method**              | **Payload** | **Algorithm**         | **Mean**    | **Allocated** |
 |-------------------------|:-----------:|:---------------------:|------------:|--------------:|
@@ -82,18 +67,7 @@ Nalix is a real-time server solution designed for efficient communication and da
 
 ---
 
-## ⚡ Envelope Encryptor
-
-| **Method**              | **Algorithm**        | **Mean** | **Min** | **Max** | **Allocated** |
-|-------------------------|:--------------------:|---------:|--------:|--------:|--------------:|
-| Encrypt                 | SALSA20              | 31 μs    | 27 μs   | 36 μs   | 4.49 KB       |
-| Decrypt                 | SALSA20              | 20 μs    | 19 μs   | 20 μs   | 2.27 KB       |
-| Encrypt                 | CHACHA20_POLY1305    | 47 μs    | 43 μs   | 52 μs   | 5.13 KB       |
-| Decrypt                 | CHACHA20_POLY1305    | 40 μs    | 32 μs   | 47 μs   | 2.27 KB       |
-
----
-
-## 🏎️ X25519 ECC
+### 🏎️ X25519 ECC
 
 | **Method**                                     | **KeyPairCount** | **Mean**   | **Allocated** |
 |------------------------------------------------|:----------------:|-----------:|--------------:|
@@ -103,7 +77,7 @@ Nalix is a real-time server solution designed for efficient communication and da
 
 ---
 
-## 🔄 Serialization
+### 🔄 Serialization
 
 | **Method**                                                | **ArrayLength** | **Mean (ns)** | **Allocated** |
 |-----------------------------------------------------------|----------------:|--------------:|--------------:|
@@ -111,6 +85,8 @@ Nalix is a real-time server solution designed for efficient communication and da
 | Deserialize<`int`> <- ReadOnlySpan<`byte`> (ref)          |       256       |    0.1097     |      -        |
 | Serialize<`LargeStruct`> ➔ existing `byte`[] buffer       |      2048       |    0.0396     |      -        |
 | Deserialize<`LargeStruct`> <- ReadOnlySpan<`byte`> (ref)  |      2048       |    0.2274     |     1 B       |
+
+... *See more in the detailed benchmark report file.*
 
 ---
 
