@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -124,7 +123,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     private readonly int _cleanupIntervalSec;
     private readonly long _initialBalanceMicro;
 
-    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>()!;
+    private readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     private int _totalEndpointCount;
     private volatile bool _disposed;

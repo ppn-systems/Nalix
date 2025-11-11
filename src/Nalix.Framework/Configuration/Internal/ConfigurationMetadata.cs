@@ -4,10 +4,11 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+
+#if DEBUG
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-#if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests.")]
 [assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
