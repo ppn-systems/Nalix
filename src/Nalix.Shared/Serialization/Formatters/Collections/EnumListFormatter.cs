@@ -2,7 +2,6 @@
 
 using Nalix.Common.Exceptions;
 using Nalix.Shared.Memory.Buffers;
-using Nalix.Shared.Serialization.Buffers;
 using Nalix.Shared.Serialization.Formatters.Primitives;
 
 namespace Nalix.Shared.Serialization.Formatters.Collections;
