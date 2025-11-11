@@ -3,10 +3,10 @@
 using Nalix.Common.Logging;
 using Nalix.Common.Packets.Attributes;
 using Nalix.Framework.Configuration;
-using Nalix.Framework.Cryptography.Hashing;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
 using Nalix.Network.Internal.Net;
+using Nalix.Shared.Security.Hashing;
 
 namespace Nalix.Network.Throttling;
 

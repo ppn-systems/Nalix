@@ -3,9 +3,9 @@
 using Nalix.Common.Logging;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Protocols;                     // ProtocolType
-using Nalix.Framework.Cryptography.Asymmetric;    // X25519
-using Nalix.Framework.Cryptography.Hashing;       // Keccak256 (SHA3-256)
 using Nalix.Framework.Injection;
+using Nalix.Shared.Security.Asymmetric;
+using Nalix.Shared.Security.Hashing;
 using Nalix.Shared.Messaging.Controls;            // Handshake
 
 namespace Nalix.SDK.Remote.Extensions;
