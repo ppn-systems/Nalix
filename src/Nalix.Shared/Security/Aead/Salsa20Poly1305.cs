@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Hashing;
 using Nalix.Shared.Security.Primitives;
 using Nalix.Shared.Security.Symmetric;
@@ -95,12 +96,12 @@ public static class Salsa20Poly1305
             _ = Salsa20.Encrypt(key, nonce, counter: 1UL, plaintext, dstCiphertext);
 
             // 3) MAC transcript (AAD || pad16 || CT || pad16 || lenAAD || lenCT)
-            using var poly = new Poly1305(polyKey);
+            using Poly1305 poly = new(polyKey);
             BuildTranscriptAndFinalize(poly, aad, dstCiphertext, tag);
         }
         finally
         {
-            polyKey.Clear();
+            MemorySecurity.ZeroMemory(polyKey);
         }
     }
 
@@ -150,7 +151,7 @@ public static class Salsa20Poly1305
             _ = Salsa20.Encrypt(key, nonce, counter: 0UL, zeros, polyKey);
 
             // 2) Compute expected tag over AAD + CT
-            using (var poly = new Poly1305(polyKey))
+            using (Poly1305 poly = new(polyKey))
             {
                 BuildTranscriptAndFinalize(poly, aad, ciphertext, computed);
             }
@@ -167,8 +168,8 @@ public static class Salsa20Poly1305
         }
         finally
         {
-            polyKey.Clear();
-            computed.Clear();
+            MemorySecurity.ZeroMemory(polyKey);
+            MemorySecurity.ZeroMemory(computed);
         }
     }
 
@@ -183,7 +184,7 @@ public static class Salsa20Poly1305
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] plaintext, System.Byte[]? aad = null)
     {
-        if (key is null || key.Length != KEY16 && key.Length != KEY32)
+        if (key is null || (key.Length != KEY16 && key.Length != KEY32))
         {
             ThrowHelper.BadKeyLen();
         }
@@ -192,12 +193,12 @@ public static class Salsa20Poly1305
             ThrowHelper.BadNonceLen();
         }
 
-        var ct = new System.Byte[plaintext.Length];
-        var tag = new System.Byte[TagSize];
+        System.Byte[] ct = new System.Byte[plaintext.Length];
+        System.Byte[] tag = new System.Byte[TagSize];
 
         Encrypt(key, nonce, plaintext, aad ?? System.ReadOnlySpan<System.Byte>.Empty, ct, tag);
 
-        var result = new System.Byte[ct.Length + TagSize];
+        System.Byte[] result = new System.Byte[ct.Length + TagSize];
         System.MemoryExtensions.AsSpan(ct).CopyTo(result);
         System.MemoryExtensions.AsSpan(tag).CopyTo(System.MemoryExtensions.AsSpan(result, ct.Length));
         return result;
@@ -210,7 +211,7 @@ public static class Salsa20Poly1305
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Decrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] cipherWithTag, System.Byte[]? aad = null)
     {
-        if (key is null || key.Length != KEY16 && key.Length != KEY32)
+        if (key is null || (key.Length != KEY16 && key.Length != KEY32))
         {
             ThrowHelper.BadKeyLen();
         }
@@ -224,10 +225,10 @@ public static class Salsa20Poly1305
         }
 
         System.Int32 ctLen = cipherWithTag.Length - TagSize;
-        var pt = new System.Byte[ctLen];
+        System.Byte[] pt = new System.Byte[ctLen];
 
-        var ctSpan = System.MemoryExtensions.AsSpan(cipherWithTag, 0, ctLen);
-        var tagSpan = System.MemoryExtensions.AsSpan(cipherWithTag, ctLen, TagSize);
+        System.Span<System.Byte> ctSpan = System.MemoryExtensions.AsSpan(cipherWithTag, 0, ctLen);
+        System.Span<System.Byte> tagSpan = System.MemoryExtensions.AsSpan(cipherWithTag, ctLen, TagSize);
 
         System.Boolean ok = Decrypt(key, nonce, ctSpan, aad ?? System.ReadOnlySpan<System.Byte>.Empty, tagSpan, pt);
         if (!ok)
@@ -272,7 +273,7 @@ public static class Salsa20Poly1305
         mac.Update(lens);
 
         mac.FinalizeTag(tagOut16);
-        lens.Clear();
+        MemorySecurity.ZeroMemory(lens);
     }
 
     /// <summary>Writes zero padding to align to 16-byte boundary if needed.</summary>
@@ -287,7 +288,7 @@ public static class Salsa20Poly1305
         }
 
         System.Span<System.Byte> pad = stackalloc System.Byte[16];
-        pad[..(16 - rem)].Clear();
+        MemorySecurity.ZeroMemory(pad[..(16 - rem)]);
         mac.Update(pad[..(16 - rem)]);
     }
 

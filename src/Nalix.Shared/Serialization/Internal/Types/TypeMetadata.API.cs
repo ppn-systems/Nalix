@@ -34,8 +34,7 @@ internal static partial class TypeMetadata
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean IsUnmanaged<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>()
-        => Cache<T>.IsUnmanaged;
+    public static System.Boolean IsUnmanaged<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>() => Cache<T>.IsUnmanaged;
 
     /// <summary>
     /// Determines whether the specified type is unmanaged by examining its structure and fields.

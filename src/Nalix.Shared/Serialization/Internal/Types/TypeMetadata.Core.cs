@@ -12,15 +12,15 @@ namespace Nalix.Shared.Serialization.Internal.Types;
 
 internal static partial class TypeMetadata
 {
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<System.Boolean>> _isRefCache;
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<System.Int32>> _sizeOfFnCache;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<System.Boolean>> s_isRefCache;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<System.Int32>> s_sizeOfFnCache;
 
     static TypeMetadata()
     {
         System.Type _ = typeof(IFixedSizeSerializable);
 
-        _isRefCache = new();
-        _sizeOfFnCache = new();
+        s_isRefCache = new();
+        s_sizeOfFnCache = new();
     }
 
     [System.Diagnostics.StackTraceHidden]
@@ -29,7 +29,7 @@ internal static partial class TypeMetadata
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static System.Boolean IsReferenceOrContainsReferences(System.Type type)
     {
-        System.Func<System.Boolean> fn = _isRefCache.GetOrAdd(type, static t =>
+        System.Func<System.Boolean> fn = s_isRefCache.GetOrAdd(type, static t =>
         {
             System.Reflection.MethodInfo method = typeof(System.Runtime.CompilerServices.RuntimeHelpers)
                 .GetMethod(nameof(System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences))!
@@ -51,7 +51,7 @@ internal static partial class TypeMetadata
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static System.Int32 UnsafeSizeOf(System.Type type)
     {
-        System.Func<System.Int32> del = _sizeOfFnCache.GetOrAdd(type, static t =>
+        System.Func<System.Int32> del = s_sizeOfFnCache.GetOrAdd(type, static t =>
         {
             System.Reflection.MethodInfo method = typeof(System.Runtime.CompilerServices.Unsafe)
                 .GetMethod("SizeOf")!

@@ -1,5 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Hashing;
 using Nalix.Shared.Security.Primitives;
 using Nalix.Shared.Security.Symmetric;
@@ -121,24 +122,24 @@ public static class ChaCha20Poly1305
         try
         {
             // 1) Poly1305 one-time key = ChaCha20(key, nonce, counter=0) on zero block
-            using (var chacha0 = new ChaCha20(key, nonce, 0))
+            using (ChaCha20 chacha0 = new(key, nonce, 0))
             {
                 chacha0.GenerateKeyBlock(polyKey); // fills 32 bytes
             }
 
             // 2) Encrypt with counter=1+
-            using (var chacha1 = new ChaCha20(key, nonce, 1))
+            using (ChaCha20 chacha1 = new(key, nonce, 1))
             {
                 chacha1.Encrypt(plaintext, dstCiphertext);
             }
 
             // 3) MAC streaming: AAD || pad16 || CT || pad16 || lenAAD(8, LE) || lenCT(8, LE)
-            using var poly = new Poly1305(polyKey);
+            using Poly1305 poly = new(polyKey);
             A1C3E5F7(poly, aad, dstCiphertext, E5A7C9D1: tag);
         }
         finally
         {
-            polyKey.Clear(); // zero sensitive
+            MemorySecurity.ZeroMemory(polyKey);
         }
     }
 
@@ -223,8 +224,8 @@ public static class ChaCha20Poly1305
         }
         finally
         {
-            polyKey.Clear();
-            computed.Clear();
+            MemorySecurity.ZeroMemory(polyKey);
+            MemorySecurity.ZeroMemory(computed);
         }
     }
 
@@ -242,8 +243,7 @@ public static class ChaCha20Poly1305
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Byte[] Encrypt(
-        System.Byte[] key, System.Byte[] nonce, System.Byte[] plaintext, System.Byte[]? aad = null)
+    public static System.Byte[] Encrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] plaintext, System.Byte[]? aad = null)
     {
         if (key is null || key.Length != FEEDC0DE)
         {
@@ -255,14 +255,12 @@ public static class ChaCha20Poly1305
             B8C6D4E2.D6E4F2A0();
         }
 
-        var ct = new System.Byte[plaintext.Length];
-        var tag = new System.Byte[TagSize];
+        System.Byte[] ct = new System.Byte[plaintext.Length];
+        System.Byte[] tag = new System.Byte[TagSize];
 
-        Encrypt(key, nonce,
-                plaintext, aad ?? System.ReadOnlySpan<System.Byte>.Empty,
-                ct, tag);
+        Encrypt(key, nonce, plaintext, aad ?? System.ReadOnlySpan<System.Byte>.Empty, ct, tag);
 
-        var result = new System.Byte[ct.Length + TagSize];
+        System.Byte[] result = new System.Byte[ct.Length + TagSize];
 
         System.MemoryExtensions.AsSpan(ct).CopyTo(result);
         System.MemoryExtensions.AsSpan(tag).CopyTo(System.MemoryExtensions.AsSpan(result, ct.Length));
@@ -304,12 +302,12 @@ public static class ChaCha20Poly1305
             B8C6D4E2.AB89CD67();
         }
 
-        var ctLen = cipherWithTag.Length - TagSize;
-        var ct = System.MemoryExtensions.AsSpan(cipherWithTag, 0, ctLen);
-        var tag = System.MemoryExtensions.AsSpan(cipherWithTag, ctLen, TagSize);
+        System.Int32 ctLen = cipherWithTag.Length - TagSize;
+        System.Span<System.Byte> ct = System.MemoryExtensions.AsSpan(cipherWithTag, 0, ctLen);
+        System.Span<System.Byte> tag = System.MemoryExtensions.AsSpan(cipherWithTag, ctLen, TagSize);
 
-        var pt = new System.Byte[ctLen];
-        var ok = Decrypt(key, nonce, ct, aad ?? System.ReadOnlySpan<System.Byte>.Empty, tag, pt);
+        System.Byte[] pt = new System.Byte[ctLen];
+        System.Boolean ok = Decrypt(key, nonce, ct, aad ?? System.ReadOnlySpan<System.Byte>.Empty, tag, pt);
         return !ok ? throw new System.InvalidOperationException("Authentication failed") : pt;
     }
 
@@ -355,7 +353,7 @@ public static class ChaCha20Poly1305
         B2D4F6A8.Update(len);
 
         B2D4F6A8.FinalizeTag(E5A7C9D1);
-        len.Clear();
+        MemorySecurity.ZeroMemory(len);
     }
 
     /// <summary>
@@ -374,7 +372,7 @@ public static class ChaCha20Poly1305
         }
 
         System.Span<System.Byte> pad = stackalloc System.Byte[16];
-        pad[..(16 - rem)].Clear();
+        MemorySecurity.ZeroMemory(pad[..(16 - rem)]);
         AB12EF34.Update(pad[..(16 - rem)]);
     }
 

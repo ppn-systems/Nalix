@@ -448,10 +448,11 @@ public static class LiteSerializer
         if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
             System.Int32 size = TypeMetadata.SizeOf<T>();
-            var lease = BufferLease.Rent(size, zeroOnDispose);
+            BufferLease lease = BufferLease.Rent(size, zeroOnDispose);
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetReference(lease.SpanFull), value);
             lease.SetLength(size);
+
             return lease;
         }
 
@@ -462,10 +463,11 @@ public static class LiteSerializer
         {
             if (value is null)
             {
-                var lz = BufferLease.Rent(4, zeroOnDispose);
+                BufferLease lz = BufferLease.Rent(4, zeroOnDispose);
                 System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                     ref System.Runtime.InteropServices.MemoryMarshal.GetReference(lz.SpanFull), -1); // NullArrayMarker
                 lz.SetLength(4);
+
                 return lz;
             }
 
@@ -474,17 +476,18 @@ public static class LiteSerializer
 
             if (length == 0)
             {
-                var lz = BufferLease.Rent(4, zeroOnDispose);
+                BufferLease lz = BufferLease.Rent(4, zeroOnDispose);
                 System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                     ref System.Runtime.InteropServices.MemoryMarshal.GetReference(lz.SpanFull), 0); // EmptyArrayMarker
                 lz.SetLength(4);
+
                 return lz;
             }
 
             System.Int32 dataSize = checked(sizeHint * length);
             System.Int32 total = checked(dataSize + 4);
 
-            var lease = BufferLease.Rent(total, zeroOnDispose);
+            BufferLease lease = BufferLease.Rent(total, zeroOnDispose);
             ref System.Byte dst = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(lease.SpanFull);
 
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref dst, length);
@@ -506,8 +509,8 @@ public static class LiteSerializer
         // Retry loop: if capacity is insufficient, double and retry once or twice.
         for (System.Int32 attempt = 0; attempt < 3; attempt++)
         {
-            var lease = BufferLease.Rent(capacity, zeroOnDispose);
-            var writer = new DataWriter(lease.SpanFull);
+            BufferLease lease = BufferLease.Rent(capacity, zeroOnDispose);
+            DataWriter writer = new(lease.SpanFull);
             try
             {
                 formatter.Serialize(ref writer, value);
@@ -531,8 +534,8 @@ public static class LiteSerializer
 
         // Final attempt with one-shot exact sizing by serializing into a temporary large lease
         {
-            var probe = BufferLease.Rent(capacity, zeroOnDispose);
-            var w = new DataWriter(probe.SpanFull);
+            BufferLease probe = BufferLease.Rent(capacity, zeroOnDispose);
+            DataWriter w = new(probe.SpanFull);
             try
             {
                 formatter.Serialize(ref w, value);
@@ -573,6 +576,7 @@ public static class LiteSerializer
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetReference(target.SpanFull), value);
             target.SetLength(size);
+
             return size;
         }
 
@@ -606,6 +610,7 @@ public static class LiteSerializer
                 System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                     ref System.Runtime.InteropServices.MemoryMarshal.GetReference(target.SpanFull), 0);
                 target.SetLength(4);
+
                 return 4;
             }
 
@@ -629,7 +634,7 @@ public static class LiteSerializer
         }
 
         // Formatter path
-        var writer = new DataWriter(target.SpanFull);
+        DataWriter writer = new(target.SpanFull);
         try
         {
             FormatterProvider.Get<T>().Serialize(ref writer, value);
@@ -682,7 +687,6 @@ public static class LiteSerializer
     }
 
     #endregion Lease APIs
-
 
     #region Private Methods
 

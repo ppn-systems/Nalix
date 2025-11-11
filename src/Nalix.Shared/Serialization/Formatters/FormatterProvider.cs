@@ -7,6 +7,7 @@ using Nalix.Shared.Serialization.Formatters.Automatic;
 using Nalix.Shared.Serialization.Formatters.Cache;
 using Nalix.Shared.Serialization.Formatters.Collections;
 using Nalix.Shared.Serialization.Formatters.Primitives;
+using Nalix.Shared.Serialization.Internal.Types;
 
 namespace Nalix.Shared.Serialization.Formatters;
 
@@ -206,7 +207,7 @@ public static class FormatterProvider
         // Check if the type is a value type and not an enum
         System.Type type = typeof(T);
 
-        if (type.IsValueType && !type.IsEnum)
+        if (TypeMetadata.IsUnmanaged<T>() && !type.IsEnum)
         {
             ComplexTypeCache<T>.Struct = formatter;
             return;
@@ -321,7 +322,7 @@ public static class FormatterProvider
             throw new System.InvalidOperationException($"Cannot call GetComplex<T>() on Nullable<T>: {typeof(T)}");
         }
 
-        if (type.IsValueType && !type.IsEnum)
+        if (TypeMetadata.IsUnmanaged<T>() && !type.IsEnum)
         {
             formatter = ComplexTypeCache<T>.Struct;
             if (formatter != null)
@@ -411,7 +412,7 @@ public static class FormatterProvider
         }
 
         // ValueType[] (managed or unmanaged) → ArrayFormatter<U>
-        if (elem.IsValueType)
+        if (TypeMetadata.IsUnmanaged(elem))
         {
             System.Type f = typeof(ArrayFormatter<>).MakeGenericType(elem);
             return (IFormatter<T>)System.Activator.CreateInstance(f)!;
@@ -454,7 +455,7 @@ public static class FormatterProvider
         }
 
         // List<value-type non-nullable> (managed or unmanaged)
-        if (elem.IsValueType && !elem.IsEnum)
+        if (TypeMetadata.IsUnmanaged(elem) && !elem.IsEnum)
         {
             // Dùng ListFormatter<U> để không ghi null-flag per element
             return (IFormatter<T>)System.Activator.CreateInstance(typeof(ListFormatter<>).MakeGenericType(elem))!;

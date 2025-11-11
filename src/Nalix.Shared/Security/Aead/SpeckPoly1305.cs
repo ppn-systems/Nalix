@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Hashing;
 using Nalix.Shared.Security.Primitives;
 using Nalix.Shared.Security.Symmetric;
@@ -82,12 +83,12 @@ public static class SpeckPoly1305
             CtrXor(key, nonce, startCounter: 2UL, plaintext, dstCiphertext);
 
             // 3) MAC transcript
-            using var poly = new Poly1305(otk);
+            using Poly1305 poly = new(otk);
             BuildTranscriptAndFinalize(poly, aad, dstCiphertext, tag);
         }
         finally
         {
-            otk.Clear();
+            MemorySecurity.ZeroMemory(otk);
         }
     }
 
@@ -129,7 +130,7 @@ public static class SpeckPoly1305
             FillPolyKeyCtr(key, nonce, otk);
 
             // 2) Compute expected tag
-            using (var poly = new Poly1305(otk))
+            using (Poly1305 poly = new(otk))
             {
                 BuildTranscriptAndFinalize(poly, aad, ciphertext, computed);
             }
@@ -146,8 +147,8 @@ public static class SpeckPoly1305
         }
         finally
         {
-            otk.Clear();
-            computed.Clear();
+            MemorySecurity.ZeroMemory(otk);
+            MemorySecurity.ZeroMemory(computed);
         }
     }
 
@@ -172,12 +173,12 @@ public static class SpeckPoly1305
             ThrowHelper.BadNonceLen();
         }
 
-        var ct = new System.Byte[plaintext.Length];
-        var tag = new System.Byte[TagSize];
+        System.Byte[] ct = new System.Byte[plaintext.Length];
+        System.Byte[] tag = new System.Byte[TagSize];
 
         Encrypt(key, nonce, plaintext, aad ?? System.ReadOnlySpan<System.Byte>.Empty, ct, tag);
 
-        var result = new System.Byte[ct.Length + TagSize];
+        System.Byte[] result = new System.Byte[ct.Length + TagSize];
         System.MemoryExtensions.AsSpan(ct).CopyTo(result);
         System.MemoryExtensions.AsSpan(tag).CopyTo(System.MemoryExtensions.AsSpan(result, ct.Length));
         return result;
@@ -252,7 +253,7 @@ public static class SpeckPoly1305
         System.Span<System.Byte> ks = stackalloc System.Byte[BLOCK16];
 
         // Preexpand Speck instance once for all blocks
-        var speck = new Speck(key);
+        Speck speck = new(key);
 
         while (offset < src.Length)
         {
@@ -268,7 +269,7 @@ public static class SpeckPoly1305
             ctr++;
         }
 
-        ks.Clear();
+        MemorySecurity.ZeroMemory(ks);
     }
 
     /// <summary>
@@ -310,7 +311,7 @@ public static class SpeckPoly1305
         System.ReadOnlySpan<System.Byte> nonce,
         System.UInt64 counter, System.Span<System.Byte> out16)
     {
-        var speck = new Speck(key);
+        Speck speck = new(key);
         GenKeystreamBlock(speck, nonce, counter, out16);
     }
 
@@ -340,7 +341,7 @@ public static class SpeckPoly1305
         mac.Update(lens);
 
         mac.FinalizeTag(tagOut16);
-        lens.Clear();
+        MemorySecurity.ZeroMemory(lens);
     }
 
     /// <summary>Zero padding to 16-byte boundary if needed.</summary>
@@ -355,7 +356,7 @@ public static class SpeckPoly1305
         }
 
         System.Span<System.Byte> pad = stackalloc System.Byte[16];
-        pad[..(16 - rem)].Clear();
+        MemorySecurity.ZeroMemory(pad[..(16 - rem)]);
         mac.Update(pad[..(16 - rem)]);
     }
 
