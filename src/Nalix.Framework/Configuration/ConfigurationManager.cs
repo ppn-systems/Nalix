@@ -2,10 +2,10 @@
 
 using Nalix.Common.Environment;
 using Nalix.Common.Logging;
+using Nalix.Framework.Configuration.Binding;
 using Nalix.Framework.Configuration.Internal;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Injection.DI;
-using Nalix.Shared.Configuration.Binding;
 
 namespace Nalix.Framework.Configuration;
 

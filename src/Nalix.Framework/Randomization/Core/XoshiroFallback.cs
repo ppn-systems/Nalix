@@ -21,7 +21,6 @@ namespace Nalix.Framework.Randomization.Core;
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
-[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("XoshiroFallback (NOT CSPRNG)")]
 public static class XoshiroFallback
 {

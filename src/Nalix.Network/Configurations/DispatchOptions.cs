@@ -1,5 +1,7 @@
-﻿using Nalix.Common.Enums;
-using Nalix.Shared.Configuration.Binding;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Enums;
+using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;
 

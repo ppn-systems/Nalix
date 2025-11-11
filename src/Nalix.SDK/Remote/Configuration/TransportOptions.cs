@@ -2,7 +2,7 @@
 
 using Nalix.Common.Attributes;
 using Nalix.Common.Enums;
-using Nalix.Shared.Configuration.Binding;
+using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.SDK.Remote.Configuration;
 

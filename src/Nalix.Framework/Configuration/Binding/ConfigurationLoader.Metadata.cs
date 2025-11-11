@@ -3,7 +3,7 @@
 using Nalix.Common.Attributes;
 using Nalix.Framework.Configuration.Internal;
 
-namespace Nalix.Shared.Configuration.Binding;
+namespace Nalix.Framework.Configuration.Binding;
 
 public partial class ConfigurationLoader
 {

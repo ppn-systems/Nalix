@@ -4,7 +4,7 @@ using Nalix.Common.Logging;
 using Nalix.Framework.Configuration.Internal;
 using Nalix.Framework.Injection;
 
-namespace Nalix.Shared.Configuration.Binding;
+namespace Nalix.Framework.Configuration.Binding;
 
 /// <summary>
 /// Provides high-performance access to configuration values by binding them to properties.

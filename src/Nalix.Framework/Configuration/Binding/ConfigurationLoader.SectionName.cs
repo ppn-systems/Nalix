@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Shared.Configuration.Binding;
+namespace Nalix.Framework.Configuration.Binding;
 
 public partial class ConfigurationLoader
 {
