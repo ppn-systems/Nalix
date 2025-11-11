@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Shared.Configuration.Binding;
+using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Shared.Memory.Buffers;
 

@@ -2,7 +2,7 @@
 
 using Nalix.Common.Enums;
 using Nalix.Network.Connection;
-using Nalix.Shared.Configuration.Binding;
+using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;
 

@@ -13,7 +13,6 @@ namespace Nalix.Framework.Randomization;
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.DebuggerStepThrough]
-[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public static class SecureRandom
 {
