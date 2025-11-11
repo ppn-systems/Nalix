@@ -5,7 +5,7 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Configuration.Benchmarks")]
 #endif
 
-namespace Nalix.Shared.Configuration.Internal;
+namespace Nalix.Framework.Configuration.Internal;
 
 /// <summary>
 /// Stores metadata about a configuration property.

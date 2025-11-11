@@ -1,11 +1,11 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Configurations;
 using Nalix.Network.Timing;
-using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Listeners.Udp;
 

@@ -4,12 +4,12 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Logging;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Tasks;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.SDK.Remote.Configuration;
 using Nalix.SDK.Remote.Internal;
-using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Caches;
 using System.Linq;
 

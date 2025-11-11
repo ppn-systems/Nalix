@@ -5,13 +5,13 @@ using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Common.Logging;
 using Nalix.Common.Tasks;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
 using Nalix.Network.Internal.Net;
-using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Timing;

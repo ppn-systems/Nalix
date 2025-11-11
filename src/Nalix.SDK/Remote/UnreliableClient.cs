@@ -2,10 +2,10 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Packets.Abstractions;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Injection.DI;
 using Nalix.SDK.Remote.Configuration;
-using Nalix.Shared.Configuration;
 
 namespace Nalix.SDK.Remote;
 

@@ -2,12 +2,12 @@
 
 using Nalix.Common.Environment;
 using Nalix.Common.Logging;
+using Nalix.Framework.Configuration.Internal;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Injection.DI;
 using Nalix.Shared.Configuration.Binding;
-using Nalix.Shared.Configuration.Internal;
 
-namespace Nalix.Shared.Configuration;
+namespace Nalix.Framework.Configuration;
 
 /// <summary>
 /// A singleton that provides access to configuration value containers with optimized performance
