@@ -1,7 +1,8 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
 using Nalix.Logging.Core;
+using Nalix.Logging.Interop;
 
 namespace Nalix.Logging.Sinks;
 
@@ -29,6 +30,7 @@ public sealed class ConsoleLogTarget : ILoggerTarget
     public ConsoleLogTarget(ILoggerFormatter loggerFormatter)
     {
         System.ArgumentNullException.ThrowIfNull(loggerFormatter);
+        System.Console.Title = "Logging";
 
         _loggerFormatter = loggerFormatter;
     }
@@ -38,6 +40,7 @@ public sealed class ConsoleLogTarget : ILoggerTarget
     /// </summary>
     public ConsoleLogTarget() : this(new NLogixFormatter(true))
     {
+
     }
 
     #endregion Constructors
@@ -50,7 +53,16 @@ public sealed class ConsoleLogTarget : ILoggerTarget
     /// <param name="logMessage">The log message to be outputted.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Publish(LogEntry logMessage) => System.Console.WriteLine(_loggerFormatter.FormatLog(logMessage));
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
+    public void Publish(LogEntry logMessage)
+    {
+        System.String formatted = _loggerFormatter.FormatLog(logMessage);
+
+        using (ConsoleGate.Shared())
+        {
+            System.Console.WriteLine(formatted);
+        }
+    }
 
     #endregion Public Methods
 }

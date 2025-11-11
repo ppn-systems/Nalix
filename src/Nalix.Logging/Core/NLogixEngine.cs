@@ -20,9 +20,16 @@ public abstract class NLogixEngine : System.IDisposable
     private LogLevel _minLevel;
     private System.Int32 _isDisposed;
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, System.Text.CompositeFormat> s_formatCache;
+
     #endregion Fields
 
     #region Constructors
+
+    static NLogixEngine()
+    {
+        s_formatCache = new(System.StringComparer.Ordinal);
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NLogixEngine"/> class.
@@ -174,8 +181,107 @@ public abstract class NLogixEngine : System.IDisposable
     #region Private Methods
 
     [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.String FormatMessage(System.String format, System.Object[]? args)
-        => args == null || args.Length == 0 ? format : System.String.Format(format, args);
+    {
+        if (System.String.IsNullOrEmpty(format) || args == null || args.Length == 0)
+        {
+            return format;
+        }
+
+        // Fast path: single argument with "{0}" or "{0:...}" pattern.
+        if (args.Length == 1 && TryParseSimplePlaceholder(format, out var innerFormat))
+        {
+            var arg = args[0];
+
+            // ISpanFormattable first (DateTime, numeric types, etc. in .NET 7/8)
+            if (arg is System.ISpanFormattable spanFormattable)
+            {
+                // Heuristic max length. If not enough, grow on-demand.
+                System.Span<System.Char> initial = stackalloc System.Char[64];
+                var provider = System.Globalization.CultureInfo.CurrentCulture;
+                if (spanFormattable.TryFormat(initial, out System.Int32 written, innerFormat, provider))
+                {
+                    return new System.String(initial[..written]);
+                }
+
+                // Rerun with rented buffer if initial stack is not enough
+                System.Int32 size = 128;
+                while (true)
+                {
+                    System.Char[] rented = System.Buffers.ArrayPool<System.Char>.Shared.Rent(size);
+                    try
+                    {
+                        if (spanFormattable.TryFormat(rented, out written, innerFormat, provider))
+                        {
+                            return new System.String(rented, 0, written);
+                        }
+                    }
+                    finally
+                    {
+                        System.Buffers.ArrayPool<System.Char>.Shared.Return(rented);
+                    }
+                    size <<= 1;
+                    if (size > 1024 * 64) // hard cap to avoid runaway
+                    {
+                        break;
+                    }
+                }
+            }
+
+            // IFormattable fallback (boxed types or custom formattables)
+            if (arg is System.IFormattable formattable)
+            {
+                return formattable.ToString(innerFormat.ToString(), System.Globalization.CultureInfo.CurrentCulture) ?? System.String.Empty;
+            }
+
+            // Generic fallback
+            return arg?.ToString() ?? System.String.Empty;
+        }
+
+        // General path: cached CompositeFormat to avoid reparsing the format string
+        var composite = s_formatCache.GetOrAdd(format, static f => System.Text.CompositeFormat.Parse(f));
+        return System.String.Format(System.Globalization.CultureInfo.CurrentCulture, composite, args);
+    }
+
+    /// <summary>
+    /// Detects if 'format' is exactly "{0}" or "{0:...}" (no extra text),
+    /// and extracts the inner format (after ':') if present.
+    /// Returns true when pattern matches.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Boolean TryParseSimplePlaceholder(System.String format, out System.ReadOnlySpan<System.Char> innerFormat)
+    {
+        innerFormat = default;
+
+        // Quick checks: must start with '{' and end with '}'
+        if (format.Length < 3 || format[0] != '{' || format[^1] != '}')
+        {
+            return false;
+        }
+
+        // Allowed forms:
+        // "{0}"                  -> innerFormat = default
+        // "{0:formatString}"     -> innerFormat = "formatString"
+        // No alignment, no index other than 0, no extra text around.
+        // We'll parse a minimal subset to stay fast.
+        System.ReadOnlySpan<System.Char> span = System.MemoryExtensions.AsSpan(format, 1, format.Length - 2); // inside braces
+                                                                                                              // Now span should be "0" or "0:...".
+        if (span.Length == 1 && span[0] == '0')
+        {
+            return true;
+        }
+
+        if (span.Length > 2 && span[0] == '0' && span[1] == ':')
+        {
+            innerFormat = span[2..];
+            return true;
+        }
+
+        return false;
+    }
 
     #endregion Private Methods
 }
