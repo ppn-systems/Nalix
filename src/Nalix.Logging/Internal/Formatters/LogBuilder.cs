@@ -230,8 +230,6 @@ internal static class LogBuilder
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void AppendMessage(System.Text.StringBuilder builder, System.String message)
     {
-        _ = builder.Append(NLogixConstants.LogSpaceSeparator);
-
         // Use span-based append for standard separators
         _ = builder.Append(DashWithSpaces);
         _ = builder.Append(message);
