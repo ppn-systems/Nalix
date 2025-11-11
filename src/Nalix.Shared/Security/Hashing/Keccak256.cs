@@ -32,7 +32,6 @@ namespace Nalix.Shared.Security.Hashing;
 /// </para>
 /// </threadsafety>
 /// <seealso href="https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.202.pdf">FIPS 202: SHA-3 Standard</seealso>
-[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("Disposed={_disposed}, Finalized={_finalized}, Tail={_byteCount}")]
 public sealed class Keccak256 : System.IDisposable
 {

@@ -31,7 +31,6 @@ namespace Nalix.Shared.Security.Aead;
 /// </remarks>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Salsa20-Poly1305 AEAD")]
 public static class Salsa20Poly1305

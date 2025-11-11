@@ -53,7 +53,6 @@ namespace Nalix.Shared.Security;
 /// </para>
 /// </remarks>
 [System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
 public static class EnvelopeCipher
 {
     /// <summary>

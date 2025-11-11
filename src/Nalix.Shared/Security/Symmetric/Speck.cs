@@ -12,7 +12,6 @@ namespace Nalix.Shared.Security.Symmetric;
 /// - Endianness: operates on native little-endian when reading/writing 64-bit words.
 /// - Security: Speck is controversial; consider modern AEADs (AES-GCM / ChaCha20-Poly1305) for new designs.
 /// </summary>
-[System.Runtime.CompilerServices.SkipLocalsInit]
 public sealed class Speck
 {
     #region Constants

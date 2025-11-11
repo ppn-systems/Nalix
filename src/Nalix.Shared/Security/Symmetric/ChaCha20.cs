@@ -11,7 +11,6 @@ namespace Nalix.Shared.Security.Symmetric;
 ///       As a result, the ChaCha20 instance is NOT thread-safe. For concurrent use,
 ///       create separate instances or implement instance pooling.
 /// </summary>
-[System.Runtime.CompilerServices.SkipLocalsInit]
 public sealed class ChaCha20 : System.IDisposable
 {
     #region Constants
