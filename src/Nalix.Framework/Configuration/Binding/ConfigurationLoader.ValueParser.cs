@@ -1,8 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
+using Nalix.Framework.Configuration.Internal;
 using Nalix.Framework.Injection;
-using Nalix.Shared.Configuration.Internal;
 
 namespace Nalix.Shared.Configuration.Binding;
 

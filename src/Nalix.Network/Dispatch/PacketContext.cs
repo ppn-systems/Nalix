@@ -3,10 +3,10 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Common.Packets;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
 using Nalix.Network.Dispatch.Delegates;
-using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Dispatch;

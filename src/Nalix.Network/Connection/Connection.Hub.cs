@@ -4,10 +4,10 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Connection;
 using Nalix.Common.Enums;
 using Nalix.Common.Logging;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
-using Nalix.Shared.Configuration;
 
 namespace Nalix.Network.Connection;
 

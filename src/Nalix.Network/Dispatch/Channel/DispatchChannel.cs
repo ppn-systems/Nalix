@@ -6,11 +6,11 @@ using Nalix.Common.Enums;
 using Nalix.Common.Logging;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Configurations;
 using Nalix.Network.Connection;
-using Nalix.Shared.Configuration;
 using Nalix.Shared.Extensions;
 
 namespace Nalix.Network.Dispatch.Channel;

@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
+using Nalix.Logging.Core;
 using Nalix.Logging.Interop;
 using Nalix.Logging.Options;
 
@@ -60,7 +61,7 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
     /// <param name="options">The configuration options for the <see cref="BatchConsoleLogTarget"/>.</param>
     public BatchConsoleLogTarget(BatchConsoleLogOptions options)
         : this(
-            consoleLoggingTarget: new ConsoleLogTarget(new Nalix.Logging.Core.NLogixFormatter(options.EnableColors)),
+            consoleLoggingTarget: new ConsoleLogTarget(new NLogixFormatter(options.EnableColors)),
             flushInterval: options.FlushInterval,
             maxBufferSize: options.MaxBufferSize,
             autoFlush: options.AutoFlushOnFull)
@@ -178,7 +179,6 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
         this.Flush();
 
         _flushTimer.Dispose();
-        // _consoleLoggingTarget does not hold unmanaged resources; no dispose required.
 
         _disposed = true;
     }

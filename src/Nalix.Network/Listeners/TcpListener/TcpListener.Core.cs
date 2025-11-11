@@ -2,6 +2,7 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Logging;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Abstractions;
@@ -9,7 +10,6 @@ using Nalix.Network.Configurations;
 using Nalix.Network.Internal.Net;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Timing;
-using Nalix.Shared.Configuration;
 using Nalix.Shared.Memory.Pooling;
 using System.Threading;
 

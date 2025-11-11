@@ -17,10 +17,10 @@
 		<IlcOptimizationPreference>Speed</IlcOptimizationPreference>
 
 		<!-- Versions -->
-		<Version>7.1.2</Version>
-		<FileVersion>7.1.2.0</FileVersion>
-		<PackageVersion>7.1.2</PackageVersion>
-		<InformationalVersion>7.1.2+$(SourceRevisionId)</InformationalVersion>
+		<Version>7.5.0</Version>
+		<FileVersion>7.5.0.0</FileVersion>
+		<PackageVersion>7.5.0</PackageVersion>
+		<InformationalVersion>7.5.0+$(SourceRevisionId)</InformationalVersion>
 
 		<Description>
 Nalix.SDK provides the client-side development kit for the Nalix ecosystem,
@@ -52,6 +52,7 @@ through clean, extensible, and developer-friendly interfaces.
 	<ItemGroup>
 		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
 		<ProjectReference Include="..\Nalix.Shared\Nalix.Shared.csproj" />
+		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
 	</ItemGroup>
 
 </Project>
