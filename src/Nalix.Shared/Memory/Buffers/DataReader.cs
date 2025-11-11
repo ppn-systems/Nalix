@@ -1,8 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Common.Exceptions;
 
-namespace Nalix.Shared.Serialization.Buffers;
+namespace Nalix.Shared.Memory.Buffers;
 
 /// <summary>
 /// Provides functionality for reading serialized data from a byte buffer.
