@@ -135,6 +135,8 @@ public static class FormatterProvider
     {
         System.ArgumentNullException.ThrowIfNull(formatter);
 
+        FormatterCache<T>.Formatter = formatter;
+
         System.Type t = typeof(T);
         System.Type ut = t;
         System.Boolean isArray = ut.IsArray;
