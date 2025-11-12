@@ -8,12 +8,13 @@ using Nalix.Common.Middleware;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Shared;
-using Nalix.Shared.Extensions;
-using Nalix.Shared.Frames;
-using Nalix.Shared.Memory.Buffers;
+using Nalix.Framework.Extensions;
+using Nalix.Framework.Frames;
+using Nalix.Framework.Memory.Buffers;
 
 #if DEBUG
-using System.Diagnostics.CodeAnalysis;
+using Nalix.Framework.Injection;
+using Nalix.Common.Diagnostics;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests.")]

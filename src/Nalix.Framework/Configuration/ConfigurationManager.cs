@@ -451,8 +451,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// This method is thread-safe and lock-free.
     /// </remarks>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public bool IsLoaded<TClass>() where TClass : ConfigurationLoader => _configContainerDict.ContainsKey(typeof(TClass));
 
     /// <summary>

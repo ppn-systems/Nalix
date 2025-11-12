@@ -8,10 +8,10 @@ using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Transport;
+using Nalix.Framework.Frames.Controls;
 using Nalix.Framework.Random;
 using Nalix.Framework.Time;
 using Nalix.SDK.Transport.Internal;
-using Nalix.Shared.Frames.Controls;
 
 namespace Nalix.SDK.Transport.Extensions;
 

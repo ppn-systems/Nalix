@@ -14,11 +14,11 @@ using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Time;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooled;
-using Nalix.Shared.Memory.Buffers;
-using Nalix.Shared.Memory.Objects;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
