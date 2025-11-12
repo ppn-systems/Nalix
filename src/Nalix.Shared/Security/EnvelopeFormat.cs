@@ -54,8 +54,8 @@ internal static class EnvelopeFormat
             return false;
         }
 
-        var headerSlice = blob[..HeaderSize];
-        var nonceSlice = blob.Slice(pos, nonceLen);
+        System.ReadOnlySpan<System.Byte> headerSlice = blob[..HeaderSize];
+        System.ReadOnlySpan<System.Byte> nonceSlice = blob.Slice(pos, nonceLen);
         pos += nonceLen;
 
         // Decide format by suite type: AEAD => has tag, Symmetric => no tag
@@ -75,21 +75,23 @@ internal static class EnvelopeFormat
                 return false;
             }
 
-            var ctSlice = blob.Slice(pos, ctLen);
-            var tagSlice = blob.Slice(pos + ctLen, TagSize);
+            System.ReadOnlySpan<System.Byte> ctSlice = blob.Slice(pos, ctLen);
+            System.ReadOnlySpan<System.Byte> tagSlice = blob.Slice(pos + ctLen, TagSize);
 
             env = new ParsedEnvelope(
                 header.Version, header.Type, header.Flags, header.NonceLen, header.Seq,
                 headerSlice, nonceSlice, ctSlice, tagSlice, hasTag: true);
+
             return true;
         }
         else
         {
             // Symmetric: all remaining is ciphertext; no tag
-            var ctSlice = blob[pos..];
+            System.ReadOnlySpan<System.Byte> ctSlice = blob[pos..];
             env = new ParsedEnvelope(
                 header.Version, header.Type, header.Flags, header.NonceLen, header.Seq,
                 headerSlice, nonceSlice, ctSlice, [], hasTag: false);
+
             return true;
         }
     }
@@ -115,7 +117,7 @@ internal static class EnvelopeFormat
             ThrowHelper.EnvelopeDestTooSmall();
         }
 
-        var header = new EnvelopeHeader(CurrentVersion, type, flags, (System.Byte)nonceLen, seq);
+        EnvelopeHeader header = new(CurrentVersion, type, flags, (System.Byte)nonceLen, seq);
         EnvelopeHeader.WriteTo(dest[..HeaderSize], header);
 
         System.Int32 pos = HeaderSize;
@@ -145,7 +147,7 @@ internal static class EnvelopeFormat
             ThrowHelper.EnvelopeDestTooSmall();
         }
 
-        var header = new EnvelopeHeader(CurrentVersion, type, flags, (System.Byte)nonceLen, seq);
+        EnvelopeHeader header = new(CurrentVersion, type, flags, (System.Byte)nonceLen, seq);
         EnvelopeHeader.WriteTo(dest[..HeaderSize], header);
 
         System.Int32 pos = HeaderSize;

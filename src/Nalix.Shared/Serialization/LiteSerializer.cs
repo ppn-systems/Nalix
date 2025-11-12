@@ -41,7 +41,8 @@ public static class LiteSerializer
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Byte[] Serialize<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(in T value)
+    public static System.Byte[] Serialize<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(in T value)
     {
         if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
@@ -147,7 +148,8 @@ public static class LiteSerializer
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 Serialize<T>(in T value, System.Byte[] buffer)
+    public static System.Int32 Serialize<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(in T value, System.Byte[] buffer)
     {
         System.ArgumentNullException.ThrowIfNull(buffer);
 
@@ -204,7 +206,8 @@ public static class LiteSerializer
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 Serialize<T>(in T value, System.Span<System.Byte> buffer)
+    public static System.Int32 Serialize<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(in T value, System.Span<System.Byte> buffer)
     {
         TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out System.Int32 size);
         if (kind == TypeKind.FixedSizeSerializable)
@@ -560,7 +563,9 @@ public static class LiteSerializer
     /// <exception cref="SerializationException">If capacity is insufficient or serialization fails.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 Serialize<T>(in T value, BufferLease target)
+    public static System.Int32 Serialize<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
+        in T value, BufferLease target)
     {
         System.ArgumentNullException.ThrowIfNull(target);
 
@@ -663,7 +668,9 @@ public static class LiteSerializer
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 Deserialize<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(BufferLease source, ref T value)
+    public static System.Int32 Deserialize<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
+        BufferLease source, ref T value)
     {
         System.ArgumentNullException.ThrowIfNull(source);
         return Deserialize<T>(source.Memory.Span, ref value);
@@ -680,7 +687,9 @@ public static class LiteSerializer
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static T Deserialize<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(BufferLease source, out System.Int32 bytesRead)
+    public static T Deserialize<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
+        BufferLease source, out System.Int32 bytesRead)
     {
         System.ArgumentNullException.ThrowIfNull(source);
         return Deserialize<T>(source.Memory.Span, out bytesRead);
