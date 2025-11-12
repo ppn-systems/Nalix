@@ -160,7 +160,7 @@ public static class EnvelopeCipher
         plaintext = null;
 
         // Quick parse to determine which engine to route to
-        if (!EnvelopeFormat.TryParseEnvelope(envelope, out var env))
+        if (!EnvelopeFormat.TryParseEnvelope(envelope, out EnvelopeFormat.ParsedEnvelope env))
         {
             return false;
         }

@@ -8,6 +8,7 @@
 
 using Nalix.Common.Enums;
 using Nalix.Framework.Randomization;
+using Nalix.Shared.Memory.Internal;
 
 namespace Nalix.Shared.Security.Symmetric;
 
@@ -140,7 +141,7 @@ public static class SymmetricEngine
         System.UInt64 counter = seqVal;
 
         // Encrypt
-        var ct = new System.Byte[plaintext.Length];
+        System.Byte[] ct = new System.Byte[plaintext.Length];
         Encrypt(algorithm, key, nonceBuf, counter, plaintext, ct);
 
         // Compose envelope: header || nonce || ciphertext
@@ -149,7 +150,7 @@ public static class SymmetricEngine
         EnvelopeFormat.WriteEnvelope(outBuf, algorithm, flags, seqVal, nonceBuf, ct);
 
         // Clear sensitive
-        System.Array.Clear(ct, 0, ct.Length);
+        MemorySecurity.ZeroMemory(ct);
         // nonceBuf kept in envelope; not cleared.
 
         return outBuf;
@@ -175,7 +176,7 @@ public static class SymmetricEngine
         // Use env.Seq as counter (low 32 bits for ChaCha)
         System.UInt64 counter = env.Seq;
 
-        var pt = new System.Byte[env.Ciphertext.Length];
+        System.Byte[] pt = new System.Byte[env.Ciphertext.Length];
 
         try
         {
@@ -185,7 +186,7 @@ public static class SymmetricEngine
         }
         catch
         {
-            System.Array.Clear(pt, 0, pt.Length);
+            MemorySecurity.ZeroMemory(pt);
             return false;
         }
     }
@@ -213,7 +214,7 @@ public static class SymmetricEngine
             ThrowHelper.BadNonceLenChaCha();
         }
 
-        using var chacha = new ChaCha20(key.ToArray(), nonce.ToArray(), counter);
+        using ChaCha20 chacha = new(key.ToArray(), nonce.ToArray(), counter);
         chacha.Encrypt(src, dst);
     }
 
@@ -293,7 +294,7 @@ public static class SymmetricEngine
         }
         finally
         {
-            ks.Clear();
+            MemorySecurity.ZeroMemory(ks);
         }
     }
 
@@ -351,10 +352,11 @@ public static class SymmetricEngine
             ctr++;
         }
 
-        key16.Clear();
-        in8.Clear();
-        ks.Clear();
-        tmpOut.Clear();
+
+        MemorySecurity.ZeroMemory(ks);
+        MemorySecurity.ZeroMemory(in8);
+        MemorySecurity.ZeroMemory(key16);
+        MemorySecurity.ZeroMemory(tmpOut);
     }
 
     #endregion Paths
