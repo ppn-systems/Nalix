@@ -3,9 +3,9 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Security;
-using Nalix.Common.Shared;
 using Nalix.Framework.LZ4;
 using Nalix.Framework.LZ4.Encoders;
 using Nalix.Framework.Memory.Internal;

@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Nalix.Common.Shared;
+using Nalix.Common.Abstractions;
 using Nalix.Framework.Memory.Pools;
 
 

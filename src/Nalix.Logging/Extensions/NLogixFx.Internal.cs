@@ -44,7 +44,7 @@ public static partial class NLogixFx
     {
         return
             $"{Sep}\n" +
-            $"Source     : {sourceName ?? "NONE"}\n" +
+            $"Source     : {sourceName ?? "None"}\n" +
             $"Caller     : {callerMemberName} ({callerFilePath}:{callerLineNumber})\n" +
             $"Data       : {FORMAT_EXTENDED_DATA(extendedData)}\n" +
             $"Message    : {message}\n" +

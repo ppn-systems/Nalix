@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Identity;
-using Nalix.Common.Shared;
 
 namespace Nalix.Common.Concurrency;
 

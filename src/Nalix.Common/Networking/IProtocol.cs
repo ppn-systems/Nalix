@@ -3,7 +3,7 @@
 
 using System;
 using System.Threading;
-using Nalix.Common.Shared;
+using Nalix.Common.Abstractions;
 
 namespace Nalix.Common.Networking;
 

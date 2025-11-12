@@ -10,7 +10,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Shared;
+using Nalix.Common.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 
