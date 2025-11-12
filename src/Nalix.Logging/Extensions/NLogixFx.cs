@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
+using Nalix.Logging.Core;
 using Nalix.Logging.Options;
 using Nalix.Logging.Sinks;
 

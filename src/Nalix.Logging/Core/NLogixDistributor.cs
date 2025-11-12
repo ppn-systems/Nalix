@@ -1,8 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Common.Logging;
 
-namespace Nalix.Logging;
+namespace Nalix.Logging.Core;
 
 /// <summary>
 /// High-performance publisher that dispatches log entries to registered logging targets.
