@@ -52,7 +52,7 @@ public sealed partial class NLogix : NLogixEngine, ILogger
     // Writes a log entry with the specified level, event ProtocolType, message, and optional exception.
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void WriteLog(
         LogLevel level, EventId eventId,
         System.String message, System.Exception? exception = null)
