@@ -9,7 +9,7 @@ namespace Nalix.Logging.Interop;
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-public static partial class Kernel32
+internal static partial class Kernel32
 {
     #region Getters
 

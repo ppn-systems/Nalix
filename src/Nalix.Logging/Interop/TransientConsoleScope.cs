@@ -7,12 +7,13 @@ namespace Nalix.Logging.Interop;
 /// Creates a new console window for reporting purposes and restores the previous console state upon disposal.
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public sealed class TransientConsoleScope : System.IDisposable
 {
     private static System.Int32 _refCount = 0;
     private static System.IntPtr _hPrivIn = System.IntPtr.Zero;
     private static System.IntPtr _hPrivOut = System.IntPtr.Zero;
+
+    private static readonly System.Threading.ReaderWriterLockSlim _rw = new(System.Threading.LockRecursionPolicy.SupportsRecursion);
 
     /// <summary>
     /// Asserts whether a transient console is currently active.
@@ -22,9 +23,11 @@ public sealed class TransientConsoleScope : System.IDisposable
     /// <summary>
     /// Creates a new console report scope with the specified title, dimensions, and ANSI support.
     /// </summary>
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     public TransientConsoleScope(System.String? title = null, System.Int16 cols = 120, System.Int16 rows = 30, System.Boolean enableAnsi = true)
     {
-        ConsoleGate.EnterExclusive();
+        EnterExclusive();
 
         if (_refCount == 0)
         {
@@ -87,9 +90,55 @@ public sealed class TransientConsoleScope : System.IDisposable
         _refCount++;
     }
 
+    /// <summary>Enter an exclusive section (blocks all shared sections).</summary>
+    public static void EnterExclusive() => _rw.EnterWriteLock();
+
+    /// <summary>Exit an exclusive section.</summary>
+    public static void ExitExclusive()
+    {
+        if (_rw.IsWriteLockHeld)
+        {
+            _rw.ExitWriteLock();
+        }
+    }
+
+    /// <summary>Enter a shared (read) section that will wait if exclusive is held.</summary>
+    public static void EnterShared() => _rw.EnterReadLock();
+
+    /// <summary>Exit a shared section.</summary>
+    public static void ExitShared()
+    {
+        if (_rw.IsReadLockHeld)
+        {
+            _rw.ExitReadLock();
+        }
+    }
+
+    /// <summary>
+    /// Helper disposable for shared sections: <c>using (ConsoleGate.Shared()) { ... }</c>
+    /// </summary>
+    public static System.IDisposable Shared() => new SharedCookie();
+
+    private readonly struct SharedCookie : System.IDisposable
+    {
+        public SharedCookie()
+        {
+            _rw.EnterReadLock();
+        }
+        public void Dispose()
+        {
+            if (_rw.IsReadLockHeld)
+            {
+                _rw.ExitReadLock();
+            }
+        }
+    }
+
     /// <summary>
     /// Writes a line of text to the console.
     /// </summary>
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     public static void WriteLine(System.String message)
     {
         if (_hPrivOut == System.IntPtr.Zero || _hPrivOut == (System.IntPtr)(-1))
@@ -108,6 +157,8 @@ public sealed class TransientConsoleScope : System.IDisposable
     /// <summary>
     /// Reads a single key press from the console input.
     /// </summary>
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     public static void ReadKey()
     {
         const System.String ch = "\0";
@@ -123,6 +174,8 @@ public sealed class TransientConsoleScope : System.IDisposable
     /// <summary>
     /// Disposes the console report scope, restoring the previous console state if applicable.
     /// </summary>
+
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     public void Dispose()
     {
         if (_refCount <= 0)
@@ -154,7 +207,7 @@ public sealed class TransientConsoleScope : System.IDisposable
         {
             if (!Kernel32.ALLOC_CONSOLE())
             {
-                ConsoleGate.ExitExclusive();
+                ExitExclusive();
                 return;
             }
         }
@@ -178,7 +231,7 @@ public sealed class TransientConsoleScope : System.IDisposable
             REBIND_SYSTEM_CONSOLE_STREAMS();
         }
 
-        ConsoleGate.ExitExclusive();
+        ExitExclusive();
     }
 
     private static void REBIND_SYSTEM_CONSOLE_STREAMS()
