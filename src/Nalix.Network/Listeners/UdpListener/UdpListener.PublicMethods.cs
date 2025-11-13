@@ -18,7 +18,7 @@ namespace Nalix.Network.Listeners.Udp;
 /// Provides a base implementation for a UDP network listener, supporting asynchronous listening,
 /// protocol processing, and time synchronization. Inherit from this class to implement custom UDP listeners.
 /// </summary>
-[System.Diagnostics.DebuggerDisplay("Port={_config?.Port}, Running={_isRunning}")]
+[System.Diagnostics.DebuggerDisplay("Port={s_config?.Port}, Running={_isRunning}")]
 public abstract partial class UdpListenerBase : IListener
 {
     /// <summary>
@@ -226,7 +226,7 @@ public abstract partial class UdpListenerBase : IListener
         _ = sb.AppendLine();
 
         // Socket configuration (static Config):contentReference[oaicite:11]{index=11}
-        _ = sb.AppendLine("Socket _config:");
+        _ = sb.AppendLine("Socket s_config:");
         _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine($"NoDelay: {Config.NoDelay}");
         _ = sb.AppendLine($"ReuseAddress: {Config.ReuseAddress}");

@@ -303,7 +303,7 @@ public sealed partial class TaskManager : ITaskManager
             }, cts.Token);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[FW.{nameof(TaskManager)}] worker-start id={id} name={name} group={group} tag={options.Tag ?? "-"}");
+                                    .Meta($"[FW.{nameof(TaskManager)}] worker-start id={id} name={name} group={group} tag={options.Tag ?? "-"}");
 
             return st;
         }
@@ -422,7 +422,7 @@ public sealed partial class TaskManager : ITaskManager
         if (n > 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelAllWorkers)}] cancel-all-workers count={n}");
+                                    .Trace($"[FW.{nameof(TaskManager)}:{nameof(CancelAllWorkers)}] cancel-all-workers count={n}");
         }
 
         return n;
@@ -481,7 +481,7 @@ public sealed partial class TaskManager : ITaskManager
         if (n > 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelGroup)}] group-cancel group={group} count={n}");
+                                    .Trace($"[FW.{nameof(TaskManager)}:{nameof(CancelGroup)}] group-cancel group={group} count={n}");
         }
 
         return n;
