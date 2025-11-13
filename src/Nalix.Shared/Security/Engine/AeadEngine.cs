@@ -94,7 +94,7 @@ public static class AeadEngine
         // Generate nonce
         System.Span<System.Byte> nonceStack = stackalloc System.Byte[System.Math.Max(16, nonceLen)];
         var nonce = nonceStack[..nonceLen];
-        SecureRandom.Fill(nonce);
+        Csprng.Fill(nonce);
 
         // Sequence
         System.UInt32 seqVal = seq ?? GenerateRandomSeq();
@@ -353,7 +353,7 @@ public static class AeadEngine
     private static System.UInt32 GenerateRandomSeq()
     {
         System.Span<System.Byte> tmp = stackalloc System.Byte[4];
-        SecureRandom.Fill(tmp);
+        Csprng.Fill(tmp);
         return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(tmp);
     }
 
