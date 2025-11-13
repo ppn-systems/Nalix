@@ -23,7 +23,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup .NET 10.0
+    - name: Setup .NET SDK
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '10.0.x'
@@ -36,20 +36,26 @@ jobs:
 
     - name: Create signing key file
       run: |
-          echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./Nalix.snk
+        echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./Nalix.snk
 
-    - name: Restore & Build src/
-      run: |
-        dotnet restore src/Nalix.sln  # Assuming you have a solution file
-        dotnet build src/Nalix.sln --configuration Debug
+    # Build src/
+    - name: Restore src/
+      run: dotnet restore src/Nalix.sln
 
-    - name: Restore & Build tests/
-      run: |
-        dotnet restore tests/Nalix.Tests.sln  # Assuming you have a solution file for tests
-        dotnet build tests/Nalix.Tests.sln --configuration Debug
+    - name: Build src/ with CodeQL extraction
+      run: dotnet build src/Nalix.sln `
+        --configuration Debug `
+        --no-restore `
+        /p:UseSharedCompilation=false
 
-    # - name: Run xUnit Tests (Optional but good for CI)
-    #   run: dotnet test tests/Nalix.Tests.sln --configuration Debug --no-build --verbosity normal
+    - name: Restore tests/
+      run: dotnet restore tests/Nalix.Tests.sln
+
+    - name: Build tests/ with CodeQL extraction
+      run: dotnet build tests/Nalix.Tests.sln `
+        --configuration Debug `
+        --no-restore `
+        /p:UseSharedCompilation=false
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
