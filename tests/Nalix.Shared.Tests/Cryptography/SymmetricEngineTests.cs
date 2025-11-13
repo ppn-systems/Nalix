@@ -3,6 +3,7 @@ using Xunit;
 using Nalix.Common.Enums;
 using System.Text;
 using Nalix.Shared.Security.Symmetric;
+using Nalix.Shared.Security.Engine;
 
 namespace Nalix.Shared.Tests.Cryptography;
 

@@ -2,6 +2,7 @@
 using Xunit;
 using Nalix.Common.Enums;
 using Nalix.Shared.Security.Aead;
+using Nalix.Shared.Security.Engine;
 
 namespace Nalix.Shared.Tests.Cryptography;
 
