@@ -45,24 +45,29 @@ public sealed partial class Connection : IConnection
         /// <exception cref="System.InvalidOperationException"></exception>
         public void Initialize(IConnection outer)
         {
-            _endPoint = outer.RemoteEndPoint
-                ?? throw new System.InvalidOperationException("RemoteEndPoint is null");
+            _endPoint = outer.RemoteEndPoint ?? throw new System.InvalidOperationException("RemoteEndPoint is null");
+            var af = ((_endPoint as System.Net.IPEndPoint) ?? throw new System.InvalidOperationException("IPEndPoint required")).AddressFamily;
 
-            if (_socket.AddressFamily != ((System.Net.IPEndPoint)_endPoint).AddressFamily)
+            if (_socket.AddressFamily != af)
             {
                 _socket.Dispose();
-                var af = ((System.Net.IPEndPoint)_endPoint).AddressFamily;
                 _socket = new System.Net.Sockets.Socket(af, System.Net.Sockets.SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
-
-                if (af == System.Net.Sockets.AddressFamily.InterNetworkV6)
-                {
-                    try
-                    {
-                        _socket.DualMode = true;
-                    }
-                    catch { /* ignore if not supported */ }
-                }
             }
+
+            if (af == System.Net.Sockets.AddressFamily.InterNetworkV6)
+            {
+                try { _socket.DualMode = true; } catch { /* ignore */ }
+            }
+
+            const System.Int32 BufferSize = (System.Int32)(1024 * 1.35);
+
+            // Optional socket options
+            _socket.NoDelay = false;
+            _socket.SendBufferSize = BufferSize;
+            _socket.ReceiveBufferSize = BufferSize;
+
+            // "Connect" binds a default remote endpoint
+            _socket.Connect(_endPoint);
         }
 
         #endregion Constructor

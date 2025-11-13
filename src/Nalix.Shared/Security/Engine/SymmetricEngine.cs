@@ -9,8 +9,9 @@
 using Nalix.Common.Enums;
 using Nalix.Framework.Randomization;
 using Nalix.Shared.Memory.Internal;
+using Nalix.Shared.Security.Symmetric;
 
-namespace Nalix.Shared.Security.Symmetric;
+namespace Nalix.Shared.Security.Engine;
 
 /// <summary>
 /// Provides a unified, Span-first engine to generate and apply symmetric
