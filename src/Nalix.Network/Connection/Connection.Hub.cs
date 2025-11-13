@@ -381,11 +381,22 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         try
         {
-            await System.Threading.Tasks.Task
-                      .WhenAll(System.MemoryExtensions
-                      .AsSpan(tasks, 0, index)
-                      .ToArray())
-                      .ConfigureAwait(false);
+            if (index == 0)
+            {
+                return;
+            }
+
+            if (index == tasks.Length)
+            {
+                await System.Threading.Tasks.Task.WhenAll(tasks).ConfigureAwait(false);
+            }
+            else
+            {
+                System.Threading.Tasks.Task[] slice = new System.Threading.Tasks.Task[index];
+                System.Array.Copy(tasks, slice, index);
+                await System.Threading.Tasks.Task.WhenAll(slice)
+                                                 .ConfigureAwait(false);
+            }
         }
         catch (System.OperationCanceledException)
         {
@@ -401,7 +412,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <param name="message">The message to broadcast.</param>
     /// <param name="sendFunc">The function to send the message to a connection.</param>
     /// <param name="predicate">The predicate to filter connections.</param>
-    /// <param name="_">A token to cancel the operation.</param>
+    /// <param name="cancellation">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous broadcast operation.</returns>
     /// <exception cref="System.ArgumentNullException">
     /// Thrown if <paramref name="message"/>, <paramref name="sendFunc"/>, or <paramref name="predicate"/> is null.</exception>
@@ -411,7 +422,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     public async System.Threading.Tasks.Task BroadcastWhereAsync<T>(
         [System.Diagnostics.CodeAnalysis.DisallowNull] T message,
         System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
-        System.Func<IConnection, System.Boolean> predicate, System.Threading.CancellationToken _ = default)
+        System.Func<IConnection, System.Boolean> predicate, System.Threading.CancellationToken cancellation = default)
         where T : class
     {
         if (message is null || sendFunc is null || predicate is null || _disposed)
@@ -433,22 +444,34 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return;
         }
 
-        System.Threading.Tasks.Task[] tasks = new System.Threading.Tasks.Task[filteredConnections.Count];
-        for (System.Int32 i = 0; i < filteredConnections.Count; i++)
-        {
-            IConnection connection = filteredConnections[i];
-            tasks[i] = sendFunc(connection, message);
-        }
+        System.Threading.Tasks.Task[] tasks =
+            System.Buffers.ArrayPool<System.Threading.Tasks.Task>.Shared.Rent(filteredConnections.Count);
 
         try
         {
-            await System.Threading.Tasks.Task.WhenAll(tasks)
+            System.Int32 index = 0;
+            foreach (IConnection connection in filteredConnections)
+            {
+                if (cancellation.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                tasks[index++] = sendFunc(connection, message);
+            }
+
+            await System.Threading.Tasks.Task.WhenAll(System.MemoryExtensions
+                                             .AsSpan(tasks, 0, index))
                                              .ConfigureAwait(false);
         }
         catch (System.OperationCanceledException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Info($"[{nameof(ConnectionHub)}] broadcast-cancel");
+        }
+        finally
+        {
+            System.Buffers.ArrayPool<System.Threading.Tasks.Task>.Shared.Return(tasks, clearArray: true);
         }
     }
 
@@ -547,12 +570,6 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _disposed = true;
         this.CloseAllConnections("disposed");
 
-        // Unsubscribe from all events
-        foreach (IConnection connection in _connections.Values)
-        {
-            connection.OnCloseEvent -= this.OnClientDisconnected;
-        }
-
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Info($"[{nameof(ConnectionHub)}] disposed");
     }
@@ -561,11 +578,6 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
     #region Private Methods
 
-    /// <summary>
-    /// Handles the disconnection of a client by unregistering it from the hub.
-    /// </summary>
-    /// <param name="sender">The source of the event.</param>
-    /// <param name="args">The event arguments containing the connection.</param>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -573,10 +585,6 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
         [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs args) => this.UnregisterConnection(args.Connection);
 
-    /// <summary>
-    /// Handles connection limit enforcement based on the configured reject policy.
-    /// </summary>
-    /// <param name="newConnection">The new connection attempting to register.</param>
     [System.Diagnostics.StackTraceHidden]
     private void HandleConnectionLimit(IConnection newConnection)
     {

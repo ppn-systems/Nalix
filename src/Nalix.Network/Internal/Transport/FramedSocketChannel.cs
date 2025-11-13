@@ -107,7 +107,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
         _ = this.ReceiveLoopAsync(linked.Token).ContinueWith(static (t, state) =>
         {
-            var (l, link) = ((ILogger?, System.Threading.CancellationTokenSource))state!;
+            (ILogger? l, System.Threading.CancellationTokenSource link) = ((ILogger?, System.Threading.CancellationTokenSource))state!;
             if (t.IsFaulted)
             {
                 l?.Error($"[{nameof(FramedSocketChannel)}:{nameof(BeginReceive)}] receive-loop faulted", t.Exception!);

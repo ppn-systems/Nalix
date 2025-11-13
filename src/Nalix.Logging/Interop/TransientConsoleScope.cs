@@ -1,5 +1,4 @@
-﻿// File: TransientConsoleScope.cs
-// Purpose: Open a brand-new console window for a temporary report and then restore.
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 namespace Nalix.Logging.Interop;
 
