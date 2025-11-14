@@ -35,9 +35,9 @@ Nalix is a real-time server solution designed for efficient communication and da
 
 ## 🔧 Requirements
 
-- .NET 9 and C# 13 support
+- .NET 10 and C# 14 support
 - Install .NET SDK 9 from [dotnet.microsoft.com](https://dotnet.microsoft.com/)
-- `Visual Studio 2022` [**Download Visual Studio**](https://visualstudio.microsoft.com/downloads/)
+- `Visual Studio 2026` [**Download Visual Studio**](https://visualstudio.microsoft.com/downloads/)
 
 ## 💻 Technologies
 
@@ -72,7 +72,7 @@ dotnet add package Nalix.Network
 dotnet add package Nalix.Framework
 ```
 
-All Nalix packages target .NET 8 and .NET 9 with full support for C# 13 features.
+All Nalix packages target .NET 10 with full support for C# 14 features.
 
 ## 🛠️ Contributing
 
