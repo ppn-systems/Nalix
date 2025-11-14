@@ -13,17 +13,17 @@ internal sealed class BufferPoolShared : System.IDisposable
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Int32, BufferPoolShared> Pools = new();
 
+    private readonly BufferRing _freeBuffers;
     private readonly System.Int32 _bufferSize;
     private readonly System.Boolean _secureClear;
     private readonly System.Threading.Lock _disposeLock;
-    private readonly System.Buffers.ArrayPool<System.Byte> _arrayPool;
-    private readonly System.Collections.Concurrent.ConcurrentQueue<System.Byte[]> _freeBuffers;
+    private readonly System.Buffers.ArrayPool<System.Byte> _arrayPool;  
 
     private System.Int32 _misses;
     private System.Boolean _disposed;
     private BufferPoolState _poolInfo;
     private System.Int32 _totalBuffers;
-    private System.Boolean _isOptimizing;
+    private System.Int32 _isOptimizing;
 
     #endregion Fields
 
@@ -52,7 +52,10 @@ internal sealed class BufferPoolShared : System.IDisposable
         _bufferSize = bufferSize;
         _secureClear = secureClear;
         _arrayPool = System.Buffers.ArrayPool<System.Byte>.Shared;
-        _freeBuffers = new System.Collections.Concurrent.ConcurrentQueue<System.Byte[]>();
+        int ringCapacity = initialCapacity <= 0
+            ? 4 : (int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)initialCapacity);
+
+        _freeBuffers = new BufferRing(ringCapacity);
 
         this.PreallocateBuffers(initialCapacity);
     }
@@ -77,13 +80,13 @@ internal sealed class BufferPoolShared : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Byte[] AcquireBuffer()
     {
-        if (_freeBuffers.TryDequeue(out System.Byte[]? buffer))
+        if (_freeBuffers.TryDequeue(out var buffer) && buffer is not null)
         {
             return buffer;
         }
 
-        _ = System.Threading.Interlocked.Increment(ref _misses);
-        _ = System.Threading.Interlocked.Increment(ref _totalBuffers);
+        System.Threading.Interlocked.Increment(ref _misses);
+        System.Threading.Interlocked.Increment(ref _totalBuffers);
 
         return _arrayPool.Rent(_bufferSize);
     }
@@ -106,7 +109,11 @@ internal sealed class BufferPoolShared : System.IDisposable
             ClearBuffer(buffer);
         }
 
-        _freeBuffers.Enqueue(buffer);
+        if (!_freeBuffers.TryEnqueue(buffer))
+        {
+            _arrayPool.Return(buffer);
+            System.Threading.Interlocked.Decrement(ref _totalBuffers);
+        }
     }
 
     /// <summary>
@@ -122,15 +129,13 @@ internal sealed class BufferPoolShared : System.IDisposable
             throw new System.ArgumentException("The additional quantity must be greater than zero.");
         }
 
-        if (_isOptimizing)
+        if (!TryBeginOptimize())
         {
             return;
         }
 
         try
         {
-            _isOptimizing = true;
-
             System.Collections.Generic.List<System.Byte[]> buffersToAdd = new(additionalCapacity);
             for (System.Int32 i = 0; i < additionalCapacity; ++i)
             {
@@ -139,14 +144,14 @@ internal sealed class BufferPoolShared : System.IDisposable
 
             foreach (System.Byte[] buf in buffersToAdd)
             {
-                _freeBuffers.Enqueue(buf);
+                _freeBuffers.TryEnqueue(buf);
             }
 
             _ = System.Threading.Interlocked.Add(ref _totalBuffers, additionalCapacity);
         }
         finally
         {
-            _isOptimizing = false;
+            EndOptimize();
         }
     }
 
@@ -158,15 +163,18 @@ internal sealed class BufferPoolShared : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void DecreaseCapacity(System.Int32 capacityToRemove)
     {
-        if (capacityToRemove <= 0 || _isOptimizing)
+        if (capacityToRemove <= 0)
+        {
+            return;
+        }
+
+        if (!TryBeginOptimize())
         {
             return;
         }
 
         try
         {
-            _isOptimizing = true;
-
             System.Int32 removed = 0;
             System.Int32 target = System.Math.Min(capacityToRemove, _freeBuffers.Count);
 
@@ -202,7 +210,7 @@ internal sealed class BufferPoolShared : System.IDisposable
         }
         finally
         {
-            _isOptimizing = false;
+            EndOptimize();
         }
     }
 
@@ -288,16 +296,12 @@ internal sealed class BufferPoolShared : System.IDisposable
             return;
         }
 
-        System.Byte[][] buffers = new System.Byte[capacity][];
+        _freeBuffers.EnsureCapacity(capacity);
 
-        for (System.Int32 i = 0; i < capacity; i++)
+        for (int i = 0; i < capacity; ++i)
         {
-            buffers[i] = _arrayPool.Rent(_bufferSize);
-        }
-
-        foreach (System.Byte[] buf in buffers)
-        {
-            _freeBuffers.Enqueue(buf);
+            var buf = _arrayPool.Rent(_bufferSize);
+            _freeBuffers.TryEnqueue(buf);
         }
 
         _totalBuffers = capacity;
@@ -359,5 +363,191 @@ internal sealed class BufferPoolShared : System.IDisposable
         }
     }
 
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private bool TryBeginOptimize()
+    {
+        return System.Threading.Interlocked.CompareExchange(ref _isOptimizing, 1, 0) == 0;
+    }
+
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private void EndOptimize()
+    {
+        System.Threading.Volatile.Write(ref _isOptimizing, 0);
+    }
+
     #endregion Private Helpers
+
+    #region Private Class
+
+    private sealed class BufferRing
+    {
+        private System.Byte[][] _slots;
+        private System.Int32 _head;
+        private System.Int32 _tail;
+        private System.Int32 _count;
+        private System.Threading.SpinLock _lock;
+
+        public BufferRing(System.Int32 capacity)
+        {
+            if (capacity <= 0)
+            {
+                capacity = 4;
+            }
+
+            _slots = new System.Byte[capacity][];
+            _head = 0;
+            _tail = 0;
+            _count = 0;
+            _lock = new System.Threading.SpinLock(enableThreadOwnerTracking: false);
+        }
+
+        public System.Int32 Count
+        {
+            get
+            {
+                System.Boolean taken = false;
+                try
+                {
+                    _lock.Enter(ref taken);
+                    return _count;
+                }
+                finally
+                {
+                    if (taken)
+                    {
+                        _lock.Exit();
+                    }
+                }
+            }
+        }
+
+        public System.Boolean TryEnqueue(System.Byte[] buffer)
+        {
+            System.Boolean taken = false;
+            try
+            {
+                _lock.Enter(ref taken);
+
+                if (_count == _slots.Length)
+                {
+                    return false;
+                }
+
+                _slots[_tail] = buffer;
+                _tail = (_tail + 1) & (_slots.Length - 1);
+                _count++;
+                return true;
+            }
+            finally
+            {
+                if (taken)
+                {
+                    _lock.Exit();
+                }
+            }
+        }
+
+        public System.Boolean TryDequeue(
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte[]? buffer)
+        {
+            System.Boolean taken = false;
+            try
+            {
+                _lock.Enter(ref taken);
+
+                if (_count == 0)
+                {
+                    buffer = null;
+                    return false;
+                }
+
+                buffer = _slots[_head];
+                _slots[_head] = null!;
+                _head = (_head + 1) & (_slots.Length - 1);
+                _count--;
+                return true;
+            }
+            finally
+            {
+                if (taken)
+                {
+                    _lock.Exit();
+                }
+            }
+        }
+
+        public void EnsureCapacity(System.Int32 targetCapacity)
+        {
+            System.Boolean taken = false;
+            try
+            {
+                _lock.Enter(ref taken);
+
+                if (targetCapacity <= _slots.Length)
+                {
+                    return;
+                }
+
+                System.UInt32 newSize = System.Numerics.BitOperations.RoundUpToPowerOf2((System.UInt32)targetCapacity);
+
+                System.Byte[][] newSlots = new System.Byte[newSize][];
+
+                for (System.Int32 i = 0; i < _count; ++i)
+                {
+                    newSlots[i] = _slots[(_head + i) & (_slots.Length - 1)];
+                }
+
+                _slots = newSlots;
+                _head = 0;
+                _tail = _count;
+            }
+            finally
+            {
+                if (taken)
+                {
+                    _lock.Exit();
+                }
+            }
+        }
+
+        public System.Byte[][] DrainAll()
+        {
+            System.Boolean taken = false;
+            try
+            {
+                _lock.Enter(ref taken);
+
+                if (_count == 0)
+                {
+                    return System.Array.Empty<System.Byte[]>();
+                }
+
+                System.Byte[][] result = new System.Byte[_count][];
+                for (System.Int32 i = 0; i < _count; ++i)
+                {
+                    result[i] = _slots[(_head + i) & (_slots.Length - 1)];
+                    _slots[(_head + i) & (_slots.Length - 1)] = null!;
+                }
+
+                _head = 0;
+                _tail = 0;
+                _count = 0;
+
+                return result;
+            }
+            finally
+            {
+                if (taken)
+                {
+                    _lock.Exit();
+                }
+            }
+        }
+    }
+
+    #endregion Private Class
 }

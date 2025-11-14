@@ -21,6 +21,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
         System.String, (System.Int32, System.Double)[]> _allocationPatternCache;
 
+    private readonly System.Int64 _maxMemoryBytes;
     private readonly System.Int32 _totalBuffers;
     private readonly System.Boolean _enableTrimming;
     private readonly System.Boolean _enableAnalytics;
@@ -96,6 +97,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         _maxIncrease = config.MaxBufferIncreaseLimit;
         _trimIntervalMinutes = config.TrimIntervalMinutes;
         _deepTrimIntervalMinutes = config.DeepTrimIntervalMinutes;
+        _maxMemoryBytes = config.MaxMemoryBytes;
 
         _bufferAllocations = ParseBufferAllocations(config.BufferAllocations);
 
@@ -372,7 +374,9 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 
         // 1) Memory budget check
         System.Int64 totalAvailable = System.GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
-        System.Int64 targetBudget = (System.Int64)(totalAvailable * _maxMemoryPct);
+        System.Int64 percentBudget = (System.Int64)(totalAvailable * _maxMemoryPct);
+        System.Int64 hardCap = _maxMemoryBytes > 0 ? _maxMemoryBytes : System.Int64.MaxValue;
+        System.Int64 targetBudget = System.Math.Min(percentBudget, hardCap);
 
         System.Int64 currentBudget = 0;
         foreach (var pool in _poolManager.GetAllPools())
@@ -443,9 +447,10 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
                 if (pool.FreeBuffers > targetBuffers + safetyMargin)
                 {
                     pool.DecreaseCapacity(buffersToShrink);
+                    ref readonly BufferPoolState latest = ref pool.GetPoolInfoRef();
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[{nameof(BufferPoolManager)}] shrink size={poolInfo.BufferSize} by={buffersToShrink}");
+                                            .Trace($"[{nameof(BufferPoolManager)}] shrink size={latest.BufferSize} by={buffersToShrink}");
                 }
             }
             finally
@@ -470,41 +475,79 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 
         System.Int32 threshold = System.Math.Max(1, (System.Int32)(poolInfo.TotalBuffers * 0.25));
 
-        if (poolInfo.FreeBuffers <= threshold)
+        if (poolInfo.FreeBuffers > threshold)
         {
-            System.Int32 baseIncreasePow2 = System.Math.Max(_minIncrease,
-                (System.Int32)System.Numerics.BitOperations.RoundUpToPowerOf2(
-                    (System.UInt32)System.Math.Max(1, poolInfo.TotalBuffers >> 2)));
+            return;
+        }
 
-            System.Double missRatio = poolInfo.GetMissRate();
-            System.Int32 scaled = (System.Int32)System.Math.Ceiling(baseIncreasePow2 * (missRatio > 0.5 ? 2.0 : 1.0) * _adaptiveGrowthFactor);
+        System.Double usage = poolInfo.GetUsageRatio();   // 0..1
+        System.Double missRatio = poolInfo.GetMissRate(); // 0..1
 
-            System.Int32 maxIncrease = System.Math.Min(scaled, _maxIncrease);
+        System.Int32 baseIncreasePow2 = System.Math.Max(_minIncrease,
+            (System.Int32)System.Numerics.BitOperations.RoundUpToPowerOf2(
+                (System.UInt32)System.Math.Max(1, poolInfo.TotalBuffers >> 2)));
 
-            System.Boolean lockTaken = false;
-            System.Threading.SpinLock spinLock = new(false);
+        // Pressure factor từ usage
+        System.Double usageFactor = 1.0 + System.Math.Max(0.0, (usage - 0.75) * 2.0); // up to ~1.5
 
-            try
+        // Pressure factor từ miss
+        System.Double missFactor = 1.0 + System.Math.Min(1.0, missRatio * 2.0);       // up to ~3
+
+        System.Int32 scaled = (System.Int32)System.Math.Ceiling(baseIncreasePow2 * usageFactor * missFactor * _adaptiveGrowthFactor);
+        System.Int32 maxIncrease = System.Math.Min(scaled, _maxIncrease);
+
+        System.Boolean lockTaken = false;
+        System.Threading.SpinLock spinLock = new(false);
+
+        try
+        {
+            spinLock.Enter(ref lockTaken);
+
+            if (pool.FreeBuffers <= threshold)
             {
-                spinLock.Enter(ref lockTaken);
-
-                if (pool.FreeBuffers <= threshold)
+                if (IsOverMemoryBudget())
                 {
-                    pool.IncreaseCapacity(maxIncrease);
-
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[{nameof(BufferPoolManager)}] " +
-                                                   $"increase size={poolInfo.BufferSize} by={maxIncrease} miss={missRatio:F2}");
+                        .Warn($"[{nameof(BufferPoolManager)}] skip-increase size={poolInfo.BufferSize} over budget");
+                    return;
                 }
-            }
-            finally
-            {
-                if (lockTaken)
-                {
-                    spinLock.Exit();
-                }
+
+                pool.IncreaseCapacity(maxIncrease);
+
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[{nameof(BufferPoolManager)}] " +
+                                               $"increase size={poolInfo.BufferSize} by={maxIncrease} " +
+                                               $"usage={usage:F2} miss={missRatio:F2}");
             }
         }
+        finally
+        {
+            if (lockTaken)
+            {
+                spinLock.Exit();
+            }
+        }
+    }
+
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+    System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private System.Boolean IsOverMemoryBudget()
+    {
+        System.Int64 totalAvailable = System.GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
+        System.Int64 percentBudget = (System.Int64)(totalAvailable * _maxMemoryPct);
+
+        System.Int64 hardCap = _maxMemoryBytes > 0 ? _maxMemoryBytes : (System.Int64)System.Int32.MaxValue * 7;
+        System.Int64 targetBudget = System.Math.Min(percentBudget, hardCap);
+
+        System.Int64 current = 0;
+        foreach (var pool in _poolManager.GetAllPools())
+        {
+            ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
+            current += info.TotalBuffers * (System.Int64)info.BufferSize;
+        }
+
+        return current >= targetBudget;
     }
 
     #endregion Private: Resize Strategies
