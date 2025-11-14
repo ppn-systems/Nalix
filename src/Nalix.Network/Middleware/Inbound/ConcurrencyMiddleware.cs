@@ -31,7 +31,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        System.Boolean acquired;
+        System.Boolean acquired = false;
         ConcurrencyGate.Lease lease = default;
 
         try
@@ -73,7 +73,10 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
         }
         finally
         {
-            lease.Dispose();
+            if (acquired)
+            {
+                lease.Dispose();
+            }
         }
     }
 }

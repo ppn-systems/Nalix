@@ -20,40 +20,46 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
     {
         System.Int32 timeout = context.Attributes.Timeout?.TimeoutMilliseconds ?? 0;
-
-        if (timeout > 0)
+        if (timeout <= 0)
         {
-            using System.Threading.CancellationTokenSource cts = new();
-            using System.Threading.CancellationTokenSource execCts = new();
+            await next(context.CancellationToken).ConfigureAwait(false);
+            return;
+        }
 
-            System.Threading.Tasks.Task execution = next(execCts.Token);
-            System.Threading.Tasks.Task delay = System.Threading.Tasks.Task.Delay(timeout, cts.Token);
+        using var execCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
 
-            System.Threading.Tasks.Task completed = await System.Threading.Tasks.Task.WhenAny(execution, delay)
-                                                                                     .ConfigureAwait(false);
+        System.Threading.Tasks.Task execution = next(execCts.Token);
+        System.Threading.Tasks.Task delay = System.Threading.Tasks.Task.Delay(timeout, System.Threading.CancellationToken.None);
 
-            if (completed == delay)
+        System.Threading.Tasks.Task completed = await System.Threading.Tasks.Task.WhenAny(execution, delay)
+                                                                                 .ConfigureAwait(false);
+
+        if (completed == delay)
+        {
+            execCts.Cancel();
+
+            try
             {
-                execCts.Cancel();
-
-                await context.Connection.SendAsync(
-                    ControlType.TIMEOUT,
-                    ProtocolCode.TIMEOUT,
-                    ProtocolAction.RETRY,
-                    sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
-                    flags: ControlFlags.IS_TRANSIENT,
-                    // encode as steps of 100ms
-                    arg0: (System.UInt32)(timeout / 100), arg1: 0, arg2: 0).ConfigureAwait(false);
-
-                return;
+                await execution.ConfigureAwait(false);
+            }
+            catch (System.OperationCanceledException)
+            {
+                // ignore
             }
 
-            cts.Cancel();
-            await execution.ConfigureAwait(false);
+            await context.Connection.SendAsync(
+                ControlType.TIMEOUT,
+                ProtocolCode.TIMEOUT,
+                ProtocolAction.RETRY,
+                sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                flags: ControlFlags.IS_TRANSIENT,
+                arg0: (System.UInt32)(timeout / 100),
+                arg1: 0,
+                arg2: 0).ConfigureAwait(false);
 
             return;
         }
 
-        await next(context.CancellationToken).ConfigureAwait(false);
+        await execution.ConfigureAwait(false);
     }
 }
