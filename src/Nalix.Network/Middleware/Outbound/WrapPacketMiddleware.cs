@@ -131,6 +131,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
                   arg0: context.Attributes.OpCode.OpCode,
                   arg1: (System.UInt32)current.Flags,
                   arg2: 0).ConfigureAwait(false);
+
+            return;
         }
 
         await next(context.CancellationToken).ConfigureAwait(false);
