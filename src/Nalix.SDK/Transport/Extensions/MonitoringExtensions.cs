@@ -7,14 +7,14 @@ using Nalix.Framework.Time;
 namespace Nalix.SDK.Transport.Extensions;
 
 /// <summary>
-/// Provides extension methods for <see cref="ReliableClient"/> for bandwidth sampling and heartbeat operations.
+/// Provides extension methods for <see cref="TcpSession"/> for bandwidth sampling and heartbeat operations.
 /// </summary>
 public static class MonitoringExtensions
 {
     /// <summary>
     /// Samples byte counters at each interval and updates the last bytes-per-second (BPS) readings for the client.
     /// </summary>
-    /// <param name="client">The <see cref="ReliableClient"/> instance to monitor.</param>
+    /// <param name="client">The <see cref="TcpSession"/> instance to monitor.</param>
     /// <param name="token">The <see cref="System.Threading.CancellationToken"/> that can be used to cancel the operation.</param>
     /// <returns>
     /// A completed <see cref="System.Threading.Tasks.Task"/> representing the asynchronous operation.
@@ -23,7 +23,7 @@ public static class MonitoringExtensions
     /// Đo bandwidth gửi/nhận của client mỗi interval.
     /// </remarks>
     public static System.Threading.Tasks.Task RateSamplerTickAsync(
-        this ReliableClient client, System.Threading.CancellationToken token)
+        this TcpSession client, System.Threading.CancellationToken token)
     {
         if (token.IsCancellationRequested)
         {
@@ -46,7 +46,7 @@ public static class MonitoringExtensions
         }
         catch (System.Exception ex)
         {
-            ReliableClient.s_log?.Warn($"[SDK.{nameof(ReliableClient)}.{nameof(RateSamplerTickAsync)}] sampler-error: {ex.Message}");
+            TcpSession.s_log?.Warn($"[SDK.{nameof(TcpSession)}.{nameof(RateSamplerTickAsync)}] sampler-error: {ex.Message}");
         }
 
         return System.Threading.Tasks.Task.CompletedTask;
@@ -55,7 +55,7 @@ public static class MonitoringExtensions
     /// <summary>
     /// Executes a fallback heartbeat loop that sends a control ping at a configured interval until cancellation is requested.
     /// </summary>
-    /// <param name="client">The <see cref="ReliableClient"/> instance.</param>
+    /// <param name="client">The <see cref="TcpSession"/> instance.</param>
     /// <param name="token">A <see cref="System.Threading.CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>
     /// A <see cref="System.Threading.Tasks.Task"/> representing the asynchronous operation.
@@ -67,7 +67,7 @@ public static class MonitoringExtensions
     /// Thrown if the operation is canceled by disconnect or object disposal.
     /// </exception>
     public static async System.Threading.Tasks.Task HeartbeatLoopAsync(
-        this ReliableClient client, System.Threading.CancellationToken token)
+        this TcpSession client, System.Threading.CancellationToken token)
     {
         System.Int32 intervalMs = System.Math.Max(1, client.Options.KeepAliveIntervalMillis);
 
@@ -97,7 +97,7 @@ public static class MonitoringExtensions
             }
             catch (System.Exception ex)
             {
-                ReliableClient.s_log?.Warn($"[SDK.{nameof(ReliableClient)}.{nameof(HeartbeatLoopAsync)}] heartbeat-error: {ex.Message}");
+                TcpSession.s_log?.Warn($"[SDK.{nameof(TcpSession)}.{nameof(HeartbeatLoopAsync)}] heartbeat-error: {ex.Message}");
 
                 _ = client.HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
                 break;

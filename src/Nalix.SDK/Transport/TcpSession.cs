@@ -25,7 +25,7 @@ namespace Nalix.SDK.Transport;
 /// This class is <b>thread-safe</b> for concurrent calls to <see cref="SendAsync(IPacket, System.Threading.CancellationToken)"/>,
 /// <see cref="ConnectAsync"/>, <see cref="DisconnectAsync"/>, and <see cref="Dispose"/>.
 /// </remarks>
-public sealed class ReliableClient : IClientConnection
+public sealed class TcpSession : IClientConnection
 {
     #region Constants
 
@@ -138,7 +138,7 @@ public sealed class ReliableClient : IClientConnection
     /// Unlike the event, this is a single-delegate slot to avoid multicast complications with async.
     /// The caller is responsible for disposing the <see cref="IBufferLease"/> if they consume it here.
     /// </remarks>
-    public System.Func<ReliableClient, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task> OnMessageReceivedAsync;
+    public System.Func<TcpSession, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task> OnMessageReceivedAsync;
 
     #endregion Events
 
@@ -180,14 +180,14 @@ public sealed class ReliableClient : IClientConnection
     #region Constructor
 
     /// <summary>
-    /// Constructs a new <see cref="ReliableClient"/> and loads <see cref="TransportOptions"/> via
+    /// Constructs a new <see cref="TcpSession"/> and loads <see cref="TransportOptions"/> via
     /// <see cref="ConfigurationManager"/>. Falls back to safe defaults if configuration is unavailable.
     /// </summary>
     /// <exception cref="System.InvalidOperationException">
     /// Thrown (via <see cref="System.Environment.FailFast(System.String)"/>) when <see cref="IPacketRegistry"/>
     /// is not registered — this is an unrecoverable misconfiguration.
     /// </exception>
-    public ReliableClient()
+    public TcpSession()
     {
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
         this.Options.Validate();
@@ -217,9 +217,9 @@ public sealed class ReliableClient : IClientConnection
         // IPacketCatalog is required for deserialization; fail fast with a clear message.
         if (InstanceManager.Instance.GetExistingInstance<IPacketRegistry>() is null)
         {
-            s_log?.Error($"[SDK.{nameof(ReliableClient)}] No IPacketRegistry instance found; this is a fatal configuration error. The process will terminate.");
+            s_log?.Error($"[SDK.{nameof(TcpSession)}] No IPacketRegistry instance found; this is a fatal configuration error. The process will terminate.");
 
-            System.Environment.FailFast($"[SDK.{nameof(ReliableClient)}] Missing required service: IPacketRegistry.");
+            System.Environment.FailFast($"[SDK.{nameof(TcpSession)}] Missing required service: IPacketRegistry.");
         }
     }
 
@@ -239,7 +239,7 @@ public sealed class ReliableClient : IClientConnection
     /// <exception cref="System.Net.Sockets.SocketException">Thrown when all resolved addresses fail to connect.</exception>
     public async System.Threading.Tasks.Task ConnectAsync(System.String host = null, System.UInt16? port = null, System.Threading.CancellationToken ct = default)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(ReliableClient));
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
 
         // Resolve effective endpoint, falling back to Options.
         System.String effectiveHost = System.String.IsNullOrWhiteSpace(host) ? Options.Address : host;
@@ -312,7 +312,7 @@ public sealed class ReliableClient : IClientConnection
                 _sender = new FRAME_SENDER(GET_CONNECTED_SOCKET_OR_THROW, Options, REPORT_BYTES_SENT, HANDLE_SEND_ERROR);
                 _receiver = new FRAME_READER(GET_CONNECTED_SOCKET_OR_THROW, Options, HANDLE_RECEIVE_MESSAGE, HANDLE_RECEIVE_ERROR, REPORT_BYTES_RECEIVED);
 
-                s_log?.Info($"[SDK.{nameof(ReliableClient)}] Connected remote={addr}:{effectivePort}");
+                s_log?.Info($"[SDK.{nameof(TcpSession)}] Connected remote={addr}:{effectivePort}");
                 OnConnected?.Invoke(this, System.EventArgs.Empty);
 
                 START_RECEIVE_WORKER(addr, effectivePort, loopToken);
@@ -322,7 +322,7 @@ public sealed class ReliableClient : IClientConnection
             catch (System.Exception ex) when (ex is not System.OperationCanceledException oce || !connectCts.IsCancellationRequested)
             {
                 lastEx = ex;
-                s_log?.Warn($"[SDK.{nameof(ReliableClient)}] connect-failed addr={addr}:{effectivePort} ex={ex.Message}");
+                s_log?.Warn($"[SDK.{nameof(TcpSession)}] connect-failed addr={addr}:{effectivePort} ex={ex.Message}");
 
                 try
                 {
@@ -348,7 +348,7 @@ public sealed class ReliableClient : IClientConnection
 
         CLEANUP_CONNECTION();
 
-        s_log?.Info($"[SDK.{nameof(ReliableClient)}] Disconnected (requested).");
+        s_log?.Info($"[SDK.{nameof(TcpSession)}] Disconnected (requested).");
         OnDisconnected?.Invoke(this, null);
 
         return System.Threading.Tasks.Task.CompletedTask;
@@ -359,7 +359,7 @@ public sealed class ReliableClient : IClientConnection
     /// <exception cref="System.InvalidOperationException">Thrown when the client is not connected.</exception>
     public System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken ct = default)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(ReliableClient));
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
         FRAME_SENDER sender = System.Threading.Volatile.Read(ref _sender);
 
         return sender is null ? throw new System.InvalidOperationException("Client not connected.") : sender.SendAsync(payload, ct);
@@ -372,7 +372,7 @@ public sealed class ReliableClient : IClientConnection
     public System.Threading.Tasks.Task<System.Boolean> SendAsync(IPacket packet, System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(packet);
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(ReliableClient));
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
         FRAME_SENDER sender = System.Threading.Volatile.Read(ref _sender);
 
         return sender is null ? throw new System.InvalidOperationException("Client not connected.") : sender.SendAsync(packet, ct);
@@ -392,7 +392,7 @@ public sealed class ReliableClient : IClientConnection
 
         CLEANUP_CONNECTION();
 
-        s_log?.Info($"[SDK.{nameof(ReliableClient)}] Disposed.");
+        s_log?.Info($"[SDK.{nameof(TcpSession)}] Disposed.");
         System.GC.SuppressFinalize(this);
     }
 
@@ -416,7 +416,7 @@ public sealed class ReliableClient : IClientConnection
         try
         {
             _receiveHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                name: $"ReliableClient-Receive-{addr}:{port}",
+                name: $"TcpSession-Receive-{addr}:{port}",
                 group: "client",
                 work: async (_, workerCt) =>
                 {
@@ -430,7 +430,7 @@ public sealed class ReliableClient : IClientConnection
         catch (System.Exception ex)
         {
             s_log?.Warn(
-                $"[SDK.{nameof(ReliableClient)}] schedule-receive-failed; falling back to Task.Run. ex={ex.Message}");
+                $"[SDK.{nameof(TcpSession)}] schedule-receive-failed; falling back to Task.Run. ex={ex.Message}");
 
             // Receive is critical — must run even if TaskManager is unavailable.
             _ = System.Threading.Tasks.Task.Run(
@@ -552,7 +552,7 @@ public sealed class ReliableClient : IClientConnection
         // An toàn với concurrent subscribe/unsubscribe vì delegate là immutable.
         System.Delegate[] syncHandlers = OnMessageReceived?.GetInvocationList() ?? [];
 
-        System.Func<ReliableClient, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task> asyncHandler = OnMessageReceivedAsync;
+        System.Func<TcpSession, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task> asyncHandler = OnMessageReceivedAsync;
 
         // ── Chuẩn bị data cho async handler TRƯỚC KHI dispose lease ─────
         // ToArray() copy Span ra heap — không cần pool, không cần dispose.
@@ -581,7 +581,7 @@ public sealed class ReliableClient : IClientConnection
                     // Dispose copy ngay tại đây để không leak pool buffer.
                     try { copy.Dispose(); } catch { }
 
-                    s_log?.Error($"[SDK.{nameof(ReliableClient)}] sync-handler-faulted: {ex.Message}", ex);
+                    s_log?.Error($"[SDK.{nameof(TcpSession)}] sync-handler-faulted: {ex.Message}", ex);
                 }
             }
         }
@@ -599,7 +599,7 @@ public sealed class ReliableClient : IClientConnection
         if (asyncHandler is not null && asyncData.Length > 0)
         {
             _ = asyncHandler(this, asyncData).ContinueWith(
-                t => s_log?.Error($"[SDK.{nameof(ReliableClient)}] OnMessageReceivedAsync faulted: {t.Exception?.GetBaseException().Message}"),
+                t => s_log?.Error($"[SDK.{nameof(TcpSession)}] OnMessageReceivedAsync faulted: {t.Exception?.GetBaseException().Message}"),
                 System.Threading.Tasks.TaskContinuationOptions.OnlyOnFaulted);
         }
     }
@@ -638,7 +638,7 @@ public sealed class ReliableClient : IClientConnection
         if (System.String.IsNullOrEmpty(_host) || _port == 0)
         {
             s_log?.Info(
-                $"[SDK.{nameof(ReliableClient)}] No saved endpoint; skipping auto-reconnect.");
+                $"[SDK.{nameof(TcpSession)}] No saved endpoint; skipping auto-reconnect.");
             return;
         }
 
@@ -653,7 +653,7 @@ public sealed class ReliableClient : IClientConnection
             attempt++;
 
             s_log?.Info(
-                $"[SDK.{nameof(ReliableClient)}] Reconnect attempt={attempt} delay={delayMs} ms.");
+                $"[SDK.{nameof(TcpSession)}] Reconnect attempt={attempt} delay={delayMs} ms.");
 
             // Safe cast: delayMs is clamped to maxDelayMs which is derived from an int option.
             System.Int64 jitter = (System.Int64)(Csprng.NextDouble() * delayMs * 0.3);
@@ -664,7 +664,7 @@ public sealed class ReliableClient : IClientConnection
             try
             {
                 await ConnectAsync(_host, _port).ConfigureAwait(false);
-                s_log?.Info($"[SDK.{nameof(ReliableClient)}] Reconnect-success attempt={attempt}.");
+                s_log?.Info($"[SDK.{nameof(TcpSession)}] Reconnect-success attempt={attempt}.");
 
                 // Notify subscribers — pass attempt number so they can log/trace it.
                 try { OnReconnected?.Invoke(this, attempt); } catch { }
@@ -673,7 +673,7 @@ public sealed class ReliableClient : IClientConnection
             }
             catch (System.Exception ex)
             {
-                s_log?.Warn($"[SDK.{nameof(ReliableClient)}] Reconnect-failed attempt={attempt} ex={ex.Message}");
+                s_log?.Warn($"[SDK.{nameof(TcpSession)}] Reconnect-failed attempt={attempt} ex={ex.Message}");
 
                 try
                 {
@@ -686,7 +686,7 @@ public sealed class ReliableClient : IClientConnection
             }
         }
 
-        s_log?.Info($"[SDK.{nameof(ReliableClient)}] Reconnect attempts exhausted.");
+        s_log?.Info($"[SDK.{nameof(TcpSession)}] Reconnect attempts exhausted.");
     }
 
     #endregion Private — Background Loops
