@@ -37,6 +37,9 @@ to achieve maximum throughput in real-time and networking environments.
 
 	<Import Project="..\Nalix.Build.props" />
     <Import Project="..\Package.Build.props" />
+    <ItemGroup>
+      <None Include="Security\Credentials\PBKDF2.cs" />
+    </ItemGroup>
 
 	<ItemGroup>
         <ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
