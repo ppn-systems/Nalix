@@ -176,6 +176,10 @@ public sealed class BufferConfig : ConfigurationLoader
             : value;
     }
 
+    /// <summary>
+    /// Maximum memory in bytes that buffer pools can use. 0 means no limit.
+    /// </summary>
+    public System.Int64 MaxMemoryBytes { get; set; } = 0;
 
     #endregion Properties
 }
