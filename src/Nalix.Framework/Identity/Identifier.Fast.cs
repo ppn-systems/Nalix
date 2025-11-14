@@ -177,45 +177,4 @@ public readonly partial struct Identifier : System.ISpanFormattable, System.IUtf
         System.Span<System.Byte> utf8Destination, out System.Int32 bytesWritten,
         System.ReadOnlySpan<System.Char> format, System.IFormatProvider? provider)
         => TryFormatUtf8(utf8Destination, out bytesWritten);
-
-    // ======================
-    // Micro-optimizations
-    // ======================
-
-    /// <summary>
-    /// Faster equality check using 64-bit load (upper 8 bits are zero by layout).
-    /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean EqualsFast(in Identifier other)
-        => GetCombined() == other.GetCombined();
-
-    /// <summary>
-    /// Constant-time-ish comparison for unordered usage when timing side-channels matter.
-    /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean EqualsConstTime(in Identifier other)
-    {
-        System.UInt64 x = GetCombined() ^ other.GetCombined();
-        // Branchless fold to 0/1.
-        return (x | (0UL - x)) >> 63 == 0;
-    }
-
-    // ======================
-    // Helpers / Validation
-    // ======================
-
-    /// <summary>
-    /// Validates that no component overflows its field and Type is defined.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean ValidateComponents()
-    {
-        // Field widths are enforced by types already; ensure enum value is within byte.
-        return _type <= System.Byte.MaxValue;
-    }
 }
