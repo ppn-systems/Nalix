@@ -102,10 +102,10 @@ public sealed class Keccak256 : System.IDisposable
         {
             for (System.Int32 y = 0; y < 5; y++)
             {
-                System.Int32 src = x + 5 * y;                     // flatten src
+                System.Int32 src = x + (5 * y);                     // flatten src
                 System.Int32 X = y;                                 // π: X = y
-                System.Int32 Y = (2 * x + 3 * y) % 5;           // π: Y = 2x+3y
-                System.Int32 dst = X + 5 * Y;                     // flatten dst
+                System.Int32 Y = ((2 * x) + (3 * y)) % 5;           // π: Y = 2x+3y
+                System.Int32 dst = X + (5 * Y);                     // flatten dst
 
                 Dst[src] = (System.Byte)dst;
                 Rot[src] = (System.Byte)R[x, y];
@@ -116,10 +116,7 @@ public sealed class Keccak256 : System.IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="Keccak256"/> class with a zeroed sponge state.
     /// </summary>
-    public Keccak256()
-    {
-        Initialize();
-    }
+    public Keccak256() => Initialize();
 
     #endregion Ctors
 
@@ -402,18 +399,24 @@ public sealed class Keccak256 : System.IDisposable
                     // --- AVX-512 (2 × 64B) + tail ---
                     if (System.Runtime.Intrinsics.X86.Avx512F.IsSupported && System.Runtime.Intrinsics.X86.Avx512DQ.IsSupported)
                     {
-                        var b0 = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                                    System.Runtime.Intrinsics.Vector512<System.UInt64>>(pBlock + 0);
-                        var b1 = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                                    System.Runtime.Intrinsics.Vector512<System.UInt64>>(pBlock + 64);
+                        System.Runtime.Intrinsics.Vector512<System.UInt64> b0 =
+                            System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                System.Runtime.Intrinsics.Vector512<System.UInt64>>(pBlock + 0);
 
-                        var s0 = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                                    System.Runtime.Intrinsics.Vector512<System.UInt64>>((System.Byte*)pState + 0);
-                        var s1 = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                                    System.Runtime.Intrinsics.Vector512<System.UInt64>>((System.Byte*)pState + 64);
+                        System.Runtime.Intrinsics.Vector512<System.UInt64> b1 =
+                            System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                System.Runtime.Intrinsics.Vector512<System.UInt64>>(pBlock + 64);
 
-                        var x0 = System.Runtime.Intrinsics.X86.Avx512F.Xor(b0, s0);
-                        var x1 = System.Runtime.Intrinsics.X86.Avx512F.Xor(b1, s1);
+                        System.Runtime.Intrinsics.Vector512<System.UInt64> s0 =
+                            System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                System.Runtime.Intrinsics.Vector512<System.UInt64>>((System.Byte*)pState + 0);
+
+                        System.Runtime.Intrinsics.Vector512<System.UInt64> s1 =
+                            System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                System.Runtime.Intrinsics.Vector512<System.UInt64>>((System.Byte*)pState + 64);
+
+                        System.Runtime.Intrinsics.Vector512<System.UInt64> x0 = System.Runtime.Intrinsics.X86.Avx512F.Xor(b0, s0);
+                        System.Runtime.Intrinsics.Vector512<System.UInt64> x1 = System.Runtime.Intrinsics.X86.Avx512F.Xor(b1, s1);
 
                         System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + 0, x0);
                         System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + 64, x1);
@@ -428,12 +431,15 @@ public sealed class Keccak256 : System.IDisposable
                     {
                         for (System.Int32 off = 0; off < 128; off += 32)
                         {
-                            var vb = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                                        System.Runtime.Intrinsics.Vector256<System.UInt64>>(pBlock + off);
-                            var vs = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                                        System.Runtime.Intrinsics.Vector256<System.UInt64>>((System.Byte*)pState + off);
+                            System.Runtime.Intrinsics.Vector256<System.UInt64> vb =
+                                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                    System.Runtime.Intrinsics.Vector256<System.UInt64>>(pBlock + off);
 
-                            var vx = System.Runtime.Intrinsics.X86.Avx2.Xor(vb, vs);
+                            System.Runtime.Intrinsics.Vector256<System.UInt64> vs =
+                                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                    System.Runtime.Intrinsics.Vector256<System.UInt64>>((System.Byte*)pState + off);
+
+                            System.Runtime.Intrinsics.Vector256<System.UInt64> vx = System.Runtime.Intrinsics.X86.Avx2.Xor(vb, vs);
                             System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + off, vx);
                         }
 
@@ -448,11 +454,15 @@ public sealed class Keccak256 : System.IDisposable
                         // XOR theo từng Vector128<ulong> (16B) – giống SSE2 path
                         for (System.Int32 off = 0; off < 128; off += 16)
                         {
-                            var vb = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                                        System.Runtime.Intrinsics.Vector128<System.UInt64>>(pBlock + off);
-                            var vs = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                                        System.Runtime.Intrinsics.Vector128<System.UInt64>>((System.Byte*)pState + off);
-                            var vx = System.Runtime.Intrinsics.Arm.AdvSimd.Xor(vb, vs);
+                            System.Runtime.Intrinsics.Vector128<System.UInt64> vb =
+                                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                    System.Runtime.Intrinsics.Vector128<System.UInt64>>(pBlock + off);
+
+                            System.Runtime.Intrinsics.Vector128<System.UInt64> vs =
+                                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                    System.Runtime.Intrinsics.Vector128<System.UInt64>>((System.Byte*)pState + off);
+
+                            System.Runtime.Intrinsics.Vector128<System.UInt64> vx = System.Runtime.Intrinsics.Arm.AdvSimd.Xor(vb, vs);
                             System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + off, vx);
                         }
                         pState[16] ^= System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(128, 8));
@@ -466,16 +476,47 @@ public sealed class Keccak256 : System.IDisposable
                         for (System.Int32 off = 0; off < 128; off += 16)
                         {
                             // Process 16B as Vector128<ulong> (2 lanes)
-                            var vb = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                                        System.Runtime.Intrinsics.Vector128<System.UInt64>>(pBlock + off);
-                            var vs = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
-                                        System.Runtime.Intrinsics.Vector128<System.UInt64>>((System.Byte*)pState + off);
+                            System.Runtime.Intrinsics.Vector128<System.UInt64> vb =
+                                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                    System.Runtime.Intrinsics.Vector128<System.UInt64>>(pBlock + off);
 
-                            var vx = System.Runtime.Intrinsics.X86.Sse2.Xor(vb, vs);
+                            System.Runtime.Intrinsics.Vector128<System.UInt64> vs =
+                                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                    System.Runtime.Intrinsics.Vector128<System.UInt64>>((System.Byte*)pState + off);
+
+                            System.Runtime.Intrinsics.Vector128<System.UInt64> vx = System.Runtime.Intrinsics.X86.Sse2.Xor(vb, vs);
                             System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + off, vx);
                         }
 
                         pState[16] ^= System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(128, 8));
+                        KeccakF1600(_state);
+                        return;
+                    }
+
+                    // --- Portable .NET SIMD: Vector<ulong> (fallback before scalar) ---
+                    if (System.Numerics.Vector.IsHardwareAccelerated)
+                    {
+                        const System.Int32 laneBytes = 8;        // sizeof(ulong)
+                        System.Int32 vecBytes = System.Numerics.Vector<System.UInt64>.Count * laneBytes;
+                        const System.Int32 limit = 128;          // first 16 lanes => 16 * 8 = 128 bytes
+
+                        for (System.Int32 off = 0; off + vecBytes <= limit; off += vecBytes)
+                        {
+                            System.Numerics.Vector<System.UInt64> vb =
+                                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                    System.Numerics.Vector<System.UInt64>>(pBlock + off);
+
+                            System.Numerics.Vector<System.UInt64> vs =
+                                System.Runtime.CompilerServices.Unsafe.ReadUnaligned<
+                                    System.Numerics.Vector<System.UInt64>>((System.Byte*)pState + off);
+
+                            System.Numerics.Vector<System.UInt64> vx = vb ^ vs; // Vector<ulong> XOR
+                            System.Runtime.CompilerServices.Unsafe.WriteUnaligned((System.Byte*)pState + off, vx);
+                        }
+
+                        // XOR the last lane (lane 16 = bytes 128..135) scalar
+                        pState[16] ^= System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(block.Slice(128, 8));
+
                         KeccakF1600(_state);
                         return;
                     }
@@ -706,43 +747,43 @@ public sealed class Keccak256 : System.IDisposable
 
             const System.Int32 i0 = 0;
             System.UInt64 b0 = B[i0 + 0], b1 = B[i0 + 1], b2 = B[i0 + 2], b3 = B[i0 + 3], b4 = B[i0 + 4];
-            A[i0 + 0] = b0 ^ ~b1 & b2;
-            A[i0 + 1] = b1 ^ ~b2 & b3;
-            A[i0 + 2] = b2 ^ ~b3 & b4;
-            A[i0 + 3] = b3 ^ ~b4 & b0;
-            A[i0 + 4] = b4 ^ ~b0 & b1;
+            A[i0 + 0] = b0 ^ (~b1 & b2);
+            A[i0 + 1] = b1 ^ (~b2 & b3);
+            A[i0 + 2] = b2 ^ (~b3 & b4);
+            A[i0 + 3] = b3 ^ (~b4 & b0);
+            A[i0 + 4] = b4 ^ (~b0 & b1);
 
             const System.Int32 i1 = 5;
             b0 = B[i1 + 0]; b1 = B[i1 + 1]; b2 = B[i1 + 2]; b3 = B[i1 + 3]; b4 = B[i1 + 4];
-            A[i1 + 0] = b0 ^ ~b1 & b2;
-            A[i1 + 1] = b1 ^ ~b2 & b3;
-            A[i1 + 2] = b2 ^ ~b3 & b4;
-            A[i1 + 3] = b3 ^ ~b4 & b0;
-            A[i1 + 4] = b4 ^ ~b0 & b1;
+            A[i1 + 0] = b0 ^ (~b1 & b2);
+            A[i1 + 1] = b1 ^ (~b2 & b3);
+            A[i1 + 2] = b2 ^ (~b3 & b4);
+            A[i1 + 3] = b3 ^ (~b4 & b0);
+            A[i1 + 4] = b4 ^ (~b0 & b1);
 
             const System.Int32 i2 = 10;
             b0 = B[i2 + 0]; b1 = B[i2 + 1]; b2 = B[i2 + 2]; b3 = B[i2 + 3]; b4 = B[i2 + 4];
-            A[i2 + 0] = b0 ^ ~b1 & b2;
-            A[i2 + 1] = b1 ^ ~b2 & b3;
-            A[i2 + 2] = b2 ^ ~b3 & b4;
-            A[i2 + 3] = b3 ^ ~b4 & b0;
-            A[i2 + 4] = b4 ^ ~b0 & b1;
+            A[i2 + 0] = b0 ^ (~b1 & b2);
+            A[i2 + 1] = b1 ^ (~b2 & b3);
+            A[i2 + 2] = b2 ^ (~b3 & b4);
+            A[i2 + 3] = b3 ^ (~b4 & b0);
+            A[i2 + 4] = b4 ^ (~b0 & b1);
 
             const System.Int32 i3 = 15;
             b0 = B[i3 + 0]; b1 = B[i3 + 1]; b2 = B[i3 + 2]; b3 = B[i3 + 3]; b4 = B[i3 + 4];
-            A[i3 + 0] = b0 ^ ~b1 & b2;
-            A[i3 + 1] = b1 ^ ~b2 & b3;
-            A[i3 + 2] = b2 ^ ~b3 & b4;
-            A[i3 + 3] = b3 ^ ~b4 & b0;
-            A[i3 + 4] = b4 ^ ~b0 & b1;
+            A[i3 + 0] = b0 ^ (~b1 & b2);
+            A[i3 + 1] = b1 ^ (~b2 & b3);
+            A[i3 + 2] = b2 ^ (~b3 & b4);
+            A[i3 + 3] = b3 ^ (~b4 & b0);
+            A[i3 + 4] = b4 ^ (~b0 & b1);
 
             const System.Int32 i4 = 20;
             b0 = B[i4 + 0]; b1 = B[i4 + 1]; b2 = B[i4 + 2]; b3 = B[i4 + 3]; b4 = B[i4 + 4];
-            A[i4 + 0] = b0 ^ ~b1 & b2;
-            A[i4 + 1] = b1 ^ ~b2 & b3;
-            A[i4 + 2] = b2 ^ ~b3 & b4;
-            A[i4 + 3] = b3 ^ ~b4 & b0;
-            A[i4 + 4] = b4 ^ ~b0 & b1;
+            A[i4 + 0] = b0 ^ (~b1 & b2);
+            A[i4 + 1] = b1 ^ (~b2 & b3);
+            A[i4 + 2] = b2 ^ (~b3 & b4);
+            A[i4 + 3] = b3 ^ (~b4 & b0);
+            A[i4 + 4] = b4 ^ (~b0 & b1);
 
             #endregion Unrolled
 
