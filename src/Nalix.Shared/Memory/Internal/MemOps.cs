@@ -123,6 +123,7 @@ internal static unsafe class MemOps
     /// </summary>
     /// <param name="source">A <see cref="System.ReadOnlySpan{Byte}"/> representing the source memory.</param>
     /// <param name="destination">A pointer to the destination memory location.</param>
+    [System.Runtime.CompilerServices.SkipLocalsInit]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -330,6 +331,40 @@ internal static unsafe class MemOps
             }
 
             return count;
+        }
+
+        // -------------------- Generic SIMD (.NET Vector<T>) --------------------
+        if (System.Numerics.Vector.IsHardwareAccelerated &&
+            maxLength - count >= System.Numerics.Vector<System.Byte>.Count * 2)
+        {
+            System.Int32 vecSize = System.Numerics.Vector<System.Byte>.Count;
+
+            while (count + vecSize <= maxLength)
+            {
+                System.Span<System.Byte> span1 = new(p1 + count, vecSize);
+                System.Span<System.Byte> span2 = new(p2 + count, vecSize);
+
+                System.Numerics.Vector<System.Byte> v1 = new(span1);
+                System.Numerics.Vector<System.Byte> v2 = new(span2);
+
+                System.Numerics.Vector<System.Byte> diff = System.Numerics.Vector.Xor(v1, v2);
+                if (System.Numerics.Vector.EqualsAll(diff, System.Numerics.Vector<System.Byte>.Zero))
+                {
+                    count += vecSize;
+                    continue;
+                }
+
+                // Find first differing byte in this vector
+                for (System.Int32 i = 0; i < vecSize; i++)
+                {
+                    if (span1[i] != span2[i])
+                    {
+                        return count + i;
+                    }
+                }
+
+                count += vecSize;
+            }
         }
 
         // -------------------- Portable fallback --------------------

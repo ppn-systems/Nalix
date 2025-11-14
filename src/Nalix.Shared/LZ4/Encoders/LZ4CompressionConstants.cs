@@ -17,7 +17,12 @@ public static class LZ4CompressionConstants
     /// <summary>
     /// The maximum backward offset allowed for a match (limited by 16-bit offset).
     /// </summary>
-    public const System.Int32 MaxOffset = 65535;
+    public const System.Int32 MaxOffset = System.UInt16.MaxValue;
+
+    /// <summary>
+    /// The maximum decompression size supported by the LZ4 implementation (limited by 16-bit size).
+    /// </summary>
+    public const System.Int32 MaxBlockSize = System.UInt16.MaxValue;
 
     /// <summary>
     /// The number of trailing bytes required to safely encode a final literal segment.
