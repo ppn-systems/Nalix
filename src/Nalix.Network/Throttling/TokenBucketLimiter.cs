@@ -8,7 +8,6 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Configurations;
-using Nalix.Network.Internal.Net;
 
 namespace Nalix.Network.Throttling;
 
@@ -17,6 +16,8 @@ namespace Nalix.Network.Throttling;
 /// using Stopwatch ticks for time arithmetic and fixed-point token precision.
 /// Provides precise Retry-After and Credit for client backoff and flow control.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDisposable, IReportable
 {
     #region Public Types
@@ -78,7 +79,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>A shard contains a dictionary of endpoint states and a shard-level lock for map mutation.</summary>
     private sealed class Shard
     {
-        public readonly System.Collections.Concurrent.ConcurrentDictionary<NetAddressKey, EndpointState> Map = new();
+        public readonly System.Collections.Concurrent.ConcurrentDictionary<IEndpointKey, EndpointState> Map = new();
 
         // No shard-wide lock necessary for map ops; per-key Gate handles mutation.
     }
@@ -161,7 +162,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    internal LimitDecision Check(NetAddressKey key)
+    internal LimitDecision Check(IEndpointKey key)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(TokenBucketLimiter));
 
@@ -243,51 +244,13 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         }
     }
 
-    /// <summary>
-    /// Checks and consumes 1 token for the given IP (IPv4/IPv6).
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public LimitDecision Check(System.Net.IPAddress ip)
-    {
-        System.ArgumentNullException.ThrowIfNull(ip);
-        return Check(NetAddressKey.FromIpAddress(ip));
-    }
-
-    /// <summary>
-    /// Checks and consumes 1 token for the given remote endpoint.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public LimitDecision Check(System.Net.IPEndPoint endpoint)
-    {
-        System.ArgumentNullException.ThrowIfNull(endpoint);
-        return Check(endpoint.Address);
-    }
-
-    /// <summary>
-    /// Checks and consumes 1 token for the given remote endpoint.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public LimitDecision Check(System.Net.EndPoint endpoint)
-    {
-        System.ArgumentNullException.ThrowIfNull(endpoint);
-        if (endpoint is not System.Net.IPEndPoint ipEndPoint)
-        {
-            throw new System.ArgumentException("Only IPEndPoint is supported.", nameof(endpoint));
-        }
-
-        return Check(ipEndPoint.Address);
-    }
-
     #endregion Public API
 
     #region Private Helpers
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private Shard GetShard(NetAddressKey key)
+    private Shard GetShard(IEndpointKey key)
     {
         // Deterministic hashing; simple but fast. You can replace with XxHash if needed.
         System.Int32 h = key.GetHashCode();
@@ -402,7 +365,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     {
         // Snapshot all endpoints into a single list (allocation-bounded by map sizes).
         var snapshot = new System.Collections.Generic.List<
-            System.Collections.Generic.KeyValuePair<NetAddressKey, EndpointState>>(1024);
+            System.Collections.Generic.KeyValuePair<IEndpointKey, EndpointState>>(1024);
 
         System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
         System.Int32 shardCount = _shards.Length;

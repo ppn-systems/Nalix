@@ -23,10 +23,7 @@ public class TokenBucketMiddleware : IPacketMiddleware<IPacket>
     /// Initializes a new instance of the <see cref="TokenBucketMiddleware"/> class
     /// using rate limit options retrieved from the global configuration store.
     /// </summary>
-    public TokenBucketMiddleware()
-    {
-        _limiter = InstanceManager.Instance.GetOrCreateInstance<TokenBucketLimiter>();
-    }
+    public TokenBucketMiddleware() => _limiter = InstanceManager.Instance.GetOrCreateInstance<TokenBucketLimiter>();
 
     /// <summary>
     /// Applies rate limiting logic to incoming packets based on their connection's endpoint.
@@ -40,7 +37,7 @@ public class TokenBucketMiddleware : IPacketMiddleware<IPacket>
         PacketContext<IPacket> context,
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
     {
-        TokenBucketLimiter.LimitDecision decision = _limiter.Check(context.Connection.RemoteEndPoint);
+        TokenBucketLimiter.LimitDecision decision = _limiter.Check(context.Connection.EndPoint);
 
         if (!decision.Allowed)
         {

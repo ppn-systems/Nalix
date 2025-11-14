@@ -7,7 +7,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Configurations;
-using Nalix.Network.Internal.Net;
+using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Timing;
 using Nalix.Shared.Memory.Pooling;

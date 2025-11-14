@@ -8,7 +8,7 @@ namespace Nalix.Common.Abstractions;
 /// </summary>
 /// <remarks>
 /// Implement this interface when the activation or deactivation
-/// process involves asynchronous operations such as I/O, networking,
+/// process involves asynchronous operations such as IEndpointKey /O, networking,
 /// or long-running initialization/cleanup tasks.
 /// </remarks>
 public interface IAsyncActivatable : System.IAsyncDisposable

@@ -5,7 +5,6 @@ using Nalix.Common.Packets.Attributes;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
-using Nalix.Network.Internal.Net;
 using Nalix.Shared.Security.Hashing;
 
 namespace Nalix.Network.Throttling;
@@ -16,6 +15,8 @@ namespace Nalix.Network.Throttling;
 /// and uses composite endpoint keys "op:{opcode}|ep:{endpoint}" to isolate callers.
 /// This avoids creating one limiter per endpoint, drastically reducing background tasks.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public static class PolicyRateLimiter
 {
     #region Const
@@ -132,9 +133,9 @@ public static class PolicyRateLimiter
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static NetAddressKey IxCP9(System.String s)
+    private static Connection.Connection.EndpointKey IxCP9(System.String s)
     {
-        // Hash key string as UTF-8 with SHA3-256, then take first 16 bytes
+        // Hash key string as UTF-8 with Keccak256, then take first 16 bytes
         // to form a stable IPv6 address (endianness-agnostic).
         // Avoid allocations with stackalloc when possible.
 
@@ -143,15 +144,15 @@ public static class PolicyRateLimiter
         System.Span<System.Byte> utf8 = byteCount <= 256
             ? stackalloc System.Byte[byteCount]
             : new System.Byte[byteCount];
-        System.Text.Encoding.UTF8.GetBytes(s, utf8);
+        _ = System.Text.Encoding.UTF8.GetBytes(s, utf8);
 
-        // Compute SHA3-256
+        // Compute Keccak256
         System.Span<System.Byte> digest = stackalloc System.Byte[32];
         Keccak256.HashData(utf8, digest);
 
         // Take first 16 bytes for IPv6
-        var ip = new System.Net.IPAddress(digest[..16]);
-        return NetAddressKey.FromIpAddress(ip);
+        System.Net.IPAddress ip = new(digest[..16]);
+        return Connection.Connection.EndpointKey.FromIpAddress(ip);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(

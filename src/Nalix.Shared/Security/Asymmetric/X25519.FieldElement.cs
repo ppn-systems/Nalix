@@ -8,8 +8,8 @@
 namespace Nalix.Shared.Security.Asymmetric;
 
 // Just a note:
-// I tried to keep this library as close as I can to Golang one. Even I tired to implement some
-// constant time algorithms. But I don't grantee this to be constant time.
+// IEndpointKey  tried to keep this library as close as IEndpointKey  can to Golang one. Even IEndpointKey  tired to implement some
+// constant time algorithms. But IEndpointKey  don't grantee this to be constant time.
 
 /// <summary>
 /// fieldElement represents an element of the field GF(2^255 - 19). An element
@@ -690,7 +690,7 @@ internal class FieldElement
         return final;
     }
     /// <summary>
-    /// Calculates h = f * 121666. Can overlap h with f; I have no clue why this is a thing
+    /// Calculates h = f * 121666. Can overlap h with f; IEndpointKey  have no clue why this is a thing
     /// </summary>
     /// <remarks>
     /// <para>

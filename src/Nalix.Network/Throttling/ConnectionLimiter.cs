@@ -9,7 +9,6 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Configurations;
-using Nalix.Network.Internal.Net;
 
 namespace Nalix.Network.Throttling;
 
@@ -34,7 +33,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
     private readonly ConnectionLimitOptions _config;
     private readonly System.TimeSpan _cleanupInterval;
     private readonly System.TimeSpan _inactivityThreshold;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<NetAddressKey, ConnectionLimitInfo> _map;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<IEndpointKey, ConnectionLimitInfo> _map;
 
     private System.Boolean _disposed;
 
@@ -54,7 +53,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         _cleanupInterval = _config.CleanupInterval;
         _inactivityThreshold = _config.InactivityThreshold;
 
-        _map = new System.Collections.Concurrent.ConcurrentDictionary<NetAddressKey, ConnectionLimitInfo>();
+        _map = new System.Collections.Concurrent.ConcurrentDictionary<IEndpointKey, ConnectionLimitInfo>();
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
             name: TaskNames.Recurring.WithKey(nameof(ConnectionLimiter), this.GetHashCode()),
@@ -97,7 +96,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean IsConnectionAllowed([System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPEndPoint endPoint)
+    public System.Boolean IsConnectionAllowed([System.Diagnostics.CodeAnalysis.DisallowNull] System.Net.IPEndPoint endPoint)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
         if (endPoint is null)
@@ -105,7 +104,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
             throw new InternalErrorException($"[{nameof(ConnectionLimiter)}] EndPoint cannot be null", nameof(endPoint));
         }
 
-        NetAddressKey key = NetAddressKey.FromEndPoint(endPoint);
+        IEndpointKey key = Connection.Connection.EndpointKey.FromEndPoint(endPoint);
 
         System.DateTime now = System.DateTime.UtcNow;
         System.DateTime today = now.Date;
@@ -195,23 +194,16 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
             throw new InternalErrorException($"[{nameof(ConnectionLimiter)}] sender cannot be null", nameof(sender));
         }
 
-        if (args.Connection.RemoteEndPoint is not System.Net.IPEndPoint endPoint)
-        {
-            return;
-        }
-
-        NetAddressKey key = NetAddressKey.FromEndPoint(endPoint);
-
         System.DateTime now = System.DateTime.UtcNow;
 
-        if (!_map.TryGetValue(key, out _))
+        if (!_map.TryGetValue(args.Connection.EndPoint, out _))
         {
             return;
         }
 
         while (true)
         {
-            if (!_map.TryGetValue(key, out ConnectionLimitInfo existing))
+            if (!_map.TryGetValue(args.Connection.EndPoint, out ConnectionLimitInfo existing))
             {
                 return;
             }
@@ -222,10 +214,10 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
                 LastConnectionTime = now
             };
 
-            if (_map.TryUpdate(key, proposed, existing))
+            if (_map.TryUpdate(args.Connection.EndPoint, proposed, existing))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(ConnectionLimiter)}] close ip={endPoint} " +
+                                        .Trace($"[{nameof(ConnectionLimiter)}] close ip={args.Connection.EndPoint} " +
                                                $"now={proposed.CurrentConnections} limit={_maxPerIp}");
                 return;
             }
@@ -248,7 +240,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         // Take a stable snapshot to minimize contention and keep the report consistent.
         // Copy to a local list once to avoid enumerating the concurrent map multiple times.
         System.Collections.Generic.List<
-            System.Collections.Generic.KeyValuePair<NetAddressKey, ConnectionLimitInfo>> snapshot = [.. _map];
+            System.Collections.Generic.KeyValuePair<IEndpointKey, ConnectionLimitInfo>> snapshot = [.. _map];
 
         // Sort by current connections (desc), then by TotalToday (desc)
         snapshot.Sort(static (a, b) =>
@@ -260,7 +252,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         // Global totals
         System.Int32 totalIps = snapshot.Count;
         System.Int32 totalConcurrent = 0;
-        foreach (System.Collections.Generic.KeyValuePair<NetAddressKey, ConnectionLimitInfo> kv in snapshot)
+        foreach (System.Collections.Generic.KeyValuePair<IEndpointKey, ConnectionLimitInfo> kv in snapshot)
         {
             totalConcurrent += kv.Value.CurrentConnections;
         }

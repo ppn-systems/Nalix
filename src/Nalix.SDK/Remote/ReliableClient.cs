@@ -255,7 +255,7 @@ public sealed class ReliableClient : System.IDisposable
     /// Thrown if <paramref name="ct"/> is canceled before or during the send.
     /// </exception>
     /// <exception cref="System.IO.IOException">
-    /// Thrown if an I/O error occurs while writing to the underlying stream.
+    /// Thrown if an IEndpointKey /O error occurs while writing to the underlying stream.
     /// </exception>
     public System.Threading.Tasks.Task SendAsync(
         IPacket packet,
@@ -358,7 +358,7 @@ public sealed class ReliableClient : System.IDisposable
 
     private void DeepClose()
     {
-        // 1) Dispose the stream first to stop pending I/O
+        // 1) Dispose the stream first to stop pending IEndpointKey /O
         try { _stream?.Dispose(); } catch { /* ignore */ }
         _stream = null;
 

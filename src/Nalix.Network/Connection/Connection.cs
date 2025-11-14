@@ -21,14 +21,14 @@ public sealed partial class Connection : IConnection
 {
     #region Fields
 
-    private readonly FramedSocketChannel _cstream;
     private readonly System.Threading.Lock _lock;
+    private readonly ConnectionEventArgs _evtArgs;
+    private readonly FramedSocketChannel _cstream;
 
     private System.Boolean _disposed;
     private System.Byte[] _secret;
     private System.Int32 _closeSignaled;
 
-    private readonly ConnectionEventArgs _evtArgs;
     private System.EventHandler<IConnectEventArgs>? _onCloseEvent;
     private System.EventHandler<IConnectEventArgs>? _onProcessEvent;
     private System.EventHandler<IConnectEventArgs>? _onPostProcessEvent;
@@ -46,23 +46,24 @@ public sealed partial class Connection : IConnection
     {
         _lock = new System.Threading.Lock();
 
-        _disposed = false;
         _secret = [];
+        _disposed = false;
 
         _evtArgs = new ConnectionEventArgs(this);
         _cstream = new FramedSocketChannel(socket);
         _cstream.Cache.SetCallback(OnProcessEventBridge, this, _evtArgs);
         _cstream.SetCallback(OnCloseEventBridge, OnPostProcessEventBridge, this, _evtArgs);
 
-        this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
         this.ID = Identifier.NewId(IdentifierType.Session);
+        this.EndPoint = EndpointKey.FromEndPoint(socket.RemoteEndPoint);
         this.UDP = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                            .Get<UdpTransport>();
         this.UDP.Initialize(this);
         this.TCP = new TcpTransport(this);
+        this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket.RemoteEndPoint));
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(Connection)}] created remote={this.RemoteEndPoint} id={this.ID}");
+                                .Debug($"[{nameof(Connection)}] created remote={this.EndPoint} id={this.ID}");
     }
 
     #endregion Constructor
@@ -80,6 +81,9 @@ public sealed partial class Connection : IConnection
 
     /// <inheritdoc />
     public System.Net.EndPoint RemoteEndPoint { get; }
+
+    /// <inheritdoc />
+    public IEndpointKey EndPoint { get; }
 
     /// <inheritdoc />
     public System.Int64 UpTime => this._cstream.Cache.Uptime;
@@ -182,7 +186,7 @@ public sealed partial class Connection : IConnection
 
 #if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(Connection)}:{Close}] close request id={this.ID} remote={this.RemoteEndPoint}");
+                                .Debug($"[{nameof(Connection)}:{Close}] close request id={this.ID} remote={this.EndPoint}");
 #endif
     }
 

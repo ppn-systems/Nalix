@@ -24,7 +24,7 @@ public sealed class BufferLease : IBufferLease
 #if DEBUG
     private const System.Boolean EnablePoisonOnDispose = true;
 #else
-    private const bool EnablePoisonOnDispose = false;
+    private const System.Boolean EnablePoisonOnDispose = false;
 #endif
 
     private const System.Byte PoisonByte = 0xCD;
@@ -192,18 +192,20 @@ public sealed class BufferLease : IBufferLease
         {
             if (len > 0)
             {
-                var slice = new System.Span<System.Byte>(buf, start, len);
+                System.Span<System.Byte> slice = new(buf, start, len);
 
                 if (ZeroOnDispose)
                 {
                     // Security first
                     slice.Clear();
                 }
-                else if (EnablePoisonOnDispose)
+#if DEBUG
+                if (EnablePoisonOnDispose)
                 {
                     // Debugging aid – detect use-after-free
                     slice.Fill(PoisonByte);
                 }
+#endif
             }
 
             Pool.Return(buf);

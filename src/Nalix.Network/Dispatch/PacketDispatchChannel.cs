@@ -11,7 +11,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch.Channel;
-using Nalix.Network.Internal.Net;
+using Nalix.Network.Internal;
 
 namespace Nalix.Network.Dispatch;
 
@@ -174,7 +174,7 @@ public sealed class PacketDispatchChannel
     {
         if (lease is null || lease.Length <= 0)
         {
-            Logger?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] empty-payload ep={connection.RemoteEndPoint}");
+            Logger?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] empty-payload ep={connection.EndPoint}");
             lease?.Dispose();
 
             return;
@@ -239,7 +239,7 @@ public sealed class PacketDispatchChannel
                         // Warn with small head preview
                         System.Int32 len = lease.Length;
                         System.String head = System.Convert.ToHexString(lease.Span[..System.Math.Min(16, len)]);
-                        Logger?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.RemoteEndPoint} len={len} head={head}");
+                        Logger?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.EndPoint} len={len} head={head}");
                         continue;
                     }
 
@@ -247,7 +247,7 @@ public sealed class PacketDispatchChannel
                 }
                 catch (System.Exception ex)
                 {
-                    Logger?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] handle-error ep={connection.RemoteEndPoint}", ex);
+                    Logger?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] handle-error ep={connection.EndPoint}", ex);
                 }
                 finally
                 {
