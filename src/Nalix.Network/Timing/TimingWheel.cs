@@ -11,7 +11,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
-using Nalix.Network.Internal.Net;
+using Nalix.Network.Internal;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Timing;
@@ -334,13 +334,13 @@ public sealed class TimingWheel : IActivatable
                     if (idleMs >= IdleTimeoutMs)
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                            .Debug($"[{nameof(TimingWheel)}] timeout remote={task.Conn.RemoteEndPoint}, idle={idleMs}ms");
+                            .Debug($"[{nameof(TimingWheel)}] timeout remote={task.Conn.EndPoint}, idle={idleMs}ms");
 
                         try { task.Conn.Close(force: true); }
                         catch (System.Exception ex)
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Warn($"[{nameof(TimingWheel)}] close-error remote={task.Conn.RemoteEndPoint} ex={ex.Message}");
+                                .Warn($"[{nameof(TimingWheel)}] close-error remote={task.Conn.EndPoint} ex={ex.Message}");
                         }
 
                         InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Return(task);

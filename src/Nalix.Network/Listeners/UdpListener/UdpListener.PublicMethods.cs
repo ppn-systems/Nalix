@@ -7,7 +7,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.Framework.Time;
 using Nalix.Network.Abstractions;
-using Nalix.Network.Internal.Net;
+using Nalix.Network.Internal;
 using Nalix.Network.Timing;
 
 namespace Nalix.Network.Listeners.Udp;

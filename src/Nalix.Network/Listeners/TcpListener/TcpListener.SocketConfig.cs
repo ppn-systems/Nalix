@@ -116,7 +116,7 @@ public abstract partial class TcpListenerBase
         // socket.LingerState = new LingerOption(true, NetworkSocketOptions.False);
 
         // Keep the accepted socket in blocking mode; Task-based async works fine with blocking sockets.
-        // If you really want non-blocking I/O, ensure your Accept/Receive loops expect WouldBlock.
+        // If you really want non-blocking IEndpointKey /O, ensure your Accept/Receive loops expect WouldBlock.
         socket.Blocking = true;
 
         if (Config.KeepAlive)

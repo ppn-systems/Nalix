@@ -3,7 +3,6 @@ using Nalix.Common.Protocols;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Connection;
 using Nalix.Network.Dispatch;
-using Nalix.Network.Internal.Net;
 using Nalix.Network.Throttling;
 
 namespace Nalix.Network.Middleware.Inbound;
@@ -31,26 +30,35 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        if (context.Connection.RemoteEndPoint is System.Net.IPEndPoint ipEndPoint)
+        System.String? ip = context.Connection.EndPoint.ToString();
+
+        if (System.String.IsNullOrEmpty(ip))
         {
-            TokenBucketLimiter.LimitDecision d = PolicyRateLimiter.Check(
-                context.Packet.OpCode, rl,
-                NetAddressKey.FromIpAddress(ipEndPoint.Address).ToString());
+            await context.Connection.SendAsync(
+                controlType: ControlType.FAIL,
+                reason: ProtocolCode.RATE_LIMITED,
+                action: ProtocolAction.RETRY,
+                sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                flags: ControlFlags.IS_TRANSIENT).ConfigureAwait(false);
 
-            if (!d.Allowed)
-            {
-                await context.Connection.SendAsync(
-                    controlType: ControlType.FAIL,
-                    reason: ProtocolCode.RATE_LIMITED,
-                    action: ProtocolAction.RETRY,
-                    sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
-                    flags: ControlFlags.IS_TRANSIENT,
-                    arg0: context.Attributes.OpCode.OpCode,
-                    arg1: (System.UInt32)d.RetryAfterMs, arg2: d.Credit
-                ).ConfigureAwait(false);
+            return;
+        }
 
-                return;
-            }
+        TokenBucketLimiter.LimitDecision d = PolicyRateLimiter.Check(context.Packet.OpCode, rl, ip);
+
+        if (!d.Allowed)
+        {
+            await context.Connection.SendAsync(
+                controlType: ControlType.FAIL,
+                reason: ProtocolCode.RATE_LIMITED,
+                action: ProtocolAction.RETRY,
+                sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                flags: ControlFlags.IS_TRANSIENT,
+                arg0: context.Attributes.OpCode.OpCode,
+                arg1: (System.UInt32)d.RetryAfterMs, arg2: d.Credit
+            ).ConfigureAwait(false);
+
+            return;
         }
 
         await next(context.CancellationToken).ConfigureAwait(false);
