@@ -5,7 +5,6 @@ using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Abstractions;
-using Nalix.Common.Networking.Caching;
 using Nalix.Framework.Injection;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooled;
@@ -16,19 +15,6 @@ namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
 {
-    internal sealed class ProcessContext : IPoolable
-    {
-        public IConnection Connection;
-        public TcpListenerBase Listener;
-
-        public void ResetForPool()
-        {
-            Listener = null;
-            Connection = null;
-        }
-    }
-
-
     [System.Diagnostics.DebuggerStepThrough]
     private void ProcessConnection(
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
@@ -149,21 +135,21 @@ public abstract partial class TcpListenerBase
                     IConnection connection = this.InitializeConnection(socket, context);
 
                     // Process the connection
-                    ProcessContext ctx = s_pool.Get<ProcessContext>();
+                    PooledProcessContext ctx = s_pool.Get<PooledProcessContext>();
 
                     ctx.Listener = this;
                     ctx.Connection = connection;
 
                     System.Threading.ThreadPool.UnsafeQueueUserWorkItem(static state =>
                     {
-                        ProcessContext c = state!;
+                        PooledProcessContext c = state!;
                         try
                         {
                             c.Listener!.ProcessConnection(c.Connection!);
                         }
                         finally
                         {
-                            s_pool.Return<ProcessContext>(c);
+                            s_pool.Return<PooledProcessContext>(c);
                         }
                     }, ctx, preferLocal: true);
 
@@ -358,21 +344,21 @@ public abstract partial class TcpListenerBase
 
                 IConnection connection = await acceptTask.ConfigureAwait(false);
 
-                ProcessContext pctx = s_pool.Get<ProcessContext>();
+                PooledProcessContext pctx = s_pool.Get<PooledProcessContext>();
 
                 pctx.Listener = this;
                 pctx.Connection = connection;
 
                 System.Threading.ThreadPool.UnsafeQueueUserWorkItem(static state =>
                 {
-                    ProcessContext c = state!;
+                    PooledProcessContext c = state!;
                     try
                     {
                         c.Listener!.ProcessConnection(c.Connection!);
                     }
                     finally
                     {
-                        s_pool.Return<ProcessContext>(c);
+                        s_pool.Return<PooledProcessContext>(c);
                     }
                 }, pctx, preferLocal: true);
 
