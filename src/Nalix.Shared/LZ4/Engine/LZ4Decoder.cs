@@ -62,6 +62,11 @@ internal static class LZ4Decoder
             return true;
         }
 
+        if (header.OriginalLength > LZ4CompressionConstants.MaxBlockSize)
+        {
+            return false;
+        }
+
         output = new System.Byte[header.OriginalLength];
         if (!DecodeInternal(input, output, out bytesWritten))
         {
