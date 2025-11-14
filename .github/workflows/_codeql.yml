@@ -52,10 +52,11 @@ jobs:
       run: dotnet restore tests/Nalix.Tests.sln
 
     - name: Build tests/ with CodeQL extraction
-      run: dotnet build tests/Nalix.Tests.sln `
-        --configuration Debug `
-        --no-restore `
-        /p:UseSharedCompilation=false
+      run: |
+        dotnet build src/Nalix.sln \
+          --configuration Debug \
+          --no-restore \
+          /p:UseSharedCompilation=false
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
