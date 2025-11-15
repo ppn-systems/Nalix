@@ -8,7 +8,7 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 
-namespace Nalix.Framework.Frames.Controls;
+namespace Nalix.Framework.DataFrames.Controls;
 
 /// <summary>
 /// Represents a binary data packet used for transmitting raw bytes over the network.

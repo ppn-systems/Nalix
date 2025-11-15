@@ -29,9 +29,7 @@ public static class LZ4Codec
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Encode(
-        [DisallowNull] ReadOnlySpan<byte> input,
-        [DisallowNull] Span<byte> output)
+    public static int Encode(ReadOnlySpan<byte> input, Span<byte> output)
     {
         if (output.Length < LZ4BlockHeader.Size)
         {
@@ -74,10 +72,7 @@ public static class LZ4Codec
     /// </example>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static bool Encode(
-        [DisallowNull] ReadOnlySpan<byte> input,
-        [NotNullWhen(true)] out BufferLease? lease,
-        out int bytesWritten)
+    public static bool Encode(ReadOnlySpan<byte> input, [NotNullWhen(true)] out BufferLease? lease, out int bytesWritten)
     {
         lease = null;
         bytesWritten = 0;
@@ -108,10 +103,7 @@ public static class LZ4Codec
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Decode(
-        [DisallowNull] ReadOnlySpan<byte> input,
-        [DisallowNull] Span<byte> output)
-        => LZ4Decoder.Decode(input, output);
+    public static int Decode(ReadOnlySpan<byte> input, Span<byte> output) => LZ4Decoder.Decode(input, output);
 
     /// <summary>
     /// Decompresses the compressed input into a newly allocated byte array.
@@ -128,11 +120,7 @@ public static class LZ4Codec
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static bool Decode(
-        [DisallowNull] ReadOnlySpan<byte> input,
-        [NotNullWhen(true)] out byte[]? output,
-        [DisallowNull] out int bytesWritten)
-        => LZ4Decoder.Decode(input, out output, out bytesWritten);
+    public static bool Decode(ReadOnlySpan<byte> input, [NotNullWhen(true)] out byte[]? output, out int bytesWritten) => LZ4Decoder.Decode(input, out output, out bytesWritten);
 
     /// <summary>
     /// Decompresses the compressed input into a <see cref="BufferLease"/> rented from the pool.
@@ -159,8 +147,5 @@ public static class LZ4Codec
     /// </example>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static bool Decode(
-        [DisallowNull] ReadOnlySpan<byte> input,
-        [NotNullWhen(true)] out BufferLease? lease,
-        out int bytesWritten) => LZ4Decoder.Decode(input, out lease, out bytesWritten);
+    public static bool Decode(ReadOnlySpan<byte> input, [NotNullWhen(true)] out BufferLease? lease, out int bytesWritten) => LZ4Decoder.Decode(input, out lease, out bytesWritten);
 }

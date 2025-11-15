@@ -10,7 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Frames.Text;
+using Nalix.Framework.DataFrames.Text;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 
