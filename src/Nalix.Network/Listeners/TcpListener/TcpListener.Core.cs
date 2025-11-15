@@ -11,7 +11,6 @@ using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Timing;
 using Nalix.Shared.Memory.Pooling;
-using System.Threading;
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -34,13 +33,13 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     private readonly System.Threading.SemaphoreSlim _lock;
     private readonly System.Collections.Generic.List<IIdentifier> _acceptWorkerIds;
 
+    private System.Int32 _state;
     private System.Boolean _isDisposed;
     private System.Int32 _stopInitiated;
     private System.Net.Sockets.Socket? _listener;
-    private CancellationTokenRegistration _cancelReg;
     private System.Threading.CancellationTokenSource? _cts;
     private System.Threading.CancellationToken _cancellationToken;
-    private System.Int32 _state = (System.Int32)ListenerState.Stopped;
+    private System.Threading.CancellationTokenRegistration _cancelReg;
 
     #endregion Fields
 
@@ -129,6 +128,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
         _port = port;
         _protocol = protocol;
         _isDisposed = false;
+        _state = (System.Int32)ListenerState.Stopped;
 
         _acceptWorkerIds = new(Config.MaxParallel);
         _lock = new System.Threading.SemaphoreSlim(1, 1);
@@ -205,7 +205,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
                 catch { }
                 self._cts = null;
 
-                System.Threading.Interlocked.Exchange(ref self._stopInitiated, 0);
+                _ = System.Threading.Interlocked.Exchange(ref self._stopInitiated, 0);
             }
         }
 
