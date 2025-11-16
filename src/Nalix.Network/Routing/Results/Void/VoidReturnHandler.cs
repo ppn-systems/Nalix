@@ -12,7 +12,5 @@ namespace Nalix.Network.Routing.Results.Void;
 internal sealed class VoidReturnHandler<TPacket> : IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <inheritdoc/>
-    public ValueTask HandleAsync(
-        object? result,
-        PacketContext<TPacket> context) => ValueTask.CompletedTask;
+    public ValueTask HandleAsync(object? result, PacketContext<TPacket> context) => ValueTask.CompletedTask;
 }

@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -213,25 +214,25 @@ internal sealed class HandlerCompiler<
         //        compiled invoker always receives from ExecuteHandlerAsync)
         // x02..x04 = property reads off x01
         // -------------------------------------------------------------------
-        System.Linq.Expressions.ParameterExpression x00 =
-            System.Linq.Expressions.Expression.Parameter(typeof(object), "instance");
+        ParameterExpression x00 =
+            Expression.Parameter(typeof(object), "instance");
 
-        System.Linq.Expressions.ParameterExpression x01 =
-            System.Linq.Expressions.Expression.Parameter(typeof(PacketContext<TPacket>), "context");
+        ParameterExpression x01 =
+            Expression.Parameter(typeof(PacketContext<TPacket>), "context");
 
         Type contextType = typeof(PacketContext<TPacket>);
         PropertyInfo packetProperty = GetRequiredProperty(contextType, nameof(PacketContext<>.Packet));
         PropertyInfo connectionProperty = GetRequiredProperty(contextType, nameof(PacketContext<>.Connection));
         PropertyInfo cancellationTokenProperty = GetRequiredProperty(contextType, nameof(PacketContext<>.CancellationToken));
 
-        System.Linq.Expressions.MemberExpression x02 =
-            System.Linq.Expressions.Expression.Property(x01, packetProperty);
+        MemberExpression x02 =
+            Expression.Property(x01, packetProperty);
 
-        System.Linq.Expressions.MemberExpression x03 =
-            System.Linq.Expressions.Expression.Property(x01, connectionProperty);
+        MemberExpression x03 =
+            Expression.Property(x01, connectionProperty);
 
-        System.Linq.Expressions.MemberExpression x04 =
-            System.Linq.Expressions.Expression.Property(x01, cancellationTokenProperty);
+        MemberExpression x04 =
+            Expression.Property(x01, cancellationTokenProperty);
 
         // -------------------------------------------------------------------
         // Detect which of the 4 supported signatures this method uses.
@@ -272,19 +273,19 @@ internal sealed class HandlerCompiler<
             // ---------------------------------------------------------------
             // Normal expression-tree path — types match exactly.
             // ---------------------------------------------------------------
-            System.Linq.Expressions.Expression[] x09 = BuildArgExpressions(kind, parms, x01, x02, x03, x04);
+            Expression[] x09 = BuildArgExpressions(kind, parms, x01, x02, x03, x04);
 
-            System.Linq.Expressions.Expression x10 = x22.IsStatic
-                ? System.Linq.Expressions.Expression.Call(x22, x09)
-                : System.Linq.Expressions.Expression.Call(
-                    System.Linq.Expressions.Expression.Convert(x00, x22.DeclaringType
+            Expression x10 = x22.IsStatic
+                ? Expression.Call(x22, x09)
+                : Expression.Call(
+                    Expression.Convert(x00, x22.DeclaringType
                         ?? throw new InvalidOperationException($"Handler method '{x22.Name}' is missing a declaring type.")), x22, x09);
 
-            System.Linq.Expressions.Expression x11 = x22.ReturnType == typeof(void)
+            Expression x11 = x22.ReturnType == typeof(void)
                 ? System.Linq.Expressions.Expression.Block(x10, System.Linq.Expressions.Expression.Constant(null, typeof(object)))
                 : System.Linq.Expressions.Expression.Convert(x10, typeof(object));
 
-            x12 = System.Linq.Expressions.Expression
+            x12 = Expression
                     .Lambda<Func<object, PacketContext<TPacket>, object>>(x11, x00, x01)
                     .Compile();
         }
@@ -431,13 +432,13 @@ internal sealed class HandlerCompiler<
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static System.Linq.Expressions.Expression[] BuildArgExpressions(
+    private static Expression[] BuildArgExpressions(
         SignatureKind kind,
         ParameterInfo[] parms,
-        System.Linq.Expressions.ParameterExpression context,
-        System.Linq.Expressions.MemberExpression packetExpr,
-        System.Linq.Expressions.MemberExpression connectionExpr,
-        System.Linq.Expressions.MemberExpression ctExpr)
+        ParameterExpression context,
+        MemberExpression packetExpr,
+        MemberExpression connectionExpr,
+        MemberExpression ctExpr)
     {
         switch (kind)
         {
@@ -449,7 +450,7 @@ internal sealed class HandlerCompiler<
                     // Insert a Convert node when the types differ so the compiled delegate
                     // does not throw InvalidCastException at runtime.
                     Type paramCtxType = parms[0].ParameterType;
-                    System.Linq.Expressions.Expression ctxArg =
+                    Expression ctxArg =
                         paramCtxType == context.Type
                         ? context
                         : System.Linq.Expressions.Expression.Convert(context, paramCtxType);
@@ -460,7 +461,7 @@ internal sealed class HandlerCompiler<
             case SignatureKind.ContextWithToken:
                 {
                     Type paramCtxType = parms[0].ParameterType;
-                    System.Linq.Expressions.Expression ctxArg =
+                    Expression ctxArg =
                         paramCtxType == context.Type
                         ? context
                         : System.Linq.Expressions.Expression.Convert(context, paramCtxType);
@@ -473,11 +474,11 @@ internal sealed class HandlerCompiler<
                     Type packetType = parms[0].ParameterType;
                     Type connType = parms[1].ParameterType;
 
-                    System.Linq.Expressions.Expression pktArg = packetType.IsAssignableFrom(typeof(TPacket))
+                    Expression pktArg = packetType.IsAssignableFrom(typeof(TPacket))
                         ? packetExpr
                         : System.Linq.Expressions.Expression.Convert(packetExpr, packetType);
 
-                    System.Linq.Expressions.Expression connArg = connType == typeof(IConnection)
+                    Expression connArg = connType == typeof(IConnection)
                         ? connectionExpr
                         : System.Linq.Expressions.Expression.Convert(connectionExpr, connType);
 
@@ -489,11 +490,11 @@ internal sealed class HandlerCompiler<
                     Type packetType = parms[0].ParameterType;
                     Type connType = parms[1].ParameterType;
 
-                    System.Linq.Expressions.Expression pktArg = packetType.IsAssignableFrom(typeof(TPacket))
+                    Expression pktArg = packetType.IsAssignableFrom(typeof(TPacket))
                         ? packetExpr
                         : System.Linq.Expressions.Expression.Convert(packetExpr, packetType);
 
-                    System.Linq.Expressions.Expression connArg = connType == typeof(IConnection)
+                    Expression connArg = connType == typeof(IConnection)
                         ? connectionExpr
                         : System.Linq.Expressions.Expression.Convert(connectionExpr, connType);
 
@@ -507,6 +508,7 @@ internal sealed class HandlerCompiler<
 
     [Pure]
     [MethodImpl(MethodImplOptions.NoInlining)]
+    [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private static Func<object, PacketContext<TPacket>, object> BuildContextBridgeInvoker(
         MethodInfo method,
         ParameterInfo[] parms,

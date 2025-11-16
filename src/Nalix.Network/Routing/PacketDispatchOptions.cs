@@ -13,7 +13,7 @@ using Nalix.Network.Middleware;
 using Nalix.Network.Middleware.Internal;
 using Nalix.Network.Routing.Metadata;
 
-namespace Nalix.Network.Routing.Options;
+namespace Nalix.Network.Routing;
 
 /// <summary>
 /// Provides options for packet dispatching, including middleware configuration,
