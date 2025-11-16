@@ -7,7 +7,7 @@ using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
-using Nalix.Network.Connection;
+using Nalix.Network.Connections;
 using Nalix.Network.Internal;
 
 namespace Nalix.Network.Listeners.Udp;
@@ -84,7 +84,7 @@ public abstract partial class UdpListenerBase
         IIdentifier identifier = Identifier.FromBytes(result.Buffer[^Identifier.Size..]);
 
         if (InstanceManager.Instance.GetExistingInstance<ConnectionHub>()!
-                                    .GetConnection(identifier) is not Connection.Connection connection)
+                                    .GetConnection(identifier) is not Connections.Connection connection)
         {
             System.Threading.Interlocked.Increment(ref _dropUnknown);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?

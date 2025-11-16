@@ -7,7 +7,7 @@ using Nalix.Common.Packets.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Network.Dispatch.Results.Primitives;
 
-namespace Nalix.Network.Connection;
+namespace Nalix.Network.Connections;
 
 public sealed partial class Connection : IConnection
 {

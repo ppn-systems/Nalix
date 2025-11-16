@@ -104,7 +104,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
             throw new InternalErrorException($"[{nameof(ConnectionLimiter)}] EndPoint cannot be null", nameof(endPoint));
         }
 
-        IEndpointKey key = Connection.Connection.EndpointKey.FromEndPoint(endPoint);
+        IEndpointKey key = Connections.Connection.EndpointKey.FromEndPoint(endPoint);
 
         System.DateTime now = System.DateTime.UtcNow;
         System.DateTime today = now.Date;

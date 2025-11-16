@@ -9,7 +9,7 @@ using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
 
-namespace Nalix.Network.Connection;
+namespace Nalix.Network.Connections;
 
 /// <summary>
 /// Manages connections for servers, optimized for high performance and thread safety.
@@ -34,7 +34,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
     private readonly ConnectionHubOptions _options;
 
-    // Connection statistics for monitoring
+    // Connections statistics for monitoring
     private volatile System.Int32 _count;
     private volatile System.Boolean _disposed;
 
