@@ -7,7 +7,7 @@ using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Messaging.Controls;
 
-namespace Nalix.Network.Connection;
+namespace Nalix.Network.Connections;
 
 /// <summary>
 /// Provides extension methods for the <see cref="IConnection"/> interface to support connection management operations.

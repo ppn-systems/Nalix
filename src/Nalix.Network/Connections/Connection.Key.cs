@@ -2,7 +2,7 @@
 
 using Nalix.Common.Abstractions;
 
-namespace Nalix.Network.Connection;
+namespace Nalix.Network.Connections;
 
 public sealed partial class Connection
 {

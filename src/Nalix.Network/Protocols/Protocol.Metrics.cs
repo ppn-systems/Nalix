@@ -61,7 +61,7 @@ public abstract partial class Protocol : IReportable
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Protocol Status:");
         _ = sb.AppendLine("--------------------------------------");
         _ = sb.AppendLine($"Is Accepting: {IsAccepting}");
-        _ = sb.AppendLine($"Keep Connection Open: {KeepConnectionOpen}");
+        _ = sb.AppendLine($"Keep Connections Open: {KeepConnectionOpen}");
         _ = sb.AppendLine($"Total Messages: {TotalMessages}");
         _ = sb.AppendLine($"Total Errors: {TotalErrors}");
         _ = sb.AppendLine("--------------------------------------");

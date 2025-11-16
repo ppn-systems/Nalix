@@ -3,7 +3,7 @@
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Protocols;
 using Nalix.Network.Abstractions;
-using Nalix.Network.Connection;
+using Nalix.Network.Connections;
 using Nalix.Network.Dispatch;
 
 namespace Nalix.Network.Middleware.Inbound;

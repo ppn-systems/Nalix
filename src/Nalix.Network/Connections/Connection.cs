@@ -12,7 +12,7 @@ using Nalix.Network.Internal.Transport;
 using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Memory.Pooling;
 
-namespace Nalix.Network.Connection;
+namespace Nalix.Network.Connections;
 
 /// <summary>
 /// Represents a network connection that manages socket communication, stream transformation, and event handling.

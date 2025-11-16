@@ -133,7 +133,7 @@ public static class PolicyRateLimiter
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static Connection.Connection.EndpointKey IxCP9(System.String s)
+    private static Connections.Connection.EndpointKey IxCP9(System.String s)
     {
         // Hash key string as UTF-8 with Keccak256, then take first 16 bytes
         // to form a stable IPv6 address (endianness-agnostic).
@@ -152,7 +152,7 @@ public static class PolicyRateLimiter
 
         // Take first 16 bytes for IPv6
         System.Net.IPAddress ip = new(digest[..16]);
-        return Connection.Connection.EndpointKey.FromIpAddress(ip);
+        return Connections.Connection.EndpointKey.FromIpAddress(ip);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
