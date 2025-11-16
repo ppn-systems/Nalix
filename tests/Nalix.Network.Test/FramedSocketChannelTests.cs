@@ -1,4 +1,4 @@
-﻿using Nalix.Network.Connection;
+﻿using Nalix.Network.Connections;
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -32,7 +32,7 @@ public sealed class FramedSocketChannelTests
     {
         var (serverSock, clientSock) = await CreateConnectedPairAsync();
 
-        var connection = new Connection.Connection(serverSock); // ctor wires channel callbacks
+        var connection = new Connection(serverSock); // ctor wires channel callbacks
         var hub = new ConnectionHub();
         Assert.True(hub.RegisterConnection(connection));
 
@@ -63,7 +63,7 @@ public sealed class FramedSocketChannelTests
     {
         var (serverSock, clientSock) = await CreateConnectedPairAsync();
 
-        var connection = new Connection.Connection(serverSock);
+        var connection = new Connection(serverSock);
         var hub = new ConnectionHub();
         Assert.True(hub.RegisterConnection(connection));
 
@@ -87,7 +87,7 @@ public sealed class FramedSocketChannelTests
     public async Task Incoming_Frame_Is_Pushed_To_Incoming_Cache()
     {
         var (serverSock, clientSock) = await CreateConnectedPairAsync();
-        var connection = new Connection.Connection(serverSock);
+        var connection = new Connection(serverSock);
 
         // Start receive loop
         connection.TCP.BeginReceive();
