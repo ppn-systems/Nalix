@@ -47,6 +47,7 @@ public partial class ConfigurationLoader
             System.TypeCode.Single => configFile.GetSingle(section, property.Name),
             System.TypeCode.Double => configFile.GetDouble(section, property.Name),
             System.TypeCode.DateTime => configFile.GetDateTime(section, property.Name),
+            System.TypeCode.Object when property.PropertyType == typeof(System.TimeSpan) => configFile.GetTimeSpan(section, property.Name),
             _ => ThrowUnsupported(property),
         };
     }
@@ -70,7 +71,7 @@ public partial class ConfigurationLoader
         }
         else
         {
-            valueToWrite = currentValue?.ToString() ?? GetDefaultValueString(property.TypeCode);
+            valueToWrite = currentValue?.ToString() ?? GetDefaultValueString(property);
         }
 
         configFile.WriteValue(section, property.Name, valueToWrite);
@@ -88,8 +89,8 @@ public partial class ConfigurationLoader
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static System.String GetDefaultValueString(System.TypeCode typeCode)
-        => typeCode switch
+    private static System.String GetDefaultValueString(PropertyMetadata propertyType)
+        => propertyType.TypeCode switch
         {
             System.TypeCode.Byte => "0",
             System.TypeCode.SByte => "0",
@@ -105,7 +106,9 @@ public partial class ConfigurationLoader
             System.TypeCode.Boolean => "false",
             System.TypeCode.Char => System.String.Empty,
             System.TypeCode.String => System.String.Empty,
-            System.TypeCode.DateTime => System.DateTime.UtcNow.ToString("O"),
+            System.TypeCode.DateTime => System.DateTime.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+            System.TypeCode.Object when propertyType.PropertyType == typeof(System.TimeSpan) =>
+            System.TimeSpan.Zero.ToString("c", System.Globalization.CultureInfo.InvariantCulture),
             _ => System.String.Empty,
         };
 

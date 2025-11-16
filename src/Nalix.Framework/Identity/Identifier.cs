@@ -2,6 +2,7 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Enums;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Randomization;
 
 namespace Nalix.Framework.Identity;
@@ -43,6 +44,7 @@ public readonly partial struct Identifier : IIdentifier
 
     private const System.UInt64 MaxSevenByteValue = 0x00FFFFFFFFFFFFFFUL;
     private const System.String Base36Chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private static readonly System.UInt16 _MachineId = ConfigurationManager.Instance.Get<IdentifierOptions>().MachineId;
 
     #endregion Const
 
@@ -119,7 +121,7 @@ public readonly partial struct Identifier : IIdentifier
     /// </code>
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Identifier NewId(System.UInt32 value, System.UInt16 machineId, IdentifierType type) => new(value, machineId, type);
 
     /// <summary>
@@ -135,8 +137,23 @@ public readonly partial struct Identifier : IIdentifier
     /// </code>
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Identifier NewId(IdentifierType type, System.UInt16 machineId = 1) => new(Csprng.NextUInt32(), machineId, type);
+
+    /// <summary>
+    /// Creates a new <see cref="Identifier"/> with the specified components.
+    /// </summary>
+    /// <param name="type">The identifier type.</param>
+    /// <returns>A new <see cref="Identifier"/> instance.</returns>
+    /// <example>
+    /// <code>
+    /// var id = Identifier.Generate(IdentifierType.System);
+    /// Console.WriteLine(id.ToBase36()); // Outputs Base36 representation
+    /// </code>
+    /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static Identifier NewId(IdentifierType type) => new(Csprng.NextUInt32(), _MachineId, type);
 
     #endregion Constructors and Factory Methods
 }
