@@ -180,9 +180,19 @@ internal sealed class IniConfig
         _fileLock.EnterReadLock();
         try
         {
-            return _iniData.TryGetValue(section,
+            if (_iniData.TryGetValue(section,
                 out System.Collections.Generic.Dictionary<System.String, System.String>? sectionData) &&
-                sectionData.TryGetValue(key, out System.String? value) ? value : System.String.Empty;
+                sectionData.TryGetValue(key, out System.String? value))
+            {
+                if (value.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    return null!;
+                }
+
+                return value;
+            }
+
+            return System.String.Empty;
         }
         finally
         {
@@ -221,7 +231,11 @@ internal sealed class IniConfig
         System.String stringValue = GetString(section, key);
         System.Boolean? result = null;
 
-        if (!System.String.IsNullOrEmpty(stringValue))
+        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+        else if (!System.String.IsNullOrEmpty(stringValue))
         {
             // Optimize common boolean representations
             if (stringValue.Equals("true", System.StringComparison.OrdinalIgnoreCase) ||
@@ -265,7 +279,11 @@ internal sealed class IniConfig
 
         System.String stringValue = GetString(section, key);
 
-        if (System.Decimal.TryParse(
+        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+        else if (System.Decimal.TryParse(
             stringValue, System.Globalization.NumberStyles.Number,
             System.Globalization.CultureInfo.InvariantCulture, out System.Decimal parsedValue))
         {
@@ -292,7 +310,11 @@ internal sealed class IniConfig
 
         System.String stringValue = GetString(section, key);
 
-        if (System.Byte.TryParse(stringValue, out System.Byte parsedValue))
+        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+        else if (System.Byte.TryParse(stringValue, out System.Byte parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -317,7 +339,11 @@ internal sealed class IniConfig
 
         System.String stringValue = GetString(section, key);
 
-        if (System.SByte.TryParse(stringValue, out System.SByte parsedValue))
+        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+        else if (System.SByte.TryParse(stringValue, out System.SByte parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -342,7 +368,11 @@ internal sealed class IniConfig
 
         System.String stringValue = GetString(section, key);
 
-        if (System.Int16.TryParse(stringValue, out System.Int16 parsedValue))
+        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+        else if (System.Int16.TryParse(stringValue, out System.Int16 parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -367,7 +397,11 @@ internal sealed class IniConfig
 
         System.String stringValue = GetString(section, key);
 
-        if (System.UInt16.TryParse(stringValue, out System.UInt16 parsedValue))
+        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+        else if (System.UInt16.TryParse(stringValue, out System.UInt16 parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -392,7 +426,11 @@ internal sealed class IniConfig
 
         System.String stringValue = GetString(section, key);
 
-        if (System.Int32.TryParse(stringValue, out System.Int32 parsedValue))
+        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+        else if (System.Int32.TryParse(stringValue, out System.Int32 parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -417,7 +455,11 @@ internal sealed class IniConfig
 
         System.String stringValue = GetString(section, key);
 
-        if (System.UInt32.TryParse(stringValue, out System.UInt32 parsedValue))
+        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+        else if (System.UInt32.TryParse(stringValue, out System.UInt32 parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -442,7 +484,11 @@ internal sealed class IniConfig
 
         System.String stringValue = GetString(section, key);
 
-        if (System.Int64.TryParse(stringValue, out System.Int64 parsedValue))
+        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+        else if (System.Int64.TryParse(stringValue, out System.Int64 parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -467,7 +513,11 @@ internal sealed class IniConfig
 
         System.String stringValue = GetString(section, key);
 
-        if (System.UInt64.TryParse(stringValue, out System.UInt64 parsedValue))
+        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+        else if (System.UInt64.TryParse(stringValue, out System.UInt64 parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -492,7 +542,11 @@ internal sealed class IniConfig
 
         System.String stringValue = GetString(section, key);
 
-        if (System.Single.TryParse(
+        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+        else if (System.Single.TryParse(
             stringValue, System.Globalization.NumberStyles.Float,
             System.Globalization.CultureInfo.InvariantCulture, out System.Single parsedValue))
         {
@@ -519,7 +573,11 @@ internal sealed class IniConfig
 
         System.String stringValue = GetString(section, key);
 
-        if (System.Double.TryParse(
+        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+        else if (System.Double.TryParse(
             stringValue, System.Globalization.NumberStyles.Float,
             System.Globalization.CultureInfo.InvariantCulture, out System.Double parsedValue))
         {
@@ -546,7 +604,11 @@ internal sealed class IniConfig
 
         System.String stringValue = GetString(section, key);
 
-        if (System.DateTime.TryParse(
+        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+        else if (System.DateTime.TryParse(
             stringValue, System.Globalization.CultureInfo.InvariantCulture,
             System.Globalization.DateTimeStyles.None, out System.DateTime parsedValue))
         {
@@ -573,7 +635,11 @@ internal sealed class IniConfig
 
         System.String stringValue = GetString(section, key);
 
-        if (System.TimeSpan.TryParse(
+        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+        else if (System.TimeSpan.TryParse(
             stringValue,
             System.Globalization.CultureInfo.InvariantCulture, out System.TimeSpan parsedValue))
         {
@@ -600,7 +666,11 @@ internal sealed class IniConfig
 
         System.String stringValue = GetString(section, key);
 
-        if (System.Guid.TryParse(stringValue, out System.Guid parsedValue))
+        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+        else if (System.Guid.TryParse(stringValue, out System.Guid parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -629,6 +699,10 @@ internal sealed class IniConfig
 
         System.String stringValue = GetString(section, key);
         if (System.String.IsNullOrEmpty(stringValue))
+        {
+            return null;
+        }
+        else if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
