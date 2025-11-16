@@ -618,8 +618,7 @@ internal sealed class IniConfig
     /// <returns>The enum value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public TEnum? GetEnum<TEnum>(System.String section, System.String key)
-        where TEnum : struct, System.Enum
+    public TEnum? GetEnum<TEnum>(System.String section, System.String key) where TEnum : struct, System.Enum
     {
         System.String cacheKey = $"{section}:{key}:enum:{typeof(TEnum).FullName}";
 
@@ -658,45 +657,6 @@ internal sealed class IniConfig
         }
     }
 
-
-    /// <summary>
-    /// Gets all sections in the INI file.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Collections.Generic.IEnumerable<System.String> GetSections()
-    {
-        _fileLock.EnterReadLock();
-        try
-        {
-            return [.. _iniData.Keys];
-        }
-        finally
-        {
-            _fileLock.ExitReadLock();
-        }
-    }
-
-    /// <summary>
-    /// Gets all keys in the specified section.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Collections.Generic.IEnumerable<System.String> GetKeys(System.String section)
-    {
-        System.ArgumentNullException.ThrowIfNull(section);
-
-        _fileLock.EnterReadLock();
-        try
-        {
-            return _iniData.TryGetValue(section, out var sectionData) ? [.. sectionData.Keys] : [];
-        }
-        finally
-        {
-            _fileLock.ExitReadLock();
-        }
-    }
-
     /// <summary>
     /// Forces a write of any pending changes to the file.
     /// </summary>
@@ -707,24 +667,6 @@ internal sealed class IniConfig
         if (_isDirty)
         {
             WriteFile();
-        }
-    }
-
-    /// <summary>
-    /// Clears the value cache to force fresh reads from the data.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void ClearCache()
-    {
-        _fileLock.EnterWriteLock();
-        try
-        {
-            _valueCache.Clear();
-        }
-        finally
-        {
-            _fileLock.ExitWriteLock();
         }
     }
 
