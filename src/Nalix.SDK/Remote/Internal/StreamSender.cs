@@ -25,6 +25,8 @@ internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream str
     private readonly System.Net.Sockets.NetworkStream _stream = stream
         ?? throw new System.ArgumentNullException(nameof(stream));
 
+    private readonly System.Threading.SemaphoreSlim _gate = new(1, 1);
+
     /// <summary>
     /// Checks if the network stream is healthy and writable.
     /// </summary>
@@ -69,13 +71,27 @@ internal sealed class StreamSender<TPacket>(System.Net.Sockets.NetworkStream str
             throw new System.InvalidOperationException("The network stream is not writable.");
         }
 
-        var total = (System.UInt16)(bytes.Length + sizeof(System.UInt16));
-        System.Byte[] header = new System.Byte[2];
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(header, total);
 
-        await _stream.WriteAsync(header, cancellationToken).ConfigureAwait(false);
-        await _stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
-        await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+        if (bytes.Length > System.UInt16.MaxValue - sizeof(System.UInt16))
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(bytes), "Packet too large.");
+        }
+
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            System.UInt16 total = (System.UInt16)(bytes.Length + sizeof(System.UInt16));
+            System.Byte[] header = new System.Byte[2];
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(header, total);
+
+            await _stream.WriteAsync(header, cancellationToken).ConfigureAwait(false);
+            await _stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+            await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _ = _gate.Release();
+        }
     }
 
     /// <summary>
