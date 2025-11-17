@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Identity;
 using Nalix.Common.Security;
 
@@ -39,6 +40,12 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     /// Key identifying the endpoint associated with the connection.
     /// </summary>
     INetworkEndpoint NetworkEndpoint { get; }
+
+    /// <summary>
+    /// Gets a thread-safe extensible attribute dictionary for the connection.
+    /// This can be used to store session or user-defined data associated with the connection.
+    /// </summary>
+    IObjectMap<string, object> Attributes { get; }
 
     /// <summary>
     /// Gets the encryption key used for securing communication.
