@@ -65,7 +65,25 @@ public sealed class ReliableClient : System.IDisposable
     /// Gets a value indicating whether the client is connected to the server.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, nameof(_stream), nameof(_outbound), nameof(_inbound))]
-    public System.Boolean IsConnected => !_closed && _ioHealthy && _stream is { CanRead: true, CanWrite: true };
+    public System.Boolean IsConnected
+    {
+        get
+        {
+            if (_closed || !_ioHealthy || _stream is null)
+            {
+                return false;
+            }
+
+            try
+            {
+                return _stream.CanRead && _stream.CanWrite;
+            }
+            catch (System.ObjectDisposedException)
+            {
+                return false;
+            }
+        }
+    }
 
     #endregion Properties
 
@@ -196,13 +214,14 @@ public sealed class ReliableClient : System.IDisposable
                             // Push FIFO (with simple backpressure policy)
                             if (packet != null)
                             {
-                                if (Options.IncomingSize > 0 || PacketReceived == null)
+                                if (PacketReceived is not null)
+                                {
+                                    SafeInvoke(PacketReceived, packet, InstanceManager.Instance.GetExistingInstance<ILogger>());
+                                }
+                                else if (Options.IncomingSize > 0)
                                 {
                                     Incoming.Push(packet);
-                                    continue;
                                 }
-
-                                SafeInvoke(PacketReceived, packet, InstanceManager.Instance.GetExistingInstance<ILogger>());
                             }
 
                             if (System.Threading.Interlocked.Exchange(ref _discNotified, 1) == 0)
@@ -238,7 +257,7 @@ public sealed class ReliableClient : System.IDisposable
         }
         finally
         {
-            _connGate.Release();
+            _ = _connGate.Release();
         }
     }
 
