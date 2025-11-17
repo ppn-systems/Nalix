@@ -8,7 +8,7 @@ namespace Nalix.Common.Abstractions;
 /// Defines the core contract for a unique identifier, including type,
 /// machine association, serialization, and equality comparison.
 /// </summary>
-public interface IIdentifier : System.IEquatable<IIdentifier>
+public interface IIdentifier
 {
     /// <summary>
     /// Gets the underlying 32-bit unsigned integer value of the identifier.
