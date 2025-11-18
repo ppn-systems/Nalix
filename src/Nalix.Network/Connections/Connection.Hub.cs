@@ -58,7 +58,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
     private readonly ConnectionHubOptions _options;
 
-    private readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
     /// Connections statistics for monitoring
