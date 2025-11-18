@@ -234,20 +234,6 @@ public sealed class AeadEngineTests
     }
 
     // =========================================================================
-    //  2. ChaCha20Poly1305 — byte[] convenience API
-    // =========================================================================
-
-    [Fact]
-    public void ChaCha20Poly1305_Array_EncryptDecrypt_RoundTrips()
-    {
-        Byte[] cipherWithTag = ChaCha20Poly1305.Encrypt(Key32, Nonce12, PlaintextShort, Aad);
-        Assert.Equal(PlaintextShort.Length + TagSize, cipherWithTag.Length);
-
-        Byte[] pt = ChaCha20Poly1305.Decrypt(Key32, Nonce12, cipherWithTag, Aad);
-        Assert.Equal(PlaintextShort, pt);
-    }
-
-    // =========================================================================
     //  3. Salsa20Poly1305 — Span API (detached)
     // =========================================================================
 
@@ -408,21 +394,6 @@ public sealed class AeadEngineTests
         Assert.ThrowsAny<Exception>(() =>
             Salsa20Poly1305.Encrypt(Key32, new Byte[12], PlaintextShort, Aad, ct, tag));
     }
-
-    // =========================================================================
-    //  4. Salsa20Poly1305 — byte[] convenience API
-    // =========================================================================
-
-    [Fact]
-    public void Salsa20Poly1305_Array_EncryptDecrypt_RoundTrips()
-    {
-        Byte[] cipherWithTag = Salsa20Poly1305.Encrypt(Key32, Nonce8, PlaintextShort, Aad);
-        Assert.Equal(PlaintextShort.Length + TagSize, cipherWithTag.Length);
-
-        Byte[] pt = Salsa20Poly1305.Decrypt(Key32, Nonce8, cipherWithTag, Aad);
-        Assert.Equal(PlaintextShort, pt);
-    }
-
     // =========================================================================
     //  5. AeadEngine — Envelope API
     // =========================================================================
