@@ -156,7 +156,7 @@ public sealed class TimingWheel : IActivatable
 
         // Preallocate objects in the pools to improve performance and reduce latency during runtime.
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<TimeoutTask>(options.TimeoutTask_Preallocate);
+                                    .Prealloc<TimeoutTask>(options.TimeoutTask_Preallocate);
 
         _wheelSize = s_options.BucketCount;
         _tickMs = s_options.TickDuration;
@@ -238,13 +238,11 @@ public sealed class TimingWheel : IActivatable
         {
             InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                     .CancelWorker(_worker.Id);
-
-            _worker.Dispose();
-            _worker = null;
         }
 
         try { cts.Cancel(); } catch { }
         try { cts.Dispose(); } catch { }
+        try { _worker?.Dispose(); } catch { }
 
         DRAIN_AND_RELEASE_ALL_BUCKETS();
 

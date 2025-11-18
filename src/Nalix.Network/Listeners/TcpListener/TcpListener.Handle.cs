@@ -9,7 +9,6 @@ using Nalix.Framework.Injection;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Timekeeping;
-using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -65,8 +64,7 @@ public abstract partial class TcpListenerBase
 
         // Trả context ngay tại đây, trước khi tạo connection
         // Context chỉ cần cho việc Accept, không cần sau đó
-        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                .Return<PooledAcceptContext>(context);
+        s_pool.Return<PooledAcceptContext>(context);
 
         IConnection connection = new Connection(socket);
 
@@ -143,8 +141,7 @@ public abstract partial class TcpListenerBase
                     DISPATCH_CONNECTION(connection);
 
                     // Rebind a fresh context for the next accept on this args
-                    PooledAcceptContext nextCtx = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                                          .Get<PooledAcceptContext>();
+                    PooledAcceptContext nextCtx = s_pool.Get<PooledAcceptContext>();
 
                     ((PooledSocketAsyncEventArgs)args).Context = nextCtx;
                     nextCtx.BindArgsForSync((PooledSocketAsyncEventArgs)args);
@@ -156,12 +153,10 @@ public abstract partial class TcpListenerBase
                     SafeCloseSocket(socket);
                     if (args is PooledSocketAsyncEventArgs pooled && pooled.Context != null)
                     {
-                        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                .Return<PooledAcceptContext>(pooled.Context);
+                        s_pool.Return<PooledAcceptContext>(pooled.Context);
 
                         // Rebind a fresh context for next accepts on this args
-                        PooledAcceptContext newCtx = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                                             .Get<PooledAcceptContext>();
+                        PooledAcceptContext newCtx = s_pool.Get<PooledAcceptContext>();
 
                         pooled.Context = newCtx;
                         newCtx.BindArgsForSync(pooled);
@@ -174,11 +169,9 @@ public abstract partial class TcpListenerBase
 
                     SafeCloseSocket(socket);
 
-                    InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                            .Return<PooledAcceptContext>(((PooledSocketAsyncEventArgs)args).Context!);
+                    s_pool.Return<PooledAcceptContext>(((PooledSocketAsyncEventArgs)args).Context!);
 
-                    PooledAcceptContext newCtx = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                                         .Get<PooledAcceptContext>();
+                    PooledAcceptContext newCtx = s_pool.Get<PooledAcceptContext>();
 
                     ((PooledSocketAsyncEventArgs)args).Context = newCtx;
                     newCtx.BindArgsForSync((PooledSocketAsyncEventArgs)args);
@@ -192,12 +185,10 @@ public abstract partial class TcpListenerBase
                 {
                     if (pooled.Context is not null)
                     {
-                        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                .Return<PooledAcceptContext>(pooled.Context);
+                        s_pool.Return<PooledAcceptContext>(pooled.Context);
                     }
 
-                    pooled.Context = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                             .Get<PooledAcceptContext>();
+                    pooled.Context = s_pool.Get<PooledAcceptContext>();
 
                     pooled.Context.BindArgsForSync(pooled);
                 }
@@ -226,19 +217,14 @@ public abstract partial class TcpListenerBase
 
             // Ensure the args is clean before returning to pool
             args.AcceptSocket = null;
-            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Return((PooledSocketAsyncEventArgs)args);
+            s_pool.Return((PooledSocketAsyncEventArgs)args);
         }
 
-        PooledAcceptContext context = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                              .Get<PooledAcceptContext>();
-
-        PooledSocketAsyncEventArgs newArgs = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                                     .Get<PooledSocketAsyncEventArgs>();
+        PooledAcceptContext context = s_pool.Get<PooledAcceptContext>();
+        PooledSocketAsyncEventArgs newArgs = s_pool.Get<PooledSocketAsyncEventArgs>();
 
         newArgs.Context = context;
         context.BindArgsForSync(newArgs);
-
         newArgs.Completed += this.OnSyncAcceptCompleted;
 
         this.AcceptNext(newArgs, _cancellationToken);
@@ -397,8 +383,7 @@ public abstract partial class TcpListenerBase
         cancellationToken.ThrowIfCancellationRequested();
 
         System.Boolean contextReturned = false;
-        PooledAcceptContext context = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                              .Get<PooledAcceptContext>();
+        PooledAcceptContext context = s_pool.Get<PooledAcceptContext>();
 
         try
         {
@@ -419,8 +404,7 @@ public abstract partial class TcpListenerBase
 
                 // Trả context ở đây vì InitializeConnection sẽ không được gọi
                 contextReturned = true;
-                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                        .Return<PooledAcceptContext>(context);
+                s_pool.Return<PooledAcceptContext>(context);
 
                 _metrics.RECORD_REJECTED();
                 throw new InternalErrorException();
@@ -432,8 +416,7 @@ public abstract partial class TcpListenerBase
         {
             if (!contextReturned)
             {
-                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                        .Return<PooledAcceptContext>(context);
+                s_pool.Return<PooledAcceptContext>(context);
             }
 
             throw new InternalErrorException("Accept failed", ex);
