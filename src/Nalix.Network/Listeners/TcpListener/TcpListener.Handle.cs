@@ -108,9 +108,8 @@ public abstract partial class TcpListenerBase
         {
             try
             {
-                IConnection connection = await this
-                    .CreateConnectionAsync(cancellationToken)
-                    .ConfigureAwait(false);
+                IConnection connection = await this.CreateConnectionAsync(cancellationToken)
+                                                   .ConfigureAwait(false);
 
                 _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
                     name: NetTaskCatalog.TcpProcessWorker(_port, connection.ID.ToString(true)),
