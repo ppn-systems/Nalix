@@ -140,8 +140,8 @@ public sealed class ReliableClient : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter", Justification = "<Pending>")]
     public async System.Threading.Tasks.Task ConnectAsync(
-            System.Int32 timeout = 30000,
-            System.Threading.CancellationToken cancellationToken = default)
+        System.Int32 timeout = 30000,
+        System.Threading.CancellationToken cancellationToken = default)
     {
         _closed = false;
         _ioHealthy = true;
@@ -276,9 +276,7 @@ public sealed class ReliableClient : System.IDisposable
     /// <exception cref="System.IO.IOException">
     /// Thrown if an IEndpointKey /O error occurs while writing to the underlying stream.
     /// </exception>
-    public System.Threading.Tasks.Task SendAsync(
-        IPacket packet,
-        System.Threading.CancellationToken ct = default)
+    public System.Threading.Tasks.Task SendAsync(IPacket packet, System.Threading.CancellationToken ct = default)
         => (_outbound ?? throw new System.InvalidOperationException("Not connected.")).SendAsync(packet, ct);
 
     /// <summary>

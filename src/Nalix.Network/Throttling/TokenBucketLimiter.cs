@@ -267,7 +267,6 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         }
     }
 
-
     #endregion Public API
 
     #region Private Helpers
