@@ -25,15 +25,6 @@ public abstract partial class Protocol : IProtocol
     public abstract void ProcessMessage(System.Object? sender, IConnectEventArgs args);
 
     /// <summary>
-    /// Allows subclasses to execute custom logic after a message has been processed.
-    /// This method is called automatically by <see cref="PostProcessMessage"/>.
-    /// </summary>
-    /// <param name="args">Event arguments containing connection and processing details.</param>
-    protected virtual void OnPostProcess(IConnectEventArgs args)
-    {
-    }
-
-    /// <summary>
     /// Inbound-processes a message after it has been handled.
     /// If the connection should not remain open, it will be disconnected.
     /// </summary>
@@ -72,5 +63,20 @@ public abstract partial class Protocol : IProtocol
             this.OnConnectionError(args.Connection, ex);
             args.Connection.Disconnect();
         }
+    }
+
+    /// <summary>
+    /// Updates the protocol's state to either accept or reject new incoming connections.
+    /// Typically used for entering or exiting maintenance mode.
+    /// </summary>
+    /// <param name="isEnabled">
+    /// True to allow new connections; false to reject them.
+    /// </param>
+    public void SetConnectionAcceptance(System.Boolean isEnabled)
+    {
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Info($"[{nameof(Protocol)}:{nameof(SetConnectionAcceptance)}] accepting={(isEnabled ? "enabled" : "disabled")}");
+
+        _accepting = isEnabled ? 1 : 0;
     }
 }

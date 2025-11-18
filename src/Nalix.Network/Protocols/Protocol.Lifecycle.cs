@@ -36,6 +36,8 @@ public abstract partial class Protocol
 
     #endregion Properties
 
+    #region Disposal
+
     /// <summary>
     /// Disposes resources used by this ProtocolType.
     /// </summary>
@@ -64,4 +66,6 @@ public abstract partial class Protocol
 
         // Optional: clean up managed resources if (disposing)
     }
+
+    #endregion Disposal
 }

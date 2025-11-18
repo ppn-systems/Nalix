@@ -26,7 +26,8 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        using var execCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+        using System.Threading.CancellationTokenSource execCts =
+            System.Threading.CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
 
         System.Threading.Tasks.Task execution = next(execCts.Token);
         System.Threading.Tasks.Task delay = System.Threading.Tasks.Task.Delay(timeout, System.Threading.CancellationToken.None);
