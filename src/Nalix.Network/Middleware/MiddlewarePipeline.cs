@@ -19,10 +19,7 @@ public class MiddlewarePipeline<TPacket>
     /// <summary>
     /// Gets a value indicating whether the middleware pipeline contains no middleware components.
     /// </summary>
-    public System.Boolean IsEmpty =>
-        _inbound.Count == 0 &&
-        _outbound.Count == 0 &&
-        _outboundAlways.Count == 0;
+    public System.Boolean IsEmpty => _inbound.Count == 0 && _outbound.Count == 0 && _outboundAlways.Count == 0;
 
     /// <summary>
     /// Adds a middleware component to be executed before the main handler.
