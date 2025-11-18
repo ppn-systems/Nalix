@@ -155,7 +155,7 @@ public abstract partial class TcpListenerBase
                     System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(System.MemoryExtensions.AsSpan(vals)[0..4], on);
                     System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(System.MemoryExtensions.AsSpan(vals)[4..8], time);
                     System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(System.MemoryExtensions.AsSpan(vals)[8..12], interval);
-                    socket.IOControl(System.Net.Sockets.IOControlCode.KeepAliveValues, vals, null);
+                    _ = socket.IOControl(System.Net.Sockets.IOControlCode.KeepAliveValues, vals, null);
                 }
             }
         }

@@ -216,9 +216,7 @@ public abstract partial class TcpListenerBase
     }
 
     [System.Diagnostics.DebuggerStepThrough]
-    private void OnSyncAcceptCompleted(
-        System.Object? sender,
-        System.Net.Sockets.SocketAsyncEventArgs e)
+    private void OnSyncAcceptCompleted(System.Object? sender, System.Net.Sockets.SocketAsyncEventArgs e)
     {
         try
         {
@@ -252,9 +250,7 @@ public abstract partial class TcpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void AcceptNext(
-        System.Net.Sockets.SocketAsyncEventArgs args,
-        System.Threading.CancellationToken token)
+    private void AcceptNext(System.Net.Sockets.SocketAsyncEventArgs args, System.Threading.CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
