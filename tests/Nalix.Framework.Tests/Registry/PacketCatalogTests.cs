@@ -4,8 +4,8 @@
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
-using Nalix.Framework.Frames;
-using Nalix.Framework.Frames.Controls;
+using Nalix.Framework.DataFrames;
+using Nalix.Framework.DataFrames.Controls;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Logging;
