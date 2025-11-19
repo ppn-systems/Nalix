@@ -48,7 +48,7 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
         Data = [];
         Flags = PacketFlags.None;
         Priority = PacketPriority.None;
-        Transport = ProtocolType.NONE;
+        Protocol = ProtocolType.NONE;
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)FrameMagicCode.HANDSHAKE;
     }
@@ -65,7 +65,7 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     {
         this.OpCode = opCode;
         this.Data = data;
-        this.Transport = transport;
+        this.Protocol = transport;
     }
 
     /// <summary>
@@ -76,7 +76,7 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     public void Initialize(System.Byte[] data, ProtocolType transport = ProtocolType.TCP)
     {
         this.Data = data ?? [];
-        this.Transport = transport;
+        this.Protocol = transport;
     }
 
     /// <summary>
@@ -111,11 +111,11 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
         this.Data = [];
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.None;
-        this.Transport = ProtocolType.NONE;
+        this.Protocol = ProtocolType.NONE;
     }
 
     /// <inheritdoc/>
     public override System.String ToString() =>
         $"HANDSHAKE(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
-        $"Priority={Priority}, Transport={Transport}, Data={Data?.Length ?? 0} bytes)";
+        $"Priority={Priority}, Protocol={Protocol}, Data={Data?.Length ?? 0} bytes)";
 }

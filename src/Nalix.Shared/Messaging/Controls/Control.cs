@@ -78,7 +78,7 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
         this.Type = ControlType.NONE; // Default type, can be changed later
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.Urgent;
-        this.Transport = ProtocolType.NONE;
+        this.Protocol = ProtocolType.NONE;
         this.OpCode = PacketConstants.OpCodeDefault;
         this.MagicNumber = (System.UInt32)FrameMagicCode.CONTROL;
     }
@@ -97,7 +97,7 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
         ProtocolType transport = ProtocolType.TCP)
     {
         this.Type = type;
-        this.Transport = transport;
+        this.Protocol = transport;
         this.SequenceId = sequenceId;
         this.Reason = reasonCode;
         this.MonoTicks = Clock.MonoTicksNow();
@@ -121,7 +121,7 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
     {
         this.Type = type;
         this.OpCode = opCode;
-        this.Transport = transport;
+        this.Protocol = transport;
         this.SequenceId = sequenceId;
         this.Reason = reasonCode;
         this.MonoTicks = Clock.MonoTicksNow();
@@ -171,11 +171,11 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
         this.Type = ControlType.NONE;
         this.Flags = PacketFlags.None;
         this.Priority = PacketPriority.Urgent;
-        this.Transport = ProtocolType.NONE;
+        this.Protocol = ProtocolType.NONE;
     }
 
     /// <inheritdoc/>
     public override System.String ToString() =>
         $"CONTROL(Op={OpCode}, Len={Length}, Flg={Flags}, Pri={Priority}, " +
-        $"Tr={Transport}, Seq={SequenceId}, Rsn={Reason}, Typ={Type}, Ts={Timestamp}, Mono={MonoTicks})";
+        $"Tr={Protocol}, Seq={SequenceId}, Rsn={Reason}, Typ={Type}, Ts={Timestamp}, Mono={MonoTicks})";
 }

@@ -51,7 +51,7 @@ public interface IPacket
     /// Gets the transport protocol (for example, TCP or UDP) used to transmit the packet.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.Transport)]
-    ProtocolType Transport { get; }
+    ProtocolType Protocol { get; }
 
     #endregion Metadata
 

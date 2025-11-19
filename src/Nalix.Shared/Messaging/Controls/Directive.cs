@@ -85,7 +85,7 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
     public Directive()
     {
         Priority = PacketPriority.Urgent;
-        Transport = ProtocolType.TCP;
+        Protocol = ProtocolType.TCP;
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)FrameMagicCode.DIRECTIVE;
     }
@@ -113,7 +113,7 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
         SequenceId = sequenceId;
 
         Priority = PacketPriority.Urgent;
-        Transport = ProtocolType.TCP;
+        Protocol = ProtocolType.TCP;
     }
 
     /// <summary>
@@ -141,7 +141,7 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
         SequenceId = sequenceId;
 
         Priority = PacketPriority.Urgent;
-        Transport = ProtocolType.TCP;
+        Protocol = ProtocolType.TCP;
     }
 
     /// <summary>
@@ -176,6 +176,6 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
         Control = ControlFlags.NONE;
         Action = ProtocolAction.NONE;
         Priority = PacketPriority.Urgent;
-        Transport = ProtocolType.NONE;
+        Protocol = ProtocolType.NONE;
     }
 }
