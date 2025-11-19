@@ -65,7 +65,7 @@ public sealed class Controller()
         {
             case ControlType.PING:
                 // Respond PONG (echo sequence)
-                await SendPongAsync(c.SequenceId, c.OpCode, c.Transport, ct).ConfigureAwait(false);
+                await SendPongAsync(c.SequenceId, c.OpCode, c.Protocol, ct).ConfigureAwait(false);
                 OnPing?.Invoke(c.SequenceId);
                 return true;
 
