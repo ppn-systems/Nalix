@@ -84,9 +84,9 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// Gets or sets the buffer size for both sending and receiving data.
     /// </summary>
     /// <value>
-    /// The buffer size in bytes. Default is <c>65535</c>.
+    /// The buffer size in bytes. Default is <c>8192</c>.
     /// </value>
-    public System.Int32 BufferSize { get; set; } = 65535;
+    public System.Int32 BufferSize { get; set; } = 4 * 1024;
 
     /// <summary>
     /// Gets or sets a value indicating whether the socket should use the Reliable Keep-Alive mechanism.
