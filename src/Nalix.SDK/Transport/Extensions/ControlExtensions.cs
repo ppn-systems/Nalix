@@ -275,7 +275,7 @@ public static class ControlExtensions
         this IClientConnection client,
         System.UInt16 opCode,
         ControlType type,
-        System.Action<Control> configure = null,
+        System.Action<Control>? configure = null,
         System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(client);

@@ -26,7 +26,7 @@ namespace Nalix.SDK.Transport.Extensions;
 [System.Runtime.CompilerServices.SkipLocalsInit]
 public static class TcpSessionSubscriptions
 {
-    private static readonly IPacketRegistry s_catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
+    private static IPacketRegistry? s_catalog => InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
     // ── On<TPacket> ──────────────────────────────────────────────────────────
 
     /// <summary>
@@ -43,11 +43,16 @@ public static class TcpSessionSubscriptions
         System.ArgumentNullException.ThrowIfNull(client);
         System.ArgumentNullException.ThrowIfNull(handler);
 
-        void Wrapper(System.Object _, IBufferLease buffer)
+        void Wrapper(System.Object? _, IBufferLease buffer)
         {
             // Wrapper is the sole owner of the lease; always dispose in finally.
             try
             {
+                if (s_catalog is null)
+                {
+                    throw new System.InvalidOperationException("IPacketRegistry instance not found in InstanceManager.");
+                }
+
                 if (!s_catalog.TryDeserialize(buffer.Span, out IPacket p) || p is not TPacket t)
                 {
                     return;
@@ -68,8 +73,8 @@ public static class TcpSessionSubscriptions
             }
         }
 
-        client.OnMessageReceived += Wrapper;
-        return new Unsub(() => client.OnMessageReceived -= Wrapper);
+        client.OnMessageReceived += Wrapper!;
+        return new Unsub(() => client.OnMessageReceived -= Wrapper!);
     }
 
     // ── On with predicate ────────────────────────────────────────────────────
@@ -89,10 +94,15 @@ public static class TcpSessionSubscriptions
         System.ArgumentNullException.ThrowIfNull(predicate);
         System.ArgumentNullException.ThrowIfNull(handler);
 
-        void Wrapper(System.Object _, IBufferLease buffer)
+        void Wrapper(System.Object? _, IBufferLease buffer)
         {
             try
             {
+                if (s_catalog is null)
+                {
+                    throw new System.InvalidOperationException("IPacketRegistry instance not found in InstanceManager.");
+                }
+
                 if (!s_catalog.TryDeserialize(buffer.Span, out IPacket p))
                 {
                     return;
@@ -139,11 +149,16 @@ public static class TcpSessionSubscriptions
 
         System.Int32 fired = 0;
 
-        void Wrapper(System.Object _, IBufferLease buffer)
+        void Wrapper(System.Object? sender, IBufferLease buffer)
         {
             // Wrapper is the sole owner of the lease — dispose in finally, always, exactly once.
             try
             {
+                if (s_catalog is null)
+                {
+                    throw new System.InvalidOperationException("IPacketRegistry instance not found in InstanceManager.");
+                }
+
                 // Deserialize — if it fails, we still fall through to finally and dispose.
                 if (!s_catalog.TryDeserialize(buffer.Span, out IPacket p))
                 {
@@ -223,7 +238,7 @@ public static class TcpSessionSubscriptions
     public static System.IDisposable SubscribeTemp<TPacket>(
         this IClientConnection client,
         System.Action<TPacket> onMessage,
-        System.Action<System.Exception> onDisconnected = null)
+        System.Action<System.Exception>? onDisconnected = null)
         where TPacket : class, IPacket
     {
         System.ArgumentNullException.ThrowIfNull(client);
@@ -236,7 +251,7 @@ public static class TcpSessionSubscriptions
             return msgSub;
         }
 
-        void DisconnectHandler(System.Object _, System.Exception ex)
+        void DisconnectHandler(System.Object? _, System.Exception ex)
         {
             try { onDisconnected(ex); } catch { }
         }
@@ -264,7 +279,7 @@ public static class TcpSessionSubscriptions
         this IClientConnection client,
         System.Func<TPacket, System.Boolean> predicate,
         System.Action<TPacket> onMessage,
-        System.Action<System.Exception> onDisconnected = null)
+        System.Action<System.Exception>? onDisconnected = null)
         where TPacket : class, IPacket
     {
         System.ArgumentNullException.ThrowIfNull(client);
@@ -285,7 +300,7 @@ public static class TcpSessionSubscriptions
             return msgSub;
         }
 
-        void DisconnectHandler(System.Object _, System.Exception ex)
+        void DisconnectHandler(System.Object? _, System.Exception ex)
         {
             try { onDisconnected(ex); } catch { }
         }
@@ -317,7 +332,7 @@ public static class TcpSessionSubscriptions
 
         /// <inheritdoc/>
         public void Dispose()
-            => System.Threading.Interlocked.Exchange(ref _dispose, null)?.Invoke();
+            => System.Threading.Interlocked.Exchange(ref _dispose!, null)?.Invoke();
     }
 }
 
@@ -401,5 +416,5 @@ internal sealed class DelegateDisposable(System.Action onDispose) : System.IDisp
 
     /// <inheritdoc/>
     public void Dispose()
-        => System.Threading.Interlocked.Exchange(ref _onDispose, null)?.Invoke();
+        => System.Threading.Interlocked.Exchange(ref _onDispose!, null)?.Invoke();
 }

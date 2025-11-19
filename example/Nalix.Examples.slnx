@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Nalix.Examples/Nalix.Examples.csproj" />
+  <Project Path="Nalix.Network.Examples/Nalix.Network.Examples.csproj" />
+</Solution>
