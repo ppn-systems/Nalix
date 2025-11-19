@@ -13,7 +13,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Serialization;
 
-namespace Nalix.Framework.DataFrames.Text;
+namespace Nalix.Framework.DataFrames.TextFrames;
 
 /// <summary>
 /// Represents a simple text-based packet used for transmitting UTF-8 string content over the network.
