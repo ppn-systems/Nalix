@@ -44,7 +44,7 @@ public abstract partial class UdpListenerBase
             socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Socket,
                                    System.Net.Sockets.SocketOptionName.KeepAlive, true);
 
-            if (Config.IsWindows)
+            if (System.OperatingSystem.IsWindows())
             {
                 const System.Int32 on = 1;
                 const System.Int32 time = 3_000;

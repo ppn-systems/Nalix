@@ -1,6 +1,5 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Attributes;
 using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;
@@ -113,16 +112,6 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// Tunes the thread pool settings for optimal network performance.
     /// </summary>
     public System.Boolean TuneThreadPool { get; set; } = false;
-
-    /// <summary>
-    /// Gets a value indicating whether the current operating system is Windows.
-    /// </summary>
-    /// <value>
-    /// <c>true</c> if the application is running on Windows; otherwise, <c>false</c>.
-    /// </value>
-    [ConfiguredIgnore]
-    public System.Boolean IsWindows { get; set; } =
-        System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows);
 
     #endregion Properties
 }

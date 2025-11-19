@@ -140,7 +140,7 @@ public abstract partial class TcpListenerBase
             catch
             {
                 // Fallback Windows-only SIO_KEEPALIVE_VALS if needed
-                if (Config.IsWindows)
+                if (System.OperatingSystem.IsWindows())
                 {
                     // Win32 SIO_KEEPALIVE_VALS: [on(4)][time(4 ms)][interval(4 ms)]
                     // 1. Turning on Keep-Alive

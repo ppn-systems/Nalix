@@ -99,7 +99,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     {
         Config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
 
-        if (Config.IsWindows && Config.TuneThreadPool)
+        if (System.OperatingSystem.IsWindows() && Config.TuneThreadPool)
         {
             System.Int32 parallelismLevel = System.Math.Max(System.Environment.ProcessorCount * MinWorkerThreads, 16);
             // Thread pool optimization for IOCP
