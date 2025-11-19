@@ -371,6 +371,11 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         }
 
         // ShardCount must be power-of-two for bit-mask; adjust if needed.
+        if (opt.ShardCount <= 0)
+        {
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.ShardCount)} must be > 0");
+        }
+
         if ((opt.ShardCount & (opt.ShardCount - 1)) != 0)
         {
             throw new InternalErrorException($"{nameof(TokenBucketOptions.ShardCount)} must be a power of two (e.g., 64)");
