@@ -165,8 +165,8 @@ public sealed partial class Connection : IConnection
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public void BeginReceive(System.Threading.CancellationToken cancellationToken = default)
         {
-            System.ObjectDisposedException.ThrowIf(this._outer._disposed, nameof(Connection));
-            this._outer._cstream.BeginReceive(cancellationToken);
+            System.ObjectDisposedException.ThrowIf(_outer._disposed, nameof(Connection));
+            _outer._cstream.BeginReceive(cancellationToken);
         }
 
         #region Synchronous Methods
@@ -183,9 +183,9 @@ public sealed partial class Connection : IConnection
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public System.Boolean Send(System.ReadOnlySpan<System.Byte> message)
         {
-            if (this._outer._cstream.Send(message))
+            if (_outer._cstream.Send(message))
             {
-                this._outer._onPostProcessEvent?.Invoke(this, _outer._evtArgs);
+                _outer._onPostProcessEvent?.Invoke(this, _outer._evtArgs);
                 return true;
             }
 
@@ -267,9 +267,9 @@ public sealed partial class Connection : IConnection
             System.ReadOnlyMemory<System.Byte> message,
             System.Threading.CancellationToken cancellationToken = default)
         {
-            if (await this._outer._cstream.SendAsync(message, cancellationToken).ConfigureAwait(false))
+            if (await _outer._cstream.SendAsync(message, cancellationToken).ConfigureAwait(false))
             {
-                this._outer._onPostProcessEvent?.Invoke(this, _outer._evtArgs);
+                _outer._onPostProcessEvent?.Invoke(this, _outer._evtArgs);
                 return true;
             }
 
