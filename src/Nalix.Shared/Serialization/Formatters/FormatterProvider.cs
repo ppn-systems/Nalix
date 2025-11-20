@@ -35,10 +35,10 @@ public static class FormatterProvider
         Register<System.Byte>(new UnmanagedFormatter<System.Byte>());
         Register<System.SByte>(new UnmanagedFormatter<System.SByte>());
         Register<System.Int16>(new UnmanagedFormatter<System.Int16>());
-        Register<System.UInt16>(new UnmanagedFormatter<System.UInt16>());
         Register<System.Int32>(new UnmanagedFormatter<System.Int32>());
-        Register<System.UInt32>(new UnmanagedFormatter<System.UInt32>());
         Register<System.Int64>(new UnmanagedFormatter<System.Int64>());
+        Register<System.UInt16>(new UnmanagedFormatter<System.UInt16>());
+        Register<System.UInt32>(new UnmanagedFormatter<System.UInt32>());
         Register<System.UInt64>(new UnmanagedFormatter<System.UInt64>());
         Register<System.Single>(new UnmanagedFormatter<System.Single>());
         Register<System.Double>(new UnmanagedFormatter<System.Double>());
@@ -56,10 +56,10 @@ public static class FormatterProvider
         Register<System.Byte[]>(new ArrayFormatter<System.Byte>());
         Register<System.SByte[]>(new ArrayFormatter<System.SByte>());
         Register<System.Int16[]>(new ArrayFormatter<System.Int16>());
-        Register<System.UInt16[]>(new ArrayFormatter<System.UInt16>());
         Register<System.Int32[]>(new ArrayFormatter<System.Int32>());
-        Register<System.UInt32[]>(new ArrayFormatter<System.UInt32>());
         Register<System.Int64[]>(new ArrayFormatter<System.Int64>());
+        Register<System.UInt16[]>(new ArrayFormatter<System.UInt16>());
+        Register<System.UInt32[]>(new ArrayFormatter<System.UInt32>());
         Register<System.UInt64[]>(new ArrayFormatter<System.UInt64>());
         Register<System.Single[]>(new ArrayFormatter<System.Single>());
         Register<System.Double[]>(new ArrayFormatter<System.Double>());
@@ -75,10 +75,10 @@ public static class FormatterProvider
         Register<System.Byte?>(new NullableFormatter<System.Byte>());
         Register<System.SByte?>(new NullableFormatter<System.SByte>());
         Register<System.Int16?>(new NullableFormatter<System.Int16>());
-        Register<System.UInt16?>(new NullableFormatter<System.UInt16>());
         Register<System.Int32?>(new NullableFormatter<System.Int32>());
-        Register<System.UInt32?>(new NullableFormatter<System.UInt32>());
         Register<System.Int64?>(new NullableFormatter<System.Int64>());
+        Register<System.UInt16?>(new NullableFormatter<System.UInt16>());
+        Register<System.UInt32?>(new NullableFormatter<System.UInt32>());
         Register<System.UInt64?>(new NullableFormatter<System.UInt64>());
         Register<System.Single?>(new NullableFormatter<System.Single>());
         Register<System.Double?>(new NullableFormatter<System.Double>());
@@ -95,10 +95,10 @@ public static class FormatterProvider
         Register<System.Byte?[]>(new NullableArrayFormatter<System.Byte>());
         Register<System.SByte?[]>(new NullableArrayFormatter<System.SByte>());
         Register<System.Int16?[]>(new NullableArrayFormatter<System.Int16>());
-        Register<System.UInt16?[]>(new NullableArrayFormatter<System.UInt16>());
         Register<System.Int32?[]>(new NullableArrayFormatter<System.Int32>());
-        Register<System.UInt32?[]>(new NullableArrayFormatter<System.UInt32>());
         Register<System.Int64?[]>(new NullableArrayFormatter<System.Int64>());
+        Register<System.UInt16?[]>(new NullableArrayFormatter<System.UInt16>());
+        Register<System.UInt32?[]>(new NullableArrayFormatter<System.UInt32>());
         Register<System.UInt64?[]>(new NullableArrayFormatter<System.UInt64>());
         Register<System.Single?[]>(new NullableArrayFormatter<System.Single>());
         Register<System.Double?[]>(new NullableArrayFormatter<System.Double>());
@@ -143,10 +143,10 @@ public static class FormatterProvider
         System.Boolean isArray = ut.IsArray;
         System.Boolean isNullable = ut.IsGenericType && ut.GetGenericTypeDefinition() == typeof(System.Nullable<>);
 
-        System.Threading.Interlocked.Increment(ref _cntTotal);
+        _ = System.Threading.Interlocked.Increment(ref _cntTotal);
         if (t == typeof(System.String))
         {
-            System.Threading.Interlocked.Increment(ref _cntStrings); return;
+            _ = System.Threading.Interlocked.Increment(ref _cntStrings); return;
         }
 
         if (isArray)
@@ -154,11 +154,11 @@ public static class FormatterProvider
             System.Type elem = ut.GetElementType()!;
             if (elem.IsGenericType && elem.GetGenericTypeDefinition() == typeof(System.Nullable<>))
             {
-                System.Threading.Interlocked.Increment(ref _cntNullableArrays);
+                _ = System.Threading.Interlocked.Increment(ref _cntNullableArrays);
             }
             else
             {
-                System.Threading.Interlocked.Increment(ref _cntArrays);
+                _ = System.Threading.Interlocked.Increment(ref _cntArrays);
             }
 
             return;
@@ -166,23 +166,23 @@ public static class FormatterProvider
 
         if (isNullable)
         {
-            System.Threading.Interlocked.Increment(ref _cntNullables); return;
+            _ = System.Threading.Interlocked.Increment(ref _cntNullables); return;
         }
         if (ut.IsEnum)
         {
-            System.Threading.Interlocked.Increment(ref _cntEnums); return;
+            _ = System.Threading.Interlocked.Increment(ref _cntEnums); return;
         }
 
         if (ut.IsPrimitive || ut == typeof(System.Decimal) || ut == typeof(System.DateTime) ||
             ut == typeof(System.DateTimeOffset) || ut == typeof(System.TimeSpan) || ut == typeof(System.Guid) || ut == typeof(System.Char))
         {
-            System.Threading.Interlocked.Increment(ref _cntPrimitives);
+            _ = System.Threading.Interlocked.Increment(ref _cntPrimitives);
             return;
         }
 
         if (ut.IsGenericType && ut.GetGenericTypeDefinition() == typeof(System.Collections.Generic.List<>))
         {
-            System.Threading.Interlocked.Increment(ref _cntLists);
+            _ = System.Threading.Interlocked.Increment(ref _cntLists);
             return;
         }
     }
@@ -251,21 +251,21 @@ public static class FormatterProvider
         IFormatter<T>? f = TryCreateArrayFormatter<T>();
         if (f is not null)
         {
-            return FormatterCache<T>.Formatter ??= f;
+            return CacheOrGetExisting(f);
         }
 
         // 2) List<T>
         f = TryCreateListFormatter<T>();
         if (f is not null)
         {
-            return FormatterCache<T>.Formatter ??= f;
+            return CacheOrGetExisting(f);
         }
 
         // 3) Enum
         f = TryCreateEnumFormatter<T>();
         if (f is not null)
         {
-            return FormatterCache<T>.Formatter ??= f;
+            return CacheOrGetExisting(f);
         }
 
         // 4) Nullable<TUnderlying>
@@ -289,12 +289,12 @@ public static class FormatterProvider
                 var ft = typeof(NullableObjectFormatter<>).MakeGenericType(t);
                 f = (IFormatter<T>)System.Activator.CreateInstance(ft)!;
             }
-            return FormatterCache<T>.Formatter ??= f;
+            return CacheOrGetExisting(f);
         }
 
         // 6) Complex auto-gen (struct/class)
         f = GetComplex<T>();
-        return FormatterCache<T>.Formatter ??= f;
+        return CacheOrGetExisting(f);
     }
 
     /// <summary>
@@ -359,6 +359,14 @@ public static class FormatterProvider
     }
 
     #region Private Methods
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<T> CacheOrGetExisting<T>(IFormatter<T> created)
+    {
+        IFormatter<T>? existing = System.Threading.Interlocked.CompareExchange(ref FormatterCache<T>.Formatter, created, null);
+        return existing ?? created;
+    }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
