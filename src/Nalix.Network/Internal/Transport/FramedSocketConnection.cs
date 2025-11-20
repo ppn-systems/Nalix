@@ -239,6 +239,15 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                 System.Span<System.Byte> frameS = stackalloc System.Byte[totalLength];
                 WRITE_FRAME_HEADER(frameS, totalLength, data);
 
+                // Debug: log payload hex (truncated) when logger exists.
+                if (s_logger is not null)
+                {
+                    var payloadSpan = frameS.Slice(HeaderSize, data.Length);
+                    s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(Send)}] " +
+                                   $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
+                                   $"ep={_socket.RemoteEndPoint}");
+                }
+
                 System.Int32 sent = 0;
                 while (sent < frameS.Length)
                 {
@@ -278,6 +287,15 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
             System.Buffers.Binary.BinaryPrimitives
                 .WriteUInt16LittleEndian(System.MemoryExtensions.AsSpan(heapBuf), totalLength);
             data.CopyTo(System.MemoryExtensions.AsSpan(heapBuf, HeaderSize));
+
+            // Debug: log payload hex (truncated) when logger exists.
+            if (s_logger is not null)
+            {
+                var payloadSpan = System.MemoryExtensions.AsSpan(heapBuf, HeaderSize, data.Length);
+                s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(Send)}] " +
+                               $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
+                               $"ep={_socket.RemoteEndPoint}");
+            }
 
             System.Int32 sent = 0;
             while (sent < totalLength)
@@ -347,6 +365,15 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                             $"len={data.Length} ep={_socket.RemoteEndPoint}");
 #endif
             WRITE_FRAME_HEADER(System.MemoryExtensions.AsSpan(heapBuf), totalLength, data.Span);
+
+            // Debug: log payload hex (truncated) when logger exists.
+            if (s_logger is not null)
+            {
+                var payloadSpan = data.Span;
+                s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(SendAsync)}] " +
+                               $"sending async frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
+                               $"ep={_socket.RemoteEndPoint}");
+            }
 
             System.Int32 sent = 0;
             while (sent < totalLength)
@@ -789,6 +816,23 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
         {
             throw new System.InvalidOperationException("SetCallback must be called before use");
         }
+    }
+
+    private static System.String FORMAT_FRAME_FOR_LOG(System.ReadOnlySpan<System.Byte> payload, System.Int32 maxBytes = 64)
+    {
+        if (payload.IsEmpty)
+        {
+            return "<empty>";
+        }
+
+        System.Int32 show = payload.Length > maxBytes ? maxBytes : payload.Length;
+        System.String hex = System.Convert.ToHexString(payload[..show]);
+        if (payload.Length > show)
+        {
+            hex += "...";
+        }
+
+        return $"len={payload.Length} hex={hex}";
     }
 
     #endregion Private Methods

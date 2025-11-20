@@ -21,7 +21,7 @@ namespace Nalix.SDK.Transport.Internal;
 internal sealed class FRAME_READER(
     System.Func<System.Net.Sockets.Socket> getSocket,
     TransportOptions options,
-    System.Action<BufferLease> onMessage,        // ← đổi IBufferLease → BufferLease (concrete)
+    System.Action<BufferLease> onMessage,        // ← concrete BufferLease
     System.Action<System.Exception> onError,
     System.Action<System.Int32> reportBytesReceived)
 {
@@ -37,14 +37,21 @@ internal sealed class FRAME_READER(
     private readonly System.Action<System.Exception> _onError =
         onError ?? throw new System.ArgumentNullException(nameof(onError));
 
-    // Concrete type BufferLease — HandleReceiveMessage cần gọi CopyFrom(lease.Span)
-    // mà không cần cast IBufferLease → BufferLease ở mỗi lần invoke.
+    // Concrete type BufferLease — HandleReceiveMessage should call CopyFrom(lease.Span)
+    // without casts.
     private readonly System.Action<BufferLease> _onMessage =
         onMessage ?? throw new System.ArgumentNullException(nameof(onMessage));
 
     private readonly System.Action<System.Int32> _reportBytesReceived =
         reportBytesReceived ?? throw new System.ArgumentNullException(nameof(reportBytesReceived));
 
+    // Cache logger instance to avoid repeated lookups.
+    private readonly ILogger _logger = InstanceManager.Instance.GetOrCreateInstance<ILogger>();
+
+    /// <summary>
+    /// Main receive loop. Reads framed messages with a 2-byte little-endian total-length header.
+    /// On each full frame, creates a BufferLease (ownership transferred to _onMessage).
+    /// </summary>
     public async System.Threading.Tasks.Task ReceiveLoopAsync(
         System.Threading.CancellationToken token)
     {
@@ -52,11 +59,11 @@ internal sealed class FRAME_READER(
         try
         {
             s = _getSocket();
+            _logger?.Meta($"[SDK.{nameof(FRAME_READER)}] receive-loop starting; endpoint={FORMAT_ENDPOINT(s)}");
         }
         catch (System.Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Error($"[SDK.{nameof(FRAME_READER)}] receive-start-error {ex.Message}", ex);
+            _logger?.Error($"[SDK.{nameof(FRAME_READER)}] receive-start-error {ex.Message}", ex);
             _onError(ex);
             return;
         }
@@ -65,7 +72,7 @@ internal sealed class FRAME_READER(
         {
             while (!token.IsCancellationRequested)
             {
-                // 1) Đọc 2-byte length header
+                // 1) Read 2-byte length header
                 System.Byte[] headerBuffer =
                     System.Buffers.ArrayPool<System.Byte>.Shared.Rent(TcpSession.HeaderSize);
                 try
@@ -79,19 +86,29 @@ internal sealed class FRAME_READER(
                         System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(
                             headerMemory.Span);
 
+                    _logger?.Debug($"[SDK.{nameof(FRAME_READER)}] header-read totalLen={totalLen} endpoint={FORMAT_ENDPOINT(s)}");
+
                     if (totalLen < TcpSession.HeaderSize || totalLen > _options.MaxPacketSize)
                     {
+                        _logger?.Warn(
+                            $"[SDK.{nameof(FRAME_READER)}] invalid-packet-size totalLen={totalLen} " +
+                            $"headerSize={TcpSession.HeaderSize} max={_options.MaxPacketSize} " +
+                            $"endpoint={FORMAT_ENDPOINT(s)}");
                         throw new System.Net.Sockets.SocketException(
                             (System.Int32)System.Net.Sockets.SocketError.ProtocolNotSupported);
                     }
 
                     System.Int32 payloadLen = totalLen - TcpSession.HeaderSize;
 
-                    // 2) Rent buffer cho full frame, đọc payload
+                    // 2) Rent buffer for full frame and read payload
                     System.Byte[] rented = _bufferPool.Rent(totalLen);
                     System.Boolean ownershipTransferred = false;
                     try
                     {
+                        _logger?.Trace(
+                            $"[SDK.{nameof(FRAME_READER)}] rented-buffer size={rented.Length} " +
+                            $"frameTotal={totalLen} payload={payloadLen} endpoint={FORMAT_ENDPOINT(s)}");
+
                         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(
                             System.MemoryExtensions.AsSpan(rented, 0, TcpSession.HeaderSize),
                             totalLen);
@@ -105,45 +122,62 @@ internal sealed class FRAME_READER(
                                 token).ConfigureAwait(false);
                         }
 
-                        // Best-effort telemetry — không bao giờ throw
-                        try { _reportBytesReceived(totalLen); } catch { }
+                        // Best-effort telemetry — never throw
+                        try
+                        {
+                            _reportBytesReceived(totalLen);
+                        }
+                        catch (System.Exception teleEx)
+                        {
+                            _logger?.Warn(
+                                $"[SDK.{nameof(FRAME_READER)}] report-bytes-received failed: {teleEx.Message}",
+                                teleEx);
+                        }
 
-                        // 3) Bọc thành BufferLease — ownership chuyển sang _onMessage.
-                        //    CONTRACT: HandleReceiveMessage (= _onMessage) là SOLE OWNER.
-                        //    Nó sẽ:
-                        //      a) Tạo copy riêng cho từng sync subscriber qua CopyFrom()
-                        //      b) Dispose lease gốc trong finally của chính nó
-                        //    FRAME_READER không được đụng vào lease sau điểm này.
+                        // 3) Wrap into BufferLease — ownership transferred to _onMessage.
+                        // CONTRACT: HandleReceiveMessage is the SOLE OWNER and must Dispose the lease.
                         BufferLease lease = BufferLease.TakeOwnership(
                             rented, TcpSession.HeaderSize, payloadLen);
                         ownershipTransferred = true;
 
-                        // 4) Deliver — bắt exception để bảo vệ receive loop.
-                        //    KHÔNG dispose lease ở đây — HandleReceiveMessage chịu trách nhiệm.
+                        _logger?.Debug(
+                            $"[SDK.{nameof(FRAME_READER)}] delivering-lease payload={payloadLen} endpoint={FORMAT_ENDPOINT(s)}");
+
+                        // 4) Deliver — catch exceptions from handler to protect loop.
+                        // DO NOT dispose lease here — handler is responsible.
                         try
                         {
                             _onMessage(lease);
+                            _logger?.Trace(
+                                $"[SDK.{nameof(FRAME_READER)}] handler-invoked-success payload={payloadLen} endpoint={FORMAT_ENDPOINT(s)}");
                         }
                         catch (System.Exception handlerEx)
                         {
-                            // Handler faulted sau khi ownershipTransferred = true.
-                            // HandleReceiveMessage có finally { lease.Dispose(); }
-                            // nên buffer đã được trả về pool — log và tiếp tục loop.
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Error(
-                                    $"[SDK.{nameof(FRAME_READER)}] handler-faulted—loop continues." +
-                                    $" msg={handlerEx.Message}", handlerEx);
+                            // Handler faulted after ownershipTransferred = true.
+                            // HandleReceiveMessage should finally { lease.Dispose(); }
+                            // so buffer likely already returned — log and continue.
+                            _logger?.Error(
+                                $"[SDK.{nameof(FRAME_READER)}] handler-faulted—loop continues. msg={handlerEx.Message}",
+                                handlerEx);
                         }
                     }
-                    catch
+                    catch (System.Exception)
                     {
-                        // Chỉ return raw buffer nếu lease CHƯA được tạo.
-                        // Một khi ownershipTransferred == true, BufferLease sở hữu buffer.
+                        // Only return raw buffer if lease was NOT created (ownershipTransferred == false).
                         if (!ownershipTransferred)
                         {
-                            try { _bufferPool.Return(rented); } catch { }
+                            try
+                            {
+                                _bufferPool.Return(rented);
+                                _logger?.Trace($"[SDK.{nameof(FRAME_READER)}] returned-rented-buffer size={rented?.Length} endpoint={FORMAT_ENDPOINT(s)}");
+                            }
+                            catch (System.Exception returnEx)
+                            {
+                                _logger?.Warn($"[SDK.{nameof(FRAME_READER)}] failed-returning-buffer: {returnEx.Message}", returnEx);
+                            }
                         }
 
+                        // Re-throw to outer catch which will call _onError.
                         throw;
                     }
                 }
@@ -152,19 +186,20 @@ internal sealed class FRAME_READER(
                     System.Buffers.ArrayPool<System.Byte>.Shared.Return(headerBuffer);
                 }
             }
+
+            // Normal cancellation: log graceful stop
+            _logger?.Meta($"[SDK.{nameof(FRAME_READER)}] receive-loop ending normally endpoint={FORMAT_ENDPOINT(s)}");
         }
         catch (System.OperationCanceledException) when (token.IsCancellationRequested)
         {
-            // Shutdown bình thường — không phải lỗi.
+            // Normal shutdown — not an error.
+            _logger?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop cancelled endpoint={FORMAT_ENDPOINT(s)}");
         }
         catch (System.Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Error(
-                    $"[SDK.{nameof(FRAME_READER)}:{nameof(ReceiveLoopAsync)}]" +
-                    $" faulted msg={ex.Message}", ex);
+            _logger?.Error($"[SDK.{nameof(FRAME_READER)}:{nameof(ReceiveLoopAsync)}] faulted msg={ex.Message} endpoint={FORMAT_ENDPOINT(s)}", ex);
 
-            _onError(ex);
+            try { _onError(ex); } catch { /* swallow to avoid crash */ }
         }
     }
 
@@ -189,5 +224,19 @@ internal sealed class FRAME_READER(
 
             read += n;
         }
+    }
+
+    // Safe formatting when socket may be null or disposed in some error paths.
+    [System.Diagnostics.DebuggerStepThrough]
+    private static System.String FORMAT_ENDPOINT(System.Net.Sockets.Socket? s)
+    {
+        if (s is null)
+        {
+            return "<null-socket>";
+        }
+
+        try { return s.RemoteEndPoint?.ToString() ?? "<unknown>"; }
+        catch (System.ObjectDisposedException) { return "<disposed>"; }
+        catch { return "<unknown>"; }
     }
 }
