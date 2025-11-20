@@ -1,7 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Networking.Caching;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Protocols;
@@ -32,9 +31,6 @@ public static class HandshakeExtensions
 {
     /// <summary>Length of X25519 public keys in bytes.</summary>
     public const System.Int32 PublicKeyLength = 32;
-
-    // Lazy logger resolution: avoids hard startup failure if ILogger is registered after this type loads.
-    private static ILogger? Log => InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
     /// Performs a full X25519 Diffie-Hellman handshake with the server.
@@ -73,7 +69,7 @@ public static class HandshakeExtensions
         // Skip if session key is already installed.
         if (client.Options.EncryptionKey != null)
         {
-            Log?.Debug("[SDK.HandshakeAsync] Session key already installed; skipping.");
+            TcpSession.Logging?.Debug("[SDK.HandshakeAsync] Session key already installed; skipping.");
             return true;
         }
 
@@ -98,7 +94,7 @@ public static class HandshakeExtensions
             await client.SendAsync(new Handshake(opCode, kp.PublicKey, ProtocolType.TCP), linked.Token)
                         .ConfigureAwait(false);
 
-            Log?.Debug("[SDK.HandshakeAsync] Handshake request sent.");
+            TcpSession.Logging?.Debug("[SDK.HandshakeAsync] Handshake request sent.");
 
             using (tcs.LinkCancellation(linked.Token))
             {
@@ -107,14 +103,14 @@ public static class HandshakeExtensions
                 // Validate key length.
                 if (hs.Data is not { Length: PublicKeyLength })
                 {
-                    Log?.Warn("[SDK.HandshakeAsync] Server public key has unexpected length.");
+                    TcpSession.Logging?.Warn("[SDK.HandshakeAsync] Server public key has unexpected length.");
                     return false;
                 }
 
                 // Optional pinning check.
                 if (validateServerPublicKey is not null && !validateServerPublicKey(hs.Data))
                 {
-                    Log?.Warn("[SDK.HandshakeAsync] Server public key rejected by validator.");
+                    TcpSession.Logging?.Warn("[SDK.HandshakeAsync] Server public key rejected by validator.");
                     return false;
                 }
 
@@ -124,7 +120,7 @@ public static class HandshakeExtensions
                     secret = X25519.Agreement(kp.PrivateKey, hs.Data);
                     client.Options.EncryptionKey = Keccak256.HashData(secret);
 
-                    Log?.Info("[SDK.HandshakeAsync] Completed. EncryptionKey installed.");
+                    TcpSession.Logging?.Info("[SDK.HandshakeAsync] Completed. EncryptionKey installed.");
                     return true;
                 }
                 finally
@@ -144,12 +140,12 @@ public static class HandshakeExtensions
         }
         catch (System.OperationCanceledException oce)
         {
-            Log?.Debug($"[SDK.HandshakeAsync] Canceled: {oce.Message}.");
+            TcpSession.Logging?.Debug($"[SDK.HandshakeAsync] Canceled: {oce.Message}.");
             return false;
         }
         catch (System.Exception ex)
         {
-            Log?.Error($"[SDK.HandshakeAsync] Failed: {ex}.");
+            TcpSession.Logging?.Error($"[SDK.HandshakeAsync] Failed: {ex}.");
             return false;
         }
 
