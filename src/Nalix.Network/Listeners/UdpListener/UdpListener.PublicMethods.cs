@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
@@ -204,8 +205,9 @@ public abstract partial class UdpListenerBase : IListener
     /// <param name="result"></param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    protected abstract bool IsAuthenticated(
-        IConnection connection, in UdpReceiveResult result);
+    protected abstract bool IsAuthenticated(IConnection connection, in UdpReceiveResult result);
+
+    #region IReportable Implementation
 
     /// <summary>
     /// Generates a human-readable diagnostic report of the current listener status.
@@ -282,4 +284,65 @@ public abstract partial class UdpListenerBase : IListener
 
         return sb.ToString();
     }
+
+    /// <summary>
+    /// Generates status report data as key-value pairs describing the current listener state.
+    /// </summary>
+    /// <returns>A dictionary containing the report data.</returns>
+    public IDictionary<string, object> GenerateReportData()
+    {
+        Dictionary<string, object> data = new(StringComparer.Ordinal)
+        {
+            ["UtcNow"] = DateTime.UtcNow,
+            ["Port"] = _port,
+            ["IsListening"] = IsListening,
+            ["IsDisposed"] = _isDisposed,
+            ["ProtocolType"] = _protocol?.GetType().FullName ?? _protocol?.GetType().Name ?? "<null>",
+
+            ["Config"] = new Dictionary<string, object>
+            {
+                ["NoDelay"] = Config.NoDelay,
+                ["ReuseAddress"] = Config.ReuseAddress,
+                ["KeepAlive"] = Config.KeepAlive,
+                ["BufferSize"] = Config.BufferSize
+            },
+
+            ["Worker"] = new Dictionary<string, object>
+            {
+                ["Group"] = $"udp.port.{_port}",
+                ["ConfiguredGroupConcurrencyLimit"] = 8
+            },
+
+            ["TimeSync"] = new Dictionary<string, object>
+            {
+                ["Enabled"] = InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled,
+                ["LastSyncUnixMs"] = _lastSyncUnixMs,
+                ["LastDriftMs"] = _lastDriftMs
+            },
+
+            ["Traffic"] = new Dictionary<string, object>
+            {
+                ["ReceivedPackets"] = Interlocked.Read(ref _rxPackets),
+                ["ReceivedBytes"] = Interlocked.Read(ref _rxBytes),
+                ["DroppedShort"] = Interlocked.Read(ref _dropShort),
+                ["DroppedUnauth"] = Interlocked.Read(ref _dropUnauth),
+                ["DroppedUnknown"] = Interlocked.Read(ref _dropUnknown)
+            },
+
+            ["Errors"] = new Dictionary<string, object>
+            {
+                ["ReceiveErrors"] = Interlocked.Read(ref _recvErrors)
+            },
+
+            ["Runtime"] = new Dictionary<string, object>
+            {
+                ["UdpClient"] = _udpClient is null ? "<null>" : "OK",
+                ["CTS"] = _cts is null ? "<null>" : "OK"
+            }
+        };
+
+        return data;
+    }
+
+    #endregion IReportable Implementation
 }

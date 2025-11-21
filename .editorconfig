@@ -277,4 +277,14 @@ dotnet_naming_symbols.private_static_field.required_modifiers = static
 dotnet_naming_style.static_field_style.required_prefix = s_
 dotnet_naming_style.static_field_style.capitalization = camel_case
 
+# Const fields: PascalCase (KHÔNG prefix)
+dotnet_naming_rule.const_fields.symbols = const_field
+dotnet_naming_rule.const_fields.style = const_style
+dotnet_naming_rule.const_fields.severity = error
+
+dotnet_naming_symbols.const_field.applicable_kinds = field
+dotnet_naming_symbols.const_field.required_modifiers = const
+
+dotnet_naming_style.const_style.capitalization = pascal_case
+
 dotnet_diagnostic.CA1852.severity = none

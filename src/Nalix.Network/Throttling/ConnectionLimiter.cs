@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -55,7 +56,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     private readonly TimeSpan _inactivityThreshold;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitEntry> _map;
 
-    private readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     private int _disposed;
 
@@ -261,6 +262,51 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         {
             SORT_SNAPSHOT_BY_LOAD(snapshot);
             return BUILD_REPORT(snapshot);
+        }
+        finally
+        {
+            RETURN_SNAPSHOT_TO_POOL(snapshot);
+        }
+    }
+
+    /// <summary>
+    /// Generates a key-value diagnostic summary of the connection limiter and its tracked endpoints.
+    /// </summary>
+    public IDictionary<string, object> GenerateReportData()
+    {
+        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot = COLLECT_SNAPSHOT();
+        try
+        {
+            SORT_SNAPSHOT_BY_LOAD(snapshot);
+            GlobalMetrics metrics = CALCULATE_GLOBAL_METRICS(snapshot);
+
+            Dictionary<string, object> report = new()
+            {
+                ["UtcNow"] = Clock.NowUtc(),
+                ["MaxPerEndpoint"] = _maxPerEndpoint,
+                ["CleanupIntervalSeconds"] = _cleanupInterval.TotalSeconds,
+                ["InactivityThresholdSeconds"] = _inactivityThreshold.TotalSeconds,
+                ["TrackedEndpoints"] = metrics.TotalEndpoints,
+                ["TotalConcurrent"] = metrics.TotalConcurrent,
+                ["TotalAttempts"] = metrics.TotalAttempts,
+                ["TotalRejections"] = metrics.TotalRejections,
+                ["TotalCleaned"] = metrics.TotalCleaned,
+                ["RejectionRate"] = metrics.TotalAttempts > 0 ? (metrics.TotalRejections * 100.0 / metrics.TotalAttempts) : 0.0
+            };
+
+            report["TopEndpoints"] = snapshot.Take(50).Select(kvp =>
+            {
+                ConnectionLimitInfo info = kvp.Value;
+                return new Dictionary<string, object>
+                {
+                    ["Address"] = kvp.Key.Address ?? "unknown",
+                    ["CurrentConnections"] = info.CurrentConnections,
+                    ["TotalConnectionsToday"] = info.TotalConnectionsToday,
+                    ["LastConnectionUtc"] = info.LastConnectionTime
+                };
+            }).ToList();
+
+            return report;
         }
         finally
         {
@@ -592,8 +638,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         });
     }
 
-    private string BUILD_REPORT(
-        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
+    private string BUILD_REPORT(List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
     {
         GlobalMetrics metrics = CALCULATE_GLOBAL_METRICS(snapshot);
         StringBuilder sb = new(512);
@@ -611,8 +656,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         public long TotalCleaned { get; init; }
     }
 
-    private GlobalMetrics CALCULATE_GLOBAL_METRICS(
-        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
+    private GlobalMetrics CALCULATE_GLOBAL_METRICS(List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
     {
         int totalConcurrent = 0;
         foreach (KeyValuePair<INetworkEndpoint, ConnectionLimitInfo> kvp in snapshot)
@@ -651,9 +695,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         _ = sb.AppendLine();
     }
 
-    private static void APPEND_CONNECTION_DETAILS(
-        StringBuilder sb,
-        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
+    private static void APPEND_CONNECTION_DETAILS(StringBuilder sb, List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
     {
         _ = sb.AppendLine("Top Endpoints by CurrentConnections:");
         _ = sb.AppendLine("---------------------------------------------------------------");
@@ -672,9 +714,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         _ = sb.AppendLine("---------------------------------------------------------------");
     }
 
-    private static void APPEND_TOP_ENDPOINTS(
-        StringBuilder sb,
-        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot, int maxRows)
+    private static void APPEND_TOP_ENDPOINTS(StringBuilder sb, List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot, int maxRows)
     {
         int rows = 0;
 
@@ -697,8 +737,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void RETURN_SNAPSHOT_TO_POOL(
-        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
+    private static void RETURN_SNAPSHOT_TO_POOL(List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
     {
         ListPool<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>>.Instance
             .Return(snapshot, clearItems: true);

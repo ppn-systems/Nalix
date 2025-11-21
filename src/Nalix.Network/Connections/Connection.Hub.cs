@@ -85,15 +85,14 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <summary>
     /// Gets the current statistics snapshot for this connection hub.
     /// </summary>
-    public ConnectionHubStatistics Statistics =>
-        new(
-            connectionCount: _count,
-            maxConnections: _options.MaxConnections,
-            dropPolicy: _options.DropPolicy,
-            shardCount: _shardCount,
-            anonymousQueueDepth: _anonymousQueue.Count,
-            evictedConnections: _evictedConnections,
-            rejectedConnections: _rejectedConnections);
+    public ConnectionHubStatistics Statistics => new(
+        connectionCount: _count,
+        maxConnections: _options.MaxConnections,
+        dropPolicy: _options.DropPolicy,
+        shardCount: _shardCount,
+        anonymousQueueDepth: _anonymousQueue.Count,
+        evictedConnections: _evictedConnections,
+        rejectedConnections: _rejectedConnections);
 
     #endregion Properties
 
@@ -710,12 +709,92 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Generates a key-value diagnostic summary of the connection hub and active connections.
+    /// </summary>
+    public IDictionary<string, object> GenerateReportData()
+    {
+        ConnectionHubStatistics stats = Statistics;
+        Dictionary<string, object> report = new()
+        {
+            ["UtcNow"] = DateTime.UtcNow,
+            ["TotalConnections"] = _count,
+            ["EvictedConnections"] = _evictedConnections,
+            ["RejectedConnections"] = _rejectedConnections,
+            ["ShardCount"] = stats.ShardCount,
+            ["AnonymousQueueDepth"] = stats.AnonymousQueueDepth,
+            ["MaxConnections"] = stats.MaxConnections,
+            ["DropPolicy"] = stats.DropPolicy.ToString(),
+        };
+
+        // Connection metrics summary
+        long sumBytesSent = 0, sumUptime = 0, maxUptime = 0, minUptime = long.MaxValue;
+        Dictionary<string, int> algoCounts = new(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, int> statusCounts = new(StringComparer.OrdinalIgnoreCase);
+
+        int limit = 15, current = 0;
+        List<Dictionary<string, object>> sampleConnections = [];
+
+        foreach (ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
+        {
+            foreach (IConnection conn in shard.Values)
+            {
+                sumBytesSent += conn.BytesSent;
+                long up = conn.UpTime;
+                sumUptime += up;
+                if (up > maxUptime)
+                {
+                    maxUptime = up;
+                }
+
+                if (up < minUptime)
+                {
+                    minUptime = up;
+                }
+
+                string status = conn.Level.ToString();
+                string algo = conn.Algorithm.ToString();
+
+                algoCounts[algo] = algoCounts.TryGetValue(algo, out int n) ? n + 1 : 1;
+                statusCounts[status] = statusCounts.TryGetValue(status, out int cnt) ? cnt + 1 : 1;
+
+                if (current++ < limit)
+                {
+                    string username = "N/A";
+                    if (conn.Attributes.TryGetValue("username", out object? v) && v is string s)
+                    {
+                        username = s;
+                    }
+
+                    sampleConnections.Add(new Dictionary<string, object>
+                    {
+                        ["ID"] = conn.ID.ToString() ?? "N/A",
+                        ["Username"] = username,
+                        ["Level"] = status,
+                        ["Algorithm"] = algo,
+                        ["BytesSent"] = conn.BytesSent,
+                        ["UpTime"] = conn.UpTime
+                    });
+                }
+            }
+        }
+        report["TotalBytesSent"] = sumBytesSent;
+        report["AverageUptimeSeconds"] = _count > 0 ? (sumUptime / _count) : 0;
+        report["MaxConnectionTime"] = maxUptime;
+        report["MinConnectionTime"] = minUptime == long.MaxValue ? 0 : minUptime;
+
+        report["ConnectionStatusSummary"] = statusCounts;
+        report["AlgorithmSummary"] = algoCounts;
+        report["SampleConnections"] = sampleConnections;
+
+        return report;
+    }
+
     /// <inheritdoc />
     /// <summary>
     /// Releases all resources used by the <see cref="ConnectionHub"/> and closes all connections.
     /// </summary>
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public void Dispose()
     {
         if (_disposed)
@@ -828,8 +907,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
             if (currentBatch.Count >= batchSize)
             {
-                await Task.WhenAll(currentBatch)
-                                                 .ConfigureAwait(false);
+                await Task.WhenAll(currentBatch).ConfigureAwait(false);
                 currentBatch.Clear();
             }
         }
@@ -837,8 +915,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         // Send remaining batch
         if (currentBatch.Count > 0)
         {
-            await Task.WhenAll(currentBatch)
-                                             .ConfigureAwait(false);
+            await Task.WhenAll(currentBatch).ConfigureAwait(false);
         }
     }
 

@@ -33,18 +33,19 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
 {
     #region Fields
 
-    private static readonly Lazy<Assembly> EntryAssemblyLazy = new(() =>
+    private static readonly Lazy<Assembly> s_entryAssemblyLazy = new(() =>
         Assembly.GetEntryAssembly() ?? throw new InvalidOperationException("Entry assembly is null."));
 
     /// <summary>
     /// Keep one OS mutex for lifetime to ensure correctness and performance.
     /// </summary>
-    private static readonly Lock ProcessMutexInitSync = new();
+    private static readonly Lock s_processMutexInitSync = new();
 
-    private static readonly string ApplicationMutexName = "LOW\\{{" + EntryAssemblyLazy.Value.FullName + "}}";
+    /// <inheritdoc/>
+    public static readonly string ApplicationMutexName = "LOW\\{{" + s_entryAssemblyLazy.Value.FullName + "}}";
 
-    private static bool _processMutexOwner;
-    private static Mutex? _processMutex;
+    private static bool s_processMutexOwner;
+    private static Mutex? s_processMutex;
 
     /// <summary>
     /// Track disposables uniquely to avoid duplicate dispose calls.
@@ -63,13 +64,13 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
 
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ActivatorKey, object> _signatureInstanceCache = new();
 
-    [ThreadStatic] private static RuntimeTypeHandle _tsLastKey;
-    [ThreadStatic] private static object? _tsLastValue;
+    [ThreadStatic] private static RuntimeTypeHandle s_tsLastKey;
+    [ThreadStatic] private static object? s_tsLastValue;
 
     /// <summary>
     /// Near fields
     /// </summary>
-    private static int _slotsInvalidated; // 0 = valid, 1 = invalid
+    private static int s_slotsInvalidated; // 0 = valid, 1 = invalid
 
     private long _instanceCreationCount;
     private long _instanceCacheHitCount;
@@ -167,34 +168,34 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     {
         get
         {
-            if (_processMutex != null)
+            if (s_processMutex != null)
             {
-                return _processMutexOwner;
+                return s_processMutexOwner;
             }
 
-            lock (ProcessMutexInitSync)
+            lock (s_processMutexInitSync)
             {
-                if (_processMutex != null)
+                if (s_processMutex != null)
                 {
-                    return _processMutexOwner;
+                    return s_processMutexOwner;
                 }
 
                 try
                 {
                     // Try to create and own; if createdNew == true, we are the only instance.
-                    _processMutex = new Mutex(
+                    s_processMutex = new Mutex(
                         initiallyOwned: true,
                         name: ApplicationMutexName,
                         createdNew: out bool createdNew);
 
-                    _processMutexOwner = createdNew;
+                    s_processMutexOwner = createdNew;
                 }
                 catch
                 {
-                    _processMutexOwner = false;
+                    s_processMutexOwner = false;
                 }
 
-                return _processMutexOwner;
+                return s_processMutexOwner;
             }
         }
     }
@@ -217,7 +218,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// <summary>
     /// Gets the assembly that started the application.
     /// </summary>
-    public static Assembly EntryAssembly => EntryAssemblyLazy.Value;
+    public static Assembly EntryAssembly => s_entryAssemblyLazy.Value;
 
     #endregion Properties
 
@@ -258,7 +259,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
 
         // Publish to generic slot for the concrete type
         Volatile.Write(ref GenericSlot<T>.Value, instance);
-        Volatile.Write(ref _slotsInvalidated, 0); // re-validate slots
+        Volatile.Write(ref s_slotsInvalidated, 0); // re-validate slots
 
         if (registerInterfaces)
         {
@@ -320,7 +321,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
                             _ = collectSet.Add(existing);
                         }
                         // After successful swap, mark slots valid
-                        Volatile.Write(ref _slotsInvalidated, 0);
+                        Volatile.Write(ref s_slotsInvalidated, 0);
                         return;
                     }
 
@@ -330,7 +331,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
                 // No existing value; try to add.
                 if (_instanceCache.TryAdd(handleKey, instanceObj))
                 {
-                    Volatile.Write(ref _slotsInvalidated, 0);
+                    Volatile.Write(ref s_slotsInvalidated, 0);
                     return;
                 }
 
@@ -609,17 +610,17 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
 
         // 2) Thread L1
         RuntimeTypeHandle key = typeof(T).TypeHandle;
-        if (_tsLastValue is not null && _tsLastKey.Equals(key))
+        if (s_tsLastValue is not null && s_tsLastKey.Equals(key))
         {
-            return _tsLastValue as T;
+            return s_tsLastValue as T;
         }
 
         // 3) Dictionary fallback
         _ = _instanceCache.TryGetValue(key, out object? instance);
 
         // Publish to L1 + slot
-        _tsLastKey = key;
-        _tsLastValue = instance;
+        s_tsLastKey = key;
+        s_tsLastValue = instance;
         if (instance is not null)
         {
             _ = Interlocked.Increment(ref _instanceCacheHitCount);
@@ -668,14 +669,18 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         _disposables.Clear();
 
         // Invalidate all generic slots at once (no need to enumerate)
-        Volatile.Write(ref _slotsInvalidated, 1);
+        Volatile.Write(ref s_slotsInvalidated, 1);
 
         // Optional: clear thread L1 (best-effort)
-        _tsLastKey = default;
-        _tsLastValue = null;
+        s_tsLastKey = default;
+        s_tsLastValue = null;
 
         LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(Clear)}] cleared"));
     }
+
+    #endregion Public API
+
+    #region IReportable
 
     /// <summary>
     /// Generates a human-readable report of all cached instances.
@@ -728,7 +733,61 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         }
     }
 
-    #endregion Public API
+    /// <summary>
+    /// Returns a key-value summary of all cached instances (for diagnostics/monitoring).
+    /// </summary>
+    public IDictionary<string, object> GenerateReportData()
+    {
+        Dictionary<string, object> result = new()
+        {
+            ["UtcNow"] = DateTime.UtcNow,
+            ["CachedInstanceCount"] = CachedInstanceCount,
+            ["InstanceCreationCount"] = Volatile.Read(ref _instanceCreationCount),
+            ["InstanceCacheHitCount"] = Volatile.Read(ref _instanceCacheHitCount),
+        };
+
+        List<Dictionary<string, object>> instances = [];
+
+        foreach (KeyValuePair<RuntimeTypeHandle, object> kvp in _instanceCache)
+        {
+            Type type = Type.GetTypeFromHandle(kvp.Key)!;
+            object instance = kvp.Value;
+            string typeName = type.FullName ?? type.Name;
+            if (typeName.Length > 32)
+            {
+                typeName = "..." + typeName[^29..];
+            }
+
+            bool isDisposable = instance is IDisposable;
+            string source = ACTIVATOR_CACHE_CONTAINS(type) ? "ActivatorCache" : "ManualRegister";
+
+            instances.Add(new Dictionary<string, object>
+            {
+                ["Type"] = typeName,
+                ["IsDisposable"] = isDisposable,
+                ["Source"] = source
+            });
+        }
+
+        result["Instances"] = instances;
+
+        return result;
+
+        bool ACTIVATOR_CACHE_CONTAINS(Type t)
+        {
+            // Quick scan by key prefix (Target == t)
+            foreach (ActivatorKey k in _activatorCache.Keys)
+            {
+                if (k.Target.Equals(t.TypeHandle))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    #endregion IReportable
 
     #region IDisposable
 
@@ -765,12 +824,12 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         // Clear caches without disposing again.
         Clear(dispose: false);
 
-        if (_processMutexOwner && _processMutex != null)
+        if (s_processMutexOwner && s_processMutex != null)
         {
-            try { _processMutex.ReleaseMutex(); }
+            try { s_processMutex.ReleaseMutex(); }
             catch (Exception ex) { LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Warn, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] mutex-release-fail", ex)); }
-            _processMutex.Dispose();
-            _processMutex = null;
+            s_processMutex.Dispose();
+            s_processMutex = null;
         }
 
         LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] disposed"));
@@ -837,7 +896,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TRY_GET_FROM_GENERIC_SLOT<T>(out T? value) where T : class
     {
-        if (Volatile.Read(ref _slotsInvalidated) != 0)
+        if (Volatile.Read(ref s_slotsInvalidated) != 0)
         {
             value = null;
             return false;
