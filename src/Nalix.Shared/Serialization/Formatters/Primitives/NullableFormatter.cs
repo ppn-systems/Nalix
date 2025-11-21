@@ -69,10 +69,7 @@ internal sealed class NullableFormatter<
             .Get<System.Byte>()
             .Deserialize(ref reader);
 
-        return hasValue == NoValueFlag
-            ? null
-            : hasValue != HasValueFlag
-            ? throw new SerializationException("Invalid nullable data!")
-            : (T?)FormatterProvider.Get<T>().Deserialize(ref reader);
+        return hasValue == NoValueFlag ? null : hasValue != HasValueFlag
+            ? throw new SerializationException("Invalid nullable data!") : (T?)FormatterProvider.Get<T>().Deserialize(ref reader);
     }
 }

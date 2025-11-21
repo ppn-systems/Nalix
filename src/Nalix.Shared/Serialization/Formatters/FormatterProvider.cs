@@ -30,6 +30,11 @@ public static class FormatterProvider
     static FormatterProvider()
     {
         // ============================================================ //
+        // String
+        Register<System.String>(new StringFormatter());
+        Register<System.String[]>(new StringArrayFormatter());
+
+        // ============================================================ //
         // Integer types
         Register<System.Char>(new UnmanagedFormatter<System.Char>());
         Register<System.Byte>(new UnmanagedFormatter<System.Byte>());
@@ -64,10 +69,6 @@ public static class FormatterProvider
         Register<System.Single[]>(new ArrayFormatter<System.Single>());
         Register<System.Double[]>(new ArrayFormatter<System.Double>());
         Register<System.Boolean[]>(new ArrayFormatter<System.Boolean>());
-
-        // ============================================================ //
-        // String
-        Register<System.String>(new StringFormatter());
 
         // ============================================================ //
         // Nullable types
