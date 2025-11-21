@@ -7,7 +7,7 @@ using Nalix.Network.Listeners.Tcp;
 
 namespace Nalix.Network.Internal.Pooled;
 
-internal sealed class PooledProcessContext : IPoolable
+internal sealed class PooledListenerProcessContext : IPoolable
 {
     public IConnection Connection;
     public TcpListenerBase Listener;

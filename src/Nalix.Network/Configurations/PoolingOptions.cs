@@ -41,7 +41,7 @@ public sealed class PoolingOptions : ConfigurationLoader
     [IniComment("Max pooled AcceptContext instances — set to accept-worker count + buffer (default 1024)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "AcceptContext.Capacity must be between 1 and 1,000,000.")]
-    public System.Int32 AcceptContext_Capacity { get; set; } = 1024;
+    public System.Int32 AcceptContextCapacity { get; set; } = 1024;
 
     /// <summary>
     /// Number of <see cref="PooledAcceptContext"/> instances to create at startup.
@@ -49,7 +49,7 @@ public sealed class PoolingOptions : ConfigurationLoader
     [IniComment("AcceptContext instances to warm up at startup (default 20 = typical worker count)")]
     [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
         ErrorMessage = "AcceptContext.Preallocate must be between 0 and 1,000,000.")]
-    public System.Int32 AcceptContext_Preallocate { get; set; } = 20;
+    public System.Int32 AcceptContextPreallocate { get; set; } = 20;
 
     #endregion
 
@@ -65,7 +65,7 @@ public sealed class PoolingOptions : ConfigurationLoader
     [IniComment("Max pooled SocketAsyncEventArgs — accept workers + peak connections (default 256)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "SocketArgs.Capacity must be between 1 and 1,000,000.")]
-    public System.Int32 SocketArgs_Capacity { get; set; } = 256;
+    public System.Int32 SocketArgsCapacity { get; set; } = 256;
 
     /// <summary>
     /// Number of <see cref="PooledSocketAsyncEventArgs"/> instances to create at startup.
@@ -73,14 +73,14 @@ public sealed class PoolingOptions : ConfigurationLoader
     [IniComment("SocketAsyncEventArgs instances to warm up at startup (default 32)")]
     [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
         ErrorMessage = "SocketArgs.Preallocate must be between 0 and 1,000,000.")]
-    public System.Int32 SocketArgs_Preallocate { get; set; } = 32;
+    public System.Int32 SocketArgsPreallocate { get; set; } = 32;
 
     #endregion
 
     #region Receive Context — one per active TCP connection
 
     /// <summary>
-    /// Maximum number of <see cref="PooledReceiveContext"/> instances retained in the pool.
+    /// Maximum number of <see cref="PooledSocketReceiveContext"/> instances retained in the pool.
     /// <para>
     /// Each active connection holds exactly one receive context for its lifetime.
     /// Set this to the expected peak concurrent connection count.
@@ -89,15 +89,15 @@ public sealed class PoolingOptions : ConfigurationLoader
     [IniComment("Max pooled ReceiveContext instances — set to peak concurrent connections (default 256)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "ReceiveContext.Capacity must be between 1 and 1,000,000.")]
-    public System.Int32 ReceiveContext_Capacity { get; set; } = 256;
+    public System.Int32 ReceiveContextCapacity { get; set; } = 256;
 
     /// <summary>
-    /// Number of <see cref="PooledReceiveContext"/> instances to create at startup.
+    /// Number of <see cref="PooledSocketReceiveContext"/> instances to create at startup.
     /// </summary>
     [IniComment("ReceiveContext instances to warm up at startup (default 32)")]
     [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
         ErrorMessage = "ReceiveContext.Preallocate must be between 0 and 1,000,000.")]
-    public System.Int32 ReceiveContext_Preallocate { get; set; } = 32;
+    public System.Int32 ReceiveContextPreallocate { get; set; } = 32;
 
     #endregion
 
@@ -119,7 +119,7 @@ public sealed class PoolingOptions : ConfigurationLoader
     [IniComment("Max pooled TimeoutTask instances — set to peak concurrent connections, higher under DDoS (default 4096)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "TimeoutTask.Capacity must be between 1 and 1,000,000.")]
-    public System.Int32 TimeoutTask_Capacity { get; set; } = 4096;
+    public System.Int32 TimeoutTaskCapacity { get; set; } = 4096;
 
     /// <summary>
     /// TimeoutTask instances to warm up at startup (default 64).
@@ -127,7 +127,7 @@ public sealed class PoolingOptions : ConfigurationLoader
     [IniComment("TimeoutTask instances to warm up at startup (default 64)")]
     [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
         ErrorMessage = "TimeoutTask.Preallocate must be between 0 and 1,000,000.")]
-    public System.Int32 TimeoutTask_Preallocate { get; set; } = 64;
+    public System.Int32 TimeoutTaskPreallocate { get; set; } = 64;
 
     #endregion
 
@@ -139,7 +139,7 @@ public sealed class PoolingOptions : ConfigurationLoader
     [IniComment("Max pooled PacketContext instances (default 1024)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "PacketContext.Capacity must be between 1 and 1,000,000.")]
-    public System.Int32 PacketContext_Capacity { get; set; } = 2024;
+    public System.Int32 PacketContextCapacity { get; set; } = 2024;
 
     /// <summary>
     /// Number of <see cref="PacketContext{T}"/> instances to create at startup.
@@ -147,7 +147,7 @@ public sealed class PoolingOptions : ConfigurationLoader
     [IniComment("PacketContext instances to warm up at startup (default 16)")]
     [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
         ErrorMessage = "PacketContext.Preallocate must be between 0 and 1,000,000.")]
-    public System.Int32 PacketContext_Preallocate { get; set; } = 16;
+    public System.Int32 PacketContextPreallocate { get; set; } = 16;
 
     #endregion
 
@@ -160,7 +160,7 @@ public sealed class PoolingOptions : ConfigurationLoader
     [IniComment("Max pooled ProcessContext instances — reserved for future use (default 256)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "ProcessContext.Capacity must be between 1 and 1,000,000.")]
-    public System.Int32 ProcessContext_Capacity { get; set; } = 256;
+    public System.Int32 ListenerContextCapacity { get; set; } = 256;
 
     /// <summary>
     /// Number of process context instances to create at startup.
@@ -169,7 +169,7 @@ public sealed class PoolingOptions : ConfigurationLoader
     [IniComment("ProcessContext instances to warm up at startup — reserved for future use (default 16)")]
     [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
         ErrorMessage = "ProcessContext.Preallocate must be between 0 and 1,000,000.")]
-    public System.Int32 ProcessContext_Preallocate { get; set; } = 16;
+    public System.Int32 ListenerContextPreallocate { get; set; } = 16;
 
     #endregion
 
@@ -186,28 +186,28 @@ public sealed class PoolingOptions : ConfigurationLoader
             this, ctx, validateAllProperties: true);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
-            nameof(AcceptContext_Preallocate), AcceptContext_Preallocate,
-            nameof(AcceptContext_Capacity), AcceptContext_Capacity);
+            nameof(AcceptContextPreallocate), AcceptContextPreallocate,
+            nameof(AcceptContextCapacity), AcceptContextCapacity);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
-            nameof(SocketArgs_Preallocate), SocketArgs_Preallocate,
-            nameof(SocketArgs_Capacity), SocketArgs_Capacity);
+            nameof(SocketArgsPreallocate), SocketArgsPreallocate,
+            nameof(SocketArgsCapacity), SocketArgsCapacity);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
-            nameof(ReceiveContext_Preallocate), ReceiveContext_Preallocate,
-            nameof(ReceiveContext_Capacity), ReceiveContext_Capacity);
+            nameof(ReceiveContextPreallocate), ReceiveContextPreallocate,
+            nameof(ReceiveContextCapacity), ReceiveContextCapacity);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
-            nameof(TimeoutTask_Preallocate), TimeoutTask_Preallocate,
-            nameof(TimeoutTask_Capacity), TimeoutTask_Capacity);
+            nameof(TimeoutTaskPreallocate), TimeoutTaskPreallocate,
+            nameof(TimeoutTaskCapacity), TimeoutTaskCapacity);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
-            nameof(PacketContext_Preallocate), PacketContext_Preallocate,
-            nameof(PacketContext_Capacity), PacketContext_Capacity);
+            nameof(PacketContextPreallocate), PacketContextPreallocate,
+            nameof(PacketContextCapacity), PacketContextCapacity);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
-            nameof(ProcessContext_Preallocate), ProcessContext_Preallocate,
-            nameof(ProcessContext_Capacity), ProcessContext_Capacity);
+            nameof(ListenerContextPreallocate), ListenerContextPreallocate,
+            nameof(ListenerContextCapacity), ListenerContextCapacity);
     }
 
     private static void ASSERT_PREALLOCATE_LE_CAPACITY(

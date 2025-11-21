@@ -41,7 +41,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         }
 
         s_logger?.Trace(
-            $"[NW.{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.OpCode.OpCode:X4} " +
+            $"[NW.{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.PacketOpcode.OpCode:X4} " +
             $"need={context.Attributes.Permission.Level} have={context.Connection.Level}");
 
         System.UInt32 sequenceId = context.Packet is IPacketSequenced sequenced ? sequenced.SequenceId : 0;
@@ -56,7 +56,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
                 flags: ControlFlags.NONE,
                 arg0: (System.Byte)context.Attributes.Permission.Level,
                 arg1: (System.Byte)context.Connection.Level,
-                arg2: context.Attributes.OpCode.OpCode).ConfigureAwait(false);
+                arg2: context.Attributes.PacketOpcode.OpCode).ConfigureAwait(false);
         }
         catch (System.Exception ex)
         {

@@ -83,7 +83,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
             if (!ReferenceEquals(current, context.Packet))
             {
-                s_logger?.Trace($"[NW.{nameof(UnwrapPacketMiddleware)}] packet-replaced type={current.GetType().Name} op=0x{context.Attributes.OpCode.OpCode:X4}");
+                s_logger?.Trace($"[NW.{nameof(UnwrapPacketMiddleware)}] packet-replaced type={current.GetType().Name} op=0x{context.Attributes.PacketOpcode.OpCode:X4}");
                 context.AssignPacket(current);
             }
         }
@@ -117,7 +117,7 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                 ProtocolAdvice.NONE,
                 sequenceId: sequenceId,
                 flags: flags,
-                arg0: context.Attributes.OpCode.OpCode,
+                arg0: context.Attributes.PacketOpcode.OpCode,
                 arg1: (System.UInt32)context.Packet.Flags,
                 arg2: 0).ConfigureAwait(false);
         }
