@@ -33,8 +33,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public PacketDispatchOptions<TPacket> WithLogging([System.Diagnostics.CodeAnalysis.NotNull] ILogger logger)
     {
-        this.Logger = logger;
-        this.Logger.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithLogging)}] logger-attached");
+        this.Logging = logger;
+        this.Logging.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithLogging)}] logger-attached");
 
         return this;
     }
@@ -61,7 +61,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithErrorHandling(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Action<System.Exception, System.UInt16> errorHandler)
     {
-        this.Logger?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithErrorHandling)}] error-handler-set");
+        this.Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithErrorHandling)}] error-handler-set");
         this._errorHandler = errorHandler;
 
         return this;
@@ -111,7 +111,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         System.ArgumentNullException.ThrowIfNull(middleware);
 
-        this.Logger?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
+        this.Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
 
         _pipeline.Use(middleware);
 
@@ -237,7 +237,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             this._handlerCache[descriptor.OpCode] = descriptor;
         }
 
-        this.Logger?.Info($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
+        this.Logging?.Info($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
                           $"reg-handlers count={handlerDescriptors.Length} controller={controllerType.Name}");
 
         return this;
@@ -315,7 +315,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return true;
         }
 
-        this.Logger?.Warn($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(TryResolveHandlerDescriptor)}] handler-not-found opcode={opCode}");
+        this.Logging?.Warn($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(TryResolveHandlerDescriptor)}] handler-not-found opcode={opCode}");
         return false;
     }
 }
