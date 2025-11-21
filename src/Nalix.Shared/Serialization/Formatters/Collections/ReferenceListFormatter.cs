@@ -79,7 +79,7 @@ internal sealed class ReferenceListFormatter<
 
         if (count > SerializerBounds.MaxArray)
         {
-            throw new SerializationException($"Reference list length out of range.");
+            throw new SerializationException("Reference list length out of range.");
         }
 
         System.Collections.Generic.List<T> list = new(count);
