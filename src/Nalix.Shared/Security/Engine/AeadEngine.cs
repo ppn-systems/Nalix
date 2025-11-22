@@ -8,7 +8,7 @@
 // Note: This is a convenience engine for your lib (Span-first-ish).
 
 using Nalix.Common.Enums;
-using Nalix.Framework.Randomization;
+using Nalix.Framework.Random;
 using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Aead;
 using Nalix.Shared.Security.Symmetric;

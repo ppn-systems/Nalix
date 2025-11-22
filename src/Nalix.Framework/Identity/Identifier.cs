@@ -3,7 +3,7 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Enums;
 using Nalix.Framework.Configuration;
-using Nalix.Framework.Randomization;
+using Nalix.Framework.Random;
 
 namespace Nalix.Framework.Identity;
 

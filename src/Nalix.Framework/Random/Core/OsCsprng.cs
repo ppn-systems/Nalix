@@ -1,5 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Framework.Random.Core;
+
 namespace Nalix.Framework.Randomization.Core;
 
 
