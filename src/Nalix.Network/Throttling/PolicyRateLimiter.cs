@@ -137,7 +137,7 @@ public static class PolicyRateLimiter
         public override System.Int32 GetHashCode()
             => System.HashCode.Combine(_op, _inner);
 
-        public override System.Boolean Equals(System.Object? obj)
+        public override System.Boolean Equals(System.Object obj)
             => obj is CompositeEndpointKey other && Equals(other);
 
         public System.Boolean Equals(CompositeEndpointKey obj)

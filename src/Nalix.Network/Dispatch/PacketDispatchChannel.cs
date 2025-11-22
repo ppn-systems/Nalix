@@ -169,7 +169,7 @@ public sealed class PacketDispatchChannel
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(
-        [System.Diagnostics.CodeAnalysis.AllowNull] IBufferLease? lease,
+        [System.Diagnostics.CodeAnalysis.AllowNull] IBufferLease lease,
         [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection)
     {
         if (lease is null || lease.Length <= 0)
@@ -222,7 +222,7 @@ public sealed class PacketDispatchChannel
                                 .ConfigureAwait(false);
 
                 // Pull from channel (priority-aware)
-                if (!_dispatch.Pull(out IConnection connection, out IBufferLease? lease))
+                if (!_dispatch.Pull(out IConnection connection, out IBufferLease lease))
                 {
                     // Rare: signaled but nothing pulled (remove/drain race)
                     Logger?.Trace($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] pull-empty");
@@ -234,7 +234,7 @@ public sealed class PacketDispatchChannel
                 // Deserialize late (zero-alloc header reads were already done in the channel)
                 try
                 {
-                    if (!_catalog.TryDeserialize(lease.Span, out IPacket? packet) || packet is null)
+                    if (!_catalog.TryDeserialize(lease.Span, out IPacket packet) || packet is null)
                     {
                         // Warn with small head preview
                         System.Int32 len = lease.Length;

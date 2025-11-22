@@ -15,7 +15,7 @@ public abstract partial class TcpListenerBase
         if (Config.EnableIPv6)
         {
             // Try IPv6 + DualMode first
-            System.Net.Sockets.Socket? listener = null;
+            System.Net.Sockets.Socket listener = null;
             try
             {
                 listener = new System.Net.Sockets.Socket(

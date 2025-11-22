@@ -29,7 +29,9 @@ public interface IPacketDispatch<TPacket> where TPacket : IPacket
     /// <param name="connection">
     /// The connection from which the packet was received.
     /// </param>
-    void HandlePacket(IBufferLease? packet, IConnection connection);
+    void HandlePacket(
+        [System.Diagnostics.CodeAnalysis.AllowNull] IBufferLease packet,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection);
 
     /// <summary>
     /// Handles a fully deserialized packet instance.
@@ -40,5 +42,7 @@ public interface IPacketDispatch<TPacket> where TPacket : IPacket
     /// <param name="connection">
     /// The connection from which the packet was received.
     /// </param>
-    void HandlePacket(TPacket packet, IConnection connection);
+    void HandlePacket(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] TPacket packet,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection);
 }

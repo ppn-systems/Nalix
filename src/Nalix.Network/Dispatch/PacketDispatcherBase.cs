@@ -20,7 +20,8 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// <summary>
     /// Gets the logger instance associated with this dispatcher, if configured.
     /// </summary>
-    protected ILogger? Logger => this.Options.Logger;
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    protected ILogger Logger => this.Options.Logger;
 
     /// <summary>
     /// Gets the configuration options for this dispatcher instance.
@@ -53,7 +54,8 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// <param name="configure">
     /// An optional delegate to configure the <see cref="PacketDispatchOptions{TPacket}"/> instance.
     /// </param>
-    protected PacketDispatcherBase(System.Action<PacketDispatchOptions<TPacket>>? configure = null)
+    protected PacketDispatcherBase(
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.Action<PacketDispatchOptions<TPacket>> configure = null)
         : this(new PacketDispatchOptions<TPacket>()) => configure?.Invoke(this.Options);
 
     #endregion Constructors
@@ -79,9 +81,9 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     protected async System.Threading.Tasks.ValueTask ExecuteHandlerAsync(
-        TPacket packet,
-        IConnection connection,
-        System.Func<TPacket, IConnection, System.Threading.Tasks.Task> handler)
+        [System.Diagnostics.CodeAnalysis.DisallowNull] TPacket packet,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Func<TPacket, IConnection, System.Threading.Tasks.Task> handler)
         => await handler(packet, connection).ConfigureAwait(false);
 
     /// <summary>
@@ -102,12 +104,14 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    protected async System.Threading.Tasks.Task ExecutePacketHandlerAsync(TPacket packet, IConnection connection)
+    protected async System.Threading.Tasks.Task ExecutePacketHandlerAsync(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] TPacket packet,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection)
     {
         if (this.Options.TryResolveHandler(packet.OpCode,
-            out System.Func<TPacket, IConnection, System.Threading.Tasks.Task>? handler))
+            out System.Func<TPacket, IConnection, System.Threading.Tasks.Task> handler))
         {
-            this.Logger?.Meta($"[{nameof(PacketDispatcherBase<TPacket>)}] handle opcode={packet.OpCode}");
+            this.Logger?.Meta($"[{nameof(PacketDispatcherBase<>)}] handle opcode={packet.OpCode}");
             try
             {
                 await this.ExecuteHandlerAsync(packet, connection, handler)
@@ -115,14 +119,14 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
             }
             catch (System.Exception ex)
             {
-                this.Logger?.Error($"[{nameof(PacketDispatcherBase<TPacket>)}] " +
+                this.Logger?.Error($"[{nameof(PacketDispatcherBase<>)}] " +
                                    $"handler-error opcode={packet.OpCode}", ex);
             }
 
             return;
         }
 
-        this.Logger?.Warn($"[{nameof(PacketDispatcherBase<TPacket>)}] no-handler opcode={packet.OpCode}");
+        this.Logger?.Warn($"[{nameof(PacketDispatcherBase<>)}] no-handler opcode={packet.OpCode}");
     }
 
     #endregion Protected Methods

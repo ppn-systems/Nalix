@@ -53,7 +53,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <summary>
     /// Raised after a connection is successfully unregistered.
     /// </summary>
-    public event System.Action<IConnection>? ConnectionUnregistered;
+    public event System.Action<IConnection> ConnectionUnregistered;
 
     #endregion Properties
 
@@ -150,9 +150,9 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             System.Threading.Thread.Sleep(_options.UnregisterDrainMillis);
         }
 
-        if (!_connections.TryRemove(connection.ID, out IConnection? existing))
+        if (!_connections.TryRemove(connection.ID, out IConnection existing))
         {
-            if (_usernames.TryRemove(connection.ID, out System.String? orphanUser) && orphanUser is not null)
+            if (_usernames.TryRemove(connection.ID, out System.String orphanUser) && orphanUser is not null)
             {
                 _ = _usernameToId.TryRemove(orphanUser, out _);
             }
@@ -166,7 +166,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return false;
         }
 
-        if (_usernames.TryRemove(connection.ID, out System.String? username))
+        if (_usernames.TryRemove(connection.ID, out System.String username))
         {
             _ = _usernameToId.TryRemove(username, out _);
         }
@@ -221,7 +221,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         IIdentifier id = connection.ID;
 
         // Remove old association if exists
-        if (_usernames.TryGetValue(id, out System.String? oldUsername) && oldUsername != username)
+        if (_usernames.TryGetValue(id, out System.String oldUsername) && oldUsername != username)
         {
             _ = _usernameToId.TryRemove(oldUsername, out _);
 
@@ -251,8 +251,9 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <returns>The connection associated with the identifier, or <c>null</c> if not found.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public IConnection? GetConnection([System.Diagnostics.CodeAnalysis.DisallowNull] IIdentifier id)
-        => _connections.TryGetValue(id, out IConnection? connection) ? connection : null;
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public IConnection GetConnection([System.Diagnostics.CodeAnalysis.DisallowNull] IIdentifier id)
+        => _connections.TryGetValue(id, out IConnection connection) ? connection : null;
 
     /// <summary>
     /// Retrieves a connection by its serialized identifier.
@@ -261,8 +262,9 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <returns>The connection associated with the identifier, or <c>null</c> if not found.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public IConnection? GetConnection([System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> id)
-        => _connections.TryGetValue(Identifier.FromBytes(id), out IConnection? connection) ? connection : null;
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public IConnection GetConnection([System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> id)
+        => _connections.TryGetValue(Identifier.FromBytes(id), out IConnection connection) ? connection : null;
 
     /// <summary>
     /// Retrieves a connection by its associated username.
@@ -272,9 +274,10 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="username"/> is null or empty.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public IConnection? GetConnectionByUsername([System.Diagnostics.CodeAnalysis.DisallowNull] System.String username)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public IConnection GetConnectionByUsername([System.Diagnostics.CodeAnalysis.DisallowNull] System.String username)
         => System.String.IsNullOrWhiteSpace(username)
-        ? null : _usernameToId.TryGetValue(username, out IIdentifier? id) ? this.GetConnection(id) : null;
+        ? null : _usernameToId.TryGetValue(username, out IIdentifier id) ? this.GetConnection(id) : null;
 
     /// <summary>
     /// Retrieves the username associated with a connection identifier.
@@ -283,8 +286,9 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <returns>The username associated with the connection, or <c>null</c> if not found.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.String? GetUsername([System.Diagnostics.CodeAnalysis.DisallowNull] IIdentifier id)
-        => _usernames.TryGetValue(id, out System.String? username) ? username : null;
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.String GetUsername([System.Diagnostics.CodeAnalysis.DisallowNull] IIdentifier id)
+        => _usernames.TryGetValue(id, out System.String username) ? username : null;
 
     /// <inheritdoc />
     /// <summary>
@@ -600,7 +604,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
             case RejectPolicy.DropOldestAnonymous:
                 // Find oldest anonymous connection (connection without username)
-                IConnection? oldestAnonymous = null;
+                IConnection oldestAnonymous = null;
                 foreach (var kvp in _connections)
                 {
                     if (!_usernames.ContainsKey(kvp.Key))

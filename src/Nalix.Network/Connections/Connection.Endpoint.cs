@@ -184,7 +184,7 @@ public sealed partial class Connection
         [System.Diagnostics.Contracts.Pure]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public System.Boolean Equals(IEndpointKey? other)
+        public System.Boolean Equals([System.Diagnostics.CodeAnalysis.AllowNull] IEndpointKey other)
         {
             if (other is null)
             {
@@ -207,7 +207,7 @@ public sealed partial class Connection
         [System.Diagnostics.Contracts.Pure]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public override System.Boolean Equals(System.Object? obj) =>
+        public override System.Boolean Equals([System.Diagnostics.CodeAnalysis.AllowNull] System.Object obj) =>
             obj is EndpointKey k && Equals(k);
 
         /// <inheritdoc />

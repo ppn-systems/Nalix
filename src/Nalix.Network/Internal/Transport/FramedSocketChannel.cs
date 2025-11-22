@@ -36,10 +36,10 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     private readonly System.String _epText = FormatEndpoint(socket);
     private readonly System.Threading.CancellationTokenSource _cts = new();
 
-    private IConnection? _sender;
-    private IConnectEventArgs? _cachedArgs;
-    private System.EventHandler<IConnectEventArgs>? _callbackPost;
-    private System.EventHandler<IConnectEventArgs>? _callbackClose;
+    [System.Diagnostics.CodeAnalysis.AllowNull] private IConnection _sender;
+    [System.Diagnostics.CodeAnalysis.AllowNull] private IConnectEventArgs _cachedArgs;
+    [System.Diagnostics.CodeAnalysis.AllowNull] private System.EventHandler<IConnectEventArgs> _callbackPost;
+    [System.Diagnostics.CodeAnalysis.AllowNull] private System.EventHandler<IConnectEventArgs> _callbackClose;
 
     private System.Int32 _disposed;                 // 0 = no, 1 = yes
     private System.Int32 _closeSignaled;
@@ -64,9 +64,10 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     /// Registers a process to be invoked when a packet is cached. The state is passed back as the argument.
     /// </summary>
     public void SetCallback(
-        System.EventHandler<IConnectEventArgs>? close,
-        System.EventHandler<IConnectEventArgs>? post,
-        IConnection sender, IConnectEventArgs args)
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.EventHandler<IConnectEventArgs> close,
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.EventHandler<IConnectEventArgs> post,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection sender,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs args)
     {
         _callbackPost = post;
         _callbackClose = close;
@@ -108,7 +109,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
         _ = this.ReceiveLoopAsync(linked.Token).ContinueWith(static (t, state) =>
         {
-            (ILogger? l, System.Threading.CancellationTokenSource link) = ((ILogger?, System.Threading.CancellationTokenSource))state!;
+            (ILogger l, System.Threading.CancellationTokenSource link) = ((ILogger, System.Threading.CancellationTokenSource))state!;
             if (t.IsFaulted)
             {
                 l?.Error($"[{nameof(FramedSocketChannel)}:{nameof(BeginReceive)}] receive-loop faulted", t.Exception!);

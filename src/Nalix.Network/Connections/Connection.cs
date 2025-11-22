@@ -29,9 +29,14 @@ public sealed partial class Connection : IConnection
     private System.Byte[] _secret;
     private System.Int32 _closeSignaled;
 
-    private System.EventHandler<IConnectEventArgs>? _onCloseEvent;
-    private System.EventHandler<IConnectEventArgs>? _onProcessEvent;
-    private System.EventHandler<IConnectEventArgs>? _onPostProcessEvent;
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    private System.EventHandler<IConnectEventArgs> _onCloseEvent;
+
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    private System.EventHandler<IConnectEventArgs> _onProcessEvent;
+
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    private System.EventHandler<IConnectEventArgs> _onPostProcessEvent;
 
     #endregion Fields
 
@@ -89,7 +94,9 @@ public sealed partial class Connection : IConnection
     public System.Int64 UpTime => this._cstream.Cache.Uptime;
 
     /// <inheritdoc />
-    public IBufferLease? IncomingPacket => _cstream.Cache.Incoming.Pop();
+
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public IBufferLease IncomingPacket => _cstream.Cache.Incoming.Pop();
 
     /// <inheritdoc />
     public System.Int64 LastPingTime => this._cstream.Cache.LastPingTime;
@@ -128,21 +135,22 @@ public sealed partial class Connection : IConnection
     #region Events
 
     /// <inheritdoc />
-    public event System.EventHandler<IConnectEventArgs>? OnCloseEvent
+
+    public event System.EventHandler<IConnectEventArgs> OnCloseEvent
     {
         add => this._onCloseEvent += value;
         remove => this._onCloseEvent -= value;
     }
 
     /// <inheritdoc />
-    public event System.EventHandler<IConnectEventArgs>? OnProcessEvent
+    public event System.EventHandler<IConnectEventArgs> OnProcessEvent
     {
         add => this._onProcessEvent += value;
         remove => this._onProcessEvent -= value;
     }
 
     /// <inheritdoc />
-    public event System.EventHandler<IConnectEventArgs>? OnPostProcessEvent
+    public event System.EventHandler<IConnectEventArgs> OnPostProcessEvent
     {
         add => this._onPostProcessEvent += value;
         remove => this._onPostProcessEvent -= value;
@@ -194,7 +202,7 @@ public sealed partial class Connection : IConnection
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Disconnect(System.String? reason = null) => this.Close(force: true);
+    public void Disconnect([System.Diagnostics.CodeAnalysis.AllowNull] System.String reason = null) => this.Close(force: true);
 
     #endregion Methods
 
@@ -240,7 +248,9 @@ public sealed partial class Connection : IConnection
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void OnCloseEventBridge(System.Object? sender, IConnectEventArgs e)
+    private void OnCloseEventBridge(
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs e)
     {
         if (System.Threading.Interlocked.Exchange(ref _closeSignaled, 1) != 0)
         {
@@ -253,7 +263,9 @@ public sealed partial class Connection : IConnection
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void OnProcessEventBridge(System.Object? sender, IConnectEventArgs e)
+    private static void OnProcessEventBridge(
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs e)
     {
         if (sender is not Connection self)
         {
@@ -266,7 +278,9 @@ public sealed partial class Connection : IConnection
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void OnPostProcessEventBridge(System.Object? sender, IConnectEventArgs e)
+    private static void OnPostProcessEventBridge(
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs e)
     {
         if (sender is not Connection self)
         {

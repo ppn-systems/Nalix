@@ -36,10 +36,10 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     private System.Int32 _state;
     private System.Boolean _isDisposed;
     private System.Int32 _stopInitiated;
-    private System.Net.Sockets.Socket? _listener;
-    private System.Threading.CancellationTokenSource? _cts;
     private System.Threading.CancellationToken _cancellationToken;
     private System.Threading.CancellationTokenRegistration _cancelReg;
+    [System.Diagnostics.CodeAnalysis.AllowNull] private System.Net.Sockets.Socket _listener;
+    [System.Diagnostics.CodeAnalysis.AllowNull] private System.Threading.CancellationTokenSource _cts;
 
     #endregion Fields
 
@@ -171,7 +171,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
             return;
         }
 
-        static void cb(System.Object? state)
+        static void cb([System.Diagnostics.CodeAnalysis.AllowNull] System.Object state)
         {
             TcpListenerBase self = (TcpListenerBase)state!;
 

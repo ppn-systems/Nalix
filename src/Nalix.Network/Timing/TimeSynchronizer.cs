@@ -27,9 +27,9 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
 
     #region Fields
 
-    private readonly System.Threading.Lock _gate = new();
-    private System.Threading.CancellationTokenSource? _cts;
     private System.TimeSpan _period = DefaultPeriod;
+    private readonly System.Threading.Lock _gate = new();
+    [System.Diagnostics.CodeAnalysis.AllowNull] private System.Threading.CancellationTokenSource _cts;
 
     // Use int flags for thread-safe state (0 = false, 1 = true)
     private System.Int32 _isRunning;    // loop running flag
@@ -47,7 +47,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     /// Raised every tick with the current Unix timestamp in milliseconds.
     /// NOTE: Handlers should be lightweight. Consider enabling FireAndForget if handlers may block.
     /// </summary>
-    public event System.Action<System.Int64>? TimeSynchronized;
+    public event System.Action<System.Int64> TimeSynchronized;
 
     #endregion
 
@@ -295,7 +295,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
         {
         }
 
-        System.Threading.CancellationTokenSource? toCancel;
+        System.Threading.CancellationTokenSource toCancel;
         lock (_gate)
         {
             toCancel = _cts;
