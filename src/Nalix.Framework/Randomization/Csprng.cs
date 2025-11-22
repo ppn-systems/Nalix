@@ -32,8 +32,8 @@ public static class Csprng
         }
         catch
         {
-            XoshiroFallback.Attach();
-            _f = XoshiroFallback.Fill;
+            OsRandom.Attach();
+            _f = OsRandom.Fill;
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
