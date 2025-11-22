@@ -9,7 +9,6 @@ using Nalix.Common.Serialization;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Messaging.Binary;
 using Nalix.Shared.Serialization;
 
 namespace Nalix.Shared.Messaging.Controls;
@@ -67,7 +66,7 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
     public System.Int64 MonoTicks { get; set; }
 
     /// <summary>
-    /// Initializes a new <see cref="Binary128"/> with empty content.
+    /// Initializes a new <see cref="Control"/> with empty content.
     /// </summary>
     public Control()
     {

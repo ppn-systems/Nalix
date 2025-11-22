@@ -6,7 +6,6 @@ using Nalix.Common.Logging;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Framework.Injection;
-using Nalix.Shared.Messaging.Binary;
 using Nalix.Shared.Messaging.Controls;
 using Nalix.Shared.Messaging.Text;
 
@@ -56,8 +55,7 @@ public sealed class PacketCatalogFactory
         System.Linq.Enumerable.Where(
         [
             typeof(Text256).Namespace!,
-            typeof(Control).Namespace!,
-            typeof(Binary128).Namespace!
+            typeof(Control).Namespace!
         ], ns => ns is not null),
         System.StringComparer.Ordinal);
 
@@ -101,12 +99,6 @@ public sealed class PacketCatalogFactory
     /// </summary>
     public PacketCatalogFactory()
     {
-        // Binary packets
-        _ = this.RegisterPacket<Binary128>()
-                .RegisterPacket<Binary256>()
-                .RegisterPacket<Binary512>()
-                .RegisterPacket<Binary1024>();
-
         // Text packets
         _ = this.RegisterPacket<Text256>()
                 .RegisterPacket<Text512>()
