@@ -3,7 +3,7 @@
 
 using Nalix.Common.Exceptions;
 
-namespace Nalix.Shared.Security;
+namespace Nalix.Shared.Security.Internal;
 
 [System.Diagnostics.DebuggerStepThrough]
 [System.Diagnostics.StackTraceHidden]
