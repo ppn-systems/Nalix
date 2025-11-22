@@ -2,6 +2,7 @@
 
 	<PropertyGroup>
 		<!-- Build & Lang -->
+		<Nullable>disable</Nullable>
 		<IsPackable>true</IsPackable>
 		<OutputType>Library</OutputType>
 		<IsTrimmable>false</IsTrimmable>
