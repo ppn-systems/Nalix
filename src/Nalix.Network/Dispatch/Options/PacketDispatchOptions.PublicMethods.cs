@@ -245,7 +245,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean TryResolveHandler(
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.UInt16 opCode,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Func<TPacket, IConnection, System.Threading.Tasks.Task>? handler)
+        [System.Diagnostics.CodeAnalysis.AllowNull]
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Func<TPacket, IConnection, System.Threading.Tasks.Task> handler)
     {
         if (TryResolveHandlerDescriptor(opCode,
             out PacketHandler<TPacket> descriptor))

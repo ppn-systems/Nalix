@@ -24,14 +24,14 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
         PacketContext<IPacket> context,
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
     {
-        PacketRateLimitAttribute? rl = context.Attributes.RateLimit;
+        PacketRateLimitAttribute rl = context.Attributes.RateLimit;
         if (rl is null)
         {
             await next(context.CancellationToken).ConfigureAwait(false);
             return;
         }
 
-        System.String? ip = context.Connection.EndPoint.ToString();
+        System.String ip = context.Connection.EndPoint.ToString();
 
         if (System.String.IsNullOrEmpty(ip))
         {

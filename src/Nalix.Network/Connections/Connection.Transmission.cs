@@ -20,7 +20,7 @@ public sealed partial class Connection : IConnection
     {
         #region Fields
 
-        private System.Net.EndPoint? _endPoint;
+        private System.Net.EndPoint _endPoint;
         private System.Net.Sockets.Socket _socket;
 
         #endregion Fields
@@ -206,7 +206,7 @@ public sealed partial class Connection : IConnection
             System.Int32 byteCount = System.Text.Encoding.UTF8.GetByteCount(message);
 
             // 1) Try to fit in a single packet (choose the smallest that fits).
-            foreach (StringReturnHandler<IPacket>.Candidate c in StringReturnHandler<IPacket>.Candidates)
+            foreach (Candidate c in UTF8_STRING.Candidates)
             {
                 if (byteCount <= c.MaxBytes)
                 {
@@ -226,8 +226,8 @@ public sealed partial class Connection : IConnection
             }
 
             // 2) Fallback: chunk by UTF-8 byte limit using the largest candidate.
-            StringReturnHandler<IPacket>.Candidate max = StringReturnHandler<IPacket>.Candidates[^1];
-            foreach (System.String part in StringReturnHandler<IPacket>.SplitUtf8ByBytes(message, max.MaxBytes))
+            Candidate max = UTF8_STRING.Candidates[^1];
+            foreach (System.String part in UTF8_STRING.Split(message, max.MaxBytes))
             {
                 System.Object pkt = max.Rent();
                 try
@@ -292,7 +292,7 @@ public sealed partial class Connection : IConnection
             System.Int32 byteCount = System.Text.Encoding.UTF8.GetByteCount(message);
 
             // 1) Try to fit in a single packet (choose the smallest that fits).
-            foreach (StringReturnHandler<IPacket>.Candidate c in StringReturnHandler<IPacket>.Candidates)
+            foreach (Candidate c in UTF8_STRING.Candidates)
             {
                 if (byteCount <= c.MaxBytes)
                 {
@@ -312,8 +312,8 @@ public sealed partial class Connection : IConnection
             }
 
             // 2) Fallback: chunk by UTF-8 byte limit using the largest candidate.
-            StringReturnHandler<IPacket>.Candidate max = StringReturnHandler<IPacket>.Candidates[^1];
-            foreach (System.String part in StringReturnHandler<IPacket>.SplitUtf8ByBytes(message, max.MaxBytes))
+            Candidate max = UTF8_STRING.Candidates[^1];
+            foreach (System.String part in UTF8_STRING.Split(message, max.MaxBytes))
             {
                 System.Object pkt = max.Rent();
                 try

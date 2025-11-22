@@ -20,7 +20,7 @@ namespace Nalix.Network.Internal.Transport;
 internal static class AsyncCallback
 {
     // Static delegate to avoid capturing closures.
-    private static readonly System.Action<System.Object?> s_Invoke = static stateObj =>
+    private static readonly System.Action<System.Object> s_Invoke = static stateObj =>
     {
         State state = (State)stateObj!;
         try
@@ -42,8 +42,9 @@ internal static class AsyncCallback
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Invoke(
-        System.EventHandler<IConnectEventArgs>? callback,
-        System.Object sender, IConnectEventArgs args)
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.EventHandler<IConnectEventArgs> callback,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs args)
     {
         if (callback is null)
         {

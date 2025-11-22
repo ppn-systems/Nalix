@@ -22,7 +22,9 @@ public abstract partial class Protocol : IProtocol
     /// </summary>
     /// <param name="sender">The sender of the message.</param>
     /// <param name="args">Event arguments containing the connection and message data.</param>
-    public abstract void ProcessMessage(System.Object? sender, IConnectEventArgs args);
+    public abstract void ProcessMessage(
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs args);
 
     /// <summary>
     /// Inbound-processes a message after it has been handled.
@@ -35,7 +37,9 @@ public abstract partial class Protocol : IProtocol
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void PostProcessMessage(System.Object? sender, IConnectEventArgs args)
+    public void PostProcessMessage(
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs args)
     {
         System.ArgumentNullException.ThrowIfNull(args);
         System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
@@ -72,7 +76,8 @@ public abstract partial class Protocol : IProtocol
     /// <param name="isEnabled">
     /// True to allow new connections; false to reject them.
     /// </param>
-    public void SetConnectionAcceptance(System.Boolean isEnabled)
+    public void SetConnectionAcceptance(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Boolean isEnabled)
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Info($"[{nameof(Protocol)}:{nameof(SetConnectionAcceptance)}] accepting={(isEnabled ? "enabled" : "disabled")}");

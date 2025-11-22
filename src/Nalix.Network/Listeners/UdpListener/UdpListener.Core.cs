@@ -25,8 +25,8 @@ public abstract partial class UdpListenerBase
     private readonly IProtocol _protocol;
     private readonly System.Threading.SemaphoreSlim _lock;
 
-    private System.Net.Sockets.UdpClient? _udpClient;
-    private System.Threading.CancellationTokenSource? _cts;
+    [System.Diagnostics.CodeAnalysis.AllowNull] private System.Net.Sockets.UdpClient _udpClient;
+    [System.Diagnostics.CodeAnalysis.AllowNull] private System.Threading.CancellationTokenSource _cts;
     private System.Threading.CancellationToken _cancellationToken;
 
     private volatile System.Boolean _isDisposed = false;

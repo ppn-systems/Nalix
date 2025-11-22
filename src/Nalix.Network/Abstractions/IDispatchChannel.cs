@@ -52,5 +52,5 @@ public interface IDispatchChannel<TPacket> where TPacket : IPacket
     /// <see langword="true"/> if a packet was successfully retrieved; otherwise,
     /// <see langword="false"/> if the queue is empty.
     /// </returns>
-    System.Boolean Pull(out IConnection connection, out IBufferLease? raw);
+    System.Boolean Pull(out IConnection connection, [System.Diagnostics.CodeAnalysis.AllowNull] out IBufferLease raw);
 }

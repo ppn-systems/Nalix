@@ -246,13 +246,13 @@ internal sealed class HandlerCompiler<
             : System.Linq.Expressions.Expression.Convert(call, typeof(global::System.Object));
 
         // Compile or create delegate depending on AOT support
-        System.Func<System.Object, PacketContext<TPacket>, System.Object?> sync;
+        System.Func<System.Object, PacketContext<TPacket>, System.Object> sync;
 
         if (System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported)
         {
             // JIT-capable: compile IL
             sync = System.Linq.Expressions.Expression
-                .Lambda<System.Func<System.Object, PacketContext<TPacket>, System.Object?>>(body, instanceParam, contextParam)
+                .Lambda<System.Func<System.Object, PacketContext<TPacket>, System.Object>>(body, instanceParam, contextParam)
                 .Compile();
         }
         else
@@ -269,9 +269,9 @@ internal sealed class HandlerCompiler<
             sync = (instance, context) =>
             {
                 // materialize parameters
-                var p0 = ((System.Object?)context.Packet)!;
+                var p0 = ((System.Object)context.Packet)!;
                 var p1 = (System.Object)context.Connection;
-                System.Object? p2 = null;
+                System.Object p2 = null;
 
                 if (parms.Length == 3)
                 {
@@ -283,7 +283,7 @@ internal sealed class HandlerCompiler<
                 var a1 = connArgType.IsInstanceOfType(p1) ? p1 : System.Convert.ChangeType(p1, connArgType);
 
                 // invoke
-                System.Object? result = method.IsStatic
+                System.Object result = method.IsStatic
                     ? method.Invoke(null, parms.Length == 2 ? [a0, a1] : [a0, a1, p2!])
                     : method.Invoke(instance, parms.Length == 2 ? [a0, a1] : [a0, a1, p2!]);
 
@@ -303,8 +303,8 @@ internal sealed class HandlerCompiler<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object?>> CreateAsyncWrapper(
-        System.Func<System.Object, PacketContext<TPacket>, System.Object?> syncDelegate,
+    private static System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object>> CreateAsyncWrapper(
+        System.Func<System.Object, PacketContext<TPacket>, System.Object> syncDelegate,
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]System.Type returnType)
     {
@@ -416,7 +416,7 @@ internal sealed class HandlerCompiler<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.String Ctx(
         System.String controller, System.UInt16 opcode,
-        System.Reflection.MethodInfo? method = null, System.Type? returnType = null)
+        System.Reflection.MethodInfo method = null, System.Type returnType = null)
     {
         var op = $"opcode=0x{opcode:X4}";
         var ctrl = $"controller={controller}";

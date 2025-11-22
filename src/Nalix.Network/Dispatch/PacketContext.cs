@@ -138,8 +138,11 @@ public sealed class PacketContext<TPacket> : IPoolable
     /// This method is thread-safe and transitions the context to the <see cref="PacketContextState.InUse"/> state.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    internal void Initialize(TPacket packet, IConnection connection, PacketMetadata descriptor)
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal void Initialize(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] TPacket packet,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] PacketMetadata descriptor)
     {
         _ = System.Threading.Interlocked.Exchange(
             ref System.Runtime.CompilerServices.Unsafe.As<PacketContextState, System.Byte>(ref _state),
@@ -160,7 +163,7 @@ public sealed class PacketContext<TPacket> : IPoolable
     /// Clears all properties and resets fields to their default values, preparing the context for return to the pool.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal void Reset()
     {
         this.Packet = default!;
@@ -174,9 +177,8 @@ public sealed class PacketContext<TPacket> : IPoolable
     /// </summary>
     /// <param name="packet">The packet to set.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void AssignPacket(TPacket packet) => this.Packet = packet;
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void AssignPacket([System.Diagnostics.CodeAnalysis.DisallowNull] TPacket packet) => this.Packet = packet;
 
     #endregion Methods
 
