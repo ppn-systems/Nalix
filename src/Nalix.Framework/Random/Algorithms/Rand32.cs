@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Framework.Randomization.Algorithms;
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+namespace Nalix.Framework.Random.Algorithms;
 
 /// <summary>
 /// A .NET-style wrapper around a high-performance random number generator.
@@ -115,13 +118,13 @@ public sealed class Rand32
         }
 
         // Fast path for power of 2
-        if ((max & max - 1) == 0)
+        if ((max & (max - 1)) == 0)
         {
-            return (System.Int32)((_rand.Get() & RandMax) * max >> 31);
+            return (System.Int32)(((_rand.Get() & RandMax) * max) >> 31);
         }
 
         // Avoid modulo bias by rejecting values in the unfair region
-        System.UInt32 threshold = (System.UInt32)(RandMax - RandMax % max & RandMax);
+        System.UInt32 threshold = (System.UInt32)((RandMax - (RandMax % max)) & RandMax);
         System.UInt32 result;
         do
         {
@@ -186,7 +189,7 @@ public sealed class Rand32
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Single NextFloat(System.Single min, System.Single max) => min + this.NextFloat() * (max - min);
+    public System.Single NextFloat(System.Single min, System.Single max) => min + (this.NextFloat() * (max - min));
 
     /// <summary>
     /// Generates a random double-precision floating-point ProtocolType in the range [0.0, 1.0].
@@ -216,7 +219,7 @@ public sealed class Rand32
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Double NextDouble(System.Double min, System.Double max) => min + this.NextDouble() * (max - min);
+    public System.Double NextDouble(System.Double min, System.Double max) => min + (this.NextDouble() * (max - min));
 
     /// <summary>
     /// Performs a random check with a given percentage probability.
