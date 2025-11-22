@@ -444,8 +444,7 @@ public static class LiteSerializer
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static BufferLease Serialize<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
-        in T value, System.Boolean zeroOnDispose = false)
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(in T value, System.Boolean zeroOnDispose = false)
     {
         // Unmanaged non-nullable fast path: exact-size write
         if (!TypeMetadata.IsReferenceOrNullable<T>())
@@ -564,8 +563,7 @@ public static class LiteSerializer
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Serialize<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
-        in T value, BufferLease target)
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(in T value, BufferLease target)
     {
         System.ArgumentNullException.ThrowIfNull(target);
 
@@ -669,8 +667,7 @@ public static class LiteSerializer
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Deserialize<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
-        BufferLease source, ref T value)
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(BufferLease source, ref T value)
     {
         System.ArgumentNullException.ThrowIfNull(source);
         return Deserialize<T>(source.Memory.Span, ref value);
@@ -688,8 +685,7 @@ public static class LiteSerializer
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static T Deserialize<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
-        BufferLease source, out System.Int32 bytesRead)
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(BufferLease source, out System.Int32 bytesRead)
     {
         System.ArgumentNullException.ThrowIfNull(source);
         return Deserialize<T>(source.Memory.Span, out bytesRead);

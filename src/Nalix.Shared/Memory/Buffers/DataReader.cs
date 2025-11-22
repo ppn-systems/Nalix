@@ -52,14 +52,12 @@ public unsafe struct DataReader : System.IDisposable
     public DataReader(System.Byte[] buffer)
     {
         System.ArgumentNullException.ThrowIfNull(buffer);
-        _pin = System.Runtime.InteropServices.GCHandle.Alloc(
-            buffer,
-            System.Runtime.InteropServices.GCHandleType.Pinned);
-
+        _pin = System.Runtime.InteropServices.GCHandle.Alloc(buffer, System.Runtime.InteropServices.GCHandleType.Pinned);
         _ptr = (System.Byte*)_pin.AddrOfPinnedObject();
         _length = buffer.Length;
-        BytesRead = 0;
         _pinned = true;
+
+        this.BytesRead = 0;
     }
 
     /// <summary>
@@ -70,9 +68,10 @@ public unsafe struct DataReader : System.IDisposable
     /// <param name="length">The length of the buffer.</param>
     public DataReader(System.Byte* ptr, System.Int32 length)
     {
+        this.BytesRead = 0;
+
         _ptr = ptr;
         _length = length;
-        BytesRead = 0;
         _pin = default;
         _pinned = false;
     }
@@ -85,14 +84,12 @@ public unsafe struct DataReader : System.IDisposable
     public DataReader(System.ReadOnlySpan<System.Byte> span)
     {
         System.Byte[] temp = span.ToArray();
-        _pin = System.Runtime.InteropServices.GCHandle.Alloc(
-            temp,
-            System.Runtime.InteropServices.GCHandleType.Pinned);
-
+        _pin = System.Runtime.InteropServices.GCHandle.Alloc(temp, System.Runtime.InteropServices.GCHandleType.Pinned);
         _ptr = (System.Byte*)_pin.AddrOfPinnedObject();
         _length = temp.Length;
         _pinned = true;
-        BytesRead = 0;
+
+        this.BytesRead = 0;
     }
 
     /// <summary>
@@ -102,11 +99,9 @@ public unsafe struct DataReader : System.IDisposable
     /// <param name="memory">The read-only memory of bytes to read from.</param>
     public DataReader(System.ReadOnlyMemory<System.Byte> memory)
     {
-        if (System.Runtime.InteropServices.MemoryMarshal
-            .TryGetArray(memory, out System.ArraySegment<System.Byte> segment))
+        if (System.Runtime.InteropServices.MemoryMarshal.TryGetArray(memory, out System.ArraySegment<System.Byte> segment))
         {
-            _pin = System.Runtime.InteropServices.GCHandle.Alloc(segment.Array,
-                   System.Runtime.InteropServices.GCHandleType.Pinned);
+            _pin = System.Runtime.InteropServices.GCHandle.Alloc(segment.Array, System.Runtime.InteropServices.GCHandleType.Pinned);
             _ptr = (System.Byte*)_pin.AddrOfPinnedObject() + segment.Offset;
             _length = segment.Count;
             _pinned = true;
@@ -115,39 +110,18 @@ public unsafe struct DataReader : System.IDisposable
         {
             // fallback: allocate + copy
             System.Byte[] temp = memory.ToArray();
-            _pin = System.Runtime.InteropServices.GCHandle.Alloc(
-                temp,
-                System.Runtime.InteropServices.GCHandleType.Pinned);
+            _pin = System.Runtime.InteropServices.GCHandle.Alloc(temp, System.Runtime.InteropServices.GCHandleType.Pinned);
             _ptr = (System.Byte*)_pin.AddrOfPinnedObject();
             _length = temp.Length;
             _pinned = true;
         }
-        BytesRead = 0;
+
+        this.BytesRead = 0;
     }
 
     #endregion Constructors
 
     #region APIs
-
-    /// <summary>
-    /// Retrieves a read-only span of bytes from the current position in the buffer.
-    /// </summary>
-    /// <param name="length">The number of bytes to retrieve.</param>
-    /// <returns>A span containing the requested bytes.</returns>
-    /// <exception cref="SerializationException">
-    /// Thrown if the requested length exceeds the available buffer size.
-    /// </exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public readonly System.ReadOnlySpan<System.Byte> GetSpan(System.Int32 length)
-    {
-        return length > BytesRemaining
-            ? throw new SerializationException(
-                $"Not enough data: requested {length} bytes, only {BytesRemaining} bytes remaining.")
-            : new System.ReadOnlySpan<System.Byte>(_ptr + BytesRead, length);
-    }
 
     /// <summary>
     /// Retrieves a reference to the first byte in the requested span.
@@ -192,7 +166,7 @@ public unsafe struct DataReader : System.IDisposable
                 $"Cannot advance {count} bytes, only {BytesRemaining} bytes remaining.");
         }
 
-        BytesRead += count;
+        this.BytesRead += count;
     }
 
     /// <summary>
@@ -211,8 +185,9 @@ public unsafe struct DataReader : System.IDisposable
 
         _ptr = null;
         _length = 0;
-        BytesRead = 0;
         _pinned = false;
+
+        this.BytesRead = 0;
     }
 
     #endregion APIs
