@@ -1,7 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Serialization;
-using Nalix.Shared.Messaging.Binary;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
@@ -37,26 +36,6 @@ internal static partial class FieldCache<
         _metadata = DiscoverFields<T>();
         _fieldIndex = BuildFieldIndex();
         EnsureExplicitLayoutIsValid();
-
-#if DEBUG
-        System.Diagnostics.Debug.WriteLine($"[FieldCache<{typeof(T).Name}>] Layout={_layout}, Fields={_metadata.Length}");
-        foreach (var f in _metadata)
-        {
-            System.Diagnostics.Debug.WriteLine(
-                $"  Order={f.Order}, Naming={f.Name}, Type={f.FieldType}, IsValueType={f.IsValueType}");
-        }
-
-        var original = new Binary128
-        {
-            OpCode = 127,
-            Data = [0, 255, 128]
-        };
-
-        System.Diagnostics.Debug.WriteLine(
-            $"MagicNumber backing: {FieldCache<Binary128>.GetField("<MagicNumber>k__BackingField").FieldInfo.GetValue(original)}");
-        System.Diagnostics.Debug.WriteLine(
-            $"OpCode backing: {FieldCache<Binary128>.GetField("<OpCode>k__BackingField").FieldInfo.GetValue(original)}");
-#endif
     }
 
     #endregion Static Constructor
