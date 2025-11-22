@@ -81,9 +81,9 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     protected async System.Threading.Tasks.ValueTask ExecuteHandlerAsync(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] TPacket packet,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Func<TPacket, IConnection, System.Threading.Tasks.Task> handler)
+        [System.Diagnostics.CodeAnalysis.NotNull] TPacket packet,
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Func<TPacket, IConnection, System.Threading.Tasks.Task> handler)
         => await handler(packet, connection).ConfigureAwait(false);
 
     /// <summary>
@@ -105,8 +105,8 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     protected async System.Threading.Tasks.Task ExecutePacketHandlerAsync(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] TPacket packet,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection)
+        [System.Diagnostics.CodeAnalysis.NotNull] TPacket packet,
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
         if (this.Options.TryResolveHandler(packet.OpCode,
             out System.Func<TPacket, IConnection, System.Threading.Tasks.Task> handler))

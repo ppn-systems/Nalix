@@ -19,7 +19,7 @@ public abstract partial class TcpListenerBase
 {
     [System.Diagnostics.DebuggerStepThrough]
     private void ProcessConnection(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection)
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
         try
         {
@@ -39,7 +39,7 @@ public abstract partial class TcpListenerBase
 
     [System.Diagnostics.DebuggerStepThrough]
     private void HandleAccept(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Net.Sockets.SocketAsyncEventArgs e)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketAsyncEventArgs e)
     {
         try
         {
@@ -162,7 +162,7 @@ public abstract partial class TcpListenerBase
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void SafeCloseSocket(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Net.Sockets.Socket socket)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.Socket socket)
     {
         try
         {
@@ -178,7 +178,7 @@ public abstract partial class TcpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     private void HandleConnectionClose(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs args)
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
     {
         if (args?.Connection == null)
         {
@@ -202,7 +202,7 @@ public abstract partial class TcpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     private void OnSyncAcceptCompleted(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Net.Sockets.SocketAsyncEventArgs e)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketAsyncEventArgs e)
     {
         try
         {
@@ -235,8 +235,8 @@ public abstract partial class TcpListenerBase
 
     [System.Diagnostics.DebuggerStepThrough]
     private IConnection InitializeConnection(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Net.Sockets.Socket socket,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] PooledAcceptContext context)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.Socket socket,
+        [System.Diagnostics.CodeAnalysis.NotNull] PooledAcceptContext context)
     {
         InitializeSocketOptions(socket);
 
@@ -271,8 +271,8 @@ public abstract partial class TcpListenerBase
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void AcceptNext(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Net.Sockets.SocketAsyncEventArgs args,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Threading.CancellationToken token)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketAsyncEventArgs args,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
@@ -332,7 +332,7 @@ public abstract partial class TcpListenerBase
 
     [System.Diagnostics.DebuggerStepThrough]
     private async System.Threading.Tasks.Task AcceptConnectionsAsync(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Threading.CancellationToken cancellationToken)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -400,7 +400,7 @@ public abstract partial class TcpListenerBase
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     private async System.Threading.Tasks.ValueTask<IConnection> CreateConnectionAsync(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Threading.CancellationToken cancellationToken)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 

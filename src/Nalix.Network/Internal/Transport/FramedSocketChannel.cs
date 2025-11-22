@@ -66,8 +66,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     public void SetCallback(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.EventHandler<IConnectEventArgs> close,
         [System.Diagnostics.CodeAnalysis.AllowNull] System.EventHandler<IConnectEventArgs> post,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection sender,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs args)
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnection sender,
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
     {
         _callbackPost = post;
         _callbackClose = close;

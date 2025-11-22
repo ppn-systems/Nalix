@@ -43,8 +43,8 @@ internal static class AsyncCallback
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Invoke(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.EventHandler<IConnectEventArgs> callback,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Object sender,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs args)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
     {
         if (callback is null)
         {

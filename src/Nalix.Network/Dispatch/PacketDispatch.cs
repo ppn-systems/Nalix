@@ -41,7 +41,7 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(
         [System.Diagnostics.CodeAnalysis.AllowNull] IBufferLease raw,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection)
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
         try
         {
@@ -86,6 +86,6 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IPacket packet,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection) => ExecutePacketHandlerAsync(packet, connection).Await();
+        [System.Diagnostics.CodeAnalysis.NotNull] IPacket packet,
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection) => ExecutePacketHandlerAsync(packet, connection).Await();
 }

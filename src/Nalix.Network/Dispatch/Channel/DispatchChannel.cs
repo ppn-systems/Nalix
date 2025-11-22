@@ -189,8 +189,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Push(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IBufferLease lease)
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection,
+        [System.Diagnostics.CodeAnalysis.NotNull] IBufferLease lease)
     {
         var cqs = _queues.GetOrAdd(connection, static _ => new ConnectionQueues());
         var cs = GetState(connection);
@@ -268,15 +268,15 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private ConnectionState GetState([System.Diagnostics.CodeAnalysis.DisallowNull] IConnection c)
+    private ConnectionState GetState([System.Diagnostics.CodeAnalysis.NotNull] IConnection c)
         => _states.GetOrAdd(c, static _ => new ConnectionState());
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Boolean HasAny(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] ConnectionQueues cqs,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] out System.Int32 highest)
+        [System.Diagnostics.CodeAnalysis.NotNull] ConnectionQueues cqs,
+        [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 highest)
     {
         for (System.Int32 p = HighestPriorityIndex; p >= LowestPriorityIndex; p--)
         {
@@ -294,8 +294,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Boolean TryDequeueHighest(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] ConnectionQueues cqs,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Int32 startPrio,
+        [System.Diagnostics.CodeAnalysis.NotNull] ConnectionQueues cqs,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 startPrio,
         [System.Diagnostics.CodeAnalysis.AllowNull]
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease raw, out System.Int32 dequeuedFromPrio)
     {
@@ -321,8 +321,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Boolean TryEvictOldest(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] ConnectionQueues cqs,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] ConnectionState cs,
+        [System.Diagnostics.CodeAnalysis.NotNull] ConnectionQueues cqs,
+        [System.Diagnostics.CodeAnalysis.NotNull] ConnectionState cs,
         [System.Diagnostics.CodeAnalysis.AllowNull]
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease lease)
     {
@@ -349,7 +349,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Int32 ClassifyPriorityIndex(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> span)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> span)
     {
         var pr = span.ReadPriorityLE();
         System.Int32 idx = (System.Int32)pr;
@@ -369,7 +369,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void OnUnregistered([System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection) => this.RemoveConnection(connection);
+    private void OnUnregistered([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection) => this.RemoveConnection(connection);
 
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -377,7 +377,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void OnConnectionClosed(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs e) => this.RemoveConnection(e.Connection);
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs e) => this.RemoveConnection(e.Connection);
 
     /// <summary>
     /// Removes a connection, draining all per-priority queues and adjusting counters.
@@ -386,7 +386,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void RemoveConnection([System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection)
+    private void RemoveConnection([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
         connection.OnCloseEvent -= this.OnConnectionClosed;
 

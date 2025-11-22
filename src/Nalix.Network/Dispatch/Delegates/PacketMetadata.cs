@@ -18,7 +18,7 @@ namespace Nalix.Network.Dispatch.Delegates;
 [method: System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 public readonly struct PacketMetadata(
-    [System.Diagnostics.CodeAnalysis.DisallowNull] PacketOpcodeAttribute opCode,
+    [System.Diagnostics.CodeAnalysis.NotNull] PacketOpcodeAttribute opCode,
     [System.Diagnostics.CodeAnalysis.AllowNull] PacketTimeoutAttribute timeout,
     [System.Diagnostics.CodeAnalysis.AllowNull] PacketPermissionAttribute permission,
     [System.Diagnostics.CodeAnalysis.AllowNull] PacketEncryptionAttribute encryption,
@@ -28,7 +28,7 @@ public readonly struct PacketMetadata(
     /// <summary>
     /// Gets the operation code attribute which uniquely identifies the type of packet.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.DisallowNull]
+    [System.Diagnostics.CodeAnalysis.NotNull]
     public readonly PacketOpcodeAttribute OpCode = opCode;
 
     /// <summary>

@@ -22,7 +22,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
     /// <inheritdoc/>
     public async System.Threading.Tasks.ValueTask HandleAsync(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.Object result,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] PacketContext<TPacket> context)
+        [System.Diagnostics.CodeAnalysis.NotNull] PacketContext<TPacket> context)
     {
         if (result is System.String data)
         {

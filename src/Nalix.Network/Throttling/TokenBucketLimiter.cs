@@ -167,8 +167,9 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// Checks and consumes 1 token for the given endpoint. Returns decision with RetryAfter and Credit.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    internal LimitDecision Check(IEndpointKey key)
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    internal LimitDecision Check([System.Diagnostics.CodeAnalysis.NotNull] IEndpointKey key)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(TokenBucketLimiter));
 
