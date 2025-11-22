@@ -35,7 +35,9 @@ public interface IDispatchChannel<TPacket> where TPacket : IPacket
     /// <exception cref="System.ArgumentNullException">
     /// Thrown when <paramref name="raw"/> or <paramref name="connection"/> is <see langword="null"/>.
     /// </exception>
-    void Push(IConnection connection, IBufferLease raw);
+    void Push(
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection,
+        [System.Diagnostics.CodeAnalysis.NotNull] IBufferLease raw);
 
     /// <summary>
     /// Attempts to retrieve a packet and its associated connection from the dispatch queue.
@@ -52,5 +54,8 @@ public interface IDispatchChannel<TPacket> where TPacket : IPacket
     /// <see langword="true"/> if a packet was successfully retrieved; otherwise,
     /// <see langword="false"/> if the queue is empty.
     /// </returns>
-    System.Boolean Pull(out IConnection connection, [System.Diagnostics.CodeAnalysis.AllowNull] out IBufferLease raw);
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    System.Boolean Pull(
+        [System.Diagnostics.CodeAnalysis.NotNull] out IConnection connection,
+        [System.Diagnostics.CodeAnalysis.AllowNull] out IBufferLease raw);
 }

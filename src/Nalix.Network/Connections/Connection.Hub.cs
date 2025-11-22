@@ -93,7 +93,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="connection"/> is null.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean RegisterConnection([System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection)
+    public System.Boolean RegisterConnection([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
         if (connection is null || _disposed)
         {
@@ -137,7 +137,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <returns><c>true</c> if the connection was successfully unregistered; otherwise, <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean UnregisterConnection([System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection)
+    public System.Boolean UnregisterConnection([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
         if (connection is null || _disposed)
         {
@@ -197,8 +197,8 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void AssociateUsername(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String username)
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String username)
     {
         if (connection is null ||
             System.String.IsNullOrWhiteSpace(username) ||
@@ -252,7 +252,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public IConnection GetConnection([System.Diagnostics.CodeAnalysis.DisallowNull] IIdentifier id)
+    public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] IIdentifier id)
         => _connections.TryGetValue(id, out IConnection connection) ? connection : null;
 
     /// <summary>
@@ -263,7 +263,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public IConnection GetConnection([System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> id)
+    public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> id)
         => _connections.TryGetValue(Identifier.FromBytes(id), out IConnection connection) ? connection : null;
 
     /// <summary>
@@ -275,7 +275,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public IConnection GetConnectionByUsername([System.Diagnostics.CodeAnalysis.DisallowNull] System.String username)
+    public IConnection GetConnectionByUsername([System.Diagnostics.CodeAnalysis.NotNull] System.String username)
         => System.String.IsNullOrWhiteSpace(username)
         ? null : _usernameToId.TryGetValue(username, out IIdentifier id) ? this.GetConnection(id) : null;
 
@@ -287,7 +287,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.String GetUsername([System.Diagnostics.CodeAnalysis.DisallowNull] IIdentifier id)
+    public System.String GetUsername([System.Diagnostics.CodeAnalysis.NotNull] IIdentifier id)
         => _usernames.TryGetValue(id, out System.String username) ? username : null;
 
     /// <inheritdoc />
@@ -344,7 +344,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public async System.Threading.Tasks.Task BroadcastAsync<T>(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] T message,
+        [System.Diagnostics.CodeAnalysis.NotNull] T message,
         System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
         System.Threading.CancellationToken cancellationToken = default)
         where T : class
@@ -424,7 +424,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public async System.Threading.Tasks.Task BroadcastWhereAsync<T>(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] T message,
+        [System.Diagnostics.CodeAnalysis.NotNull] T message,
         System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
         System.Func<IConnection, System.Boolean> predicate, System.Threading.CancellationToken cancellation = default)
         where T : class
@@ -587,7 +587,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnClientDisconnected(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs args) => this.UnregisterConnection(args.Connection);
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args) => this.UnregisterConnection(args.Connection);
 
     [System.Diagnostics.StackTraceHidden]
     private void HandleConnectionLimit(IConnection newConnection)

@@ -65,7 +65,10 @@ public static class PolicyRateLimiter
     /// <returns>Decision containing Allowed, RetryAfterMs, Credit, and Reason.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static TokenBucketLimiter.LimitDecision Check(System.UInt16 opCode, PacketContext<IPacket> context)
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public static TokenBucketLimiter.LimitDecision Check(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt16 opCode,
+        [System.Diagnostics.CodeAnalysis.NotNull] PacketContext<IPacket> context)
     {
         PacketRateLimitAttribute rl = context.Attributes.RateLimit!;
         if (rl.RequestsPerSecond <= 0)

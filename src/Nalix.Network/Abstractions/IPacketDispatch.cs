@@ -31,7 +31,7 @@ public interface IPacketDispatch<TPacket> where TPacket : IPacket
     /// </param>
     void HandlePacket(
         [System.Diagnostics.CodeAnalysis.AllowNull] IBufferLease packet,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection);
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection);
 
     /// <summary>
     /// Handles a fully deserialized packet instance.
@@ -43,6 +43,6 @@ public interface IPacketDispatch<TPacket> where TPacket : IPacket
     /// The connection from which the packet was received.
     /// </param>
     void HandlePacket(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] TPacket packet,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection);
+        [System.Diagnostics.CodeAnalysis.NotNull] TPacket packet,
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection);
 }

@@ -24,7 +24,7 @@ public sealed partial class Connection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public static EndpointKey FromIpAddress(
-            [System.Diagnostics.CodeAnalysis.DisallowNull] System.Net.IPAddress ip)
+            [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress ip)
         {
             NormalizeAddress(ip, out System.UInt64 hi, out System.UInt64 lo, out System.Boolean isV6);
             return new EndpointKey(hi, lo, 0, isV6, hasPort: false);
@@ -51,10 +51,10 @@ public sealed partial class Connection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         private static void NormalizeAddress(
-            [System.Diagnostics.CodeAnalysis.DisallowNull] System.Net.IPAddress ip,
-            [System.Diagnostics.CodeAnalysis.DisallowNull] out System.UInt64 hi,
-            [System.Diagnostics.CodeAnalysis.DisallowNull] out System.UInt64 lo,
-            [System.Diagnostics.CodeAnalysis.DisallowNull] out System.Boolean isV6)
+            [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress ip,
+            [System.Diagnostics.CodeAnalysis.NotNull] out System.UInt64 hi,
+            [System.Diagnostics.CodeAnalysis.NotNull] out System.UInt64 lo,
+            [System.Diagnostics.CodeAnalysis.NotNull] out System.Boolean isV6)
         {
             if (ip.IsIPv4MappedToIPv6)
             {

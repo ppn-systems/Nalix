@@ -43,7 +43,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static IReturnHandler<TPacket> GetHandler(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Type returnType)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Type returnType)
     {
         if (_handlers.TryGetValue(returnType, out IReturnHandler<TPacket> handler))
         {
@@ -98,8 +98,8 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static IReturnHandler<TPacket> CreateTaskHandler(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IReturnHandler<TPacket> innerHandler,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Type resultType)
+        [System.Diagnostics.CodeAnalysis.NotNull] IReturnHandler<TPacket> innerHandler,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Type resultType)
     {
         System.Type handlerType = typeof(TaskReturnHandler<,>).MakeGenericType(typeof(TPacket), resultType);
         return (IReturnHandler<TPacket>)System.Activator.CreateInstance(handlerType, innerHandler)!;
@@ -108,8 +108,8 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static IReturnHandler<TPacket> CreateValueTaskHandler(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IReturnHandler<TPacket> innerHandler,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Type resultType)
+        [System.Diagnostics.CodeAnalysis.NotNull] IReturnHandler<TPacket> innerHandler,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Type resultType)
     {
         System.Type handlerType = typeof(ValueTaskReturnHandler<,>).MakeGenericType(typeof(TPacket), resultType);
         return (IReturnHandler<TPacket>)System.Activator.CreateInstance(handlerType, innerHandler)!;
