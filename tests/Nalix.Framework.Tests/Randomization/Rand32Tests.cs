@@ -1,5 +1,4 @@
-﻿using Nalix.Framework.Randomization;
-using Nalix.Framework.Randomization.Algorithms;
+﻿using Nalix.Framework.Random.Algorithms;
 using System;
 using System.Collections.Generic;
 using System.Linq;
