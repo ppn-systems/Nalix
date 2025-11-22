@@ -217,7 +217,13 @@ public partial class TaskManager
 
         public IRecurringOptions Options { get; } = opt;
 
-        public System.Threading.CancellationTokenSource Cts { get; } = cts;
+        public System.Threading.CancellationTokenSource CancellationTokenSource { get; } = cts;
+
+        public System.Int64 IntervalTicks { get; } = (System.Int64)(iv.TotalSeconds * System.Diagnostics.Stopwatch.Frequency) switch
+        {
+            <= 0 => 1,
+            var x => x
+        };
 
         // backing fields
         private System.Int64 _totalRuns;
@@ -294,7 +300,7 @@ public partial class TaskManager
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        public void Cancel() => Cts.Cancel();
+        public void Cancel() => CancellationTokenSource.Cancel();
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]

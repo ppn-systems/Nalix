@@ -74,10 +74,9 @@ public sealed partial class TaskManager : ITaskManager
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String name, System.TimeSpan interval,
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work, IRecurringOptions? options = null)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
-
         System.ArgumentNullException.ThrowIfNull(work);
         System.ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
         System.ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, System.TimeSpan.Zero);
 
         options ??= new RecurringOptions();
@@ -301,7 +300,7 @@ public sealed partial class TaskManager : ITaskManager
             {
                 _ = t.ContinueWith(_ =>
                     {
-                        try { st.Cts.Dispose(); } catch { }
+                        try { st.CancellationTokenSource.Dispose(); } catch { }
                         try { st.Gate.Dispose(); } catch { }
                     },
                     System.Threading.CancellationToken.None,
@@ -313,7 +312,7 @@ public sealed partial class TaskManager : ITaskManager
             {
                 try
                 {
-                    st.Cts.Dispose();
+                    st.CancellationTokenSource.Dispose();
                 }
                 catch { }
                 try
@@ -628,7 +627,7 @@ public sealed partial class TaskManager : ITaskManager
             {
                 _ = t.ContinueWith(_ =>
                     {
-                        try { st.Cts.Dispose(); } catch { }
+                        try { st.CancellationTokenSource.Dispose(); } catch { }
                         try { st.Gate.Dispose(); } catch { }
                     },
                     System.Threading.CancellationToken.None,
@@ -638,7 +637,7 @@ public sealed partial class TaskManager : ITaskManager
             }
             else
             {
-                try { st.Cts.Dispose(); } catch { }
+                try { st.CancellationTokenSource.Dispose(); } catch { }
                 try { st.Gate.Dispose(); } catch { }
             }
         }
