@@ -25,4 +25,15 @@ public static class SerializerBounds
     /// Equal to <see cref="System.UInt16.MaxValue"/> - 2 (65533).
     /// </summary>
     public const System.UInt16 MaxString = System.UInt16.MaxValue - 2;
+
+    // Magic numbers cho special cases
+    /// <summary>
+    /// 
+    /// </summary>
+    public static readonly System.Byte[] NullArrayMarker = [255, 255, 255, 255];
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public static readonly System.Byte[] EmptyArrayMarker = [0, 0, 0, 0];
 }

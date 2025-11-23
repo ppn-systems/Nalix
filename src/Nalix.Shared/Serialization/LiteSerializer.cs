@@ -18,11 +18,6 @@ public static class LiteSerializer
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
     private const System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes All = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All;
 
-    // Magic numbers cho special cases
-    private static readonly System.Byte[] NullArrayMarker = [255, 255, 255, 255];
-
-    private static readonly System.Byte[] EmptyArrayMarker = [0, 0, 0, 0];
-
     #endregion Constants
 
     #region APIs
@@ -41,6 +36,7 @@ public static class LiteSerializer
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     public static System.Byte[] Serialize<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(in T value)
     {
@@ -59,14 +55,14 @@ public static class LiteSerializer
         {
             if (value is null)
             {
-                return NullArrayMarker;
+                return SerializerBounds.NullArrayMarker;
             }
 
             System.Array array = (System.Array)(System.Object)value;
             System.Int32 length = array.Length;
             if (length is 0)
             {
-                return EmptyArrayMarker;
+                return SerializerBounds.EmptyArrayMarker;
             }
 
             System.Int32 dataSize = size * length;
@@ -85,12 +81,8 @@ public static class LiteSerializer
             System.Diagnostics.Debug.WriteLine(
                 $"Serializing fixed-size type {typeof(T).FullName} with size {size} bytes.");
 
-            System.Byte[] buffer = size > 0
-                ? System.GC.AllocateUninitializedArray<System.Byte>(size)
-                : new System.Byte[512]; // small fallback
-
             IFormatter<T> formatter = FormatterProvider.Get<T>();
-            DataWriter writer = new(buffer);
+            DataWriter writer = (size > 512) ? new(size) : new(512);
 
             try
             {
@@ -98,6 +90,11 @@ public static class LiteSerializer
 
                 System.Diagnostics.Debug.WriteLine(
                     $"Serialized fixed-size type {typeof(T).FullName} into {writer.WrittenCount} bytes.");
+
+                if (writer.WrittenCount == 0)
+                {
+                    return System.Array.Empty<System.Byte>();
+                }
 
                 return writer.ToArray();
             }
@@ -108,8 +105,8 @@ public static class LiteSerializer
         }
         else if (kind is TypeKind.None)
         {
-            DataWriter writer = (size > 512) ? new(size) : new(512);
             IFormatter<T> formatter = FormatterProvider.Get<T>();
+            DataWriter writer = (size > 512) ? new(size) : new(512);
 
             try
             {
