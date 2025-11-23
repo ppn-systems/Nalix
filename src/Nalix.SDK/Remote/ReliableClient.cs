@@ -33,8 +33,8 @@ public sealed class ReliableClient : System.IDisposable
     private System.Net.Sockets.TcpClient _client;
     private System.Net.Sockets.NetworkStream _stream;
 
-    private StreamSender<IPacket> _outbound;
-    private StreamReceiver<IPacket> _inbound;
+    private FRAME_SENDER<IPacket> _outbound;
+    private FRAME_READER<IPacket> _inbound;
 
     private volatile System.Boolean _closed;
     private volatile System.Boolean _ioHealthy;
@@ -134,21 +134,21 @@ public sealed class ReliableClient : System.IDisposable
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.SkipLocalsInit]
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_stream))]
-    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_outbound))]
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_inbound))]
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_outbound))]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter", Justification = "<Pending>")]
     public async System.Threading.Tasks.Task ConnectAsync(
-        System.Int32 timeout = 30000,
-        System.Threading.CancellationToken cancellationToken = default)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 timeout = 30000,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default)
     {
         _closed = false;
         _ioHealthy = true;
         _discNotified = 0;
 
         _client?.Close();
-        ConfigureSocket(_client);
+        CONFIGURE_SOCKET(_client);
 
         using System.Threading.CancellationTokenSource cts =
             System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -171,11 +171,11 @@ public sealed class ReliableClient : System.IDisposable
             _stream.ReadTimeout = 10_000;
             _stream.WriteTimeout = 10_000;
 
-            _outbound = new StreamSender<IPacket>(_stream);
-            _inbound = new StreamReceiver<IPacket>(_stream);
+            _outbound = new FRAME_SENDER<IPacket>(_stream);
+            _inbound = new FRAME_READER<IPacket>(_stream);
 
             // Notify connected
-            SafeInvoke(Connected, InstanceManager.Instance.GetExistingInstance<ILogger>());
+            SAFE_INVOKE(Connected, InstanceManager.Instance.GetExistingInstance<ILogger>());
 
             // Start background receive worker through TaskManager
             IWorkerHandle woker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
@@ -189,7 +189,7 @@ public sealed class ReliableClient : System.IDisposable
 
                         try
                         {
-                            packet = await _inbound!.ReceiveAsync(ct).ConfigureAwait(false);
+                            packet = await _inbound!.RECEIVE_ASYNC(ct).ConfigureAwait(false);
                         }
                         catch (System.OperationCanceledException)
                         {
@@ -202,20 +202,20 @@ public sealed class ReliableClient : System.IDisposable
 
                             if (packet != null)
                             {
-                                SafeInvoke(PacketReceived, packet, InstanceManager.Instance.GetExistingInstance<ILogger>());
+                                SAFE_INVOKE(PacketReceived, packet, InstanceManager.Instance.GetExistingInstance<ILogger>());
                             }
 
                             if (System.Threading.Interlocked.Exchange(ref _discNotified, 1) == 0)
                             {
-                                SafeInvoke(Disconnected, ex, InstanceManager.Instance.GetExistingInstance<ILogger>());
+                                SAFE_INVOKE(Disconnected, ex, InstanceManager.Instance.GetExistingInstance<ILogger>());
                             }
 
-                            this.MarkIoDead(ex);
+                            this.MARK_IO_DEAD(ex);
                             this.Disconnect();
                             break;
                         }
 
-                        SafeInvoke(PacketReceived, packet, InstanceManager.Instance.GetExistingInstance<ILogger>());
+                        SAFE_INVOKE(PacketReceived, packet, InstanceManager.Instance.GetExistingInstance<ILogger>());
                     }
                 },
                 new WorkerOptions
@@ -257,8 +257,11 @@ public sealed class ReliableClient : System.IDisposable
     /// <exception cref="System.IO.IOException">
     /// Thrown if an IEndpointKey /O error occurs while writing to the underlying stream.
     /// </exception>
-    public System.Threading.Tasks.Task SendAsync(IPacket packet, System.Threading.CancellationToken ct = default)
-        => (_outbound ?? throw new System.InvalidOperationException("Not connected.")).SendAsync(packet, ct);
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_outbound))]
+    public System.Threading.Tasks.Task SendAsync(
+        [System.Diagnostics.CodeAnalysis.NotNull] IPacket packet,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken ct = default)
+        => (_outbound ?? throw new System.InvalidOperationException("Not connected.")).SEND_ASYNC(packet, ct);
 
     /// <summary>
     /// Closes the network connection and releases resources.
@@ -284,7 +287,7 @@ public sealed class ReliableClient : System.IDisposable
 
         }
 
-        this.DeepClose();
+        this.DEEP_CLOSE();
 
         try { _stream?.Dispose(); } catch { /* swallow */ }
         try { _client?.Close(); } catch { /* swallow */ }
@@ -295,7 +298,7 @@ public sealed class ReliableClient : System.IDisposable
         // Notify once on explicit disconnect as well
         if (System.Threading.Interlocked.Exchange(ref _discNotified, 1) == 0)
         {
-            SafeInvoke(Disconnected, null, InstanceManager.Instance.GetExistingInstance<ILogger>());
+            SAFE_INVOKE(Disconnected, null, InstanceManager.Instance.GetExistingInstance<ILogger>());
         }
     }
 
@@ -313,7 +316,7 @@ public sealed class ReliableClient : System.IDisposable
 
     #region Private Methods
 
-    private static void ConfigureSocket(System.Net.Sockets.TcpClient client)
+    private static void CONFIGURE_SOCKET([System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.TcpClient client)
     {
         if (client is null)
         {
@@ -331,7 +334,7 @@ public sealed class ReliableClient : System.IDisposable
         try
         {
             // Default to graceful linger of 0 (no lingering) during normal operation.
-            // Final abortive close is performed in DeepClose via AbortiveClose.
+            // Final abortive close is performed in DEEP_CLOSE via ABORTIVE_CLOSE.
             client.LingerState = new System.Net.Sockets.LingerOption(false, 0);
         }
         catch { /* ignore */ }
@@ -347,11 +350,11 @@ public sealed class ReliableClient : System.IDisposable
         if (System.OperatingSystem.IsWindows())
         {
             _ = client.Client.IOControl(System.Net.Sockets.IOControlCode.KeepAliveValues,
-                              GetKeepAliveConfig(keepAliveTimeMs: 20_000, keepAliveIntervalMs: 5_000), null);
+                              KEEP_ALIVE_CONFIG(keepAliveTimeMs: 20_000, keepAliveIntervalMs: 5_000), null);
         }
     }
 
-    private static System.Byte[] GetKeepAliveConfig(System.UInt32 keepAliveTimeMs, System.UInt32 keepAliveIntervalMs)
+    private static System.Byte[] KEEP_ALIVE_CONFIG(System.UInt32 keepAliveTimeMs, System.UInt32 keepAliveIntervalMs)
     {
         System.Byte[] buffer = new System.Byte[12];
         System.BitConverter.GetBytes(1u).CopyTo(buffer, 0); // Enable
@@ -360,18 +363,16 @@ public sealed class ReliableClient : System.IDisposable
         return buffer;
     }
 
-
-    private void MarkIoDead(System.Exception ex = null)
+    private void MARK_IO_DEAD(System.Exception ex = null)
     {
         _ioHealthy = false;
         if (System.Threading.Interlocked.Exchange(ref _discNotified, 1) == 0)
         {
-            SafeInvoke(Disconnected, ex, InstanceManager.Instance.GetExistingInstance<ILogger>());
+            SAFE_INVOKE(Disconnected, ex, InstanceManager.Instance.GetExistingInstance<ILogger>());
         }
     }
 
-    // Add to ReliableClient
-    private static void AbortiveClose(System.Net.Sockets.Socket s)
+    private static void ABORTIVE_CLOSE(System.Net.Sockets.Socket s)
     {
         if (s == null)
         {
@@ -402,14 +403,14 @@ public sealed class ReliableClient : System.IDisposable
         try { s.Dispose(); } catch { /* ignore */ }
     }
 
-    private void DeepClose()
+    private void DEEP_CLOSE()
     {
         // 1) Dispose the stream first to stop pending IEndpointKey /O
         try { _stream?.Dispose(); } catch { /* ignore */ }
         _stream = null;
 
         // 2) Abortive-close underlying socket
-        try { AbortiveClose(_client?.Client); } catch { /* ignore */ }
+        try { ABORTIVE_CLOSE(_client?.Client); } catch { /* ignore */ }
 
         // 3) Dispose TcpClient wrapper
         try { _client?.Dispose(); } catch { /* ignore */ }
@@ -420,7 +421,7 @@ public sealed class ReliableClient : System.IDisposable
         _inbound = null;
     }
 
-    private static void SafeInvoke(System.Action evt, ILogger log)
+    private static void SAFE_INVOKE(System.Action evt, ILogger log)
     {
         var d = evt;
         if (d is null)
@@ -434,7 +435,7 @@ public sealed class ReliableClient : System.IDisposable
         }
     }
 
-    private static void SafeInvoke<T>(System.Action<T> evt, T arg, ILogger log)
+    private static void SAFE_INVOKE<T>(System.Action<T> evt, T arg, ILogger log)
     {
         var d = evt; if (d is null)
         {
