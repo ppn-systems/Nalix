@@ -41,6 +41,12 @@ public interface IWorkerOptions
     System.Action<IWorkerHandle, System.Exception> OnFailed { get; }
 
     /// <summary>
+    /// Gets the optional execution timeout for the worker.
+    /// If set, the worker will be cancelled if it does not complete within this duration.
+    /// </summary>
+    System.TimeSpan? ExecutionTimeout { get; }
+
+    /// <summary>
     /// Gets the duration for which finished workers are retained for diagnostics.
     /// Set to <c>null</c> or <c>TimeSpan.Zero</c> to auto-remove workers immediately.
     /// </summary>
