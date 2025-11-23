@@ -33,6 +33,7 @@ namespace Nalix.Network.Internal.Pooled;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class PooledAcceptContext : IPoolable
 {
+    [SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
     private static readonly EventHandler<SocketAsyncEventArgs> AsyncAcceptCompleted = static (s, e) =>
     {
         if (e.UserToken is not TaskCompletionSource<Socket> tcs)

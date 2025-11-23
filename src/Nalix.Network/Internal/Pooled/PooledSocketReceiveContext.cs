@@ -87,34 +87,30 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     /// Resolves the TCS AND decrements the active-op counter (EndOperation).
     /// -------------------------------------------------------------------------
     /// </summary>
-    private static readonly EventHandler<SocketAsyncEventArgs>
-        AsyncReceiveCompleted = static (_, e) =>
+    [SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
+    private static readonly EventHandler<SocketAsyncEventArgs> AsyncReceiveCompleted = static (_, e) =>
+    {
+        if (e.UserToken is not ReceiveToken token)
         {
-            if (e.UserToken is not ReceiveToken token)
-            {
-                return;
-            }
+            return;
+        }
 
 #if DEBUG
-            Debug.WriteLine(
-                "[PooledSocketReceiveContext] async-complete " +
-                $"err={e.SocketError} bytes={e.BytesTransferred} " +
-                $"ctx={RuntimeHelpers.GetHashCode(token.Owner)}");
+        Debug.WriteLine($"[PooledSocketReceiveContext] async-complete err={e.SocketError} bytes={e.BytesTransferred} ctx={RuntimeHelpers.GetHashCode(token.Owner)}");
 #endif
 
-            try
-            {
-                _ = e.SocketError == SocketError.Success
-                    ? token.Tcs.TrySetResult(e.BytesTransferred)
-                    : token.Tcs.TrySetException(
-                        new SocketException((int)e.SocketError));
-            }
-            finally
-            {
-                // Always decrement — even if TrySet* fails (duplicate completion guard).
-                token.Owner.EndOperation();
-            }
-        };
+        try
+        {
+            _ = e.SocketError == SocketError.Success
+                ? token.Tcs.TrySetResult(e.BytesTransferred)
+                : token.Tcs.TrySetException(new SocketException((int)e.SocketError));
+        }
+        finally
+        {
+            // Always decrement — even if TrySet* fails (duplicate completion guard).
+            token.Owner.EndOperation();
+        }
+    };
 
     // -------------------------------------------------------------------------
     // Fields
@@ -150,8 +146,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     /// <exception cref="InvalidOperationException">
     /// Thrown when <see cref="EnsureArgsBound"/> has not been called yet.
     /// </exception>
-    public SocketAsyncEventArgs Args
-        => _args ?? throw new InvalidOperationException("Args not bound.");
+    public SocketAsyncEventArgs Args => _args ?? throw new InvalidOperationException("Args not bound.");
 
     /// <summary>
     /// Ensures this context has a bound SAEA, acquiring one from
@@ -170,8 +165,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
 
 #if DEBUG
         Debug.WriteLine(
-            "[PooledSocketReceiveContext] EnsureArgsBound acquired saea " +
-            $"ctx={RuntimeHelpers.GetHashCode(this)}");
+            $"[PooledSocketReceiveContext] EnsureArgsBound acquired saea ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
 
         BindArgs(pooledArgs);
@@ -194,9 +188,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
         _args.Completed += AsyncReceiveCompleted;
 
 #if DEBUG
-        Debug.WriteLine(
-            "[PooledSocketReceiveContext] BindArgs " +
-            $"ctx={RuntimeHelpers.GetHashCode(this)}");
+        Debug.WriteLine($"[PooledSocketReceiveContext] BindArgs ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
     }
 
@@ -219,11 +211,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     /// received. Returns 0 when the peer has closed the connection.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ValueTask<int> ReceiveAsync(
-        Socket socket,
-        byte[] buffer,
-        int offset,
-        int count)
+    public ValueTask<int> ReceiveAsync(Socket socket, byte[] buffer, int offset, int count)
     {
         SocketAsyncEventArgs args = Args; // throws if not bound
 
@@ -267,9 +255,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
 
 #if DEBUG
             Debug.WriteLine(
-                "[PooledSocketReceiveContext] recv-sync " +
-                $"err={err} bytes={bytes} offset={offset} count={count} " +
-                $"ctx={RuntimeHelpers.GetHashCode(this)}");
+                $"[PooledSocketReceiveContext] recv-syncerr={err} bytes={bytes} offset={offset} count={count} ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
 
             return err != SocketError.Success
@@ -279,10 +265,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
         }
 
 #if DEBUG
-        Debug.WriteLine(
-            "[PooledSocketReceiveContext] recv-async-pending " +
-            $"offset={offset} count={count} " +
-            $"ctx={RuntimeHelpers.GetHashCode(this)}");
+        Debug.WriteLine($"[PooledSocketReceiveContext] recv-async-pending offset={offset} count={count} ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
 
         // ── Async path: static handler fires when OS completes ───────────
@@ -299,8 +282,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     {
 #if DEBUG
         Debug.WriteLine(
-            $"[PooledSocketReceiveContext] ResetForPool begin activeOps={_activeOps} " +
-            $"ctx={RuntimeHelpers.GetHashCode(this)}");
+            $"[PooledSocketReceiveContext] ResetForPool begin activeOps={_activeOps} ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
 
         // Wait for in-flight op. 5 s is generous; a real connection teardown
@@ -309,9 +291,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
         {
 #if DEBUG
             Debug.WriteLine(
-                "[PooledSocketReceiveContext] ResetForPool TIMEOUT waiting for idle " +
-                $"activeOps={_activeOps} " +
-                $"ctx={RuntimeHelpers.GetHashCode(this)}");
+                $"[PooledSocketReceiveContext] ResetForPool TIMEOUT waiting for idle activeOps={_activeOps} ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
             // Still proceed — better to risk a brief race than to leak the context.
         }
@@ -337,9 +317,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
         _idle.Set();
 
 #if DEBUG
-        Debug.WriteLine(
-            "[PooledSocketReceiveContext] ResetForPool done " +
-            $"ctx={RuntimeHelpers.GetHashCode(this)}");
+        Debug.WriteLine($"[PooledSocketReceiveContext] ResetForPool done ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
     }
 
