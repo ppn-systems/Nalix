@@ -1,8 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Networking.Packets.Transformation;
-
 namespace Nalix.Common.Networking.Packets.Abstractions;
 
 /// <summary>
@@ -18,9 +16,6 @@ namespace Nalix.Common.Networking.Packets.Abstractions;
 ///   <item>
 ///     <description>Retrieving a typed <see cref="PacketDeserializer"/> by magic number.</description>
 ///   </item>
-///   <item>
-///     <description>Retrieving a <see cref="PacketTransformer"/> for a given packet <see cref="System.Type"/>.</description>
-///   </item>
 /// </list>
 /// Implementations must be safe for concurrent read access if used across threads.
 /// </remarks>
@@ -30,11 +25,6 @@ public interface IPacketRegistry
     /// Gets the number of deserializers registered in this catalog.
     /// </summary>
     System.Int32 DeserializerCount { get; }
-
-    /// <summary>
-    /// Gets the number of transformers registered in this catalog.
-    /// </summary>
-    System.Int32 TransformerCount { get; }
 
     /// <summary>
     /// Returns <see langword="true"/> if a deserializer is registered for
@@ -78,19 +68,4 @@ public interface IPacketRegistry
     /// <see langword="true"/> if a deserializer is registered; otherwise <see langword="false"/>.
     /// </returns>
     System.Boolean TryGetDeserializer(System.UInt32 magic, out PacketDeserializer deserializer);
-
-    /// <summary>
-    /// Attempts to get the transformer delegates associated with the specified packet type.
-    /// </summary>
-    /// <param name="packetType">
-    /// The concrete <see cref="System.Type"/> of the packet for which transformers are requested.
-    /// </param>
-    /// <param name="transformer">
-    /// When this method returns <see langword="true"/>, contains the <see cref="PacketTransformer"/> configured for the type;
-    /// otherwise, contains the default value.
-    /// </param>
-    /// <returns>
-    /// <see langword="true"/> if transformers are registered for the specified packet type; otherwise, <see langword="false"/>.
-    /// </returns>
-    System.Boolean TryGetTransformer(System.Type packetType, out PacketTransformer transformer);
 }

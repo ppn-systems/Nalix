@@ -47,10 +47,16 @@ public enum PacketHeaderOffset : System.Int32
     TRANSPORT = PRIORITY + sizeof(System.Byte),
 
     /// <summary>
+    /// SequenceId field: Used for packet sequence correlation.
+    /// </summary>
+    [DataType(typeof(System.UInt32))]
+    SEQUENCE_ID = TRANSPORT + sizeof(System.Byte),
+
+    /// <summary>
     /// Represents the end offset of the packet header fields in the serialized data.
     /// This value is equal to the offset of the last field and can be used to determine the total header size.
     /// </summary>
-    DATA_REGION = TRANSPORT + sizeof(System.Byte),
+    DATA_REGION = TRANSPORT + sizeof(System.UInt32),
 
     /// <inheritdoc/>
     MAX_VALUE = System.Byte.MaxValue,

@@ -210,8 +210,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                         LastReloadTime = System.DateTime.UtcNow;
 
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                            .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
-                                  $"auto-reload-ok count={_configContainerDict.Count}");
+                                                .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
+                                                      $"auto-reload-ok count={_configContainerDict.Count}");
 
                         pathToWatch = normalizedPath;
                         success = true;
