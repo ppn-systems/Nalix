@@ -130,7 +130,7 @@ public abstract partial class TcpListenerBase
             _cancellationToken = _cts.Token;
 
             linkedToken = _cts.Token;
-            _cancelReg = linkedToken.Register(static s => ((TcpListenerBase)s!).ScheduleStop(), this);
+            _cancelReg = linkedToken.Register(static s => ((TcpListenerBase)s!).SCHEDULE_STOP(), this);
 
             System.Boolean needInit;
             try

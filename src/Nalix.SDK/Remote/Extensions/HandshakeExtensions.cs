@@ -14,7 +14,7 @@ namespace Nalix.SDK.Remote.Extensions;
 /// Client-side cryptographic handshake for ReliableClient (event-driven).
 /// Flow:
 /// 1) Generate X25519 keypair.
-/// 2) Send Handshake(opCode, clientPublicKey, ProtocolType.TCP).
+/// 2) SEND Handshake(opCode, clientPublicKey, ProtocolType.TCP).
 /// 3) Await server Handshake containing 32-byte server public key.
 /// 4) Derive shared secret and install a 32-byte session key via SHA3-256(secret).
 /// </summary>
@@ -29,7 +29,7 @@ public static class HandshakeExtensions
     /// <summary>
     /// Perform X25519 handshake end-to-end:
     /// - Generate ephemeral keypair
-    /// - Send Handshake(opCode, clientPublicKey, TCP)
+    /// - SEND Handshake(opCode, clientPublicKey, TCP)
     /// - Await server Handshake with 32-byte public key
     /// - Derive shared secret, install 32-byte session key (SHA3-256)
     /// Auto-unsubscribes the temporary listener and aborts on disconnect/timeout.
@@ -98,7 +98,7 @@ public static class HandshakeExtensions
 
         try
         {
-            // Send client hello AFTER subscribing to avoid race
+            // SEND client hello AFTER subscribing to avoid race
             await client.SendAsync(new Handshake(opCode, kp.PublicKey, ProtocolType.TCP), linked.Token)
                         .ConfigureAwait(false);
 

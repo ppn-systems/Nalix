@@ -14,7 +14,7 @@ namespace Nalix.SDK.Remote.Internal;
 /// </summary>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 [System.Diagnostics.DebuggerDisplay("Readable={_stream?.CanRead}")]
-internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream stream) where TPacket : IPacket
+internal sealed class FRAME_READER<TPacket>(System.Net.Sockets.NetworkStream stream) where TPacket : IPacket
 {
     private readonly System.Net.Sockets.NetworkStream _stream = stream
         ?? throw new System.ArgumentNullException(nameof(stream));
@@ -29,7 +29,7 @@ internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream s
     [System.Runtime.CompilerServices.SkipLocalsInit]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public async System.Threading.Tasks.Task<TPacket> ReceiveAsync(System.Threading.CancellationToken cancellationToken = default)
+    public async System.Threading.Tasks.Task<TPacket> RECEIVE_ASYNC(System.Threading.CancellationToken cancellationToken = default)
     {
         await _rxGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -42,7 +42,7 @@ internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream s
             catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug("ReceiveAsync cancelled while reading length header.");
+                                        .Debug("RECEIVE_ASYNC cancelled while reading length header.");
                 throw;
             }
 
@@ -76,7 +76,7 @@ internal sealed class StreamReceiver<TPacket>(System.Net.Sockets.NetworkStream s
                 catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Debug("ReceiveAsync cancelled while reading payload.");
+                                            .Debug("RECEIVE_ASYNC cancelled while reading payload.");
                     throw;
                 }
 
