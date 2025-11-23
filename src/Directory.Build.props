@@ -1,5 +1,11 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+	  <DebugType>embedded</DebugType>
+	  <IncludeSource>false</IncludeSource>
+	  <IncludeSymbols>false</IncludeSymbols>
+	  <PublishRepositoryUrl>false</PublishRepositoryUrl>
+	  <EmbedUntrackedSources>false</EmbedUntrackedSources>
+	  
     <OutputPath>..\..\build\bin\Debug\</OutputPath>
     <IntermediateOutputPath>..\..\build\obj\Debug\</IntermediateOutputPath>
   </PropertyGroup>
