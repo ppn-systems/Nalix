@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Networking.Abstractions;
-using Nalix.Common.Networking.Caching;
+using Nalix.Common.Shared.Caching;
 using Nalix.Network.Listeners.Tcp;
 
 namespace Nalix.Network.Internal.Pooled;
