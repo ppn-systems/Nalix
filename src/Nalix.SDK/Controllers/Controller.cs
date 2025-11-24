@@ -17,7 +17,7 @@ namespace Nalix.SDK.Controllers;
 /// </summary>
 public sealed class Controller()
 {
-    private readonly ObjectPoolManager _pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private readonly ObjectPoolManager Pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     // seq -> clientMonoTicksAtSend
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.UInt32, System.Int64> _pingTracker = new();
@@ -65,13 +65,13 @@ public sealed class Controller()
         {
             case ControlType.PING:
                 // Respond PONG (echo sequence)
-                await SendPongAsync(c.SequenceId, c.OpCode, c.Protocol, ct).ConfigureAwait(false);
+                await SEND_PONG_ASYNC(c.SequenceId, c.OpCode, c.Protocol, ct).ConfigureAwait(false);
                 OnPing?.Invoke(c.SequenceId);
                 return true;
 
             case ControlType.PONG:
                 {
-                    var rtt = TryComputeRttMs(c.SequenceId);
+                    var rtt = COMPUTE_RTT_MS(c.SequenceId);
                     OnPong?.Invoke(c.SequenceId, rtt);
                     return true;
                 }
@@ -110,15 +110,15 @@ public sealed class Controller()
     /// Initiates a client-side PING to the server and tracks RTT by sequence id.
     /// Returns the sequence id used.
     /// </summary>
-    public async System.Threading.Tasks.ValueTask<System.UInt32> SendPingAsync(
+    public async System.Threading.Tasks.ValueTask<System.UInt32> SEND_PING_ASYNC(
         System.UInt16 opCode = PacketConstants.OpCodeDefault,
         ProtocolType transport = ProtocolType.TCP,
         System.Threading.CancellationToken ct = default)
     {
-        var seq = NextSequenceId();
-        var nowMono = Clock.MonoTicksNow();
+        System.UInt32 seq = NEXT_SEQUENCE_ID();
+        System.Int64 nowMono = Clock.MonoTicksNow();
 
-        var pkt = _pool.Get<Control>();
+        Control pkt = Pool.Get<Control>();
         try
         {
             pkt.Initialize(opCode, ControlType.PING, seq, ProtocolCode.NONE, transport);
@@ -129,20 +129,20 @@ public sealed class Controller()
         }
         finally
         {
-            _pool.Return(pkt);
+            Pool.Return(pkt);
         }
     }
 
     /// <summary>
     /// Sends a PONG in response to a server PING. Normally called internally by HandleAsync.
     /// </summary>
-    public async System.Threading.Tasks.ValueTask SendPongAsync(
+    public async System.Threading.Tasks.ValueTask SEND_PONG_ASYNC(
         System.UInt32 sequenceId,
         System.UInt16 opCode = PacketConstants.OpCodeDefault,
         ProtocolType transport = ProtocolType.TCP,
         System.Threading.CancellationToken ct = default)
     {
-        var pkt = _pool.Get<Control>();
+        Control pkt = Pool.Get<Control>();
         try
         {
             pkt.Initialize(opCode, ControlType.PONG, sequenceId, ProtocolCode.NONE, transport);
@@ -150,21 +150,21 @@ public sealed class Controller()
         }
         finally
         {
-            _pool.Return(pkt);
+            Pool.Return(pkt);
         }
     }
 
     /// <summary>
     /// Sends an ACK with the provided sequence id and reason.
     /// </summary>
-    public async System.Threading.Tasks.ValueTask SendAckAsync(
+    public async System.Threading.Tasks.ValueTask SEND_ACK_ASYNC(
         System.UInt32 sequenceId,
         ProtocolCode reason = ProtocolCode.NONE,
         System.UInt16 opCode = PacketConstants.OpCodeDefault,
         ProtocolType transport = ProtocolType.TCP,
         System.Threading.CancellationToken ct = default)
     {
-        var pkt = _pool.Get<Control>();
+        var pkt = Pool.Get<Control>();
         try
         {
             pkt.Initialize(opCode, ControlType.ACK, sequenceId, reason, transport);
@@ -172,7 +172,7 @@ public sealed class Controller()
         }
         finally
         {
-            _pool.Return(pkt);
+            Pool.Return(pkt);
         }
     }
 
@@ -182,7 +182,7 @@ public sealed class Controller()
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Int32 TryComputeRttMs(System.UInt32 seq)
+    private System.Int32 COMPUTE_RTT_MS(System.UInt32 seq)
     {
         if (_pingTracker.TryRemove(seq, out var sentMono))
         {
@@ -212,7 +212,7 @@ public sealed class Controller()
     /// Generates a new sequence id. Prefer a monotonic increment per-connection.
     /// Replace with your connection's sequence provider if available.
     /// </summary>
-    private static System.UInt32 NextSequenceId()
+    private static System.UInt32 NEXT_SEQUENCE_ID()
     {
         // You may have a central Sequence provider in your connection layer.
         // For demo: use time-lowered xor to avoid 0; ensure not equal to 0 if your protocol reserves it.
