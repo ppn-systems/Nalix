@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 namespace Nalix.Framework.Time;
 
@@ -12,26 +12,18 @@ public static partial class Clock
 {
     #region Constants and Fields
 
-    /// <summary>
-    /// The Unix timestamp representing the start of 2020 (Wed Jan 01 2020 00:00:00 UTC).
-    /// </summary>
-    public const System.Int64 TimeEpochTimestamp = 1577836800L; // (Wed Jan 01 2020 00:00:00)
-
-    /// <summary>
-    /// The <see cref="System.DateTime"/> representation of the start of 2020 (Wed Jan 01 2020 00:00:00 UTC).
-    /// </summary>
-    public static readonly System.DateTime TimeEpochDatetime;
-
     // BaseValue36 values for high-precision time calculation
-
     private static readonly System.DateTime UtcBase;
-    private static readonly System.DateTime TimeEpoch;
+    private static readonly System.Int64 UtcBaseTicks;
+    private static readonly System.Double DriftSmoothing;
     private static readonly System.Diagnostics.Stopwatch UtcStopwatch;
 
     // Time synchronization variables
-
     private static System.Int64 _timeOffset;
     private static System.Double _driftCorrection;
+    private static System.Int64 _lastSyncMonoTicks;
+    private static System.DateTime _lastExternalTime;
+    private static readonly System.Double _swToDateTimeTicks;
 
     // Performance measurement fields
     private static readonly System.Threading.ThreadLocal<System.Diagnostics.Stopwatch> _threadStopwatch;
@@ -39,16 +31,6 @@ public static partial class Clock
     #endregion Constants and Fields
 
     #region Properties
-
-    /// <summary>
-    /// Gets a value indicating whether the system clock is using high-resolution timing.
-    /// </summary>
-    public static System.Boolean IsHighResolution { get; private set; }
-
-    /// <summary>
-    /// Gets the tick frequency in seconds (the duration of a single tick).
-    /// </summary>
-    public static System.Double TickFrequency { get; private set; }
 
     /// <summary>
     /// Gets the frequency of the high-resolution timer in ticks per second.
@@ -71,140 +53,22 @@ public static partial class Clock
 
     static Clock()
     {
-        // Static class, no instantiation allowed
-
-        UtcBase = System.DateTime.UtcNow;
-        UtcStopwatch = System.Diagnostics.Stopwatch.StartNew();
-        TimeEpoch = System.DateTime.UnixEpoch.AddSeconds(TimeEpochTimestamp);
-        TimeEpochDatetime = new(2020, 1, 1, 0, 0, 0, System.DateTimeKind.Utc);
-
         _timeOffset = 0; // In ticks, adjusted from external time sources
         _driftCorrection = 1.0; // Multiplier to correct for system clock drift
-        IsSynchronized = false;
-        LastSyncTime = System.DateTime.MinValue;
-
-        TickFrequency = 1.0 / System.Diagnostics.Stopwatch.Frequency;
-        IsHighResolution = System.Diagnostics.Stopwatch.IsHighResolution;
         _threadStopwatch = new(System.Diagnostics.Stopwatch.StartNew);
+        _swToDateTimeTicks = (System.Double)System.TimeSpan.TicksPerSecond / System.Diagnostics.Stopwatch.Frequency;
+
+        // Static class, no instantiation allowed
+        DriftSmoothing = 0.1;
+        IsSynchronized = false;
+        UtcBase = System.DateTime.UtcNow;
+
+        UtcBaseTicks = UtcBase.Ticks;
+        LastSyncTime = System.DateTime.MinValue;
+        UtcStopwatch = System.Diagnostics.Stopwatch.StartNew();
     }
 
     #endregion Constructors
-
-    #region Conversion Methods
-
-    /// <summary>
-    /// Converts Unix timestamp (seconds) to DateTime with overflow check.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.DateTime UnixTimeSecondsToDateTime(System.Int64 timestamp)
-    {
-        return timestamp > (System.Int64)System.DateTime.MaxValue.Subtract(System.DateTime.UnixEpoch).TotalSeconds
-            ? throw new System.OverflowException("Timestamp exceeds DateTime limits")
-            : System.DateTime.UnixEpoch.AddSeconds(timestamp);
-    }
-
-    /// <summary>
-    /// Converts Unix timestamp (milliseconds) to DateTime with overflow check.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.DateTime UnixTimeMillisecondsToDateTime(System.Int64 timestamp)
-    {
-        return timestamp > (System.Int64)System.DateTime.MaxValue.Subtract(System.DateTime.UnixEpoch).TotalMilliseconds
-            ? throw new System.OverflowException("Timestamp exceeds DateTime limits")
-            : System.DateTime.UnixEpoch.AddMilliseconds(timestamp);
-    }
-
-    /// <summary>
-    /// Converts Unix timestamp (microseconds) to DateTime with overflow check.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.DateTime UnixTimeMicrosecondsToDateTime(System.Int64 timestamp)
-    {
-        return timestamp > System.DateTime.MaxValue.Subtract(System.DateTime.UnixEpoch).Ticks / 10
-            ? throw new System.OverflowException("Timestamp exceeds DateTime limits")
-            : System.DateTime.UnixEpoch.AddTicks(timestamp * 10);
-    }
-
-    /// <summary>
-    /// Converts timestamp (milliseconds) to DateTime with overflow check.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.DateTime TimeMillisecondsToDateTime(System.Int64 timestamp)
-    {
-        return timestamp > (System.Int64)System.DateTime.MaxValue.Subtract(TimeEpoch).TotalMilliseconds
-            ? throw new System.OverflowException("Timestamp exceeds DateTime limits")
-            : TimeEpoch.AddMilliseconds(timestamp);
-    }
-
-    /// <summary>
-    /// Converts TimeSpan to DateTime with validation.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.DateTime UnixTimeToDateTime(System.TimeSpan timeSpan)
-    {
-        return timeSpan.Ticks < 0
-            ? throw new System.ArgumentException(
-                "TimeSpan cannot be negative", nameof(timeSpan))
-            : System.DateTime.UnixEpoch.Add(timeSpan);
-    }
-
-    /// <summary>
-    /// Converts DateTime to Unix TimeSpan with validation.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.TimeSpan DateTimeToUnixTime(System.DateTime dateTime)
-    {
-        return dateTime.Kind != System.DateTimeKind.Utc
-            ? throw new System.ArgumentException(
-                "DateTime must be UTC", nameof(dateTime))
-            : dateTime - System.DateTime.UnixEpoch;
-    }
-
-    /// <summary>
-    /// Converts DateTime to application-specific TimeSpan with validation.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.TimeSpan DateTimeToTime(System.DateTime dateTime)
-    {
-        return dateTime.Kind != System.DateTimeKind.Utc
-            ? throw new System.ArgumentException("DateTime must be UTC", nameof(dateTime))
-            : dateTime - TimeEpoch;
-    }
-
-    /// <summary>
-    /// Converts UTC DateTime to Unix timestamp in seconds.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.UInt64 DateTimeToUnixTimeSeconds(System.DateTime utcDateTime)
-    {
-        return utcDateTime.Kind != System.DateTimeKind.Utc
-            ? throw new System.ArgumentException(
-                "DateTime must be UTC", nameof(utcDateTime))
-            : (System.UInt64)(utcDateTime - System.DateTime.UnixEpoch).TotalSeconds;
-    }
-
-    /// <summary>
-    /// Converts UTC DateTime to Unix timestamp in milliseconds.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.UInt64 DateTimeToUnixTimeMilliseconds(System.DateTime utcDateTime)
-    {
-        return utcDateTime.Kind != System.DateTimeKind.Utc
-            ? throw new System.ArgumentException(
-                "DateTime must be UTC", nameof(utcDateTime))
-            : (System.UInt64)(utcDateTime - System.DateTime.UnixEpoch).TotalMilliseconds;
-    }
-
-    #endregion Conversion Methods
 
     #region Time Synchronization Methods
 
@@ -223,32 +87,62 @@ public static partial class Clock
             throw new System.ArgumentException("External time must be UTC", nameof(externalTime));
         }
 
-        var currentTime = GetUtcNowPrecise();
-        var timeDifference = externalTime - currentTime;
-        if (System.Math.Abs(timeDifference.TotalMilliseconds) <= maxAllowedDriftMs)
+        System.Double diffMs = (externalTime - NowUtc()).TotalMilliseconds;
+        if (System.Math.Abs(diffMs) <= maxAllowedDriftMs)
         {
             return 0;
         }
 
-        // capture previous before overwrite
-        var previousSync = LastSyncTime;
+        System.Int64 nowMono = System.Diagnostics.Stopwatch.GetTimestamp();
 
-        _timeOffset = timeDifference.Ticks;
+        var prevExt = _lastExternalTime;
+
         IsSynchronized = true;
         LastSyncTime = externalTime;
 
-        if (previousSync != System.DateTime.MinValue)
+        System.Threading.Volatile.Write(ref _timeOffset, (System.Int64)(diffMs * System.TimeSpan.TicksPerMillisecond));
+
+        if (prevExt != System.DateTime.MinValue)
         {
-            var elapsedSinceLastSync = (externalTime - previousSync).TotalSeconds;
-            if (elapsedSinceLastSync > 60)
+            System.Double extElapsed = (externalTime - prevExt).TotalSeconds;
+            System.Int64 deltaMono = nowMono - _lastSyncMonoTicks;
+
+            System.Double monoElapsed = deltaMono / (System.Double)System.Diagnostics.Stopwatch.Frequency;
+            if (monoElapsed > 60.0)
             {
-                var expectedElapsed = (currentTime - UtcBase).TotalSeconds;
-                var actualElapsed = (externalTime - UtcBase).TotalSeconds;
-                _driftCorrection = actualElapsed / expectedElapsed;
+                System.Double drift = extElapsed / monoElapsed;
+                System.Double dc = _driftCorrection;
+                dc += (drift - dc) * DriftSmoothing;   // optimized smoothing
+                System.Threading.Volatile.Write(ref _driftCorrection, dc);
             }
         }
 
-        return timeDifference.TotalMilliseconds;
+        _lastExternalTime = externalTime;
+        _lastSyncMonoTicks = nowMono;
+
+        return diffMs;
+    }
+
+    /// <summary>
+    /// Applies time synchronization using a Unix timestamp and optional RTT.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public static System.Double SynchronizeUnixMilliseconds(
+        System.Int64 serverUnixMs, System.Double rttMs = 0,
+        System.Double maxAllowedDriftMs = 1_000.0, System.Double maxHardAdjustMs = 10_000.0)
+    {
+        // Compensate half RTT (one-way latency)
+        System.Int64 corrected = serverUnixMs + (System.Int64)(rttMs * 0.5);
+        System.DateTime externalTime = System.DateTime.UnixEpoch.AddMilliseconds(corrected);
+
+        System.Double adjustMs = (externalTime - NowUtc()).TotalMilliseconds;
+        if (System.Math.Abs(adjustMs) > maxHardAdjustMs)
+        {
+            return 0;
+        }
+
+        return SynchronizeTime(externalTime, maxAllowedDriftMs);
     }
 
     /// <summary>
@@ -260,6 +154,7 @@ public static partial class Clock
     {
         _timeOffset = 0;
         _driftCorrection = 1.0;
+
         IsSynchronized = false;
         LastSyncTime = System.DateTime.MinValue;
     }
@@ -271,21 +166,21 @@ public static partial class Clock
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Double GetDriftRate() => _driftCorrection;
+    public static System.Double DriftRate() => System.Threading.Volatile.Read(ref _driftCorrection);
 
     /// <summary>
     /// Gets the current error estimate between the synchronized time and system time in milliseconds.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Double GetCurrentErrorEstimateMs()
+    public static System.Double CurrentErrorEstimateMs()
     {
         if (!IsSynchronized)
         {
             return 0;
         }
 
-        var driftedTime = GetUtcNowPrecise();
+        var driftedTime = NowUtc();
         var systemTime = System.DateTime.UtcNow;
         return (driftedTime - systemTime).TotalMilliseconds;
     }
@@ -299,15 +194,15 @@ public static partial class Clock
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void StartMeasurement() => _threadStopwatch.Value!.Restart();
+    public static void BeginFrameMeasure() => _threadStopwatch.Value!.Restart();
 
     /// <summary>
-    /// Gets the elapsed time in milliseconds since the last call to StartMeasurement() for the current thread.
+    /// Gets the elapsed time in milliseconds since the last call to BeginFrameMeasure() for the current thread.
     /// </summary>
     /// <returns>The elapsed time in milliseconds.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Double GetElapsedMilliseconds() => _threadStopwatch.Value!.Elapsed.TotalMilliseconds;
+    public static System.Double GetFrameElapsedMs() => _threadStopwatch.Value!.Elapsed.TotalMilliseconds;
 
     #endregion Performance Measurement
 }

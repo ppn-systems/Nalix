@@ -25,8 +25,8 @@ public sealed partial class Connection : IConnection
     private readonly ConnectionEventArgs _evtArgs;
     private readonly FramedSocketChannel _cstream;
 
-    private System.Boolean _disposed;
     private System.Byte[] _secret;
+    private System.Boolean _disposed;
     private System.Int32 _closeSignaled;
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
@@ -65,7 +65,7 @@ public sealed partial class Connection : IConnection
                                            .Get<UdpTransport>();
         this.UDP.Initialize(this);
         this.TCP = new TcpTransport(this);
-        this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket.RemoteEndPoint));
+        this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(Connection)}] created remote={this.EndPoint} id={this.ID}");
