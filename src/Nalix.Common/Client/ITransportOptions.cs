@@ -1,8 +1,5 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-
 using Nalix.Common.Enums;
 
 namespace Nalix.Common.Client;
