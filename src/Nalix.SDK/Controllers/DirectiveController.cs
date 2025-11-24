@@ -109,25 +109,25 @@ public sealed class DirectiveController()
                 case ControlType.DISCONNECT:
                 case ControlType.FAIL:
                 case ControlType.TIMEOUT:
-                    HandleError(d);
-                    MaybeAutoReact(d, ct);
+                    HANDLE_ERROR(d);
+                    MAYBE_AUTO_REACT(d, ct);
                     return true;
 
                 case ControlType.THROTTLE:
-                    HandleThrottle(d);
-                    MaybeAutoReact(d, ct);
+                    HANDLE_THROTTLE(d);
+                    MAYBE_AUTO_REACT(d, ct);
                     return true;
 
                 case ControlType.REDIRECT:
-                    HandleRedirect(d);
-                    MaybeAutoReact(d, ct);
+                    HANDLE_REDIRECT(d);
+                    MAYBE_AUTO_REACT(d, ct);
                     return true;
 
                 case ControlType.NOTICE:
                 case ControlType.SHUTDOWN:
                 case ControlType.RESUME:
                     OnNotice?.Invoke(d.Type, d.Reason);
-                    MaybeAutoReact(d, ct);
+                    MAYBE_AUTO_REACT(d, ct);
                     return true;
 
                 case ControlType.HANDSHAKE:
@@ -151,7 +151,7 @@ public sealed class DirectiveController()
         }
     }
 
-    private static System.Int32 GetRetryDelayMs(in Directive d)
+    private static System.Int32 RETRY_DELAY_MS(in Directive d)
     {
         // Convention: Arg0 encodes "steps" of 100ms (if provided).
         // Fallback: choose a conservative 500ms.
@@ -160,15 +160,15 @@ public sealed class DirectiveController()
         return steps == 0 ? 500 : checked((System.Int32)steps) * 100;
     }
 
-    private void HandleThrottle(in Directive d)
+    private void HANDLE_THROTTLE(in Directive d)
     {
         // THROTTLE or SLOW_DOWN flag suggests reducing rate or adjusting credits.
         // If Arg2 is used as a window/credit size, your upper layer can read it here.
-        System.Int32 delay = GetRetryDelayMs(d);
+        System.Int32 delay = RETRY_DELAY_MS(d);
         OnSlowDown?.Invoke(delay);
     }
 
-    private void HandleRedirect(in Directive d)
+    private void HANDLE_REDIRECT(in Directive d)
     {
         // Expect HAS_REDIRECT; Arg0 may carry host-hash, Arg2 may carry port.
         if ((d.Control & ControlFlags.HAS_REDIRECT) != 0 &&
@@ -183,7 +183,7 @@ public sealed class DirectiveController()
         }
     }
 
-    private void HandleError(in Directive d)
+    private void HANDLE_ERROR(in Directive d)
     {
         // Surface reason/action/flags to the app (UI/telemetry/decision engine).
         OnError?.Invoke(d.Reason, d.Action, d.Control);
@@ -193,12 +193,12 @@ public sealed class DirectiveController()
     /// Optional automatic, low-risk reactions driven by <see cref="ProtocolAction"/>.
     /// Keep minimal: do not reconnect here directly; let the app decide.
     /// </summary>
-    private void MaybeAutoReact(Directive d, System.Threading.CancellationToken ct)
+    private void MAYBE_AUTO_REACT(Directive d, System.Threading.CancellationToken ct)
     {
         switch (d.Action)
         {
             case ProtocolAction.SLOW_DOWN:
-                HandleThrottle(d);
+                HANDLE_THROTTLE(d);
                 break;
 
             case ProtocolAction.REAUTHENTICATE:
@@ -210,7 +210,7 @@ public sealed class DirectiveController()
             case ProtocolAction.FIX_AND_RETRY:
             case ProtocolAction.RECONNECT:
                 // Provide a soft delay hint to upstream layers.
-                var delay = GetRetryDelayMs(d);
+                var delay = RETRY_DELAY_MS(d);
                 OnSlowDown?.Invoke(delay);
                 break;
 
