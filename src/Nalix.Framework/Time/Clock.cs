@@ -79,7 +79,7 @@ public static partial class Clock
     /// <param name="maxAllowedDriftMs">Maximum allowed drift in milliseconds before adjustment is applied.</param>
     /// <returns>The adjustment made in milliseconds.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static System.Double SynchronizeTime(System.DateTime externalTime, System.Double maxAllowedDriftMs = 1000.0)
     {
         if (externalTime.Kind != System.DateTimeKind.Utc)
@@ -127,7 +127,7 @@ public static partial class Clock
     /// Applies time synchronization using a Unix timestamp and optional RTT.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Double SynchronizeUnixMilliseconds(
         System.Int64 serverUnixMs, System.Double rttMs = 0,
         System.Double maxAllowedDriftMs = 1_000.0, System.Double maxHardAdjustMs = 10_000.0)
@@ -149,7 +149,7 @@ public static partial class Clock
     /// Resets time synchronization to use the local system time.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static void ResetSynchronization()
     {
         _timeOffset = 0;

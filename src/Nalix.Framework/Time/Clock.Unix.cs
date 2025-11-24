@@ -36,7 +36,7 @@ public static partial class Clock
     /// Current Unix timestamp (milliseconds) as long.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int64 UnixMillisecondsNow() => (System.Int64)(NowUtc() - System.DateTime.UnixEpoch).TotalMilliseconds;
 
     /// <summary>
@@ -57,7 +57,7 @@ public static partial class Clock
     /// Returns the current Unix time as TimeSpan.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.TimeSpan UnixTime() => NowUtc() - System.DateTime.UnixEpoch;
 
     /// <summary>
@@ -66,7 +66,7 @@ public static partial class Clock
     /// suitable for latency/RTT measurement.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int64 MonoTicksNow() => System.Diagnostics.Stopwatch.GetTimestamp();
 
     /// <summary>
