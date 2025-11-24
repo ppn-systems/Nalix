@@ -1,7 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Client;
 using Nalix.Common.Packets.Abstractions;
-using Nalix.Common.SDK;
 
 namespace Nalix.SDK.Remote.Extensions;
 
