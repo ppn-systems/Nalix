@@ -136,13 +136,13 @@ public static class TimeSyncExtensions
         catch (System.OperationCanceledException oce)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[TimeSyncAsync] Canceled: {oce.Message}");
+                                    .Debug($"[TimeSyncAsync] Canceled: {oce.Message}.");
             return false;
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[TimeSyncAsync] Failed: {ex}");
+                                    .Error($"[TimeSyncAsync] Failed: {ex}.");
             return false;
         }
     }
