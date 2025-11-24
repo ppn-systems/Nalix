@@ -78,16 +78,6 @@ public enum ControlType : System.Byte
     NOTICE = 0x0D,
 
     /// <summary>
-    /// Reserved for future extension.
-    /// </summary>
-    RESERVED1 = 0xFE,
-
-    /// <summary>
-    /// Reserved for future extension.
-    /// </summary>
-    RESERVED2 = 0xFF,
-
-    /// <summary>
     /// The operation has timed out.
     /// </summary>
     TIMEOUT = 0x10,
@@ -95,5 +85,25 @@ public enum ControlType : System.Byte
     /// <summary>
     /// Failure in processing the operation.
     /// </summary>
-    FAIL = 0x11
+    FAIL = 0x11,
+
+    /// <summary>
+    /// Client requests server time.
+    /// </summary>
+    TIME_SYNC_REQUEST = 0x12,
+
+    /// <summary>
+    /// Server responds with server timestamp.
+    /// </summary>
+    TIME_SYNC_RESPONSE = 0x13,
+
+    /// <summary>
+    /// Reserved for future extension.
+    /// </summary>
+    RESERVED1 = 0xFE,
+
+    /// <summary>
+    /// Reserved for future extension.
+    /// </summary>
+    RESERVED2 = 0xFF
 }
