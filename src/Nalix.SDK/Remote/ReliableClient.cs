@@ -1,9 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Abstractions;
+using Nalix.Common.Client;
 using Nalix.Common.Logging;
 using Nalix.Common.Packets.Abstractions;
-using Nalix.Common.SDK;
 using Nalix.Common.Tasks;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
@@ -11,7 +11,6 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Tasks.Options;
 using Nalix.SDK.Remote.Configuration;
 using Nalix.SDK.Remote.Internal;
-using Nalix.Shared.Memory.Caches;
 using System.Linq;
 
 namespace Nalix.SDK.Remote;
@@ -43,12 +42,7 @@ public sealed class ReliableClient : IReliableClient
     /// <summary>
     /// Gets the context associated with the network connection.
     /// </summary>
-    public TransportOptions Options { get; }
-
-    /// <summary>
-    /// Gets the FIFO cache that stores incoming packets received from the remote server.
-    /// </summary>
-    public FifoCache<IPacket> Incoming { get; }
+    public ITransportOptions Options { get; }
 
     // In ReliableClient class
     /// <summary>
@@ -116,7 +110,6 @@ public sealed class ReliableClient : IReliableClient
         _client = new System.Net.Sockets.TcpClient { NoDelay = true };
 
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
-        this.Incoming = new FifoCache<IPacket>(Options.IncomingSize);
     }
 
     #endregion Constructor

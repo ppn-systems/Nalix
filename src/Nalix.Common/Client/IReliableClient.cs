@@ -1,8 +1,11 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 using Nalix.Common.Packets.Abstractions;
 
-namespace Nalix.Common.SDK;
+namespace Nalix.Common.Client;
 
 /// <summary>
 /// Represents a reliable client connection to a server, providing events for connection lifecycle and packet reception.
