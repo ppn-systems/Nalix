@@ -29,7 +29,7 @@ public static class TimeSyncExtensions
     }
 
     /// <summary>Returns precise UTC now from the shared Clock.</summary>
-    public static System.DateTime UtcNowPrecise() => Clock.GetUtcNowPrecise();
+    public static System.DateTime UtcNowPrecise() => Clock.NowUtc();
 
     /// <summary>Returns monotonic timestamp ticks (Stopwatch.GetTimestamp()).</summary>
     public static System.Int64 MonoTicks() => Clock.MonoTicksNow();
@@ -39,8 +39,8 @@ public static class TimeSyncExtensions
     {
         System.ArgumentNullException.ThrowIfNull(op);
 
-        Clock.StartMeasurement();
+        Clock.BeginFrameMeasure();
         await op().ConfigureAwait(false);
-        return Clock.GetElapsedMilliseconds();
+        return Clock.GetFrameElapsedMs();
     }
 }
