@@ -2,6 +2,7 @@
 
 using Nalix.Common.Attributes;
 using Nalix.Common.Enums;
+using Nalix.Common.SDK;
 using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.SDK.Remote.Configuration;
@@ -9,7 +10,7 @@ namespace Nalix.SDK.Remote.Configuration;
 /// <summary>
 /// Represents the configuration settings for establishing a network connection.
 /// </summary>
-public sealed class TransportOptions : ConfigurationLoader
+public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
 {
     private System.Byte[] _key = [];
 
