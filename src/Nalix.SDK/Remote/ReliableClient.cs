@@ -3,6 +3,7 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Logging;
 using Nalix.Common.Packets.Abstractions;
+using Nalix.Common.SDK;
 using Nalix.Common.Tasks;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
@@ -15,15 +16,9 @@ using System.Linq;
 
 namespace Nalix.SDK.Remote;
 
-/// <summary>
-/// Represents a network client that connects to a remote server using Reliable.
-/// </summary>
-/// <remarks>
-/// The <see cref="ReliableClient"/> class is a singleton that manages the connection,
-/// network stream, and client disposal. It supports both synchronous and asynchronous connection.
-/// </remarks>
+/// <inheritdoc/>
 [System.Diagnostics.DebuggerDisplay("Remote={Options.Address}:{Options.Port}, Connected={IsConnected}")]
-public sealed class ReliableClient : System.IDisposable
+public sealed class ReliableClient : IReliableClient
 {
     #region Fields
 
@@ -128,9 +123,7 @@ public sealed class ReliableClient : System.IDisposable
 
     #region APIs
 
-    /// <summary>
-    /// Asynchronously connects to a remote server within a specified timeout period.
-    /// </summary>
+    /// <inheritdoc/>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.SkipLocalsInit]
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_stream))]
@@ -242,30 +235,14 @@ public sealed class ReliableClient : System.IDisposable
         }
     }
 
-    /// <summary>
-    /// Asynchronously sends a packet over the active connection.
-    /// </summary>
-    /// <param name="packet">The packet to send.</param>
-    /// <param name="ct">A token that can be used to cancel the operation.</param>
-    /// <returns>A task that represents the asynchronous send operation.</returns>
-    /// <exception cref="System.InvalidOperationException">
-    /// Thrown if the client is not connected.
-    /// </exception>
-    /// <exception cref="System.OperationCanceledException">
-    /// Thrown if <paramref name="ct"/> is canceled before or during the send.
-    /// </exception>
-    /// <exception cref="System.IO.IOException">
-    /// Thrown if an IEndpointKey /O error occurs while writing to the underlying stream.
-    /// </exception>
+    /// <inheritdoc/>
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_outbound))]
     public System.Threading.Tasks.Task SendAsync(
         [System.Diagnostics.CodeAnalysis.NotNull] IPacket packet,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken ct = default)
         => (_outbound ?? throw new System.InvalidOperationException("Not connected.")).SEND_ASYNC(packet, ct);
 
-    /// <summary>
-    /// Closes the network connection and releases resources.
-    /// </summary>
+    /// <inheritdoc/>
     [System.Diagnostics.DebuggerStepThrough]
     public void Disconnect()
     {
@@ -302,9 +279,7 @@ public sealed class ReliableClient : System.IDisposable
         }
     }
 
-    /// <summary>
-    /// Releases the resources used by the <see cref="ReliableClient"/> instance.
-    /// </summary>
+    /// <inheritdoc/>
     [System.Diagnostics.DebuggerStepThrough]
     public void Dispose()
     {

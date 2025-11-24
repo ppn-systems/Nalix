@@ -3,6 +3,7 @@
 using Nalix.Common.Logging;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Protocols;
+using Nalix.Common.SDK;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.Shared.Messaging.Controls;  // Directive
@@ -77,7 +78,7 @@ public static class DirectiveClientExtensions
         public System.Int64 ThrottleUntilMonoTicks; // 0 = not throttled
     }
 
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ReliableClient, ClientState> _states = [];
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IReliableClient, ClientState> _states = [];
 
     /// <summary>
     /// Attempts to handle a <see cref="Directive"/> packet and apply the relevant behavior.
@@ -108,7 +109,7 @@ public static class DirectiveClientExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<System.Boolean> TryHandleDirectiveAsync(
-        this ReliableClient client,
+        this IReliableClient client,
         IPacket packet,
         DirectiveCallbacks callbacks = null,
         RedirectResolver resolveRedirect = null,
@@ -225,7 +226,7 @@ public static class DirectiveClientExtensions
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean IsThrottled(this ReliableClient client, out System.TimeSpan remaining)
+    public static System.Boolean IsThrottled(this IReliableClient client, out System.TimeSpan remaining)
     {
         System.ArgumentNullException.ThrowIfNull(client);
         remaining = System.TimeSpan.Zero;
@@ -264,7 +265,7 @@ public static class DirectiveClientExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task SendWithThrottleAsync(
-        this ReliableClient client,
+        this IReliableClient client,
         IPacket packet, System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(client);
@@ -289,7 +290,7 @@ public static class DirectiveClientExtensions
     /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void ClearThrottle(this ReliableClient client)
+    public static void ClearThrottle(this IReliableClient client)
     {
         System.ArgumentNullException.ThrowIfNull(client);
         if (_states.TryGetValue(client, out var s))

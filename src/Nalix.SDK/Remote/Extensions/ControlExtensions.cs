@@ -2,6 +2,7 @@
 
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Protocols;           // ControlType, ProtocolType
+using Nalix.Common.SDK;
 using Nalix.Framework.Time;             // Clock
 using Nalix.Shared.Messaging.Controls;  // Control
 
@@ -23,7 +24,7 @@ public static class ControlExtensions
 {
     /// <summary>
     /// A fluent builder for <see cref="Control"/> frames.
-    /// Use <see cref="NewControl(ReliableClient, System.UInt16, ControlType, ProtocolType)"/> to create an instance,
+    /// Use <see cref="NewControl(IReliableClient, System.UInt16, ControlType, ProtocolType)"/> to create an instance,
     /// then chain configuration methods before calling <see cref="Build"/>.
     /// </summary>
     public readonly ref struct ControlBuilder(Control c)
@@ -87,7 +88,7 @@ public static class ControlExtensions
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static ControlBuilder NewControl(this ReliableClient _, System.UInt16 opCode, ControlType type, ProtocolType transport = ProtocolType.TCP)
+    public static ControlBuilder NewControl(this IReliableClient _, System.UInt16 opCode, ControlType type, ProtocolType transport = ProtocolType.TCP)
     {
         Control c = new();
         c.Initialize(opCode, type, sequenceId: 0, reasonCode: ProtocolCode.NONE, transport: transport);
@@ -101,7 +102,7 @@ public static class ControlExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<TPkt> AwaitPacketAsync<TPkt>(
-        this ReliableClient client, System.Func<TPkt, System.Boolean> predicate,
+        this IReliableClient client, System.Func<TPkt, System.Boolean> predicate,
         System.Int32 timeoutMs, System.Threading.CancellationToken ct = default) where TPkt : class, IPacket
     {
         System.ArgumentNullException.ThrowIfNull(client);
@@ -139,7 +140,7 @@ public static class ControlExtensions
 
         [System.Diagnostics.DebuggerStepThrough]
         static async System.Threading.Tasks.Task<TPkt> AwaitCoreAsync(
-            ReliableClient c,
+            IReliableClient c,
             System.Action<IPacket> pktHandler,
             System.Action<System.Exception> discHandler,
             System.Threading.Tasks.Task<TPkt> task,
@@ -201,7 +202,7 @@ public static class ControlExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<(System.Double rttMs, Control pong)> PingAsync(
-        this ReliableClient client,
+        this IReliableClient client,
         System.UInt16 opCode,
         System.UInt32? sequenceId = null,
         System.Int32 timeoutMs = 3000,
@@ -273,7 +274,7 @@ public static class ControlExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<Control> AwaitControlAsync(
-        this ReliableClient client,
+        this IReliableClient client,
         System.Func<Control, System.Boolean> predicate,
         System.Int32 timeoutMs, System.Threading.CancellationToken ct = default)
         => await AwaitPacketAsync<Control>(client, predicate, timeoutMs, ct);
@@ -299,7 +300,7 @@ public static class ControlExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Threading.Tasks.Task SendControlAsync(
-        this ReliableClient client,
+        this IReliableClient client,
         System.UInt16 opCode, ControlType type,
         System.Action<ControlBuilder> configure = null,
         System.Threading.CancellationToken ct = default)
@@ -333,7 +334,7 @@ public static class ControlExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Threading.Tasks.Task SendDisconnectAsync(
-        this ReliableClient client, System.UInt16 opCode,
+        this IReliableClient client, System.UInt16 opCode,
         System.UInt32 seq = 0, ProtocolType tr = ProtocolType.TCP,
         System.Threading.CancellationToken ct = default)
         => client.SendControlAsync(opCode, ControlType.DISCONNECT, b => b.WithSeq(seq).WithTransport(tr).StampNow(), ct);
