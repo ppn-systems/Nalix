@@ -6,6 +6,7 @@ using Nalix.Common.Logging;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Network.Dispatch.Results.Primitives;
+using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Connections;
 
@@ -78,12 +79,51 @@ public sealed partial class Connection : IConnection
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-        public System.Boolean Send(IPacket packet) => this.Send(packet.Serialize());
+        public System.Boolean Send(IPacket packet)
+        {
+            if (packet.Length == 0)
+            {
+                return false;
+            }
+            else if (packet.Length < 512)
+            {
+                System.Span<System.Byte> buffer = stackalloc System.Byte[packet.Length * 110 / 100];
+                System.Int32 written = packet.Serialize(buffer);
+                try
+                {
+                    return this.Send(buffer[..written]);
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                System.Byte[] rent = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                                             .Rent(packet.Length);
+                try
+                {
+                    System.Int32 written = packet.Serialize(rent);
+                    return this.Send(System.MemoryExtensions.AsSpan(rent)[..written]);
+                }
+                catch
+                {
+                    return false;
+                }
+                finally
+                {
+                    // Return the rented array to the pool
+                    InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                            .Return(rent);
+                }
+            }
+        }
 
         /// <inheritdoc />
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public System.Boolean Send(System.ReadOnlySpan<System.Byte> message)
         {
             if (message.IsEmpty || _endPoint is null)
@@ -102,16 +142,56 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             IPacket packet,
             System.Threading.CancellationToken cancellationToken = default)
-            => packet is not null && await this.SendAsync(packet.Serialize(), cancellationToken).ConfigureAwait(false);
+        {
+            if (packet.Length == 0)
+            {
+                return false;
+            }
+            else if (packet.Length < 256)
+            {
+                System.Byte[] buffer = new System.Byte[packet.Length * 110 / 100];
+                System.Int32 written = packet.Serialize(buffer);
+                try
+                {
+                    return await this.SendAsync(new System.ReadOnlyMemory<System.Byte>(buffer, 0, written), cancellationToken)
+                                     .ConfigureAwait(false);
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                System.Byte[] rent = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                                             .Rent(packet.Length);
+                try
+                {
+                    System.Int32 written = packet.Serialize(rent);
+                    return await this.SendAsync(new System.ReadOnlyMemory<System.Byte>(rent, 0, written), cancellationToken)
+                                     .ConfigureAwait(false);
+                }
+                catch
+                {
+                    return false;
+                }
+                finally
+                {
+                    // Return the rented array to the pool
+                    InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                            .Return(rent);
+                }
+            }
+        }
 
         /// <inheritdoc />
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             System.ReadOnlyMemory<System.Byte> message,
             System.Threading.CancellationToken cancellationToken = default)
@@ -121,12 +201,12 @@ public sealed partial class Connection : IConnection
                 return false;
             }
 
-            if (this._endPoint is null)
+            if (_endPoint is null)
             {
                 return false;
             }
 
-            System.Int32 sentBytes = await _socket.SendToAsync(message, this._endPoint, cancellationToken)
+            System.Int32 sentBytes = await _socket.SendToAsync(message, _endPoint, cancellationToken)
                                                   .ConfigureAwait(false);
             return sentBytes == message.Length;
         }
@@ -175,12 +255,51 @@ public sealed partial class Connection : IConnection
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-        public System.Boolean Send(IPacket packet) => this.Send(packet.Serialize());
+        public System.Boolean Send(IPacket packet)
+        {
+            if (packet.Length == 0)
+            {
+                return false;
+            }
+            else if (packet.Length < 512)
+            {
+                System.Span<System.Byte> buffer = stackalloc System.Byte[packet.Length * 110 / 100];
+                System.Int32 written = packet.Serialize(buffer);
+                try
+                {
+                    return this.Send(buffer[..written]);
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                System.Byte[] rent = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                                             .Rent(packet.Length);
+                try
+                {
+                    System.Int32 written = packet.Serialize(rent);
+                    return this.Send(System.MemoryExtensions.AsSpan(rent)[..written]);
+                }
+                catch
+                {
+                    return false;
+                }
+                finally
+                {
+                    // Return the rented array to the pool
+                    InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                            .Return(rent);
+                }
+            }
+        }
 
         /// <inheritdoc />
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public System.Boolean Send(System.ReadOnlySpan<System.Byte> message)
         {
             if (_outer._cstream.Send(message))
@@ -253,16 +372,56 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             IPacket packet,
             System.Threading.CancellationToken cancellationToken = default)
-            => await this.SendAsync(packet.Serialize(), cancellationToken).ConfigureAwait(false);
+        {
+            if (packet.Length == 0)
+            {
+                return false;
+            }
+            else if (packet.Length < 256)
+            {
+                System.Byte[] buffer = new System.Byte[packet.Length * 110 / 100];
+                System.Int32 written = packet.Serialize(buffer);
+                try
+                {
+                    return await this.SendAsync(new System.ReadOnlyMemory<System.Byte>(buffer, 0, written), cancellationToken)
+                                     .ConfigureAwait(false);
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                System.Byte[] rent = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                                             .Rent(packet.Length);
+                try
+                {
+                    System.Int32 written = packet.Serialize(rent);
+                    return await this.SendAsync(new System.ReadOnlyMemory<System.Byte>(rent, 0, written), cancellationToken)
+                                     .ConfigureAwait(false);
+                }
+                catch
+                {
+                    return false;
+                }
+                finally
+                {
+                    // Return the rented array to the pool
+                    InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                                            .Return(rent);
+                }
+            }
+        }
 
         /// <inheritdoc />
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             System.ReadOnlyMemory<System.Byte> message,
             System.Threading.CancellationToken cancellationToken = default)
