@@ -60,7 +60,7 @@ public sealed partial class Connection : IConnection
         _cstream.SetCallback(OnCloseEventBridge, OnPostProcessEventBridge, this, _evtArgs);
 
         this.ID = Identifier.NewId(IdentifierType.Session);
-        this.EndPoint = EndpointKey.FromEndPoint(socket.RemoteEndPoint);
+        this.EndPoint = EndpointToken.FromEndPoint(socket.RemoteEndPoint);
         this.UDP = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                            .Get<UdpTransport>();
         this.UDP.Initialize(this);

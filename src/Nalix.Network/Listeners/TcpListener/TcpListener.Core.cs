@@ -101,12 +101,12 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
         if (System.OperatingSystem.IsWindows() && Config.TuneThreadPool)
         {
-            System.Int32 parallelismLevel = System.Math.Max(System.Environment.ProcessorCount * MinWorkerThreads, 16);
+            System.Int32 parallelism = System.Math.Max(System.Environment.ProcessorCount * MinWorkerThreads, 16);
             // Thread pool optimization for IOCP
             System.Threading.ThreadPool.GetMinThreads(out System.Int32 workerThreads, out System.Int32 completionPortThreads);
             _ = System.Threading.ThreadPool.SetMinThreads(
-                 System.Math.Max(workerThreads, parallelismLevel),
-                 System.Math.Max(completionPortThreads, parallelismLevel));
+                 System.Math.Max(workerThreads, parallelism),
+                 System.Math.Max(completionPortThreads, parallelism));
 
             System.Threading.ThreadPool.GetMinThreads(out System.Int32 afterWorker, out System.Int32 afterIOCP);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
