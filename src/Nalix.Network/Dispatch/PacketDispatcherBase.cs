@@ -79,7 +79,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// A <see cref="System.Threading.Tasks.ValueTask"/> that represents the asynchronous execution of the handler logic.
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+       System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     protected async System.Threading.Tasks.ValueTask ExecuteHandlerAsync(
         [System.Diagnostics.CodeAnalysis.NotNull] TPacket packet,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection,
@@ -103,7 +103,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// If a handler is found, it is invoked asynchronously. Exceptions are caught and logged.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+       System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     protected async System.Threading.Tasks.Task ExecutePacketHandlerAsync(
         [System.Diagnostics.CodeAnalysis.NotNull] TPacket packet,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)

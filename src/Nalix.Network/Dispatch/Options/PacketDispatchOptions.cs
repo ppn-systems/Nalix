@@ -19,9 +19,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     #region Fields
 
     private readonly MiddlewarePipeline<TPacket> _pipeline;
-
-    private readonly System.Collections.Generic.Dictionary<
-        System.UInt16, PacketHandler<TPacket>> _handlerCache;
+    private readonly System.Collections.Generic.Dictionary<System.UInt16, PacketHandler<TPacket>> _handlerCache;
 
     /// <summary>
     /// Gets or sets a custom error-handling delegate invoked when packet processing fails.
