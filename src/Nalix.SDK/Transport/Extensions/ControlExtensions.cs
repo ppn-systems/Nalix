@@ -148,7 +148,7 @@ public static class ControlExtensions
     }
 
     /// <summary>
-    /// Sends a PING and awaits the matching PONG (same <see cref="Control.SequenceId"/>).
+    /// Sends a PING and awaits the matching PONG.
     /// </summary>
     /// <param name="client">The connected reliable client.</param>
     /// <param name="opCode">The operation code used for the PING/PONG exchange.</param>
