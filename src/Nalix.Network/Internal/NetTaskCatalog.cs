@@ -2,7 +2,6 @@
 
 using Nalix.Framework.Tasks;
 
-
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
