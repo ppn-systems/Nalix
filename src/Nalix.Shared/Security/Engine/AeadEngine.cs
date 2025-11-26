@@ -3,7 +3,7 @@
 // High-level AEAD engine that emits/consumes AeadFormat envelopes.
 // - Uses AeadFormat (magic 4 bytes "NALX").
 // - Header + Nonce are included in the AAD when computing/verifying tags.
-// - For XTEA, provides ConvertKeyToXtea deterministic reduction (XOR halves).
+// - For XTEA, provides U32ToU16 deterministic reduction (XOR halves).
 //
 // Note: This is a convenience engine for your lib (Span-first-ish).
 
@@ -38,7 +38,7 @@ namespace Nalix.Shared.Security.Engine;
 /// <list type="bullet">
 /// <item><description>Callers must supply a unique nonce per key for the chosen algorithm,
 /// except where <see cref="Encrypt"/> auto-generates a random nonce.</description></item>
-/// <item><description>For <c>XTEA</c>, if a 32-byte key is provided, it is deterministically reduced to 16 bytes via <see cref="ConvertKeyToXtea"/>.</description></item>
+/// <item><description>For <c>XTEA</c>, if a 32-byte key is provided, it is deterministically reduced to 16 bytes via <see cref="U32ToU16"/>.</description></item>
 /// <item><description>This engine favors Span-first patterns and clears temporary sensitive buffers when possible.</description></item>
 /// </list>
 /// </para>
@@ -82,11 +82,11 @@ public static class AeadEngine
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> plaintext,
-        CipherSuiteType algorithm = CipherSuiteType.CHACHA20_POLY1305,
-        System.ReadOnlySpan<System.Byte> aad = default,
-        System.UInt32? seq = null)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType algorithm = CipherSuiteType.CHACHA20_POLY1305,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> aad = default,
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.UInt32? seq = null)
     {
         // Resolve algorithm and nonce length
         System.Int32 nonceLen = GetNonceLength(algorithm);
@@ -157,7 +157,7 @@ public static class AeadEngine
                         System.Span<System.Byte> k16 = stackalloc System.Byte[16];
                         if (key.Length == 32)
                         {
-                            ConvertKeyToXtea(key, k16);
+                            U32ToU16(key, k16);
                         }
                         else if (key.Length == 16)
                         {
@@ -181,7 +181,7 @@ public static class AeadEngine
             // Compose envelope
             System.Int32 total = EnvelopeFormat.HeaderSize + nonceLen + ct.Length + tag.Length;
             var outBuf = new System.Byte[total];
-            EnvelopeFormat.WriteEnvelope(outBuf, algorithm, flags: 0, seqVal, nonce, ct, tag);
+            _ = EnvelopeFormat.WriteEnvelope(outBuf, algorithm, flags: 0, seqVal, nonce, ct, tag);
             return outBuf;
         }
         finally
@@ -210,10 +210,10 @@ public static class AeadEngine
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Decrypt(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> envelope,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out System.Byte[]? plaintext, System.ReadOnlySpan<System.Byte> aad = default)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> envelope,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte[]? plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> aad = default)
     {
         plaintext = null;
 
@@ -269,7 +269,7 @@ public static class AeadEngine
                         System.Span<System.Byte> k16 = stackalloc System.Byte[16];
                         if (key.Length == 32)
                         {
-                            ConvertKeyToXtea(key, k16);
+                            U32ToU16(key, k16);
                         }
                         else if (key.Length == 16)
                         {
@@ -307,28 +307,30 @@ public static class AeadEngine
 
     /// <summary>
     /// Reduces a 32-byte key into a 16-byte XTEA key deterministically by XOR-ing halves:
-    /// <c>out[i] = key32[i] XOR key32[i + 16]</c>.
+    /// <c>out[i] = bytes32[i] XOR bytes32[i + 16]</c>.
     /// </summary>
-    /// <param name="key32">Source 32-byte key.</param>
-    /// <param name="out16">Destination span (must be at least 16 bytes).</param>
-    /// <exception cref="System.ArgumentException">Thrown if <paramref name="key32"/> is not 32 bytes or <paramref name="out16"/> is too small.</exception>
+    /// <param name="bytes32">Source 32-byte key.</param>
+    /// <param name="bytes16">Destination span (must be at least 16 bytes).</param>
+    /// <exception cref="System.ArgumentException">Thrown if <paramref name="bytes32"/> is not 32 bytes or <paramref name="bytes16"/> is too small.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void ConvertKeyToXtea(System.ReadOnlySpan<System.Byte> key32, System.Span<System.Byte> out16)
+    public static void U32ToU16(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> bytes32,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> bytes16)
     {
-        if (key32.Length != 32)
+        if (bytes32.Length != 32)
         {
             ThrowHelper.BadKeyLen32();
         }
 
-        if (out16.Length < 16)
+        if (bytes16.Length < 16)
         {
-            throw new System.ArgumentException("out16 must be at least 16 bytes", nameof(out16));
+            throw new System.ArgumentException("bytes16 must be at least 16 bytes", nameof(bytes16));
         }
 
         for (System.Int32 i = 0; i < 16; i++)
         {
-            out16[i] = (System.Byte)(key32[i] ^ key32[i + 16]);
+            bytes16[i] = (System.Byte)(bytes32[i] ^ bytes32[i + 16]);
         }
     }
 

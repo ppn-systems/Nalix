@@ -29,12 +29,12 @@ public static class SymmetricEngine
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Encrypt(
-        CipherSuiteType type,
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        System.ReadOnlySpan<System.Byte> src,
-        System.Span<System.Byte> dst)
+        [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt64 counter,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst)
     {
         if (dst.Length != src.Length)
         {
@@ -68,13 +68,13 @@ public static class SymmetricEngine
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(
-        CipherSuiteType type,
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        System.ReadOnlySpan<System.Byte> src)
+        [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt64 counter,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src)
     {
-        var outBuf = new System.Byte[src.Length];
+        System.Byte[] outBuf = new System.Byte[src.Length];
         Encrypt(type, key, nonce, counter, src, outBuf);
         return outBuf;
     }
@@ -86,12 +86,12 @@ public static class SymmetricEngine
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Decrypt(
-        CipherSuiteType type,
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        System.ReadOnlySpan<System.Byte> src,
-        System.Span<System.Byte> dst) => Encrypt(type, key, nonce, counter, src, dst);
+        [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt64 counter,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst) => Encrypt(type, key, nonce, counter, src, dst);
 
     /// <summary>
     /// Convenience one-shot decrypt returning a newly allocated buffer.
@@ -99,11 +99,11 @@ public static class SymmetricEngine
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Decrypt(
-        CipherSuiteType type,
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        System.ReadOnlySpan<System.Byte> src) => Encrypt(type, key, nonce, counter, src);
+        [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt64 counter,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src) => Encrypt(type, key, nonce, counter, src);
 
     #region Aead-like Envelope API
 
@@ -117,11 +117,11 @@ public static class SymmetricEngine
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> plaintext,
-        CipherSuiteType algorithm = CipherSuiteType.CHACHA20,
-        System.ReadOnlySpan<System.Byte> nonce = default,
-        System.UInt32? seq = null, System.Byte flags = 0)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType algorithm = CipherSuiteType.CHACHA20,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce = default,
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.UInt32? seq = null, System.Byte flags = 0)
     {
         System.Int32 nonceLen = GetDefaultNonceLen(algorithm);
 
@@ -148,7 +148,7 @@ public static class SymmetricEngine
         // Compose envelope: header || nonce || ciphertext
         System.Int32 total = EnvelopeFormat.HeaderSize + nonceLen + ct.Length;
         System.Byte[] outBuf = new System.Byte[total];
-        EnvelopeFormat.WriteEnvelope(outBuf, algorithm, flags, seqVal, nonceBuf, ct);
+        _ = EnvelopeFormat.WriteEnvelope(outBuf, algorithm, flags, seqVal, nonceBuf, ct);
 
         // Clear sensitive
         MemorySecurity.ZeroMemory(ct);
@@ -164,8 +164,8 @@ public static class SymmetricEngine
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Decrypt(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> envelope,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> envelope,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte[]? plaintext)
     {
         plaintext = null;

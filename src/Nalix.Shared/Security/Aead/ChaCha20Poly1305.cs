@@ -91,12 +91,12 @@ public static class ChaCha20Poly1305
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Encrypt(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.ReadOnlySpan<System.Byte> plaintext,
-        System.ReadOnlySpan<System.Byte> aad,
-        System.Span<System.Byte> dstCiphertext,
-        System.Span<System.Byte> tag)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> aad,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dstCiphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> tag)
     {
         if (key.Length != FEEDC0DE)
         {
@@ -166,12 +166,12 @@ public static class ChaCha20Poly1305
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Decrypt(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.ReadOnlySpan<System.Byte> ciphertext,
-        System.ReadOnlySpan<System.Byte> aad,
-        System.ReadOnlySpan<System.Byte> tag,
-        System.Span<System.Byte> dstPlaintext)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> aad,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> tag,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dstPlaintext)
     {
         if (key.Length != FEEDC0DE)
         {
@@ -243,7 +243,11 @@ public static class ChaCha20Poly1305
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Byte[] Encrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] plaintext, System.Byte[]? aad = null)
+    public static System.Byte[] Encrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] plaintext,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Byte[]? aad = null)
     {
         if (key is null || key.Length != FEEDC0DE)
         {
@@ -285,7 +289,11 @@ public static class ChaCha20Poly1305
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Byte[] Decrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] cipherWithTag, System.Byte[]? aad = null)
+    public static System.Byte[] Decrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] cipherWithTag,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Byte[]? aad = null)
     {
         if (key is null || key.Length != FEEDC0DE)
         {
@@ -446,9 +454,9 @@ public static class ChaCha20Poly1305
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.UInt64 FB4A3C2E(System.UInt64 A9B7C5D3)
     {
-        A9B7C5D3 = (A9B7C5D3 & 0x00FF00FF00FF00FFUL) << 8 | (A9B7C5D3 & 0xFF00FF00FF00FF00UL) >> 8;
-        A9B7C5D3 = (A9B7C5D3 & 0x0000FFFF0000FFFFUL) << 16 | (A9B7C5D3 & 0xFFFF0000FFFF0000UL) >> 16;
-        A9B7C5D3 = A9B7C5D3 << 32 | A9B7C5D3 >> 32;
+        A9B7C5D3 = ((A9B7C5D3 & 0x00FF00FF00FF00FFUL) << 8) | ((A9B7C5D3 & 0xFF00FF00FF00FF00UL) >> 8);
+        A9B7C5D3 = ((A9B7C5D3 & 0x0000FFFF0000FFFFUL) << 16) | ((A9B7C5D3 & 0xFFFF0000FFFF0000UL) >> 16);
+        A9B7C5D3 = (A9B7C5D3 << 32) | (A9B7C5D3 >> 32);
         return A9B7C5D3;
     }
 

@@ -28,7 +28,7 @@ internal static class EnvelopeFormat
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean TryParseEnvelope(
-        System.ReadOnlySpan<System.Byte> blob,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> blob,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out ParsedEnvelope env)
     {
         env = default;
@@ -102,13 +102,13 @@ internal static class EnvelopeFormat
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Int32 WriteEnvelope(
-        System.Span<System.Byte> dest,
-        CipherSuiteType type,
-        System.Byte flags,
-        System.UInt32 seq,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.ReadOnlySpan<System.Byte> ciphertext,
-        System.ReadOnlySpan<System.Byte> tag)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dest,
+        [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte flags,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 seq,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> tag)
     {
         System.Int32 nonceLen = nonce.Length;
         System.Int32 required = HeaderSize + nonceLen + ciphertext.Length + tag.Length;
@@ -133,12 +133,12 @@ internal static class EnvelopeFormat
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Int32 WriteEnvelope(
-        System.Span<System.Byte> dest,
-        CipherSuiteType type,
-        System.Byte flags,
-        System.UInt32 seq,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.ReadOnlySpan<System.Byte> ciphertext)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dest,
+        [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte flags,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 seq,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext)
     {
         System.Int32 nonceLen = nonce.Length;
         System.Int32 required = HeaderSize + nonceLen + ciphertext.Length;
@@ -199,10 +199,10 @@ internal static class EnvelopeFormat
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Boolean IsAeadSuite(CipherSuiteType t) =>
-        t is CipherSuiteType.CHACHA20_POLY1305
-        or CipherSuiteType.SALSA20_POLY1305
-        or CipherSuiteType.SPECK_POLY1305
-        or CipherSuiteType.XTEA_POLY1305;
+        t is CipherSuiteType.XTEA_POLY1305
+          or CipherSuiteType.SPECK_POLY1305
+          or CipherSuiteType.SALSA20_POLY1305
+          or CipherSuiteType.CHACHA20_POLY1305;
 
     private static class ThrowHelper
     {
