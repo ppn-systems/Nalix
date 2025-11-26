@@ -16,5 +16,5 @@ public interface IPacketDeserializer<TPacket> where TPacket : IPacket
     static abstract TPacket Deserialize(System.ReadOnlySpan<System.Byte> buffer);
 
     // (Optional) If your design needs it, you can add the opposite direction:
-    // static abstract void Serialize(in TPacket packet, System.Span<byte> destination);
+    // static abstract void Serialize(in TPacket packet, SYSTEM.Span<byte> destination);
 }

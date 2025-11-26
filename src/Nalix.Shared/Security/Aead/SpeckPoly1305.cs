@@ -8,7 +8,7 @@ using Nalix.Shared.Security.Symmetric;
 namespace Nalix.Shared.Security.Aead;
 
 /// <summary>
-/// Speck-CTR + Poly1305 AEAD (detached, Span-first) for Speck 128/256.
+/// SPECK-CTR + Poly1305 AEAD (detached, Span-first) for SPECK 128/256.
 /// <para>
 /// Construction:
 ///   - Keystream block i = Speck_Encrypt( nonce_128 + i ) where addition is 128-bit LE (low then high 64-bit)
@@ -17,14 +17,14 @@ namespace Nalix.Shared.Security.Aead;
 ///   - Tag = Poly1305( AAD || pad16 || CIPHERTEXT || pad16 || len(AAD) || len(CT) )
 /// </para>
 /// <remarks>
-/// Key size: 32 bytes (Speck 128/256). Nonce size: 16 bytes. Tag: 16 bytes.
-/// This is a custom AEAD to align APIs across your Nalix cipher suite; for new designs prefer AES-GCM / ChaCha20-Poly1305.
+/// Key size: 32 bytes (SPECK 128/256). Nonce size: 16 bytes. Tag: 16 bytes.
+/// This is a custom AEAD to align APIs across your Nalix cipher suite; for new designs prefer AES-GCM / CHACHA20-Poly1305.
 /// </remarks>
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Speck-Poly1305 AEAD (CTR)")]
+[System.Diagnostics.DebuggerDisplay("SPECK-Poly1305 AEAD (CTR)")]
 public static class SpeckPoly1305
 {
     #region Constants
@@ -32,13 +32,13 @@ public static class SpeckPoly1305
     /// <summary>Poly1305 tag size in bytes.</summary>
     public const System.Byte TagSize = 16;
 
-    /// <summary>Speck 128/256 key size in bytes.</summary>
+    /// <summary>SPECK 128/256 key size in bytes.</summary>
     private const System.Int32 KEY32 = Speck.KeySizeBytes; // 32
 
     /// <summary>Nonce size in bytes (128-bit CTR IV).</summary>
     private const System.Int32 NONCE16 = 16;
 
-    /// <summary>Speck block size in bytes (128-bit).</summary>
+    /// <summary>SPECK block size in bytes (128-bit).</summary>
     private const System.Int32 BLOCK16 = Speck.BlockSizeBytes; // 16
 
     #endregion
@@ -48,7 +48,7 @@ public static class SpeckPoly1305
     /// <summary>
     /// Encrypts plaintext and produces ciphertext and authentication tag (detached).
     /// </summary>
-    /// <param name="key">32-byte Speck key.</param>
+    /// <param name="key">32-byte SPECK key.</param>
     /// <param name="nonce">16-byte nonce (unique per key).</param>
     /// <param name="plaintext">Input plaintext.</param>
     /// <param name="aad">Associated data to authenticate (may be empty).</param>
@@ -95,7 +95,7 @@ public static class SpeckPoly1305
     /// <summary>
     /// Decrypts ciphertext (detached) and verifies the authentication tag.
     /// </summary>
-    /// <param name="key">32-byte Speck key.</param>
+    /// <param name="key">32-byte SPECK key.</param>
     /// <param name="nonce">16-byte nonce used during encryption.</param>
     /// <param name="ciphertext">Ciphertext to decrypt.</param>
     /// <param name="aad">Associated data supplied during encryption (must match exactly).</param>
@@ -252,7 +252,7 @@ public static class SpeckPoly1305
         System.UInt64 ctr = startCounter;
         System.Span<System.Byte> ks = stackalloc System.Byte[BLOCK16];
 
-        // Preexpand Speck instance once for all blocks
+        // Preexpand SPECK instance once for all blocks
         Speck speck = new(key);
 
         while (offset < src.Length)
@@ -274,7 +274,7 @@ public static class SpeckPoly1305
 
     /// <summary>
     /// Generates one 16-byte CTR keystream block: Speck_Encrypt( nonce_128 + counter ) with 128-bit LE addition.
-    /// (Overload that reuses an existing Speck instance to avoid re-expansion.)
+    /// (Overload that reuses an existing SPECK instance to avoid re-expansion.)
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -292,7 +292,7 @@ public static class SpeckPoly1305
         System.UInt64 carry = ctrLow < n0 ? 1UL : 0UL;
         System.UInt64 ctrHigh = n1 + carry;
 
-        // Encrypt counter block with Speck
+        // Encrypt counter block with SPECK
         System.UInt64 x = ctrLow;
         System.UInt64 y = ctrHigh;
         speck.EncryptBlock(ref x, ref y);
@@ -302,7 +302,7 @@ public static class SpeckPoly1305
     }
 
     /// <summary>
-    /// Generates one 16-byte CTR keystream block using a temporary Speck instance (for short one-off calls).
+    /// Generates one 16-byte CTR keystream block using a temporary SPECK instance (for short one-off calls).
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -414,7 +414,7 @@ public static class SpeckPoly1305
     private static class ThrowHelper
     {
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadKeyLen() => throw new System.ArgumentException("Key must be 32 bytes (Speck 128/256).", "key");
+        public static void BadKeyLen() => throw new System.ArgumentException("Key must be 32 bytes (SPECK 128/256).", "key");
 
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
         public static void BadNonceLen() => throw new System.ArgumentException("Nonce must be 16 bytes.", "nonce");

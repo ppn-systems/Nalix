@@ -45,7 +45,7 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     public Handshake()
     {
         Data = [];
-        Flags = PacketFlags.None;
+        Flags = PacketFlags.NONE;
         Priority = PacketPriority.None;
         Protocol = ProtocolType.NONE;
         OpCode = PacketConstants.OpCodeDefault;
@@ -108,7 +108,7 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     public override void ResetForPool()
     {
         this.Data = [];
-        this.Flags = PacketFlags.None;
+        this.Flags = PacketFlags.NONE;
         this.Priority = PacketPriority.None;
         this.Protocol = ProtocolType.NONE;
     }

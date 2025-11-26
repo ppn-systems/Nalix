@@ -254,7 +254,7 @@ internal sealed class ChannelFileWriter : IDisposable
             var sb = new StringBuilder(256);
             _ = sb.AppendLine("-----------------------------------------------------");
             _ = sb.AppendLine($"Log File Created: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
-            _ = sb.AppendLine($"User: {Environment.UserName}");
+            _ = sb.AppendLine($"USER: {Environment.UserName}");
             _ = sb.AppendLine($"Machine: {Environment.MachineName}");
             _ = sb.AppendLine($"OS: {Environment.OSVersion}");
             _ = sb.AppendLine("-----------------------------------------------------");

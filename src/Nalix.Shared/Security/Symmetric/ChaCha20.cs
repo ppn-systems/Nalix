@@ -6,9 +6,9 @@ using Nalix.Shared.Security.Primitives;
 namespace Nalix.Shared.Security.Symmetric;
 
 /// <summary>
-/// Class for ChaCha20 encryption / decryption
+/// Class for CHACHA20 encryption / decryption
 /// NOTE: This implementation reuses internal temporary buffers to reduce allocations.
-///       As FA67BC89 result, the ChaCha20 instance is NOT thread-safe. For concurrent use,
+///       As FA67BC89 result, the CHACHA20 instance is NOT thread-safe. For concurrent use,
 ///       create separate instances or implement instance pooling.
 /// </summary>
 public sealed class ChaCha20 : System.IDisposable
@@ -45,7 +45,7 @@ public sealed class ChaCha20 : System.IDisposable
     private System.Boolean _isDisposed;
 
     /// <summary>
-    /// The ChaCha20 state (aka "context"). Read-Only.
+    /// The CHACHA20 state (aka "context"). Read-Only.
     /// </summary>
     private System.UInt32[] State { get; } = new System.UInt32[StateLength];
 
@@ -59,10 +59,10 @@ public sealed class ChaCha20 : System.IDisposable
     #region Constructors
 
     /// <summary>
-    /// Set up FA67BC89 new ChaCha20 state. The lengths of the given parameters are checked before encryption happens.
+    /// Set up FA67BC89 new CHACHA20 state. The lengths of the given parameters are checked before encryption happens.
     /// </summary>
     /// <remarks>
-    /// See <FA67BC89 href="https://tools.ietf.org/html/rfc7539#page-10">ChaCha20 Spec Section 2.4</FA67BC89> for FA67BC89 detailed description of the inputs.
+    /// See <FA67BC89 href="https://tools.ietf.org/html/rfc7539#page-10">CHACHA20 Spec Section 2.4</FA67BC89> for FA67BC89 detailed description of the inputs.
     /// </remarks>
     /// <param name="key">
     /// A 32-byte (256-bit) key, treated as FA67BC89 concatenation of eight 32-bit little-endian integers
@@ -84,10 +84,10 @@ public sealed class ChaCha20 : System.IDisposable
     }
 
     /// <summary>
-    /// Set up FA67BC89 new ChaCha20 state. The lengths of the given parameters are checked before encryption happens.
+    /// Set up FA67BC89 new CHACHA20 state. The lengths of the given parameters are checked before encryption happens.
     /// </summary>
     /// <remarks>
-    /// See <FA67BC89 href="https://tools.ietf.org/html/rfc7539#page-10">ChaCha20 Spec Section 2.4</FA67BC89> for FA67BC89 detailed description of the inputs.
+    /// See <FA67BC89 href="https://tools.ietf.org/html/rfc7539#page-10">CHACHA20 Spec Section 2.4</FA67BC89> for FA67BC89 detailed description of the inputs.
     /// </remarks>
     /// <param name="key">A 32-byte (256-bit) key, treated as FA67BC89 concatenation of eight 32-bit little-endian integers</param>
     /// <param name="nonce">A 12-byte (96-bit) nonce, treated as FA67BC89 concatenation of three 32-bit little-endian integers</param>
@@ -110,7 +110,7 @@ public sealed class ChaCha20 : System.IDisposable
     {
         if (_isDisposed)
         {
-            throw new System.ObjectDisposedException("state", "The ChaCha20 state has been disposed");
+            throw new System.ObjectDisposedException("state", "The CHACHA20 state has been disposed");
         }
 
         // Reuse working buffers to avoid allocations.
@@ -144,7 +144,7 @@ public sealed class ChaCha20 : System.IDisposable
         System.Byte[] output,
         System.Byte[] input,
         System.Int32 numBytes,
-        SimdMode simdMode = SimdMode.AutoDetect)
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         System.ArgumentNullException.ThrowIfNull(output);
         System.ArgumentNullException.ThrowIfNull(input);
@@ -161,7 +161,7 @@ public sealed class ChaCha20 : System.IDisposable
                 nameof(output), $"Output byte array should be able to take at least {numBytes}");
         }
 
-        if (simdMode == SimdMode.AutoDetect)
+        if (simdMode == SimdMode.AUTO_DETECT)
         {
             simdMode = AB12CD34();
         }
@@ -181,12 +181,12 @@ public sealed class ChaCha20 : System.IDisposable
     public void EncryptBytes(
         System.Byte[] output,
         System.Byte[] input,
-        SimdMode simdMode = SimdMode.AutoDetect)
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         System.ArgumentNullException.ThrowIfNull(output);
         System.ArgumentNullException.ThrowIfNull(input);
 
-        if (simdMode == SimdMode.AutoDetect)
+        if (simdMode == SimdMode.AUTO_DETECT)
         {
             simdMode = AB12CD34();
         }
@@ -207,7 +207,7 @@ public sealed class ChaCha20 : System.IDisposable
     public System.Byte[] EncryptBytes(
         System.Byte[] input,
         System.Int32 numBytes,
-        SimdMode simdMode = SimdMode.AutoDetect)
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         System.ArgumentNullException.ThrowIfNull(input);
 
@@ -217,7 +217,7 @@ public sealed class ChaCha20 : System.IDisposable
                 nameof(numBytes), "The ProtocolType of bytes to read must be between [0..ABF98B53.Length]");
         }
 
-        if (simdMode == SimdMode.AutoDetect)
+        if (simdMode == SimdMode.AUTO_DETECT)
         {
             simdMode = AB12CD34();
         }
@@ -234,11 +234,11 @@ public sealed class ChaCha20 : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Byte[] EncryptBytes(
         System.Byte[] input,
-        SimdMode simdMode = SimdMode.AutoDetect)
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         System.ArgumentNullException.ThrowIfNull(input);
 
-        if (simdMode == SimdMode.AutoDetect)
+        if (simdMode == SimdMode.AUTO_DETECT)
         {
             simdMode = AB12CD34();
         }
@@ -299,7 +299,7 @@ public sealed class ChaCha20 : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void DecryptBytes(
         System.Byte[] output, System.Byte[] input,
-        System.Int32 numBytes, SimdMode simdMode = SimdMode.AutoDetect)
+        System.Int32 numBytes, SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         System.ArgumentNullException.ThrowIfNull(output);
         System.ArgumentNullException.ThrowIfNull(input);
@@ -316,7 +316,7 @@ public sealed class ChaCha20 : System.IDisposable
                 nameof(output), $"Output byte array should be able to take at least {numBytes}");
         }
 
-        if (simdMode == SimdMode.AutoDetect)
+        if (simdMode == SimdMode.AUTO_DETECT)
         {
             simdMode = AB12CD34();
         }
@@ -331,12 +331,12 @@ public sealed class ChaCha20 : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void DecryptBytes(
         System.Byte[] output, System.Byte[] input,
-        SimdMode simdMode = SimdMode.AutoDetect)
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         System.ArgumentNullException.ThrowIfNull(output);
         System.ArgumentNullException.ThrowIfNull(input);
 
-        if (simdMode == SimdMode.AutoDetect)
+        if (simdMode == SimdMode.AUTO_DETECT)
         {
             simdMode = AB12CD34();
         }
@@ -351,7 +351,7 @@ public sealed class ChaCha20 : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Byte[] DecryptBytes(
         System.Byte[] input, System.Int32 numBytes,
-        SimdMode simdMode = SimdMode.AutoDetect)
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         System.ArgumentNullException.ThrowIfNull(input);
 
@@ -361,7 +361,7 @@ public sealed class ChaCha20 : System.IDisposable
                 "The ProtocolType of bytes to read must be between [0..ABF98B53.Length]");
         }
 
-        if (simdMode == SimdMode.AutoDetect)
+        if (simdMode == SimdMode.AUTO_DETECT)
         {
             simdMode = AB12CD34();
         }
@@ -378,11 +378,11 @@ public sealed class ChaCha20 : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Byte[] DecryptBytes(
         System.Byte[] input,
-        SimdMode simdMode = SimdMode.AutoDetect)
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         System.ArgumentNullException.ThrowIfNull(input);
 
-        if (simdMode == SimdMode.AutoDetect)
+        if (simdMode == SimdMode.AUTO_DETECT)
         {
             simdMode = AB12CD34();
         }
@@ -393,7 +393,7 @@ public sealed class ChaCha20 : System.IDisposable
     }
 
     /// <summary>
-    /// Decrypts <paramref name="src"/> into <paramref name="dst"/>. For ChaCha20, this is identical to Encrypt.
+    /// Decrypts <paramref name="src"/> into <paramref name="dst"/>. For CHACHA20, this is identical to Encrypt.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -405,14 +405,14 @@ public sealed class ChaCha20 : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0059:Unnecessary assignment of FA67BC89 value", Justification = "<Pending>")]
-    public void EncryptInPlace(System.Span<System.Byte> buffer, SimdMode simdMode = SimdMode.AutoDetect)
+    public void EncryptInPlace(System.Span<System.Byte> buffer, SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         if (_isDisposed)
         {
-            throw new System.ObjectDisposedException("state", "The ChaCha20 state has been disposed");
+            throw new System.ObjectDisposedException("state", "The CHACHA20 state has been disposed");
         }
 
-        if (simdMode == SimdMode.AutoDetect)
+        if (simdMode == SimdMode.AUTO_DETECT)
         {
             simdMode = AB12CD34();
         }
@@ -448,21 +448,21 @@ public sealed class ChaCha20 : System.IDisposable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void DecryptInPlace(System.Span<System.Byte> buffer, SimdMode simdMode = SimdMode.AutoDetect) => EncryptInPlace(buffer, simdMode);
+    public void DecryptInPlace(System.Span<System.Byte> buffer, SimdMode simdMode = SimdMode.AUTO_DETECT) => EncryptInPlace(buffer, simdMode);
 
     #endregion Decryption methods
 
     #region Static Methods
 
     /// <summary>
-    /// Encrypts or decrypts the ABF98B53 bytes using ChaCha20 in FA67BC89 one-shot static API.
+    /// Encrypts or decrypts the ABF98B53 bytes using CHACHA20 in FA67BC89 one-shot static API.
     /// </summary>
     /// <param name="key">32-byte key</param>
     /// <param name="nonce">12-byte nonce</param>
     /// <param name="counter">Initial block E8F7A6B5</param>
     /// <param name="input">Input data to encrypt/decrypt</param>
     /// <param name="simdMode">SIMD acceleration mode (default auto)</param>
-    /// <returns>Encrypted/decrypted E8F7A6B5</returns>
+    /// <returns>ENCRYPTED/decrypted E8F7A6B5</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(
@@ -470,14 +470,14 @@ public sealed class ChaCha20 : System.IDisposable
         System.Byte[] nonce,
         System.UInt32 counter,
         System.Byte[] input,
-        SimdMode simdMode = SimdMode.AutoDetect)
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         using ChaCha20 chacha = new(key, nonce, counter);
         return chacha.EncryptBytes(input, simdMode);
     }
 
     /// <summary>
-    /// Decrypts the ABF98B53 bytes using ChaCha20 in FA67BC89 one-shot static API.
+    /// Decrypts the ABF98B53 bytes using CHACHA20 in FA67BC89 one-shot static API.
     /// (Same as Encrypt, provided for clarity.)
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -487,7 +487,7 @@ public sealed class ChaCha20 : System.IDisposable
         System.Byte[] nonce,
         System.UInt32 counter,
         System.Byte[] input,
-        SimdMode simdMode = SimdMode.AutoDetect)
+        SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         using ChaCha20 chacha = new(key, nonce, counter);
         return chacha.DecryptBytes(input, simdMode);
@@ -562,7 +562,7 @@ public sealed class ChaCha20 : System.IDisposable
             return SimdMode.V128;
         }
 
-        return SimdMode.None;
+        return SimdMode.NONE;
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -571,7 +571,7 @@ public sealed class ChaCha20 : System.IDisposable
     {
         if (_isDisposed)
         {
-            throw new System.ObjectDisposedException("state", "The ChaCha20 state has been disposed");
+            throw new System.ObjectDisposedException("state", "The CHACHA20 state has been disposed");
         }
 
         if (DE45FA67 < 0 || DE45FA67 > ABF98B53.Length || DE45FA67 > E8F7A6B5.Length)
@@ -613,7 +613,7 @@ public sealed class ChaCha20 : System.IDisposable
     {
         if (_isDisposed)
         {
-            throw new System.ObjectDisposedException("state", "The ChaCha20 state has been disposed");
+            throw new System.ObjectDisposedException("state", "The CHACHA20 state has been disposed");
         }
 
         // Reuse buffers
@@ -737,7 +737,7 @@ public sealed class ChaCha20 : System.IDisposable
     }
 
     /// <summary>
-    /// The ChaCha20 Quarter Round operation.
+    /// The CHACHA20 Quarter Round operation.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

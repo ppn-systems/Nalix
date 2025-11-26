@@ -7,8 +7,8 @@ namespace Nalix.Shared.Security;
 
 /// <summary>
 /// Provides a unified high-level cryptographic façade that supports both
-/// AEAD suites (e.g., ChaCha20-Poly1305) and pure symmetric stream/CTR ciphers
-/// (e.g., ChaCha20, Salsa20, Speck-CTR, XTEA-CTR).
+/// AEAD suites (e.g., CHACHA20-Poly1305) and pure symmetric stream/CTR ciphers
+/// (e.g., CHACHA20, SALSA20, SPECK-CTR, XTEA-CTR).
 /// <para>
 /// The engine automatically dispatches to <see cref="AeadEngine"/> or
 /// <see cref="SymmetricEngine"/> based on <see cref="CipherSuiteType"/>.
@@ -82,11 +82,11 @@ public static class EnvelopeCipher
     /// </exception>
     /// <example>
     /// <code>
-    /// // AEAD example (ChaCha20-Poly1305)
-    /// var ct = EnvelopeCipher.Encrypt(key32, data, CipherSuiteType.ChaCha20Poly1305, aad);
+    /// // AEAD example (CHACHA20-Poly1305)
+    /// var ct = EnvelopeCipher.Encrypt(key32, data, CipherSuiteType.CHACHA20_POLY1305, aad);
     ///
-    /// // Stream/CTR example (ChaCha20)
-    /// var ct2 = EnvelopeCipher.Encrypt(key32, data, CipherSuiteType.ChaCha20);
+    /// // Stream/CTR example (CHACHA20)
+    /// var ct2 = EnvelopeCipher.Encrypt(key32, data, CipherSuiteType.CHACHA20);
     /// </code>
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -100,16 +100,16 @@ public static class EnvelopeCipher
     {
         return algorithm switch
         {
-            CipherSuiteType.ChaCha20Poly1305 or
-            CipherSuiteType.Salsa20Poly1305 or
-            CipherSuiteType.SpeckPoly1305 or
-            CipherSuiteType.XteaPoly1305
+            CipherSuiteType.CHACHA20_POLY1305 or
+            CipherSuiteType.SALSA20_POLY1305 or
+            CipherSuiteType.SPECK_POLY1305 or
+            CipherSuiteType.XTEA_POLY1305
                 => AeadEngine.Encrypt(key, plaintext, algorithm, aad, seq),
 
-            CipherSuiteType.ChaCha20 or
-            CipherSuiteType.Salsa20 or
-            CipherSuiteType.Speck or
-            CipherSuiteType.Xtea
+            CipherSuiteType.CHACHA20 or
+            CipherSuiteType.SALSA20 or
+            CipherSuiteType.SPECK or
+            CipherSuiteType.XTEA
                 => SymmetricEngine.Encrypt(key, plaintext, algorithm, default, seq),
 
             _ => throw new System.ArgumentException("Unsupported cipher type", nameof(algorithm))
@@ -166,16 +166,16 @@ public static class EnvelopeCipher
 
         return env.AeadType switch
         {
-            CipherSuiteType.ChaCha20Poly1305 or
-            CipherSuiteType.Salsa20Poly1305 or
-            CipherSuiteType.SpeckPoly1305 or
-            CipherSuiteType.XteaPoly1305
+            CipherSuiteType.CHACHA20_POLY1305 or
+            CipherSuiteType.SALSA20_POLY1305 or
+            CipherSuiteType.SPECK_POLY1305 or
+            CipherSuiteType.XTEA_POLY1305
                 => AeadEngine.Decrypt(key, envelope, out plaintext, aad),
 
-            CipherSuiteType.ChaCha20 or
-            CipherSuiteType.Salsa20 or
-            CipherSuiteType.Speck or
-            CipherSuiteType.Xtea
+            CipherSuiteType.CHACHA20 or
+            CipherSuiteType.SALSA20 or
+            CipherSuiteType.SPECK or
+            CipherSuiteType.XTEA
                 => SymmetricEngine.Decrypt(key, envelope, out plaintext),
 
             _ => false

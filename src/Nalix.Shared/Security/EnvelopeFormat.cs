@@ -199,10 +199,10 @@ internal static class EnvelopeFormat
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Boolean IsAeadSuite(CipherSuiteType t) =>
-        t is CipherSuiteType.ChaCha20Poly1305
-        or CipherSuiteType.Salsa20Poly1305
-        or CipherSuiteType.SpeckPoly1305
-        or CipherSuiteType.XteaPoly1305;
+        t is CipherSuiteType.CHACHA20_POLY1305
+        or CipherSuiteType.SALSA20_POLY1305
+        or CipherSuiteType.SPECK_POLY1305
+        or CipherSuiteType.XTEA_POLY1305;
 
     private static class ThrowHelper
     {

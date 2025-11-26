@@ -22,7 +22,7 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 internal sealed class StringArrayFormatter : IFormatter<System.String[]>
 {
-    private static System.String DebuggerDisplay => "StringFormatter<System.String[]>";
+    private static System.String DebuggerDisplay => "StringFormatter<SYSTEM.String[]>";
 
     private static readonly IFormatter<System.UInt16> UInt16Formatter = FormatterProvider.Get<System.UInt16>();
     private static readonly IFormatter<System.String> StringFormatterInstance = FormatterProvider.Get<System.String>();

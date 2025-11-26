@@ -26,9 +26,9 @@ public sealed class PacketPermissionAttribute : System.Attribute
     /// </summary>
     /// <param name="level">
     /// The minimum authority level required to execute the command.
-    /// Defaults to <see cref="PermissionLevel.User"/>.
+    /// Defaults to <see cref="PermissionLevel.USER"/>.
     /// </param>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    public PacketPermissionAttribute(PermissionLevel level = PermissionLevel.User) => Level = level;
+    public PacketPermissionAttribute(PermissionLevel level = PermissionLevel.USER) => Level = level;
 }

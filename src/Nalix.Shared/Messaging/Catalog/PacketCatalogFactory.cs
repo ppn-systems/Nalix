@@ -82,14 +82,14 @@ public sealed class PacketCatalogFactory
         nameof(BindAllPtrsGeneric),
         System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
 
-    #endregion
+    #endregion Static: Defaults & Utilities
 
     #region Fields
 
     private readonly System.Collections.Generic.HashSet<System.Type> _explicitPacketTypes = [];
     private readonly System.Collections.Generic.HashSet<System.Reflection.Assembly> _assemblies = [];
 
-    #endregion
+    #endregion Fields
 
     #region Ctor & Registration
 
@@ -104,7 +104,7 @@ public sealed class PacketCatalogFactory
                 .RegisterPacket<Text512>()
                 .RegisterPacket<Text1024>();
 
-        // CONTROL / handshake packets
+        // Control / handshake packets
         _ = this.RegisterPacket<Control>()
                 .RegisterPacket<Handshake>()
                 .RegisterPacket<Directive>();
@@ -157,7 +157,7 @@ public sealed class PacketCatalogFactory
         return this;
     }
 
-    #endregion
+    #endregion Ctor & Registration
 
     #region Unsafe Trampoline & Binders
 
@@ -282,7 +282,7 @@ public sealed class PacketCatalogFactory
             $"dec={(miDecrypt is not null ? "+" : "-")}");
     }
 
-    #endregion
+    #endregion Unsafe Trampoline & Binders
 
     #region Build
 
@@ -496,5 +496,5 @@ public sealed class PacketCatalogFactory
             System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(deserializers));
     }
 
-    #endregion
+    #endregion Build
 }

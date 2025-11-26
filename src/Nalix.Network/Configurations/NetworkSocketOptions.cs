@@ -5,7 +5,7 @@ using Nalix.Framework.Configuration.Binding;
 namespace Nalix.Network.Configurations;
 
 /// <summary>
-/// Represents network configuration settings for socket and Reliable connections.
+/// Represents network configuration settings for socket and RELIABLE connections.
 /// </summary>
 public sealed class NetworkSocketOptions : ConfigurationLoader
 {
@@ -89,7 +89,7 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     public System.Int32 BufferSize { get; set; } = 4 * 1024;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the socket should use the Reliable Keep-Alive mechanism.
+    /// Gets or sets a value indicating whether the socket should use the RELIABLE Keep-Alive mechanism.
     /// </summary>
     /// <value>
     /// <c>true</c> to enable Keep-Alive; otherwise, <c>false</c>.

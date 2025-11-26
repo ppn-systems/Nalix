@@ -80,5 +80,5 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     /// This property is ignored during configuration binding.
     /// </summary>
     [ConfiguredIgnore]
-    public CipherSuiteType EncryptionMode { get; set; } = CipherSuiteType.ChaCha20Poly1305;
+    public CipherSuiteType EncryptionMode { get; set; } = CipherSuiteType.CHACHA20_POLY1305;
 }

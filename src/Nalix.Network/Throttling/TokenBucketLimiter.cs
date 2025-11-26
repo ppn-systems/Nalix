@@ -36,7 +36,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         /// <summary>Remaining whole tokens (credit) after the check.</summary>
         public System.UInt16 Credit { get; init; }
 
-        /// <summary>Reason for throttling; None if allowed.</summary>
+        /// <summary>Reason for throttling; NONE if allowed.</summary>
         public RateLimitReason Reason { get; init; }
     }
 
@@ -47,7 +47,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     public enum RateLimitReason : System.Byte
     {
         /// <summary>
-        /// None.
+        /// NONE.
         /// </summary>
         None = 0,
 

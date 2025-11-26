@@ -9,17 +9,17 @@ namespace Nalix.Shared.Security.Aead;
 
 /// <summary>
 /// Provides an allocation-minimized, Span-first implementation of a
-/// Salsa20-Poly1305 AEAD scheme (secretbox-style keystream layout, AEAD transcript like RFC 8439).
+/// SALSA20-Poly1305 AEAD scheme (secretbox-style keystream layout, AEAD transcript like RFC 8439).
 /// </summary>
 /// <remarks>
 /// <para>
 /// Construction:
-///   - Poly1305 one-time key = first 32 bytes of Salsa20 keystream with counter = 0
-///   - Payload encryption = Salsa20 XOR with counter starting at 1
+///   - Poly1305 one-time key = first 32 bytes of SALSA20 keystream with counter = 0
+///   - Payload encryption = SALSA20 XOR with counter starting at 1
 ///   - Tag = Poly1305(AAD || pad16 || CIPHERTEXT || pad16 || len(AAD) || len(CIPHERTEXT))
 /// </para>
 /// <para>
-/// Key size: 16 or 32 bytes (Salsa20/128 or Salsa20/256); Nonce size: 8 bytes (classic Salsa20).
+/// Key size: 16 or 32 bytes (SALSA20/128 or SALSA20/256); Nonce size: 8 bytes (classic SALSA20).
 /// Tag size: 16 bytes (Poly1305).
 /// </para>
 /// <para><b>Security requirements</b>:
@@ -33,7 +33,7 @@ namespace Nalix.Shared.Security.Aead;
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Salsa20-Poly1305 AEAD")]
+[System.Diagnostics.DebuggerDisplay("SALSA20-Poly1305 AEAD")]
 public static class Salsa20Poly1305
 {
     #region Constants
@@ -41,7 +41,7 @@ public static class Salsa20Poly1305
     /// <summary>The size, in bytes, of the authentication tag (MAC). Value: 16.</summary>
     public const System.Byte TagSize = 16;
 
-    /// <summary>Accepted Salsa20 key sizes in bytes.</summary>
+    /// <summary>Accepted SALSA20 key sizes in bytes.</summary>
     private const System.Byte KEY16 = 16, KEY32 = 32;
 
     /// <summary>The size, in bytes, of the nonce. Value: 8.</summary>
@@ -86,7 +86,7 @@ public static class Salsa20Poly1305
         System.Span<System.Byte> polyKey = stackalloc System.Byte[32];
         try
         {
-            // 1) Derive 32-byte Poly1305 one-time key from Salsa20 counter=0
+            // 1) Derive 32-byte Poly1305 one-time key from SALSA20 counter=0
             //    Obtain raw keystream by "encrypting" zero bytes.
             System.Span<System.Byte> zeros = stackalloc System.Byte[32];
             zeros.Clear();
@@ -344,7 +344,7 @@ public static class Salsa20Poly1305
         }
     }
 
-    /// <summary>Centralized throw helpers (names styled to match your ChaCha20Poly1305).</summary>
+    /// <summary>Centralized throw helpers (names styled to match your CHACHA20_POLY1305).</summary>
     [System.Diagnostics.StackTraceHidden]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     private static class ThrowHelper

@@ -43,9 +43,9 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// Gets or sets the policy for handling connection rejection when limits are reached.
     /// </summary>
     /// <value>
-    /// The rejection strategy to apply. Default is <see cref="RejectPolicy.RejectNew"/>.
+    /// The rejection strategy to apply. Default is <see cref="RejectPolicy.REJECT_NEW"/>.
     /// </value>
-    public RejectPolicy RejectPolicy { get; init; } = RejectPolicy.RejectNew;
+    public RejectPolicy RejectPolicy { get; init; } = RejectPolicy.REJECT_NEW;
 
     // Username policy
 

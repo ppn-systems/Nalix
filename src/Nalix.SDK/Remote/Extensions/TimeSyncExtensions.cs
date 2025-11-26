@@ -26,7 +26,7 @@ public static class TimeSyncExtensions
     /// <summary>
     /// Performs a one-shot time synchronization with the server.
     /// </summary>
-    /// <param name="client">Reliable client instance.</param>
+    /// <param name="client">RELIABLE client instance.</param>
     /// <param name="opCode">
     /// Operation code to match request/response.
     /// Use a dedicated opcode for time sync (e.g. 2).

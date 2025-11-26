@@ -19,5 +19,5 @@ public sealed class DispatchOptions : ConfigurationLoader
     /// <summary>
     /// Drop strategy when the per-connection queue is full.
     /// </summary>
-    public DropPolicy DropPolicy { get; init; } = DropPolicy.DropNewest;
+    public DropPolicy DropPolicy { get; init; } = DropPolicy.DROP_NEWEST;
 }

@@ -598,11 +598,11 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         switch (_options.RejectPolicy)
         {
-            case RejectPolicy.RejectNew:
+            case RejectPolicy.REJECT_NEW:
                 newConnection.Disconnect("connection limit reached");
                 break;
 
-            case RejectPolicy.DropOldestAnonymous:
+            case RejectPolicy.DROP_OLDEST_ANONYMOUS:
                 // Find oldest anonymous connection (connection without username)
                 IConnection oldestAnonymous = null;
                 foreach (var kvp in _connections)

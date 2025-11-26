@@ -8,10 +8,10 @@ public enum RejectPolicy
     /// <summary>
     /// Rejects the new incoming connection.
     /// </summary>
-    RejectNew = 0,
+    REJECT_NEW = 0,
 
     /// <summary>
     /// Drops the oldest anonymous connection to make room for the new one.
     /// </summary>
-    DropOldestAnonymous = 1
+    DROP_OLDEST_ANONYMOUS = 1
 }

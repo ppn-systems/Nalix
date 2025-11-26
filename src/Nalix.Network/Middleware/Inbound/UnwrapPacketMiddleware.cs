@@ -23,8 +23,8 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
     {
         IPacket current = context.Packet;
 
-        System.Boolean needDecrypt = current.Flags.HasFlag(PacketFlags.Encrypted);
-        System.Boolean needDecompress = current.Flags.HasFlag(PacketFlags.Compressed);
+        System.Boolean needDecrypt = current.Flags.HasFlag(PacketFlags.ENCRYPTED);
+        System.Boolean needDecompress = current.Flags.HasFlag(PacketFlags.COMPRESSED);
 
         if (!needDecrypt && !needDecompress)
         {

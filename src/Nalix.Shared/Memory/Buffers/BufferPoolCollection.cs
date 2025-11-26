@@ -216,7 +216,7 @@ internal sealed class BufferPoolCollection : System.IDisposable
     {
         if (usage >= 0.90 || missRate >= 0.10)
         {
-            // System is hot → react quickly
+            // SYSTEM is hot → react quickly
             return MinCooldownMs;
         }
 

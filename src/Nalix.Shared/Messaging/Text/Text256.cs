@@ -40,7 +40,7 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
     /// <summary>Initializes a new <see cref="Text256"/> with empty content.</summary>
     public Text256()
     {
-        Flags = PacketFlags.None;
+        Flags = PacketFlags.NONE;
         Content = System.String.Empty;
         Priority = PacketPriority.None;
         Protocol = ProtocolType.NONE;
@@ -98,7 +98,7 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
         }
 
         packet.Content = packet.Content.CompressToBase64();
-        packet.Flags = packet.Flags.AddFlag(PacketFlags.Compressed);
+        packet.Flags = packet.Flags.AddFlag(PacketFlags.COMPRESSED);
 
         return packet;
     }
@@ -116,7 +116,7 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
         }
 
         packet.Content = packet.Content.DecompressFromBase64();
-        packet.Flags = packet.Flags.RemoveFlag(PacketFlags.Compressed);
+        packet.Flags = packet.Flags.RemoveFlag(PacketFlags.COMPRESSED);
 
         return packet;
     }
@@ -132,7 +132,7 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
     /// </summary>
     public override void ResetForPool()
     {
-        this.Flags = PacketFlags.None;
+        this.Flags = PacketFlags.NONE;
         this.Content = System.String.Empty;
         this.Priority = PacketPriority.None;
         this.Protocol = ProtocolType.NONE;
