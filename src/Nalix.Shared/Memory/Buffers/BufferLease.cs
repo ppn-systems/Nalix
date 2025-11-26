@@ -30,12 +30,14 @@ public sealed class BufferLease : IBufferLease
     private const System.Byte PoisonByte = 0xCD;
 
     // ====== Fields ======
-    private System.Byte[]? _buffer;
+
     private System.Int32 _start;                    // slice start (>= 0, <= RawCapacity)
     private System.Int32 _refCount;                 // reference count (>= 0)
     private System.Int32 _detached;                 // 0 = no, 1 = yes
+    private System.Byte[]? _buffer;
 
     // ====== Ctor ======
+
     private BufferLease(System.Byte[] buffer, System.Int32 start, System.Int32 length, System.Boolean zeroOnDispose)
     {
         System.ArgumentNullException.ThrowIfNull(buffer);
@@ -107,14 +109,17 @@ public sealed class BufferLease : IBufferLease
 
     #region APIs
 
+#if DEBUG
     /// <summary>
     /// Convenient ArraySegment over the valid payload slice.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.ArraySegment<System.Byte> AsSegment()
         => _buffer is null ? default : new System.ArraySegment<System.Byte>(_buffer, _start, Length);
+#endif
 
     /// <summary>
     /// Increases the reference count so multiple consumers can hold this lease safely.
@@ -142,14 +147,14 @@ public sealed class BufferLease : IBufferLease
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void SetLength(System.Int32 length)
+    public void CommitLength([System.Diagnostics.CodeAnalysis.NotNull] System.Int32 length)
     {
         if ((System.UInt32)length > (System.UInt32)Capacity)
         {
             throw new System.ArgumentOutOfRangeException(nameof(length));
         }
 
-        Length = length;
+        this.Length = length;
     }
 
     /// <summary>
@@ -178,15 +183,15 @@ public sealed class BufferLease : IBufferLease
         {
             _buffer = null;
             _start = 0;
-            Length = 0;
+            this.Length = 0;
             return;
         }
 
         System.Byte[]? buf = System.Threading.Interlocked.Exchange(ref _buffer, null);
         System.Int32 start = _start;
-        System.Int32 len = Length;
+        System.Int32 len = this.Length;
         _start = 0;
-        Length = 0;
+        this.Length = 0;
 
         if (buf is not null)
         {
@@ -194,7 +199,7 @@ public sealed class BufferLease : IBufferLease
             {
                 System.Span<System.Byte> slice = new(buf, start, len);
 
-                if (ZeroOnDispose)
+                if (this.ZeroOnDispose)
                 {
                     // Security first
                     slice.Clear();
@@ -214,14 +219,18 @@ public sealed class BufferLease : IBufferLease
 
     /// <summary>
     /// Transfers ownership of the underlying array slice to the caller (no pool return on Dispose).
-    /// After a successful detach, this instance becomes empty and disposing it is a no-op.
+    /// After a successful release, this instance becomes empty and disposing it is a no-op.
     /// Only allowed when this is the last reference (refCount == 1).
     /// </summary>
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public System.Boolean TryDetach(out System.Byte[]? buffer, out System.Int32 start, out System.Int32 length)
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public System.Boolean ReleaseOwnership(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] out System.Byte[]? buffer,
+        [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 start,
+        [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 length)
     {
         // Ensure single-owner detach (avoid breaking other holders)
         if (System.Threading.Volatile.Read(ref _refCount) != 1)
@@ -238,21 +247,24 @@ public sealed class BufferLease : IBufferLease
 
         buffer = System.Threading.Interlocked.Exchange(ref _buffer, null);
         start = _start;
-        length = Length;
+        length = this.Length;
 
         _start = 0;
-        Length = 0;
+        this.Length = 0;
         return buffer is not null;
     }
 
     /// <summary>
     /// Auto-rents a buffer from <see cref="BufferPoolManager"/> and returns a new empty slice [start=0, length=0].
-    /// Caller writes to <see cref="SpanFull"/> then calls <see cref="SetLength(System.Int32)"/>.
+    /// Caller writes to <see cref="SpanFull"/> then calls <see cref="CommitLength(System.Int32)"/>.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static BufferLease Rent(System.Int32 capacity, System.Boolean zeroOnDispose = false)
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public static BufferLease Rent(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 capacity,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean zeroOnDispose = false)
     {
         System.Byte[] arr = Pool.Rent(capacity);
         return new BufferLease(arr, start: 0, length: 0, zeroOnDispose: zeroOnDispose);
@@ -261,9 +273,12 @@ public sealed class BufferLease : IBufferLease
     /// <summary>
     /// Creates a <see cref="BufferLease"/> by copying the source into a newly rented buffer.
     /// </summary>
-    public static BufferLease CopyFrom(System.ReadOnlySpan<System.Byte> src, System.Boolean zeroOnDispose = false)
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public static BufferLease CopyFrom(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean zeroOnDispose = false)
     {
-        var arr = Pool.Rent(src.Length);
+        System.Byte[] arr = Pool.Rent(src.Length);
         src.CopyTo(System.MemoryExtensions.AsSpan(arr, 0, src.Length));
         return new BufferLease(arr, start: 0, length: src.Length, zeroOnDispose: zeroOnDispose);
     }
@@ -274,7 +289,11 @@ public sealed class BufferLease : IBufferLease
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static BufferLease FromRented(System.Byte[] buffer, System.Int32 length, System.Boolean zeroOnDispose = false)
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public static BufferLease FromRented(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] buffer,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 length,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean zeroOnDispose = false)
         => new(buffer, start: 0, length: length, zeroOnDispose: zeroOnDispose);
 
     /// <summary>
@@ -283,15 +302,12 @@ public sealed class BufferLease : IBufferLease
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static BufferLease FromRentedSlice(System.Byte[] buffer, System.Int32 start, System.Int32 length, System.Boolean zeroOnDispose = false)
-        => new(buffer, start, length, zeroOnDispose);
-
-    /// <summary>
-    /// Alias for <see cref="FromRentedSlice"/> for readability at call sites performing ownership transfer.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static BufferLease TakeOwnership(System.Byte[] buffer, System.Int32 start, System.Int32 length, System.Boolean zeroOnDispose = false)
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public static BufferLease TakeOwnership(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] buffer,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 start,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 length,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean zeroOnDispose = false)
         => new(buffer, start, length, zeroOnDispose);
 
     #endregion Properties

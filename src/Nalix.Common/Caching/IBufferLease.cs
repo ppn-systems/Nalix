@@ -32,10 +32,10 @@ public interface IBufferLease : System.IDisposable
     /// <summary>
     /// Sets the valid payload length (must be between 0 and Capacity).
     /// </summary>
-    void SetLength(System.Int32 length);
+    void CommitLength(System.Int32 length);
 
     /// <summary>
     /// Attempts to detach the underlying array, transferring ownership to the caller.
     /// </summary>
-    System.Boolean TryDetach(out System.Byte[] buffer, out System.Int32 start, out System.Int32 length);
+    System.Boolean ReleaseOwnership(out System.Byte[] buffer, out System.Int32 start, out System.Int32 length);
 }
