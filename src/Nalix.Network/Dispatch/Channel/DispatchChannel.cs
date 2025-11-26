@@ -131,7 +131,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean Pull(
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IConnection connection,
-        [System.Diagnostics.CodeAnalysis.AllowNull]
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease lease)
     {
         lease = default!;
