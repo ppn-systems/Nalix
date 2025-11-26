@@ -37,7 +37,7 @@ public sealed class TransientConsoleScope : System.IDisposable
                 // Another process is already holding the console-creation right.
                 // Choose behavior: throw OR best-effort attach to parent (no transient).
                 // Option A (strict): throw
-                // throw new System.InvalidOperationException("Another process already owns the transient console.");
+                // throw new SYSTEM.InvalidOperationException("Another process already owns the transient console.");
 
                 // Option B (benign fallback): attach to parent console and keep going without ALLOC_CONSOLE.
                 // This still respects the rule: we don't create an extra console.

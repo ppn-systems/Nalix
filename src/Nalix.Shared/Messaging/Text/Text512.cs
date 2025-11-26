@@ -44,7 +44,7 @@ public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>, IPack
     /// </summary>
     public Text512()
     {
-        Flags = PacketFlags.None;
+        Flags = PacketFlags.NONE;
         Content = System.String.Empty;
         Priority = PacketPriority.None;
         Protocol = ProtocolType.NONE;
@@ -102,7 +102,7 @@ public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>, IPack
         }
 
         packet.Content = packet.Content.CompressToBase64();
-        packet.Flags = packet.Flags.AddFlag(PacketFlags.Compressed);
+        packet.Flags = packet.Flags.AddFlag(PacketFlags.COMPRESSED);
 
         return packet;
     }
@@ -120,7 +120,7 @@ public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>, IPack
         }
 
         packet.Content = packet.Content.DecompressFromBase64();
-        packet.Flags = packet.Flags.RemoveFlag(PacketFlags.Compressed);
+        packet.Flags = packet.Flags.RemoveFlag(PacketFlags.COMPRESSED);
 
         return packet;
     }
@@ -134,7 +134,7 @@ public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>, IPack
     /// <summary>Resets this instance to its default state for pooling reuse.</summary>
     public override void ResetForPool()
     {
-        this.Flags = PacketFlags.None;
+        this.Flags = PacketFlags.NONE;
         this.Content = System.String.Empty;
         this.Priority = PacketPriority.None;
         this.Protocol = ProtocolType.NONE;

@@ -28,7 +28,7 @@ public enum IdentifierType : System.Byte
     Log = 2,
 
     /// <summary>
-    /// System-wide unique identifier.
+    /// SYSTEM-wide unique identifier.
     /// </summary>
     System = 3,
 

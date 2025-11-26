@@ -8,21 +8,21 @@ public enum DropPolicy
     /// <summary>
     /// Drop the incoming (newest) packet.
     /// </summary>
-    DropNewest = 0,
+    DROP_NEWEST = 0,
 
     /// <summary>
     /// Drop the oldest packet in the queue to make room for the new one.
     /// </summary>
-    DropOldest = 1,
+    DROP_OLDEST = 1,
 
     /// <summary>
-    /// Block the producer until there is room (backpressure).
+    /// BLOCK the producer until there is room (backpressure).
     /// WARNING: may stall the receiving loop if abused.
     /// </summary>
-    Block = 2,
+    BLOCK = 2,
 
     /// <summary>
-    /// Coalesce duplicate packets (by key) and keep only the latest.
+    /// COALESCE duplicate packets (by key) and keep only the latest.
     /// </summary>
-    Coalesce = 3
+    COALESCE = 3
 }

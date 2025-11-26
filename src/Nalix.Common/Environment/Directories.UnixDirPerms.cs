@@ -288,7 +288,7 @@ public static partial class Directories
             m |= 0x200; // 01000
         }
 
-        // User
+        // USER
         if ((mode & System.IO.UnixFileMode.UserRead) != 0)
         {
             m |= 0x100; // 0400

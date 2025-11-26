@@ -23,13 +23,13 @@ public sealed class PacketEncryptionAttribute : System.Attribute
     /// </param>
     /// <param name="algorithmType">
     /// The symmetric encryption algorithm to apply when <paramref name="isEncrypted"/> is <c>true</c>.
-    /// Defaults to <see cref="CipherSuiteType.Salsa20"/>.
+    /// Defaults to <see cref="CipherSuiteType.SALSA20"/>.
     /// </param>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public PacketEncryptionAttribute(
         System.Boolean isEncrypted = false,
-        CipherSuiteType algorithmType = CipherSuiteType.Salsa20)
+        CipherSuiteType algorithmType = CipherSuiteType.SALSA20)
     {
         IsEncrypted = isEncrypted;
         AlgorithmType = algorithmType;

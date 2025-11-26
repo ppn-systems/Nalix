@@ -24,7 +24,7 @@ namespace Nalix.Shared.Security.Engine;
 /// <strong>Envelope structure:</strong>
 /// <list type="bullet">
 /// <item><description><c>header</c>: fixed <see cref="EnvelopeFormat.HeaderSize"/> bytes (contains magic, algorithm id, flags, nonce length, sequence).</description></item>
-/// <item><description><c>nonce</c>: suite-specific length (e.g., 12 for ChaCha20, 8 for Salsa20, 16 for Speck, 8 for XTEA).</description></item>
+/// <item><description><c>nonce</c>: suite-specific length (e.g., 12 for CHACHA20, 8 for SALSA20, 16 for SPECK, 8 for XTEA).</description></item>
 /// <item><description><c>ciphertext</c>: same length as plaintext.</description></item>
 /// <item><description><c>tag</c>: authentication tag of <see cref="EnvelopeFormat.TagSize"/> bytes (detached).</description></item>
 /// </list>
@@ -53,7 +53,7 @@ public static class AeadEngine
     /// <param name="key">Secret key (length depends on suite; see remarks).</param>
     /// <param name="plaintext">Plaintext to encrypt.</param>
     /// <param name="algorithm">
-    /// Optional algorithm name. Defaults to <c>"ChaCha20"</c>.
+    /// Optional algorithm name. Defaults to <c>"CHACHA20"</c>.
     /// Supported aliases:
     /// <list type="bullet">
     /// <item><description><c>"chacha"</c>, <c>"chacha20"</c>, <c>"chacha20-poly1305"</c></description></item>
@@ -72,9 +72,9 @@ public static class AeadEngine
     /// <para>
     /// Expected key lengths:
     /// <list type="bullet">
-    /// <item><description><c>ChaCha20-Poly1305</c>: 32 bytes</description></item>
-    /// <item><description><c>Salsa20-Poly1305</c>: 16 or 32 bytes</description></item>
-    /// <item><description><c>Speck-Poly1305</c>: <see cref="Speck.KeySizeBytes"/> bytes</description></item>
+    /// <item><description><c>CHACHA20-Poly1305</c>: 32 bytes</description></item>
+    /// <item><description><c>SALSA20-Poly1305</c>: 16 or 32 bytes</description></item>
+    /// <item><description><c>SPECK-Poly1305</c>: <see cref="Speck.KeySizeBytes"/> bytes</description></item>
     /// <item><description><c>XTEA-Poly1305</c>: 16 bytes (or 32 bytes will be reduced to 16 bytes)</description></item>
     /// </list>
     /// </para>
@@ -84,7 +84,7 @@ public static class AeadEngine
     public static System.Byte[] Encrypt(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> plaintext,
-        CipherSuiteType algorithm = CipherSuiteType.ChaCha20Poly1305,
+        CipherSuiteType algorithm = CipherSuiteType.CHACHA20_POLY1305,
         System.ReadOnlySpan<System.Byte> aad = default,
         System.UInt32? seq = null)
     {
@@ -125,7 +125,7 @@ public static class AeadEngine
             // Dispatch
             switch (algorithm)
             {
-                case CipherSuiteType.ChaCha20Poly1305:
+                case CipherSuiteType.CHACHA20_POLY1305:
                     if (key.Length != 32)
                     {
                         ThrowHelper.BadKeyLen32();
@@ -134,7 +134,7 @@ public static class AeadEngine
                     ChaCha20Poly1305.Encrypt(key, nonce, plaintext, combinedAad, ct, tag);
                     break;
 
-                case CipherSuiteType.Salsa20Poly1305:
+                case CipherSuiteType.SALSA20_POLY1305:
                     if (key.Length is not 16 and not 32)
                     {
                         ThrowHelper.BadKeyLenSalsa();
@@ -143,7 +143,7 @@ public static class AeadEngine
                     Salsa20Poly1305.Encrypt(key, nonce, plaintext, combinedAad, ct, tag);
                     break;
 
-                case CipherSuiteType.SpeckPoly1305:
+                case CipherSuiteType.SPECK_POLY1305:
                     if (key.Length != Speck.KeySizeBytes)
                     {
                         ThrowHelper.BadKeyLenSpeck();
@@ -152,7 +152,7 @@ public static class AeadEngine
                     SpeckPoly1305.Encrypt(key, nonce, plaintext, combinedAad, ct, tag);
                     break;
 
-                case CipherSuiteType.XteaPoly1305:
+                case CipherSuiteType.XTEA_POLY1305:
                     {
                         System.Span<System.Byte> k16 = stackalloc System.Byte[16];
                         if (key.Length == 32)
@@ -237,7 +237,7 @@ public static class AeadEngine
 
             switch (env.AeadType)
             {
-                case CipherSuiteType.ChaCha20Poly1305:
+                case CipherSuiteType.CHACHA20_POLY1305:
                     if (key.Length != 32)
                     {
                         ThrowHelper.BadKeyLen32();
@@ -246,7 +246,7 @@ public static class AeadEngine
                     ok = ChaCha20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, combinedAad, env.Tag, pt);
                     break;
 
-                case CipherSuiteType.Salsa20Poly1305:
+                case CipherSuiteType.SALSA20_POLY1305:
                     if (key.Length is not 16 and not 32)
                     {
                         ThrowHelper.BadKeyLenSalsa();
@@ -255,7 +255,7 @@ public static class AeadEngine
                     ok = Salsa20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, combinedAad, env.Tag, pt);
                     break;
 
-                case CipherSuiteType.SpeckPoly1305:
+                case CipherSuiteType.SPECK_POLY1305:
                     if (key.Length != Speck.KeySizeBytes)
                     {
                         ThrowHelper.BadKeyLenSpeck();
@@ -264,7 +264,7 @@ public static class AeadEngine
                     ok = SpeckPoly1305.Decrypt(key, env.Nonce, env.Ciphertext, combinedAad, env.Tag, pt);
                     break;
 
-                case CipherSuiteType.XteaPoly1305:
+                case CipherSuiteType.XTEA_POLY1305:
                     {
                         System.Span<System.Byte> k16 = stackalloc System.Byte[16];
                         if (key.Length == 32)
@@ -340,10 +340,10 @@ public static class AeadEngine
     {
         return type switch
         {
-            CipherSuiteType.ChaCha20Poly1305 => 12,
-            CipherSuiteType.Salsa20Poly1305 => 8,
-            CipherSuiteType.SpeckPoly1305 => 16,
-            CipherSuiteType.XteaPoly1305 => 8,
+            CipherSuiteType.CHACHA20_POLY1305 => 12,
+            CipherSuiteType.SALSA20_POLY1305 => 8,
+            CipherSuiteType.SPECK_POLY1305 => 16,
+            CipherSuiteType.XTEA_POLY1305 => 8,
             _ => throw new System.ArgumentOutOfRangeException(nameof(type))
         };
     }
@@ -369,11 +369,11 @@ public static class AeadEngine
 
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
         public static void BadKeyLenSalsa() =>
-            throw new System.ArgumentException("Key must be 16 or 32 bytes for Salsa20", "key");
+            throw new System.ArgumentException("Key must be 16 or 32 bytes for SALSA20", "key");
 
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
         public static void BadKeyLenSpeck() =>
-            throw new System.ArgumentException($"Key must be {Speck.KeySizeBytes} bytes (Speck)", "key");
+            throw new System.ArgumentException($"Key must be {Speck.KeySizeBytes} bytes (SPECK)", "key");
 
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
         public static void BadKeyLenXtea() =>

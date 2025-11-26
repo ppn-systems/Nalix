@@ -10,7 +10,7 @@ public enum SimdMode : System.Byte
     /// <summary>
     /// No SIMD
     /// </summary>
-    None = 0,
+    NONE = 0,
 
     /// <summary>
     /// 128 bit SIMD
@@ -30,5 +30,5 @@ public enum SimdMode : System.Byte
     /// <summary>
     /// Autodetect
     /// </summary>
-    AutoDetect = 255,
+    AUTO_DETECT = 255,
 }

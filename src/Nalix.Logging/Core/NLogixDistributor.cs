@@ -257,7 +257,7 @@ public sealed class NLogixDistributor : ILogDistributor
     /// <returns>A string containing diagnostic information.</returns>
     public override System.String ToString()
         => $"[NLogixDistributor Stats - {System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + System.Environment.NewLine +
-           $"- User: {System.Environment.UserName}" + System.Environment.NewLine +
+           $"- USER: {System.Environment.UserName}" + System.Environment.NewLine +
            $"- Active Targets: {_targets.Count}" + System.Environment.NewLine +
            $"- Entries Published: {EntriesDistributor:N0}" + System.Environment.NewLine +
            $"- Target Operations: {TargetsProcessed:N0}" + System.Environment.NewLine +

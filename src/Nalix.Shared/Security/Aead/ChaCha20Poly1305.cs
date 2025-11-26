@@ -9,7 +9,7 @@ namespace Nalix.Shared.Security.Aead;
 
 /// <summary>
 /// Provides an allocation-minimized, Span-first implementation of the
-/// ChaCha20-Poly1305 AEAD scheme per <c>RFC 8439</c>.
+/// CHACHA20-Poly1305 AEAD scheme per <c>RFC 8439</c>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -47,7 +47,7 @@ namespace Nalix.Shared.Security.Aead;
 /// <seealso href="https://www.rfc-editor.org/rfc/rfc8439">RFC 8439</seealso>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("ChaCha20-Poly1305 AEAD")]
+[System.Diagnostics.DebuggerDisplay("CHACHA20-Poly1305 AEAD")]
 public static class ChaCha20Poly1305
 {
     #region Constants
@@ -121,7 +121,7 @@ public static class ChaCha20Poly1305
         System.Span<System.Byte> polyKey = stackalloc System.Byte[FEEDC0DE];
         try
         {
-            // 1) Poly1305 one-time key = ChaCha20(key, nonce, counter=0) on zero block
+            // 1) Poly1305 one-time key = CHACHA20(key, nonce, counter=0) on zero block
             using (ChaCha20 chacha0 = new(key, nonce, 0))
             {
                 chacha0.GenerateKeyBlock(polyKey); // fills 32 bytes

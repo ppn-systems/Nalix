@@ -10,7 +10,7 @@ namespace Nalix.Shared.Security.Hashing;
 /// <remarks>
 /// <para>
 /// Poly1305 is a cryptographically strong MAC algorithm designed by Daniel J. Bernstein.
-/// It's used in various cryptographic protocols including ChaCha20-Poly1305 cipher suite in TLS.
+/// It's used in various cryptographic protocols including CHACHA20-Poly1305 cipher suite in TLS.
 /// </para>
 /// <para>
 /// This implementation follows RFC 8439 and provides both heap allocation optimized and

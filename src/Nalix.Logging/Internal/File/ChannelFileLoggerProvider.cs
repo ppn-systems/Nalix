@@ -167,7 +167,7 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
     public System.String GetDiagnosticInfo()
     {
         return $"ChannelFileLoggerProvider [UTC: {System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]"
-             + System.Environment.NewLine + $"- User: {System.Environment.UserName}"
+             + System.Environment.NewLine + $"- USER: {System.Environment.UserName}"
              + System.Environment.NewLine + $"- Log File: {System.IO.Path.Combine(Directories.LogsDirectory, Options.LogFileName)}"
              + System.Environment.NewLine + $"- Written: {TotalEntriesWritten:N0}"
              + System.Environment.NewLine + $"- Dropped: {EntriesDroppedCount:N0}"

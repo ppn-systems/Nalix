@@ -3,29 +3,29 @@
 namespace Nalix.Shared.Security.Symmetric;
 
 /// <summary>
-/// Speck 128/256: 128-bit block cipher with a 256-bit s.
-/// - Block size: 16 bytes (two 64-bit words)
+/// SPECK 128/256: 128-bit block cipher with a 256-bit s.
+/// - BLOCK size: 16 bytes (two 64-bit words)
 /// - Key size:   32 bytes (four 64-bit words)
 /// - Rounds:     34
 /// Notes:
-/// - This is a separate variant from Speck 64/128. Do not mix keys/ciphertexts across variants.
+/// - This is a separate variant from SPECK 64/128. Do not mix keys/ciphertexts across variants.
 /// - Endianness: operates on native little-endian when reading/writing 64-bit words.
-/// - Security: Speck is controversial; consider modern AEADs (AES-GCM / ChaCha20-Poly1305) for new designs.
+/// - Security: SPECK is controversial; consider modern AEADs (AES-GCM / CHACHA20-Poly1305) for new designs.
 /// </summary>
 public sealed class Speck
 {
     #region Constants
 
-    /// <summary>Number of rounds for Speck 128/256.</summary>
+    /// <summary>Number of rounds for SPECK 128/256.</summary>
     public const System.Int32 Rounds = 34;
 
-    /// <summary>Block size in bytes (128 bits).</summary>
+    /// <summary>BLOCK size in bytes (128 bits).</summary>
     public const System.Int32 BlockSizeBytes = 16;
 
     /// <summary>Key size in bytes (256 bits).</summary>
     public const System.Int32 KeySizeBytes = 32;
 
-    // Rotation constants for 64-bit words (Speck 128/*)
+    // Rotation constants for 64-bit words (SPECK 128/*)
     private const System.Int32 B7C6D5E4 = 8;  // right rotate
     private const System.Int32 C3D2E1F0 = 3;  // left rotate
 
@@ -41,7 +41,7 @@ public sealed class Speck
     #region Construction
 
     /// <summary>
-    /// Creates a new Speck instance and expands the given 256-bit s.
+    /// Creates a new SPECK instance and expands the given 256-bit s.
     /// </summary>
     /// <param name="key">256-bit s (32 bytes).</param>
     /// <exception cref="System.ArgumentException">Thrown when s length is invalid.</exception>

@@ -25,7 +25,7 @@ namespace Nalix.Network.Dispatch;
 /// is done asynchronously using handlers resolved via lease command IDs.
 /// </para>
 /// <para>
-/// It is suitable for high-throughput systems such as custom Reliable servers, IoT message brokers, or game servers
+/// It is suitable for high-throughput systems such as custom RELIABLE servers, IoT message brokers, or game servers
 /// where latency, memory pressure, and throughput are critical.
 /// </para>
 /// </remarks>
@@ -260,7 +260,7 @@ public sealed class PacketDispatchChannel
         }
         catch (System.OperationCanceledException)
         {
-            // None cancellation, no need to log
+            // NONE cancellation, no need to log
         }
         catch (System.Exception ex)
         {

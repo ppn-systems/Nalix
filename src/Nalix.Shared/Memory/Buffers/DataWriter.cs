@@ -11,7 +11,7 @@ namespace Nalix.Shared.Memory.Buffers;
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-[System.Diagnostics.DebuggerDisplay("Len={Length}, Written={WrittenCount}, Rent={_rent}, Owner={( _owner != null )}")]
+[System.Diagnostics.DebuggerDisplay("Len={Length}, Written={WrittenCount}, Rent={_rent}, OWNER={( _owner != null )}")]
 public ref struct DataWriter
 {
     #region Fields

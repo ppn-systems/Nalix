@@ -423,7 +423,7 @@ public enum ProtocolCode : System.UInt16
     #region 500–549: Client / Local Decisions
 
     /// <summary>
-    /// User requested to quit.
+    /// USER requested to quit.
     /// </summary>
     CLIENT_QUIT = 500,
 

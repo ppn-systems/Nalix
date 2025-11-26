@@ -18,7 +18,7 @@ public enum ProtocolType : System.Byte
     TCP = 0x3A,
 
     /// <summary>
-    /// User Datagram Protocol (unreliable, connectionless).
+    /// USER Datagram Protocol (unreliable, connectionless).
     /// </summary>
     UDP = 0xE1
 }

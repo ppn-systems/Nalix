@@ -165,7 +165,7 @@ public static partial class OsCsprng
     // -------------------- Apple: SecRandomCopyBytes --------------------
 
     [System.Runtime.InteropServices.LibraryImport(
-        "/System/Library/Frameworks/Security.framework/Security", EntryPoint = "SecRandomCopyBytes")]
+        "/SYSTEM/Library/Frameworks/Security.framework/Security", EntryPoint = "SecRandomCopyBytes")]
     private static partial System.Int32 SecRandomCopyBytes(System.IntPtr rnd, System.IntPtr count, System.IntPtr bytes);
 
     [System.Runtime.CompilerServices.MethodImpl(

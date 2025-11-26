@@ -12,33 +12,33 @@ public enum PermissionLevel : System.Byte
     /// No authority level assigned.
     /// Usually represents unauthenticated or unregistered users.
     /// </summary>
-    None = 0,
+    NONE = 0,
 
     /// <summary>
-    /// Guest access with minimal or no permissions.
+    /// GUEST access with minimal or no permissions.
     /// Typically for users who are not logged in or registered.
     /// </summary>
-    Guest = 1,
+    GUEST = 1,
 
     /// <summary>
     /// Standard registered user with access to general features.
     /// </summary>
-    User = 2,
+    USER = 2,
 
     /// <summary>
     /// Elevated privileges for managing content, users, or restricted features.
     /// Less authority than a full administrator.
     /// </summary>
-    Supervisor = 3,
+    SUPERVISOR = 3,
 
     /// <summary>
     /// Full administrative control over the system and its users.
     /// </summary>
-    Administrator = 4,
+    ADMINISTRATOR = 4,
 
     /// <summary>
     /// Highest authority level with unrestricted control over all system settings.
     /// Typically reserved for the system owner or creator.
     /// </summary>
-    Owner = 5
+    OWNER = 5
 }

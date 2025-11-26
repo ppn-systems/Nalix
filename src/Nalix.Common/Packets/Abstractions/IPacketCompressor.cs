@@ -12,7 +12,7 @@ public interface IPacketCompressor<TPacket> where TPacket : IPacket
     /// Compresses the specified packet instance.
     /// </summary>
     /// <param name="packet">The packet to compress.</param>
-    /// <returns>Compressed <typeparamref name="TPacket"/>.</returns>
+    /// <returns>COMPRESSED <typeparamref name="TPacket"/>.</returns>
     static abstract TPacket Compress(TPacket packet);
 
     /// <summary>

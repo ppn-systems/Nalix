@@ -36,7 +36,7 @@ public static class HandshakeExtensions
     /// - Derive shared secret, install 32-byte session key (SHA3-256)
     /// Auto-unsubscribes the temporary listener and aborts on disconnect/timeout.
     /// </summary>
-    /// <param name="client">Reliable client.</param>
+    /// <param name="client">RELIABLE client.</param>
     /// <param name="opCode">Operation code to match request/response.</param>
     /// <param name="timeoutMs">Total timeout (send + await).</param>
     /// <param name="validateServerPublicKey">

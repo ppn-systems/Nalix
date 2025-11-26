@@ -12,7 +12,7 @@ public partial interface IConnection
     ITcp TCP { get; }
 
     /// <summary>
-    /// Gets the User Datagram ProtocolType (UDP) transmission interface
+    /// Gets the USER Datagram ProtocolType (UDP) transmission interface
     /// </summary>
     IUdp UDP { get; }
 
@@ -110,7 +110,7 @@ public partial interface IConnection
     }
 
     /// <summary>
-    /// Represents the User Datagram ProtocolType (UDP) transmission interface
+    /// Represents the USER Datagram ProtocolType (UDP) transmission interface
     /// for a network connection.
     /// </summary>
     /// <remarks>

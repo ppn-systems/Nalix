@@ -15,7 +15,7 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed class StringFormatter : IFormatter<System.String>
 {
-    private static System.String DebuggerDisplay => $"StringFormatter<System.String>";
+    private static System.String DebuggerDisplay => $"StringFormatter<SYSTEM.String>";
     private static readonly System.Text.Encoding Utf8 = System.Text.Encoding.UTF8;
 
     /// <summary>
