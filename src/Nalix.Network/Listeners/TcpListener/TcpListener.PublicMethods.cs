@@ -84,7 +84,7 @@ public abstract partial class TcpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public virtual void SynchronizeTime(System.Int64 milliseconds) { }
+    public virtual void SynchronizeTime([System.Diagnostics.CodeAnalysis.NotNull] System.Int64 milliseconds) { }
 
     /// <summary>
     /// Starts listening for incoming connections and processes them using the specified protocol.
@@ -95,7 +95,7 @@ public abstract partial class TcpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public void Activate(System.Threading.CancellationToken cancellationToken = default)
+    public void Activate([System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(_isDisposed, this);
 
@@ -213,7 +213,7 @@ public abstract partial class TcpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
+    public void Deactivate([System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
 

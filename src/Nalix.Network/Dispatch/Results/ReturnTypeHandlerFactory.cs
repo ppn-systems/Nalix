@@ -30,8 +30,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
         // Ensure the factory is initialized with the correct packet type.
         if (!typeof(TPacket).IsAssignableTo(typeof(IPacket)))
         {
-            throw new System.ArgumentException(
-                $"TPacket must implement {nameof(IPacket)}.");
+            throw new System.ArgumentException($"TPacket must implement {nameof(IPacket)}.");
         }
 
         _handlers = CreateHandlers();

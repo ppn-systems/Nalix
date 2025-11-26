@@ -105,7 +105,7 @@ public abstract partial class TcpListenerBase
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
-    private static void InitializeOptions(System.Net.Sockets.Socket socket)
+    private static void InitializeOptions([System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.Socket socket)
     {
         // Performance tuning
         socket.NoDelay = Config.NoDelay;
@@ -164,7 +164,9 @@ public abstract partial class TcpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Boolean IsIgnorableAcceptError(System.Net.Sockets.SocketError code, System.Threading.CancellationToken token)
+    private static System.Boolean IsIgnorableAcceptError(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketError code,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken token)
         => token.IsCancellationRequested || code is System.Net.Sockets.SocketError.OperationAborted
         or System.Net.Sockets.SocketError.Interrupted or System.Net.Sockets.SocketError.NotSocket
         or System.Net.Sockets.SocketError.InvalidArgument or System.Net.Sockets.SocketError.TimedOut
