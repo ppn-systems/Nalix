@@ -64,6 +64,7 @@ public static class X25519
     /// <remarks>
     /// The public key is computed using scalar multiplication of the provided private key with the Curve25519 basepoint.
     /// </remarks>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static X25519KeyPair GenerateKeyFromPrivateKey([System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] privateKey)
     {
         X25519KeyPair key = new()
@@ -86,6 +87,7 @@ public static class X25519
     /// The shared secret is computed by performing scalar multiplication of the local private key with the remote public key
     /// using the Curve25519 algorithm.
     /// </remarks>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Agreement(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] myPrivateKey,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] otherPublicKey)
