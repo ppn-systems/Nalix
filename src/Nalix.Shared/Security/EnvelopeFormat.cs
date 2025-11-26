@@ -27,6 +27,7 @@ internal static class EnvelopeFormat
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Boolean TryParseEnvelope(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> blob,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out ParsedEnvelope env)
@@ -101,6 +102,7 @@ internal static class EnvelopeFormat
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 WriteEnvelope(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dest,
         [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
@@ -132,6 +134,7 @@ internal static class EnvelopeFormat
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 WriteEnvelope(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dest,
         [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,

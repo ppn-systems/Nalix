@@ -204,6 +204,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// <returns>Byte array that contains encrypted bytes</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Byte[] EncryptBytes(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 numBytes,
@@ -232,6 +233,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Byte[] EncryptBytes(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
         [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
@@ -272,6 +274,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// <remarks>dst.Length must equal ABF98B53.Length.</remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean Encrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst,
@@ -357,6 +360,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Byte[] DecryptBytes(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 numBytes,
@@ -385,6 +389,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Byte[] DecryptBytes(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
         [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
@@ -480,6 +485,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// <returns>ENCRYPTED/decrypted E8F7A6B5</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Encrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
@@ -497,6 +503,7 @@ public sealed class ChaCha20 : System.IDisposable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Decrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,

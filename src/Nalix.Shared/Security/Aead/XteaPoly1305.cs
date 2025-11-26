@@ -47,6 +47,7 @@ public static class XteaPoly1305
     /// <exception cref="System.ArgumentException">Thrown if output lengths are invalid.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static void Encrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
@@ -95,6 +96,7 @@ public static class XteaPoly1305
     /// <exception cref="System.ArgumentException">Thrown if input or output lengths are invalid.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Boolean Decrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
@@ -157,6 +159,7 @@ public static class XteaPoly1305
     /// <exception cref="System.ArgumentException">Thrown if key or nonce lengths are invalid.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Encrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
@@ -196,6 +199,7 @@ public static class XteaPoly1305
     /// <exception cref="System.InvalidOperationException">Thrown if authentication fails.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Decrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,

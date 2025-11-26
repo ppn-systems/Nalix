@@ -36,6 +36,7 @@ public static class Ed25519
     /// <returns>The generated signature.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Sign(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] message,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] privateKey)
@@ -106,6 +107,7 @@ public static class Ed25519
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Boolean Verify(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] signature,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] message,
