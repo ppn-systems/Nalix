@@ -46,6 +46,7 @@ public static class Csprng
     /// Generates a secure 12-byte nonce (96 bits) suitable for most authenticated encryption schemes.
     /// </summary>
     /// <returns>A cryptographically secure nonce.</returns>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] CreateNonce(System.Int32 length = 12)
     {
         if (length <= 0)
@@ -86,6 +87,7 @@ public static class Csprng
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] GetBytes(System.Int32 length)
     {
         if (length < 0)
@@ -111,6 +113,7 @@ public static class Csprng
     /// <returns>A random integer in the specified range.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 GetInt32(System.Int32 min, System.Int32 max)
     {
         if (min >= max)
@@ -141,6 +144,7 @@ public static class Csprng
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 GetInt32(System.Int32 max) => GetInt32(0, max);
 
     /// <summary>
@@ -175,6 +179,7 @@ public static class Csprng
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.UInt32 NextUInt32()
     {
         System.Span<System.Byte> b = stackalloc System.Byte[4];
@@ -190,6 +195,7 @@ public static class Csprng
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.UInt64 NextUInt64()
     {
         System.Span<System.Byte> b = stackalloc System.Byte[8];
@@ -204,6 +210,7 @@ public static class Csprng
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Double NextDouble() => (NextUInt64() >> 11) * (1.0 / 9007199254740992.0);
 
     #endregion APIs

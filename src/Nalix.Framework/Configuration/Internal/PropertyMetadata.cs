@@ -55,7 +55,9 @@ internal class PropertyMetadata
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void SetValue(System.Object target, System.Object? value)
+    public void SetValue(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Object target,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Object? value)
     {
         // Only set if the types are compatible
         if (value == null || PropertyType.IsInstanceOfType(value))

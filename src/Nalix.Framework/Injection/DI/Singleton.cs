@@ -7,6 +7,9 @@ namespace Nalix.Framework.Injection.DI;
 /// Supports registering interfaces with implementations and factories for service creation.
 /// Performance optimized for high-throughput applications.
 /// </summary>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Services = {Services.Count}, TypeMapping = {TypeMapping.Count}")]
 public static class Singleton
 {

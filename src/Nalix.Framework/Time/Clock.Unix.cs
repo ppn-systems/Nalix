@@ -1,4 +1,5 @@
-﻿
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
 namespace Nalix.Framework.Time;
 
 public static partial class Clock
@@ -8,6 +9,7 @@ public static partial class Clock
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.DateTime NowUtc()
     {
         System.Int64 swTicks = UtcStopwatch.ElapsedTicks;
@@ -30,6 +32,7 @@ public static partial class Clock
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int64 UnixSecondsNow() => (System.Int64)(NowUtc() - System.DateTime.UnixEpoch).TotalSeconds;
 
     /// <summary>
@@ -37,6 +40,7 @@ public static partial class Clock
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int64 UnixMillisecondsNow() => (System.Int64)(NowUtc() - System.DateTime.UnixEpoch).TotalMilliseconds;
 
     /// <summary>
@@ -44,6 +48,7 @@ public static partial class Clock
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int64 UnixMicrosecondsNow() => (NowUtc() - System.DateTime.UnixEpoch).Ticks / 10;
 
     /// <summary>
@@ -51,6 +56,7 @@ public static partial class Clock
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int64 UnixTicksNow() => (NowUtc() - System.DateTime.UnixEpoch).Ticks;
 
     /// <summary>
@@ -58,6 +64,7 @@ public static partial class Clock
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.TimeSpan UnixTime() => NowUtc() - System.DateTime.UnixEpoch;
 
     /// <summary>
@@ -67,6 +74,7 @@ public static partial class Clock
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int64 MonoTicksNow() => System.Diagnostics.Stopwatch.GetTimestamp();
 
     /// <summary>
@@ -74,5 +82,6 @@ public static partial class Clock
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Double MonoTicksToMilliseconds(System.Int64 tickDelta) => tickDelta * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
 }
