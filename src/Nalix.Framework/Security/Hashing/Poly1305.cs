@@ -369,7 +369,7 @@ public struct Poly1305
         System.ReadOnlySpan<byte> message,
         System.Span<byte> destination)
     {
-        ThrowIfCleared();
+        this.ThrowIfCleared();
 
         if (destination.Length < TagSize)
         {
@@ -401,13 +401,13 @@ public struct Poly1305
             ((System.Span<byte>)block17)[blockSize] = 0x01;
 
             // Absorb: isFinalBlock = true only when blockSize < 16 (last partial block)
-            AddBlock(accumulator, ((System.ReadOnlySpan<byte>)block17)[..(blockSize + 1)], blockSize < BlockBytes);
+            this.AddBlock(accumulator, ((System.ReadOnlySpan<byte>)block17)[..(blockSize + 1)], blockSize < BlockBytes);
 
             offset += blockSize;
         }
 
         // Produce the tag
-        FinalizeTagCore(accumulator, destination);
+        this.FinalizeTagCore(accumulator, destination);
     }
 
     #endregion Public — Instance One-Shot
@@ -427,7 +427,7 @@ public struct Poly1305
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Update(scoped System.ReadOnlySpan<byte> data)
     {
-        ThrowIfCleared();
+        this.ThrowIfCleared();
 
         if (_finalized)
         {
@@ -458,7 +458,7 @@ public struct Poly1305
                 pendingSpan.CopyTo(block17Span);
                 block17Span[BlockBytes] = 0x01;
 
-                AddBlock(_acc, ((System.ReadOnlySpan<byte>)block17)[..PaddedBlockBytes], isFinalBlock: false);
+                this.AddBlock(_acc, ((System.ReadOnlySpan<byte>)block17)[..PaddedBlockBytes], isFinalBlock: false);
 
                 _pendingLen = 0;
             }
@@ -471,7 +471,7 @@ public struct Poly1305
             data[..BlockBytes].CopyTo(block17Span);
             block17Span[BlockBytes] = 0x01;
 
-            AddBlock(_acc, ((System.ReadOnlySpan<byte>)block17)[..PaddedBlockBytes], isFinalBlock: false);
+            this.AddBlock(_acc, ((System.ReadOnlySpan<byte>)block17)[..PaddedBlockBytes], isFinalBlock: false);
 
             data = data[BlockBytes..];
         }
@@ -500,7 +500,7 @@ public struct Poly1305
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void FinalizeTag(System.Span<byte> tag16)
     {
-        ThrowIfCleared();
+        this.ThrowIfCleared();
 
         if (tag16.Length < TagSize)
         {
@@ -525,7 +525,7 @@ public struct Poly1305
             blockSpan[_pendingLen] = 0x01;
 
             // Partial final block: isFinalBlock = true → n[4] = 0
-            AddBlock(
+            this.AddBlock(
                 _acc,
                 ((System.ReadOnlySpan<byte>)block)[..(_pendingLen + 1)],
                 isFinalBlock: true);
@@ -535,7 +535,7 @@ public struct Poly1305
         }
 
         // ── Produce the tag = (accumulator mod p) + s ──
-        FinalizeTagCore(_acc, tag16);
+        this.FinalizeTagCore(_acc, tag16);
 
         _finalized = true;
 
@@ -550,7 +550,7 @@ public struct Poly1305
     public byte[] FinalizeTag()
     {
         byte[] tag = new byte[TagSize];
-        FinalizeTag(tag);
+        this.FinalizeTag(tag);
         return tag;
     }
 
@@ -566,8 +566,8 @@ public struct Poly1305
         System.ReadOnlySpan<byte> message,
         System.Span<byte> destination)
     {
-        Update(message);
-        FinalizeTag(destination);
+        this.Update(message);
+        this.FinalizeTag(destination);
     }
 
     #endregion Public — Incremental API

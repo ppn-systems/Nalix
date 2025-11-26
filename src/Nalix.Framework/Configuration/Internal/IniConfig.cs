@@ -131,9 +131,9 @@ internal sealed class IniConfig : IDisposable
         _fileLock = new(LockRecursionPolicy.NoRecursion);
 
         // Load the file if it exists
-        if (ExistsFile)
+        if (this.ExistsFile)
         {
-            LoadWithRetry();
+            this.LoadWithRetry();
         }
     }
 
@@ -146,7 +146,7 @@ internal sealed class IniConfig : IDisposable
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    public void Reload() => Load();
+    public void Reload() => this.Load();
 
     /// <summary>
     /// Writes a value to the INI file if the key does not already exist.
@@ -183,7 +183,7 @@ internal sealed class IniConfig : IDisposable
         try
         {
             // Check for external file changes
-            CheckFileChanges();
+            this.CheckFileChanges();
 
             if (!_iniData.TryGetValue(
                 section,
@@ -224,7 +224,7 @@ internal sealed class IniConfig : IDisposable
                 }
 
                 // WriteInt16 changes to the file
-                WriteFile();
+                this.WriteFile();
             }
         }
         finally
@@ -273,7 +273,7 @@ internal sealed class IniConfig : IDisposable
         _fileLock.EnterUpgradeableReadLock();
         try
         {
-            CheckFileChanges();
+            this.CheckFileChanges();
 
             // Only register the comment when the target does not yet exist in the file.
             // This mirrors WriteValue's guard — comment and value are always in sync.
@@ -330,7 +330,7 @@ internal sealed class IniConfig : IDisposable
         }
 
         // Check for file changes before reading
-        CheckFileChanges();
+        this.CheckFileChanges();
 
         _fileLock.EnterReadLock();
         try
@@ -359,7 +359,7 @@ internal sealed class IniConfig : IDisposable
         string section,
         string key)
     {
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
         return !string.IsNullOrEmpty(stringValue) && stringValue.Length == 1 ? stringValue[0] : null;
     }
 
@@ -382,7 +382,7 @@ internal sealed class IniConfig : IDisposable
             return (bool?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
         bool? result = null;
 
         if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
@@ -436,7 +436,7 @@ internal sealed class IniConfig : IDisposable
             return (decimal?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
 
         if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
@@ -472,7 +472,7 @@ internal sealed class IniConfig : IDisposable
             return (byte?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
 
         if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
@@ -506,7 +506,7 @@ internal sealed class IniConfig : IDisposable
             return (sbyte?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
 
         if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
@@ -540,7 +540,7 @@ internal sealed class IniConfig : IDisposable
             return (short?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
 
         if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
@@ -574,7 +574,7 @@ internal sealed class IniConfig : IDisposable
             return (ushort?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
 
         if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
@@ -608,7 +608,7 @@ internal sealed class IniConfig : IDisposable
             return (int?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
 
         if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
@@ -642,7 +642,7 @@ internal sealed class IniConfig : IDisposable
             return (uint?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
 
         if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
@@ -674,7 +674,7 @@ internal sealed class IniConfig : IDisposable
             return (long?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
 
         if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
@@ -708,7 +708,7 @@ internal sealed class IniConfig : IDisposable
             return (ulong?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
 
         if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
@@ -742,7 +742,7 @@ internal sealed class IniConfig : IDisposable
             return (float?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
 
         if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
@@ -776,7 +776,7 @@ internal sealed class IniConfig : IDisposable
             return (double?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
 
         if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
@@ -812,7 +812,7 @@ internal sealed class IniConfig : IDisposable
             return (DateTime?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
 
         if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
@@ -848,7 +848,7 @@ internal sealed class IniConfig : IDisposable
             return (TimeSpan?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
 
         if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
@@ -884,7 +884,7 @@ internal sealed class IniConfig : IDisposable
             return (Guid?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
 
         if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
@@ -919,7 +919,7 @@ internal sealed class IniConfig : IDisposable
             return (TEnum?)cachedValue;
         }
 
-        string stringValue = GetString(section, key);
+        string stringValue = this.GetString(section, key);
         if (string.IsNullOrEmpty(stringValue))
         {
             return null;
@@ -961,7 +961,7 @@ internal sealed class IniConfig : IDisposable
     {
         if (_isDirty)
         {
-            WriteFile();
+            this.WriteFile();
         }
     }
 
@@ -1016,7 +1016,7 @@ internal sealed class IniConfig : IDisposable
         {
             try
             {
-                Load();
+                this.Load();
                 success = true;
             }
             catch (IOException)
@@ -1042,7 +1042,7 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void Load()
     {
-        if (!ExistsFile)
+        if (!this.ExistsFile)
         {
             return;
         }
@@ -1229,7 +1229,7 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void CheckFileChanges()
     {
-        if (!ExistsFile)
+        if (!this.ExistsFile)
         {
             return;
         }
@@ -1239,7 +1239,7 @@ internal sealed class IniConfig : IDisposable
             DateTime lastWriteTime = File.GetLastWriteTimeUtc(_path);
             if (lastWriteTime > _lastFileReadTime)
             {
-                Load();
+                this.Load();
             }
         }
         catch (IOException)
@@ -1346,13 +1346,13 @@ internal sealed class IniConfig : IDisposable
                             // ── Section-level comment lines ──────────────────────────
                             if (hasSectionComment)
                             {
-                                WriteInlineComment(writer, section.Key, commentKey: sectionCommentKey);
+                                this.WriteInlineComment(writer, section.Key, commentKey: sectionCommentKey);
                             }
 
                             // ── Property-level comment lines (above the section header)
                             foreach (KeyValuePair<string, string> keyValue in section.Value)
                             {
-                                WriteInlineComment(writer, section.Key,
+                                this.WriteInlineComment(writer, section.Key,
                                     commentKey: CreateCacheKey(section.Key, keyValue.Key));
                             }
 

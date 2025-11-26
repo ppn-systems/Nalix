@@ -85,12 +85,12 @@ public sealed class PacketRegistryFactory
     public PacketRegistryFactory()
     {
         // Text packets
-        _ = RegisterPacket<Text256>()
+        _ = this.RegisterPacket<Text256>()
             .RegisterPacket<Text512>()
             .RegisterPacket<Text1024>();
 
         // Control / handshake packets
-        _ = RegisterPacket<Control>()
+        _ = this.RegisterPacket<Control>()
             .RegisterPacket<Handshake>()
             .RegisterPacket<Directive>();
     }
@@ -138,7 +138,7 @@ public sealed class PacketRegistryFactory
     {
         foreach (Assembly asm in AppDomain.CurrentDomain.GetAssemblies())
         {
-            _ = IncludeAssembly(asm);
+            _ = this.IncludeAssembly(asm);
         }
 
         return this;
@@ -253,7 +253,7 @@ public sealed class PacketRegistryFactory
 
                 // Namespace filter: only include if the type's namespace matches
                 // a registered namespace entry (exact or recursive prefix).
-                if (_namespaceScan.Count > 0 && !MATCHES_NAMESPACE_FILTER(typeNs))
+                if (_namespaceScan.Count > 0 && !this.MATCHES_NAMESPACE_FILTER(typeNs))
                 {
                     TRACE($"skip reason=ns-mismatch type={type.Name} ns={typeNs}");
                     continue;

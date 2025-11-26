@@ -43,7 +43,7 @@ public abstract partial class TcpListenerBase
         {
             _protocol.OnAccept(connection, _cancellationToken);
 
-            Metrics.RECORD_ACCEPTED();
+            this.Metrics.RECORD_ACCEPTED();
             s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection?.NetworkEndpoint}");
         }
         catch (Exception ex)
@@ -87,11 +87,11 @@ public abstract partial class TcpListenerBase
         }
 
         // De-subscribe to prevent memory leaks
-        args.Connection.OnCloseEvent -= HandleConnectionClose;
+        args.Connection.OnCloseEvent -= this.HandleConnectionClose;
         args.Connection.OnCloseEvent -= _limiter.OnConnectionClosed;
 
-        args.Connection.OnProcessEvent -= ForwardProcessMessage;
-        args.Connection.OnPostProcessEvent -= ForwardPostProcessMessage;
+        args.Connection.OnProcessEvent -= this.ForwardProcessMessage;
+        args.Connection.OnPostProcessEvent -= this.ForwardPostProcessMessage;
 
         args.Connection.Dispose();
 
@@ -139,11 +139,11 @@ public abstract partial class TcpListenerBase
 
         IConnection connection = new Connection(socket);
 
-        connection.OnCloseEvent += HandleConnectionClose;
+        connection.OnCloseEvent += this.HandleConnectionClose;
         connection.OnCloseEvent += _limiter.OnConnectionClosed;
 
-        connection.OnProcessEvent += ForwardProcessMessage;
-        connection.OnPostProcessEvent += ForwardPostProcessMessage;
+        connection.OnProcessEvent += this.ForwardProcessMessage;
+        connection.OnPostProcessEvent += this.ForwardPostProcessMessage;
 
         if (s_config.EnableTimeout)
         {
@@ -252,7 +252,7 @@ public abstract partial class TcpListenerBase
 
                     // Create and process connection similar to async version
                     PooledAcceptContext? context = ((PooledSocketAsyncEventArgs)args).Context ?? throw new InvalidOperationException("Accept context was not bound to pooled socket args.");
-                    IConnection connection = InitializeConnection(socket, context);
+                    IConnection connection = this.InitializeConnection(socket, context);
 
                     // Process the connection
                     PooledListenerProcessContext ctx = s_pool.Get<PooledListenerProcessContext>();
@@ -260,7 +260,7 @@ public abstract partial class TcpListenerBase
                     ctx.Listener = this;
                     ctx.Connection = connection;
 
-                    DISPATCH_CONNECTION(connection);
+                    this.DISPATCH_CONNECTION(connection);
 
                     // Rebind a fresh context for the next accept on this args
                     PooledAcceptContext nextCtx = s_pool.Get<PooledAcceptContext>();
@@ -286,7 +286,7 @@ public abstract partial class TcpListenerBase
                 }
                 catch (Exception ex)
                 {
-                    Metrics.RECORD_ERROR();
+                    this.Metrics.RECORD_ERROR();
                     s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error port={_port}", ex);
 
                     SafeCloseSocket(socket);
@@ -360,12 +360,12 @@ public abstract partial class TcpListenerBase
     {
         try
         {
-            HandleAccept(args);
+            this.HandleAccept(args);
         }
         finally
         {
             // Unsubscribe before returning to pool to prevent duplicate callbacks
-            args.Completed -= OnSyncAcceptCompleted;
+            args.Completed -= this.OnSyncAcceptCompleted;
 
             // Ensure the args is clean before returning to pool
             args.AcceptSocket = null;
@@ -377,9 +377,9 @@ public abstract partial class TcpListenerBase
 
         newArgs.Context = context;
         context.BindArgsForSync(newArgs);
-        newArgs.Completed += OnSyncAcceptCompleted;
+        newArgs.Completed += this.OnSyncAcceptCompleted;
 
-        AcceptNext(newArgs, _cancellationToken);
+        this.AcceptNext(newArgs, _cancellationToken);
     }
 
     /// <summary>
@@ -448,7 +448,7 @@ public abstract partial class TcpListenerBase
                 }
 
                 // Sync completion
-                HandleAccept(args);
+                this.HandleAccept(args);
             }
             catch (ObjectDisposedException)
             {
@@ -539,7 +539,7 @@ public abstract partial class TcpListenerBase
             IConnection connection;
             try
             {
-                connection = await CreateConnectionAsync(cancellationToken)
+                connection = await this.CreateConnectionAsync(cancellationToken)
                                        .ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -549,7 +549,7 @@ public abstract partial class TcpListenerBase
             }
             catch (NetworkException)
             {
-                if (cancellationToken.IsCancellationRequested || State != ListenerState.RUNNING)
+                if (cancellationToken.IsCancellationRequested || this.State != ListenerState.RUNNING)
                 {
                     break;
                 }
@@ -562,12 +562,12 @@ public abstract partial class TcpListenerBase
             catch (SocketException ex)
                 when (IsIgnorableAcceptError(ex.SocketErrorCode, cancellationToken))
             {
-                if (cancellationToken.IsCancellationRequested || State != ListenerState.RUNNING)
+                if (cancellationToken.IsCancellationRequested || this.State != ListenerState.RUNNING)
                 {
                     break;
                 }
 
-                Metrics.RECORD_ERROR();
+                this.Metrics.RECORD_ERROR();
                 s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] transient-socket-error={ex.SocketErrorCode} port={_port}");
 
                 await Task.Delay(50, CancellationToken.None)
@@ -576,7 +576,7 @@ public abstract partial class TcpListenerBase
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                Metrics.RECORD_ERROR();
+                this.Metrics.RECORD_ERROR();
                 s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accept-error port={_port}", ex);
 
                 await Task.Delay(50, cancellationToken)
@@ -590,7 +590,7 @@ public abstract partial class TcpListenerBase
             pctx.Listener = this;
             pctx.Connection = connection;
 
-            DISPATCH_CONNECTION(connection);
+            this.DISPATCH_CONNECTION(connection);
             ctx.Advance(1, note: "accepted");
         }
 
@@ -675,11 +675,11 @@ public abstract partial class TcpListenerBase
                 contextReturned = true;
                 s_pool.Return(context);
 
-                Metrics.RECORD_REJECTED();
+                this.Metrics.RECORD_REJECTED();
                 throw new NetworkException($"Connection rejected: {remoteEndPoint}");
             }
 
-            return InitializeConnection(socket, context);
+            return this.InitializeConnection(socket, context);
         }
         catch (SocketException ex)
         {

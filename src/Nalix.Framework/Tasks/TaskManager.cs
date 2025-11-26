@@ -117,10 +117,10 @@ public sealed partial class TaskManager : ITaskManager
 
         if (_options.DynamicAdjustmentEnabled)
         {
-            _ = ScheduleWorker(
+            _ = this.ScheduleWorker(
                 "task.monitor",
                 "task",
-                async (ctx, ct) => await MONITOR_CONCURRENCY_ASYNC(ctx, ct), // Pass CancellationToken
+                async (ctx, ct) => await this.MONITOR_CONCURRENCY_ASYNC(ctx, ct), // Pass CancellationToken
                 new WorkerOptions
                 {
                     RetainFor = TimeSpan.FromMinutes(10) // Cho phép giữ Monitor lâu hơn sau khi chạy xong
@@ -300,7 +300,7 @@ public sealed partial class TaskManager : ITaskManager
                         }
                     }
 
-                    RETAIN_OR_REMOVE(st);
+                    this.RETAIN_OR_REMOVE(st);
                     _ = _globalConcurrencyGate.Release();
                 }
             }, cts.Token);
@@ -351,7 +351,7 @@ public sealed partial class TaskManager : ITaskManager
 
         try
         {
-            st.Task = Task.Run(() => RECURRING_LOOP_ASYNC(st, work), cts.Token);
+            st.Task = Task.Run(() => this.RECURRING_LOOP_ASYNC(st, work), cts.Token);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[FW.{nameof(TaskManager)}:{nameof(ScheduleRecurring)}] start-recurring name={name} " +
@@ -606,7 +606,7 @@ public sealed partial class TaskManager : ITaskManager
     {
         StringBuilder sb = new(2048);
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TaskManager:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Recurring: {_recurring.Count} | Workers: {_workers.Count} (running={COUNT_RUNNING_WORKERS()})");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Recurring: {_recurring.Count} | Workers: {_workers.Count} (running={this.COUNT_RUNNING_WORKERS()})");
         _ = sb.AppendLine();
 
         // ========== CPU Monitoring Section ==========
@@ -660,12 +660,12 @@ public sealed partial class TaskManager : ITaskManager
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("Monitoring Statistics:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Worker Execution Count            : {_workerExecutionCount}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Worker Execution Time     : {AverageWorkerExecutionTime:F2} ms");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Worker Error Count                : {WorkerErrorCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Worker Execution Time     : {this.AverageWorkerExecutionTime:F2} ms");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Worker Error Count                : {this.WorkerErrorCount}");
         _ = sb.AppendLine();
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Recurring Execution Count         : {_recurringExecutionCount}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Recurring Execution Time  : {AverageRecurringExecutionTime:F2} ms");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Recurring Error Count             : {RecurringErrorCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Recurring Execution Time  : {this.AverageRecurringExecutionTime:F2} ms");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Recurring Error Count             : {this.RecurringErrorCount}");
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine();
 
@@ -830,11 +830,11 @@ public sealed partial class TaskManager : ITaskManager
 
         // Stats
         data["WorkerExecutionCount"] = _workerExecutionCount;
-        data["AverageWorkerExecutionTimeMs"] = AverageWorkerExecutionTime;
-        data["WorkerErrorCount"] = WorkerErrorCount;
+        data["AverageWorkerExecutionTimeMs"] = this.AverageWorkerExecutionTime;
+        data["WorkerErrorCount"] = this.WorkerErrorCount;
         data["RecurringExecutionCount"] = _recurringExecutionCount;
-        data["AverageRecurringExecutionTimeMs"] = AverageRecurringExecutionTime;
-        data["RecurringErrorCount"] = RecurringErrorCount;
+        data["AverageRecurringExecutionTimeMs"] = this.AverageRecurringExecutionTime;
+        data["RecurringErrorCount"] = this.RecurringErrorCount;
 
         // Recurring summary
         data["Recurring"] = _recurring.Values.Select(s => new Dictionary<string, object>

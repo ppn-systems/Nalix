@@ -67,7 +67,7 @@ public abstract partial class TcpListenerBase
         {
             if ((ListenerState)Volatile.Read(ref _state) != ListenerState.STOPPED)
             {
-                s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] ignored-activate state={State}");
+                s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] ignored-activate state={this.State}");
 
                 return;
             }
@@ -101,7 +101,7 @@ public abstract partial class TcpListenerBase
 
             if (needInit)
             {
-                Initialize();
+                this.Initialize();
             }
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.RUNNING);
@@ -121,7 +121,7 @@ public abstract partial class TcpListenerBase
                 IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                     name: $"{NetTaskNames.Tcp}.{TaskNaming.Tags.Accept}.{i}",
                     group: $"{NetTaskNames.Net}/{NetTaskNames.Tcp}/{_port}",
-                    work: async (ctx, ct) => await AcceptConnectionsAsync(ctx, ct).ConfigureAwait(false),
+                    work: async (ctx, ct) => await this.AcceptConnectionsAsync(ctx, ct).ConfigureAwait(false),
                     options: new WorkerOptions
                     {
                         Tag = NetTaskNames.Net,
@@ -134,7 +134,7 @@ public abstract partial class TcpListenerBase
                 _acceptWorkerIds.Add(h.Id);
             }
 
-            START_PROCESS_CHANNEL(linkedToken);
+            this.START_PROCESS_CHANNEL(linkedToken);
         }
         catch (OperationCanceledException)
         {
@@ -170,7 +170,7 @@ public abstract partial class TcpListenerBase
     public void Deactivate(CancellationToken cancellationToken = default)
     {
         // Skip throwing if already disposed; just return calmly or let ListenerState check handle it.
-        if (Volatile.Read(ref _isDisposed) != 0 && State == ListenerState.STOPPED)
+        if (Volatile.Read(ref _isDisposed) != 0 && this.State == ListenerState.STOPPED)
         {
             return;
         }
@@ -188,7 +188,7 @@ public abstract partial class TcpListenerBase
 
             if (prev != (int)ListenerState.STARTING)
             {
-                s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] ignored-deactivate state={State}");
+                s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] ignored-deactivate state={this.State}");
 
                 return;
             }
@@ -203,7 +203,7 @@ public abstract partial class TcpListenerBase
 
             _listener = null;
 
-            STOP_PROCESS_CHANNEL();
+            this.STOP_PROCESS_CHANNEL();
 
             _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()?
                                          .CancelGroup($"{NetTaskNames.Net}/{NetTaskNames.Tcp}/{_port}"));
@@ -247,7 +247,7 @@ public abstract partial class TcpListenerBase
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TcpListenerBase Status:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Port                : {_port}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"StateWrapper        : {State}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"StateWrapper        : {this.State}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Disposed            : {_isDisposed}");
         _ = sb.AppendLine();
 
@@ -264,9 +264,9 @@ public abstract partial class TcpListenerBase
 
         _ = sb.AppendLine("Metrics:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Accepted      : {Metrics.TotalAccepted}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Rejected      : {Metrics.TotalRejected}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Errors        : {Metrics.TotalErrors}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Accepted      : {this.Metrics.TotalAccepted}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Rejected      : {this.Metrics.TotalRejected}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Errors        : {this.Metrics.TotalErrors}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Protocol:");
@@ -288,7 +288,7 @@ public abstract partial class TcpListenerBase
 
         _ = sb.AppendLine("TimeSync:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"IsTimeSyncEnabled   : {IsTimeSyncEnabled}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"IsTimeSyncEnabled   : {this.IsTimeSyncEnabled}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("--------------------------------------------");
@@ -307,7 +307,7 @@ public abstract partial class TcpListenerBase
         {
             ["UtcNow"] = DateTime.UtcNow,
             ["Port"] = _port,
-            ["State"] = State,
+            ["State"] = this.State,
             ["Disposed"] = _isDisposed,
             ["Configuration"] = new Dictionary<string, object>
             {
@@ -321,9 +321,9 @@ public abstract partial class TcpListenerBase
             },
             ["Metrics"] = new Dictionary<string, object>
             {
-                ["TotalAccepted"] = Metrics.TotalAccepted,
-                ["TotalRejected"] = Metrics.TotalRejected,
-                ["TotalErrors"] = Metrics.TotalErrors
+                ["TotalAccepted"] = this.Metrics.TotalAccepted,
+                ["TotalRejected"] = this.Metrics.TotalRejected,
+                ["TotalErrors"] = this.Metrics.TotalErrors
             },
             ["Protocol"] = new Dictionary<string, object>
             {
@@ -341,7 +341,7 @@ public abstract partial class TcpListenerBase
             },
             ["TimeSync"] = new Dictionary<string, object>
             {
-                ["IsTimeSyncEnabled"] = IsTimeSyncEnabled
+                ["IsTimeSyncEnabled"] = this.IsTimeSyncEnabled
             }
         };
 

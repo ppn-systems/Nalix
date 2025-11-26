@@ -135,8 +135,8 @@ public sealed class ObjectPoolManager : IReportable
     {
         get
         {
-            long total = TotalGetOperations;
-            return total == 0 ? 0.0 : TotalCacheHits / (double)total * 100.0;
+            long total = this.TotalGetOperations;
+            return total == 0 ? 0.0 : this.TotalCacheHits / (double)total * 100.0;
         }
     }
 
@@ -171,7 +171,7 @@ public sealed class ObjectPoolManager : IReportable
     public T Get<T>() where T : IPoolable, new()
     {
         _ = Interlocked.Increment(ref _totalGetOperations);
-        ObjectPool pool = GetOrCreatePool<T>();
+        ObjectPool pool = this.GetOrCreatePool<T>();
 
         Type type = typeof(T);
         PoolMetrics metrics = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
@@ -219,7 +219,7 @@ public sealed class ObjectPoolManager : IReportable
         }
 
         _ = Interlocked.Increment(ref _totalReturnOperations);
-        ObjectPool pool = GetOrCreatePool<T>();
+        ObjectPool pool = this.GetOrCreatePool<T>();
 
         Type type = typeof(T);
         PoolMetrics metrics = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
@@ -247,7 +247,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <typeparam name="T"></typeparam>
     public TypedObjectPoolAdapter<T> GetTypedPool<T>() where T : IPoolable, new()
     {
-        ObjectPool pool = GetOrCreatePool<T>();
+        ObjectPool pool = this.GetOrCreatePool<T>();
         return new TypedObjectPoolAdapter<T>(pool, this);
     }
 
@@ -264,7 +264,7 @@ public sealed class ObjectPoolManager : IReportable
             throw new ArgumentOutOfRangeException(nameof(count), "Count must be greater than zero.");
         }
 
-        ObjectPool pool = GetOrCreatePool<T>();
+        ObjectPool pool = this.GetOrCreatePool<T>();
         Type type = typeof(T);
         PoolMetrics metrics = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
 
@@ -329,7 +329,7 @@ public sealed class ObjectPoolManager : IReportable
             {
                 ["TypeName"] = type.Name,
                 ["AvailableCount"] = 0,
-                ["MaxCapacity"] = DefaultMaxPoolSize,
+                ["MaxCapacity"] = this.DefaultMaxPoolSize,
                 ["IsActive"] = false
             };
 
@@ -456,7 +456,7 @@ public sealed class ObjectPoolManager : IReportable
                                 .Info($"[SH.{nameof(ObjectPoolManager)}::{nameof(ResetStatistics)}] " +
                                       $"stats-before-reset gets={gets} returns={returns} hits={hits} misses={misses} " +
                                       $"hit-rate={(gets > 0 ? (hits / (double)gets * 100.0) : 0):F1}% " +
-                                      $"uptime={Uptime.TotalSeconds:F0}s pools={PoolCount}");
+                                      $"uptime={this.Uptime.TotalSeconds:F0}s pools={this.PoolCount}");
 
         _ = Interlocked.Exchange(ref _totalGetOperations, 0);
         _ = Interlocked.Exchange(ref _totalReturnOperations, 0);
@@ -492,8 +492,8 @@ public sealed class ObjectPoolManager : IReportable
                 try
                 {
                     await Task.Delay(interval, cancellationToken);
-                    _ = TrimAllPools(percentage);
-                    _ = PerformHealthCheck();
+                    _ = this.TrimAllPools(percentage);
+                    _ = this.PerformHealthCheck();
                 }
                 catch (OperationCanceledException)
                 {
@@ -525,27 +525,27 @@ public sealed class ObjectPoolManager : IReportable
         _ = sb.AppendLine("Overall Statistics");
         _ = sb.AppendLine("======================================================================");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Last Heal              : {_lastHealthCheckUtc} Ticks");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Uptime                 : {Uptime.TotalHours:F2} hours ({Uptime.TotalSeconds:F0}s)");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Pools            : {PoolCount} (Peak: {PeakPoolCount})");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Unhealthy Pools        : {UnhealthyPoolCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Uptime                 : {this.Uptime.TotalHours:F2} hours ({this.Uptime.TotalSeconds:F0}s)");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Pools            : {this.PoolCount} (Peak: {this.PeakPoolCount})");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Unhealthy Pools        : {this.UnhealthyPoolCount}");
         _ = sb.AppendLine();
 
         // Operation Statistics
         _ = sb.AppendLine("Operation Statistics:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Get Operations   : {TotalGetOperations:N0}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Return Operations: {TotalReturnOperations:N0}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Net Objects            : {TotalGetOperations - TotalReturnOperations:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Get Operations   : {this.TotalGetOperations:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Return Operations: {this.TotalReturnOperations:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Net Objects            : {this.TotalGetOperations - this.TotalReturnOperations:N0}");
         _ = sb.AppendLine();
 
         // Cache Performance
         _ = sb.AppendLine("Cache Performance:");
-        long totalOps = TotalGetOperations;
+        long totalOps = this.TotalGetOperations;
         if (totalOps > 0)
         {
-            double hitRate = TotalCacheHits / (double)totalOps * 100.0;
-            double missRate = TotalCacheMisses / (double)totalOps * 100.0;
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Cache Hits             : {TotalCacheHits:N0} ({hitRate:F2}%)");
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Cache Misses           : {TotalCacheMisses:N0} ({missRate:F2}%)");
+            double hitRate = this.TotalCacheHits / (double)totalOps * 100.0;
+            double missRate = this.TotalCacheMisses / (double)totalOps * 100.0;
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Cache Hits             : {this.TotalCacheHits:N0} ({hitRate:F2}%)");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Cache Misses           : {this.TotalCacheMisses:N0} ({missRate:F2}%)");
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Overall Hit Rate       : {hitRate:F2}%");
         }
         else
@@ -603,7 +603,7 @@ public sealed class ObjectPoolManager : IReportable
         _ = sb.AppendLine();
 
         // Pool Health Details
-        if (UnhealthyPoolCount > 0)
+        if (this.UnhealthyPoolCount > 0)
         {
             _ = sb.AppendLine("Unhealthy Pools:");
             _ = sb.AppendLine("----------------------------------------------------------------------");
@@ -625,7 +625,7 @@ public sealed class ObjectPoolManager : IReportable
 
         // Configuration
         _ = sb.AppendLine("Configuration:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Default Max s_pool Size  : {DefaultMaxPoolSize}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Default Max s_pool Size  : {this.DefaultMaxPoolSize}");
         _ = sb.AppendLine();
 
         return sb.ToString();
@@ -640,19 +640,19 @@ public sealed class ObjectPoolManager : IReportable
         Dictionary<string, object> data = new(StringComparer.Ordinal)
         {
             ["UtcNow"] = DateTime.UtcNow,
-            ["UptimeSeconds"] = Uptime.TotalSeconds,
-            ["PoolCount"] = PoolCount,
-            ["PeakPoolCount"] = PeakPoolCount,
-            ["UnhealthyPoolCount"] = UnhealthyPoolCount,
-            ["DefaultMaxPoolSize"] = DefaultMaxPoolSize,
+            ["UptimeSeconds"] = this.Uptime.TotalSeconds,
+            ["PoolCount"] = this.PoolCount,
+            ["PeakPoolCount"] = this.PeakPoolCount,
+            ["UnhealthyPoolCount"] = this.UnhealthyPoolCount,
+            ["DefaultMaxPoolSize"] = this.DefaultMaxPoolSize,
             ["StartTime"] = _startTime,
             ["LastHealthCheckTicks"] = _lastHealthCheckUtc,
-            ["TotalGetOperations"] = TotalGetOperations,
-            ["TotalReturnOperations"] = TotalReturnOperations,
-            ["TotalCacheHits"] = TotalCacheHits,
-            ["TotalCacheMisses"] = TotalCacheMisses,
-            ["CacheHitRate"] = CacheHitRate,
-            ["NetObjects"] = TotalGetOperations - TotalReturnOperations,
+            ["TotalGetOperations"] = this.TotalGetOperations,
+            ["TotalReturnOperations"] = this.TotalReturnOperations,
+            ["TotalCacheHits"] = this.TotalCacheHits,
+            ["TotalCacheMisses"] = this.TotalCacheMisses,
+            ["CacheHitRate"] = this.CacheHitRate,
+            ["NetObjects"] = this.TotalGetOperations - this.TotalReturnOperations,
         };
 
         List<Dictionary<string, object>> pools = [];
@@ -667,7 +667,7 @@ public sealed class ObjectPoolManager : IReportable
             {
                 ["Type"] = kvp.Key.FullName ?? kvp.Key.Name,
                 ["Available"] = poolInfo.TryGetValue("AvailableCount", out object? available) ? available : 0,
-                ["MaxCapacity"] = poolInfo.TryGetValue("MaxCapacity", out object? maxcap) ? maxcap : DefaultMaxPoolSize,
+                ["MaxCapacity"] = poolInfo.TryGetValue("MaxCapacity", out object? maxcap) ? maxcap : this.DefaultMaxPoolSize,
                 ["IsActive"] = poolInfo.TryGetValue("IsActive", out object? active) ? active : true,
             };
 
@@ -690,7 +690,7 @@ public sealed class ObjectPoolManager : IReportable
         }
         data["Pools"] = pools;
 
-        if (UnhealthyPoolCount > 0)
+        if (this.UnhealthyPoolCount > 0)
         {
             List<Dictionary<string, object>> unhealthy = [.. _metricsDict
                 .Where(x => x.Value.ConsecutiveFailures > 0)
@@ -730,7 +730,7 @@ public sealed class ObjectPoolManager : IReportable
                 }
             } while (Interlocked.CompareExchange(ref _peakPoolCount, currentCount, observed) != observed);
 
-            return new ObjectPool(DefaultMaxPoolSize);
+            return new ObjectPool(this.DefaultMaxPoolSize);
         });
 
         // Ensure metrics exist for this type

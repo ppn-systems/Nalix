@@ -127,7 +127,7 @@ public abstract partial class TcpListenerBase : IListener
         _acceptWorkerIds = new(s_config.MaxParallel);
         _lock = new SemaphoreSlim(1, 1);
 
-        InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().TimeSynchronized += SynchronizeTime;
+        InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().TimeSynchronized += this.SynchronizeTime;
 
         PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
         options.Validate();
@@ -242,7 +242,7 @@ public abstract partial class TcpListenerBase : IListener
     [DebuggerStepThrough]
     public void Dispose()
     {
-        Dispose(true);
+        this.Dispose(true);
         GC.SuppressFinalize(this);
     }
 
@@ -263,7 +263,7 @@ public abstract partial class TcpListenerBase : IListener
 
         if (disposing)
         {
-            Deactivate();
+            this.Deactivate();
 
             try
             {
@@ -286,7 +286,7 @@ public abstract partial class TcpListenerBase : IListener
                 }
 
                 InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
-                               .TimeSynchronized -= SynchronizeTime;
+                               .TimeSynchronized -= this.SynchronizeTime;
             }
             catch { }
 

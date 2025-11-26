@@ -150,7 +150,7 @@ public sealed class BufferConfig : ConfigurationLoader
         ValidationContext context = new(this);
         Validator.ValidateObject(this, context, validateAllProperties: true);
 
-        if (ExpandThresholdPercent >= ShrinkThresholdPercent)
+        if (this.ExpandThresholdPercent >= this.ShrinkThresholdPercent)
         {
             throw new ValidationException(
                 "ExpandThresholdPercent must be less than ShrinkThresholdPercent.");
@@ -158,7 +158,7 @@ public sealed class BufferConfig : ConfigurationLoader
 
         try
         {
-            (int, double)[] allocations = ParseBufferAllocations(BufferAllocations);
+            (int, double)[] allocations = ParseBufferAllocations(this.BufferAllocations);
 
             double totalRatio = 0;
             int lastSize = 0;
@@ -188,19 +188,19 @@ public sealed class BufferConfig : ConfigurationLoader
                 $"Invalid BufferAllocations: {ex.Message}");
         }
 
-        if (MaxMemoryBytes > 0 && MaxMemoryPercentage > 0.90)
+        if (this.MaxMemoryBytes > 0 && this.MaxMemoryPercentage > 0.90)
         {
             throw new ValidationException(
                 "Cannot specify both MaxMemoryBytes and MaxMemoryPercentage > 0.90.");
         }
 
-        if (AdaptiveGrowthFactor * MinimumIncrease > MaxBufferIncreaseLimit)
+        if (this.AdaptiveGrowthFactor * this.MinimumIncrease > this.MaxBufferIncreaseLimit)
         {
             throw new ValidationException(
                 "AdaptiveGrowthFactor * MinimumIncrease must be <= MaxBufferIncreaseLimit.");
         }
 
-        if (AutoTuneOperationThreshold < TotalBuffers)
+        if (this.AutoTuneOperationThreshold < this.TotalBuffers)
         {
             throw new ValidationException(
                 "AutoTuneOperationThreshold should normally be >= TotalBuffers.");

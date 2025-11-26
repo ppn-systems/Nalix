@@ -130,8 +130,8 @@ public sealed class BufferLease : IBufferLease
         _start = start;
         _buffer = buffer;
 
-        Length = length;
-        ZeroOnDispose = zeroOnDispose;
+        this.Length = length;
+        this.ZeroOnDispose = zeroOnDispose;
     }
 
     #region Properties
@@ -160,18 +160,18 @@ public sealed class BufferLease : IBufferLease
     /// Writable span over the valid payload slice.
     /// </summary>
     [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
-    public Span<byte> Span => _buffer is null ? Span<byte>.Empty : new Span<byte>(_buffer, _start, Length);
+    public Span<byte> Span => _buffer is null ? Span<byte>.Empty : new Span<byte>(_buffer, _start, this.Length);
 
     /// <summary>
     /// Writable span over the full owned slice (capacity).
     /// </summary>
     [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
-    public Span<byte> SpanFull => _buffer is null ? Span<byte>.Empty : new Span<byte>(_buffer, _start, Capacity);
+    public Span<byte> SpanFull => _buffer is null ? Span<byte>.Empty : new Span<byte>(_buffer, _start, this.Capacity);
 
     /// <summary>
     /// Read-only view of the valid payload slice.
     /// </summary>
-    public ReadOnlyMemory<byte> Memory => _buffer is null ? ReadOnlyMemory<byte>.Empty : new ReadOnlyMemory<byte>(_buffer, _start, Length);
+    public ReadOnlyMemory<byte> Memory => _buffer is null ? ReadOnlyMemory<byte>.Empty : new ReadOnlyMemory<byte>(_buffer, _start, this.Length);
 
     #endregion Properties
 
@@ -185,7 +185,7 @@ public sealed class BufferLease : IBufferLease
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ArraySegment<byte> AsSegment()
-        => _buffer is null ? default : new ArraySegment<byte>(_buffer, _start, Length);
+        => _buffer is null ? default : new ArraySegment<byte>(_buffer, _start, this.Length);
 
 #endif
 
@@ -218,12 +218,12 @@ public sealed class BufferLease : IBufferLease
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CommitLength(int length)
     {
-        if ((uint)length > (uint)Capacity)
+        if ((uint)length > (uint)this.Capacity)
         {
             throw new ArgumentOutOfRangeException(nameof(length));
         }
 
-        Length = length;
+        this.Length = length;
     }
 
     /// <summary>
@@ -254,16 +254,16 @@ public sealed class BufferLease : IBufferLease
         {
             _buffer = null;
             _start = 0;
-            Length = 0;
+            this.Length = 0;
             return;
         }
 
         byte[]? buf = Interlocked.Exchange(ref _buffer, null);
         int start = _start;
-        int len = Length;
+        int len = this.Length;
 
         _start = 0;
-        Length = 0;
+        this.Length = 0;
 
         if (buf is not null)
         {
@@ -271,7 +271,7 @@ public sealed class BufferLease : IBufferLease
             {
                 Span<byte> slice = new(buf, start, len);
 
-                if (ZeroOnDispose)
+                if (this.ZeroOnDispose)
                 {
                     // Security first
                     slice.Clear();
@@ -317,10 +317,10 @@ public sealed class BufferLease : IBufferLease
 
         buffer = Interlocked.Exchange(ref _buffer, null);
         start = _start;
-        length = Length;
+        length = this.Length;
 
         _start = 0;
-        Length = 0;
+        this.Length = 0;
         return buffer is not null;
     }
 

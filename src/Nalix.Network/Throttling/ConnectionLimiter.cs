@@ -96,8 +96,8 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
 
         _map = new System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitEntry>();
 
-        INITIALIZE_METRICS();
-        SCHEDULE_CLEANUP_JOB();
+        this.INITIALIZE_METRICS();
+        this.SCHEDULE_CLEANUP_JOB();
 
         s_logger?.Debug($"[NW.{nameof(ConnectionLimiter)}] init " +
                        $"maxPerEndpoint={_maxPerEndpoint} " +
@@ -135,7 +135,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         DateTime now = Clock.NowUtc();
         INetworkEndpoint key = CONVERT_TO_NETWORK_ENDPOINT(endPoint);
 
-        ConnectionAllowResult result = TRY_ACQUIRE_CONNECTION_SLOT(key, now);
+        ConnectionAllowResult result = this.TRY_ACQUIRE_CONNECTION_SLOT(key, now);
 
         if (!result.Allowed)
         {
@@ -191,7 +191,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
             return false;
         }
 
-        return IsConnectionAllowed(ipEndPoint);
+        return this.IsConnectionAllowed(ipEndPoint);
     }
 
     /// <summary>
@@ -227,7 +227,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
             IPAddress.Parse(args.Connection.NetworkEndpoint.Address)
         );
 
-        bool released = TRY_RELEASE_CONNECTION_SLOT(key, now);
+        bool released = this.TRY_RELEASE_CONNECTION_SLOT(key, now);
 
         if (released && _map.TryGetValue(key, out ConnectionLimitEntry? closedEntry) && closedEntry is not null)
         {
@@ -256,12 +256,12 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     public string GenerateReport()
     {
         List<
-            KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot = COLLECT_SNAPSHOT();
+            KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot = this.COLLECT_SNAPSHOT();
 
         try
         {
             SORT_SNAPSHOT_BY_LOAD(snapshot);
-            return BUILD_REPORT(snapshot);
+            return this.BUILD_REPORT(snapshot);
         }
         finally
         {
@@ -274,11 +274,11 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     /// </summary>
     public IDictionary<string, object> GenerateReportData()
     {
-        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot = COLLECT_SNAPSHOT();
+        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot = this.COLLECT_SNAPSHOT();
         try
         {
             SORT_SNAPSHOT_BY_LOAD(snapshot);
-            GlobalMetrics metrics = CALCULATE_GLOBAL_METRICS(snapshot);
+            GlobalMetrics metrics = this.CALCULATE_GLOBAL_METRICS(snapshot);
 
             Dictionary<string, object> report = new()
             {
@@ -338,7 +338,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         long bannedUntil = Interlocked.Read(ref entry.BannedUntilTicks);
         if (bannedUntil > now.Ticks)
         {
-            LOG_BANNED_THROTTLED(entry, key, new DateTime(bannedUntil, DateTimeKind.Utc));
+            this.LOG_BANNED_THROTTLED(entry, key, new DateTime(bannedUntil, DateTimeKind.Utc));
 
             int currentConns;
             lock (entry)
@@ -357,7 +357,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         lock (entry)
         {
             // Trim expired timestamps (lock-free – ConcurrentQueue is thread-safe).
-            TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
+            this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
 
             // Re-check rate window under lock (could have changed between outer check and lock).
             if (entry.RecentConnectionTimestamps.Count >= _config.MaxConnectionsPerWindow)
@@ -365,7 +365,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
                 DateTime banUntil = now + _config.BanDuration;
                 _ = Interlocked.Exchange(ref entry.BannedUntilTicks, banUntil.Ticks);
 
-                LOG_DDOS_DETECTED_THROTTLED(entry, key);
+                this.LOG_DDOS_DETECTED_THROTTLED(entry, key);
 
                 _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                     name: $"{TaskNaming.Tags.Worker}.{TaskNaming.Tags.Process}",
@@ -479,7 +479,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
             // Trim queue when releasing to prevent unbounded growth
             if (newCount == 0)
             {
-                TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
+                this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
 
                 // Clear queue if no connections and queue is large
                 if (entry.RecentConnectionTimestamps.Count > _config.MaxConnectionsPerWindow * 2)
@@ -640,9 +640,9 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
 
     private string BUILD_REPORT(List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
     {
-        GlobalMetrics metrics = CALCULATE_GLOBAL_METRICS(snapshot);
+        GlobalMetrics metrics = this.CALCULATE_GLOBAL_METRICS(snapshot);
         StringBuilder sb = new(512);
-        APPEND_REPORT_HEADER(sb, metrics);
+        this.APPEND_REPORT_HEADER(sb, metrics);
         APPEND_CONNECTION_DETAILS(sb, snapshot);
         return sb.ToString();
     }
@@ -869,11 +869,11 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     private void SCHEDULE_CLEANUP_JOB()
     {
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-            name: TaskNaming.Recurring.CleanupJobId(RecurringName, GetHashCode()),
+            name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
             interval: _cleanupInterval,
             work: _ =>
             {
-                RUN_CLEANUP_ONCE();
+                this.RUN_CLEANUP_ONCE();
                 return ValueTask.CompletedTask;
             },
             options: new RecurringOptions
@@ -902,7 +902,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         try
         {
             _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()
-                ?.CancelRecurring(TaskNaming.Recurring.CleanupJobId(RecurringName, GetHashCode())));
+                ?.CancelRecurring(TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode())));
 
             _map.Clear();
 
@@ -919,7 +919,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     /// <inheritdoc />
     public ValueTask DisposeAsync()
     {
-        Dispose();
+        this.Dispose();
         return ValueTask.CompletedTask;
     }
 
@@ -954,9 +954,9 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
             DateTime lastConnectionTime,
             int totalConnectionsToday)
         {
-            CurrentConnections = currentConnections;
-            LastConnectionTime = lastConnectionTime;
-            TotalConnectionsToday = totalConnectionsToday;
+            this.CurrentConnections = currentConnections;
+            this.LastConnectionTime = lastConnectionTime;
+            this.TotalConnectionsToday = totalConnectionsToday;
         }
     }
 
