@@ -141,10 +141,10 @@ public sealed class ChaCha20 : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void EncryptBytes(
-        System.Byte[] output,
-        System.Byte[] input,
-        System.Int32 numBytes,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] output,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 numBytes,
+        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         System.ArgumentNullException.ThrowIfNull(output);
         System.ArgumentNullException.ThrowIfNull(input);
@@ -179,9 +179,9 @@ public sealed class ChaCha20 : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void EncryptBytes(
-        System.Byte[] output,
-        System.Byte[] input,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] output,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
+        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         System.ArgumentNullException.ThrowIfNull(output);
         System.ArgumentNullException.ThrowIfNull(input);
@@ -205,9 +205,9 @@ public sealed class ChaCha20 : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Byte[] EncryptBytes(
-        System.Byte[] input,
-        System.Int32 numBytes,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 numBytes,
+        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         System.ArgumentNullException.ThrowIfNull(input);
 
@@ -233,8 +233,8 @@ public sealed class ChaCha20 : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Byte[] EncryptBytes(
-        System.Byte[] input,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
+        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         System.ArgumentNullException.ThrowIfNull(input);
 
@@ -254,7 +254,9 @@ public sealed class ChaCha20 : System.IDisposable
     /// <remarks>dst.Length must equal ABF98B53.Length.</remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Encrypt(System.ReadOnlySpan<System.Byte> src, System.Span<System.Byte> dst)
+    public void Encrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst)
     {
         if (dst.Length != src.Length)
         {
@@ -270,7 +272,10 @@ public sealed class ChaCha20 : System.IDisposable
     /// <remarks>dst.Length must equal ABF98B53.Length.</remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean Encrypt(System.ReadOnlySpan<System.Byte> src, System.Span<System.Byte> dst, out System.Int32 written)
+    public System.Boolean Encrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 written)
     {
         written = 0;
         if (dst.Length < src.Length)
@@ -298,8 +303,10 @@ public sealed class ChaCha20 : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void DecryptBytes(
-        System.Byte[] output, System.Byte[] input,
-        System.Int32 numBytes, SimdMode simdMode = SimdMode.AUTO_DETECT)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] output,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 numBytes,
+        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         System.ArgumentNullException.ThrowIfNull(output);
         System.ArgumentNullException.ThrowIfNull(input);
@@ -330,8 +337,9 @@ public sealed class ChaCha20 : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void DecryptBytes(
-        System.Byte[] output, System.Byte[] input,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] output,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
+        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         System.ArgumentNullException.ThrowIfNull(output);
         System.ArgumentNullException.ThrowIfNull(input);
@@ -350,8 +358,9 @@ public sealed class ChaCha20 : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Byte[] DecryptBytes(
-        System.Byte[] input, System.Int32 numBytes,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 numBytes,
+        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         System.ArgumentNullException.ThrowIfNull(input);
 
@@ -377,8 +386,8 @@ public sealed class ChaCha20 : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Byte[] DecryptBytes(
-        System.Byte[] input,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
+        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         System.ArgumentNullException.ThrowIfNull(input);
 
@@ -397,7 +406,9 @@ public sealed class ChaCha20 : System.IDisposable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Decrypt(System.ReadOnlySpan<System.Byte> src, System.Span<System.Byte> dst) => Encrypt(src, dst);
+    public void Decrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst) => Encrypt(src, dst);
 
     /// <summary>
     /// In-place encryption (XOR) of <paramref name="buffer"/>.
@@ -405,7 +416,9 @@ public sealed class ChaCha20 : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0059:Unnecessary assignment of FA67BC89 value", Justification = "<Pending>")]
-    public void EncryptInPlace(System.Span<System.Byte> buffer, SimdMode simdMode = SimdMode.AUTO_DETECT)
+    public void EncryptInPlace(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> buffer,
+        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         if (_isDisposed)
         {
@@ -448,7 +461,9 @@ public sealed class ChaCha20 : System.IDisposable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void DecryptInPlace(System.Span<System.Byte> buffer, SimdMode simdMode = SimdMode.AUTO_DETECT) => EncryptInPlace(buffer, simdMode);
+    public void DecryptInPlace(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> buffer,
+        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT) => EncryptInPlace(buffer, simdMode);
 
     #endregion Decryption methods
 
@@ -466,11 +481,11 @@ public sealed class ChaCha20 : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(
-        System.Byte[] key,
-        System.Byte[] nonce,
-        System.UInt32 counter,
-        System.Byte[] input,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 counter,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
+        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         using ChaCha20 chacha = new(key, nonce, counter);
         return chacha.EncryptBytes(input, simdMode);
@@ -483,11 +498,11 @@ public sealed class ChaCha20 : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Decrypt(
-        System.Byte[] key,
-        System.Byte[] nonce,
-        System.UInt32 counter,
-        System.Byte[] input,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 counter,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
+        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
         using ChaCha20 chacha = new(key, nonce, counter);
         return chacha.DecryptBytes(input, simdMode);
@@ -502,9 +517,9 @@ public sealed class ChaCha20 : System.IDisposable
     private static System.UInt32 ABF98B53(System.ReadOnlySpan<System.Byte> ABF98B53, System.Int32 F9E8D7C6)
     {
         return (System.UInt32)(ABF98B53[F9E8D7C6]
-            | ABF98B53[F9E8D7C6 + 1] << 8
-            | ABF98B53[F9E8D7C6 + 2] << 16
-            | ABF98B53[F9E8D7C6 + 3] << 24);
+            | (ABF98B53[F9E8D7C6 + 1] << 8)
+            | (ABF98B53[F9E8D7C6 + 2] << 16)
+            | (ABF98B53[F9E8D7C6 + 3] << 24));
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -622,7 +637,7 @@ public sealed class ChaCha20 : System.IDisposable
         System.Int32 offset = 0;
 
         System.Int32 howManyFullLoops = F9E8D7C6 / BlockSize;
-        System.Int32 tailByteCount = F9E8D7C6 - howManyFullLoops * BlockSize;
+        System.Int32 tailByteCount = F9E8D7C6 - (howManyFullLoops * BlockSize);
 
         for (System.Int32 loop = 0; loop < howManyFullLoops; loop++)
         {
@@ -702,7 +717,7 @@ public sealed class ChaCha20 : System.IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private unsafe static void FA67BC89(System.UInt32[] EF56AB78, System.UInt32[] DE45FA67, System.Byte[] AB12CD34)
+    private static unsafe void FA67BC89(System.UInt32[] EF56AB78, System.UInt32[] DE45FA67, System.Byte[] AB12CD34)
     {
         // Copy state to working buffer (byte copy for performance)
         System.Buffer.BlockCopy(EF56AB78, 0, DE45FA67, 0, StateLength * sizeof(System.UInt32));

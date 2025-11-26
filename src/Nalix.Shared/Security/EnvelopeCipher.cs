@@ -92,25 +92,25 @@ public static class EnvelopeCipher
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> plaintext,
-        CipherSuiteType algorithm,
-        System.ReadOnlySpan<System.Byte> aad = default,
-        System.UInt32? seq = null)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType algorithm,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> aad = default,
+        [System.Diagnostics.CodeAnalysis.AllowNull] System.UInt32? seq = null)
     {
         return algorithm switch
         {
-            CipherSuiteType.CHACHA20_POLY1305 or
-            CipherSuiteType.SALSA20_POLY1305 or
-            CipherSuiteType.SPECK_POLY1305 or
-            CipherSuiteType.XTEA_POLY1305
-                => AeadEngine.Encrypt(key, plaintext, algorithm, aad, seq),
-
-            CipherSuiteType.CHACHA20 or
-            CipherSuiteType.SALSA20 or
+            CipherSuiteType.XTEA or
             CipherSuiteType.SPECK or
-            CipherSuiteType.XTEA
+            CipherSuiteType.SALSA20 or
+            CipherSuiteType.CHACHA20
                 => SymmetricEngine.Encrypt(key, plaintext, algorithm, default, seq),
+
+            CipherSuiteType.XTEA_POLY1305 or
+            CipherSuiteType.SPECK_POLY1305 or
+            CipherSuiteType.SALSA20_POLY1305 or
+            CipherSuiteType.CHACHA20_POLY1305
+                => AeadEngine.Encrypt(key, plaintext, algorithm, aad, seq),
 
             _ => throw new System.ArgumentException("Unsupported cipher type", nameof(algorithm))
         };
@@ -150,11 +150,10 @@ public static class EnvelopeCipher
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Decrypt(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> envelope,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)]
-        out System.Byte[]? plaintext,
-        System.ReadOnlySpan<System.Byte> aad = default)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> envelope,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte[]? plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> aad = default)
     {
         plaintext = null;
 
@@ -166,17 +165,17 @@ public static class EnvelopeCipher
 
         return env.AeadType switch
         {
-            CipherSuiteType.CHACHA20_POLY1305 or
-            CipherSuiteType.SALSA20_POLY1305 or
-            CipherSuiteType.SPECK_POLY1305 or
-            CipherSuiteType.XTEA_POLY1305
-                => AeadEngine.Decrypt(key, envelope, out plaintext, aad),
-
-            CipherSuiteType.CHACHA20 or
-            CipherSuiteType.SALSA20 or
+            CipherSuiteType.XTEA or
             CipherSuiteType.SPECK or
-            CipherSuiteType.XTEA
+            CipherSuiteType.SALSA20 or
+            CipherSuiteType.CHACHA20
                 => SymmetricEngine.Decrypt(key, envelope, out plaintext),
+
+            CipherSuiteType.XTEA_POLY1305 or
+            CipherSuiteType.SPECK_POLY1305 or
+            CipherSuiteType.SALSA20_POLY1305 or
+            CipherSuiteType.CHACHA20_POLY1305
+                => AeadEngine.Decrypt(key, envelope, out plaintext, aad),
 
             _ => false
         };

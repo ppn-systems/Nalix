@@ -26,8 +26,10 @@ public static class Salsa20
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Encrypt(
-        System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter, System.ReadOnlySpan<System.Byte> plaintext)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt64 counter,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext)
     {
         if (key.Length is not 16 and not 32)
         {
@@ -57,8 +59,11 @@ public static class Salsa20
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Int32 Encrypt(
-        System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce, System.UInt64 counter,
-        System.ReadOnlySpan<System.Byte> plaintext, System.Span<System.Byte> ciphertext)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt64 counter,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> ciphertext)
     {
         if (key.Length is not 16 and not 32)
         {
@@ -89,9 +94,10 @@ public static class Salsa20
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Byte[] Decrypt(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter, System.ReadOnlySpan<System.Byte> ciphertext)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt64 counter,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext)
         => Encrypt(key, nonce, counter, ciphertext);
 
     /// <summary>
@@ -107,9 +113,11 @@ public static class Salsa20
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Int32 Decrypt(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce, System.UInt64 counter,
-        System.ReadOnlySpan<System.Byte> ciphertext, System.Span<System.Byte> plaintext)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt64 counter,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> plaintext)
         => Encrypt(key, nonce, counter, ciphertext, plaintext);
 
     #endregion Encryption/Decryption Methods

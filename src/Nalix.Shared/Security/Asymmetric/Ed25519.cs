@@ -36,7 +36,9 @@ public static class Ed25519
     /// <returns>The generated signature.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Byte[] Sign(System.Byte[] message, System.Byte[] privateKey)
+    public static System.Byte[] Sign(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] message,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] privateKey)
     {
         if (message == null || message.Length == 0)
         {
@@ -104,7 +106,10 @@ public static class Ed25519
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Boolean Verify(System.Byte[] signature, System.Byte[] message, System.Byte[] publicKey)
+    public static System.Boolean Verify(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] signature,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] message,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] publicKey)
     {
         // Validate input arguments
         if (signature == null)
@@ -314,8 +319,8 @@ public static class Ed25519
     private static System.Numerics.BigInteger RecoverX(System.Numerics.BigInteger y)
     {
         // Recover x using curve equation: x^2 = (y^2 - 1) / (D*y^2 + 1)
-        System.Numerics.BigInteger numerator = (y * y - System.Numerics.BigInteger.One).Mod(Q);
-        System.Numerics.BigInteger denominator = (D * y * y + System.Numerics.BigInteger.One).Mod(Q);
+        System.Numerics.BigInteger numerator = ((y * y) - System.Numerics.BigInteger.One).Mod(Q);
+        System.Numerics.BigInteger denominator = ((D * y * y) + System.Numerics.BigInteger.One).Mod(Q);
         System.Numerics.BigInteger xx = numerator * Inv(denominator) % Q;
         System.Numerics.BigInteger x = System.Numerics.BigInteger.ModPow(xx, (Q + 3) / 8, Q);
 

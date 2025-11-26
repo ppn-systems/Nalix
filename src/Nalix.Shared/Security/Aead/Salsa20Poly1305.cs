@@ -67,9 +67,12 @@ public static class Salsa20Poly1305
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Encrypt(
-        System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce,
-        System.ReadOnlySpan<System.Byte> plaintext, System.ReadOnlySpan<System.Byte> aad,
-        System.Span<System.Byte> dstCiphertext, System.Span<System.Byte> tag)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> aad,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dstCiphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> tag)
     {
         ValidateKeyNonceSizes(key, nonce);
 
@@ -124,9 +127,12 @@ public static class Salsa20Poly1305
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Decrypt(
-        System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce,
-        System.ReadOnlySpan<System.Byte> ciphertext, System.ReadOnlySpan<System.Byte> aad,
-        System.ReadOnlySpan<System.Byte> tag, System.Span<System.Byte> dstPlaintext)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> aad,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> tag,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dstPlaintext)
     {
         ValidateKeyNonceSizes(key, nonce);
 
@@ -182,7 +188,11 @@ public static class Salsa20Poly1305
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Byte[] Encrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] plaintext, System.Byte[]? aad = null)
+    public static System.Byte[] Encrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] plaintext,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Byte[]? aad = null)
     {
         if (key is null || (key.Length != KEY16 && key.Length != KEY32))
         {
@@ -209,7 +219,11 @@ public static class Salsa20Poly1305
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Byte[] Decrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] cipherWithTag, System.Byte[]? aad = null)
+    public static System.Byte[] Decrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] cipherWithTag,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Byte[]? aad = null)
     {
         if (key is null || (key.Length != KEY16 && key.Length != KEY32))
         {
@@ -322,9 +336,9 @@ public static class Salsa20Poly1305
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.UInt64 ReverseBytes(System.UInt64 v)
     {
-        v = (v & 0x00FF00FF00FF00FFUL) << 8 | (v & 0xFF00FF00FF00FF00UL) >> 8;
-        v = (v & 0x0000FFFF0000FFFFUL) << 16 | (v & 0xFFFF0000FFFF0000UL) >> 16;
-        v = v << 32 | v >> 32;
+        v = ((v & 0x00FF00FF00FF00FFUL) << 8) | ((v & 0xFF00FF00FF00FF00UL) >> 8);
+        v = ((v & 0x0000FFFF0000FFFFUL) << 16) | ((v & 0xFFFF0000FFFF0000UL) >> 16);
+        v = (v << 32) | (v >> 32);
         return v;
     }
 

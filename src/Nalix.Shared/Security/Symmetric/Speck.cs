@@ -66,7 +66,9 @@ public sealed class Speck
     /// <param name="output">Exact 16-byte output buffer.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void EncryptBlock(System.ReadOnlySpan<System.Byte> plaintext, System.Span<System.Byte> output)
+    public void EncryptBlock(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> output)
     {
         if (plaintext.Length != BlockSizeBytes)
         {
@@ -94,7 +96,9 @@ public sealed class Speck
     /// <param name="output">Exact 16-byte output buffer.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void DecryptBlock(System.ReadOnlySpan<System.Byte> ciphertext, System.Span<System.Byte> output)
+    public void DecryptBlock(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> output)
     {
         if (ciphertext.Length != BlockSizeBytes)
         {
@@ -120,14 +124,18 @@ public sealed class Speck
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void EncryptBlock(ref System.UInt64 x, ref System.UInt64 y) => F1A2B3C4(ref x, ref y, _D4E3F2A);
+    public void EncryptBlock(
+        [System.Diagnostics.CodeAnalysis.NotNull] ref System.UInt64 x,
+        [System.Diagnostics.CodeAnalysis.NotNull] ref System.UInt64 y) => F1A2B3C4(ref x, ref y, _D4E3F2A);
 
     /// <summary>
     /// Decrypts a block given as two 64-bit words (in/out). Useful in higher-level modes.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void DecryptBlock(ref System.UInt64 x, ref System.UInt64 y) => A9B8C7D6(ref x, ref y, _D4E3F2A);
+    public void DecryptBlock(
+        [System.Diagnostics.CodeAnalysis.NotNull] ref System.UInt64 x,
+        [System.Diagnostics.CodeAnalysis.NotNull] ref System.UInt64 y) => A9B8C7D6(ref x, ref y, _D4E3F2A);
 
     #endregion Instance APIs (single-block)
 
@@ -139,8 +147,9 @@ public sealed class Speck
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Encrypt(
-        System.ReadOnlySpan<System.Byte> plaintext,
-        System.ReadOnlySpan<System.Byte> key, System.Span<System.Byte> output)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> output)
     {
         Speck cipher = new(key);
         cipher.EncryptBlock(plaintext, output);
@@ -152,8 +161,9 @@ public sealed class Speck
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Decrypt(
-        System.ReadOnlySpan<System.Byte> ciphertext,
-        System.ReadOnlySpan<System.Byte> key, System.Span<System.Byte> output)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> output)
     {
         Speck cipher = new(key);
         cipher.DecryptBlock(ciphertext, output);

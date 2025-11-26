@@ -48,9 +48,12 @@ public static class XteaPoly1305
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Encrypt(
-        System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce,
-        System.ReadOnlySpan<System.Byte> plaintext, System.ReadOnlySpan<System.Byte> aad,
-        System.Span<System.Byte> dstCiphertext, System.Span<System.Byte> tag)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> aad,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dstCiphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> tag)
     {
         ValidateKeyNonce(key, nonce);
 
@@ -93,9 +96,12 @@ public static class XteaPoly1305
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static System.Boolean Decrypt(
-        System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce,
-        System.ReadOnlySpan<System.Byte> ciphertext, System.ReadOnlySpan<System.Byte> aad,
-        System.ReadOnlySpan<System.Byte> tag, System.Span<System.Byte> dstPlaintext)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> aad,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> tag,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dstPlaintext)
     {
         ValidateKeyNonce(key, nonce);
 
@@ -151,7 +157,11 @@ public static class XteaPoly1305
     /// <exception cref="System.ArgumentException">Thrown if key or nonce lengths are invalid.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Byte[] Encrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] plaintext, System.Byte[]? aad = null)
+    public static System.Byte[] Encrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] plaintext,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Byte[]? aad = null)
     {
         if (key is null || key.Length != KEY16)
         {
@@ -186,7 +196,11 @@ public static class XteaPoly1305
     /// <exception cref="System.InvalidOperationException">Thrown if authentication fails.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Byte[] Decrypt(System.Byte[] key, System.Byte[] nonce, System.Byte[] cipherWithTag, System.Byte[]? aad = null)
+    public static System.Byte[] Decrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] cipherWithTag,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Byte[]? aad = null)
     {
         if (key is null || key.Length != KEY16)
         {
@@ -224,7 +238,7 @@ public static class XteaPoly1305
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Int32 PadLen16(System.Int32 length) => 16 - (length & 0x0F) & 0x0F;
+    private static System.Int32 PadLen16(System.Int32 length) => (16 - (length & 0x0F)) & 0x0F;
 
     /// <summary>
     /// Derive 32-byte Poly1305 OTK from counters 0..3 using XTEA.Encrypt.
@@ -296,7 +310,7 @@ public static class XteaPoly1305
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(in8, input64);
 
         // Call your bulk XTEA over exactly 1 block (no padding)
-        Xtea.Encrypt(in8, key, tmp8, XteaRounds);
+        _ = Xtea.Encrypt(in8, key, tmp8, XteaRounds);
 
         // Return the encrypted 8 bytes as keystream block
         tmp8.CopyTo(out8);
@@ -368,9 +382,9 @@ public static class XteaPoly1305
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.UInt64 ReverseBytes(System.UInt64 v)
     {
-        v = (v & 0x00FF00FF00FF00FFUL) << 8 | (v & 0xFF00FF00FF00FF00UL) >> 8;
-        v = (v & 0x0000FFFF0000FFFFUL) << 16 | (v & 0xFFFF0000FFFF0000UL) >> 16;
-        v = v << 32 | v >> 32;
+        v = ((v & 0x00FF00FF00FF00FFUL) << 8) | ((v & 0xFF00FF00FF00FF00UL) >> 8);
+        v = ((v & 0x0000FFFF0000FFFFUL) << 16) | ((v & 0xFFFF0000FFFF0000UL) >> 16);
+        v = (v << 32) | (v >> 32);
         return v;
     }
 
