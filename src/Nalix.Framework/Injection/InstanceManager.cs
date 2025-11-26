@@ -234,7 +234,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
         if (instance is System.IDisposable disp)
         {
-            _disposables.TryAdd(disp, 0);
+            _ = _disposables.TryAdd(disp, 0);
         }
     }
 
@@ -355,7 +355,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
             if (instance is System.IDisposable d)
             {
-                _disposables.TryRemove(d, out _);
+                _ = _disposables.TryRemove(d, out _);
                 try
                 {
                     d.Dispose();
@@ -406,7 +406,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         }
 
         // 3) Dictionary fallback
-        _instanceCache.TryGetValue(key, out System.Object? instance);
+        _ = _instanceCache.TryGetValue(key, out System.Object? instance);
 
         // Publish to L1 + slot
         _tsLastKey = key;
@@ -572,7 +572,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         System.Reflection.MethodInfo method = typeof(InstanceManager)
             .GetMethod(nameof(PublishGenericSlot), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
             .MakeGenericMethod(iface);
-        method.Invoke(null, [instance]);
+        _ = method.Invoke(null, [instance]);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -606,7 +606,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
         if (instance is System.IDisposable d)
         {
-            _disposables.TryAdd(d, 0);
+            _ = _disposables.TryAdd(d, 0);
         }
 
         return _instanceCache.GetOrAdd(key, instance);
@@ -621,7 +621,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         {
             System.Reflection.ConstructorInfo ctor = ResolveBestCtor(type, args);
             factory = BuildDynamicFactory(type, ctor);
-            _activatorCache.TryAdd(sigKey, factory);
+            _ = _activatorCache.TryAdd(sigKey, factory);
         }
         return factory(args);
     }
