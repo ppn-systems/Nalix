@@ -8,7 +8,6 @@ using Nalix.Network.Examples.Custom;
 using Nalix.Network.Examples.Handlers;
 using Nalix.Network.Examples.Protocols;
 using Nalix.Network.Middleware.Inbound;
-using Nalix.Network.Middleware.Outbound;
 using Nalix.Network.Routing;
 using Nalix.Network.Routing.Metadata;
 using Nalix.Shared.Registry;
@@ -36,9 +35,6 @@ PacketDispatchChannel channel = new(dispatchOptions =>
 {
     // Inbound
     dispatchOptions.WithMiddleware(new TimeoutMiddleware());
-
-    // Outbound
-    dispatchOptions.WithMiddleware(new WrapPacketMiddleware());
 
     // Custom middleware
     dispatchOptions.WithMiddleware(new CustomMiddleware());
