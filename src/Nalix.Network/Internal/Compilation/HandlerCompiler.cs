@@ -100,7 +100,7 @@ internal sealed class HandlerCompiler<
                                               .Take(compiledMethods.Keys, 6), o => $"0x{o:X4}"));
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(HandlerCompiler<TController, TPacket>)}] " +
+                                .Debug($"[{nameof(HandlerCompiler<,>)}] " +
                                        $"found count={compiledMethods.Count} " +
                                        $"controller={controllerType.FullName} " +
                                        $"ops=[{firstOps}{(compiledMethods.Count > 6 ? ",..." : System.String.Empty)}]");
@@ -134,7 +134,7 @@ internal sealed class HandlerCompiler<
         if (methodInfos.Length == 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(HandlerCompiler<TController, TPacket>)}] " +
+                                    .Debug($"[{nameof(HandlerCompiler<,>)}] " +
                                           $"no-method controller={controllerType.Name}");
         }
 
