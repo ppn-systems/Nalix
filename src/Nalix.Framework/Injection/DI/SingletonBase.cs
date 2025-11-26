@@ -6,6 +6,9 @@ namespace Nalix.Framework.Injection.DI;
 /// A high-performance generic thread-safe Singleton implementation using <see cref="System.Lazy{T}"/>.
 /// </summary>
 /// <typeparam name="T">The type of the Singleton class.</typeparam>
+[System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Instance = {Instance}, IsCreated = {IsCreated}")]
 public abstract class SingletonBase<T> : System.IDisposable where T : class
 {

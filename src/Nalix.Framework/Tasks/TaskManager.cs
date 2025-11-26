@@ -75,7 +75,7 @@ public sealed partial class TaskManager : ITaskManager
         [System.Diagnostics.CodeAnalysis.NotNull] System.TimeSpan interval,
         [System.Diagnostics.CodeAnalysis.NotNull]
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
-        [System.Diagnostics.CodeAnalysis.AllowNull] IRecurringOptions? options = null)
+        [System.Diagnostics.CodeAnalysis.MaybeNull] IRecurringOptions? options = null)
     {
         System.ArgumentNullException.ThrowIfNull(work);
         System.ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
@@ -155,7 +155,7 @@ public sealed partial class TaskManager : ITaskManager
         [System.Diagnostics.CodeAnalysis.NotNull] System.String group,
         [System.Diagnostics.CodeAnalysis.NotNull]
         System.Func<IWorkerContext, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
-        [System.Diagnostics.CodeAnalysis.AllowNull] IWorkerOptions? options = null)
+        [System.Diagnostics.CodeAnalysis.MaybeNull] IWorkerOptions? options = null)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
         System.ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));

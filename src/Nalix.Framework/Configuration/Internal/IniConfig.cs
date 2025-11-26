@@ -102,7 +102,10 @@ internal sealed class IniConfig
     /// <param name="value">The value to write.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void WriteValue(System.String section, System.String key, System.Object value)
+    public void WriteValue(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Object value)
     {
         System.ArgumentNullException.ThrowIfNull(key);
         System.ArgumentNullException.ThrowIfNull(section);
@@ -169,7 +172,10 @@ internal sealed class IniConfig
     /// <returns>The string value, or an empty string if not found.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.String GetString(System.String section, System.String key)
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public System.String GetString(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
         System.ArgumentNullException.ThrowIfNull(key);
         System.ArgumentNullException.ThrowIfNull(section);
@@ -208,7 +214,10 @@ internal sealed class IniConfig
     /// <returns>The character value if the string has exactly one character; otherwise, null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Char? GetChar(System.String section, System.String key)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.Char? GetChar(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
         System.String stringValue = GetString(section, key);
         return !System.String.IsNullOrEmpty(stringValue) && stringValue.Length == 1 ? stringValue[0] : null;
@@ -219,7 +228,10 @@ internal sealed class IniConfig
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean? GetBool(System.String section, System.String key)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.Boolean? GetBool(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
         System.String cacheKey = $"{section}:{key}:bool";
 
@@ -268,7 +280,10 @@ internal sealed class IniConfig
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Decimal? GetDecimal(System.String section, System.String key)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.Decimal? GetDecimal(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
         System.String cacheKey = $"{section}:{key}:decimal";
 
@@ -299,7 +314,10 @@ internal sealed class IniConfig
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Byte? GetByte(System.String section, System.String key)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.Byte? GetByte(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
         System.String cacheKey = $"{section}:{key}:byte";
 
@@ -328,7 +346,10 @@ internal sealed class IniConfig
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.SByte? GetSByte(System.String section, System.String key)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.SByte? GetSByte(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
         System.String cacheKey = $"{section}:{key}:sbyte";
 
@@ -357,7 +378,10 @@ internal sealed class IniConfig
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Int16? GetInt16(System.String section, System.String key)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.Int16? GetInt16(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
         System.String cacheKey = $"{section}:{key}:int16";
 
@@ -386,7 +410,10 @@ internal sealed class IniConfig
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.UInt16? GetUInt16(System.String section, System.String key)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.UInt16? GetUInt16(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
         System.String cacheKey = $"{section}:{key}:uint16";
 
@@ -415,7 +442,10 @@ internal sealed class IniConfig
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Int32? GetInt32(System.String section, System.String key)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.Int32? GetInt32(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
         System.String cacheKey = $"{section}:{key}:int32";
 
@@ -444,7 +474,10 @@ internal sealed class IniConfig
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.UInt32? GetUInt32(System.String section, System.String key)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.UInt32? GetUInt32(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
         System.String cacheKey = $"{section}:{key}:uint32";
 
@@ -473,6 +506,7 @@ internal sealed class IniConfig
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public System.Int64? GetInt64(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:int64";
@@ -502,7 +536,10 @@ internal sealed class IniConfig
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.UInt64? GetUInt64(System.String section, System.String key)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.UInt64? GetUInt64(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
         System.String cacheKey = $"{section}:{key}:uint64";
 
@@ -531,7 +568,10 @@ internal sealed class IniConfig
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Single? GetSingle(System.String section, System.String key)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.Single? GetSingle(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
         System.String cacheKey = $"{section}:{key}:single";
 
@@ -562,6 +602,7 @@ internal sealed class IniConfig
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public System.Double? GetDouble(System.String section, System.String key)
     {
         System.String cacheKey = $"{section}:{key}:double";
@@ -593,7 +634,10 @@ internal sealed class IniConfig
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.DateTime? GetDateTime(System.String section, System.String key)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.DateTime? GetDateTime(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
         System.String cacheKey = $"{section}:{key}:datetime";
 
@@ -624,7 +668,10 @@ internal sealed class IniConfig
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.TimeSpan? GetTimeSpan(System.String section, System.String key)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.TimeSpan? GetTimeSpan(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
         System.String cacheKey = $"{section}:{key}:timespan";
 
@@ -655,7 +702,10 @@ internal sealed class IniConfig
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Guid? GetGuid(System.String section, System.String key)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.Guid? GetGuid(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
         System.String cacheKey = $"{section}:{key}:guid";
 
@@ -688,7 +738,10 @@ internal sealed class IniConfig
     /// <returns>The enum value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public TEnum? GetEnum<TEnum>(System.String section, System.String key) where TEnum : struct, System.Enum
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public TEnum? GetEnum<TEnum>(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String key) where TEnum : struct, System.Enum
     {
         System.String cacheKey = $"{section}:{key}:enum:{typeof(TEnum).FullName}";
 

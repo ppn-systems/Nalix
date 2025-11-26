@@ -10,9 +10,9 @@ namespace Nalix.Framework.Injection;
 /// optimized for real-time server applications with thread safety and caching.
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("CachedInstanceCount = {CachedInstanceCount}")]
-[System.Runtime.CompilerServices.SkipLocalsInit]
 public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDisposable, IReportable
 {
     #region Fields

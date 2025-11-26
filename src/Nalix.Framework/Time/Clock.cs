@@ -76,6 +76,7 @@ public static partial class Clock
     /// <returns>The adjustment made in milliseconds.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Double SynchronizeTime(System.DateTime externalTime, System.Double maxAllowedDriftMs = 1000.0)
     {
         if (externalTime.Kind != System.DateTimeKind.Utc)
@@ -124,6 +125,7 @@ public static partial class Clock
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Double SynchronizeUnixMilliseconds(
         System.Int64 serverUnixMs, System.Double rttMs = 0,
         System.Double maxAllowedDriftMs = 1_000.0, System.Double maxHardAdjustMs = 10_000.0)
@@ -146,6 +148,7 @@ public static partial class Clock
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static void ResetSynchronization()
     {
         _ = System.Threading.Interlocked.Exchange(ref _timeOffset, 0);
@@ -162,6 +165,7 @@ public static partial class Clock
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Double DriftRate() => System.Threading.Volatile.Read(ref _driftCorrection);
 
     /// <summary>
@@ -169,6 +173,7 @@ public static partial class Clock
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Double CurrentErrorEstimateMs()
     {
         if (!IsSynchronized)
