@@ -9,11 +9,11 @@ public partial class TaskManager
 {
     [System.Diagnostics.DebuggerDisplay("Worker {Name} (Running={IsRunning}, Runs={TotalRuns})")]
     private sealed class WorkerState(
-        IIdentifier id,
-        System.String name,
-        System.String group,
-        IWorkerOptions opt,
-        System.Threading.CancellationTokenSource cts) : IWorkerHandle
+        [System.Diagnostics.CodeAnalysis.NotNull] IIdentifier id,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String group,
+        [System.Diagnostics.CodeAnalysis.NotNull] IWorkerOptions opt,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationTokenSource cts) : IWorkerHandle
     {
         #region Backing fields (thread-safe)
 
@@ -200,10 +200,10 @@ public partial class TaskManager
 
     [System.Diagnostics.DebuggerDisplay("Recurring {Name} (Every={Interval}, Runs={TotalRuns}, Failures={ConsecutiveFailures})")]
     private sealed class RecurringState(
-        System.String name,
-        System.TimeSpan iv,
-        IRecurringOptions opt,
-        System.Threading.CancellationTokenSource cts) : IRecurringHandle
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.TimeSpan iv,
+        [System.Diagnostics.CodeAnalysis.NotNull] IRecurringOptions opt,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationTokenSource cts) : IRecurringHandle
     {
         #region Properties / fields
 
@@ -332,7 +332,9 @@ public partial class TaskManager
     }
 
     [System.Runtime.CompilerServices.SkipLocalsInit]
-    private sealed class WorkerContext(WorkerState st, TaskManager owner) : IWorkerContext
+    private sealed class WorkerContext(
+        [System.Diagnostics.CodeAnalysis.NotNull] WorkerState st,
+        [System.Diagnostics.CodeAnalysis.NotNull] TaskManager owner) : IWorkerContext
     {
         private readonly WorkerState _st = st;
         [System.Diagnostics.CodeAnalysis.SuppressMessage(

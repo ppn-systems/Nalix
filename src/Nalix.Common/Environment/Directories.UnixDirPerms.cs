@@ -22,12 +22,12 @@ public static partial class Directories
         System.ComponentModel.EditorBrowsableState.Never)]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.String EnsureAndHarden(
+    private static System.String ENSURE_AND_HARDEN(
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String path,
         UnixDirPerms perms = UnixDirPerms.Default755)
     {
-        Directories.EnsureDirectoryExists(path);
-        Directories.TryHardenPermissions(path, perms);
+        Directories.ENSURE_DIRECTORY_EXISTS(path);
+        Directories.HARDEN_PERMISSIONS(path, perms);
         return path;
     }
 
@@ -36,7 +36,7 @@ public static partial class Directories
     /// </summary>
     [System.ComponentModel.EditorBrowsable(
         System.ComponentModel.EditorBrowsableState.Never)]
-    private static void EnsureDirectoryExists(
+    private static void ENSURE_DIRECTORY_EXISTS(
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String path,
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
@@ -67,7 +67,7 @@ public static partial class Directories
             if (!System.IO.Directory.Exists(path))
             {
                 _ = System.IO.Directory.CreateDirectory(path);
-                RaiseDirectoryCreated(path);
+                RAISE_DIRECTORY_CREATED(path);
             }
         }
         catch (System.Exception ex)
@@ -88,7 +88,7 @@ public static partial class Directories
     /// </summary>
     [System.ComponentModel.EditorBrowsable(
         System.ComponentModel.EditorBrowsableState.Never)]
-    private static void TryHardenPermissions(
+    private static void HARDEN_PERMISSIONS(
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String path, UnixDirPerms perms)
     {
         try
@@ -156,7 +156,7 @@ public static partial class Directories
                         System.IO.UnixFileMode.OtherExecute,
                 };
 
-                _ = Directories.SetUnixFileModeCompat(path, mode);
+                _ = Directories.SET_UNIX_FILE_MODE_COMPAT(path, mode);
             }
         }
         catch { }
@@ -167,7 +167,7 @@ public static partial class Directories
     /// </summary>
     [System.ComponentModel.EditorBrowsable(
         System.ComponentModel.EditorBrowsableState.Never)]
-    private static void RaiseDirectoryCreated(
+    private static void RAISE_DIRECTORY_CREATED(
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String path)
     {
         System.Action<System.String> handlers = Directories.DirectoryCreated;
@@ -195,7 +195,7 @@ public static partial class Directories
         System.ComponentModel.EditorBrowsableState.Never)]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.String CombineSafe(
+    private static System.String COMBINE_SAFE(
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String baseDir,
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String name)
     {
@@ -225,7 +225,7 @@ public static partial class Directories
         System.ComponentModel.EditorBrowsableState.Never)]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Boolean SetUnixFileModeCompat(
+    private static System.Boolean SET_UNIX_FILE_MODE_COMPAT(
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.String path, System.IO.UnixFileMode mode)
     {
         try
@@ -250,8 +250,8 @@ public static partial class Directories
         {
             if (!System.OperatingSystem.IsWindows())
             {
-                System.UInt32 native = ToNativeChmodMode(mode);
-                System.Int32 rc = Chmod(path, native);
+                System.UInt32 native = TO_NATIVE_CHMOD_MODE(mode);
+                System.Int32 rc = CHMOD(path, native);
                 // rc == 0 success; else errno in Marshal.GetLastWin32Error()
                 return rc == 0;
             }
@@ -268,7 +268,7 @@ public static partial class Directories
         System.ComponentModel.EditorBrowsableState.Never)]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt32 ToNativeChmodMode(System.IO.UnixFileMode mode)
+    private static System.UInt32 TO_NATIVE_CHMOD_MODE(System.IO.UnixFileMode mode)
     {
         System.UInt32 m = 0;
 
@@ -343,7 +343,7 @@ public static partial class Directories
     [System.Runtime.CompilerServices.SkipLocalsInit]
     [System.ComponentModel.EditorBrowsable(
         System.ComponentModel.EditorBrowsableState.Never)]
-    private static unsafe System.Int32 Chmod([System.Diagnostics.CodeAnalysis.DisallowNull] System.String pathname, System.UInt32 mode)
+    private static unsafe System.Int32 CHMOD([System.Diagnostics.CodeAnalysis.DisallowNull] System.String pathname, System.UInt32 mode)
     {
         System.Byte* __pathname_native = default;
         System.Int32 __retVal = 0;

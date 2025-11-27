@@ -83,5 +83,6 @@ public static partial class Clock
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Double MonoTicksToMilliseconds(System.Int64 tickDelta) => tickDelta * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+    public static System.Double MonoTicksToMilliseconds(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int64 tickDelta) => tickDelta * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
 }
