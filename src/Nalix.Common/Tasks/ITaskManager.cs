@@ -26,7 +26,7 @@ public interface ITaskManager : System.IDisposable, IReportable
         [System.Diagnostics.CodeAnalysis.NotNull] System.TimeSpan interval,
         [System.Diagnostics.CodeAnalysis.NotNull]
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
-        [System.Diagnostics.CodeAnalysis.NotNull] IRecurringOptions options = null);
+        [System.Diagnostics.CodeAnalysis.MaybeNull] IRecurringOptions options = null);
 
     /// <summary>
     /// Executes a single job once.
@@ -61,7 +61,7 @@ public interface ITaskManager : System.IDisposable, IReportable
         [System.Diagnostics.CodeAnalysis.NotNull] System.String group,
         [System.Diagnostics.CodeAnalysis.NotNull]
         System.Func<IWorkerContext, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
-        [System.Diagnostics.CodeAnalysis.NotNull] IWorkerOptions options = null);
+        [System.Diagnostics.CodeAnalysis.MaybeNull] IWorkerOptions options = null);
 
     /// <summary>
     /// Cancels a worker by identifier.
@@ -91,7 +91,7 @@ public interface ITaskManager : System.IDisposable, IReportable
     /// <returns>A read-only collection of worker handles.</returns>
     System.Collections.Generic.IReadOnlyCollection<IWorkerHandle> ListWorkers(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean runningOnly = true,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String group = null);
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String group = null);
 
     /// <summary>
     /// Tries to get a worker by identifier.
