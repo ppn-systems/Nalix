@@ -30,7 +30,7 @@ public interface IPacketDispatch<TPacket> where TPacket : IPacket
     /// The connection from which the packet was received.
     /// </param>
     void HandlePacket(
-        [System.Diagnostics.CodeAnalysis.AllowNull] IBufferLease packet,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] IBufferLease packet,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection);
 
     /// <summary>
