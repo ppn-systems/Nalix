@@ -28,6 +28,7 @@ public abstract partial class TcpListenerBase
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public virtual System.String GenerateReport()
     {
         System.Text.StringBuilder sb = new();

@@ -129,6 +129,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="lease"/> or <paramref name="connection"/> is null.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean Pull(
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IConnection connection,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease lease)

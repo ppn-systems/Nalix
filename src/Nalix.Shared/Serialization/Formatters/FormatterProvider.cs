@@ -175,8 +175,13 @@ public static class FormatterProvider
             _ = System.Threading.Interlocked.Increment(ref _cntEnums); return;
         }
 
-        if (ut.IsPrimitive || ut == typeof(System.Decimal) || ut == typeof(System.DateTime) ||
-            ut == typeof(System.DateTimeOffset) || ut == typeof(System.TimeSpan) || ut == typeof(System.Guid) || ut == typeof(System.Char))
+        if (ut.IsPrimitive ||
+            ut == typeof(System.Guid) ||
+            ut == typeof(System.Char) ||
+            ut == typeof(System.Decimal) ||
+            ut == typeof(System.DateTime) ||
+            ut == typeof(System.TimeSpan) ||
+            ut == typeof(System.DateTimeOffset))
         {
             _ = System.Threading.Interlocked.Increment(ref _cntPrimitives);
             return;

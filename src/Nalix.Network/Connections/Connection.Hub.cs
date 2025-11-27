@@ -93,6 +93,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="connection"/> is null.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean RegisterConnection([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
         if (connection is null || _disposed)
@@ -137,6 +138,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <returns><c>true</c> if the connection was successfully unregistered; otherwise, <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean UnregisterConnection([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
         if (connection is null || _disposed)
@@ -298,6 +300,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Collections.Generic.IReadOnlyCollection<IConnection> ListConnections()
     {
         System.Int32 count = _count;
@@ -530,6 +533,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.String GenerateReport()
     {
         System.Text.StringBuilder sb = new();

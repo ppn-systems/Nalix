@@ -83,7 +83,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         PacketHandler<TPacket> descriptor,
         PacketContext<TPacket> context, System.Exception exception)
     {
-        this.Logger?.Error($"[{nameof(PacketDispatchOptions<TPacket>)}:{HandleExecutionExceptionAsync}] " +
+        this.Logger?.Error($"[{nameof(PacketDispatchOptions<>)}:{HandleExecutionExceptionAsync}] " +
                            $"handler-failed opcode={descriptor.OpCode}", exception);
 
         _errorHandler?.Invoke(exception, descriptor.OpCode);

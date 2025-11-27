@@ -10,8 +10,8 @@ namespace Nalix.Shared.Serialization.Formatters;
 /// <typeparam name="T">The type to serialize and deserialize.</typeparam>
 public interface IFormatter<[
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
 {
     /// <summary>

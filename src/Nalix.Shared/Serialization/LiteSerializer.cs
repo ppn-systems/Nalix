@@ -23,6 +23,21 @@ public static class LiteSerializer
     #region APIs
 
     /// <summary>
+    /// Registers a formatter for the specified type.
+    /// </summary>
+    /// <typeparam name="T">The type for which the formatter is being registered.</typeparam>
+    /// <param name="formatter">The formatter to register.</param>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown if the provided formatter is null.
+    /// </exception>
+    public static void Register<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
+        [System.Diagnostics.CodeAnalysis.NotNull] IFormatter<T> formatter) => FormatterProvider.Register<T>(formatter);
+
+    /// <summary>
     /// Serializes an object into a byte array.
     /// </summary>
     /// <typeparam name="T">The type of object to serialize.</typeparam>
@@ -47,6 +62,12 @@ public static class LiteSerializer
             System.Byte[] array = System.GC.AllocateUninitializedArray<System.Byte>(TypeMetadata.SizeOf<T>());
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(array), value);
+
+            if (value == null)
+            {
+                throw new SerializationException(
+                    $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.");
+            }
 
             return array;
         }
@@ -184,6 +205,13 @@ public static class LiteSerializer
             DataWriter writer = new(buffer);
 
             formatter.Serialize(ref writer, value);
+
+            if (value == null)
+            {
+                throw new SerializationException(
+                    $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.");
+            }
+
             return writer.WrittenCount;
         }
 
@@ -240,6 +268,7 @@ public static class LiteSerializer
     /// <exception cref="SerializationException">
     /// Thrown if deserialization encounters an error or if there is insufficient data in the buffer.
     /// </exception>
+    /// <exception cref="System.ArgumentException">Thrown if the buffer is empty.</exception>
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -249,7 +278,7 @@ public static class LiteSerializer
     public static System.Int32 Deserialize<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> buffer,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] ref T value)
+        [System.Diagnostics.CodeAnalysis.NotNull] ref T value)
     {
         if (buffer.IsEmpty)
         {
@@ -271,6 +300,12 @@ public static class LiteSerializer
             value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer));
 
+            if (value == null)
+            {
+                throw new SerializationException(
+                    $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.");
+            }
+
             return System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
         }
 
@@ -280,7 +315,7 @@ public static class LiteSerializer
         {
             if (IsNullArrayMarker(buffer))
             {
-                value = default!;
+                value = (T)(System.Object)null!;
                 return 4;
             }
 
@@ -329,6 +364,10 @@ public static class LiteSerializer
         IFormatter<T> formatter = FormatterProvider.Get<T>();
         DataReader reader = new(buffer);
         value = formatter.Deserialize(ref reader);
+        if (value == null)
+        {
+            throw new SerializationException($"Deserialization of type '{typeof(T)}' resulted in null value.");
+        }
         return reader.BytesRead;
     }
 
@@ -452,7 +491,7 @@ public static class LiteSerializer
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static BufferLease Serialize<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] in T value,
+        [System.Diagnostics.CodeAnalysis.NotNull] in T value,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean zeroOnDispose = false)
     {
         // Unmanaged non-nullable fast path: exact-size write
@@ -463,6 +502,12 @@ public static class LiteSerializer
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetReference(lease.SpanFull), value);
             lease.CommitLength(size);
+
+            if (value == null)
+            {
+                throw new SerializationException(
+                    $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.");
+            }
 
             return lease;
         }
@@ -478,6 +523,12 @@ public static class LiteSerializer
                 System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                     ref System.Runtime.InteropServices.MemoryMarshal.GetReference(lz.SpanFull), -1); // NullArrayMarker
                 lz.CommitLength(4);
+
+                if (value == null)
+                {
+                    throw new SerializationException(
+                        $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.");
+                }
 
                 return lz;
             }
@@ -527,6 +578,13 @@ public static class LiteSerializer
                 formatter.Serialize(ref writer, value);
                 // If DataWriter succeeds within span bounds:
                 lease.CommitLength(writer.WrittenCount);
+
+                if (value == null)
+                {
+                    throw new SerializationException(
+                        $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.");
+                }
+
                 return lease;
             }
             catch (System.Exception ex) when (ex is SerializationException or System.IndexOutOfRangeException or System.ArgumentOutOfRangeException)
@@ -551,6 +609,13 @@ public static class LiteSerializer
             {
                 formatter.Serialize(ref w, value);
                 probe.CommitLength(w.WrittenCount);
+
+                if (value == null)
+                {
+                    throw new SerializationException(
+                        $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.");
+                }
+
                 return probe;
             }
             finally
@@ -574,7 +639,7 @@ public static class LiteSerializer
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 Serialize<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] in T value,
+        [System.Diagnostics.CodeAnalysis.NotNull] in T value,
         [System.Diagnostics.CodeAnalysis.NotNull] BufferLease target)
     {
         System.ArgumentNullException.ThrowIfNull(target);
@@ -591,6 +656,12 @@ public static class LiteSerializer
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetReference(target.SpanFull), value);
             target.CommitLength(size);
+
+            if (value == null)
+            {
+                throw new SerializationException(
+                    $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.");
+            }
 
             return size;
         }
@@ -609,6 +680,13 @@ public static class LiteSerializer
                 System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                     ref System.Runtime.InteropServices.MemoryMarshal.GetReference(target.SpanFull), -1);
                 target.CommitLength(4);
+
+                if (value == null)
+                {
+                    throw new SerializationException(
+                        $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.");
+                }
+
                 return 4;
             }
 
@@ -659,6 +737,13 @@ public static class LiteSerializer
             }
 
             target.CommitLength(writer.WrittenCount);
+
+            if (value == null)
+            {
+                throw new SerializationException(
+                    $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.");
+            }
+
             return writer.WrittenCount;
         }
         finally
@@ -682,7 +767,7 @@ public static class LiteSerializer
     public static System.Int32 Deserialize<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(All)] T>(
         [System.Diagnostics.CodeAnalysis.NotNull] BufferLease source,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] ref T value)
+        [System.Diagnostics.CodeAnalysis.NotNull] ref T value)
     {
         System.ArgumentNullException.ThrowIfNull(source);
         return Deserialize<T>(source.Memory.Span, ref value);
