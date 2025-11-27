@@ -197,7 +197,9 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Register<T>(T instance, System.Boolean registerInterfaces = true) where T : class
+    public void Register<T>(
+        [System.Diagnostics.CodeAnalysis.NotNull] T instance,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean registerInterfaces = true) where T : class
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
@@ -247,7 +249,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void RegisterForClassOnly<T>(T instance) where T : class => Register(instance, registerInterfaces: false);
+    public void RegisterForClassOnly<T>(
+        [System.Diagnostics.CodeAnalysis.NotNull] T instance) where T : class => Register(instance, registerInterfaces: false);
 
     /// <summary>
     /// Gets or creates an instance of the specified type with high performance.
@@ -258,7 +261,9 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public T GetOrCreateInstance<T>(params System.Object?[] args) where T : class
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public T GetOrCreateInstance<T>(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] params System.Object?[] args) where T : class
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
@@ -295,7 +300,10 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Object GetOrCreateInstance(System.Type type, params System.Object?[] args)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.Object GetOrCreateInstance(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Type type,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] params System.Object?[] args)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
@@ -321,7 +329,10 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Object CreateInstance(System.Type type, params System.Object?[] args)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.Object CreateInstance(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Type type,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] params System.Object?[] args)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
@@ -337,7 +348,9 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean RemoveInstance(System.Type type)
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    public System.Boolean RemoveInstance(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Type type)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
@@ -376,6 +389,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public System.Boolean HasInstance<T>() => _instanceCache.ContainsKey(typeof(T).TypeHandle);
 
     /// <summary>
@@ -387,6 +401,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public T? GetExistingInstance<T>() where T : class
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
@@ -426,7 +441,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Clear(System.Boolean dispose = true)
+    public void Clear(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean dispose = true)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
@@ -454,6 +470,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// <summary>
     /// Generates a human-readable report of all cached instances.
     /// </summary>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.String GenerateReport()
     {
         System.Text.StringBuilder sb = new(1024);
