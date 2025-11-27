@@ -25,8 +25,7 @@ public static class LZ4Codec
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 Encode(
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> input,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Span<System.Byte> output)
-        => LZ4Encoder.Encode(input, output);
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Span<System.Byte> output) => LZ4Encoder.Encode(input, output);
 
     /// <summary>
     /// Compresses the input byte array into the specified output byte array.

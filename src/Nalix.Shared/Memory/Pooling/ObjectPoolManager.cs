@@ -83,6 +83,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <returns>An instance of <typeparamref name="T"/>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public T Get<T>() where T : IPoolable, new()
     {
         _ = System.Threading.Interlocked.Increment(ref _totalGetOperations);
@@ -98,7 +99,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <exception cref="System.ArgumentNullException">Thrown when obj is null.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Return<T>(T obj) where T : IPoolable, new()
+    public void Return<T>([System.Diagnostics.CodeAnalysis.NotNull] T obj) where T : IPoolable, new()
     {
         if (obj == null)
         {
@@ -115,6 +116,7 @@ public sealed class ObjectPoolManager : IReportable
     /// </summary>
     /// <typeparam name="T">The type of objects to manage in the pool.</typeparam>
     /// <returns>A type-specific pool adapter.</returns>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public TypedObjectPoolAdapter<T> GetTypedPool<T>() where T : IPoolable, new()
     {
         ObjectPool pool = GetOrCreatePool<T>();
@@ -128,7 +130,8 @@ public sealed class ObjectPoolManager : IReportable
     /// <param name="count">The ProtocolType of instances to preallocate.</param>
     /// <returns>The ProtocolType of instances successfully preallocated.</returns>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown when count is less than or equal to zero.</exception>
-    public System.Int32 Prealloc<T>(System.Int32 count) where T : IPoolable, new()
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public System.Int32 Prealloc<T>([System.Diagnostics.CodeAnalysis.NotNull] System.Int32 count) where T : IPoolable, new()
     {
         if (count <= 0)
         {
@@ -149,7 +152,8 @@ public sealed class ObjectPoolManager : IReportable
     /// <typeparam name="T">The type to configure.</typeparam>
     /// <param name="maxCapacity">The maximum capacity for the type's pool.</param>
     /// <returns>True if the capacity was set, false otherwise.</returns>
-    public System.Boolean SetMaxCapacity<T>(System.Int32 maxCapacity) where T : IPoolable
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public System.Boolean SetMaxCapacity<T>([System.Diagnostics.CodeAnalysis.NotNull] System.Int32 maxCapacity) where T : IPoolable
     {
         if (maxCapacity < 0)
         {
@@ -178,6 +182,7 @@ public sealed class ObjectPoolManager : IReportable
     /// </summary>
     /// <typeparam name="T">The type to get information about.</typeparam>
     /// <returns>A dictionary containing pool statistics for the type.</returns>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Collections.Generic.Dictionary<System.String, System.Object> GetTypeInfo<T>() where T : IPoolable
     {
         System.Type type = typeof(T);
@@ -197,6 +202,7 @@ public sealed class ObjectPoolManager : IReportable
     /// </summary>
     /// <typeparam name="T">The type to clear from the pool.</typeparam>
     /// <returns>The ProtocolType of objects removed.</returns>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Int32 ClearPool<T>() where T : IPoolable
     {
         System.Type type = typeof(T);
@@ -207,6 +213,7 @@ public sealed class ObjectPoolManager : IReportable
     /// Clears all objects from all pools.
     /// </summary>
     /// <returns>The total ProtocolType of objects removed.</returns>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Int32 ClearAllPools()
     {
         System.Int32 totalRemoved = 0;
@@ -224,7 +231,8 @@ public sealed class ObjectPoolManager : IReportable
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
     /// <returns>The total ProtocolType of objects removed.</returns>
-    public System.Int32 TrimAllPools(System.Int32 percentage = 50)
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public System.Int32 TrimAllPools([System.Diagnostics.CodeAnalysis.NotNull] System.Int32 percentage = 50)
     {
         System.Int32 totalRemoved = 0;
 
@@ -272,9 +280,9 @@ public sealed class ObjectPoolManager : IReportable
     /// <param name="cancellationToken">A token to cancel the background trimming.</param>
     /// <returns>A task representing the background trimming operation.</returns>
     public System.Threading.Tasks.Task ScheduleRegularTrimming(
-        System.TimeSpan interval,
-        System.Int32 percentage = 50,
-        System.Threading.CancellationToken cancellationToken = default)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.TimeSpan interval,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 percentage = 50,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default)
     {
         return System.Threading.Tasks.Task.Run(async () =>
         {
@@ -303,6 +311,7 @@ public sealed class ObjectPoolManager : IReportable
     /// Generates a report on the current state of all pools.
     /// </summary>
     /// <returns>A string containing the report.</returns>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.String GenerateReport()
     {
         System.Text.StringBuilder sb = new();
@@ -348,6 +357,7 @@ public sealed class ObjectPoolManager : IReportable
     /// Gets detailed statistics for all pools.
     /// </summary>
     /// <returns>A dictionary containing statistics for the pool manager and all pools.</returns>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Collections.Generic.Dictionary<System.String, System.Object> GetDetailedStatistics()
     {
         var stats = new System.Collections.Generic.Dictionary<System.String, System.Object>
@@ -382,6 +392,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <returns>An object pool for the specified type.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     private ObjectPool GetOrCreatePool<T>() where T : IPoolable, new()
     {
         System.Type type = typeof(T);
