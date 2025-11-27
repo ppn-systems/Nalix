@@ -152,7 +152,7 @@ public sealed class NLogixDistributor : ILogDistributor
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public ILogDistributor AddTarget(ILoggerTarget target)
+    public ILogDistributor AddTarget([System.Diagnostics.CodeAnalysis.NotNull] ILoggerTarget target)
     {
         System.ArgumentNullException.ThrowIfNull(target);
         System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
@@ -171,7 +171,7 @@ public sealed class NLogixDistributor : ILogDistributor
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean RemoveTarget(ILoggerTarget target)
+    public System.Boolean RemoveTarget([System.Diagnostics.CodeAnalysis.NotNull] ILoggerTarget target)
     {
         System.ArgumentNullException.ThrowIfNull(target);
         System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
