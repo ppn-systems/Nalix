@@ -46,7 +46,7 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     {
         Data = [];
         Flags = PacketFlags.NONE;
-        Priority = PacketPriority.None;
+        Priority = PacketPriority.NONE;
         Protocol = ProtocolType.NONE;
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)FrameMagicCode.HANDSHAKE;
@@ -89,11 +89,14 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
                                                    .Get<Handshake>();
 
         System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
+        if (bytesRead == 0)
+        {
+            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .Return(packet);
+            throw new System.InvalidOperationException("Failed to deserialize packet: No bytes were read.");
+        }
 
-        return bytesRead == 0
-            ? throw new System.InvalidOperationException(
-                "Failed to deserialize packet: No bytes were read.")
-            : packet;
+        return packet;
     }
 
     /// <inheritdoc/>
@@ -109,7 +112,7 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     {
         this.Data = [];
         this.Flags = PacketFlags.NONE;
-        this.Priority = PacketPriority.None;
+        this.Priority = PacketPriority.NONE;
         this.Protocol = ProtocolType.NONE;
     }
 

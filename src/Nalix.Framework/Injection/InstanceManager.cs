@@ -22,7 +22,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
     // Keep one OS mutex for lifetime to ensure correctness & performance.
     private static readonly System.Threading.Lock ProcessMutexInitSync = new();
-    private static readonly System.String ApplicationMutexName = "Low\\{{" + EntryAssemblyLazy.Value.FullName + "}}";
+    private static readonly System.String ApplicationMutexName = "LOW\\{{" + EntryAssemblyLazy.Value.FullName + "}}";
 
     private static System.Boolean _processMutexOwner;
     private static System.Threading.Mutex? _processMutex;
