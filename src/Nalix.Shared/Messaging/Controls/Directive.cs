@@ -84,7 +84,7 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
     /// <summary>Initialize with minimal defaults.</summary>
     public Directive()
     {
-        Priority = PacketPriority.Urgent;
+        Priority = PacketPriority.URGENT;
         Protocol = ProtocolType.TCP;
         OpCode = PacketConstants.OpCodeDefault;
         MagicNumber = (System.UInt32)FrameMagicCode.DIRECTIVE;
@@ -112,7 +112,7 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
         Control = flags;
         SequenceId = sequenceId;
 
-        Priority = PacketPriority.Urgent;
+        Priority = PacketPriority.URGENT;
         Protocol = ProtocolType.TCP;
     }
 
@@ -140,7 +140,7 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
         OpCode = opCode;
         SequenceId = sequenceId;
 
-        Priority = PacketPriority.Urgent;
+        Priority = PacketPriority.URGENT;
         Protocol = ProtocolType.TCP;
     }
 
@@ -149,13 +149,18 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
     /// </summary>
     public static Directive Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
-        var pkt = InstanceManager.Instance
-                     .GetOrCreateInstance<ObjectPoolManager>()
-                     .Get<Directive>();
+        Directive packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                   .Get<Directive>();
 
-        System.Int32 read = LiteSerializer.Deserialize(buffer, ref pkt);
-        return read == 0
-            ? throw new System.InvalidOperationException("Failed to deserialize DIRECTIVE: empty read.") : pkt;
+        System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
+        if (bytesRead == 0)
+        {
+            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .Return(packet);
+            throw new System.InvalidOperationException("Failed to deserialize packet: No bytes were read.");
+        }
+
+        return packet;
     }
 
     /// <inheritdoc/>
@@ -175,7 +180,7 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
         Reason = ProtocolCode.NONE;
         Control = ControlFlags.NONE;
         Action = ProtocolAction.NONE;
-        Priority = PacketPriority.Urgent;
+        Priority = PacketPriority.URGENT;
         Protocol = ProtocolType.NONE;
     }
 }
