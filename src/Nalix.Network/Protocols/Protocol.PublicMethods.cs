@@ -119,6 +119,7 @@ public abstract partial class Protocol
     /// </summary>
     /// <param name="connection">The connection to validate.</param>
     /// <returns>True if the connection is valid, false otherwise.</returns>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     protected virtual System.Boolean ValidateConnection(IConnection connection) => true;
 
     #endregion Virtual Methods

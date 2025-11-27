@@ -79,6 +79,7 @@ public sealed partial class Connection : IConnection
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public System.Boolean Send(IPacket packet)
         {
             if (packet.Length == 0)
@@ -124,6 +125,7 @@ public sealed partial class Connection : IConnection
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public System.Boolean Send(System.ReadOnlySpan<System.Byte> message)
         {
             if (message.IsEmpty || _endPoint is null)
@@ -143,6 +145,7 @@ public sealed partial class Connection : IConnection
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             IPacket packet,
             System.Threading.CancellationToken cancellationToken = default)
@@ -192,6 +195,7 @@ public sealed partial class Connection : IConnection
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             System.ReadOnlyMemory<System.Byte> message,
             System.Threading.CancellationToken cancellationToken = default)
@@ -255,6 +259,7 @@ public sealed partial class Connection : IConnection
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public System.Boolean Send(IPacket packet)
         {
             if (packet.Length == 0)
@@ -300,6 +305,7 @@ public sealed partial class Connection : IConnection
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public System.Boolean Send(System.ReadOnlySpan<System.Byte> message)
         {
             if (_outer._cstream.Send(message))
@@ -317,6 +323,7 @@ public sealed partial class Connection : IConnection
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         [System.Obsolete(
             "This method may produce multiple packets for large messages. " +
             "Consider using a different approach for large data transmission.")]
@@ -373,6 +380,7 @@ public sealed partial class Connection : IConnection
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             IPacket packet,
             System.Threading.CancellationToken cancellationToken = default)
@@ -422,6 +430,7 @@ public sealed partial class Connection : IConnection
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             System.ReadOnlyMemory<System.Byte> message,
             System.Threading.CancellationToken cancellationToken = default)
@@ -441,6 +450,7 @@ public sealed partial class Connection : IConnection
         [System.Diagnostics.StackTraceHidden]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         [System.Obsolete(
             "This method may produce multiple packets for large messages. " +
             "Consider using a different approach for large data transmission.")]

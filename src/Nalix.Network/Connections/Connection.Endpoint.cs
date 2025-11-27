@@ -23,6 +23,7 @@ public sealed partial class Connection
         [System.Diagnostics.Contracts.Pure]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public static EndpointToken FromIpAddress(
             [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress ip)
         {
@@ -35,6 +36,7 @@ public sealed partial class Connection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public static EndpointToken FromEndPoint(
             [System.Diagnostics.CodeAnalysis.AllowNull] System.Net.EndPoint endpoint)
         {
@@ -165,6 +167,7 @@ public sealed partial class Connection
         [System.Diagnostics.Contracts.Pure]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public System.Boolean Equals(EndpointToken other)
         {
             return _hi == other._hi &&
@@ -184,6 +187,7 @@ public sealed partial class Connection
         [System.Diagnostics.Contracts.Pure]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public System.Boolean Equals([System.Diagnostics.CodeAnalysis.AllowNull] IEndpointKey other)
         {
             if (other is null)
@@ -207,6 +211,7 @@ public sealed partial class Connection
         [System.Diagnostics.Contracts.Pure]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public override System.Boolean Equals([System.Diagnostics.CodeAnalysis.AllowNull] System.Object obj) =>
             obj is EndpointToken k && Equals(k);
 
@@ -214,6 +219,7 @@ public sealed partial class Connection
         [System.Diagnostics.Contracts.Pure]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public override System.Int32 GetHashCode()
         {
             System.Int32 port = this.HasPort ? _port : 0;
@@ -223,11 +229,13 @@ public sealed partial class Connection
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public static System.Boolean operator ==(EndpointToken left, EndpointToken right) => left.Equals(right);
 
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public static System.Boolean operator !=(EndpointToken left, EndpointToken right) => !left.Equals(right);
 
         #endregion
@@ -238,6 +246,7 @@ public sealed partial class Connection
         [System.Diagnostics.Contracts.Pure]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [return: System.Diagnostics.CodeAnalysis.NotNull]
         public override System.String ToString()
         {
             System.String addr = Address;

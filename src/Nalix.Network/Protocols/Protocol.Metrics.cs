@@ -55,6 +55,7 @@ public abstract partial class Protocol : IReportable
     /// <returns>A formatted string containing the protocol status report.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public virtual System.String GenerateReport()
     {
         System.Text.StringBuilder sb = new();
