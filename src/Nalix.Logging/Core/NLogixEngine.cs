@@ -109,8 +109,10 @@ public abstract class NLogixEngine : System.IDisposable
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     protected void CreateLogEntry(
-        LogLevel level, EventId eventId,
-        System.String message, System.Exception? error = null)
+        [System.Diagnostics.CodeAnalysis.NotNull] LogLevel level,
+        [System.Diagnostics.CodeAnalysis.NotNull] EventId eventId,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String message,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Exception? error = null)
     {
         if (_isDisposed != 0 || !IsEnabled(level))
         {
