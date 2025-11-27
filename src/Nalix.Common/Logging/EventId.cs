@@ -58,7 +58,7 @@ public readonly struct EventId(System.Int32 id, System.String name = null) : Sys
     /// </summary>
     /// <param name="other">An object to compare with this object.</param>
     /// <returns><see langword="true" /> if the current object is equal to <paramref name="other" />; otherwise, <see langword="false" />.</returns>
-    public System.Boolean Equals(EventId other) => Id == other.Id;
+    public System.Boolean Equals([System.Diagnostics.CodeAnalysis.NotNull] EventId other) => Id == other.Id;
 
     /// <inheritdoc />
     public override System.Boolean Equals(
