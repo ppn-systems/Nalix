@@ -98,7 +98,7 @@ public abstract partial class TcpListenerBase
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void SafeCloseSocket(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.Socket socket)
     {

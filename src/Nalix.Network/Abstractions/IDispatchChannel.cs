@@ -57,5 +57,5 @@ public interface IDispatchChannel<TPacket> where TPacket : IPacket
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     System.Boolean Pull(
         [System.Diagnostics.CodeAnalysis.NotNull] out IConnection connection,
-        [System.Diagnostics.CodeAnalysis.AllowNull] out IBufferLease raw);
+        [System.Diagnostics.CodeAnalysis.MaybeNull] out IBufferLease raw);
 }
