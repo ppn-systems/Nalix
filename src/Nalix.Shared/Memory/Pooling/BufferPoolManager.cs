@@ -142,7 +142,8 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Byte[] Rent(System.Int32 size = 256)
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public System.Byte[] Rent([System.Diagnostics.CodeAnalysis.NotNull] System.Int32 size = 256)
     {
         if (IsFastCommonSize(size))
         {
@@ -170,7 +171,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Return(System.Byte[]? buffer)
+    public void Return([System.Diagnostics.CodeAnalysis.MaybeNull] System.Byte[]? buffer)
     {
         if (buffer is null)
         {
@@ -193,7 +194,8 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public System.Double GetAllocationForSize(System.Int32 size)
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public System.Double GetAllocationForSize([System.Diagnostics.CodeAnalysis.NotNull] System.Int32 size)
     {
         if (size > MaxBufferSize)
         {
@@ -239,6 +241,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.String GenerateReport()
     {
         System.Text.StringBuilder sb = new();

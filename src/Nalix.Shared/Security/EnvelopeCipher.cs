@@ -97,7 +97,7 @@ public static class EnvelopeCipher
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
         [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType algorithm,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> aad = default,
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.UInt32? seq = null)
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.UInt32? seq = null)
     {
         return algorithm switch
         {
