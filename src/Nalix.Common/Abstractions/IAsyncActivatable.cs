@@ -22,7 +22,8 @@ public interface IAsyncActivatable : System.IAsyncDisposable
     /// <returns>
     /// A task that represents the asynchronous activation operation.
     /// </returns>
-    System.Threading.Tasks.Task ActivateAsync(System.Threading.CancellationToken cancellationToken = default);
+    System.Threading.Tasks.Task ActivateAsync(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Asynchronously deactivates the component, transitioning it into a non-operational state.
@@ -33,5 +34,6 @@ public interface IAsyncActivatable : System.IAsyncDisposable
     /// <returns>
     /// A task that represents the asynchronous deactivation operation.
     /// </returns>
-    System.Threading.Tasks.Task DeactivateAsync(System.Threading.CancellationToken cancellationToken = default);
+    System.Threading.Tasks.Task DeactivateAsync(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default);
 }

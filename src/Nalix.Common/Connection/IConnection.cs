@@ -79,7 +79,7 @@ public partial interface IConnection : System.IDisposable
     /// <remarks>
     /// Ensures that both the socket and associated streams are properly closed.
     /// </remarks>
-    void Close(System.Boolean force = false);
+    void Close([System.Diagnostics.CodeAnalysis.NotNull] System.Boolean force = false);
 
     /// <summary>
     /// Disconnects the connection safely with an optional reason.
@@ -88,5 +88,5 @@ public partial interface IConnection : System.IDisposable
     /// <remarks>
     /// Use this method to terminate the connection gracefully.
     /// </remarks>
-    void Disconnect(System.String reason = null);
+    void Disconnect([System.Diagnostics.CodeAnalysis.NotNull] System.String reason = null);
 }

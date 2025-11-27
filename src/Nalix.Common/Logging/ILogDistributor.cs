@@ -32,7 +32,7 @@ public interface ILogDistributor : System.IDisposable
     /// <returns>
     /// The current <see cref="ILogDistributor"/> instance to support method chaining.
     /// </returns>
-    ILogDistributor AddTarget(ILoggerTarget loggerHandler);
+    ILogDistributor AddTarget([System.Diagnostics.CodeAnalysis.NotNull] ILoggerTarget loggerHandler);
 
     /// <summary>
     /// Unregisters a previously added logging target.
@@ -43,7 +43,7 @@ public interface ILogDistributor : System.IDisposable
     /// <returns>
     /// <see langword="true"/> if the target was successfully removed; otherwise, <see langword="false"/>.
     /// </returns>
-    System.Boolean RemoveTarget(ILoggerTarget loggerHandler);
+    System.Boolean RemoveTarget([System.Diagnostics.CodeAnalysis.NotNull] ILoggerTarget loggerHandler);
 
     /// <summary>
     /// Publishes the specified log entry to all registered logging targets.
