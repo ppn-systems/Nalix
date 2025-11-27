@@ -16,7 +16,6 @@ using Nalix.Network.Internal;
 using Nalix.Network.Routing.Channel;
 using Nalix.Network.Routing.Options;
 using Nalix.Shared.Extensions;
-using System;
 using System.Linq;
 
 namespace Nalix.Network.Routing;
@@ -204,7 +203,7 @@ public sealed class PacketDispatchChannel
     {
         if (lease is null || lease.Length <= 0)
         {
-            Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] empty-payload ep={connection.NetworkEndpoint}");
+            Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] empty-payload ep={connection.NetworkEndpoint}");
             lease?.Dispose();
 
             return;
@@ -334,68 +333,67 @@ public sealed class PacketDispatchChannel
             {
                 ctx.Beat();
 
-                // Wait for packets to be available
-                System.Boolean signaled = await _semaphore.WaitAsync(heartbeatInterval, ct)
-                                                          .ConfigureAwait(false);
-
+                System.Boolean signaled = await _semaphore.WaitAsync(heartbeatInterval, ct).ConfigureAwait(false);
                 if (!signaled)
                 {
-                    // No packet arrived during heartbeatInterval; continue to beat and observe cancellation.
                     continue;
                 }
-
 
                 // Pull from channel (priority-aware)
                 if (!_dispatch.Pull(out IConnection connection, out IBufferLease lease))
                 {
-                    // Semaphore was signaled but packets already drained by other workers
                     if (!_dispatch.HasPacket)
                     {
-                        // No packets left, just continue waiting
                         continue;
                     }
 
-                    // Rare: signaled but nothing pulled (remove/drain race)
                     Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] pull-empty");
                     lease?.Dispose();
-
+                    lease = null;
                     continue;
                 }
 
                 try
                 {
+                    // Xử lý middleware (thay đổi lease nếu cần)
                     IBufferLease afterMw = await Options.NetworkPipeline.ExecuteAsync(lease, connection, ct).ConfigureAwait(false);
+
                     if (afterMw is null)
                     {
-                        Logging?.Warn($"[PacketDispatchChannel:RunLoop] middleware-reject ep={connection.NetworkEndpoint}");
+                        Logging?.Debug($"[PacketDispatchChannel:RunLoop] middleware-reject ep={connection.NetworkEndpoint}");
                         lease.Dispose();
+                        lease = null;
                         continue;
                     }
 
-                    lease.Dispose();
+                    // Nếu middleware trả về lease mới, dispose lease cũ
+                    if (afterMw != lease)
+                    {
+                        lease.Dispose();
+                    }
                     lease = afterMw;
                 }
-                catch (Exception ex)
+                catch (System.Exception ex)
                 {
-                    // Count error nếu có connection
-                    connection?.IncrementErrorCount();
-                    Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] buffer-middleware-error ep={connection?.NetworkEndpoint} leaseLen={lease.Length}", ex);
+                    connection.IncrementErrorCount();
+                    Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] buffer-middleware-error ep={connection.NetworkEndpoint} leaseLen={lease?.Length}", ex);
 
-                    lease.Dispose();
+                    lease?.Dispose();
+                    lease = null;
                     continue;
                 }
 
-                // Deserialize late (zero-alloc header reads were already done in the channel)
                 try
                 {
-
+                    // Deserialize packet
                     if (!_catalog.TryDeserialize(lease.Span, out IPacket packet) || packet is null)
                     {
-                        // Warn with small head preview
                         System.Int32 len = lease.Length;
                         System.String head = System.Convert.ToHexString(lease.Span[..System.Math.Min(16, len)]);
                         Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.NetworkEndpoint} len={len} head={head}");
 
+                        lease.Dispose();
+                        lease = null;
                         continue;
                     }
 
@@ -408,7 +406,8 @@ public sealed class PacketDispatchChannel
                 }
                 finally
                 {
-                    lease.Dispose();
+                    lease?.Dispose();
+                    lease = null;
                 }
 
                 ctx.Advance(1);
