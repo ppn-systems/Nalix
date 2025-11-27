@@ -140,9 +140,9 @@ public sealed class PacketContext<TPacket> : IPoolable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal void Initialize(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] TPacket packet,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnection connection,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] PacketMetadata descriptor)
+        [System.Diagnostics.CodeAnalysis.MaybeNull] TPacket packet,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] IConnection connection,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] PacketMetadata descriptor)
     {
         _ = System.Threading.Interlocked.Exchange(
             ref System.Runtime.CompilerServices.Unsafe.As<PacketContextState, System.Byte>(ref _state),
@@ -179,7 +179,7 @@ public sealed class PacketContext<TPacket> : IPoolable
     /// <param name="packet">The packet to set.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void AssignPacket([System.Diagnostics.CodeAnalysis.DisallowNull] TPacket packet) => this.Packet = packet;
+    public void AssignPacket([System.Diagnostics.CodeAnalysis.MaybeNull] TPacket packet) => this.Packet = packet;
 
     #endregion Methods
 

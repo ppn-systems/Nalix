@@ -69,6 +69,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <exception cref="System.InvalidOperationException">Thrown if a recurring task with the same name already exists.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public IRecurringHandle ScheduleRecurring(
         [System.Diagnostics.CodeAnalysis.StringSyntax("identifier")]
         [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
@@ -150,6 +151,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <exception cref="System.InvalidOperationException">Thrown if the worker cannot be added.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public IWorkerHandle StartWorker(
         [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String group,
@@ -298,6 +300,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <returns><c>true</c> if the recurring task was found and cancelled; otherwise, <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean CancelRecurring([System.Diagnostics.CodeAnalysis.MaybeNull] System.String? name)
     {
         if (name is null)
@@ -351,7 +354,8 @@ public sealed partial class TaskManager : ITaskManager
     /// <returns><c>true</c> if the worker was found and cancelled; otherwise, <c>false</c>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public System.Boolean CancelWorker([System.Diagnostics.CodeAnalysis.DisallowNull] IIdentifier id)
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public System.Boolean CancelWorker([System.Diagnostics.CodeAnalysis.NotNull] IIdentifier id)
     {
         if (_workers.TryGetValue(id, out var st))
         {
@@ -381,7 +385,8 @@ public sealed partial class TaskManager : ITaskManager
     /// <returns>The number of workers cancelled.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public System.Int32 CancelGroup([System.Diagnostics.CodeAnalysis.DisallowNull] System.String group)
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public System.Int32 CancelGroup([System.Diagnostics.CodeAnalysis.NotNull] System.String group)
     {
         System.Int32 n = 0;
         foreach (var kv in _workers)
@@ -412,6 +417,7 @@ public sealed partial class TaskManager : ITaskManager
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Int32 CancelAllWorkers()
     {
         System.Int32 n = 0;
@@ -440,8 +446,9 @@ public sealed partial class TaskManager : ITaskManager
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean TryGetWorker(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IIdentifier id,
+        [System.Diagnostics.CodeAnalysis.NotNull] IIdentifier id,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IWorkerHandle? handle)
     {
         if (_workers.TryGetValue(id, out var st)) { handle = st; return true; }
@@ -457,8 +464,9 @@ public sealed partial class TaskManager : ITaskManager
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean TryGetRecurring(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String name,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IRecurringHandle? handle)
     {
         if (_recurring.TryGetValue(name, out var st)) { handle = st; return true; }
@@ -472,6 +480,7 @@ public sealed partial class TaskManager : ITaskManager
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Collections.Generic.IReadOnlyCollection<IRecurringHandle> ListRecurring()
     {
         System.Collections.Generic.List<IRecurringHandle> list = new(_recurring.Count);
@@ -491,8 +500,9 @@ public sealed partial class TaskManager : ITaskManager
     /// <returns>A read-only collection of worker handles.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Collections.Generic.IReadOnlyCollection<IWorkerHandle> ListWorkers(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Boolean runningOnly = true,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean runningOnly = true,
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String? group = null)
     {
         System.Collections.Generic.List<IWorkerHandle> list = new(_workers.Count);

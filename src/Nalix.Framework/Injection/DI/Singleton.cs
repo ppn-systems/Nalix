@@ -72,7 +72,9 @@ public static class Singleton
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void Register<TClass>(TClass instance, System.Boolean allowOverwrite = false)
+    public static void Register<TClass>(
+        [System.Diagnostics.CodeAnalysis.NotNull] TClass instance,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean allowOverwrite = false)
         where TClass : class
     {
         System.ArgumentNullException.ThrowIfNull(instance);
@@ -114,7 +116,8 @@ public static class Singleton
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void Register<TInterface, TImplementation>(System.Func<TImplementation>? factory = null)
+    public static void Register<TInterface, TImplementation>(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Func<TImplementation>? factory = null)
         where TImplementation : class, TInterface
     {
         System.Type interfaceType = typeof(TInterface);
@@ -154,7 +157,8 @@ public static class Singleton
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public static TClass? Resolve<TClass>(System.Boolean createIfNotExists = true) where TClass : class
+    public static TClass? Resolve<TClass>(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean createIfNotExists = true) where TClass : class
     {
         System.Type type = typeof(TClass);
 
@@ -203,6 +207,7 @@ public static class Singleton
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Boolean IsRegistered<TClass>() where TClass : class
         => Services.ContainsKey(typeof(TClass)) || TypeMapping.ContainsKey(typeof(TClass)) || Factories.ContainsKey(typeof(TClass));
 
