@@ -47,13 +47,13 @@ public readonly partial struct Identifier
     /// <summary>
     /// Converts this identifier to a string representation using the specified format.
     /// </summary>
-    /// <param name="useHexFormat">
+    /// <param name="isHex">
     /// <c>true</c> to use hexadecimal format; <c>false</c> to use Base36 format.
     /// </param>
     /// <returns>A string representation of this identifier in the specified format.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.String ToString(System.Boolean useHexFormat) => useHexFormat ? ToHex() : ToBase36();
+    public System.String ToString(System.Boolean isHex) => isHex ? ToHex() : ToBase36();
 
     /// <summary>
     /// Converts this identifier to a string representation using the specified format string.
