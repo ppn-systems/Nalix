@@ -4,7 +4,6 @@
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
 using Nalix.Shared.Memory.Buffers;
-using Nalix.Shared.Serialization.Formatters;
 using Nalix.Shared.Serialization.Internal.Types;
 
 namespace Nalix.Shared.Serialization;

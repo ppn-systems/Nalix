@@ -8,6 +8,7 @@
 
 namespace Nalix.Shared.Serialization.Internal.Reflection;
 
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal static partial class FieldCache<T>
 {
     #region Generic Value Operations - Zero Boxing

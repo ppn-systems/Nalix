@@ -5,7 +5,7 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Shared.Extensions;
 
-namespace Nalix.Shared.Registry;
+namespace Nalix.Shared.Frames;
 
 /// <summary>
 /// Provides an immutable, thread-safe catalog of packet deserializers and transformers.

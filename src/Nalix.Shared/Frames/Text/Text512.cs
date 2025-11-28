@@ -9,7 +9,7 @@ using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Common.Shared.Caching;
 using Nalix.Framework.Injection;
-using Nalix.Shared.Memory.Pooling;
+using Nalix.Shared.Memory.Objects;
 using Nalix.Shared.Serialization;
 
 namespace Nalix.Shared.Frames.Text;

@@ -2,7 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Shared.Caching;
-using Nalix.Shared.Memory.PoolTypes;
+using Nalix.Shared.Memory.Internal.PoolTypes;
+using Nalix.Shared.Memory.Objects;
 
 namespace Nalix.Shared.Memory.Pools;
 
