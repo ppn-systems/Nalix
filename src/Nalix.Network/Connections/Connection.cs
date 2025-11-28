@@ -59,7 +59,7 @@ public sealed partial class Connection : IConnection
         _cstream.Cache.SetCallback(OnProcessEventBridge, this, _evtArgs);
         _cstream.SetCallback(OnCloseEventBridge, OnPostProcessEventBridge, this, _evtArgs);
 
-        this.ID = Identifier.NewId(IdentifierType.Session);
+        this.ID = Snowflake.NewId(SnowflakeType.Session);
         this.EndPoint = EndpointToken.FromEndPoint(socket.RemoteEndPoint);
         this.UDP = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                            .Get<UdpTransport>();
@@ -76,7 +76,7 @@ public sealed partial class Connection : IConnection
     #region Properties
 
     /// <inheritdoc />
-    public IIdentifier ID { get; }
+    public ISnowflake ID { get; }
 
     /// <inheritdoc/>
     public IConnection.ITcp TCP { get; }
@@ -88,7 +88,7 @@ public sealed partial class Connection : IConnection
     public System.Net.EndPoint RemoteEndPoint { get; }
 
     /// <inheritdoc />
-    public IEndpointKey EndPoint { get; }
+    public INetworkEndpoint EndPoint { get; }
 
     /// <inheritdoc />
     public System.Int64 UpTime => this._cstream.Cache.Uptime;

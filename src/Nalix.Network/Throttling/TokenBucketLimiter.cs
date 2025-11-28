@@ -5,8 +5,8 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Logging;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Configurations;
 
 namespace Nalix.Network.Throttling;
@@ -79,7 +79,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <summary>A shard contains a dictionary of endpoint states and a shard-level lock for map mutation.</summary>
     private sealed class Shard
     {
-        public readonly System.Collections.Concurrent.ConcurrentDictionary<IEndpointKey, EndpointState> Map = new();
+        public readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, EndpointState> Map = new();
 
         // No shard-wide lock necessary for map ops; per-key Gate handles mutation.
     }
@@ -169,7 +169,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    internal LimitDecision Check([System.Diagnostics.CodeAnalysis.NotNull] IEndpointKey key)
+    internal LimitDecision Check([System.Diagnostics.CodeAnalysis.NotNull] INetworkEndpoint key)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(TokenBucketLimiter));
 
@@ -275,7 +275,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private Shard GetShard(IEndpointKey key)
+    private Shard GetShard(INetworkEndpoint key)
     {
         // Deterministic hashing; simple but fast. You can replace with XxHash if needed.
         System.Int32 h = key.GetHashCode();
@@ -395,7 +395,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     {
         // Snapshot all endpoints into a single list (allocation-bounded by map sizes).
         var snapshot = new System.Collections.Generic.List<
-            System.Collections.Generic.KeyValuePair<IEndpointKey, EndpointState>>(1024);
+            System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>>(1024);
 
         System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
         System.Int32 shardCount = _shards.Length;

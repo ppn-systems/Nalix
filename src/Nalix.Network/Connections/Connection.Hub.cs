@@ -26,11 +26,11 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     #region Fields
 
     // Separate dictionaries for better cache locality and reduced contention
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<IIdentifier, IConnection> _connections;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<IIdentifier, System.String> _usernames;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> _connections;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, System.String> _usernames;
 
     // Username-to-ID reverse lookup for fast user-based operations
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, IIdentifier> _usernameToId;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, ISnowflake> _usernameToId;
 
     private readonly ConnectionHubOptions _options;
 
@@ -220,7 +220,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             username = username[.._options.MaxUsernameLength];
         }
 
-        IIdentifier id = connection.ID;
+        ISnowflake id = connection.ID;
 
         // Remove old association if exists
         if (_usernames.TryGetValue(id, out System.String oldUsername) && oldUsername != username)
@@ -254,7 +254,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] IIdentifier id)
+    public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id)
         => _connections.TryGetValue(id, out IConnection connection) ? connection : null;
 
     /// <summary>
@@ -266,7 +266,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> id)
-        => _connections.TryGetValue(Identifier.FromBytes(id), out IConnection connection) ? connection : null;
+        => _connections.TryGetValue(Snowflake.FromBytes(id), out IConnection connection) ? connection : null;
 
     /// <summary>
     /// Retrieves a connection by its associated username.
@@ -279,7 +279,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public IConnection GetConnectionByUsername([System.Diagnostics.CodeAnalysis.NotNull] System.String username)
         => System.String.IsNullOrWhiteSpace(username)
-        ? null : _usernameToId.TryGetValue(username, out IIdentifier id) ? this.GetConnection(id) : null;
+        ? null : _usernameToId.TryGetValue(username, out ISnowflake id) ? this.GetConnection(id) : null;
 
     /// <summary>
     /// Retrieves the username associated with a connection identifier.
@@ -289,7 +289,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.String GetUsername([System.Diagnostics.CodeAnalysis.NotNull] IIdentifier id)
+    public System.String GetUsername([System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id)
         => _usernames.TryGetValue(id, out System.String username) ? username : null;
 
     /// <inheritdoc />

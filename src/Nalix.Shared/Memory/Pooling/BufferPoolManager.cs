@@ -4,8 +4,8 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Logging;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Framework.Tasks.Options;
 using Nalix.Shared.Memory.Buffers;
 
 namespace Nalix.Shared.Memory.Pooling;

@@ -5,8 +5,8 @@ using Nalix.Common.Logging;
 using Nalix.Common.Packets;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal;
 
@@ -52,7 +52,7 @@ public abstract partial class UdpListenerBase
             }
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                System.Threading.Interlocked.Increment(ref _recvErrors);
+                _ = System.Threading.Interlocked.Increment(ref _recvErrors);
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"[{nameof(UdpListenerBase)}:{nameof(ReceiveDatagramsAsync)}] " +
                                                $"recv-error port={_port}", ex);
@@ -65,7 +65,7 @@ public abstract partial class UdpListenerBase
 
     private void ProcessDatagram(System.Net.Sockets.UdpReceiveResult result)
     {
-        if (result.Buffer.Length < PacketConstants.HeaderSize + Identifier.Size)
+        if (result.Buffer.Length < PacketConstants.HeaderSize + Snowflake.Size)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
@@ -75,18 +75,18 @@ public abstract partial class UdpListenerBase
 
         if (InstanceManager.Instance.GetExistingInstance<ConnectionHub>() is null)
         {
-            System.Threading.Interlocked.Increment(ref _dropShort);
+            _ = System.Threading.Interlocked.Increment(ref _dropShort);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error($"[{nameof(UdpListenerBase)}] [{nameof(ConnectionHub)}] null");
             return;
         }
 
-        IIdentifier identifier = Identifier.FromBytes(result.Buffer[^Identifier.Size..]);
+        ISnowflake identifier = Snowflake.FromBytes(result.Buffer[^Snowflake.Size..]);
 
         if (InstanceManager.Instance.GetExistingInstance<ConnectionHub>()!
                                     .GetConnection(identifier) is not Connections.Connection connection)
         {
-            System.Threading.Interlocked.Increment(ref _dropUnknown);
+            _ = System.Threading.Interlocked.Increment(ref _dropUnknown);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] unknown-packet from={result.RemoteEndPoint}");
             return;
@@ -94,16 +94,16 @@ public abstract partial class UdpListenerBase
 
         if (!this.IsAuthenticated(connection, result))
         {
-            System.Threading.Interlocked.Increment(ref _dropUnauth);
+            _ = System.Threading.Interlocked.Increment(ref _dropUnauth);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] unauth from={result.RemoteEndPoint}");
             return;
         }
 
-        System.Threading.Interlocked.Increment(ref _rxPackets);
-        System.Threading.Interlocked.Add(ref _rxBytes, result.Buffer.Length);
+        _ = System.Threading.Interlocked.Increment(ref _rxPackets);
+        _ = System.Threading.Interlocked.Add(ref _rxBytes, result.Buffer.Length);
 
-        connection.InjectIncoming(result.Buffer[..^Identifier.Size]);
+        connection.InjectIncoming(result.Buffer[..^Snowflake.Size]);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Meta($"[{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] inject id={connection.ID} size={result.Buffer.Length}");
