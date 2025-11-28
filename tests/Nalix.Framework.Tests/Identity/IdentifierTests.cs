@@ -12,7 +12,7 @@ public class IdentifierTests
     [Fact]
     public void CreateEmpty_IsEmpty_True_And_SerializesTo7ZeroBytes()
     {
-        var id = Identifier.Empty; // all zero
+        var id = Snowflake.Empty; // all zero
         Assert.True(id.IsEmpty); // not empty => false
 
         Span<Byte> buf = stackalloc Byte[7];
@@ -26,9 +26,9 @@ public class IdentifierTests
     {
         const UInt32 value = 0x11223344;
         const UInt16 machine = 0x5566;
-        const IdentifierType type = (IdentifierType)0x77;
+        const SnowflakeType type = (SnowflakeType)0x77;
 
-        var id = Identifier.NewId(value, machine, type);
+        var id = Snowflake.NewId(value, machine, type);
         Assert.Equal(value, id.Value);
         Assert.Equal(machine, id.MachineId);
         Assert.Equal(type, id.Type);
@@ -46,7 +46,7 @@ public class IdentifierTests
         Assert.Equal(0x55, buf[5]);
         Assert.Equal(0x77, buf[6]);
 
-        var back = Identifier.FromBytes(buf);
+        var back = Snowflake.FromBytes(buf);
         Assert.Equal(id, back);
         Assert.True(id == back);
     }
@@ -54,7 +54,7 @@ public class IdentifierTests
     [Fact]
     public void TrySerialize_ToByteSpan_TooSmall_ReturnsFalse()
     {
-        var id = Identifier.NewId(0xAABBCCDD, 0xEEFF, (IdentifierType)0x12);
+        var id = Snowflake.NewId(0xAABBCCDD, 0xEEFF, (SnowflakeType)0x12);
         Span<Byte> small = stackalloc Byte[6];
         Assert.False(id.TryWriteBytes(small, out var written));
         Assert.Equal(0, written);
@@ -63,7 +63,7 @@ public class IdentifierTests
     [Fact]
     public void Serialize_ReturnsNew7ByteArray()
     {
-        var id = Identifier.NewId(0x01020304, 0x0506, (IdentifierType)0x07);
+        var id = Snowflake.NewId(0x01020304, 0x0506, (SnowflakeType)0x07);
         var arr = id.ToByteArray();
         Assert.Equal(7, arr.Length);
         Assert.Equal(new Byte[] { 0x04, 0x03, 0x02, 0x01, 0x06, 0x05, 0x07 }, arr);
@@ -72,51 +72,18 @@ public class IdentifierTests
     [Fact]
     public void Deserialize_FromByteArray_InvalidLength_Throws()
     {
-        _ = Assert.Throws<ArgumentException>(() => Identifier.FromBytes([]));
-        _ = Assert.Throws<ArgumentException>(() => Identifier.FromBytes(new Byte[6]));
-        _ = Assert.Throws<ArgumentException>(() => Identifier.FromBytes(new Byte[8]));
+        _ = Assert.Throws<ArgumentException>(() => Snowflake.FromBytes([]));
+        _ = Assert.Throws<ArgumentException>(() => Snowflake.FromBytes(new Byte[6]));
+        _ = Assert.Throws<ArgumentException>(() => Snowflake.FromBytes(new Byte[8]));
     }
-
-    [Fact]
-    public void Base36_ToString_And_Deserialize_RoundTrip()
-    {
-        var id = Identifier.NewId(0xDEADBEEF, 0xBEEF, (IdentifierType)0xAB);
-        String s1 = id.ToBase36(); // Base36 [0-9A-Z], compact (impl)
-        var back1 = Identifier.Parse(s1);
-        Assert.Equal(id, back1);
-
-        // TrySerialize to char span
-        Span<Char> dst = stackalloc Char[13];
-        Assert.True(id.TryFormatBase36(dst, out Byte len));
-        Assert.InRange(len, 1, 13);
-        Assert.Equal(s1, new String(dst[..len]));
-    }
-
-    [Fact]
-    public void TryDeserialize_AllowsLowercase_And_RejectsNonBase36()
-    {
-        var id = Identifier.NewId(0x00ABCDEF, 0x1234, (IdentifierType)0x5A);
-        String up = id.ToBase36();
-        String low = up.ToLowerInvariant();
-
-        Assert.True(Identifier.TryParse(low.AsSpan(), out var lowerParsed));
-        Assert.Equal(id, lowerParsed);
-
-        Assert.False(Identifier.TryParse("*$%".AsSpan(), out _));
-    }
-
-    [Fact]
-    public void TryDeserialize_TooLongOver13_ReturnsFalse() =>
-        // 14 chars => invalid per implementation max 13 for 56-bit Base36
-        Assert.False(Identifier.TryParse(new String('Z', 14).AsSpan(), out _));
 
     [Fact]
     public void HexString_MatchesSerializedBytes_Length14()
     {
-        var id = Identifier.NewId(0x00112233, 0x4455, (IdentifierType)0x66);
+        var id = Snowflake.NewId(0x00112233, 0x4455, (SnowflakeType)0x66);
         Span<Byte> buf = stackalloc Byte[7];
         Assert.True(id.TryWriteBytes(buf, out _));
-        var hex = id.ToHex(); // Convert.ToHexString(7 bytes) => 14 hex chars
+        var hex = id.ToString(); // Convert.ToHexString(7 bytes) => 14 hex chars
         Assert.Equal(Convert.ToHexString(buf.ToArray()), hex);
         Assert.Equal(14, hex.Length);
     }
@@ -124,9 +91,9 @@ public class IdentifierTests
     [Fact]
     public void Equality_And_HashCode_UseAllComponents()
     {
-        var id1 = Identifier.NewId(0xAAAAAAAA, 0xBBBB, (IdentifierType)0xCC);
-        var id2 = Identifier.NewId(0xAAAAAAAA, 0xBBBB, (IdentifierType)0xCC);
-        var id3 = Identifier.NewId(0xAAAAAAAA, 0xBBBB, (IdentifierType)0xCD);
+        var id1 = Snowflake.NewId(0xAAAAAAAA, 0xBBBB, (SnowflakeType)0xCC);
+        var id2 = Snowflake.NewId(0xAAAAAAAA, 0xBBBB, (SnowflakeType)0xCC);
+        var id3 = Snowflake.NewId(0xAAAAAAAA, 0xBBBB, (SnowflakeType)0xCD);
 
         // Same components => equal
         Assert.True(id1.Equals(id2));
@@ -139,36 +106,26 @@ public class IdentifierTests
         Assert.True(id1 != id3);
 
         // Dictionary key usage stable
-        var dict = new Dictionary<Identifier, Int32> { [id1] = 42 };
+        var dict = new Dictionary<Snowflake, Int32> { [id1] = 42 };
         Assert.True(dict.TryGetValue(id2, out var v));
         Assert.Equal(42, v);
-    }
-
-    [Fact]
-    public void MaxSevenBytesValue_RoundTrip_Base36()
-    {
-        // Compose the absolute max allowed 56-bit value: FF_FFFF_FFFF_FFFF (56 bits)
-        var id = Identifier.NewId(0xFFFFFFFF, 0xFFFF, IdentifierType.MaxValue);
-        String s = id.ToBase36();
-        Assert.True(Identifier.TryParse(s.AsSpan(), out var back));
-        Assert.Equal(id, back);
     }
 
     [Fact]
     public void Random_NewId_ByTypeAndMachine_RoundTripsFromBytes()
     {
         // NewId(type, machineId) uses SecureRandom for Value; we just check round-trip
-        var id = Identifier.NewId((IdentifierType)0x11, machineId: 0x2222);
+        var id = Snowflake.NewId((SnowflakeType)0x11, machineId: 0x2222);
         Span<Byte> buf = stackalloc Byte[7];
         Assert.True(id.TryWriteBytes(buf, out _));
-        var back = Identifier.FromBytes(buf);
+        var back = Snowflake.FromBytes(buf);
         Assert.Equal(id, back);
     }
 
     [Fact]
     public void Unsafe_SizeOf_Is7_ForExplicitLayout()
     {
-        Int32 size = Unsafe.SizeOf<Identifier>();
+        Int32 size = Unsafe.SizeOf<Snowflake>();
         // StructLayout(Size=7) => managed size must be 7
         Assert.Equal(7, size);
     }
