@@ -5,7 +5,7 @@ using Nalix.Common.Logging;
 using Nalix.Common.Tasks;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Tasks.Options;
+using Nalix.Framework.Options;
 
 namespace Nalix.Framework.Tasks;
 
@@ -23,7 +23,7 @@ public sealed partial class TaskManager : ITaskManager
 
     private readonly System.Threading.Timer _cleanupTimer;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, Gate> _groupGates;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<IIdentifier, WorkerState> _workers;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, WorkerState> _workers;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, RecurringState> _recurring;
 
     private volatile System.Boolean _disposed;
@@ -170,7 +170,7 @@ public sealed partial class TaskManager : ITaskManager
         System.ArgumentNullException.ThrowIfNull(work);
 
         options ??= new WorkerOptions();
-        IIdentifier id = Identifier.NewId(options.IdType, options.MachineId);
+        ISnowflake id = Snowflake.NewId(options.IdType, options.MachineId);
         System.Threading.CancellationTokenSource cts = options.CancellationToken.CanBeCanceled
             ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(options.CancellationToken)
             : new System.Threading.CancellationTokenSource();
@@ -355,7 +355,7 @@ public sealed partial class TaskManager : ITaskManager
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Boolean CancelWorker([System.Diagnostics.CodeAnalysis.NotNull] IIdentifier id)
+    public System.Boolean CancelWorker([System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id)
     {
         if (_workers.TryGetValue(id, out var st))
         {
@@ -448,7 +448,7 @@ public sealed partial class TaskManager : ITaskManager
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean TryGetWorker(
-        [System.Diagnostics.CodeAnalysis.NotNull] IIdentifier id,
+        [System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IWorkerHandle? handle)
     {
         if (_workers.TryGetValue(id, out var st)) { handle = st; return true; }

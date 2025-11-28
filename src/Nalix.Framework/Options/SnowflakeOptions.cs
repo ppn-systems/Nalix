@@ -1,11 +1,11 @@
 ﻿using Nalix.Framework.Configuration.Binding;
 
-namespace Nalix.Framework.Identity;
+namespace Nalix.Framework.Options;
 
 /// <summary>
 /// Identifier configuration options.
 /// </summary>
-public class IdentifierOptions : ConfigurationLoader
+public class SnowflakeOptions : ConfigurationLoader
 {
     /// <summary>
     /// Machine ID (1-1023) used in distributed ID generation.

@@ -2,7 +2,7 @@
 
 using Nalix.Common.Tasks;
 
-namespace Nalix.Framework.Tasks.Options;
+namespace Nalix.Framework.Options;
 
 /// <summary>
 /// Provides configuration options for scheduling recurring tasks.
