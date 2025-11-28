@@ -13,7 +13,7 @@ public interface IWorkerHandle : System.IDisposable
     /// <summary>
     /// Gets the unique identifier of the worker.
     /// </summary>
-    IIdentifier Id { get; }
+    ISnowflake Id { get; }
 
     /// <summary>
     /// Gets the name of the worker.

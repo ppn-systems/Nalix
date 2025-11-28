@@ -26,13 +26,13 @@ public partial interface IConnection
         /// </summary>
         /// <param name="packet">The packet to send.</param>
         /// <returns></returns>
-        System.Boolean Send([System.Diagnostics.CodeAnalysis.NotNull] IPacket packet);
+        System.Boolean Send(IPacket packet);
 
         /// <summary>
         /// Sends a message synchronously over the connection.
         /// </summary>
         /// <param name="message">The message to send.</param>
-        System.Boolean Send([System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> message);
+        System.Boolean Send(System.ReadOnlySpan<System.Byte> message);
 
         /// <summary>
         /// Sends a message asynchronously over the connection.
@@ -44,8 +44,8 @@ public partial interface IConnection
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
         System.Threading.Tasks.Task<System.Boolean> SendAsync(
-            [System.Diagnostics.CodeAnalysis.NotNull] IPacket packet,
-            [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default);
+            IPacket packet,
+            System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Sends a message asynchronously over the connection.
@@ -57,8 +57,8 @@ public partial interface IConnection
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
         System.Threading.Tasks.Task<System.Boolean> SendAsync(
-            [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlyMemory<System.Byte> message,
-            [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default);
+            System.ReadOnlyMemory<System.Byte> message,
+            System.Threading.CancellationToken cancellationToken = default);
     }
 
     /// <summary>
@@ -87,13 +87,13 @@ public partial interface IConnection
         /// <remarks>
         /// Call this method to initiate listening for incoming data on the connection.
         /// </remarks>
-        void BeginReceive([System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default);
+        void BeginReceive(System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Sends a message synchronously over the connection.
         /// </summary>
         /// <param name="message">The message to send.</param>
-        System.Boolean Send([System.Diagnostics.CodeAnalysis.NotNull] System.String message);
+        System.Boolean Send(System.String message);
 
         /// <summary>
         /// Sends a message asynchronously over the connection.
@@ -105,8 +105,8 @@ public partial interface IConnection
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
         System.Threading.Tasks.Task<System.Boolean> SendAsync(
-            [System.Diagnostics.CodeAnalysis.NotNull] System.String message,
-            [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default);
+            System.String message,
+            System.Threading.CancellationToken cancellationToken = default);
     }
 
     /// <summary>
@@ -130,6 +130,6 @@ public partial interface IConnection
         /// Initializes the UDP transport with the specified outer <see cref="IConnection"/>.
         /// </summary>
         /// <param name="outer">The outer <see cref="IConnection"/> instance to associate with this UDP transport.</param>
-        void Initialize([System.Diagnostics.CodeAnalysis.NotNull] IConnection outer);
+        void Initialize(IConnection outer);
     }
 }

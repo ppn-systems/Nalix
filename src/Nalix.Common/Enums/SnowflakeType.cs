@@ -5,10 +5,10 @@ using Nalix.Common.Abstractions;
 namespace Nalix.Common.Enums;
 
 /// <summary>
-/// Defines the category of an <see cref="IIdentifier"/> value,  
+/// Defines the category of an <see cref="ISnowflake"/> value,  
 /// used to distinguish between different purposes or entities in the system.
 /// </summary>
-public enum IdentifierType : System.Byte
+public enum SnowflakeType : System.Byte
 {
     #region Core System
 
@@ -102,7 +102,7 @@ public enum IdentifierType : System.Byte
     #endregion Business & Transactions
 
     /// <summary>
-    /// The maximum valid value for <see cref="IdentifierType"/>.
+    /// The maximum valid value for <see cref="SnowflakeType"/>.
     /// </summary>
     MaxValue = 255
 }

@@ -8,7 +8,7 @@ namespace Nalix.Common.Abstractions;
 /// Defines the core contract for a unique identifier, including type,
 /// machine association, serialization, and equality comparison.
 /// </summary>
-public interface IIdentifier
+public interface ISnowflake
 {
     /// <summary>
     /// Gets the underlying 32-bit unsigned integer value of the identifier.
@@ -16,9 +16,9 @@ public interface IIdentifier
     System.UInt32 Value { get; }
 
     /// <summary>
-    /// Gets the <see cref="IdentifierType"/> encoded within this identifier.
+    /// Gets the <see cref="SnowflakeType"/> encoded within this identifier.
     /// </summary>
-    IdentifierType Type { get; }
+    SnowflakeType Type { get; }
 
     /// <summary>
     /// Gets the machine ID component encoded within this identifier.
@@ -34,6 +34,14 @@ public interface IIdentifier
     System.Boolean IsEmpty { get; }
 
     /// <summary>
+    /// Converts the identifier to its 56-bit unsigned integer representation.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="System.UInt64"/> value representing the identifier as a 56-bit unsigned integer.
+    /// </returns>
+    System.UInt64 ToUInt56();
+
+    /// <summary>
     /// Serializes the identifier into a byte array.
     /// </summary>
     /// <returns>
@@ -41,6 +49,15 @@ public interface IIdentifier
     /// </returns>
     System.Byte[] ToByteArray();
 
+    /// <summary>
+    /// Attempts to serialize the identifier into the provided byte span.
+    /// </summary>
+    /// <param name="destination">The destination byte span.</param>
+    /// <returns>
+    /// <see langword="true"/> if the identifier was successfully serialized;
+    /// otherwise, <see langword="false"/> if the destination is too small.
+    /// </returns>
+    System.Boolean TryWriteBytes(System.Span<System.Byte> destination);
     /// <summary>
     /// Attempts to serialize the identifier into the provided byte span.
     /// </summary>
@@ -53,26 +70,4 @@ public interface IIdentifier
     System.Boolean TryWriteBytes(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> destination,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 bytesWritten);
-
-    /// <summary>
-    /// Attempts to format the token as a Base36 string representation into the provided character span.
-    /// </summary>
-    /// <param name="destination">The span to write the formatted string to.</param>
-    /// <param name="charsWritten">When this method returns, contains the number of characters written to the destination.</param>
-    /// <returns>
-    /// <c>true</c> if the token was successfully formatted; otherwise, <c>false</c>.
-    /// </returns>
-    System.Boolean TryFormatBase36(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Char> destination,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte charsWritten);
-
-    /// <summary>
-    /// Converts the identifier to a string representation.
-    /// </summary>
-    /// <param name="isHex">
-    /// If <see langword="true"/>, returns a hexadecimal string;
-    /// otherwise, returns a Base36-encoded string.
-    /// </param>
-    /// <returns>The string representation of the identifier.</returns>
-    System.String ToString(System.Boolean isHex);
 }

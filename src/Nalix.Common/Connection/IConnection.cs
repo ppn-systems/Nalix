@@ -14,7 +14,7 @@ public partial interface IConnection : System.IDisposable
     /// <summary>
     /// Gets the unique identifier for the connection.
     /// </summary>
-    IIdentifier ID { get; }
+    ISnowflake ID { get; }
 
     /// <summary>
     /// Gets the total duration (in milliseconds) since the connection was established.
@@ -29,19 +29,9 @@ public partial interface IConnection : System.IDisposable
     System.Int64 LastPingTime { get; }
 
     /// <summary>
-    /// Gets the incoming packet of data.
-    /// </summary>
-    IBufferLease IncomingPacket { get; }
-
-    /// <summary>
     /// Key identifying the endpoint associated with the connection.
     /// </summary>
-    IEndpointKey EndPoint { get; }
-
-    /// <summary>
-    /// Gets the remote endpoint address associated with the connection.
-    /// </summary>
-    System.Net.EndPoint RemoteEndPoint { get; }
+    INetworkEndpoint EndPoint { get; }
 
     /// <summary>
     /// Gets the encryption key used for securing communication.
@@ -54,9 +44,19 @@ public partial interface IConnection : System.IDisposable
     PermissionLevel Level { get; set; }
 
     /// <summary>
+    /// Gets the incoming packet of data.
+    /// </summary>
+    IBufferLease IncomingPacket { get; }
+
+    /// <summary>
     /// Gets or sets the encryption mode used.
     /// </summary>
     CipherSuiteType Algorithm { get; set; }
+
+    /// <summary>
+    /// Gets the remote endpoint address associated with the connection.
+    /// </summary>
+    System.Net.EndPoint RemoteEndPoint { get; }
 
     /// <summary>
     /// Occurs when the connection is closed.
@@ -79,7 +79,7 @@ public partial interface IConnection : System.IDisposable
     /// <remarks>
     /// Ensures that both the socket and associated streams are properly closed.
     /// </remarks>
-    void Close([System.Diagnostics.CodeAnalysis.NotNull] System.Boolean force = false);
+    void Close(System.Boolean force = false);
 
     /// <summary>
     /// Disconnects the connection safely with an optional reason.
@@ -88,5 +88,5 @@ public partial interface IConnection : System.IDisposable
     /// <remarks>
     /// Use this method to terminate the connection gracefully.
     /// </remarks>
-    void Disconnect([System.Diagnostics.CodeAnalysis.NotNull] System.String reason = null);
+    void Disconnect(System.String reason = null);
 }

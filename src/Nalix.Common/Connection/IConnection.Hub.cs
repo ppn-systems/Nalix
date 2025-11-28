@@ -11,18 +11,37 @@ namespace Nalix.Common.Connection;
 public interface IConnectionHub
 {
     /// <summary>
+    /// Retrieves a client connection by its unique identifier.
+    /// </summary>
+    /// <param name="id">The unique identifier of the connection to retrieve.</param>
+    /// <returns>The <see cref="IConnection"/> if found; otherwise, <c>null</c>.</returns>
+    IConnection GetConnection(ISnowflake id);
+
+    /// <summary>
+    /// Retrieves a client connection by its unique identifier.
+    /// </summary>
+    /// <param name="id">The unique identifier of the connection to retrieve.</param>
+    /// <returns>The <see cref="IConnection"/> if found; otherwise, <c>null</c>.</returns>
+    IConnection GetConnection(System.ReadOnlySpan<System.Byte> id);
+    /// <summary>
     /// Registers a new client connection to the session manager.
     /// </summary>
     /// <param name="connection">The client connection to register.</param>
     /// <returns><c>true</c> if the connection was successfully registered; otherwise, <c>false</c>.</returns>
-    System.Boolean RegisterConnection([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection);
+    System.Boolean RegisterConnection(IConnection connection);
 
     /// <summary>
     /// Unregisters a client connection from the session manager using its unique identifier.
     /// </summary>
     /// <param name="connection">The connection to unregister.</param>
     /// <returns><c>true</c> if the connection was successfully unregistered; otherwise, <c>false</c>.</returns>
-    System.Boolean UnregisterConnection([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection);
+    System.Boolean UnregisterConnection(IConnection connection);
+
+    /// <summary>
+    /// Closes all active client connections with an optional reason.
+    /// </summary>
+    /// <param name="reason">The reason for closing connections, if any. Can be <c>null</c>.</param>
+    void CloseAllConnections(System.String reason = null);
 
     /// <summary>
     /// Associates a username with an existing client connection.
@@ -32,29 +51,7 @@ public interface IConnectionHub
     /// <remarks>
     /// This method should be called after the connection is successfully registered.
     /// </remarks>
-    void AssociateUsername(
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String username);
-
-    /// <summary>
-    /// Closes all active client connections with an optional reason.
-    /// </summary>
-    /// <param name="reason">The reason for closing connections, if any. Can be <c>null</c>.</param>
-    void CloseAllConnections([System.Diagnostics.CodeAnalysis.NotNull] System.String reason = null);
-
-    /// <summary>
-    /// Retrieves a client connection by its unique identifier.
-    /// </summary>
-    /// <param name="id">The unique identifier of the connection to retrieve.</param>
-    /// <returns>The <see cref="IConnection"/> if found; otherwise, <c>null</c>.</returns>
-    IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] IIdentifier id);
-
-    /// <summary>
-    /// Retrieves a client connection by its unique identifier.
-    /// </summary>
-    /// <param name="id">The unique identifier of the connection to retrieve.</param>
-    /// <returns>The <see cref="IConnection"/> if found; otherwise, <c>null</c>.</returns>
-    IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> id);
+    void AssociateUsername(IConnection connection, System.String username);
 
     /// <summary>
     /// Retrieves a read-only view of all active client connections.
