@@ -11,7 +11,7 @@ using Nalix.Framework.Tasks;
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
-namespace Nalix.Framework.Random.Core;
+namespace Nalix.Framework.Random;
 
 /// <summary>
 /// <para>
