@@ -30,7 +30,7 @@ public class EnvelopeCipherTests
         var plaintext = RandomBytes(256);
         var aad = RandomBytes(16);
 
-        var envelope = EnvelopeCipher.Encrypt(key, plaintext, CipherSuiteType.ChaCha20Poly1305, aad);
+        var envelope = EnvelopeCipher.Encrypt(key, plaintext, CipherSuiteType.CHACHA20_POLY1305, aad);
 
         Assert.NotNull(envelope);
         Assert.True(EnvelopeCipher.Decrypt(key, envelope, out var decrypted, aad));
@@ -45,7 +45,7 @@ public class EnvelopeCipherTests
         var key = RandomBytes(32);
         var plaintext = RandomBytes(128);
 
-        var envelope = EnvelopeCipher.Encrypt(key, plaintext, CipherSuiteType.ChaCha20);
+        var envelope = EnvelopeCipher.Encrypt(key, plaintext, CipherSuiteType.CHACHA20);
 
         Assert.NotNull(envelope);
         // SymmetricEngine.Decrypt signature in EnvelopeCipher ignores aad param for non-AEAD
@@ -61,7 +61,7 @@ public class EnvelopeCipherTests
         var plaintext = RandomBytes(64);
         var aad = RandomBytes(8);
 
-        var envelope = EnvelopeCipher.Encrypt(key, plaintext, CipherSuiteType.ChaCha20Poly1305, aad);
+        var envelope = EnvelopeCipher.Encrypt(key, plaintext, CipherSuiteType.CHACHA20_POLY1305, aad);
 
         var wrongKey = RandomBytes(32);
         var ok = EnvelopeCipher.Decrypt(wrongKey, envelope, out var decrypted, aad);
@@ -78,7 +78,7 @@ public class EnvelopeCipherTests
         var plaintext = RandomBytes(64);
         var aad = RandomBytes(12);
 
-        var envelope = EnvelopeCipher.Encrypt(key, plaintext, CipherSuiteType.ChaCha20Poly1305, aad);
+        var envelope = EnvelopeCipher.Encrypt(key, plaintext, CipherSuiteType.CHACHA20_POLY1305, aad);
 
         var wrongAad = RandomBytes(12);
         var ok = EnvelopeCipher.Decrypt(key, envelope, out var decrypted, wrongAad);
@@ -106,11 +106,11 @@ public class EnvelopeCipherTests
         var plaintext = Array.Empty<Byte>();
         var aad = RandomBytes(4);
 
-        var envelope = EnvelopeCipher.Encrypt(key, plaintext, CipherSuiteType.ChaCha20Poly1305, aad);
+        var envelope = EnvelopeCipher.Encrypt(key, plaintext, CipherSuiteType.CHACHA20_POLY1305, aad);
 
         Assert.NotNull(envelope);
         Assert.True(EnvelopeCipher.Decrypt(key, envelope, out var decrypted, aad));
         Assert.NotNull(decrypted);
-        Assert.True(decrypted.Length == 0);
+        Assert.Empty(decrypted);
     }
 }

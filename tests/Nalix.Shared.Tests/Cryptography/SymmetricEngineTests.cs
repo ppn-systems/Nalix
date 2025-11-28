@@ -1,9 +1,9 @@
-﻿using System;
-using Xunit;
-using Nalix.Common.Enums;
-using System.Text;
-using Nalix.Shared.Security.Symmetric;
+﻿using Nalix.Common.Enums;
 using Nalix.Shared.Security.Engine;
+using Nalix.Shared.Security.Symmetric;
+using System;
+using System.Text;
+using Xunit;
 
 namespace Nalix.Shared.Tests.Cryptography;
 
@@ -64,7 +64,7 @@ public class SymmetricEngineTests
         }
 
         // Use fixed seq to make counter deterministic
-        var envelope = SymmetricEngine.Encrypt(key, plaintext, CipherSuiteType.ChaCha20, nonce, seq: 42);
+        var envelope = SymmetricEngine.Encrypt(key, plaintext, CipherSuiteType.CHACHA20, nonce, seq: 42);
 
         Assert.NotNull(envelope);
 
@@ -80,7 +80,7 @@ public class SymmetricEngineTests
         var key = new Byte[ChaCha20.KeySize];
         for (Int32 i = 0; i < key.Length; i++)
         {
-            key[i] = (Byte)(i * 3 + 1);
+            key[i] = (Byte)((i * 3) + 1);
         }
 
         var nonce = new Byte[ChaCha20.NonceSize];
@@ -92,10 +92,10 @@ public class SymmetricEngineTests
         var src = Encoding.UTF8.GetBytes("Stream XOR test data for symmetric engine");
 
         // Use the span-first API that returns a new buffer
-        var ct = SymmetricEngine.Encrypt(CipherSuiteType.ChaCha20, key, nonce, counter: 7, src);
+        var ct = SymmetricEngine.Encrypt(CipherSuiteType.CHACHA20, key, nonce, counter: 7, src);
 
         // Decrypt by XOR-ing again with same params (idempotent)
-        var pt = SymmetricEngine.Decrypt(CipherSuiteType.ChaCha20, key, nonce, counter: 7, ct);
+        var pt = SymmetricEngine.Decrypt(CipherSuiteType.CHACHA20, key, nonce, counter: 7, ct);
 
         Assert.Equal(src, pt);
     }
@@ -108,7 +108,7 @@ public class SymmetricEngineTests
         var badNonce = new Byte[4]; // wrong length
 
         var ex = Assert.Throws<ArgumentException>(() =>
-            SymmetricEngine.Encrypt(key, plaintext, CipherSuiteType.ChaCha20, badNonce));
+            SymmetricEngine.Encrypt(key, plaintext, CipherSuiteType.CHACHA20, badNonce));
         Assert.Equal("nonce", ex.ParamName);
     }
 }
