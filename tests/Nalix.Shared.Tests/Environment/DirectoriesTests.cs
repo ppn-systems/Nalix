@@ -83,7 +83,7 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
         System.DateTime past = System.DateTime.UtcNow - System.TimeSpan.FromDays(2);
         System.IO.File.SetLastWriteTimeUtc(oldFile, past);
 
-        System.Int32 removed = Nalix.Common.Environment.Directories.CleanupDirectory(target, System.TimeSpan.FromDays(1), "*.tmp");
+        System.Int32 removed = Nalix.Common.Environment.Directories.DeleteOldFiles(target, System.TimeSpan.FromDays(1), "*.tmp");
 
         Xunit.Assert.Equal(1, removed);
         Xunit.Assert.False(System.IO.File.Exists(oldFile));
@@ -150,7 +150,7 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
     [Xunit.Fact]
     public void ValidateDirectories_Returns_True()
     {
-        System.Boolean ok = Nalix.Common.Environment.Directories.ValidateDirectories();
+        System.Boolean ok = Nalix.Common.Environment.Directories.CanAccessAllDirectories();
         Xunit.Assert.True(ok);
     }
 }
