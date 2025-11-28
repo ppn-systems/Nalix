@@ -9,7 +9,7 @@ public partial class TaskManager
 {
     [System.Diagnostics.DebuggerDisplay("Worker {Name} (Running={IsRunning}, Runs={TotalRuns})")]
     private sealed class WorkerState(
-        [System.Diagnostics.CodeAnalysis.NotNull] IIdentifier id,
+        [System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String group,
         [System.Diagnostics.CodeAnalysis.NotNull] IWorkerOptions opt,
@@ -31,7 +31,7 @@ public partial class TaskManager
 
         public System.Threading.Tasks.Task? Task;
 
-        public IIdentifier Id { get; } = id;
+        public ISnowflake Id { get; } = id;
 
         public System.String Name { get; } = name;
 
@@ -173,7 +173,7 @@ public partial class TaskManager
 
         #region IWorkerHandle
 
-        IIdentifier IWorkerHandle.Id => Id;
+        ISnowflake IWorkerHandle.Id => Id;
 
         System.String IWorkerHandle.Name => Name;
 
@@ -341,7 +341,7 @@ public partial class TaskManager
             "Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
         private readonly TaskManager _owner = owner;
 
-        public IIdentifier Id => _st.Id;
+        public ISnowflake Id => _st.Id;
         public System.String Name => _st.Name;
         public System.String Group => _st.Group;
 

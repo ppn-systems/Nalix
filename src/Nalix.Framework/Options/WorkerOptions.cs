@@ -3,7 +3,7 @@
 using Nalix.Common.Enums;
 using Nalix.Common.Tasks;
 
-namespace Nalix.Framework.Tasks.Options;
+namespace Nalix.Framework.Options;
 
 /// <summary>
 /// Provides configuration options for worker tasks.
@@ -23,7 +23,7 @@ public sealed class WorkerOptions : IWorkerOptions
     /// <summary>
     /// Gets the optional identifier type for the worker instance.
     /// </summary>
-    public IdentifierType IdType { get; init; } = IdentifierType.System;
+    public SnowflakeType IdType { get; init; } = SnowflakeType.System;
 
     /// <summary>
     /// Gets the optional execution timeout for the worker instance.

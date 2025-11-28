@@ -3,6 +3,7 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Enums;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.Options;
 using Nalix.Framework.Random;
 
 namespace Nalix.Framework.Identity;
@@ -32,28 +33,27 @@ namespace Nalix.Framework.Identity;
 [System.Runtime.InteropServices.StructLayout(
     System.Runtime.InteropServices.LayoutKind.Explicit, Size = 7,
     CharSet = System.Runtime.InteropServices.CharSet.Ansi)]
-[System.Diagnostics.DebuggerDisplay("{Value}-{MachineId}-{(IdentifierType)_type}")]
-public readonly partial struct Identifier : IIdentifier
+[System.Diagnostics.DebuggerDisplay("{Value}-{MachineId}-{(SnowflakeType)_type}")]
+public readonly partial struct Snowflake : ISnowflake
 {
     #region Const
 
     /// <summary>
-    /// The size in bytes of the <see cref="Identifier"/> structure.
+    /// The size in bytes of the <see cref="Snowflake"/> structure.
     /// </summary>
     public const System.Byte Size = 7;
 
-    private const System.UInt64 MaxSevenByteValue = 0x00FFFFFFFFFFFFFFUL;
-    private const System.String Base36Chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    private static readonly System.UInt16 _MachineId = ConfigurationManager.Instance.Get<IdentifierOptions>().MachineId;
+    private const System.UInt64 __unit56 = 0x00FFFFFFFFFFFFFFUL;
+    private static readonly System.UInt16 __machineId = ConfigurationManager.Instance.Get<SnowflakeOptions>().MachineId;
 
     #endregion Const
 
     #region Public Properties
 
     /// <summary>
-    /// Gets an empty <see cref="Identifier"/> instance with all components set to zero.
+    /// Gets an empty <see cref="Snowflake"/> instance with all components set to zero.
     /// </summary>
-    public static IIdentifier Empty => new Identifier(0, 0, 0);
+    public static Snowflake Empty => new(0, 0, 0);
 
     /// <summary>
     /// Gets the main identifier value.
@@ -79,7 +79,7 @@ public readonly partial struct Identifier : IIdentifier
     /// Gets the identifier type.
     /// </summary>
     /// <value>An enum value representing the type of this identifier.</value>
-    public IdentifierType Type => (IdentifierType)_type;
+    public SnowflakeType Type => (SnowflakeType)_type;
 
     /// <summary>
     /// Determines whether this identifier is empty (all components are zero).
@@ -94,13 +94,13 @@ public readonly partial struct Identifier : IIdentifier
     #region Constructors and Factory Methods
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Identifier"/> struct.
+    /// Initializes a new instance of the <see cref="Snowflake"/> struct.
     /// </summary>
     /// <param name="value">The main identifier value.</param>
     /// <param name="machineId">The machine identifier.</param>
     /// <param name="type">The identifier type.</param>
     [System.Diagnostics.DebuggerHidden]
-    private Identifier(System.UInt32 value, System.UInt16 machineId, IdentifierType type)
+    private Snowflake(System.UInt32 value, System.UInt16 machineId, SnowflakeType type)
     {
         Value = value;
         MachineId = machineId;
@@ -108,52 +108,69 @@ public readonly partial struct Identifier : IIdentifier
     }
 
     /// <summary>
-    /// Creates a new <see cref="Identifier"/> with the specified components.
+    /// Creates a new <see cref="Snowflake"/> with the specified components.
     /// </summary>
     /// <param name="value">The main identifier value.</param>
     /// <param name="machineId">The machine identifier.</param>
     /// <param name="type">The identifier type.</param>
-    /// <returns>A new <see cref="Identifier"/> instance.</returns>
+    /// <returns>A new <see cref="Snowflake"/> instance.</returns>
     /// <example>
     /// <code>
     /// var id = Identifier.Generate(12345, 1001, IdentifierType.USER);
-    /// Console.WriteLine(id.ToBase36()); // Outputs Base36 representation
+    /// Console.WriteLine(id.ToString()); // Outputs string representation
     /// </code>
     /// </example>
+    [System.Diagnostics.DebuggerHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Identifier NewId(System.UInt32 value, System.UInt16 machineId, IdentifierType type) => new(value, machineId, type);
+    public static Snowflake NewId(System.UInt32 value, System.UInt16 machineId, SnowflakeType type) => new(value, machineId, type);
 
     /// <summary>
-    /// Creates a new <see cref="Identifier"/> with the specified components.
+    /// Creates a new <see cref="Snowflake"/> with the specified components.
     /// </summary>
     /// <param name="type">The identifier type.</param>
     /// <param name="machineId">The machine identifier.</param>
-    /// <returns>A new <see cref="Identifier"/> instance.</returns>
+    /// <returns>A new <see cref="Snowflake"/> instance.</returns>
     /// <example>
     /// <code>
     /// var id = Identifier.Generate(IdentifierType.SYSTEM);
-    /// Console.WriteLine(id.ToBase36()); // Outputs Base36 representation
+    /// Console.WriteLine(id.ToString());
     /// </code>
     /// </example>
+    [System.Diagnostics.DebuggerHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Identifier NewId(IdentifierType type, System.UInt16 machineId = 1) => new(Csprng.NextUInt32(), machineId, type);
+    public static Snowflake NewId(SnowflakeType type, System.UInt16 machineId = 1) => new(Csprng.NextUInt32(), machineId, type);
 
     /// <summary>
-    /// Creates a new <see cref="Identifier"/> with the specified components.
+    /// Creates a new <see cref="Snowflake"/> with the specified components.
     /// </summary>
     /// <param name="type">The identifier type.</param>
-    /// <returns>A new <see cref="Identifier"/> instance.</returns>
+    /// <returns>A new <see cref="Snowflake"/> instance.</returns>
     /// <example>
     /// <code>
     /// var id = Identifier.Generate(IdentifierType.SYSTEM);
-    /// Console.WriteLine(id.ToBase36()); // Outputs Base36 representation
+    /// Console.WriteLine(id.ToString()); // Outputs string representation
     /// </code>
     /// </example>
+    [System.Diagnostics.DebuggerHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Identifier NewId(IdentifierType type) => new(Csprng.NextUInt32(), _MachineId, type);
+    public static Snowflake NewId(SnowflakeType type) => new(Csprng.NextUInt32(), __machineId, type);
+
+    /// <summary>
+    /// Returns the Hex string representation of this identifier.
+    /// </summary>
+    /// <returns>A Hex encoded string representing this identifier.</returns>
+    [System.Diagnostics.DebuggerHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public override System.String ToString()
+    {
+        System.Span<System.Byte> buffer = stackalloc System.Byte[7];
+        _ = TryWriteBytes(buffer, out _);
+        return System.Convert.ToHexString(buffer);
+    }
 
     #endregion Constructors and Factory Methods
 }
