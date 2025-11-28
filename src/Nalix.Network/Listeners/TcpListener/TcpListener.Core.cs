@@ -31,7 +31,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     private readonly System.UInt16 _port;
     private readonly IProtocol _protocol;
     private readonly System.Threading.SemaphoreSlim _lock;
-    private readonly System.Collections.Generic.List<IIdentifier> _acceptWorkerIds;
+    private readonly System.Collections.Generic.List<ISnowflake> _acceptWorkerIds;
 
     private System.Int32 _state;
     private System.Boolean _isDisposed;

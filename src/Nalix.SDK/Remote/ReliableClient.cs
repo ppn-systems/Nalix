@@ -7,8 +7,8 @@ using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Tasks;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Framework.Tasks.Options;
 using Nalix.SDK.Remote.Configuration;
 using Nalix.SDK.Remote.Internal;
 using System.Linq;
@@ -23,7 +23,7 @@ public sealed class ReliableClient : IReliableClient
 
     private readonly System.Threading.SemaphoreSlim _connGate;
 
-    private readonly IIdentifier[] _workerId;
+    private readonly ISnowflake[] _workerId;
     private System.Net.Sockets.TcpClient _client;
     private System.Net.Sockets.NetworkStream _stream;
 
@@ -106,7 +106,7 @@ public sealed class ReliableClient : IReliableClient
     public ReliableClient()
     {
         _connGate = new(1, 1);
-        _workerId = new IIdentifier[2];
+        _workerId = new ISnowflake[2];
         _client = new System.Net.Sockets.TcpClient { NoDelay = true };
 
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();

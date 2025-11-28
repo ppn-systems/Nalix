@@ -130,10 +130,10 @@ public static class PolicyRateLimiter
 
     #region Private Methods
 
-    private readonly struct CompositeEndpointKey(System.UInt16 op, IEndpointKey inner) : IEndpointKey, System.IEquatable<CompositeEndpointKey>
+    private readonly struct CompositeEndpointKey(System.UInt16 op, INetworkEndpoint inner) : INetworkEndpoint, System.IEquatable<CompositeEndpointKey>
     {
         private readonly System.UInt16 _op = op;
-        private readonly IEndpointKey _inner = inner;
+        private readonly INetworkEndpoint _inner = inner;
 
         public System.String Address => $"op:{_op}|ep:{_inner.Address}";
 

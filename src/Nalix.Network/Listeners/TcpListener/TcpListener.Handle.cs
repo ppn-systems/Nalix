@@ -5,8 +5,8 @@ using Nalix.Common.Enums;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Logging;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Framework.Tasks.Options;
 using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Throttling;
@@ -147,7 +147,7 @@ public abstract partial class TcpListenerBase
 
                     // Process the connection
                     _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-                        name: NetTaskCatalog.TcpProcessWorker(_port, connection.ID.ToString(true)),
+                        name: NetTaskCatalog.TcpProcessWorker(_port, connection.ID.ToString()),
                         group: NetTaskCatalog.TcpProcessGroup(_port),
                         work: async (_, _) =>
                         {
@@ -157,7 +157,7 @@ public abstract partial class TcpListenerBase
                         options: new WorkerOptions
                         {
                             RetainFor = System.TimeSpan.Zero,
-                            IdType = IdentifierType.System,
+                            IdType = SnowflakeType.System,
                             Tag = NetTaskCatalog.Segments.Net
                         }
                     );
@@ -345,7 +345,7 @@ public abstract partial class TcpListenerBase
                                                    .ConfigureAwait(false);
 
                 _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-                    name: NetTaskCatalog.TcpProcessWorker(_port, connection.ID.ToString(true)),
+                    name: NetTaskCatalog.TcpProcessWorker(_port, connection.ID.ToString()),
                     group: NetTaskCatalog.TcpProcessGroup(_port),
                     work: async (_, _) =>
                     {
@@ -355,7 +355,7 @@ public abstract partial class TcpListenerBase
                     options: new WorkerOptions
                     {
                         RetainFor = System.TimeSpan.Zero,
-                        IdType = IdentifierType.System,
+                        IdType = SnowflakeType.System,
                         Tag = NetTaskCatalog.Segments.Net
                     }
                 );

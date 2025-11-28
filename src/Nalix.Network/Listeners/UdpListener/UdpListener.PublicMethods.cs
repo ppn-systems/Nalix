@@ -3,8 +3,8 @@
 using Nalix.Common.Connection;
 using Nalix.Common.Logging;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Framework.Tasks.Options;
 using Nalix.Framework.Time;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Internal;
