@@ -1,7 +1,6 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Diagnostics.Abstractions;
-using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Packets.Attributes;
 using Nalix.Common.Networking.Protocols;
@@ -25,56 +24,36 @@ public sealed class PingHandlers
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     [PacketOpcode(0)]
-    [PacketEncryption(false)]
+    [PacketEncryption(true)]
     [PacketPermission(PermissionLevel.GUEST)]
-    public static async System.Threading.Tasks.Task Ping(
-        IPacket p,
-        IConnection connection)
+    public static async System.Threading.Tasks.Task Ping(PacketContext<IPacket> context)
     {
+        System.Console.WriteLine("Received PING from " + context.Connection.RemoteEndPoint);
         // Chỉ nhận gói Control có type = PING
-        if (p is not Control ping || ping.Type != ControlType.PING)
+        if (context.Packet is not Handshake ping)
         {
-            System.UInt32 fallbackSeq = p is IPacketSequenced ps ? ps.SequenceId : 0;
-            await connection.SendAsync(
+            await context.Connection.SendAsync(
                 ControlType.ERROR,
                 ProtocolReason.MALFORMED_PACKET,
-                ProtocolAdvice.DO_NOT_RETRY, fallbackSeq).ConfigureAwait(false);
+                ProtocolAdvice.DO_NOT_RETRY).ConfigureAwait(false);
 
             return;
         }
-
-        // Tạo PONG response frame (echo lại SequenceId, MonoTicks mới, timestamp mới)
-        Control pong = s_pool.Get<Control>();
-
         try
         {
-            pong.Initialize(
-                opCode: ping.OpCode,      // Echo lại OpCode giống client gửi lên
-                type: ControlType.PONG,
-                sequenceId: ping.SequenceId,
-                reasonCode: ProtocolReason.NONE,    // Không lỗi
-                transport: ping.Protocol);
-
-            pong.MonoTicks = ping.MonoTicks; // Option: echo lại MonoTicks client gửi lên (để RTT tốt nhất)
-            pong.Timestamp = Clock.UnixMillisecondsNow();
-
             // Gửi Control PONG về client
-            await connection.TCP.SendAsync(pong.Serialize()).ConfigureAwait(false);
+            await context.Sender.SendAsync(ping).ConfigureAwait(false);
         }
         catch (System.Exception ex)
         {
-            s_logger?.Error($"[APP.{nameof(PingHandlers)}] failed ep={connection.RemoteEndPoint} ex={ex.Message}");
+            s_logger?.Error($"[APP.{nameof(PingHandlers)}] failed ep={context.Connection.RemoteEndPoint} ex={ex.Message}");
 
-            await connection.SendAsync(
+            await context.Connection.SendAsync(
                 ControlType.ERROR,
                 ProtocolReason.INTERNAL_ERROR,
                 ProtocolAdvice.BACKOFF_RETRY,
                 sequenceId: ping.SequenceId,
                 flags: ControlFlags.IS_TRANSIENT).ConfigureAwait(false);
-        }
-        finally
-        {
-            s_pool.Return<Control>(pong);
         }
     }
 

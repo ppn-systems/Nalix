@@ -56,6 +56,7 @@ AutoXListener xListener = new(xProtocol);
 
 // Start listening for incoming connections
 xListener.Activate();
+channel.Activate();
 
 Console.WriteLine(xListener.GenerateReport());
 Console.ReadLine();

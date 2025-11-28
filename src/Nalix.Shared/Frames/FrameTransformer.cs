@@ -93,6 +93,11 @@ public static class FrameTransformer
         System.ReadOnlySpan<System.Byte> key,
         CipherSuiteType suite)
     {
+        if (key.IsEmpty)
+        {
+            throw new System.ArgumentNullException(nameof(key), "Encryption key cannot be null.");
+        }
+
         // Validate buffer sizes
         if (src.Length <= Offset || dest.Capacity < Offset)
         {
@@ -132,6 +137,11 @@ public static class FrameTransformer
         IBufferLease dest,
         System.ReadOnlySpan<System.Byte> key)
     {
+        if (key.IsEmpty)
+        {
+            throw new System.ArgumentNullException(nameof(key), "Encryption key cannot be null.");
+        }
+
         // Validate buffer sizes
         if (src.Length <= Offset || dest.Capacity < Offset)
         {

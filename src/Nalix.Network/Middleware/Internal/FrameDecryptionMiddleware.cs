@@ -1,7 +1,12 @@
-﻿using Nalix.Common.Middleware.Attributes;
+﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Middleware.Attributes;
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Shared.Caching;
+using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Frames;
@@ -18,11 +23,23 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
     {
         if (lease.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED))
         {
-            BufferLease dest = BufferLease.Rent(FrameTransformer.GetPlaintextLength(lease.Span));
+            BufferLease dest;
+            try
+            {
+                dest = BufferLease.Rent(FrameTransformer.GetPlaintextLength(lease.Span));
+            }
+            catch
+            {
+                return null;
+            }
 
             if (!FrameTransformer.TryDecrypt(lease, dest, connection.Secret))
             {
                 dest.Dispose();
+#if DEBUG
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Debug($"Failed to decrypt frame from connection {connection.RemoteEndPoint}. Closing connection.");
+#endif
                 return null; // fallback if failed
             }
 

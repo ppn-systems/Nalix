@@ -17,8 +17,7 @@ namespace Nalix.SDK.Transport.Internal;
 /// </summary>
 internal static class PACKET_AWAITER
 {
-    private static readonly ILogger? s_logger =
-        InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
     /// Subscribes for a matching packet, invokes <paramref name="sendAsync"/>,
