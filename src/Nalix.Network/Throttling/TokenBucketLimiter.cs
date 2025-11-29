@@ -129,7 +129,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-            name: TaskNames.Recurring.WithKey(nameof(TokenBucketLimiter), this.GetHashCode()),
+            name: TaskNaming.Recurring.CleanupJobId(nameof(TokenBucketLimiter), this.GetHashCode()),
             interval: System.TimeSpan.FromSeconds(this._cleanupIntervalSec),
             work: _ =>
             {
@@ -609,7 +609,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         _disposed = true;
         _ = (InstanceManager.Instance.GetOrCreateInstance<TaskManager>()?
-                                     .CancelRecurring(TaskNames.Recurring.WithKey(nameof(TokenBucketLimiter), this.GetHashCode())));
+                                     .CancelRecurring(TaskNaming.Recurring.CleanupJobId(nameof(TokenBucketLimiter), this.GetHashCode())));
 
         await System.Threading.Tasks.Task.Yield();
 

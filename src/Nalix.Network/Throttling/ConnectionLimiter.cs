@@ -56,7 +56,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         _map = new System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitInfo>();
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-            name: TaskNames.Recurring.WithKey(nameof(ConnectionLimiter), this.GetHashCode()),
+            name: TaskNaming.Recurring.CleanupJobId(nameof(ConnectionLimiter), this.GetHashCode()),
             interval: _cleanupInterval,
             work: _ =>
             {
@@ -368,7 +368,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         try
         {
             _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                        .CancelRecurring(TaskNames.Recurring.WithKey(nameof(ConnectionLimiter), this.GetHashCode()));
+                                        .CancelRecurring(TaskNaming.Recurring.CleanupJobId(nameof(ConnectionLimiter), this.GetHashCode()));
             _map.Clear();
         }
         catch (System.Exception ex)

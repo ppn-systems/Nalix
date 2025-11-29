@@ -116,7 +116,7 @@ public sealed class PacketDispatchChannel
                 {
                     CancellationToken = linkedToken,
                     RetainFor = System.TimeSpan.Zero,
-                    Tag = TaskNames.Tags.Dispatch
+                    Tag = TaskNaming.Tags.Dispatch
                 });
         }
 
