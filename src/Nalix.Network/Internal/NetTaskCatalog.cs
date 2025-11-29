@@ -26,20 +26,28 @@ internal static class NetTaskCatalog
     /// </summary>
     internal static class Segments
     {
-        internal const System.String Net = "net";
-        internal const System.String Packet = "pkt";
         internal const System.String Tcp = "tcp";
         internal const System.String Udp = "udp";
-        internal const System.String Process = "proc";
-        internal const System.String Receive = "recv";
+        internal const System.String Net = "net";
         internal const System.String Time = "time";
-        internal const System.String Accept = "accept";
-        internal const System.String Dispatch = "dispatch";
         internal const System.String Sync = "sync";
+        internal const System.String Packet = "pkt";
         internal const System.String Wheel = "wheel";
+        internal const System.String Receive = "recv";
     }
 
-    #endregion
+    #endregion Segments
+
+    #region Helpers
+
+    /// <summary>
+    /// Formats an integer token (e.g. port or index) using invariant culture.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.String IntToken(System.Int32 value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    #endregion Helpers
 
     #region Groups (Path-style: net/time/sync)
 
@@ -47,46 +55,46 @@ internal static class NetTaskCatalog
     /// Group for network time synchronization tasks.
     /// </summary>
     public static readonly System.String TimeSyncGroup =
-        TaskNames.Groups.Build(Segments.Net, Segments.Time, Segments.Sync);
+        TaskNaming.Groups.Build(Segments.Net, Segments.Time, Segments.Sync);
 
     /// <summary>
     /// Group for timing wheel scheduler tasks.
     /// </summary>
     public static readonly System.String TimingWheelGroup =
-        TaskNames.Groups.Build(Segments.Net, Segments.Time, Segments.Wheel);
+        TaskNaming.Groups.Build(Segments.Net, Segments.Time, Segments.Wheel);
 
     /// <summary>
     /// Group for packet dispatching operations.
     /// </summary>
     public static readonly System.String PacketDispatchGroup =
-        TaskNames.Groups.Build(Segments.Net, Segments.Packet, Segments.Dispatch);
+        TaskNaming.Groups.Build(Segments.Net, Segments.Packet, TaskNaming.Tags.Dispatch);
 
     /// <summary>
     /// Group for TCP-level tasks associated with a specific port.
     /// </summary>
     public static System.String TcpGroup(System.Int32 port) =>
-        TaskNames.Groups.Build(Segments.Net, Segments.Tcp, port.ToString());
+        TaskNaming.Groups.Build(Segments.Net, Segments.Tcp, port.ToString());
 
     /// <summary>
     /// Group for TCP processing workers at a specific port.
     /// </summary>
     public static System.String TcpProcessGroup(System.Int32 port) =>
-        TaskNames.Groups.Build(Segments.Net, Segments.Tcp, port.ToString(), Segments.Process);
+        TaskNaming.Groups.Build(Segments.Net, Segments.Tcp, port.ToString(), TaskNaming.Tags.Process);
 
     /// <summary>
     /// Group for UDP-related tasks at a specific port (e.g., <c>net/udp/7777</c>).
     /// </summary>
     public static System.String UdpGroup(System.Int32 port) =>
-        TaskNames.Groups.Build(Segments.Net, Segments.Udp, port.ToString());
+        TaskNaming.Groups.Build(Segments.Net, Segments.Udp, port.ToString());
 
     /// <summary>
     /// Group for UDP processing workers at a specific port
     /// (e.g., <c>net/udp/7777/proc</c>).
     /// </summary>
     public static System.String UdpProcessGroup(System.Int32 port) =>
-        TaskNames.Groups.Build(Segments.Net, Segments.Udp, port.ToString(), Segments.Process);
+        TaskNaming.Groups.Build(Segments.Net, Segments.Udp, port.ToString(), TaskNaming.Tags.Process);
 
-    #endregion
+    #endregion Groups (Path-style: net/time/sync)
 
     #region Workers (Dot-style: tcp.accept.8080.0)
 
@@ -96,7 +104,7 @@ internal static class NetTaskCatalog
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.String TcpAcceptWorker(System.Int32 port, System.Int32 index)
-        => TaskNames.Workers.Build(Segments.Tcp, Segments.Accept, port.ToString(), index.ToString());
+        => TaskNaming.Workers.Build(Segments.Tcp, TaskNaming.Tags.Accept, port.ToString(), index.ToString());
 
     /// <summary>
     /// Worker name for TCP packet processing.
@@ -104,7 +112,7 @@ internal static class NetTaskCatalog
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.String TcpProcessWorker(System.Int32 port, System.String id)
-        => TaskNames.Workers.Build(Segments.Tcp, Segments.Process, port.ToString(), TaskNames.Safe(id));
+        => TaskNaming.Workers.Build(Segments.Tcp, TaskNaming.Tags.Process, port.ToString(), TaskNaming.SanitizeToken(id));
 
     /// <summary>
     /// Worker name for UDP processing loop (no extra id),
@@ -113,7 +121,7 @@ internal static class NetTaskCatalog
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.String UdpProcessWorker(System.Int32 port)
-        => TaskNames.Workers.Build(Segments.Udp, Segments.Process, port.ToString());
+        => TaskNaming.Workers.Build(Segments.Udp, TaskNaming.Tags.Process, port.ToString());
 
     /// <summary>
     /// Worker name for UDP processing loop with a custom id
@@ -122,7 +130,7 @@ internal static class NetTaskCatalog
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.String UdpProcessWorker(System.Int32 port, System.Int32 id)
-        => TaskNames.Workers.Build(Segments.Udp, Segments.Process, port.ToString(), id.ToString());
+        => TaskNaming.Workers.Build(Segments.Udp, TaskNaming.Tags.Process, port.ToString(), id.ToString());
 
     /// <summary>
     /// Worker name for UDP receive worker by index,
@@ -131,7 +139,7 @@ internal static class NetTaskCatalog
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.String UdpReceiveWorker(System.Int32 port, System.Int32 index)
-        => TaskNames.Workers.Build(Segments.Udp, Segments.Receive, port.ToString(), index.ToString());
+        => TaskNaming.Workers.Build(Segments.Udp, Segments.Receive, port.ToString(), index.ToString());
 
     /// <summary>
     /// Worker name for periodic time synchronization task.
@@ -139,7 +147,7 @@ internal static class NetTaskCatalog
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.String TimeSyncWorker(System.TimeSpan period)
-        => $"{Segments.Time}.{Segments.Sync}.{period.TotalMilliseconds:0.#}ms";
+        => TaskNaming.Workers.Periodic($"{Segments.Time}.{Segments.Sync}", period);
 
     /// <summary>
     /// Worker name for timing wheel tick handler.
@@ -147,12 +155,16 @@ internal static class NetTaskCatalog
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.String TimingWheelWorker(System.Int32 tickIntervalMs, System.Int32 wheelSize)
-        => $"{Segments.Time}.{Segments.Wheel}.{tickIntervalMs}ms.w{wheelSize}";
+    {
+        System.TimeSpan period = System.TimeSpan.FromMilliseconds(tickIntervalMs);
+        System.String baseName = TaskNaming.Workers.Periodic($"{Segments.Time}.{Segments.Wheel}", period);
+        return System.String.Concat(baseName, $".w{IntToken(wheelSize)}");
+    }
 
     /// <summary>
     /// Worker name for packet dispatching loop.
     /// </summary>
-    public static readonly System.String PacketDispatchWorker = TaskNames.Workers.Build(Segments.Packet, Segments.Dispatch);
+    public static readonly System.String PacketDispatchWorker = TaskNaming.Workers.Build(Segments.Packet, TaskNaming.Tags.Dispatch);
 
-    #endregion
+    #endregion Workers (Dot-style: tcp.accept.8080.0)
 }
