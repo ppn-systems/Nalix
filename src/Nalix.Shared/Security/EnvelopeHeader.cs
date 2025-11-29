@@ -24,14 +24,14 @@ namespace Nalix.Shared.Security;
 [System.Diagnostics.DebuggerNonUserCode]
 internal readonly struct EnvelopeHeader
 {
-    public const System.Int32 Size = 12;
-    private static readonly System.Byte[] MagicBytes = "NALX"u8.ToArray();
+    public const System.Int32 SIZE = 12;
+    public static readonly System.Byte[] MAGIC_BYTES = "NALX"u8.ToArray();
 
-    public readonly System.Byte Flags;
-    public readonly System.UInt32 Seq;
-    public readonly System.Byte Version;
-    public readonly System.Byte NonceLen;
-    public readonly CipherSuiteType Type;
+    public readonly System.Byte FLAGS;
+    public readonly System.UInt32 SEQ;
+    public readonly System.Byte VERSION;
+    public readonly CipherSuiteType TYPE;
+    public readonly System.Byte NONCE_LEN;
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
@@ -42,11 +42,11 @@ internal readonly struct EnvelopeHeader
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte nonceLen,
         [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 seq)
     {
-        Version = version;
-        Type = type;
-        Flags = flags;
-        NonceLen = nonceLen;
-        Seq = seq;
+        VERSION = version;
+        TYPE = type;
+        FLAGS = flags;
+        NONCE_LEN = nonceLen;
+        SEQ = seq;
     }
 
     /// <summary>
@@ -58,17 +58,17 @@ internal readonly struct EnvelopeHeader
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dest,
         [System.Diagnostics.CodeAnalysis.NotNull] EnvelopeHeader header)
     {
-        if (dest.Length < Size)
+        if (dest.Length < SIZE)
         {
             ThrowHelper.DestinationTooSmall();
         }
         // magic
-        System.MemoryExtensions.CopyTo(MagicBytes, dest);
-        dest[4] = header.Version;
-        dest[5] = (System.Byte)header.Type;
-        dest[6] = header.Flags;
-        dest[7] = header.NonceLen;
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(dest.Slice(8, 4), header.Seq);
+        System.MemoryExtensions.CopyTo(MAGIC_BYTES, dest);
+        dest[4] = header.VERSION;
+        dest[5] = (System.Byte)header.TYPE;
+        dest[6] = header.FLAGS;
+        dest[7] = header.NONCE_LEN;
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(dest.Slice(8, 4), header.SEQ);
     }
 
     /// <summary>
@@ -77,17 +77,17 @@ internal readonly struct EnvelopeHeader
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    internal static System.Boolean TryParse(
+    private static System.Boolean TryParse(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out EnvelopeHeader header)
     {
         header = default;
-        if (src.Length < Size)
+        if (src.Length < SIZE)
         {
             return false;
         }
 
-        if (!System.MemoryExtensions.SequenceEqual(src[..4], MagicBytes))
+        if (!System.MemoryExtensions.SequenceEqual(src[..4], MAGIC_BYTES))
         {
             return false;
         }
