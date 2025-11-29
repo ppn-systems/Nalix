@@ -12,19 +12,14 @@ namespace Nalix.Common.Abstractions;
 public interface ISnowflake
 {
     /// <summary>
-    /// Gets the underlying 32-bit unsigned integer value of the identifier.
-    /// </summary>
-    System.UInt32 Value { get; }
-
-    /// <summary>
     /// Gets the <see cref="SnowflakeType"/> encoded within this identifier.
     /// </summary>
     SnowflakeType Type { get; }
 
     /// <summary>
-    /// Gets the machine ID component encoded within this identifier.
+    /// Gets the underlying 32-bit unsigned integer value of the identifier.
     /// </summary>
-    System.UInt16 MachineId { get; }
+    System.UInt32 Value { get; }
 
     /// <summary>
     /// Determines whether this identifier is empty (uninitialized or default value).
@@ -33,6 +28,11 @@ public interface ISnowflake
     /// <see langword="true"/> if the identifier is empty; otherwise, <see langword="false"/>.
     /// </returns>
     System.Boolean IsEmpty { get; }
+
+    /// <summary>
+    /// Gets the machine ID component encoded within this identifier.
+    /// </summary>
+    System.UInt16 MachineId { get; }
 
     /// <summary>
     /// Converts the identifier to its 56-bit unsigned integer representation.

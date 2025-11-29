@@ -16,9 +16,8 @@ namespace Nalix.Framework.Identity;
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Runtime.InteropServices.StructLayout(
-    System.Runtime.InteropServices.LayoutKind.Explicit, Size = 7,
-    CharSet = System.Runtime.InteropServices.CharSet.Ansi)]
-[System.Diagnostics.DebuggerDisplay("{Value}-{MachineId}-{Type}")]
+    System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]
+[System.Diagnostics.DebuggerDisplay("0x{ToUInt56():X14} (T={Type}, M={MachineId})")]
 public readonly partial struct Snowflake : ISnowflake
 {
     #region Const
@@ -28,8 +27,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// </summary>
     public const System.Byte Size = 7;
 
-    private const System.UInt64 __unit56 = 0x00FFFFFFFFFFFFFFUL;
-    [field: System.Runtime.InteropServices.FieldOffset(0)] private readonly UInt56 __combined;
+    private readonly UInt56 __combined;
     private static readonly System.UInt16 __machineId = ConfigurationManager.Instance.Get<SnowflakeOptions>().MachineId;
 
     #endregion Const
@@ -86,7 +84,7 @@ public readonly partial struct Snowflake : ISnowflake
 
     #endregion Public Properties
 
-    #region Constructors and Factory Methods
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Snowflake"/> struct.
@@ -108,6 +106,10 @@ public readonly partial struct Snowflake : ISnowflake
     {
         __combined = uInt56;
     }
+
+    #endregion Constructors
+
+    #region Factory Methods
 
     /// <summary>
     /// Creates a new <see cref="Snowflake"/> from a <see cref="UInt56"/> value.
@@ -170,13 +172,45 @@ public readonly partial struct Snowflake : ISnowflake
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Snowflake NewId(SnowflakeType type) => new(Csprng.NextUInt32(), __machineId, type);
 
+    #endregion Factory Methods
+
+    #region Override
+
+    /// <summary>
+    /// Returns the hash code for this identifier.
+    /// </summary>
+    /// <returns>A 32-bit signed integer hash code.</returns>
+    /// <remarks>
+    /// The hash code is computed efficiently using all components of the identifier
+    /// and is suitable for use in hash-based collections like <see cref="System.Collections.Generic.Dictionary{TKey,TValue}"/>.
+    /// </remarks>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public override System.Int32 GetHashCode() => ToUInt56().GetHashCode();
+
+    /// <summary>
+    /// Determines whether this identifier is equal to the specified object.
+    /// </summary>
+    /// <param name="obj">The object to compare with this instance.</param>
+    /// <returns>
+    /// <c>true</c> if the object is a <see cref="Snowflake"/> and is equal to this instance;
+    /// otherwise, <c>false</c>.
+    /// </returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public override System.Boolean Equals(System.Object? obj) => obj is Snowflake other && Equals(other);
+
     /// <summary>
     /// Returns the Hex string representation of this identifier.
     /// </summary>
     /// <returns>A Hex encoded string representing this identifier.</returns>
     [System.Diagnostics.DebuggerHidden]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override System.String ToString()
     {
         System.Span<System.Byte> buffer = stackalloc System.Byte[7];
@@ -184,5 +218,5 @@ public readonly partial struct Snowflake : ISnowflake
         return System.Convert.ToHexString(buffer);
     }
 
-    #endregion Constructors and Factory Methods
+    #endregion Override
 }
