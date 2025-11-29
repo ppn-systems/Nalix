@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Enums;
+using Nalix.Common.Primitives;
 
 namespace Nalix.Framework.Identity;
 
@@ -14,18 +15,7 @@ public readonly partial struct Snowflake
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static Snowflake FromUInt56(System.UInt64 combined)
-    {
-        if ((combined & ~__unit56) != 0UL)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(combined), "Must fit in 56 bits.");
-        }
-
-        System.UInt32 v = (System.UInt32)(combined & 0xFFFFFFFFUL);
-        System.UInt16 m = (System.UInt16)((combined >> 32) & 0xFFFFUL);
-        System.Byte t = (System.Byte)((combined >> 48) & 0xFFUL);
-        return NewId(v, m, (SnowflakeType)t);
-    }
+    public static Snowflake FromUInt56(UInt56 combined) => NewId(combined);
 
     /// <summary>
     /// Creates a <see cref="Snowflake"/> from a 7-byte array.
@@ -70,7 +60,7 @@ public readonly partial struct Snowflake
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.UInt64 ToUInt56() => ((System.UInt64)_type << 48) | ((System.UInt64)MachineId << 32) | Value;
+    public UInt56 ToUInt56() => __combined;
 
     /// <inheritdoc/>
     [System.ComponentModel.EditorBrowsable(
@@ -102,7 +92,7 @@ public readonly partial struct Snowflake
         // Write little-endian directly for best performance
         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(destination, Value);
         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(destination.Slice(4, 2), MachineId);
-        destination[6] = _type;
+        destination[6] = (System.Byte)(((System.Byte)Type >> 48) & 0xFF);
 
         bytesWritten = Size;
         return true;
@@ -121,7 +111,7 @@ public readonly partial struct Snowflake
 
         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(destination, Value);
         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(destination.Slice(4, 2), MachineId);
-        destination[6] = _type;
+        destination[6] = (System.Byte)(((System.Byte)Type >> 48) & 0xFF);
 
         return true;
     }

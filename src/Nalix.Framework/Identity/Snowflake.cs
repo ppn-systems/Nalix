@@ -2,6 +2,7 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Enums;
+using Nalix.Common.Primitives;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Options;
 using Nalix.Framework.Random;
@@ -9,31 +10,15 @@ using Nalix.Framework.Random;
 namespace Nalix.Framework.Identity;
 
 /// <summary>
-/// Represents a compact, high-performance identifier that encodes a 32-bit value,
-/// 16-bit machine ID, and 8-bit type into a 7-byte structure.
-/// This struct is optimized for use as dictionary keys and provides efficient
-/// serialization capabilities.
+/// Represents a 56-bit unique identifier composed of a value, machine identifier, and type.
+/// Provides methods for creation, decomposition, and conversion to various formats.
 /// </summary>
-/// <remarks>
-/// <para>
-/// Base36 string is encoded in big-endian order with digits [0-9][A-Z],
-/// representing the 56-bit token value as a compact string.
-/// The Identifier uses explicit layout to ensure consistent memory representation
-/// across different platforms and provides both hexadecimal and Base36 string representations.
-/// </para>
-/// <para>
-/// Memory layout:
-/// - FEEDFACE 0-3: Value (uint, little-endian)
-/// - FEEDFACE 4-5: Machine ID (ushort, little-endian)
-/// - Byte 6: Identifier type (byte)
-/// </para>
-/// </remarks>
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Runtime.InteropServices.StructLayout(
     System.Runtime.InteropServices.LayoutKind.Explicit, Size = 7,
     CharSet = System.Runtime.InteropServices.CharSet.Ansi)]
-[System.Diagnostics.DebuggerDisplay("{Value}-{MachineId}-{(SnowflakeType)_type}")]
+[System.Diagnostics.DebuggerDisplay("{Value}-{MachineId}-{Type}")]
 public readonly partial struct Snowflake : ISnowflake
 {
     #region Const
@@ -44,9 +29,50 @@ public readonly partial struct Snowflake : ISnowflake
     public const System.Byte Size = 7;
 
     private const System.UInt64 __unit56 = 0x00FFFFFFFFFFFFFFUL;
+    [field: System.Runtime.InteropServices.FieldOffset(0)] private readonly UInt56 __combined;
     private static readonly System.UInt16 __machineId = ConfigurationManager.Instance.Get<SnowflakeOptions>().MachineId;
 
     #endregion Const
+
+    #region Decomposition
+
+    /// <summary>
+    /// Gets the 32-bit value component.
+    /// </summary>
+    public System.UInt32 Value
+    {
+        get
+        {
+            __combined.Decompose(out System.Byte _, out System.UInt16 _, out System.UInt32 value);
+            return value;
+        }
+    }
+
+    /// <summary>
+    /// Gets the 16-bit machine identifier component.
+    /// </summary>
+    public System.UInt16 MachineId
+    {
+        get
+        {
+            __combined.Decompose(out System.Byte _, out System.UInt16 machineId, out System.UInt32 _);
+            return machineId;
+        }
+    }
+
+    /// <summary
+    /// >Gets the 8-bit type component.
+    /// </summary>
+    public SnowflakeType Type
+    {
+        get
+        {
+            __combined.Decompose(out System.Byte type, out System.UInt16 _, out System.UInt32 _);
+            return (SnowflakeType)type;
+        }
+    }
+
+    #endregion Decomposition
 
     #region Public Properties
 
@@ -54,40 +80,6 @@ public readonly partial struct Snowflake : ISnowflake
     /// Gets an empty <see cref="Snowflake"/> instance with all components set to zero.
     /// </summary>
     public static Snowflake Empty => new(0, 0, 0);
-
-    /// <summary>
-    /// Gets the main identifier value.
-    /// </summary>
-    /// <value>A 32-bit unsigned integer representing the core identifier.</value>
-    [field: System.Runtime.InteropServices.FieldOffset(0)]
-    public System.UInt32 Value { get; }
-
-    /// <summary>
-    /// Gets the machine identifier.
-    /// </summary>
-    /// <value>A 16-bit unsigned integer representing the originating machine.</value>
-    [field: System.Runtime.InteropServices.FieldOffset(4)]
-    public System.UInt16 MachineId { get; }
-
-    /// <summary>
-    /// The identifier type (8-bit unsigned integer).
-    /// </summary>
-    [System.Runtime.InteropServices.FieldOffset(6)]
-    private readonly System.Byte _type;
-
-    /// <summary>
-    /// Gets the identifier type.
-    /// </summary>
-    /// <value>An enum value representing the type of this identifier.</value>
-    public SnowflakeType Type => (SnowflakeType)_type;
-
-    /// <summary>
-    /// Determines whether this identifier is empty (all components are zero).
-    /// </summary>
-    /// <returns>
-    /// <c>true</c> if all components (value, machine ID, and type) are zero; otherwise, <c>false</c>.
-    /// </returns>
-    public System.Boolean IsEmpty => (Value | MachineId | _type) == 0;
 
     #endregion Public Properties
 
@@ -102,10 +94,27 @@ public readonly partial struct Snowflake : ISnowflake
     [System.Diagnostics.DebuggerHidden]
     private Snowflake(System.UInt32 value, System.UInt16 machineId, SnowflakeType type)
     {
-        Value = value;
-        MachineId = machineId;
-        _type = (System.Byte)type;
+        __combined = UInt56.FromParts((System.Byte)type, machineId, value);
     }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Snowflake"/> struct from a <see cref="UInt56"/> value.
+    /// </summary>
+    /// <param name="uInt56">The 56-bit unsigned integer representing the combined identifier value.</param>
+    public Snowflake(UInt56 uInt56)
+    {
+        __combined = uInt56;
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="Snowflake"/> from a <see cref="UInt56"/> value.
+    /// </summary>
+    /// <param name="uInt56">The 56-bit unsigned integer representing the combined identifier value.</param>
+    /// <returns>A new <see cref="Snowflake"/> instance.</returns>
+    [System.Diagnostics.DebuggerHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static Snowflake NewId(UInt56 uInt56) => new(uInt56);
 
     /// <summary>
     /// Creates a new <see cref="Snowflake"/> with the specified components.
