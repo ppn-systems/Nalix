@@ -27,6 +27,14 @@ public interface ISnowflake
     System.UInt16 MachineId { get; }
 
     /// <summary>
+    /// Determines whether this identifier is empty (uninitialized or default value).
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> if the identifier is empty; otherwise, <see langword="false"/>.
+    /// </returns>
+    System.Boolean IsEmpty { get; }
+
+    /// <summary>
     /// Converts the identifier to its 56-bit unsigned integer representation.
     /// </summary>
     /// <returns>

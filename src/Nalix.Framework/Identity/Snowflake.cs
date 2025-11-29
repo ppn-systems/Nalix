@@ -81,6 +81,9 @@ public readonly partial struct Snowflake : ISnowflake
     /// </summary>
     public static Snowflake Empty => new(0, 0, 0);
 
+    /// <inheritdoc/>
+    public System.Boolean IsEmpty => __combined == 0;
+
     #endregion Public Properties
 
     #region Constructors and Factory Methods
