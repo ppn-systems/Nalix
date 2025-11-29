@@ -151,7 +151,7 @@ public static class DirectiveClientExtensions
                     state.ThrottleUntilMonoTicks = nowTicks + delayTicks;
 
                     callbacks?.OnThrottle?.Invoke(d, System.TimeSpan.FromMilliseconds(delayMs));
-                    Log?.Info($"DIRECTIVE THROTTLE: {delayMs} ms (Seq={d.SequenceId})");
+                    Log?.Info($"DIRECTIVE THROTTLE: {delayMs} ms (SEQ={d.SequenceId})");
                     return true;
                 }
 
@@ -174,7 +174,7 @@ public static class DirectiveClientExtensions
                         // Fallback: keep host, only update port if provided
                         if (d.Arg2 == 0)
                         {
-                            Log?.Warn($"DIRECTIVE REDIRECT ignored (no resolver, no port). Seq={d.SequenceId}");
+                            Log?.Warn($"DIRECTIVE REDIRECT ignored (no resolver, no port). SEQ={d.SequenceId}");
                             return true;
                         }
                         ep = (client.Options.Address, d.Arg2);
@@ -185,7 +185,7 @@ public static class DirectiveClientExtensions
                     client.Options.Address = ep.Value.host;
                     client.Options.Port = ep.Value.port;
 
-                    Log?.Info($"DIRECTIVE REDIRECT → {ep.Value.host}:{ep.Value.port} (Seq={d.SequenceId})");
+                    Log?.Info($"DIRECTIVE REDIRECT → {ep.Value.host}:{ep.Value.port} (SEQ={d.SequenceId})");
                     await client.ConnectAsync(cancellationToken: ct).ConfigureAwait(false);
                     return true;
                 }
@@ -194,19 +194,19 @@ public static class DirectiveClientExtensions
                 {
                     // Typically indicates request failed; SequenceId correlates to the original request.
                     callbacks?.OnNack?.Invoke(d);
-                    Log?.Warn($"DIRECTIVE NACK: Reason={d.Reason}, Action={d.Action}, Seq={d.SequenceId}");
+                    Log?.Warn($"DIRECTIVE NACK: Reason={d.Reason}, Action={d.Action}, SEQ={d.SequenceId}");
                     return true;
                 }
 
             case ControlType.NOTICE:
                 {
                     callbacks?.OnNotice?.Invoke(d);
-                    Log?.Info($"DIRECTIVE NOTICE: Reason={d.Reason}, Action={d.Action}, Seq={d.SequenceId}");
+                    Log?.Info($"DIRECTIVE NOTICE: Reason={d.Reason}, Action={d.Action}, SEQ={d.SequenceId}");
                     return true;
                 }
 
             default:
-                Log?.Debug($"DIRECTIVE (unhandled type {d.Type}) Seq={d.SequenceId}");
+                Log?.Debug($"DIRECTIVE (unhandled type {d.Type}) SEQ={d.SequenceId}");
                 return true;
         }
     }

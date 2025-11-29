@@ -17,7 +17,7 @@ namespace Nalix.Shared.Security;
 [System.Diagnostics.DebuggerNonUserCode]
 internal static class EnvelopeFormat
 {
-    public const System.Int32 HeaderSize = EnvelopeHeader.Size;
+    public const System.Int32 HeaderSize = EnvelopeHeader.SIZE;
     public const System.Byte CurrentVersion = 1;
     public const System.Int32 TagSize = 16; // AEAD tags
 
@@ -44,7 +44,7 @@ internal static class EnvelopeFormat
         }
 
         System.Int32 pos = HeaderSize;
-        System.Int32 nonceLen = header.NonceLen;
+        System.Int32 nonceLen = header.NONCE_LEN;
         if (nonceLen <= 0)
         {
             return false;
@@ -60,7 +60,7 @@ internal static class EnvelopeFormat
         pos += nonceLen;
 
         // Decide format by suite type: AEAD => has tag, Symmetric => no tag
-        System.Boolean hasTag = IsAeadSuite(header.Type);
+        System.Boolean hasTag = IsAeadSuite(header.TYPE);
 
         if (hasTag)
         {
@@ -80,7 +80,7 @@ internal static class EnvelopeFormat
             System.ReadOnlySpan<System.Byte> tagSlice = blob.Slice(pos + ctLen, TagSize);
 
             env = new ParsedEnvelope(
-                header.Version, header.Type, header.Flags, header.NonceLen, header.Seq,
+                header.VERSION, header.TYPE, header.FLAGS, header.NONCE_LEN, header.SEQ,
                 headerSlice, nonceSlice, ctSlice, tagSlice, hasTag: true);
 
             return true;
@@ -90,7 +90,7 @@ internal static class EnvelopeFormat
             // Symmetric: all remaining is ciphertext; no tag
             System.ReadOnlySpan<System.Byte> ctSlice = blob[pos..];
             env = new ParsedEnvelope(
-                header.Version, header.Type, header.Flags, header.NonceLen, header.Seq,
+                header.VERSION, header.TYPE, header.FLAGS, header.NONCE_LEN, header.SEQ,
                 headerSlice, nonceSlice, ctSlice, [], hasTag: false);
 
             return true;
@@ -163,7 +163,7 @@ internal static class EnvelopeFormat
     /// Returned parsed envelope - ref struct carrying spans.
     /// Tag may be empty when HasTag = false (symmetric envelopes).
     /// </summary>
-    [System.Diagnostics.DebuggerDisplay("Ver={Version}, Alg={AeadType}, NonceLen={NonceLen}, Seq={Seq}, Tag={HasTag}")]
+    [System.Diagnostics.DebuggerDisplay("Ver={VERSION}, Alg={AeadType}, NONCE_LEN={NONCE_LEN}, SEQ={SEQ}, Tag={HasTag}")]
     public readonly ref struct ParsedEnvelope
     {
         public readonly System.Byte Version;

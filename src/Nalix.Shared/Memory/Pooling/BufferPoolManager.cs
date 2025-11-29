@@ -687,8 +687,8 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         _ = sb.AppendLine($"Initialized: {_isInitialized}");
         _ = sb.AppendLine($"Total Buffers (Configured): {_totalBuffers}");
         _ = sb.AppendLine($"Pools: {_bufferAllocations.Length}");
-        _ = sb.AppendLine($"Min Buffer Size: {MinBufferSize}");
-        _ = sb.AppendLine($"Max Buffer Size: {MaxBufferSize}");
+        _ = sb.AppendLine($"Min Buffer SIZE: {MinBufferSize}");
+        _ = sb.AppendLine($"Max Buffer SIZE: {MaxBufferSize}");
         _ = sb.AppendLine($"Enable Trimming: {_enableTrimming}");
         _ = sb.AppendLine($"Enable Analytics: {_enableAnalytics}");
         _ = sb.AppendLine($"Enable SecureClear: {_secureClear}");
@@ -706,7 +706,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     {
         _ = sb.AppendLine("Pool Details:");
         _ = sb.AppendLine("----------------------------------------------------------------------");
-        _ = sb.AppendLine("Size     | Total Buffers | Free Buffers | In Use | Usage % | MissRate");
+        _ = sb.AppendLine("SIZE     | Total Buffers | Free Buffers | In Use | Usage % | MissRate");
         _ = sb.AppendLine("----------------------------------------------------------------------");
 
         foreach (var pool in System.Linq.Enumerable.OrderBy(_poolManager.GetAllPools(), p => p.GetPoolInfoRef().BufferSize))
@@ -785,7 +785,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
             {
                 throw new System.ArgumentOutOfRangeException(
                     nameof(bufferAllocationsString),
-                    $"[{nameof(BufferPoolManager)}] Size must be > 0.");
+                    $"[{nameof(BufferPoolManager)}] SIZE must be > 0.");
             }
 
             // Parse ratio

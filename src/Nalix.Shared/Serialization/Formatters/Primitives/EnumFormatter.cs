@@ -29,7 +29,7 @@ public sealed class EnumFormatter<
     {
         if (!typeof(T).IsEnum)
         {
-            throw new System.InvalidOperationException($"Type {typeof(T)} is not an enum.");
+            throw new System.InvalidOperationException($"TYPE {typeof(T)} is not an enum.");
         }
 
         UnderlyingTypeCode = System.Type.GetTypeCode(System.Enum

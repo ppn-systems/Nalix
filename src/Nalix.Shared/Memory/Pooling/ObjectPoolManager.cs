@@ -324,7 +324,7 @@ public sealed class ObjectPoolManager : IReportable
 
         _ = sb.AppendLine("Pool Details:");
         _ = sb.AppendLine("--------------------------------------------------------------");
-        _ = sb.AppendLine("Type                     | Available | Max Capacity | Created");
+        _ = sb.AppendLine("TYPE                     | Available | Max Capacity | Created");
         _ = sb.AppendLine("--------------------------------------------------------------");
 
         // Sort pools by type name for better readability
