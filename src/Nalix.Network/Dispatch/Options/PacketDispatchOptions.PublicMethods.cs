@@ -224,7 +224,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             if (this._handlerCache.ContainsKey(descriptor.OpCode))
             {
                 throw new System.InvalidOperationException(
-                    $"OpCode '{descriptor.OpCode}' has already been registered.");
+                    $"OP_CODE '{descriptor.OpCode}' has already been registered.");
             }
 
             this._handlerCache[descriptor.OpCode] = descriptor;
