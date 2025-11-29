@@ -38,7 +38,7 @@ internal static class EnvelopeFormat
             return false;
         }
 
-        if (!EnvelopeHeader.TryParse(blob[..HeaderSize], out var header))
+        if (!EnvelopeHeader.Decode(blob[..HeaderSize], out var header))
         {
             return false;
         }
@@ -120,7 +120,7 @@ internal static class EnvelopeFormat
         }
 
         EnvelopeHeader header = new(CurrentVersion, type, flags, (System.Byte)nonceLen, seq);
-        EnvelopeHeader.WriteTo(dest[..HeaderSize], header);
+        EnvelopeHeader.Encode(dest[..HeaderSize], header);
 
         System.Int32 pos = HeaderSize;
         nonce.CopyTo(dest.Slice(pos, nonceLen)); pos += nonceLen;
@@ -151,7 +151,7 @@ internal static class EnvelopeFormat
         }
 
         EnvelopeHeader header = new(CurrentVersion, type, flags, (System.Byte)nonceLen, seq);
-        EnvelopeHeader.WriteTo(dest[..HeaderSize], header);
+        EnvelopeHeader.Encode(dest[..HeaderSize], header);
 
         System.Int32 pos = HeaderSize;
         nonce.CopyTo(dest.Slice(pos, nonceLen)); pos += nonceLen;

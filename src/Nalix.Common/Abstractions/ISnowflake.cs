@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Enums;
+using Nalix.Common.Primitives;
 
 namespace Nalix.Common.Abstractions;
 
@@ -26,20 +27,12 @@ public interface ISnowflake
     System.UInt16 MachineId { get; }
 
     /// <summary>
-    /// Determines whether this identifier is empty (uninitialized or default value).
-    /// </summary>
-    /// <returns>
-    /// <see langword="true"/> if the identifier is empty; otherwise, <see langword="false"/>.
-    /// </returns>
-    System.Boolean IsEmpty { get; }
-
-    /// <summary>
     /// Converts the identifier to its 56-bit unsigned integer representation.
     /// </summary>
     /// <returns>
-    /// A <see cref="System.UInt64"/> value representing the identifier as a 56-bit unsigned integer.
+    /// A <see cref="UInt56"/> value representing the identifier as a 56-bit unsigned integer.
     /// </returns>
-    System.UInt64 ToUInt56();
+    UInt56 ToUInt56();
 
     /// <summary>
     /// Serializes the identifier into a byte array.
