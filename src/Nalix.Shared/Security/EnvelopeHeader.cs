@@ -77,7 +77,7 @@ internal readonly struct EnvelopeHeader
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static System.Boolean TryParse(
+    internal static System.Boolean TryParse(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out EnvelopeHeader header)
     {
