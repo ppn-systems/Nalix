@@ -26,31 +26,31 @@ public abstract class FrameBase : IPacket
     /// <summary>
     /// Gets the magic number used to identify the packet format.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.MagicNumber)]
+    [SerializeOrder(PacketHeaderOffset.MAGIC_NUMBER)]
     public System.UInt32 MagicNumber { get; set; }
 
     /// <summary>
     /// Gets the operation code (OpCode) of this packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.OpCode)]
+    [SerializeOrder(PacketHeaderOffset.OP_CODE)]
     public System.UInt16 OpCode { get; set; }
 
     /// <summary>
     /// Gets the flags associated with this packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Flags)]
+    [SerializeOrder(PacketHeaderOffset.FLAGS)]
     public PacketFlags Flags { get; set; }
 
     /// <summary>
     /// Gets the packet priority.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Priority)]
+    [SerializeOrder(PacketHeaderOffset.PRIORITY)]
     public PacketPriority Priority { get; set; }
 
     /// <summary>
     /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Transport)]
+    [SerializeOrder(PacketHeaderOffset.TRANSPORT)]
     public ProtocolType Protocol { get; set; }
 
     /// <inheritdoc/>

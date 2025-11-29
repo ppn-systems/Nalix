@@ -36,49 +36,49 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
     /// <summary>
     /// Round-trip correlation to the triggering request.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DataRegion + 0)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 0)]
     public System.UInt32 SequenceId { get; set; }
 
     /// <summary>
     /// DIRECTIVE type (shared ControlType). Example: NACK, THROTTLE, REDIRECT, NOTICE.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DataRegion + 1)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 1)]
     public ControlType Type { get; set; }
 
     /// <summary>
     /// Reason taxonomy explaining why this directive is sent.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DataRegion + 2)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 2)]
     public ProtocolCode Reason { get; set; }
 
     /// <summary>
     /// Suggested client action for this reason.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DataRegion + 3)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 3)]
     public ProtocolAction Action { get; set; }
 
     /// <summary>
     /// Fast-path decision flags (see <see cref="ControlFlags"/>).
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DataRegion + 4)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 4)]
     public ControlFlags Control { get; set; }
 
     /// <summary>
     /// Multi-purpose argument #0. Ex: RetryAfterSteps (100ms units) or RedirectHostHash.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DataRegion + 5)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 5)]
     public System.UInt32 Arg0 { get; set; }
 
     /// <summary>
     /// Multi-purpose argument #1. Ex: DetailId (client i18n) or ResourceIdHash.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DataRegion + 6)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 6)]
     public System.UInt32 Arg1 { get; set; }
 
     /// <summary>
     /// Multi-purpose argument #2. Ex: RedirectPort or credit/window size.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DataRegion + 7)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 7)]
     public System.UInt16 Arg2 { get; set; }
 
     /// <summary>Initialize with minimal defaults.</summary>

@@ -1,8 +1,5 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-
 using Nalix.Common.Attributes;
 
 namespace Nalix.Common.Packets;
@@ -18,42 +15,42 @@ public enum PacketHeaderOffset : System.Int32
     /// This field comes first in the serialized data.
     /// </summary>
     [DataType(typeof(System.Int32))]
-    MagicNumber = 0,
+    MAGIC_NUMBER = 0,
 
     /// <summary>
     /// Represents the operation code (OpCode) field, specifying the command or type of the packet.
     /// This field comes second in the serialized data.
     /// </summary>
     [DataType(typeof(System.UInt16))]
-    OpCode = MagicNumber + sizeof(System.UInt32),
+    OP_CODE = MAGIC_NUMBER + sizeof(System.UInt32),
 
     /// <summary>
     /// Represents the flags field, which contains state or processing options for the packet.
     /// This field comes third in the serialized data.
     /// </summary>
     [DataType(typeof(System.Byte))]
-    Flags = OpCode + sizeof(System.UInt16),
+    FLAGS = OP_CODE + sizeof(System.UInt16),
 
     /// <summary>
     /// Represents the priority field, indicating the processing priority of the packet.
     /// This field comes fourth in the serialized data.
     /// </summary>
     [DataType(typeof(System.Byte))]
-    Priority = Flags + sizeof(System.Byte),
+    PRIORITY = FLAGS + sizeof(System.Byte),
 
     /// <summary>
     /// Represents the transport protocol field, indicating the transport protocol (e.g., TCP or UDP) used.
     /// This field comes fifth in the serialized data.
     /// </summary>
     [DataType(typeof(System.Byte))]
-    Transport = Priority + sizeof(System.Byte),
+    TRANSPORT = PRIORITY + sizeof(System.Byte),
 
     /// <summary>
     /// Represents the end offset of the packet header fields in the serialized data.
     /// This value is equal to the offset of the last field and can be used to determine the total header size.
     /// </summary>
-    DataRegion = Transport + sizeof(System.Byte),
+    DATA_REGION = TRANSPORT + sizeof(System.Byte),
 
     /// <inheritdoc/>
-    MaxValue = System.Byte.MaxValue,
+    MAX_VALUE = System.Byte.MaxValue,
 }

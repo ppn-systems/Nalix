@@ -19,7 +19,7 @@ namespace Nalix.Shared.Messaging.Controls;
 [MagicNumber(FrameMagicCode.HANDSHAKE)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("HANDSHAKE OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+[System.Diagnostics.DebuggerDisplay("HANDSHAKE OP_CODE={OP_CODE}, Length={Length}, FLAGS={FLAGS}")]
 public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
 {
     /// <inheritdoc/>
@@ -36,7 +36,7 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     /// Gets or sets the binary content of the packet.
     /// </summary>
     [SerializeDynamicSize(DynamicSize)]
-    [SerializeOrder(PacketHeaderOffset.DataRegion + 1)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 1)]
     public System.Byte[] Data { get; set; }
 
     /// <summary>
@@ -118,6 +118,6 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
 
     /// <inheritdoc/>
     public override System.String ToString() =>
-        $"HANDSHAKE(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
-        $"Priority={Priority}, Protocol={Protocol}, Data={Data?.Length ?? 0} bytes)";
+        $"HANDSHAKE(OP_CODE={OpCode}, Length={Length}, FLAGS={Flags}, " +
+        $"PRIORITY={Priority}, Protocol={Protocol}, Data={Data?.Length ?? 0} bytes)";
 }

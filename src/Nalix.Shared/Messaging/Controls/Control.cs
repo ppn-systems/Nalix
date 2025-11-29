@@ -20,7 +20,7 @@ namespace Nalix.Shared.Messaging.Controls;
 [MagicNumber(FrameMagicCode.CONTROL)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("CONTROL OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+[System.Diagnostics.DebuggerDisplay("CONTROL OP_CODE={OP_CODE}, Length={Length}, FLAGS={FLAGS}")]
 public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketReasoned, IPacketSequenced, IPacketDeserializer<Control>
 {
     /// <summary>
@@ -38,31 +38,31 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
     /// <summary>
     /// Gets or sets the sequence identifier for this packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DataRegion + 0)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 0)]
     public System.UInt32 SequenceId { get; set; }
 
     /// <summary>
     /// Gets or sets the reason code associated with this control packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DataRegion + 1)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 1)]
     public ProtocolCode Reason { get; set; }
 
     /// <summary>
     /// Gets or sets the binary content of the packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DataRegion + 2)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 2)]
     public ControlType Type { get; set; }
 
     /// <summary>
     /// Gets or sets the timestamp associated with this packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DataRegion + 3)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 3)]
     public System.Int64 Timestamp { get; set; }
 
     /// <summary>
     /// Gets or sets the monotonic timestamp (in ticks) for RTT measurement.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DataRegion + 4)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 4)]
     public System.Int64 MonoTicks { get; set; }
 
     /// <summary>

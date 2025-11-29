@@ -16,15 +16,15 @@ public enum PacketContextState : System.Byte
     /// <summary>
     /// The context is stored in the object pool and available for allocation.
     /// </summary>
-    Pooled,
+    POOLED,
 
     /// <summary>
     /// The context is actively in use by a packet handler and not available for pooling.
     /// </summary>
-    InUse,
+    IN_USE,
 
     /// <summary>
     /// The context has completed processing and has been returned for reuse.
     /// </summary>
-    Returned
+    RETURNED
 }

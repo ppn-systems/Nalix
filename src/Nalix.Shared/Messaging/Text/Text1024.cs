@@ -19,7 +19,7 @@ namespace Nalix.Shared.Messaging.Text;
 [MagicNumber(FrameMagicCode.TEXT1024)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("TEXT1024 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+[System.Diagnostics.DebuggerDisplay("TEXT1024 OP_CODE={OP_CODE}, Length={Length}, FLAGS={FLAGS}")]
 public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>, IPacketCompressor<Text1024>
 {
     /// <inheritdoc/>
@@ -36,7 +36,7 @@ public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>, IPa
     /// Gets or sets the UTF-8 string content of the packet.
     /// </summary>
     [SerializeDynamicSize(DynamicSize)]
-    [SerializeOrder(PacketHeaderOffset.DataRegion)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION)]
     public System.String Content { get; set; }
 
     /// <summary>
@@ -145,6 +145,6 @@ public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>, IPa
 
     /// <inheritdoc/>
     public override System.String ToString()
-        => $"TEXT1024(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
-           $"Priority={Priority}, Protocol={Protocol}, Content={System.Text.Encoding.UTF8.GetByteCount(Content)} bytes)";
+        => $"TEXT1024(OP_CODE={OpCode}, Length={Length}, FLAGS={Flags}, " +
+           $"PRIORITY={Priority}, Protocol={Protocol}, Content={System.Text.Encoding.UTF8.GetByteCount(Content)} bytes)";
 }
