@@ -67,7 +67,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [System.Diagnostics.CodeAnalysis.AllowNull]
     private readonly ILogger _logger;
     private readonly DispatchOptions _options;
-    private readonly System.Threading.SemaphoreSlim _semaphore;
 
     // Ready queues: one queue per priority (highest first on pull).
     private readonly System.Collections.Concurrent.ConcurrentQueue<IConnection>[] _readyByPrio;
@@ -102,7 +101,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     public DispatchChannel([System.Diagnostics.CodeAnalysis.AllowNull] ILogger logger = null)
     {
         _logger = logger;
-        _semaphore = new(0);
         _options = ConfigurationManager.Instance.Get<DispatchOptions>();
 
         _readyByPrio = new System.Collections.Concurrent.ConcurrentQueue<IConnection>[GetPriorityLevels];
@@ -222,6 +220,12 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                     while (cs.ApproxTotal >= _options.MaxPerConnectionQueue)
                     {
                         sw.SpinOnce();
+
+                        if (sw.Count > 64)
+                        {
+                            // Avoid burning CPU indefinitely
+                            _ = System.Threading.Thread.Yield();
+                        }
                     }
 
                     break;
@@ -252,8 +256,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         {
             _readyByPrio[prioIndex].Enqueue(connection);
         }
-
-        _ = _semaphore.Release();
     }
 
     #endregion Public APIs
