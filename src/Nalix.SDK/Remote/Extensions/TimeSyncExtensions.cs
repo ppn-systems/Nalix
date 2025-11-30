@@ -101,7 +101,7 @@ public static class TimeSyncExtensions
                 opCode: opCode,
                 type: ControlType.TIME_SYNC_REQUEST,
                 sequenceId: 0,
-                reasonCode: ProtocolCode.NONE,
+                reasonCode: ProtocolReason.NONE,
                 transport: ProtocolType.TCP);
 
             await client.SendAsync(req, linked.Token)

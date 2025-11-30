@@ -15,10 +15,10 @@ public enum ProtocolType : System.Byte
     /// <summary>
     /// Transmission CONTROL Protocol (reliable, connection-based).
     /// </summary>
-    TCP = 0x3A,
+    TCP = 0x06,
 
     /// <summary>
     /// USER Datagram Protocol (unreliable, connectionless).
     /// </summary>
-    UDP = 0xE1
+    UDP = 0x11
 }

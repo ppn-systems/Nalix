@@ -39,8 +39,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 {
                     await context.Connection.SendAsync(
                         controlType: ControlType.FAIL,
-                        reason: ProtocolCode.RATE_LIMITED,
-                        action: ProtocolAction.RETRY,
+                        reason: ProtocolReason.RATE_LIMITED,
+                        action: ProtocolAdvice.RETRY,
                         sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                         flags: ControlFlags.IS_TRANSIENT,
                         arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
@@ -88,7 +88,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         _errorHandler?.Invoke(exception, descriptor.OpCode);
 
-        (ProtocolCode reason, ProtocolAction action, ControlFlags flags) = ClassifyException(exception);
+        (ProtocolReason reason, ProtocolAdvice action, ControlFlags flags) = ClassifyException(exception);
 
         await context.Connection.SendAsync(
               controlType: ControlType.FAIL,
@@ -123,31 +123,31 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static (ProtocolCode reason, ProtocolAction action, ControlFlags flags) ClassifyException(System.Exception ex)
+    private static (ProtocolReason reason, ProtocolAdvice action, ControlFlags flags) ClassifyException(System.Exception ex)
     {
         // 1) Cancellation/Timeout => transient
         if (ex is System.OperationCanceledException or System.TimeoutException)
         {
-            return (ProtocolCode.TIMEOUT, ProtocolAction.RETRY, ControlFlags.IS_TRANSIENT);
+            return (ProtocolReason.TIMEOUT, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT);
         }
 
         // 2) Validation/Bad input
         if (ex is System.ArgumentException or System.FormatException ||
             ex.GetType().Name.Contains("Validation", System.StringComparison.OrdinalIgnoreCase))
         {
-            return (ProtocolCode.REQUEST_INVALID, ProtocolAction.FIX_AND_RETRY, ControlFlags.NONE);
+            return (ProtocolReason.REQUEST_INVALID, ProtocolAdvice.FIX_AND_RETRY, ControlFlags.NONE);
         }
 
         // 3) Unauthorized / security
         if (ex is System.UnauthorizedAccessException or System.Security.SecurityException)
         {
-            return (ProtocolCode.ACCOUNT_LOCKED, ProtocolAction.NONE, ControlFlags.NONE);
+            return (ProtocolReason.ACCOUNT_LOCKED, ProtocolAdvice.NONE, ControlFlags.NONE);
         }
 
         // 4) Unsupported / not implemented
         if (ex is System.NotSupportedException or System.NotImplementedException)
         {
-            return (ProtocolCode.OPERATION_UNSUPPORTED, ProtocolAction.NONE, ControlFlags.NONE);
+            return (ProtocolReason.OPERATION_UNSUPPORTED, ProtocolAdvice.NONE, ControlFlags.NONE);
         }
 
         // 5) IEndpointKey /O / socket => phần lớn transient
@@ -164,13 +164,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
         // 6) ObjectDisposed trong giai đoạn teardown/shutdown: coi như transient nhẹ
         if (ex is System.ObjectDisposedException)
         {
-            return (ProtocolCode.NETWORK_ERROR, ProtocolAction.RETRY, ControlFlags.IS_TRANSIENT);
+            return (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT);
         }
 
         // 7) Default: internal error
-        return (ProtocolCode.INTERNAL_ERROR, ProtocolAction.NONE, ControlFlags.NONE);
+        return (ProtocolReason.INTERNAL_ERROR, ProtocolAdvice.NONE, ControlFlags.NONE);
 
-        static (ProtocolCode, ProtocolAction, ControlFlags) ClassifySocket(System.Net.Sockets.SocketException se)
+        static (ProtocolReason, ProtocolAdvice, ControlFlags) ClassifySocket(System.Net.Sockets.SocketException se)
         {
             return se.SocketErrorCode switch
             {
@@ -182,13 +182,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 System.Net.Sockets.SocketError.HostUnreachable or
                 System.Net.Sockets.SocketError.NetworkDown or
                 System.Net.Sockets.SocketError.NetworkUnreachable
-                => (ProtocolCode.NETWORK_ERROR, ProtocolAction.RETRY, ControlFlags.IS_TRANSIENT),
+                => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
                 // local cancellation / interrupted
                 System.Net.Sockets.SocketError.Interrupted or
                 System.Net.Sockets.SocketError.OperationAborted
-                => (ProtocolCode.NETWORK_ERROR, ProtocolAction.RETRY, ControlFlags.IS_TRANSIENT),
+                => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
                 // default
-                _ => (ProtocolCode.NETWORK_ERROR, ProtocolAction.RETRY, ControlFlags.NONE),
+                _ => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.NONE),
             };
         }
     }

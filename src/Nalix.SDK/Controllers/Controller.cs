@@ -37,17 +37,17 @@ public sealed class Controller()
     /// <summary>
     /// Raised for ACK correlated to a previous client operation.
     /// </summary>
-    public event System.Action<System.UInt32 /*seq*/, ProtocolCode /*reason*/> OnAck;
+    public event System.Action<System.UInt32 /*seq*/, ProtocolReason /*reason*/> OnAck;
 
     /// <summary>
     /// Raised for ERROR/NACK/FAIL/TIMEOUT/DISCONNECT to allow the app to decide next steps.
     /// </summary>
-    public event System.Action<ControlType /*type*/, ProtocolCode /*reason*/, System.UInt32 /*seq*/> OnError;
+    public event System.Action<ControlType /*type*/, ProtocolReason /*reason*/, System.UInt32 /*seq*/> OnError;
 
     /// <summary>
     /// Raised for informational controls like NOTICE/HEARTBEAT/SHUTDOWN/RESUME.
     /// </summary>
-    public event System.Action<ControlType /*type*/, ProtocolCode /*reason*/, System.UInt32 /*seq*/> OnInfo;
+    public event System.Action<ControlType /*type*/, ProtocolReason /*reason*/, System.UInt32 /*seq*/> OnInfo;
 
     /// <summary>
     /// Handle an inbound pooled <see cref="Control"/> frame from the network.
@@ -111,7 +111,7 @@ public sealed class Controller()
     /// Returns the sequence id used.
     /// </summary>
     public async System.Threading.Tasks.ValueTask<System.UInt32> SEND_PING_ASYNC(
-        System.UInt16 opCode = PacketConstants.OpCodeDefault,
+        System.UInt16 opCode = PacketConstants.OPCODE_DEFAULT,
         ProtocolType transport = ProtocolType.TCP,
         System.Threading.CancellationToken ct = default)
     {
@@ -121,7 +121,7 @@ public sealed class Controller()
         Control pkt = Pool.Get<Control>();
         try
         {
-            pkt.Initialize(opCode, ControlType.PING, seq, ProtocolCode.NONE, transport);
+            pkt.Initialize(opCode, ControlType.PING, seq, ProtocolReason.NONE, transport);
             _pingTracker[seq] = nowMono;
             await InstanceManager.Instance.GetOrCreateInstance<ReliableClient>().SendAsync(pkt, ct);
 
@@ -138,14 +138,14 @@ public sealed class Controller()
     /// </summary>
     public async System.Threading.Tasks.ValueTask SEND_PONG_ASYNC(
         System.UInt32 sequenceId,
-        System.UInt16 opCode = PacketConstants.OpCodeDefault,
+        System.UInt16 opCode = PacketConstants.OPCODE_DEFAULT,
         ProtocolType transport = ProtocolType.TCP,
         System.Threading.CancellationToken ct = default)
     {
         Control pkt = Pool.Get<Control>();
         try
         {
-            pkt.Initialize(opCode, ControlType.PONG, sequenceId, ProtocolCode.NONE, transport);
+            pkt.Initialize(opCode, ControlType.PONG, sequenceId, ProtocolReason.NONE, transport);
             await InstanceManager.Instance.GetOrCreateInstance<ReliableClient>().SendAsync(pkt, ct);
         }
         finally
@@ -159,8 +159,8 @@ public sealed class Controller()
     /// </summary>
     public async System.Threading.Tasks.ValueTask SEND_ACK_ASYNC(
         System.UInt32 sequenceId,
-        ProtocolCode reason = ProtocolCode.NONE,
-        System.UInt16 opCode = PacketConstants.OpCodeDefault,
+        ProtocolReason reason = ProtocolReason.NONE,
+        System.UInt16 opCode = PacketConstants.OPCODE_DEFAULT,
         ProtocolType transport = ProtocolType.TCP,
         System.Threading.CancellationToken ct = default)
     {

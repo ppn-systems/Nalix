@@ -16,7 +16,7 @@ namespace Nalix.Shared.Messaging.Controls;
 /// A compact, generic server-to-client directive frame for common control scenarios.
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
-[MagicNumber(FrameMagicCode.DIRECTIVE)]
+[MagicNumber(ProtocolMagic.DIRECTIVE)]
 [System.Diagnostics.DebuggerDisplay("DIRECTIVE SEQ={SequenceId}, TYPE={TYPE}, Reason={Reason}, Action={Action}")]
 public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSequenced, IPacketDeserializer<Directive>
 {
@@ -26,8 +26,8 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
         PacketConstants.HeaderSize
         + sizeof(System.UInt32)     // SequenceId
         + sizeof(ControlType)       // Type (ControlType)
-        + sizeof(ProtocolCode)        // Reason (Reason)
-        + sizeof(ProtocolAction)   // Action (ProtocolAction)
+        + sizeof(ProtocolReason)      // Reason (Reason)
+        + sizeof(ProtocolAdvice)    // Action (ProtocolAction)
         + sizeof(ControlFlags)      // Flags (CONTROL)
         + sizeof(System.UInt32)     // Arg0
         + sizeof(System.UInt32)     // Arg1
@@ -49,13 +49,13 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
     /// Reason taxonomy explaining why this directive is sent.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.DATA_REGION + 2)]
-    public ProtocolCode Reason { get; set; }
+    public ProtocolReason Reason { get; set; }
 
     /// <summary>
     /// Suggested client action for this reason.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.DATA_REGION + 3)]
-    public ProtocolAction Action { get; set; }
+    public ProtocolAdvice Action { get; set; }
 
     /// <summary>
     /// Fast-path decision flags (see <see cref="ControlFlags"/>).
@@ -84,36 +84,31 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
     /// <summary>Initialize with minimal defaults.</summary>
     public Directive()
     {
-        Priority = PacketPriority.URGENT;
-        Protocol = ProtocolType.TCP;
-        OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)FrameMagicCode.DIRECTIVE;
+        this.Protocol = ProtocolType.TCP;
+        this.Priority = PacketPriority.URGENT;
+        this.OpCode = PacketConstants.OPCODE_DEFAULT;
+        this.MagicNumber = (System.UInt32)ProtocolMagic.DIRECTIVE;
     }
 
     /// <summary>
     /// Initialize all fields without allocations. Keep semantics stable across versions.
     /// </summary>
     public void Initialize(
-        ControlType type,
-        ProtocolCode reason,
-        ProtocolAction action,
-        System.UInt32 sequenceId,
-        ControlFlags flags = ControlFlags.NONE,
-        System.UInt32 arg0 = 0,
-        System.UInt32 arg1 = 0,
-        System.UInt16 arg2 = 0)
+        ControlType type, ProtocolReason reason, ProtocolAdvice action,
+        System.UInt32 sequenceId, ControlFlags flags = ControlFlags.NONE,
+        System.UInt32 arg0 = 0, System.UInt32 arg1 = 0, System.UInt16 arg2 = 0)
     {
-        Arg0 = arg0;
-        Arg1 = arg1;
-        Arg2 = arg2;
-        Type = type;
-        Reason = reason;
-        Action = action;
-        Control = flags;
-        SequenceId = sequenceId;
+        this.Arg0 = arg0;
+        this.Arg1 = arg1;
+        this.Arg2 = arg2;
+        this.Type = type;
+        this.Reason = reason;
+        this.Action = action;
+        this.Control = flags;
+        this.SequenceId = sequenceId;
 
-        Priority = PacketPriority.URGENT;
-        Protocol = ProtocolType.TCP;
+        this.Protocol = ProtocolType.TCP;
+        this.Priority = PacketPriority.URGENT;
     }
 
     /// <summary>
@@ -121,27 +116,22 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
     /// </summary>
     public void Initialize(
         System.UInt16 opCode,
-        ControlType type,
-        ProtocolCode reason,
-        ProtocolAction action,
-        System.UInt32 sequenceId,
-        ControlFlags flags = ControlFlags.NONE,
-        System.UInt32 arg0 = 0,
-        System.UInt32 arg1 = 0,
-        System.UInt16 arg2 = 0)
+        ControlType type, ProtocolReason reason, ProtocolAdvice action,
+        System.UInt32 sequenceId, ControlFlags flags = ControlFlags.NONE,
+        System.UInt32 arg0 = 0, System.UInt32 arg1 = 0, System.UInt16 arg2 = 0)
     {
-        Arg0 = arg0;
-        Arg1 = arg1;
-        Arg2 = arg2;
-        Type = type;
-        Reason = reason;
-        Action = action;
-        Control = flags;
-        OpCode = opCode;
-        SequenceId = sequenceId;
+        this.Arg0 = arg0;
+        this.Arg1 = arg1;
+        this.Arg2 = arg2;
+        this.Type = type;
+        this.Reason = reason;
+        this.Action = action;
+        this.Control = flags;
+        this.OpCode = opCode;
+        this.SequenceId = sequenceId;
 
-        Priority = PacketPriority.URGENT;
-        Protocol = ProtocolType.TCP;
+        this.Protocol = ProtocolType.TCP;
+        this.Priority = PacketPriority.URGENT;
     }
 
     /// <summary>
@@ -172,15 +162,15 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
     /// <inheritdoc/>
     public override void ResetForPool()
     {
-        Arg0 = 0;
-        Arg1 = 0;
-        Arg2 = 0;
-        SequenceId = 0;
-        Type = ControlType.NONE;
-        Reason = ProtocolCode.NONE;
-        Control = ControlFlags.NONE;
-        Action = ProtocolAction.NONE;
-        Priority = PacketPriority.URGENT;
-        Protocol = ProtocolType.NONE;
+        this.Arg0 = 0;
+        this.Arg1 = 0;
+        this.Arg2 = 0;
+        this.SequenceId = 0;
+        this.Type = ControlType.NONE;
+        this.Reason = ProtocolReason.NONE;
+        this.Control = ControlFlags.NONE;
+        this.Action = ProtocolAdvice.NONE;
+        this.Protocol = ProtocolType.NONE;
+        this.Priority = PacketPriority.URGENT;
     }
 }

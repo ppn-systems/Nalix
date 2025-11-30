@@ -35,8 +35,8 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
 
             await context.Connection.SendAsync(
                 controlType: ControlType.FAIL,
-                reason: ProtocolCode.UNAUTHENTICATED,
-                action: ProtocolAction.NONE,
+                reason: ProtocolReason.UNAUTHENTICATED,
+                action: ProtocolAdvice.NONE,
                 sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                 flags: ControlFlags.NONE,
                 arg0: (System.Byte)context.Attributes.Permission.Level,

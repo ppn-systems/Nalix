@@ -12,7 +12,7 @@ namespace Nalix.Shared.Messaging;
 /// Represents the base class for all packet frames in the messaging system.
 /// Provides common header fields and serialization logic for derived packet types.
 /// </summary>
-[MagicNumber(FrameMagicCode.NONE)]
+[MagicNumber(ProtocolMagic.NONE)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public abstract class FrameBase : IPacket

@@ -16,7 +16,7 @@ namespace Nalix.Shared.Messaging.Text;
 /// <summary>
 /// Represents a simple text-based packet used for transmitting UTF-8 string content over the network.
 /// </summary>
-[MagicNumber(FrameMagicCode.TEXT1024)]
+[MagicNumber(ProtocolMagic.TEXT1024)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("TEXT1024 OP_CODE={OP_CODE}, Length={Length}, FLAGS={FLAGS}")]
@@ -45,11 +45,11 @@ public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>, IPa
     public Text1024()
     {
         Flags = PacketFlags.NONE;
+        Protocol = ProtocolType.NONE;
         Content = System.String.Empty;
         Priority = PacketPriority.NONE;
-        Protocol = ProtocolType.NONE;
-        OpCode = PacketConstants.OpCodeDefault;
-        MagicNumber = (System.UInt32)FrameMagicCode.TEXT1024;
+        OpCode = PacketConstants.OPCODE_DEFAULT;
+        MagicNumber = (System.UInt32)ProtocolMagic.TEXT1024;
     }
 
     /// <summary>Initializes the packet with content and transport protocol.</summary>
@@ -138,9 +138,9 @@ public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>, IPa
     public override void ResetForPool()
     {
         this.Flags = PacketFlags.NONE;
+        this.Protocol = ProtocolType.NONE;
         this.Content = System.String.Empty;
         this.Priority = PacketPriority.NONE;
-        this.Protocol = ProtocolType.NONE;
     }
 
     /// <inheritdoc/>

@@ -42,8 +42,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                 await context.Connection.SendAsync(
                       controlType: ControlType.FAIL,
-                      reason: ProtocolCode.INTERNAL_ERROR,
-                      action: ProtocolAction.NONE,
+                      reason: ProtocolReason.INTERNAL_ERROR,
+                      action: ProtocolAdvice.NONE,
                       sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                       flags: ControlFlags.NONE,
                       arg0: context.Attributes.OpCode.OpCode,
@@ -60,8 +60,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                 await context.Connection.SendAsync(
                       controlType: ControlType.FAIL,
-                      reason: ProtocolCode.UNSUPPORTED_PACKET,
-                      action: ProtocolAction.NONE,
+                      reason: ProtocolReason.UNSUPPORTED_PACKET,
+                      action: ProtocolAdvice.NONE,
                       sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                       flags: ControlFlags.NONE,
                       arg0: context.Attributes.OpCode.OpCode,
@@ -80,8 +80,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                     await context.Connection.SendAsync(
                           controlType: ControlType.FAIL,
-                          reason: ProtocolCode.COMPRESSION_UNSUPPORTED,
-                          action: ProtocolAction.NONE,
+                          reason: ProtocolReason.COMPRESSION_UNSUPPORTED,
+                          action: ProtocolAdvice.NONE,
                           sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                           flags: ControlFlags.NONE,
                           arg0: context.Attributes.OpCode.OpCode,
@@ -102,8 +102,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                     await context.Connection.SendAsync(
                           controlType: ControlType.FAIL,
-                          reason: ProtocolCode.CRYPTO_UNSUPPORTED,
-                          action: ProtocolAction.NONE,
+                          reason: ProtocolReason.CRYPTO_UNSUPPORTED,
+                          action: ProtocolAdvice.NONE,
                           sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                           flags: ControlFlags.NONE,
                           arg0: context.Attributes.OpCode.OpCode,
@@ -124,8 +124,8 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
         {
             await context.Connection.SendAsync(
                   controlType: ControlType.FAIL,
-                  reason: ProtocolCode.TRANSFORM_FAILED,
-                  action: ProtocolAction.RETRY,
+                  reason: ProtocolReason.TRANSFORM_FAILED,
+                  action: ProtocolAdvice.RETRY,
                   sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                   flags: ControlFlags.IS_TRANSIENT,
                   arg0: context.Attributes.OpCode.OpCode,

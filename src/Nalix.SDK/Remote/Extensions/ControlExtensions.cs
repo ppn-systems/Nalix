@@ -45,7 +45,7 @@ public static class ControlExtensions
         /// <returns>The current builder.</returns>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public ControlBuilder WithReason(ProtocolCode reason) { c.Reason = reason; return this; }
+        public ControlBuilder WithReason(ProtocolReason reason) { c.Reason = reason; return this; }
 
         /// <summary>
         /// Sets the transport type.
@@ -91,7 +91,7 @@ public static class ControlExtensions
     public static ControlBuilder NewControl(this IReliableClient _, System.UInt16 opCode, ControlType type, ProtocolType transport = ProtocolType.TCP)
     {
         Control c = new();
-        c.Initialize(opCode, type, sequenceId: 0, reasonCode: ProtocolCode.NONE, transport: transport);
+        c.Initialize(opCode, type, sequenceId: 0, reasonCode: ProtocolReason.NONE, transport: transport);
         return new ControlBuilder(c);
     }
 

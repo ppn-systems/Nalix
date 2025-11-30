@@ -10,7 +10,7 @@ namespace Nalix.SDK.Controllers;
 
 /// <summary>
 /// Centralized handler for server-to-client DIRECTIVE frames.
-/// Interprets <see cref="ControlType"/>, <see cref="ProtocolCode"/>, <see cref="ProtocolAction"/>,
+/// Interprets <see cref="ControlType"/>, <see cref="ProtocolReason"/>, <see cref="ProtocolAdvice"/>,
 /// and <see cref="ControlFlags"/> to drive client behavior (retry, backoff, slow-down, redirect, etc.).
 /// </summary>
 public sealed class DirectiveController()
@@ -41,12 +41,12 @@ public sealed class DirectiveController()
     /// <summary>
     /// Fired for ERROR/NACK/DISCONNECT, passes reason/action/flags for app-specific handling.
     /// </summary>
-    public event System.Action<ProtocolCode, ProtocolAction, ControlFlags> OnError;
+    public event System.Action<ProtocolReason, ProtocolAdvice, ControlFlags> OnError;
 
     /// <summary>
     /// Fired for NOTICE/MAINTENANCE/SHUTDOWN messages to surface UX notifications.
     /// </summary>
-    public event System.Action<ControlType, ProtocolCode> OnNotice;
+    public event System.Action<ControlType, ProtocolReason> OnNotice;
 
     /// <summary>
     /// Fired for handshake/time events like PING/PONG/HEARTBEAT to allow custom telemetry.
@@ -79,8 +79,8 @@ public sealed class DirectiveController()
                     {
                         pkt.Initialize(
                             ControlType.PONG,
-                            ProtocolCode.NONE,
-                            ProtocolAction.NONE,
+                            ProtocolReason.NONE,
+                            ProtocolAdvice.NONE,
                             sequenceId: d.SequenceId);
 
                         await InstanceManager.Instance.GetOrCreateInstance<ReliableClient>().SendAsync(pkt, ct);
@@ -190,32 +190,32 @@ public sealed class DirectiveController()
     }
 
     /// <summary>
-    /// Optional automatic, low-risk reactions driven by <see cref="ProtocolAction"/>.
+    /// Optional automatic, low-risk reactions driven by <see cref="ProtocolAdvice"/>.
     /// Keep minimal: do not reconnect here directly; let the app decide.
     /// </summary>
     private void MAYBE_AUTO_REACT(Directive d, System.Threading.CancellationToken ct)
     {
         switch (d.Action)
         {
-            case ProtocolAction.SLOW_DOWN:
+            case ProtocolAdvice.SLOW_DOWN:
                 HANDLE_THROTTLE(d);
                 break;
 
-            case ProtocolAction.REAUTHENTICATE:
+            case ProtocolAdvice.REAUTHENTICATE:
                 // NOP here; surface via OnError for the app to re-auth.
                 break;
 
-            case ProtocolAction.RETRY:
-            case ProtocolAction.BACKOFF_RETRY:
-            case ProtocolAction.FIX_AND_RETRY:
-            case ProtocolAction.RECONNECT:
+            case ProtocolAdvice.RETRY:
+            case ProtocolAdvice.BACKOFF_RETRY:
+            case ProtocolAdvice.FIX_AND_RETRY:
+            case ProtocolAdvice.RECONNECT:
                 // Provide a soft delay hint to upstream layers.
                 var delay = RETRY_DELAY_MS(d);
                 OnSlowDown?.Invoke(delay);
                 break;
 
-            case ProtocolAction.DO_NOT_RETRY:
-            case ProtocolAction.NONE:
+            case ProtocolAdvice.DO_NOT_RETRY:
+            case ProtocolAdvice.NONE:
             default:
                 break;
         }

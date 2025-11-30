@@ -63,7 +63,8 @@ internal static class AsyncCallback
     [System.Runtime.CompilerServices.SkipLocalsInit]
     private readonly struct State(
         System.EventHandler<IConnectEventArgs> cb,
-        System.Object sender, IConnectEventArgs args)
+        System.Object sender,
+        IConnectEventArgs args)
     {
         public readonly System.Object Sender = sender;
         public readonly IConnectEventArgs Args = args;
