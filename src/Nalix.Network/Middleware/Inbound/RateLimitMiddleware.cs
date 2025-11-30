@@ -37,8 +37,8 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
         {
             await context.Connection.SendAsync(
                 controlType: ControlType.FAIL,
-                reason: ProtocolCode.RATE_LIMITED,
-                action: ProtocolAction.RETRY,
+                reason: ProtocolReason.RATE_LIMITED,
+                action: ProtocolAdvice.RETRY,
                 sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                 flags: ControlFlags.IS_TRANSIENT).ConfigureAwait(false);
 
@@ -51,8 +51,8 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
         {
             await context.Connection.SendAsync(
                 controlType: ControlType.FAIL,
-                reason: ProtocolCode.RATE_LIMITED,
-                action: ProtocolAction.RETRY,
+                reason: ProtocolReason.RATE_LIMITED,
+                action: ProtocolAdvice.RETRY,
                 sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                 flags: ControlFlags.IS_TRANSIENT,
                 arg0: context.Attributes.OpCode.OpCode,

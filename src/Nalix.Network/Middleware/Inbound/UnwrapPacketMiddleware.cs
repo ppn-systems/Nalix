@@ -42,8 +42,8 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                 await context.Connection.SendAsync(
                     ControlType.FAIL,
-                    ProtocolCode.INTERNAL_ERROR,
-                    ProtocolAction.NONE,
+                    ProtocolReason.INTERNAL_ERROR,
+                    ProtocolAdvice.NONE,
                     sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                     flags: ControlFlags.NONE,
                     arg0: context.Attributes.OpCode.OpCode,
@@ -60,8 +60,8 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                 await context.Connection.SendAsync(
                     ControlType.FAIL,
-                    ProtocolCode.UNSUPPORTED_PACKET,
-                    ProtocolAction.NONE,
+                    ProtocolReason.UNSUPPORTED_PACKET,
+                    ProtocolAdvice.NONE,
                     sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                     flags: ControlFlags.NONE,
                     arg0: context.Attributes.OpCode.OpCode,
@@ -80,8 +80,8 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                     await context.Connection.SendAsync(
                         ControlType.FAIL,
-                        ProtocolCode.CRYPTO_UNSUPPORTED,
-                        ProtocolAction.NONE,
+                        ProtocolReason.CRYPTO_UNSUPPORTED,
+                        ProtocolAdvice.NONE,
                         sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                         flags: ControlFlags.NONE,
                         arg0: context.Attributes.OpCode.OpCode,
@@ -102,8 +102,8 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
                     await context.Connection.SendAsync(
                         ControlType.FAIL,
-                        ProtocolCode.COMPRESSION_UNSUPPORTED,
-                        ProtocolAction.NONE,
+                        ProtocolReason.COMPRESSION_UNSUPPORTED,
+                        ProtocolAdvice.NONE,
                         sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                         flags: ControlFlags.NONE,
                         arg0: context.Attributes.OpCode.OpCode,
@@ -136,8 +136,8 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 
             await context.Connection.SendAsync(
                 ControlType.FAIL,
-                ProtocolCode.TRANSFORM_FAILED,
-                ProtocolAction.RETRY,
+                ProtocolReason.TRANSFORM_FAILED,
+                ProtocolAdvice.RETRY,
                 sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                 flags: ControlFlags.IS_TRANSIENT,
                 arg0: context.Attributes.OpCode.OpCode,

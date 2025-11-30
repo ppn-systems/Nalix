@@ -43,8 +43,8 @@ public class TokenBucketMiddleware : IPacketMiddleware<IPacket>
         {
             await context.Connection.SendAsync(
                 ControlType.THROTTLE,
-                ProtocolCode.RATE_LIMITED,
-                ProtocolAction.BACKOFF_RETRY,
+                ProtocolReason.RATE_LIMITED,
+                ProtocolAdvice.BACKOFF_RETRY,
                 sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                 flags: ControlFlags.SLOW_DOWN | ControlFlags.IS_TRANSIENT,
                 arg0: (System.UInt32)System.Math.Max(0, (decision.RetryAfterMs + 99) / 100), // steps of 100ms

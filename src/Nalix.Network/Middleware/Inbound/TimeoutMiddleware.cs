@@ -50,8 +50,8 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
 
             await context.Connection.SendAsync(
                 ControlType.TIMEOUT,
-                ProtocolCode.TIMEOUT,
-                ProtocolAction.RETRY,
+                ProtocolReason.TIMEOUT,
+                ProtocolAdvice.RETRY,
                 sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                 flags: ControlFlags.IS_TRANSIENT,
                 arg0: (System.UInt32)(timeout / 100),

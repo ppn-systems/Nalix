@@ -34,7 +34,7 @@ public static class ConnectionExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static async System.Threading.Tasks.Task SendAsync(
         this IConnection connection,
-        ControlType controlType, ProtocolCode reason, ProtocolAction action,
+        ControlType controlType, ProtocolReason reason, ProtocolAdvice action,
         System.UInt32 sequenceId = 0, ControlFlags flags = ControlFlags.NONE,
         System.UInt32 arg0 = 0, System.UInt32 arg1 = 0, System.UInt16 arg2 = 0)
     {
