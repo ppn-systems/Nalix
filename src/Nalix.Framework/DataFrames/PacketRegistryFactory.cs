@@ -42,11 +42,11 @@ public sealed class PacketRegistryFactory
     private const BindingFlags StaticPublic = BindingFlags.Public | BindingFlags.Static;
     private const BindingFlags StaticNonPublic = BindingFlags.NonPublic | BindingFlags.Static;
 
-    private static readonly MethodInfo BindAllPtrsMi;
+    private static readonly MethodInfo s_bindAllPtrsMi;
 
     // Built-in namespaces whose types are pre-registered in the default constructor
     // and must NOT be re-added during assembly scanning (would cause duplicate magic).
-    private static readonly System.Collections.Frozen.FrozenSet<string> BuiltInNamespaces;
+    private static readonly System.Collections.Frozen.FrozenSet<string> s_builtInNamespaces;
 
     #endregion Static: Defaults & Utilities
 
@@ -65,14 +65,14 @@ public sealed class PacketRegistryFactory
 
     static PacketRegistryFactory()
     {
-        BuiltInNamespaces = System.Collections.Frozen.FrozenSet.ToFrozenSet(
+        s_builtInNamespaces = System.Collections.Frozen.FrozenSet.ToFrozenSet(
             [
                 typeof(Text256).Namespace!,
                 typeof(Control).Namespace!
             ],
             StringComparer.Ordinal);
 
-        BindAllPtrsMi = typeof(PacketRegistryFactory)
+        s_bindAllPtrsMi = typeof(PacketRegistryFactory)
             .GetMethod(nameof(BIND_PTRS), StaticNonPublic)
             ?? throw new InvalidOperationException(
                 $"Cannot locate private method '{nameof(BIND_PTRS)}' on {nameof(PacketRegistryFactory)}.");
@@ -245,7 +245,7 @@ public sealed class PacketRegistryFactory
                 string? typeNs = type.Namespace;
 
                 // Built-in namespace: skip unless explicitly registered
-                if (typeNs is not null && BuiltInNamespaces.Contains(typeNs))
+                if (typeNs is not null && s_builtInNamespaces.Contains(typeNs))
                 {
                     TRACE($"skip reason=builtin-ns type={type.Name}");
                     continue;
@@ -302,7 +302,7 @@ public sealed class PacketRegistryFactory
             // Bind deserialize pointer into PacketFunctionTable<TPacket>
             try
             {
-                _ = BindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [miDeserialize]);
+                _ = s_bindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [miDeserialize]);
             }
             catch (Exception ex)
             {
@@ -512,7 +512,7 @@ public sealed class PacketRegistryFactory
     }
 
     /// <summary>
-    /// Generic trampoline invoked via reflected <see cref="BindAllPtrsMi"/>.
+    /// Generic trampoline invoked via reflected <see cref="s_bindAllPtrsMi"/>.
     /// Assigns the deserialize function pointer to <see cref="PacketFunctionTable{TPacket}"/>.
     /// </summary>
     private static unsafe void BIND_PTRS<TPacket>(
