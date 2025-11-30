@@ -3,7 +3,7 @@
 
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
-using Nalix.Common.Shared.Abstractions;
+using Nalix.Common.Shared;
 using Nalix.Framework.Injection.DI;
 using System.Linq;
 
