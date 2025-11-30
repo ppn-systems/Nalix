@@ -69,9 +69,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     private readonly DispatchOptions _options;
     private readonly System.Threading.SemaphoreSlim _semaphore;
 
-    // Per-connection per-priority queues.
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<IConnection, ConnectionQueues> _queues = new();
-
     // Ready queues: one queue per priority (highest first on pull).
     private readonly System.Collections.Concurrent.ConcurrentQueue<IConnection>[] _readyByPrio;
 
@@ -80,6 +77,9 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
     // Per-connection counters.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<IConnection, ConnectionState> _states = new();
+
+    // Per-connection per-priority queues.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<IConnection, ConnectionQueues> _queues = new();
 
     // Metrics (global).
     private System.Int32 _totalPackets;
@@ -140,41 +140,36 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         // From highest priority down to lowest, pick a ready connection.
         for (System.Int32 p = HighestPriorityIndex; p >= LowestPriorityIndex; p--)
         {
-            if (!_readyByPrio[p].TryDequeue(out connection!))
+            while (!_readyByPrio[p].TryDequeue(out connection!))
             {
-                continue;
-            }
+                _ = _inReady.TryRemove(connection, out _);
 
-            _ = _inReady.TryRemove(connection, out _);
+                // Get the per-connection queues
+                if (!_queues.TryGetValue(connection, out var cqs))
+                {
+                    return false;
+                }
 
-            // Get the per-connection queues
-            if (!_queues.TryGetValue(connection, out var cqs))
-            {
-                return false;
-            }
+                // Try to dequeue from this priority first; if empty due to race, try lower levels.
+                if (!TryDequeueHighest(cqs, p, out lease, out System.Int32 dequeuedFromPrio))
+                {
+                    return false;
+                }
 
-            // Try to dequeue from this priority first; if empty due to race, try lower levels.
-            if (!TryDequeueHighest(cqs, p, out lease, out System.Int32 dequeuedFromPrio))
-            {
-                return false;
-            }
+                // Adjust counters
+                ConnectionState cs = GetState(connection);
+                _ = System.Threading.Interlocked.Decrement(ref _totalPackets);
+                _ = System.Threading.Interlocked.Decrement(ref cs.ApproxTotal);
+                _ = System.Threading.Interlocked.Decrement(ref cs.ApproxByPriority[dequeuedFromPrio]);
 
-            // Adjust counters
-            _ = System.Threading.Interlocked.Decrement(ref _totalPackets);
-            var cs = GetState(connection);
-            _ = System.Threading.Interlocked.Decrement(ref cs.ApproxTotal);
-            _ = System.Threading.Interlocked.Decrement(ref cs.ApproxByPriority[dequeuedFromPrio]);
-
-            // If anything remains in any priority, re-enqueue connection at its highest available priority
-            if (HasAny(cqs, out System.Int32 highestRemaining))
-            {
-                if (_inReady.TryAdd(connection, 1))
+                // If anything remains in any priority, re-enqueue connection at its highest available priority
+                if (HasAny(cqs, out System.Int32 highestRemaining) && _inReady.TryAdd(connection, 1))
                 {
                     _readyByPrio[highestRemaining].Enqueue(connection);
                 }
-            }
 
-            return true;
+                return true;
+            }
         }
 
         return false;
@@ -192,8 +187,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection,
         [System.Diagnostics.CodeAnalysis.NotNull] IBufferLease lease)
     {
-        var cqs = _queues.GetOrAdd(connection, static _ => new ConnectionQueues());
-        var cs = GetState(connection);
+        ConnectionState cs = GetState(connection);
+        ConnectionQueues cqs = _queues.GetOrAdd(connection, static _ => new ConnectionQueues());
 
         // Classify priority directly from header (zero-alloc)
         System.Int32 prioIndex = ClassifyPriorityIndex(lease.Span);
@@ -223,7 +218,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
                 case DropPolicy.BLOCK:
                     // Short spin (cheap backpressure). Avoid long blocks in high-throughput networking.
-                    var sw = new System.Threading.SpinWait();
+                    System.Threading.SpinWait sw = new();
                     while (cs.ApproxTotal >= _options.MaxPerConnectionQueue)
                     {
                         sw.SpinOnce();
@@ -268,8 +263,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private ConnectionState GetState([System.Diagnostics.CodeAnalysis.NotNull] IConnection c)
-        => _states.GetOrAdd(c, static _ => new ConnectionState());
+    private ConnectionState GetState([System.Diagnostics.CodeAnalysis.NotNull] IConnection c) => _states.GetOrAdd(c, static _ => new ConnectionState());
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
@@ -297,7 +291,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         [System.Diagnostics.CodeAnalysis.NotNull] ConnectionQueues cqs,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 startPrio,
         [System.Diagnostics.CodeAnalysis.AllowNull]
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease raw, out System.Int32 dequeuedFromPrio)
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease raw,
+        [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 dequeuedFromPrio)
     {
         // Try from requested priority down to lowest, to avoid a miss due to racing push/pop.
         for (System.Int32 p = startPrio; p >= LowestPriorityIndex; p--)
@@ -330,6 +325,9 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         {
             if (cqs.Q[p].TryDequeue(out lease))
             {
+                // IMPORTANT: free pooled buffer
+                lease.Dispose();
+
                 _ = System.Threading.Interlocked.Decrement(ref cs.ApproxTotal);
                 _ = System.Threading.Interlocked.Decrement(ref cs.ApproxByPriority[p]);
                 return true;
@@ -351,7 +349,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     private static System.Int32 ClassifyPriorityIndex(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> span)
     {
-        var pr = span.ReadPriorityLE();
+        PacketPriority pr = span.ReadPriorityLE();
         System.Int32 idx = (System.Int32)pr;
         if ((System.UInt32)idx >= GetPriorityLevels)
         {
@@ -396,10 +394,11 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
             for (System.Int32 p = LowestPriorityIndex; p <= HighestPriorityIndex; p++)
             {
-                var q = cqs.Q[p];
-                while (q.TryDequeue(out _))
+                System.Collections.Concurrent.ConcurrentQueue<IBufferLease> q = cqs.Q[p];
+                while (q.TryDequeue(out IBufferLease lease))
                 {
                     drained++;
+                    lease?.Dispose();
                 }
             }
 
