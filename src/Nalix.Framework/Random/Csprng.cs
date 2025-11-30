@@ -43,24 +43,6 @@ public static class Csprng
     #region APIs
 
     /// <summary>
-    /// Generates a secure 12-byte nonce (96 bits) suitable for most authenticated encryption schemes.
-    /// </summary>
-    /// <returns>A cryptographically secure nonce.</returns>
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Byte[] CreateNonce([System.Diagnostics.CodeAnalysis.NotNull] System.Int32 length = 12)
-    {
-        if (length <= 0)
-        {
-            throw new System.ArgumentOutOfRangeException(
-                nameof(length), "Nonce length must be a positive integer.");
-        }
-
-        System.Byte[] nonce = new System.Byte[length];
-        _f(nonce);
-        return nonce;
-    }
-
-    /// <summary>
     /// Fills the provided span with cryptographically strong random bytes.
     /// </summary>
     /// <param name="data">The span to fill with random bytes.</param>
@@ -76,6 +58,24 @@ public static class Csprng
         }
 
         _f(data);
+    }
+
+    /// <summary>
+    /// Generates a secure 12-byte nonce (96 bits) suitable for most authenticated encryption schemes.
+    /// </summary>
+    /// <returns>A cryptographically secure nonce.</returns>
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public static System.Byte[] CreateNonce([System.Diagnostics.CodeAnalysis.NotNull] System.Int32 length = 12)
+    {
+        if (length <= 0)
+        {
+            throw new System.ArgumentOutOfRangeException(
+                nameof(length), "Nonce length must be a positive integer.");
+        }
+
+        System.Byte[] nonce = new System.Byte[length];
+        _f(nonce);
+        return nonce;
     }
 
     /// <summary>
