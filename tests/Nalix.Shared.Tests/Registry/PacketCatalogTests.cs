@@ -6,9 +6,9 @@ using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Injection;
 using Nalix.Logging;
+using Nalix.Shared.Frames;
 using Nalix.Shared.Frames.Controls;
-using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Registry;
+using Nalix.Shared.Memory.Objects;
 using Xunit;
 
 namespace Nalix.Shared.Tests.Registry;
