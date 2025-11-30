@@ -118,9 +118,9 @@ public sealed partial class TaskManager : ITaskManager
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken ct = default)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
         System.ArgumentNullException.ThrowIfNull(work);
         System.ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
 
         try
         {
@@ -159,8 +159,8 @@ public sealed partial class TaskManager : ITaskManager
         System.Func<IWorkerContext, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work,
         [System.Diagnostics.CodeAnalysis.MaybeNull] IWorkerOptions? options = null)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
         System.ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
 
         if (System.String.IsNullOrWhiteSpace(group))
         {
