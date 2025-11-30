@@ -68,7 +68,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </summary>
     private Timer? _debounceTimer;
 
-    private static readonly TimeSpan _debounceDelay = TimeSpan.FromMilliseconds(300);
+    private static readonly TimeSpan s_debounceDelay = TimeSpan.FromMilliseconds(300);
 
     /// <summary>
     /// volatile: read/written from multiple threads without a full lock.
@@ -598,7 +598,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                     }
                 },
                 state: null,
-                dueTime: _debounceDelay,
+                dueTime: s_debounceDelay,
                 period: Timeout.InfiniteTimeSpan);
         };
 
