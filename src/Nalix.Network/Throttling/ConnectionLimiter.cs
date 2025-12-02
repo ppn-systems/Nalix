@@ -105,7 +105,6 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         }
 
         INetworkEndpoint key = Connections.Connection.EndpointToken.FromEndPoint(endPoint);
-
         System.DateTime now = System.DateTime.UtcNow;
         System.DateTime today = now.Date;
 
@@ -139,9 +138,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
                 return false;
             }
 
-            System.Int32 totalToday = (today > existing.LastConnectionTime.Date)
-                ? 1
-                : existing.TotalConnectionsToday + 1;
+            System.Int32 totalToday = (today > existing.LastConnectionTime.Date) ? 1 : existing.TotalConnectionsToday + 1;
 
             ConnectionLimitInfo proposed = existing with
             {
@@ -330,7 +327,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
                     break;
                 }
 
-                var info = kv.Value;
+                ConnectionLimitInfo info = kv.Value;
                 if (info.CurrentConnections <= 0 && info.LastConnectionTime < cutoff)
                 {
                     _ = _map.TryRemove(kv.Key, out _);
@@ -341,13 +338,13 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
             if (removed > 0)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Debug($"[{nameof(ConnectionLimiter)}] cleanup scanned={scanned} removed={removed}");
+                                        .Debug($"[{nameof(ConnectionLimiter)}] cleanup scanned={scanned} removed={removed}");
             }
         }
         catch (System.Exception ex) when (ex is not System.ObjectDisposedException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Error($"[{nameof(ConnectionLimiter)}] cleanup-error msg={ex.Message}");
+                                    .Error($"[{nameof(ConnectionLimiter)}] cleanup-error msg={ex.Message}");
         }
     }
 
