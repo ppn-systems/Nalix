@@ -1,9 +1,9 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Networking.Packets.Enums;
+using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Transport;
-using Nalix.Common.Shared.Caching;
+using Nalix.Common.Shared;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Frames;
 using Nalix.Shared.Memory.Buffers;
