@@ -15,10 +15,10 @@ public static class StringCompressionExtensions
     /// <summary>
     /// Compresses the specified text using UTF-8 + LZ4 and returns a Base64-encoded string.
     /// </summary>
-    /// <param name="text">The input text to compress. If null or empty, returns <see cref="System.String.Empty"/>.</param>
+    /// <param name="this">The input text to compress. If null or empty, returns <see cref="System.String.Empty"/>.</param>
     /// <returns>
-    /// A Base64 string that contains the LZ4-compressed representation of <paramref name="text"/>.
-    /// Returns <see cref="System.String.Empty"/> when <paramref name="text"/> is null or empty.
+    /// A Base64 string that contains the LZ4-compressed representation of <paramref name="this"/>.
+    /// Returns <see cref="System.String.Empty"/> when <paramref name="this"/> is null or empty.
     /// </returns>
     /// <remarks>
     /// This method allocates for the UTF-8 bytes, the compressed buffer, and the Base64 output string.
@@ -33,19 +33,19 @@ public static class StringCompressionExtensions
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.String CompressToBase64(this System.String? text)
+    public static System.String CompressToBase64(this System.String? @this)
     {
-        if (System.String.IsNullOrEmpty(text))
+        if (System.String.IsNullOrEmpty(@this))
         {
             return System.String.Empty;
         }
 
         // Encode UTF-8 → use stackalloc if small
-        System.Int32 maxUtf8Len = System.Text.Encoding.UTF8.GetMaxByteCount(text.Length);
+        System.Int32 maxUtf8Len = System.Text.Encoding.UTF8.GetMaxByteCount(@this.Length);
         System.Span<System.Byte> utf8Buffer = maxUtf8Len <= StackAllocThreshold
             ? stackalloc System.Byte[maxUtf8Len] : new System.Byte[maxUtf8Len];
 
-        System.Int32 utf8Len = System.Text.Encoding.UTF8.GetBytes(System.MemoryExtensions.AsSpan(text), utf8Buffer);
+        System.Int32 utf8Len = System.Text.Encoding.UTF8.GetBytes(System.MemoryExtensions.AsSpan(@this), utf8Buffer);
 
         // LZ4 encode
         System.Byte[] compressed = LZ4Codec.Encode(utf8Buffer[..utf8Len]);
@@ -57,12 +57,12 @@ public static class StringCompressionExtensions
     /// <summary>
     /// Decodes a Base64 string that contains LZ4-compressed UTF-8 data and returns the original text.
     /// </summary>
-    /// <param name="base64">
+    /// <param name="this">
     /// The Base64 string to decode. If null or empty, returns <see cref="System.String.Empty"/>.
     /// </param>
     /// <returns>
-    /// The decompressed UTF-8 text represented by <paramref name="base64"/>.
-    /// Returns <see cref="System.String.Empty"/> when <paramref name="base64"/> is null or empty.
+    /// The decompressed UTF-8 text represented by <paramref name="this"/>.
+    /// Returns <see cref="System.String.Empty"/> when <paramref name="this"/> is null or empty.
     /// </returns>
     /// <remarks>
     /// Internally performs Base64 decode, LZ4 decode, then converts bytes to UTF-8 text.
@@ -78,27 +78,28 @@ public static class StringCompressionExtensions
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.String DecompressFromBase64(this System.String? base64)
+    public static System.String DecompressFromBase64(this System.String? @this)
     {
-        if (System.String.IsNullOrEmpty(base64))
+        if (System.String.IsNullOrEmpty(@this))
         {
             return System.String.Empty;
         }
 
         // Base64 decode avoid throw
-        System.Int32 base64Len = base64.Length;
+        System.Int32 base64Len = @this.Length;
         System.Span<System.Byte> compressedBuffer = base64Len <= StackAllocThreshold
             ? stackalloc System.Byte[base64Len]
             : new System.Byte[base64Len];
 
-        if (!System.Convert.TryFromBase64String(base64, compressedBuffer, out System.Int32 compressedLen))
+        if (!System.Convert.TryFromBase64String(@this, compressedBuffer, out System.Int32 compressedLen))
         {
             throw new System.InvalidOperationException("Invalid Base64 input.");
         }
 
         // LZ4 decode
-        if (!LZ4Codec.Decode(compressedBuffer[..compressedLen], out System.Byte[]? output, out System.Int32 written) ||
-            output is null || written <= 0)
+        if (!LZ4Codec.Decode(compressedBuffer[..compressedLen],
+            out System.Byte[]? output,
+            out System.Int32 written) || output is null || written <= 0)
         {
             throw new System.InvalidOperationException("LZ4 decompression failed.");
         }
