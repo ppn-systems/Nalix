@@ -3,6 +3,7 @@
 
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
+using Nalix.Common.Networking;
 using Nalix.Common.Shared;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
@@ -10,7 +11,6 @@ using Nalix.Framework.Tasks;
 using Nalix.Network.Configurations;
 using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooled;
-using Nalix.Network.Protocols;
 using Nalix.Network.Throttling;
 using Nalix.Network.Timekeeping;
 using Nalix.Shared.Memory.Objects;

@@ -1,4 +1,4 @@
-﻿using Nalix.Common.Diagnostics.Abstractions;
+﻿using Nalix.Common.Diagnostics;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Logging;
