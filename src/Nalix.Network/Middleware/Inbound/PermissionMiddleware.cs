@@ -40,8 +40,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
                 sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                 flags: ControlFlags.NONE,
                 arg0: (System.Byte)context.Attributes.Permission.Level,
-                arg1: (System.Byte)context.Connection.Level,
-                arg2: context.Attributes.OpCode.OpCode).ConfigureAwait(false);
+                arg1: (System.Byte)context.Connection.Level, arg2: context.Attributes.OpCode.OpCode).ConfigureAwait(false);
 
             return;
         }

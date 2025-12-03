@@ -8,112 +8,106 @@ namespace Nalix.Shared.Extensions;
 public static class EnumExtensions
 {
     /// <summary>
-    /// Converts the value of an enum to a different type, ensuring that the sizes of the two types are the same.
-    /// </summary>
-    /// <typeparam name="TEnum">The enum type to convert from.</typeparam>
-    /// <typeparam name="TValue">The type to convert to.</typeparam>
-    /// <param name="this">The enum value to be converted.</param>
-    /// <returns>The converted value in the specified type <typeparamref name="TValue"/>.</returns>
-    /// <exception cref="System.ArgumentException">
-    /// Thrown if the size of <typeparamref name="TEnum"/> and <typeparamref name="TValue"/> are not the same.
-    /// </exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static TValue As<TEnum, TValue>(this TEnum @this) where TEnum : System.Enum
-    {
-        // Ensure that TEnum and TValue have the same size in memory
-        if (System.Runtime.CompilerServices.Unsafe.SizeOf<TEnum>() !=
-            System.Runtime.CompilerServices.Unsafe.SizeOf<TValue>())
-        {
-            throw new System.ArgumentException("SIZE of TEnum and TValue must be the same.", nameof(@this));
-        }
-
-        // Perform the conversion using Unsafe.As
-        return System.Runtime.CompilerServices.Unsafe.As<TEnum, TValue>(ref @this);
-    }
-
-    /// <summary>
-    /// Determines whether the specified flag is set in the given enumeration value.
-    /// </summary>
-    /// <typeparam name="TEnum">The enumeration type, which must be decorated with <see cref="System.FlagsAttribute"/>.</typeparam>
-    /// <param name="flags">The enumeration value to check.</param>
-    /// <param name="flag">The flag to check for.</param>
-    /// <returns><see langword="true"/> if the specified flag is set; otherwise, <see langword="false"/>.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean HasFlag<TEnum>(this TEnum flags, TEnum flag)
-        where TEnum : struct, System.Enum
-        => (System.Convert.ToUInt64(flags) & System.Convert.ToUInt64(flag)) == System.Convert.ToUInt64(flag);
-
-    /// <summary>
     /// Adds the specified flag to the given enumeration value.
     /// </summary>
     /// <typeparam name="TEnum">The enumeration type, which must be decorated with <see cref="System.FlagsAttribute"/>.</typeparam>
-    /// <param name="flags">The enumeration value to modify.</param>
-    /// <param name="flag">The flag to add.</param>
+    /// <param name="this">The enumeration value to modify.</param>
+    /// <param name="mask">The flag to add.</param>
     /// <returns>A new enumeration value with the specified flag added.</returns>
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static TEnum AddFlag<TEnum>(this TEnum flags, TEnum flag)
-        where TEnum : struct, System.Enum
-        => (TEnum)System.Enum.ToObject(typeof(TEnum), System.Convert.ToUInt64(flags) | System.Convert.ToUInt64(flag));
+    public static TEnum AddFlag<TEnum>(this TEnum @this, TEnum mask)
+        where TEnum : unmanaged, System.Enum
+    {
+        System.Int32 size = System.Runtime.CompilerServices.Unsafe.SizeOf<TEnum>();
+
+        if (size == sizeof(System.Byte))
+        {
+            System.Byte a = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.Byte>(ref @this);
+            System.Byte b = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.Byte>(ref mask);
+            System.Byte r = (System.Byte)(a | b);
+            return System.Runtime.CompilerServices.Unsafe.As<System.Byte, TEnum>(ref r);
+        }
+
+        if (size == sizeof(System.UInt16))
+        {
+            System.UInt16 a = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt16>(ref @this);
+            System.UInt16 b = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt16>(ref mask);
+            System.UInt16 r = (System.UInt16)(a | b);
+            return System.Runtime.CompilerServices.Unsafe.As<System.UInt16, TEnum>(ref r);
+        }
+
+        if (size == sizeof(System.UInt32))
+        {
+            System.UInt32 a = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt32>(ref @this);
+            System.UInt32 b = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt32>(ref mask);
+            System.UInt32 r = a | b;
+            return System.Runtime.CompilerServices.Unsafe.As<System.UInt32, TEnum>(ref r);
+        }
+
+        if (size == sizeof(System.UInt64))
+        {
+            System.UInt64 a = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt64>(ref @this);
+            System.UInt64 b = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt64>(ref mask);
+            System.UInt64 r = a | b;
+            return System.Runtime.CompilerServices.Unsafe.As<System.UInt64, TEnum>(ref r);
+        }
+
+        throw new System.NotSupportedException(
+            $"Enum underlying type of size {size} is not supported.");
+    }
 
     /// <summary>
     /// Removes the specified flag from the given enumeration value.
     /// </summary>
     /// <typeparam name="TEnum">The enumeration type, which must be decorated with <see cref="System.FlagsAttribute"/>.</typeparam>
-    /// <param name="flags">The enumeration value to modify.</param>
-    /// <param name="flag">The flag to remove.</param>
+    /// <param name="this">The enumeration value to modify.</param>
+    /// <param name="mask">The flag to remove.</param>
     /// <returns>A new enumeration value with the specified flag removed.</returns>
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static TEnum RemoveFlag<TEnum>(this TEnum flags, TEnum flag)
-        where TEnum : struct, System.Enum
-        => (TEnum)System.Enum.ToObject(typeof(TEnum), System.Convert.ToUInt64(flags) & ~System.Convert.ToUInt64(flag));
-
-    /// <summary>
-    /// Determines whether the enumeration value is set to none (zero).
-    /// </summary>
-    /// <typeparam name="TEnum">The enumeration type, which must be decorated with <see cref="System.FlagsAttribute"/>.</typeparam>
-    /// <param name="flags">The enumeration value to check.</param>
-    /// <returns><see langword="true"/> if no flags are set; otherwise, <see langword="false"/>.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean IsNone<TEnum>(this TEnum flags)
-        where TEnum : struct, System.Enum
-        => System.Convert.ToUInt64(flags) == 0;
-
-    /// <summary>
-    /// Determines whether the enumeration value matches the specified required flags
-    /// and does not contain any of the excluded flags.
-    /// </summary>
-    /// <typeparam name="TEnum">The enumeration type, which must be decorated with <see cref="System.FlagsAttribute"/>.</typeparam>
-    /// <param name="flags">The enumeration value to check.</param>
-    /// <param name="requiredFlags">The flags that must be present.</param>
-    /// <param name="excludedFlags">The flags that must not be present.</param>
-    /// <returns>
-    /// <see langword="true"/> if the enumeration value contains all required flags
-    /// and does not contain any excluded flags; otherwise, <see langword="false"/>.
-    /// </returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean Matches<TEnum>(this TEnum flags, TEnum requiredFlags, TEnum excludedFlags)
-        where TEnum : struct, System.Enum
+    public static TEnum RemoveFlag<TEnum>(this TEnum @this, TEnum mask)
+        where TEnum : unmanaged, System.Enum
     {
-        System.UInt64 f = System.Convert.ToUInt64(flags);
-        return (f & System.Convert.ToUInt64(requiredFlags)) == System.Convert.ToUInt64(requiredFlags) &&
-               (f & System.Convert.ToUInt64(excludedFlags)) == 0;
+        System.Int32 size = System.Runtime.CompilerServices.Unsafe.SizeOf<TEnum>();
+
+        if (size == sizeof(System.Byte))
+        {
+            System.Byte a = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.Byte>(ref @this);
+            System.Byte b = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.Byte>(ref mask);
+            System.Byte r = (System.Byte)(a & ~b);
+            return System.Runtime.CompilerServices.Unsafe.As<System.Byte, TEnum>(ref r);
+        }
+
+        if (size == sizeof(System.UInt16))
+        {
+            System.UInt16 a = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt16>(ref @this);
+            System.UInt16 b = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt16>(ref mask);
+            System.UInt16 r = (System.UInt16)(a & ~b);
+            return System.Runtime.CompilerServices.Unsafe.As<System.UInt16, TEnum>(ref r);
+        }
+
+        if (size == sizeof(System.UInt32))
+        {
+            System.UInt32 a = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt32>(ref @this);
+            System.UInt32 b = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt32>(ref mask);
+            System.UInt32 r = a & ~b;
+            return System.Runtime.CompilerServices.Unsafe.As<System.UInt32, TEnum>(ref r);
+        }
+
+        if (size == sizeof(System.UInt64))
+        {
+            System.UInt64 a = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt64>(ref @this);
+            System.UInt64 b = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt64>(ref mask);
+            System.UInt64 r = a & ~b;
+            return System.Runtime.CompilerServices.Unsafe.As<System.UInt64, TEnum>(ref r);
+        }
+
+        throw new System.NotSupportedException(
+            $"Enum underlying type of size {size} is not supported.");
     }
 }

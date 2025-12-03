@@ -55,6 +55,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
                         sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
                         flags: ControlFlags.IS_TRANSIENT,
                         arg0: context.Packet.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
+
                     return;
                 }
             }
