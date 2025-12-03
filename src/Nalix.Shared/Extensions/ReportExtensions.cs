@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Abstractions;
+using Nalix.Common.Environment;
 using Nalix.Common.Logging;
 using Nalix.Framework.Injection;
 
@@ -11,10 +12,18 @@ namespace Nalix.Shared.Extensions;
 /// </summary>
 public static class ReportExtensions
 {
-    private static readonly System.String ReportDir = System.IO.Path.Combine(Common.Environment.Directories.LogsDirectory, "reports");
+    private static readonly System.String ReportDir;
+
+    static ReportExtensions()
+    {
+        ReportDir = System.IO.Path.GetFullPath(System.IO.Path
+                                  .Combine(Directories.DataDirectory, "reports"));
+
+        _ = System.IO.Directory.CreateDirectory(ReportDir);
+    }
 
     /// <summary>
-    /// Saves the generated report of the manager to a file inside LogsDirectory/reports.
+    /// Saves the generated report of the manager to a file inside DataDirectory/reports.
     /// </summary>
     /// <param name="this">The reportable manager.</param>
     /// <param name="prefix">Optional filename prefix, e.g. "buffer" or "object".</param>
@@ -22,16 +31,24 @@ public static class ReportExtensions
     public static System.String SaveReportToFile(this IReportable @this, System.String prefix = "report")
     {
         System.String report = @this.GenerateReport();
+        System.String safePrefix = prefix?.ToLowerInvariant() ?? "report";
 
         _ = System.IO.Directory.CreateDirectory(ReportDir);
 
-        System.String filePath = System.IO.Path.Combine(
-            ReportDir, $"{prefix.ToLower()}-report-{System.DateTime.UtcNow:yyyyMMdd-HHmm}.txt");
+        System.String filePath = System.IO.Path.Combine(ReportDir, $"{safePrefix}-report-{System.DateTime.UtcNow:yyyyMMdd-HHmm}.txt");
 
-        System.IO.File.WriteAllText(filePath, report);
+        try
+        {
+            System.IO.File.WriteAllText(filePath, report);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{@this.GetType().Name}] report saved: {filePath}");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Info($"[{@this.GetType().Name}] report saved: {filePath}");
+        }
+        catch (System.Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"[{@this.GetType().Name}] failed to save report to file: {ex}");
+        }
 
         return filePath;
     }
