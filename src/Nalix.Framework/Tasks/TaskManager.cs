@@ -194,8 +194,9 @@ public sealed partial class TaskManager : ITaskManager
         // run
         st.Task = System.Threading.Tasks.Task.Run(async () =>
         {
-            System.Threading.CancellationToken ct = cts.Token;
             System.Boolean acquired = false;
+            System.Threading.CancellationToken ct = cts.Token;
+
             try
             {
                 if (gate is not null)
@@ -357,7 +358,7 @@ public sealed partial class TaskManager : ITaskManager
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean CancelWorker([System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id)
     {
-        if (_workers.TryGetValue(id, out var st))
+        if (_workers.TryGetValue(id, out WorkerState? st))
         {
             st.Cancel();
 
@@ -389,9 +390,9 @@ public sealed partial class TaskManager : ITaskManager
     public System.Int32 CancelGroup([System.Diagnostics.CodeAnalysis.NotNull] System.String group)
     {
         System.Int32 n = 0;
-        foreach (var kv in _workers)
+        foreach (System.Collections.Generic.KeyValuePair<ISnowflake, WorkerState> kv in _workers)
         {
-            var st = kv.Value;
+            WorkerState st = kv.Value;
             if (System.String.Equals(st.Group, group, System.StringComparison.Ordinal))
             {
                 if (!st.Cts.IsCancellationRequested)
@@ -421,7 +422,7 @@ public sealed partial class TaskManager : ITaskManager
     public System.Int32 CancelAllWorkers()
     {
         System.Int32 n = 0;
-        foreach (var kv in _workers)
+        foreach (System.Collections.Generic.KeyValuePair<ISnowflake, WorkerState> kv in _workers)
         {
             if (!kv.Value.Cts.IsCancellationRequested)
             {
@@ -484,7 +485,7 @@ public sealed partial class TaskManager : ITaskManager
     public System.Collections.Generic.IReadOnlyCollection<IRecurringHandle> ListRecurring()
     {
         System.Collections.Generic.List<IRecurringHandle> list = new(_recurring.Count);
-        foreach (var kv in _recurring)
+        foreach (System.Collections.Generic.KeyValuePair<System.String, RecurringState> kv in _recurring)
         {
             list.Add(kv.Value);
         }
@@ -506,9 +507,9 @@ public sealed partial class TaskManager : ITaskManager
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String? group = null)
     {
         System.Collections.Generic.List<IWorkerHandle> list = new(_workers.Count);
-        foreach (var kv in _workers)
+        foreach (System.Collections.Generic.KeyValuePair<ISnowflake, WorkerState> kv in _workers)
         {
-            var st = kv.Value;
+            WorkerState st = kv.Value;
             if (runningOnly && !st.IsRunning)
             {
                 continue;
@@ -537,7 +538,7 @@ public sealed partial class TaskManager : ITaskManager
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public System.String GenerateReport()
     {
-        var sb = new System.Text.StringBuilder(1024);
+        System.Text.StringBuilder sb = new(1024);
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TaskManager:");
         _ = sb.AppendLine($"Recurring: {_recurring.Count} | Workers: {_workers.Count} (running={CountRunningWorkers()})");
         _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");
@@ -545,9 +546,9 @@ public sealed partial class TaskManager : ITaskManager
         // Recurring summary
         _ = sb.AppendLine("Recurring:");
         _ = sb.AppendLine("Naming                       | Runs     | Fails | Running | Last UTC             | Next UTC             | Interval | Tag");
-        foreach (var kv in _recurring)
+        foreach (System.Collections.Generic.KeyValuePair<System.String, RecurringState> kv in _recurring)
         {
-            var s = kv.Value;
+            RecurringState s = kv.Value;
             System.String nm = PadName(kv.Key, 28);
             System.String runs = s.TotalRuns.ToString().PadLeft(8);
             System.String fails = s.ConsecutiveFailures.ToString().PadLeft(5);
@@ -563,14 +564,14 @@ public sealed partial class TaskManager : ITaskManager
         // Workers summary by group
         _ = sb.AppendLine("Workers by Group:");
         _ = sb.AppendLine("Group                        | Running | Total | Concurrency");
-        var perGroup = new System.Collections.Concurrent.ConcurrentDictionary<System.String, (System.Int32 running, System.Int32 total)>(System.StringComparer.Ordinal);
-        foreach (var kv in _workers)
+        System.Collections.Concurrent.ConcurrentDictionary<System.String, (System.Int32 running, System.Int32 total)> perGroup = new(System.StringComparer.Ordinal);
+        foreach (System.Collections.Generic.KeyValuePair<ISnowflake, WorkerState> kv in _workers)
         {
-            var g = kv.Value.Group;
+            System.String g = kv.Value.Group;
             _ = perGroup.AddOrUpdate(g, _ => (kv.Value.IsRunning ? 1 : 0, 1),
                 (_, t) => (t.running + (kv.Value.IsRunning ? 1 : 0), t.total + 1));
         }
-        foreach (var gkv in perGroup)
+        foreach (System.Collections.Generic.KeyValuePair<System.String, (System.Int32 running, System.Int32 total)> gkv in perGroup)
         {
             System.String gname = PadName(gkv.Key, 28);
             if (_groupGates.TryGetValue(gkv.Key, out Gate? gate))
@@ -589,10 +590,10 @@ public sealed partial class TaskManager : ITaskManager
         // Top N long-running workers
         _ = sb.AppendLine("Top Running Workers (by age):");
         _ = sb.AppendLine("Id         | Naming                       | Group                        | Age     | Progress | LastBeat");
-        var top = new System.Collections.Generic.List<WorkerState>(_workers.Values);
+        System.Collections.Generic.List<WorkerState> top = [.. _workers.Values];
         top.Sort(static (a, b) => a.StartedUtc.CompareTo(b.StartedUtc)); // oldest first
         System.Int32 show = 0;
-        foreach (var w in top)
+        foreach (WorkerState w in top)
         {
             if (!w.IsRunning)
             {
