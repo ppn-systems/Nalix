@@ -14,6 +14,7 @@ namespace Nalix.Network.Internal.Transport;
 /// Provides a thread-safe caching layer for network packets, supporting both outgoing and incoming traffic.
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 [System.Diagnostics.DebuggerDisplay("Uptime={Uptime}ms, Dropped={DroppedPackets}, Incoming={Incoming.Count}")]
 internal sealed class FramedSocketCache
 {

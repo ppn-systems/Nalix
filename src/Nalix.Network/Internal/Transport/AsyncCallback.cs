@@ -41,6 +41,7 @@ namespace Nalix.Network.Internal.Transport;
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal static class AsyncCallback
 {
     #region Options

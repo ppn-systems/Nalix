@@ -14,6 +14,7 @@ namespace Nalix.Network.Internal.Pooled;
 /// This object is reused via a pooling mechanism to reduce allocations
 /// when handling incoming TCP connections.
 /// </remarks>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class PooledListenerProcessContext : IPoolable
 {
     /// <summary>

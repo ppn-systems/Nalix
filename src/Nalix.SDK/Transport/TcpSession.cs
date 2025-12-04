@@ -18,6 +18,9 @@ namespace Nalix.SDK.Transport;
 /// A reliable TCP client that delegates framing, send, and receive responsibilities to internal helpers.
 /// Supports automatic reconnection, keep-alive heartbeats, and bandwidth rate sampling.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicMethods |
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 public sealed class TcpSession : BaseTcpSession
 {
     #region Constants and Static Fields

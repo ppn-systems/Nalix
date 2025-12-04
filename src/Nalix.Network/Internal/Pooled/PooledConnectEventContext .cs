@@ -16,6 +16,7 @@ namespace Nalix.Network.Internal.Pooled;
 /// It temporarily stores the event sender, arguments, and callback delegate during invocation.
 /// </remarks>
 [System.Runtime.CompilerServices.SkipLocalsInit]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class PooledConnectEventContext : IPoolable
 {
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();

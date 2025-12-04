@@ -8,6 +8,7 @@
 
 namespace Nalix.Network.Internal;
 
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal static class NetTaskNames
 {
     internal const System.String Tcp = "tcp";
