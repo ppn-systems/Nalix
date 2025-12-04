@@ -72,7 +72,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
 
             await next(context.CancellationToken).ConfigureAwait(false);
         }
-        catch (ConcurrencyRejectedException)
+        catch (ConcurrencyConflictException)
         {
             System.UInt32 sequenceId2 = context.Packet is IPacketSequenced sequenced2
                 ? sequenced2.SequenceId

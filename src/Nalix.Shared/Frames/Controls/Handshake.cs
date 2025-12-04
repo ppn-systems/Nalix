@@ -32,7 +32,7 @@ public sealed class Handshake : PacketBase<Handshake>
     /// <summary>
     /// Initializes a new <see cref="Handshake"/> with empty content.
     /// </summary>
-    public Handshake() => ResetForPool();
+    public Handshake() : base() => ResetForPool();
 
     /// <summary>
     /// Initializes a new instance with the specified operation code, binary data, and protocol.
