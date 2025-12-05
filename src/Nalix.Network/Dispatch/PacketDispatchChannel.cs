@@ -3,7 +3,6 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Caching;
 using Nalix.Common.Connection;
-using Nalix.Common.Logging;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Tasks;
 using Nalix.Framework.Injection;
@@ -64,14 +63,13 @@ public sealed class PacketDispatchChannel
     /// with custom configuration options.
     /// </summary>
     /// <param name="options">A delegate used to configure dispatcher options</param>
-    public PacketDispatchChannel(System.Action<Options.PacketDispatchOptions<IPacket>> options)
-        : base(options)
+    public PacketDispatchChannel(System.Action<Options.PacketDispatchOptions<IPacket>> options) : base(options)
     {
-        _dispatch = new DispatchChannel<IPacket>(InstanceManager.Instance.GetExistingInstance<ILogger>());
+        _dispatch = new DispatchChannel<IPacket>();
         _catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
                    ?? throw new System.InvalidOperationException(
                        $"[{nameof(PacketDispatchChannel)}] IPacketCatalog not registered in InstanceManager. " +
-                       "Make sure to build and register IPacketCatalog before starting dispatcher.");
+                        "Make sure to build and register IPacketCatalog before starting dispatcher.");
 
         // Push any additional initialization here if needed
         Logger?.Debug($"[{nameof(PacketDispatchChannel)}] init");

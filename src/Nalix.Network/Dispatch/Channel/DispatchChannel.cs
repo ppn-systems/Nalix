@@ -3,7 +3,6 @@
 using Nalix.Common.Caching;
 using Nalix.Common.Connection;
 using Nalix.Common.Enums;
-using Nalix.Common.Logging;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Framework.Configuration;
@@ -64,8 +63,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     private const System.Int32 HighestPriorityIndex = (System.Int32)PacketPriority.URGENT;
     private const System.Int32 GetPriorityLevels = (System.Int32)PacketPriority.URGENT + 1;
 
-    [System.Diagnostics.CodeAnalysis.AllowNull]
-    private readonly ILogger _logger;
     private readonly DispatchOptions _options;
 
     // Ready queues: one queue per priority (highest first on pull).
@@ -97,10 +94,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// <summary>
     /// Initializes a new instance of the <see cref="DispatchChannel{TPacket}"/> class.
     /// </summary>
-    /// <param name="logger">Optional logger for diagnostics.</param>
-    public DispatchChannel([System.Diagnostics.CodeAnalysis.AllowNull] ILogger logger = null)
+    public DispatchChannel()
     {
-        _logger = logger;
         _options = ConfigurationManager.Instance.Get<DispatchOptions>();
 
         _readyByPrio = new System.Collections.Concurrent.ConcurrentQueue<IConnection>[GetPriorityLevels];

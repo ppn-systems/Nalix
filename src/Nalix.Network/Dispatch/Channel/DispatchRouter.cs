@@ -2,7 +2,6 @@
 
 using Nalix.Common.Caching;
 using Nalix.Common.Connection;
-using Nalix.Common.Logging;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Network.Abstractions;
 
@@ -11,8 +10,8 @@ namespace Nalix.Network.Dispatch.Channel;
 /// <inheritdoc/>
 public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TPacket : IPacket
 {
-    private readonly DispatchChannel<TPacket>[] _shards;
     private readonly System.Int32 _mask;
+    private readonly DispatchChannel<TPacket>[] _shards;
 
     /// <inheritdoc/>
     public System.Int32 TotalPackets
@@ -29,7 +28,7 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
     }
 
     /// <inheritdoc/>
-    public DispatchRouter(System.Int32 shardCount, ILogger logger = null)
+    public DispatchRouter(System.Int32 shardCount)
     {
         shardCount = (System.Int32)System.Numerics.BitOperations.RoundUpToPowerOf2((System.UInt32)shardCount);
 
@@ -38,7 +37,7 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
 
         for (System.Int32 i = 0; i < shardCount; i++)
         {
-            _shards[i] = new DispatchChannel<TPacket>(logger);
+            _shards[i] = new DispatchChannel<TPacket>();
         }
     }
 
