@@ -63,8 +63,8 @@ public abstract partial class TcpListenerBase
 
     [System.Diagnostics.DebuggerStepThrough]
     private IConnection InitializeConnection(
-    [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.Socket socket,
-    [System.Diagnostics.CodeAnalysis.NotNull] PooledAcceptContext context)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.Socket socket,
+        [System.Diagnostics.CodeAnalysis.NotNull] PooledAcceptContext context)
     {
         InitializeOptions(socket);
 

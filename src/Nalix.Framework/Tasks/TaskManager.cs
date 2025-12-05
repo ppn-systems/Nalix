@@ -22,7 +22,7 @@ public sealed partial class TaskManager : ITaskManager
     private static readonly System.TimeSpan CleanupInterval = System.TimeSpan.FromSeconds(30);
 
     private readonly System.Threading.Timer _cleanupTimer;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, Gate> _groupGates;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, GATE> _groupGates;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, WorkerState> _workers;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, RecurringState> _recurring;
 
@@ -44,7 +44,7 @@ public sealed partial class TaskManager : ITaskManager
         _cleanupTimer = new System.Threading.Timer(static s =>
         {
             var self = (TaskManager)s!;
-            self.CleanupWorkers();
+            self.CLEANUP_WORKERS();
         }, this, CleanupInterval, CleanupInterval);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -92,7 +92,7 @@ public sealed partial class TaskManager : ITaskManager
             throw new System.InvalidOperationException($"[{nameof(TaskManager)}] duplicate recurring name: {name}");
         }
 
-        st.Task = System.Threading.Tasks.Task.Run(() => RecurringLoopAsync(st, work), cts.Token);
+        st.Task = System.Threading.Tasks.Task.Run(() => RECURRING_LOOP_ASYNC(st, work), cts.Token);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(TaskManager)}] start-recurring name={name} " +
@@ -183,12 +183,12 @@ public sealed partial class TaskManager : ITaskManager
         }
 
         // Optional concurrency cap per-group
-        Gate? gate = null;
+        GATE? gate = null;
         System.Exception? failure = null;
 
         if (options.GroupConcurrencyLimit is System.Int32 cap && cap > 0)
         {
-            gate = _groupGates.GetOrAdd(group, _ => new Gate(new System.Threading.SemaphoreSlim(cap, cap), cap));
+            gate = _groupGates.GetOrAdd(group, _ => new GATE(new System.Threading.SemaphoreSlim(cap, cap), cap));
         }
 
         // run
@@ -284,7 +284,7 @@ public sealed partial class TaskManager : ITaskManager
                     catch { }
                 }
 
-                this.RetainOrRemove(st);
+                this.RETAIN_OR_REMOVE(st);
             }
         }, cts.Token);
 
@@ -540,7 +540,7 @@ public sealed partial class TaskManager : ITaskManager
     {
         System.Text.StringBuilder sb = new(1024);
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TaskManager:");
-        _ = sb.AppendLine($"Recurring: {_recurring.Count} | Workers: {_workers.Count} (running={CountRunningWorkers()})");
+        _ = sb.AppendLine($"Recurring: {_recurring.Count} | Workers: {_workers.Count} (running={COUNT_RUNNING_WORKERS()})");
         _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");
 
         // Recurring summary
@@ -574,7 +574,7 @@ public sealed partial class TaskManager : ITaskManager
         foreach (System.Collections.Generic.KeyValuePair<System.String, (System.Int32 running, System.Int32 total)> gkv in perGroup)
         {
             System.String gname = PadName(gkv.Key, 28);
-            if (_groupGates.TryGetValue(gkv.Key, out Gate? gate))
+            if (_groupGates.TryGetValue(gkv.Key, out GATE? gate))
             {
                 System.Int32 total = gate.Capacity;
                 System.Int32 used = total - gate.SemaphoreSlim.CurrentCount;
