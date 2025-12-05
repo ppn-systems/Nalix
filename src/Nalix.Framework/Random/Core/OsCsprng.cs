@@ -8,7 +8,7 @@ namespace Nalix.Framework.Random.Core;
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
-public static partial class OsCsprng
+internal static partial class OsCsprng
 {
     #region Fields
 

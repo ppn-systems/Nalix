@@ -66,7 +66,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         _iniFile = new System.Lazy<IniConfig>(() =>
         {
             // Ensure the directory exists before trying to access the file
-            this.EnsureConfigDirectoryExists();
+            this.ENSURE_CONFIG_DIRECTORY_EXISTS();
             return new IniConfig(ConfigFilePath);
         }, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
@@ -277,7 +277,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void EnsureConfigDirectoryExists()
+    private void ENSURE_CONFIG_DIRECTORY_EXISTS()
     {
         if (!_directoryChecked)
         {

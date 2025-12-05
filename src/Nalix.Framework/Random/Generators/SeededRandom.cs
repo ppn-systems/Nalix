@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Framework.Random.Algorithms;
+namespace Nalix.Framework.Random.Generators;
 
 /// <summary>
 /// A high-performance class for generating random numbers with various data types and ranges.

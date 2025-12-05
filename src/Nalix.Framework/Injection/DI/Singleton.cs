@@ -178,7 +178,7 @@ public static class Singleton
         }
 
         // Normal resolution path
-        TClass? instance = ResolveInternal<TClass>(createIfNotExists);
+        TClass? instance = RESOLVE_INTERNAL<TClass>(createIfNotExists);
 
         // Caches the instance if it was found
         if (instance != null)
@@ -250,7 +250,7 @@ public static class Singleton
         try
         {
             // ConditionalWeakTable doesn't have Dispose method, so we're recreating it
-            foreach (System.Type key in GetAllCachedTypes())
+            foreach (System.Type key in GET_ALL_CACHED_TYPES())
             {
                 _ = ResolutionCache.Remove(key);
             }
@@ -275,7 +275,7 @@ public static class Singleton
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Collections.Generic.List<System.Type> GetAllCachedTypes()
+    private static System.Collections.Generic.List<System.Type> GET_ALL_CACHED_TYPES()
     {
         System.Collections.Generic.List<System.Type> result =
         [
@@ -293,7 +293,7 @@ public static class Singleton
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    private static TClass? ResolveInternal<TClass>(System.Boolean createIfNotExists) where TClass : class
+    private static TClass? RESOLVE_INTERNAL<TClass>(System.Boolean createIfNotExists) where TClass : class
     {
         System.Type type = typeof(TClass);
 
