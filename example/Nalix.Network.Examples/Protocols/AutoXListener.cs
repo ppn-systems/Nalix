@@ -1,7 +1,7 @@
 ﻿// Copyright (c) 2025-2026 PPN Corporation.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Network.Abstractions;
+using Nalix.Common.Networking;
 using Nalix.Network.Listeners.Tcp;
 
 namespace Nalix.Network.Examples.Protocols;
