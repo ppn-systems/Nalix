@@ -25,14 +25,14 @@ public sealed class PingHandlers
     [PacketOpcode(0)]
     [PacketEncryption(true)]
     [PacketPermission(PermissionLevel.GUEST)]
-    public static async System.Threading.Tasks.Task Ping(PacketContext<IPacket> context)
+    public static async System.Threading.Tasks.Task Ping(PacketContext<Handshake> context)
     {
         UInt32 fallbackSeq = context.Packet.SequenceId;
-        System.Console.WriteLine("Received PING from " + context.Connection.RemoteEndPoint);
+        System.Console.WriteLine("Received PING from " + context.Connection.NetworkEndpoint.Address);
         // Chỉ nhận gói Control có type = PING
         if (context.Packet is not Handshake ping)
         {
-            System.Console.WriteLine($"[APP.{nameof(PingHandlers)}] Received non-PING packet from {context.Connection.RemoteEndPoint}");
+            System.Console.WriteLine($"[APP.{nameof(PingHandlers)}] Received non-PING packet from {context.Connection.NetworkEndpoint.Address}");
             await context.Connection.SendAsync(
                 ControlType.ERROR,
                 ProtocolReason.MALFORMED_PACKET,
@@ -47,7 +47,7 @@ public sealed class PingHandlers
         }
         catch (System.Exception ex)
         {
-            s_logger?.Error($"[APP.{nameof(PingHandlers)}] failed ep={context.Connection.RemoteEndPoint} ex={ex.Message}");
+            s_logger?.Error($"[APP.{nameof(PingHandlers)}] failed ep={context.Connection.NetworkEndpoint.Address} ex={ex.Message}");
 
             await context.Connection.SendAsync(
                 ControlType.ERROR,
@@ -98,7 +98,7 @@ public sealed class PingHandlers
         }
         catch (System.Exception ex)
         {
-            s_logger?.Error($"[APP.{nameof(PingHandlers)}] failed ep={p.Connection.RemoteEndPoint} ex={ex.Message}");
+            s_logger?.Error($"[APP.{nameof(PingHandlers)}] failed ep={p.Connection.NetworkEndpoint.Address} ex={ex.Message}");
 
             await p.Connection.SendAsync(
                 ControlType.ERROR,
