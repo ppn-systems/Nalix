@@ -12,17 +12,6 @@ namespace Nalix.Logging;
 public static class NLogixExtensions
 {
     /// <summary>
-    /// Logs a meta-level message with class and member context.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void Meta<T>(
-        this ILogger logger, System.String message, EventId? eventId = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String member = "")
-        where T : class
-        => logger.Meta($"[{typeof(T).Name}:{member}] {message}", eventId);
-
-    /// <summary>
     /// Logs a trace-level message with class and member context.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
