@@ -18,6 +18,52 @@ public sealed partial class PacketDispatchOptions<TPacket>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private async System.Threading.Tasks.ValueTask ExecuteHandlerAsync(PacketHandler<TPacket> descriptor, PacketContext<TPacket> context)
     {
+        // ------------------------------------------------------------------
+        // Concrete-type guard — fast path: only active for legacy-style handlers
+        // whose first parameter is a concrete type (e.g. LoginPacket) rather
+        // than the TPacket interface itself.
+        //
+        // Why this matters:
+        //   When TPacket = IPacket (the common case in PacketDispatchChannel),
+        //   the expression tree compiled by HandlerCompiler contains an
+        //   Expression.Convert(packetExpr, concreteType).
+        //   If the packet deserialized from the wire is *not* an instance of
+        //   that concrete type, the expression tree throws InvalidCastException
+        //   with a message that gives no hint about which handler or opCode
+        //   caused the failure.
+        //
+        //   This check fires *before* the expression tree runs, logs an
+        //   actionable warning, and sends a FAIL frame to the client — all
+        //   in O(1) time via a single dictionary lookup that was already done
+        //   in the caller (TryGetExpectedPacketType).
+        //
+        // Performance:
+        //   TryGetExpectedPacketType is AggressiveInlining + a Dictionary
+        //   lookup (one hash + one reference compare). The IsInstanceOfType
+        //   call is also ~1ns for sealed/concrete types. Total overhead on the
+        //   happy path (type matches) is negligible compared to async machinery.
+        // ------------------------------------------------------------------
+        if (TryGetExpectedPacketType(descriptor.OpCode, out System.Type expectedType)
+            && !expectedType.IsInstanceOfType(context.Packet))
+        {
+            System.Type actualType = context.Packet?.GetType();
+
+            this.Logging?.Warn(
+                $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(ExecuteHandlerAsync)}] " +
+                $"type-mismatch opcode=0x{descriptor.OpCode:X4} " +
+                $"expected={expectedType.Name} actual={actualType?.Name ?? "null"} — skipping handler");
+
+            await context.Connection.SendAsync(
+                controlType: ControlType.FAIL,
+                reason: ProtocolReason.REQUEST_INVALID,
+                action: ProtocolAdvice.FIX_AND_RETRY,
+                sequenceId: context.Packet.SequenceId,
+                flags: ControlFlags.NONE,
+                arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
+
+            return;
+        }
+
         context.SkipOutbound = HasNoOutboundResult(descriptor.ReturnType);
 
         if (!_pipeline.IsEmpty)
@@ -38,15 +84,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
                 if (!descriptor.CanExecute(context))
                 {
-                    System.UInt32 sequenceId1 = context.Packet is IPacketSequenced sequenced1
-                        ? sequenced1.SequenceId
-                        : 0;
-
                     await context.Connection.SendAsync(
                         controlType: ControlType.FAIL,
                         reason: ProtocolReason.RATE_LIMITED,
                         action: ProtocolAdvice.RETRY,
-                        sequenceId: sequenceId1,
+                        sequenceId: context.Packet.SequenceId,
                         flags: ControlFlags.IS_TRANSIENT,
                         arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
 
@@ -95,15 +137,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         (ProtocolReason reason, ProtocolAdvice action, ControlFlags flags) = MapExceptionToProtocol(exception);
 
-        System.UInt32 sequenceId2 = context.Packet is IPacketSequenced sequenced2
-            ? sequenced2.SequenceId
-            : 0;
-
         await context.Connection.SendAsync(
               controlType: ControlType.FAIL,
               reason: reason,
               action: action,
-              sequenceId: sequenceId2,
+              sequenceId: context.Packet.SequenceId,
               flags: flags,
               arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
     }
@@ -117,15 +155,62 @@ public sealed partial class PacketDispatchOptions<TPacket>
         || returnType == typeof(System.Threading.Tasks.Task)
         || returnType == typeof(System.Threading.Tasks.ValueTask);
 
-
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static T ThrowIfNull<T>(T value, System.String param) where T : class => value ?? throw new System.ArgumentNullException(param);
+    private static T ThrowIfNull<T>(T value, System.String param) where T : class
+        => value ?? throw new System.ArgumentNullException(param);
+
+
+    /// <summary>
+    /// Tries to retrieve the concrete packet type registered for the given opcode.
+    /// Returns <see langword="null"/> for context-style handlers or when no mapping exists.
+    /// </summary>
+    /// <remarks>
+    /// Hot path — called once per dispatch. The dictionary lookup is O(1) with a small constant.
+    /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private System.Boolean TryGetExpectedPacketType(
+        System.UInt16 opCode,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Type expectedType)
+        => _packetTypeMap.TryGetValue(opCode, out expectedType) && expectedType is not null;
+
+    /// <summary>
+    /// Inspects a handler <paramref name="method"/>'s parameter list and returns the
+    /// concrete packet type it expects, or <see langword="null"/> for context-style methods.
+    /// </summary>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Type ResolveConcretePacketType(
+        System.Reflection.MethodInfo method,
+        System.Type contextType)
+    {
+        System.Reflection.ParameterInfo[] parms = method.GetParameters();
+
+        if (parms.Length == 0)
+        {
+            return null;
+        }
+
+        System.Type firstParam = parms[0].ParameterType;
+
+        // Context-style: (PacketContext<TPacket>[, CancellationToken])
+        // The packet type is accessed through the context — no direct cast needed.
+        if (firstParam == contextType)
+        {
+            return null;
+        }
+
+        // Legacy-style: (SomePacket, IConnection[, CancellationToken])
+        // Return the concrete packet type (may equal TPacket if the handler uses the interface).
+        return typeof(IPacket).IsAssignableFrom(firstParam) ? firstParam : null;
+    }
 
     /// <summary>
     /// Map exception types to ProtocolCode/ProtocolAction/ControlFlags.
-    /// Adjust mappings to match your enum set.
     /// </summary>
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.StackTraceHidden]
@@ -158,7 +243,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return (ProtocolReason.OPERATION_UNSUPPORTED, ProtocolAdvice.NONE, ControlFlags.NONE);
         }
 
-        // 5) IEndpointKey /O / socket => phần lớn transient
+        // 5) IO / socket => mostly transient
         if (ex is System.IO.IOException ioEx && ioEx.InnerException is System.Net.Sockets.SocketException se1)
         {
             return MapSocketExceptionToProtocol(se1);
@@ -169,7 +254,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return MapSocketExceptionToProtocol(se);
         }
 
-        // 6) ObjectDisposed trong giai đoạn teardown/shutdown: coi như transient nhẹ
+        // 6) ObjectDisposed trong teardown: coi như transient nhẹ
         if (ex is System.ObjectDisposedException)
         {
             return (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT);
@@ -182,20 +267,21 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             return se.SocketErrorCode switch
             {
-                // thường do peer reset/close hay mạng chập chờn
+                System.Net.Sockets.SocketError.TimedOut
+                => (ProtocolReason.TIMEOUT, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+
                 System.Net.Sockets.SocketError.ConnectionReset or
                 System.Net.Sockets.SocketError.ConnectionAborted or
-                System.Net.Sockets.SocketError.TimedOut or
                 System.Net.Sockets.SocketError.HostDown or
                 System.Net.Sockets.SocketError.HostUnreachable or
                 System.Net.Sockets.SocketError.NetworkDown or
                 System.Net.Sockets.SocketError.NetworkUnreachable
                 => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
-                // local cancellation / interrupted
+
                 System.Net.Sockets.SocketError.Interrupted or
                 System.Net.Sockets.SocketError.OperationAborted
                 => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
-                // default
+
                 _ => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.NONE),
             };
         }
