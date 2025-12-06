@@ -20,38 +20,34 @@ public abstract class FrameBase : IPacket
     /// <summary>
     /// Gets the total length of the serialized packet in bytes, including header and content.
     /// </summary>
-    [SerializeIgnore]
-    public abstract System.UInt16 Length { get; }
+    [SerializeIgnore] protected abstract System.UInt16 Length { get; }
 
     /// <summary>
     /// Gets the magic number used to identify the packet format.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.MAGIC_NUMBER)]
-    public System.UInt32 MagicNumber { get; set; }
+    [SerializeOrder(PacketHeaderOffset.MAGIC_NUMBER)] public System.UInt32 MagicNumber { get; set; }
 
     /// <summary>
     /// Gets the operation code (OpCode) of this packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.OP_CODE)]
-    public System.UInt16 OpCode { get; set; }
+    [SerializeOrder(PacketHeaderOffset.OP_CODE)] public System.UInt16 OpCode { get; set; }
 
     /// <summary>
     /// Gets the flags associated with this packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.FLAGS)]
-    public PacketFlags Flags { get; set; }
+    [SerializeOrder(PacketHeaderOffset.FLAGS)] public PacketFlags Flags { get; set; }
 
     /// <summary>
     /// Gets the packet priority.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.PRIORITY)]
-    public PacketPriority Priority { get; set; }
+    [SerializeOrder(PacketHeaderOffset.PRIORITY)] public PacketPriority Priority { get; set; }
 
     /// <summary>
     /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.TRANSPORT)]
-    public ProtocolType Protocol { get; set; }
+    [SerializeOrder(PacketHeaderOffset.TRANSPORT)] public ProtocolType Protocol { get; set; }
+
+    System.UInt16 IPacket.Length => this.Length;
 
     /// <inheritdoc/>
     public abstract System.Byte[] Serialize();
