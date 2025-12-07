@@ -230,26 +230,43 @@ internal sealed class HandlerCompiler<
         SignatureKind kind = ResolveSignatureKind(x22, parms);
 
         // -------------------------------------------------------------------
-        // Build the argument list fed to the actual method call expression.
+        // Context-style with a DIFFERENT concrete PacketContext<T>
+        //
+        // When TPacket = IPacket but the handler declares PacketContext<Handshake>,
+        // Expression.Convert cannot bridge PacketContext<IPacket> to PacketContext<Handshake>
+        // because generic classes are invariant — no coercion operator exists between them.
+        //
+        // Solution: skip the expression-tree path for this case and use a reflection-based
+        // bridge instead. MethodInfo.Invoke boxes arguments to object and performs the
+        // assignability check at runtime via CLR rules, accepting PacketContext<Handshake>
+        // without any explicit cast.
         // -------------------------------------------------------------------
-        System.Linq.Expressions.Expression[] x09 = BuildArgExpressions(kind, parms, x01, x02, x03, x04);
+        System.Boolean needsContextBridge =
+            (kind is SignatureKind.ContextOnly or SignatureKind.ContextWithToken)
+            && parms[0].ParameterType != typeof(PacketContext<TPacket>);
 
-        System.Linq.Expressions.Expression x10 = x22.IsStatic
-            ? System.Linq.Expressions.Expression.Call(x22, x09)
-            : System.Linq.Expressions.Expression.Call(
-                System.Linq.Expressions.Expression.Convert(x00, x22.DeclaringType!), x22, x09);
-
-        System.Linq.Expressions.Expression x11 = x22.ReturnType == typeof(void)
-            ? System.Linq.Expressions.Expression.Block(x10, System.Linq.Expressions.Expression.Constant(null, typeof(System.Object)))
-            : System.Linq.Expressions.Expression.Convert(x10, typeof(System.Object));
-
-        // -------------------------------------------------------------------
-        // Compile or fall back to reflection for AOT environments.
-        // -------------------------------------------------------------------
         System.Func<System.Object, PacketContext<TPacket>, System.Object> x12;
 
-        if (System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported)
+        if (needsContextBridge)
         {
+            x12 = BuildContextBridgeInvoker(x22, parms, kind);
+        }
+        else if (System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported)
+        {
+            // ---------------------------------------------------------------
+            // Normal expression-tree path — types match exactly.
+            // ---------------------------------------------------------------
+            System.Linq.Expressions.Expression[] x09 = BuildArgExpressions(kind, parms, x01, x02, x03, x04);
+
+            System.Linq.Expressions.Expression x10 = x22.IsStatic
+                ? System.Linq.Expressions.Expression.Call(x22, x09)
+                : System.Linq.Expressions.Expression.Call(
+                    System.Linq.Expressions.Expression.Convert(x00, x22.DeclaringType!), x22, x09);
+
+            System.Linq.Expressions.Expression x11 = x22.ReturnType == typeof(void)
+                ? System.Linq.Expressions.Expression.Block(x10, System.Linq.Expressions.Expression.Constant(null, typeof(System.Object)))
+                : System.Linq.Expressions.Expression.Convert(x10, typeof(System.Object));
+
             x12 = System.Linq.Expressions.Expression
                     .Lambda<System.Func<System.Object, PacketContext<TPacket>, System.Object>>(x11, x00, x01)
                     .Compile();
@@ -277,10 +294,30 @@ internal sealed class HandlerCompiler<
         System.Reflection.MethodInfo method,
         System.Reflection.ParameterInfo[] parms)
     {
-        // ---- new-style: first param is PacketContext<TPacket> ----
-        if (parms.Length >= 1 && parms[0].ParameterType == typeof(PacketContext<TPacket>))
+        // ---- new-style: first param is PacketContext<T> for any T : IPacket ----
+        // Use generic-definition comparison instead of exact-type equality so that
+        // PacketContext<LoginPacket> is recognised when TPacket = IPacket.
+        // Exact equality (== typeof(PacketContext<TPacket>)) would reject any handler
+        // whose first parameter is a concrete PacketContext<ConcreteType> whenever the
+        // dispatcher was registered with the base IPacket interface as TPacket.
+        if (parms.Length >= 1 && IsPacketContextType(parms[0].ParameterType))
         {
-            return parms.Length == 1
+            // Validate that the generic type argument matches TPacket exactly.
+            // PacketContext<T> is invariant — PacketContext<Handshake> and
+            // PacketContext<IPacket> are unrelated types with no legal conversion,
+            // even when Handshake : IPacket. Accepting a mismatched T here would
+            // compile the expression tree correctly but crash at runtime with
+            // "No coercion operator defined". Catch it early with a clear message.
+            System.Type declaredT = parms[0].ParameterType.GetGenericArguments()[0];
+            return declaredT != typeof(TPacket)
+                ? throw new System.InvalidOperationException(
+                    $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
+                    $"parameter type PacketContext<{declaredT.Name}> does not match " +
+                    $"the dispatcher's TPacket={typeof(TPacket).Name}. " +
+                    $"Declare the parameter as PacketContext<{typeof(TPacket).Name}> " +
+                    $"and cast context.Packet to {declaredT.Name} inside the method body: " +
+                    $"var pkt = ({declaredT.Name})context.Packet;")
+                : parms.Length == 1
             ? SignatureKind.ContextOnly
             : parms.Length == 2 && parms[1].ParameterType == typeof(System.Threading.CancellationToken)
             ? SignatureKind.ContextWithToken
@@ -312,9 +349,30 @@ internal sealed class HandlerCompiler<
         "Supported forms: " +
         "(TPacket, IConnection), " +
         "(TPacket, IConnection, CancellationToken), " +
-        "(PacketContext<TPacket>), " +
-        "(PacketContext<TPacket>, CancellationToken).");
+        "(PacketContext<T>), " +
+        "(PacketContext<T>, CancellationToken).");
     }
+
+    /// <summary>
+    /// Returns <see langword="true"/> when <paramref name="type"/> is a closed generic
+    /// constructed from <see cref="PacketContext{TPacket}"/>, regardless of which
+    /// concrete type argument was supplied.
+    /// </summary>
+    /// <remarks>
+    /// Using <c>GetGenericTypeDefinition()</c> instead of exact-type equality (==) is
+    /// required because the dispatcher may be registered with <c>TPacket = IPacket</c>
+    /// while individual handler methods declare <c>PacketContext&lt;LoginPacket&gt;</c>.
+    /// The two closed generics are different <see cref="System.Type"/> objects, so
+    /// <c>== typeof(PacketContext&lt;TPacket&gt;)</c> would incorrectly return
+    /// <see langword="false"/> and cause the compiler to fall through to the legacy-style
+    /// check, ultimately throwing "unrecognised signature".
+    /// </remarks>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Boolean IsPacketContextType(System.Type type)
+        => type.IsGenericType
+        && type.GetGenericTypeDefinition() == typeof(PacketContext<>);
 
     /// <summary>
     /// Builds the argument expression array for the compiled method-call expression.
@@ -333,13 +391,31 @@ internal sealed class HandlerCompiler<
         switch (kind)
         {
             case SignatureKind.ContextOnly:
-                // Pass the context object directly — no conversion needed.
-                return [context];
+                {
+                    // The handler's first param is PacketContext<T> — T may be a concrete
+                    // type (e.g. LoginPacket) while the expression-tree parameter is typed
+                    // as PacketContext<TPacket> (e.g. PacketContext<IPacket>).
+                    // Insert a Convert node when the types differ so the compiled delegate
+                    // does not throw InvalidCastException at runtime.
+                    System.Type paramCtxType = parms[0].ParameterType;
+                    System.Linq.Expressions.Expression ctxArg =
+                        paramCtxType == context.Type
+                        ? context
+                        : System.Linq.Expressions.Expression.Convert(context, paramCtxType);
+
+                    return [ctxArg];
+                }
 
             case SignatureKind.ContextWithToken:
-                // (PacketContext<TPacket>, CancellationToken)
-                // CT comes from context.CancellationToken so both refer to the same token.
-                return [context, ctExpr];
+                {
+                    System.Type paramCtxType = parms[0].ParameterType;
+                    System.Linq.Expressions.Expression ctxArg =
+                        paramCtxType == context.Type
+                        ? context
+                        : System.Linq.Expressions.Expression.Convert(context, paramCtxType);
+
+                    return [ctxArg, ctExpr];
+                }
 
             case SignatureKind.LegacyNoToken:
                 {
@@ -381,13 +457,60 @@ internal sealed class HandlerCompiler<
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static System.Func<System.Object, PacketContext<TPacket>, System.Object> BuildAotInvoker(
+    private static System.Func<System.Object, PacketContext<TPacket>, System.Object> BuildContextBridgeInvoker(
         System.Reflection.MethodInfo method,
         System.Reflection.ParameterInfo[] parms,
         SignatureKind kind)
     {
+        // Capture once at compile time — zero allocation on the hot path.
+        System.Boolean isStatic = method.IsStatic;
+        System.Boolean withToken = kind == SignatureKind.ContextWithToken;
+
+        return (instance, context) =>
+        {
+            // MethodInfo.Invoke accepts the concrete PacketContext<T> as-is via
+            // object boxing — no coercion operator required.
+            System.Object[] args = withToken
+                ? [context, context.CancellationToken]
+                : [context];
+
+            return isStatic
+                ? method.Invoke(null, args)
+                : method.Invoke(instance, args);
+        };
+    }
+
+    /// <summary>
+    /// Builds a reflection-based invoker for context-style handlers whose declared
+    /// <c>PacketContext&lt;T&gt;</c> type differs from <c>PacketContext&lt;TPacket&gt;</c>.
+    /// </summary>
+    /// <remarks>
+    /// Generic classes are invariant in C# — <c>PacketContext&lt;IPacket&gt;</c> and
+    /// <c>PacketContext&lt;Handshake&gt;</c> share no subtype relationship even when
+    /// <c>Handshake : IPacket</c>, so <c>Expression.Convert</c> between them throws
+    /// <see cref="System.InvalidOperationException"/> at compile time.
+    /// <para>
+    /// <c>MethodInfo.Invoke</c> sidesteps this by boxing every argument to
+    /// <see cref="System.Object"/> before passing it to the CLR, which then applies
+    /// its own runtime assignability check. The concrete <c>PacketContext&lt;Handshake&gt;</c>
+    /// object satisfies that check because it IS a <c>PacketContext&lt;Handshake&gt;</c>.
+    /// </para>
+    /// </remarks>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static System.Func<System.Object, PacketContext<TPacket>, System.Object> BuildAotInvoker(
+    System.Reflection.MethodInfo method,
+    System.Reflection.ParameterInfo[] parms,
+    SignatureKind kind)
+    {
         return kind switch
         {
+            // AOT path: reflection.Invoke accepts the context object as-is because
+            // MethodInfo.Invoke boxes arguments to System.Object and performs the
+            // runtime assignability check itself — no explicit cast needed here.
+            // This differs from the expression-tree path where the IL cast must be
+            // explicit (see BuildArgExpressions / IsPacketContextType).
             SignatureKind.ContextOnly =>
                 (instance, context) => method.IsStatic
                     ? method.Invoke(null, [context])
@@ -518,7 +641,6 @@ internal sealed class HandlerCompiler<
 
         return (instance, context) => System.Threading.Tasks.ValueTask.FromResult(x00(instance, context));
     }
-
 
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
