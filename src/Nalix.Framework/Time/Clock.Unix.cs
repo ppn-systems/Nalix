@@ -36,6 +36,16 @@ public static partial class Clock
     public static System.Int64 UnixSecondsNow() => (System.Int64)(NowUtc() - System.DateTime.UnixEpoch).TotalSeconds;
 
     /// <summary>
+    /// Current Unix timestamp (seconds) as uint32.
+    /// Note: uint32 max is ~4.2 billion, Unix seconds is currently ~1.7 billion (since 1970),
+    /// so it's OK for now but will overflow in ~50 years.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public static System.UInt32 UnixSecondsNowUInt32() => (System.UInt32)(NowUtc() - System.DateTime.UnixEpoch).TotalSeconds;
+
+    /// <summary>
     /// Current Unix timestamp (milliseconds) as long.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(

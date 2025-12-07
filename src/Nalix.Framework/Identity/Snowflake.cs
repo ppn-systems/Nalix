@@ -5,7 +5,7 @@ using Nalix.Common.Enums;
 using Nalix.Common.Primitives;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Options;
-using Nalix.Framework.Random;
+using Nalix.Framework.Time;
 
 namespace Nalix.Framework.Identity;
 
@@ -154,7 +154,7 @@ public readonly partial struct Snowflake : ISnowflake
     [System.Diagnostics.DebuggerHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Snowflake NewId(SnowflakeType type, System.UInt16 machineId = 1) => new(Csprng.NextUInt32(), machineId, type);
+    public static Snowflake NewId(SnowflakeType type, System.UInt16 machineId = 1) => new(Clock.UnixSecondsNowUInt32(), machineId, type);
 
     /// <summary>
     /// Creates a new <see cref="Snowflake"/> with the specified components.
@@ -170,7 +170,7 @@ public readonly partial struct Snowflake : ISnowflake
     [System.Diagnostics.DebuggerHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Snowflake NewId(SnowflakeType type) => new(Csprng.NextUInt32(), __machineId, type);
+    public static Snowflake NewId(SnowflakeType type) => new(Clock.UnixSecondsNowUInt32(), __machineId, type);
 
     #endregion Factory Methods
 
