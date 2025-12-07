@@ -136,7 +136,7 @@ public abstract partial class ConfigurationLoader
         System.String section = GetSectionName(type);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Meta($"[FW.{nameof(ConfigurationLoader)}:Internal] init type={type.Name} section={section}");
+                                .Trace($"[FW.{nameof(ConfigurationLoader)}:Internal] init type={type.Name} section={section}");
 
         // Write the section-level comment once, before the first property is processed.
         // IniConfig.WriteComment is a no-op when the section already exists, so this
