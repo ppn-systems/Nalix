@@ -108,7 +108,7 @@ public static class TimeSyncExtensions
                         .ConfigureAwait(false);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug("[TimeSyncAsync] Time sync request sent.");
+                                    .Debug("[SDK.TimeSyncAsync] Time sync request sent.");
 
             using (tcs.LinkCancellation(linked.Token))
             {
@@ -128,7 +128,7 @@ public static class TimeSyncExtensions
                     maxAllowedDriftMs: maxAllowedDriftMs, maxHardAdjustMs: maxHardAdjustMs);
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[TimeSyncAsync] Completed. RTT={rttMs:F2}ms, Adjust={adjustMs:F2}ms.");
+                                        .Info($"[SDK.TimeSyncAsync] Completed. RTT={rttMs:F2}ms, Adjust={adjustMs:F2}ms.");
 
                 return true;
             }
@@ -136,13 +136,13 @@ public static class TimeSyncExtensions
         catch (System.OperationCanceledException oce)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[TimeSyncAsync] Canceled: {oce.Message}.");
+                                    .Debug($"[SDK.TimeSyncAsync] Canceled: {oce.Message}.");
             return false;
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[TimeSyncAsync] Failed: {ex}.");
+                                    .Error($"[SDK.TimeSyncAsync] Failed: {ex}.");
             return false;
         }
     }
