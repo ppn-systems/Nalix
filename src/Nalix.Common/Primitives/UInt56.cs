@@ -10,6 +10,10 @@ namespace Nalix.Common.Primitives;
 /// 56 bits are considered valid and are enforced by the constructor and
 /// arithmetic operations.
 /// </remarks>
+[System.Runtime.InteropServices.ComVisible(true)]
+[System.Diagnostics.DebuggerDisplay("{ToString(),nq}")]
+[System.Runtime.InteropServices.StructLayout(
+    System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]
 public readonly struct UInt56 :
     System.IComparable,
     System.IComparable<UInt56>,
@@ -137,6 +141,9 @@ public readonly struct UInt56 :
     /// Converts this instance to a 64-bit unsigned integer.
     /// </summary>
     /// <returns>The 64-bit unsigned integer equivalent of this value.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.UInt64 ToUInt64() => _value;
 
     #endregion Conversions
@@ -144,18 +151,26 @@ public readonly struct UInt56 :
     #region Equality and comparison
 
     /// <inheritdoc />
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean Equals(UInt56 other) => _value == other._value;
 
     /// <inheritdoc />
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override System.Boolean Equals(System.Object obj) => obj is UInt56 other && Equals(other);
 
     /// <inheritdoc />
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override System.Int32 GetHashCode() => _value.GetHashCode();
 
     /// <inheritdoc />
     public System.Int32 CompareTo(UInt56 other) => _value.CompareTo(other._value);
 
     /// <inheritdoc />
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     System.Int32 System.IComparable.CompareTo(System.Object obj)
     {
         if (obj is null)
@@ -214,6 +229,7 @@ public readonly struct UInt56 :
     /// <returns>
     /// A <see cref="UInt56"/> constructed from the specified <paramref name="type"/>, <paramref name="machineId"/>, and <paramref name="value"/>.
     /// </returns>
+    [System.Diagnostics.Contracts.Pure]
     public static UInt56 FromParts(System.Byte type, System.UInt16 machineId, System.UInt32 value)
         => new(((System.UInt64)type << 48) | ((System.UInt64)machineId << 32) | value);
 
@@ -223,6 +239,7 @@ public readonly struct UInt56 :
     /// <param name="type">Receives the type component (upper 8 bits).</param>
     /// <param name="machineId">Receives the machine identifier (next 16 bits).</param>
     /// <param name="value">Receives the value component (lower 32 bits).</param>
+    [System.Diagnostics.Contracts.Pure]
     public void Decompose(out System.Byte type, out System.UInt16 machineId, out System.UInt32 value)
     {
         System.UInt64 raw = _value;
@@ -237,6 +254,8 @@ public readonly struct UInt56 :
     /// <returns>
     /// The string representation of the value of this instance, formatted using the current culture.
     /// </returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override System.String ToString() => _value.ToString();
 
     /// <summary>
@@ -272,6 +291,9 @@ public readonly struct UInt56 :
     /// <paramref name="s"/> is not in a valid format or represents a value that is outside
     /// the range of the <see cref="UInt56"/> type.
     /// </exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static UInt56 Parse(System.String s)
         => Parse(s, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.CurrentCulture);
 
@@ -288,6 +310,9 @@ public readonly struct UInt56 :
     /// <paramref name="s"/> is not in a valid format or represents a value that is outside
     /// the range of the <see cref="UInt56"/> type.
     /// </exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static UInt56 Parse(System.String s, System.IFormatProvider provider)
         => Parse(s, System.Globalization.NumberStyles.Integer, provider);
 
@@ -307,6 +332,7 @@ public readonly struct UInt56 :
     /// <paramref name="s"/> is not in a valid format or represents a value that is outside
     /// the range of the <see cref="UInt56"/> type.
     /// </exception>
+    [System.Diagnostics.Contracts.Pure]
     public static UInt56 Parse(System.String s, System.Globalization.NumberStyles style, System.IFormatProvider provider)
     {
         if (!TryParse(s, style, provider, out var result))
@@ -331,7 +357,10 @@ public readonly struct UInt56 :
     /// <returns>
     /// <see langword="true"/> if <paramref name="s"/> was converted successfully; otherwise, <see langword="false"/>.
     /// </returns>
-    public static System.Boolean TryParse(System.String s, out UInt56 result)
+    [System.Diagnostics.Contracts.Pure]
+    public static System.Boolean TryParse(
+        System.String s,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out UInt56 result)
         => TryParse(s, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.CurrentCulture, out result);
 
     /// <summary>
@@ -353,6 +382,7 @@ public readonly struct UInt56 :
     /// <returns>
     /// <see langword="true"/> if <paramref name="s"/> was converted successfully; otherwise, <see langword="false"/>.
     /// </returns>
+    [System.Diagnostics.Contracts.Pure]
     public static System.Boolean TryParse(
         System.String s,
         System.Globalization.NumberStyles style,
@@ -381,8 +411,7 @@ public readonly struct UInt56 :
     }
 
     /// <inheritdoc />
-    System.String System.IFormattable.ToString(System.String format, System.IFormatProvider formatProvider)
-        => _value.ToString(format, formatProvider);
+    System.String System.IFormattable.ToString(System.String format, System.IFormatProvider formatProvider) => _value.ToString(format, formatProvider);
 
     #endregion Formatting and parsing
 
@@ -404,6 +433,281 @@ public readonly struct UInt56 :
                 "Arithmetic operation produced a value that is out of range for UInt56.");
         }
     }
+
+    #region Byte
+
+    /// <inheritdoc/>
+    public static UInt56 operator +(UInt56 a, System.Byte b) => a + new UInt56(b);
+
+    /// <inheritdoc/>
+    public static UInt56 operator -(UInt56 a, System.Byte b) => a - new UInt56(b);
+
+    /// <inheritdoc/>
+    public static UInt56 operator *(UInt56 a, System.Byte b) => a * new UInt56(b);
+
+    /// <inheritdoc/>
+    public static UInt56 operator /(UInt56 a, System.Byte b) => a / new UInt56(b);
+
+    /// <inheritdoc/>
+    public static UInt56 operator %(UInt56 a, System.Byte b) => a % new UInt56(b);
+
+    #endregion Byte
+
+    #region SByte
+
+    /// <inheritdoc/>
+    public static UInt56 operator +(UInt56 a, System.SByte b)
+    {
+        if (b < 0)
+        {
+            throw new System.OverflowException("Do not add negative numbers to UInt56.");
+        }
+
+        return a + new UInt56((System.Byte)b);
+    }
+
+
+    /// <inheritdoc/>
+    public static UInt56 operator -(UInt56 a, System.SByte b)
+    {
+        if (b < 0)
+        {
+            throw new System.OverflowException("Do not subtract negative numbers from UInt56.");
+        }
+
+        return a - new UInt56((System.Byte)b);
+    }
+
+
+    /// <inheritdoc/>
+    public static UInt56 operator *(UInt56 a, System.SByte b)
+    {
+        if (b < 0)
+        {
+            throw new System.OverflowException("Do not multiply negative numbers by UInt56.");
+        }
+
+        return a * new UInt56((System.Byte)b);
+    }
+
+
+    /// <inheritdoc/>
+    public static UInt56 operator /(UInt56 a, System.SByte b)
+    {
+        if (b <= 0)
+        {
+            throw new System.OverflowException("Divisor must be > 0 for UInt56.");
+        }
+
+        return a / new UInt56((System.Byte)b);
+    }
+
+
+    /// <inheritdoc/>
+    public static UInt56 operator %(UInt56 a, System.SByte b)
+    {
+        if (b <= 0)
+        {
+            throw new System.OverflowException("Divisor must be > 0 for UInt56.");
+        }
+
+        return a % new UInt56((System.Byte)b);
+    }
+
+    #endregion SByte
+
+    #region Int16
+
+    /// <inheritdoc/>
+    public static UInt56 operator +(UInt56 a, System.Int16 b)
+    {
+        if (b < 0)
+        {
+            throw new System.OverflowException("Do not add negative numbers to UInt56.");
+        }
+
+        return a + new UInt56((System.UInt16)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator -(UInt56 a, System.Int16 b)
+    {
+        if (b < 0)
+        {
+            throw new System.OverflowException("Do not subtract negative numbers from UInt56.");
+        }
+
+        return a - new UInt56((System.UInt16)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator *(UInt56 a, System.Int16 b)
+    {
+        if (b < 0)
+        {
+            throw new System.OverflowException("Do not multiply negative numbers by UInt56.");
+        }
+
+        return a * new UInt56((System.UInt16)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator /(UInt56 a, System.Int16 b)
+    {
+        if (b <= 0)
+        {
+            throw new System.OverflowException("Divisor must be > 0 for UInt56.");
+        }
+
+        return a / new UInt56((System.UInt16)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator %(UInt56 a, System.Int16 b)
+    {
+        if (b <= 0)
+        {
+            throw new System.OverflowException("Divisor must be > 0 for UInt56.");
+        }
+
+        return a % new UInt56((System.UInt16)b);
+    }
+
+
+    #endregion Int16
+
+    #region UInt16
+
+    /// <inheritdoc/>
+    public static UInt56 operator +(UInt56 a, System.UInt16 b) => a + new UInt56(b);
+
+    /// <inheritdoc/>
+    public static UInt56 operator -(UInt56 a, System.UInt16 b) => a - new UInt56(b);
+
+    /// <inheritdoc/>
+    public static UInt56 operator *(UInt56 a, System.UInt16 b) => a * new UInt56(b);
+
+
+    /// <inheritdoc/>
+    public static UInt56 operator /(UInt56 a, System.UInt16 b)
+    {
+        if (b == 0)
+        {
+            throw new System.DivideByZeroException();
+        }
+
+        return a / new UInt56(b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator %(UInt56 a, System.UInt16 b)
+    {
+        if (b == 0)
+        {
+            throw new System.DivideByZeroException();
+        }
+
+        return a % new UInt56(b);
+    }
+
+
+    #endregion UInt16
+
+    #region Int32
+
+    /// <inheritdoc/>
+    public static UInt56 operator +(UInt56 a, System.Int32 b)
+    {
+        if (b < 0)
+        {
+            throw new System.OverflowException("Do not add negative numbers to UInt56.");
+        }
+
+        return a + new UInt56((System.UInt32)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator -(UInt56 a, System.Int32 b)
+    {
+        if (b < 0)
+        {
+            throw new System.OverflowException("Do not subtract negative numbers from UInt56.");
+        }
+
+        return a - new UInt56((System.UInt32)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator *(UInt56 a, System.Int32 b)
+    {
+        if (b < 0)
+        {
+            throw new System.OverflowException("Do not multiply negative numbers by UInt56.");
+        }
+
+        return a * new UInt56((System.UInt32)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator /(UInt56 a, System.Int32 b)
+    {
+        if (b <= 0)
+        {
+            throw new System.OverflowException("Divisor must be > 0 for UInt56.");
+        }
+
+        return a / new UInt56((System.UInt32)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator %(UInt56 a, System.Int32 b)
+    {
+        if (b <= 0)
+        {
+            throw new System.OverflowException("Divisor must be > 0 for UInt56.");
+        }
+
+        return a % new UInt56((System.UInt32)b);
+    }
+
+    #endregion Int32
+
+    #region UInt32
+
+    /// <inheritdoc/>
+    public static UInt56 operator +(UInt56 a, System.UInt32 b) => a + new UInt56(b);
+
+    /// <inheritdoc/>
+    public static UInt56 operator -(UInt56 a, System.UInt32 b) => a - new UInt56(b);
+
+    /// <inheritdoc/>
+    public static UInt56 operator *(UInt56 a, System.UInt32 b) => a * new UInt56(b);
+
+    /// <inheritdoc/>
+    public static UInt56 operator /(UInt56 a, System.UInt32 b)
+    {
+        if (b == 0)
+        {
+            throw new System.DivideByZeroException();
+        }
+
+        return a / new UInt56(b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator %(UInt56 a, System.UInt32 b)
+    {
+        if (b == 0)
+        {
+            throw new System.DivideByZeroException();
+        }
+
+        return a % new UInt56(b);
+    }
+
+    #endregion UInt32
+
+    #region UInt56
 
     /// <summary>
     /// Adds two specified <see cref="UInt56"/> values.
@@ -437,8 +741,7 @@ public readonly struct UInt56 :
             throw new System.OverflowException("Result would be negative; UInt56 is unsigned.");
         }
 
-        System.UInt64 raw = a._value - b._value;
-        return new UInt56(raw, true);
+        return new UInt56(a._value - b._value, true);
     }
 
     /// <summary>
@@ -452,14 +755,18 @@ public readonly struct UInt56 :
     /// </exception>
     public static UInt56 operator *(UInt56 a, UInt56 b)
     {
-        // Use BigInteger to safely detect overflow beyond 56 bits.
-        var product = (System.Numerics.BigInteger)a._value * b._value;
-        if (product > MaxValue)
+        if (a._value == 0 || b._value == 0)
+        {
+            return Zero;
+        }
+
+        // if a > MaxValue / b => overflow
+        if (a._value > MaxValue / b._value)
         {
             throw new System.OverflowException("Multiplication overflow for UInt56.");
         }
 
-        return new UInt56((System.UInt64)product, true);
+        return new UInt56(a._value * b._value, true);
     }
 
     /// <summary>
@@ -507,8 +814,7 @@ public readonly struct UInt56 :
     /// </summary>
     /// <param name="a">A value.</param>
     /// <returns>The bitwise complement of <paramref name="a"/>.</returns>
-    public static UInt56 operator ~(UInt56 a) =>
-        new((~a._value) & MaxValue, true);
+    public static UInt56 operator ~(UInt56 a) => new((~a._value) & MaxValue, true);
 
     /// <summary>
     /// Performs a bitwise AND operation on two <see cref="UInt56"/> values.
@@ -516,8 +822,7 @@ public readonly struct UInt56 :
     /// <param name="a">The first operand.</param>
     /// <param name="b">The second operand.</param>
     /// <returns>The bitwise AND of <paramref name="a"/> and <paramref name="b"/>.</returns>
-    public static UInt56 operator &(UInt56 a, UInt56 b) =>
-        new(a._value & b._value, true);
+    public static UInt56 operator &(UInt56 a, UInt56 b) => new(a._value & b._value, true);
 
     /// <summary>
     /// Performs a bitwise OR operation on two <see cref="UInt56"/> values.
@@ -525,8 +830,7 @@ public readonly struct UInt56 :
     /// <param name="a">The first operand.</param>
     /// <param name="b">The second operand.</param>
     /// <returns>The bitwise OR of <paramref name="a"/> and <paramref name="b"/>.</returns>
-    public static UInt56 operator |(UInt56 a, UInt56 b) =>
-        new(a._value | b._value, true);
+    public static UInt56 operator |(UInt56 a, UInt56 b) => new(a._value | b._value, true);
 
     /// <summary>
     /// Performs a bitwise exclusive OR (XOR) operation on two <see cref="UInt56"/> values.
@@ -534,8 +838,7 @@ public readonly struct UInt56 :
     /// <param name="a">The first operand.</param>
     /// <param name="b">The second operand.</param>
     /// <returns>The bitwise XOR of <paramref name="a"/> and <paramref name="b"/>.</returns>
-    public static UInt56 operator ^(UInt56 a, UInt56 b) =>
-        new(a._value ^ b._value, true);
+    public static UInt56 operator ^(UInt56 a, UInt56 b) => new(a._value ^ b._value, true);
 
     /// <summary>
     /// Shifts a <see cref="UInt56"/> value left by a specified number of bits.
@@ -549,9 +852,7 @@ public readonly struct UInt56 :
     public static UInt56 operator <<(UInt56 a, System.Int32 shift)
     {
         System.ArgumentOutOfRangeException.ThrowIfNegative(shift);
-
-        System.UInt64 raw = (a._value << shift) & MaxValue;
-        return new UInt56(raw, true);
+        return new UInt56((a._value << shift) & MaxValue, true);
     }
 
     /// <summary>
@@ -566,9 +867,7 @@ public readonly struct UInt56 :
     public static UInt56 operator >>(UInt56 a, System.Int32 shift)
     {
         System.ArgumentOutOfRangeException.ThrowIfNegative(shift);
-
-        System.UInt64 raw = a._value >> shift;
-        return new UInt56(raw, true);
+        return new UInt56(a._value >> shift, true);
     }
 
     /// <summary>
@@ -606,6 +905,279 @@ public readonly struct UInt56 :
 
         return new UInt56(a._value - 1UL, true);
     }
+
+    #endregion UInt56
+
+    #region Int64
+
+    /// <inheritdoc/>
+    public static UInt56 operator +(UInt56 a, System.Int64 b)
+    {
+        if (b < 0)
+        {
+            throw new System.OverflowException("Do not add negative numbers to UInt56.");
+        }
+
+        return a + new UInt56((System.UInt64)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator -(UInt56 a, System.Int64 b)
+    {
+        if (b < 0)
+        {
+            throw new System.OverflowException("Do not subtract negative numbers from UInt56.");
+        }
+
+        return a - new UInt56((System.UInt64)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator *(UInt56 a, System.Int64 b)
+    {
+        if (b < 0)
+        {
+            throw new System.OverflowException("Do not multiply negative numbers by UInt56.");
+        }
+
+        return a * new UInt56((System.UInt64)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator /(UInt56 a, System.Int64 b)
+    {
+        if (b <= 0)
+        {
+            throw new System.OverflowException("Divisor must be > 0 for UInt56.");
+        }
+
+        return a / new UInt56((System.UInt64)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator %(UInt56 a, System.Int64 b)
+    {
+        if (b <= 0)
+        {
+            throw new System.OverflowException("Divisor must be > 0 for UInt56.");
+        }
+
+        return a % new UInt56((System.UInt64)b);
+    }
+
+    #endregion Int64
+
+    #region UInt64 
+
+    /// <inheritdoc/>
+    public static UInt56 operator +(UInt56 a, System.UInt64 b) => a + new UInt56(b);
+
+    /// <inheritdoc/>
+    public static UInt56 operator -(UInt56 a, System.UInt64 b) => a - new UInt56(b);
+
+    /// <inheritdoc/>
+    public static UInt56 operator *(UInt56 a, System.UInt64 b) => a * new UInt56(b);
+
+    /// <inheritdoc/>
+    public static UInt56 operator /(UInt56 a, System.UInt64 b)
+    {
+        if (b == 0)
+        {
+            throw new System.DivideByZeroException();
+        }
+
+        return a / new UInt56(b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator %(UInt56 a, System.UInt64 b)
+    {
+        if (b == 0)
+        {
+            throw new System.DivideByZeroException();
+        }
+
+        return a % new UInt56(b);
+    }
+
+    #endregion UInt64
+
+    #region Single 
+
+    /// <inheritdoc/>
+    public static UInt56 operator +(UInt56 a, System.Single b)
+    {
+        if (b < 0 || b > MaxValue)
+        {
+            throw new System.OverflowException("Invalid float value for UInt56.");
+        }
+
+        return a + new UInt56((System.UInt64)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator -(UInt56 a, System.Single b)
+    {
+        if (b < 0 || b > MaxValue)
+        {
+            throw new System.OverflowException("Invalid float value for UInt56.");
+        }
+
+        return a - new UInt56((System.UInt64)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator *(UInt56 a, System.Single b)
+    {
+        if (b < 0 || b > MaxValue)
+        {
+            throw new System.OverflowException("Invalid float value for UInt56.");
+        }
+
+        return a * new UInt56((System.UInt64)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator /(UInt56 a, System.Single b)
+    {
+        if (b <= 0 || b > MaxValue)
+        {
+            throw new System.OverflowException("Invalid float division value for UInt56.");
+        }
+
+        return a / new UInt56((System.UInt64)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator %(UInt56 a, System.Single b)
+    {
+        if (b <= 0 || b > MaxValue)
+        {
+            throw new System.OverflowException("Invalid float division value for UInt56.");
+        }
+
+        return a % new UInt56((System.UInt64)b);
+    }
+
+    #endregion Single
+
+    #region Double
+
+    /// <inheritdoc/>
+    public static UInt56 operator +(UInt56 a, System.Double b)
+    {
+        if (b < 0 || b > MaxValue)
+        {
+            throw new System.OverflowException("Invalid double value for UInt56.");
+        }
+
+        return a + new UInt56((System.UInt64)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator -(UInt56 a, System.Double b)
+    {
+        if (b < 0 || b > MaxValue)
+        {
+            throw new System.OverflowException("Invalid double value for UInt56.");
+        }
+
+        return a - new UInt56((System.UInt64)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator *(UInt56 a, System.Double b)
+    {
+        if (b < 0 || b > MaxValue)
+        {
+            throw new System.OverflowException("Invalid double value for UInt56.");
+        }
+
+        return a * new UInt56((System.UInt64)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator /(UInt56 a, System.Double b)
+    {
+        if (b <= 0 || b > MaxValue)
+        {
+            throw new System.OverflowException("Double value division is not suitable for UInt56.");
+        }
+
+        return a / new UInt56((System.UInt64)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator %(UInt56 a, System.Double b)
+    {
+        if (b <= 0 || b > MaxValue)
+        {
+            throw new System.OverflowException("Double value division is not suitable for UInt56.");
+        }
+
+        return a % new UInt56((System.UInt64)b);
+    }
+
+    #endregion Double
+
+    #region Decimal
+
+    /// <inheritdoc/>
+    public static UInt56 operator +(UInt56 a, System.Decimal b)
+    {
+        if (b < 0 || b > MaxValue)
+        {
+            throw new System.OverflowException("Invalid decimal value for UInt56.");
+        }
+
+        return a + new UInt56((System.UInt64)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator -(UInt56 a, System.Decimal b)
+    {
+        if (b < 0 || b > MaxValue)
+        {
+            throw new System.OverflowException("Invalid decimal value for UInt56.");
+        }
+
+        return a - new UInt56((System.UInt64)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator *(UInt56 a, System.Decimal b)
+    {
+        if (b < 0 || b > MaxValue)
+        {
+            throw new System.OverflowException("Invalid decimal value for UInt56.");
+        }
+
+        return a * new UInt56((System.UInt64)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator /(UInt56 a, System.Decimal b)
+    {
+        if (b <= 0 || b > MaxValue)
+        {
+            throw new System.OverflowException("Invalid decimal division value for UInt56.");
+        }
+
+        return a / new UInt56((System.UInt64)b);
+    }
+
+    /// <inheritdoc/>
+    public static UInt56 operator %(UInt56 a, System.Decimal b)
+    {
+        if (b <= 0 || b > MaxValue)
+        {
+            throw new System.OverflowException("Invalid decimal division value for UInt56.");
+        }
+
+        return a % new UInt56((System.UInt64)b);
+    }
+
+    #endregion Decimal
 
     #endregion Arithmetic
 }
