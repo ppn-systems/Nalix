@@ -42,7 +42,7 @@ internal sealed class FRAME_READER<TPacket>(System.Net.Sockets.NetworkStream str
             catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug("RECEIVE_ASYNC cancelled while reading length header.");
+                                        .Debug("[SDK.FRAME_READER] RECEIVE_ASYNC cancelled while reading length header.");
                 throw;
             }
 
@@ -51,7 +51,7 @@ internal sealed class FRAME_READER<TPacket>(System.Net.Sockets.NetworkStream str
             if (total < sizeof(System.UInt16))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn("Invalid frame total size: {Total}", total);
+                                        .Warn("[SDK.FRAME_READER] Invalid frame total size: {Total}", total);
                 throw new System.InvalidOperationException($"Invalid frame size: {total} (must be >= 2).");
             }
 
@@ -59,7 +59,7 @@ internal sealed class FRAME_READER<TPacket>(System.Net.Sockets.NetworkStream str
             if (payloadLen is 0 or > PacketConstants.PacketSizeLimit)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn("Payload length out of protocol bounds: {PayloadLen}", payloadLen);
+                                        .Warn("[SDK.FRAME_READER] Payload length out of protocol bounds: {PayloadLen}", payloadLen);
                 throw new System.InvalidOperationException($"Invalid payload size: {payloadLen} bytes.");
             }
 
@@ -76,7 +76,7 @@ internal sealed class FRAME_READER<TPacket>(System.Net.Sockets.NetworkStream str
                 catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Debug("RECEIVE_ASYNC cancelled while reading payload.");
+                                            .Debug("[SDK.FRAME_READER] RECEIVE_ASYNC cancelled while reading payload.");
                     throw;
                 }
 
@@ -84,7 +84,7 @@ internal sealed class FRAME_READER<TPacket>(System.Net.Sockets.NetworkStream str
                 if (!_catalog.TryDeserialize(System.MemoryExtensions.AsSpan(buffer, 0, payloadLen), out var pkt))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"Failed to deserialize packet of length {payloadLen}");
+                                            .Warn($"[SDK.FRAME_READER] Failed to deserialize packet of length {payloadLen}");
 
                     throw new System.InvalidOperationException("Failed to deserialize packet.");
                 }
@@ -95,7 +95,7 @@ internal sealed class FRAME_READER<TPacket>(System.Net.Sockets.NetworkStream str
                 }
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"Deserialized packet type {pkt.GetType().Name} does not match expected {typeof(TPacket).Name}");
+                                        .Warn($"[SDK.FRAME_READER] Deserialized packet type {pkt.GetType().Name} does not match expected {typeof(TPacket).Name}");
 
                 throw new System.InvalidOperationException($"Deserialized packet is not of expected type {typeof(TPacket).Name}.");
             }
@@ -103,7 +103,7 @@ internal sealed class FRAME_READER<TPacket>(System.Net.Sockets.NetworkStream str
             {
                 // Peer closed during read → propagate
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info("Peer closed the stream while receiving.");
+                                        .Info("[SDK.FRAME_READER] Peer closed the stream while receiving.");
                 throw;
             }
             finally

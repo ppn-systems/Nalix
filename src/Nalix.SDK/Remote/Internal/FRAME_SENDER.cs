@@ -1,7 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Logging;
 using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
+using Nalix.Framework.Injection;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.SDK.Tests")]
@@ -66,12 +68,18 @@ internal sealed class FRAME_SENDER<TPacket>(System.Net.Sockets.NetworkStream str
     {
         if (!_stream.CanWrite)
         {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn("[SDK.FRAME_SENDER] Network stream is not writable.");
+
             throw new System.InvalidOperationException("The network stream is not writable.");
         }
 
 
         if (bytes.Length > PacketConstants.PacketSizeLimit)
         {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[SDK.FRAME_SENDER] Packet size too large: {bytes.Length} bytes.");
+
             throw new System.ArgumentOutOfRangeException(nameof(bytes), "Packet too large.");
         }
 
@@ -85,6 +93,12 @@ internal sealed class FRAME_SENDER<TPacket>(System.Net.Sockets.NetworkStream str
             await _stream.WriteAsync(System.MemoryExtensions.AsMemory(_header, 0, 2), cancellationToken).ConfigureAwait(false);
             await _stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
             await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (System.Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"[SDK.FRAME_SENDER] Failed to send packet: {ex.Message}");
+            throw;
         }
         finally
         {
@@ -119,18 +133,36 @@ internal sealed class FRAME_SENDER<TPacket>(System.Net.Sockets.NetworkStream str
     {
         if (!_stream.CanWrite)
         {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                        .Warn("[SDK.FRAME_SENDER] Network stream is not writable.");
+
             throw new System.InvalidOperationException("The network stream is not writable.");
         }
 
         if (bytes.Length > PacketConstants.PacketSizeLimit)
         {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                        .Warn($"[SDK.FRAME_SENDER] Packet size too large: {bytes.Length} bytes.");
+
             throw new System.ArgumentOutOfRangeException(nameof(bytes), "Packet too large");
         }
 
-        System.Span<System.Byte> header = stackalloc System.Byte[2];
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(header, (System.UInt16)(bytes.Length + sizeof(System.UInt16)));
+        try
+        {
+            System.Span<System.Byte> header = stackalloc System.Byte[2];
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(header, (System.UInt16)(bytes.Length + sizeof(System.UInt16)));
 
-        _stream.Write(header);
-        _stream.Write(bytes);
+            _stream.Write(header);
+            _stream.Write(bytes);
+
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug($"[SDK.FRAME_SENDER] Packet of size {bytes.Length} bytes sent successfully.");
+        }
+        catch (System.Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"[SDK.FRAME_SENDER] Error occurred during synchronous send: {ex.Message}");
+            throw;
+        }
     }
 }

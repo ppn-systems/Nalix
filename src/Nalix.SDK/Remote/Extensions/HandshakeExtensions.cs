@@ -104,7 +104,7 @@ public static class HandshakeExtensions
                         .ConfigureAwait(false);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug("Handshake request sent.");
+                                    .Debug("[SDK.HandshakeAsync] Handshake request sent.");
 
             // Await server response (with timeout/ct)
             using (tcs.LinkCancellation(linked.Token))
@@ -130,7 +130,7 @@ public static class HandshakeExtensions
                     client.Options.EncryptionKey = Keccak256.HashData(secret);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Info("[HandshakeAsync] Completed. EncryptionKey installed.");
+                                            .Info("[SDK.HandshakeAsync] Completed. EncryptionKey installed.");
 
                     return true;
                 }
@@ -151,13 +151,13 @@ public static class HandshakeExtensions
         catch (System.OperationCanceledException oce)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[HandshakeAsync] Canceled: {oce.Message}.");
+                                    .Debug($"[SDK.HandshakeAsync] Canceled: {oce.Message}.");
             return false;
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[HandshakeAsync] Failed: {ex}.");
+                                    .Error($"[SDK.HandshakeAsync] Failed: {ex}.");
             return false;
         }
     }
