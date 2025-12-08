@@ -25,35 +25,26 @@ public sealed class PingHandlers
     [PacketOpcode(0)]
     [PacketEncryption(true)]
     [PacketPermission(PermissionLevel.GUEST)]
-    public static async System.Threading.Tasks.Task Ping(PacketContext<Handshake> context)
+    public static async System.Threading.Tasks.Task Ping(PacketContext<IPacket> context)
     {
+        Handshake packet = (Handshake)context.Packet;
         UInt32 fallbackSeq = context.Packet.SequenceId;
         System.Console.WriteLine("Received PING from " + context.Connection.NetworkEndpoint.Address);
-        // Chỉ nhận gói Control có type = PING
-        if (context.Packet is not Handshake ping)
-        {
-            System.Console.WriteLine($"[APP.{nameof(PingHandlers)}] Received non-PING packet from {context.Connection.NetworkEndpoint.Address}");
-            await context.Connection.SendAsync(
-                ControlType.ERROR,
-                ProtocolReason.MALFORMED_PACKET,
-                ProtocolAdvice.DO_NOT_RETRY).ConfigureAwait(false);
 
-            return;
-        }
         try
         {
             // Gửi Control PONG về client
-            await context.Sender.SendAsync(ping).ConfigureAwait(false);
+            await context.Sender.SendAsync(packet).ConfigureAwait(false);
         }
         catch (System.Exception ex)
         {
-            s_logger?.Error($"[APP.{nameof(PingHandlers)}] failed ep={context.Connection.NetworkEndpoint.Address} ex={ex.Message}");
+            s_logger?.Error($"[APP.{nameof(PingHandlers)}] failed ep={context.Connection.NetworkEndpoint.Address} ex={ex.Message}\nStackTrace: {ex.StackTrace}");
 
             await context.Connection.SendAsync(
                 ControlType.ERROR,
                 ProtocolReason.INTERNAL_ERROR,
                 ProtocolAdvice.BACKOFF_RETRY,
-                sequenceId: ping.SequenceId,
+                sequenceId: packet.SequenceId,
                 flags: ControlFlags.IS_TRANSIENT).ConfigureAwait(false);
         }
     }
