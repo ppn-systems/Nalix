@@ -110,7 +110,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
 #if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(FramedSocketChannel)}] receive-loop started ep={_socket.RemoteEndPoint}");
+                                .Debug($"[NW.{nameof(FramedSocketChannel)}] receive-loop started ep={_socket.RemoteEndPoint}");
 #endif
 
         System.Threading.CancellationTokenSource linked =
@@ -121,7 +121,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             (ILogger l, System.Threading.CancellationTokenSource link) = ((ILogger, System.Threading.CancellationTokenSource))state!;
             if (t.IsFaulted)
             {
-                l?.Error($"[{nameof(FramedSocketChannel)}:{nameof(BeginReceive)}] receive-loop faulted", t.Exception!);
+                l?.Error($"[NW.{nameof(FramedSocketChannel)}:{nameof(BeginReceive)}] receive-loop faulted", t.Exception!);
             }
 
             link.Dispose();
@@ -161,7 +161,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             {
 #if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[{nameof(FramedSocketChannel)}:{nameof(Send)}] send-stackalloc len={data.Length}");
+                                        .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(Send)}] send-stackalloc len={data.Length}");
 #endif
 
                 System.Span<System.Byte> bufferS = stackalloc System.Byte[totalLength];
@@ -186,7 +186,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(FramedSocketChannel)}:{nameof(Send)}] send-stackalloc-error", ex);
+                                        .Error($"[NW.{nameof(FramedSocketChannel)}:{nameof(Send)}] send-stackalloc-error", ex);
                 return false;
             }
         }
@@ -198,7 +198,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         {
 #if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(FramedSocketChannel)}:{nameof(Send)}] send-pooled len={data.Length} id={_sender?.ID}");
+                                    .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(Send)}] send-pooled len={data.Length} id={_sender?.ID}");
 #endif
 
             System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(System.MemoryExtensions
@@ -225,7 +225,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(FramedSocketChannel)}:{nameof(Send)}] send-pooled-error id={_sender?.ID}", ex);
+                                    .Error($"[NW.{nameof(FramedSocketChannel)}:{nameof(Send)}] send-pooled-error id={_sender?.ID}", ex);
             return false;
         }
         finally
@@ -270,8 +270,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
 #if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(FramedSocketChannel)}:{nameof(SendAsync)}] " +
-                                           $"send-async len={data.Length} id={_sender?.ID}");
+                                    .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(SendAsync)}] send-async len={data.Length} id={_sender?.ID}");
 #endif
 
             System.Int32 sent = 0;
@@ -298,7 +297,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(FramedSocketChannel)}:{nameof(SendAsync)}] send-async-error id={_sender?.ID}", ex);
+                                    .Error($"[NW.{nameof(FramedSocketChannel)}:{nameof(SendAsync)}] send-async-error id={_sender?.ID}", ex);
             return false;
         }
         finally
@@ -450,7 +449,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
 #if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Meta($"[{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] recv-header size(le)={size}");
+                                        .Meta($"[NW.{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] recv-header size(le)={size}");
 #endif
 
                 if (size < HeaderSize || size > PacketConstants.PacketSizeLimit)
@@ -480,7 +479,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
 #if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] " +
+                                        .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] " +
                                               $"recv-frame size={size} payload={payload} ep={_epText}");
 #endif
 
@@ -497,19 +496,19 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         catch (System.Exception ex) when (IsBenignDisconnect(ex))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] " +
+                                    .Trace($"[NW.{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] " +
                                            $"receive-loop ended (peer closed/shutdown) ep={_epText}");
         }
         catch (System.OperationCanceledException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] receive-loop cancelled");
+                                    .Trace($"[NW.{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] receive-loop cancelled");
         }
         catch (System.Exception ex)
         {
             var e = (ex as System.AggregateException)?.Flatten() ?? ex;
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] receive-loop faulted", e);
+                                    .Error($"[NW.{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] receive-loop faulted", e);
         }
         finally
         {

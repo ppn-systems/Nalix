@@ -31,7 +31,7 @@ internal static class AsyncCallback
         {
             // Never let subscriber exceptions kill a pool thread.
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-error", ex);
+                                    .Error($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-error", ex);
         }
     };
 

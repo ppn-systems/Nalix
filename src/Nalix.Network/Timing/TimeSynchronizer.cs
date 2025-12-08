@@ -127,7 +127,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     public TimeSynchronizer()
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-            .Debug($"[{nameof(TimeSynchronizer)}] init");
+            .Debug($"[NW.{nameof(TimeSynchronizer)}] init");
     }
 
     /// <summary>
@@ -235,7 +235,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
                                     catch (System.Exception ex)
                                     {
                                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(TimeSynchronizer)}] handler-error", ex);
+                                            .Error($"[NW.{nameof(TimeSynchronizer)}] handler-error", ex);
                                     }
                                 }, (handler, t0), preferLocal: false);
                             }
@@ -245,7 +245,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
                                 catch (System.Exception ex)
                                 {
                                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(TimeSynchronizer)}] handler-error", ex);
+                                        .Error($"[NW.{nameof(TimeSynchronizer)}] handler-error", ex);
                                 }
                             }
                         }
@@ -254,7 +254,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
                         if (elapsed > _period.TotalMilliseconds * 1.5)
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Warn($"[{nameof(TimeSynchronizer)}] overrun elapsed={elapsed}ms period={_period.TotalMilliseconds:0.#}ms");
+                                .Warn($"[NW.{nameof(TimeSynchronizer)}] overrun elapsed={elapsed}ms period={_period.TotalMilliseconds:0.#}ms");
                         }
 
                         ctx.Beat();
@@ -263,18 +263,18 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
                 catch (System.OperationCanceledException)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                        .Debug($"[{nameof(TimeSynchronizer)}] cancelled");
+                        .Debug($"[NW.{nameof(TimeSynchronizer)}] cancelled");
                 }
                 catch (System.Exception ex)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                        .Error($"[{nameof(TimeSynchronizer)}] loop-error", ex);
+                        .Error($"[NW.{nameof(TimeSynchronizer)}] loop-error", ex);
                 }
                 finally
                 {
                     System.Threading.Volatile.Write(ref _isRunning, 0);
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Info($"[{nameof(TimeSynchronizer)}] stop");
+                                            .Info($"[NW.{nameof(TimeSynchronizer)}] stop");
                 }
             },
             options: new WorkerOptions
@@ -324,7 +324,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
         System.GC.SuppressFinalize(this);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Meta($"[{nameof(TimeSynchronizer)}] disposed");
+                                .Meta($"[NW.{nameof(TimeSynchronizer)}] disposed");
     }
 
     #endregion

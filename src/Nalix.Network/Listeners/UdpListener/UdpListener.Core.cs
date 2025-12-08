@@ -113,7 +113,7 @@ public abstract partial class UdpListenerBase
                        .TimeSynchronized += this.SynchronizeTime;
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(UdpListenerBase)}] created port={_port} protocol={protocol.GetType().Name}");
+                                .Debug($"[NW.{nameof(UdpListenerBase)}] created port={_port} protocol={protocol.GetType().Name}");
     }
 
 
@@ -167,7 +167,7 @@ public abstract partial class UdpListenerBase
 
         this._isDisposed = true;
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(UdpListenerBase)}] disposed");
+                                .Info($"[NW.{nameof(UdpListenerBase)}] disposed");
     }
 
     #endregion IDisposable

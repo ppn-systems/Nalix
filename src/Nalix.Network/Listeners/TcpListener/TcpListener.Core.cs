@@ -73,7 +73,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
             InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled = value;
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(TcpListenerBase)}] timesync={value}");
+                                    .Info($"[NW.{nameof(TcpListenerBase)}] timesync={value}");
         }
     }
 
@@ -110,7 +110,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
             System.Threading.ThreadPool.GetMinThreads(out System.Int32 afterWorker, out System.Int32 afterIOCP);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(TcpListenerBase)}] set-min-threads worker={afterWorker} iocp={afterIOCP}");
+                                    .Info($"[NW.{nameof(TcpListenerBase)}] set-min-threads worker={afterWorker} iocp={afterIOCP}");
         }
     }
 
@@ -195,8 +195,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
-                                               $"stop-error port={self._port} ex={ex.Message}");
+                                        .Error($"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] stop-error port={self._port} ex={ex.Message}");
             }
             finally
             {
@@ -276,7 +275,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
         this._isDisposed = true;
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(TcpListenerBase)}:{nameof(Dispose)}] disposed");
+                                .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] disposed");
     }
 
     #endregion IDispose

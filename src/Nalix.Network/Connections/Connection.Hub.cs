@@ -120,7 +120,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             if (_options.EnableTraceLogs)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(ConnectionHub)}] register id={connection.ID} total={_count}");
+                                        .Trace($"[NW.{nameof(ConnectionHub)}] register id={connection.ID} total={_count}");
             }
 
             return true;
@@ -129,7 +129,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         if (_options.EnableTraceLogs)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(ConnectionHub)}] register-dup id={connection.ID}");
+                                    .Info($"[NW.{nameof(ConnectionHub)}] register-dup id={connection.ID}");
         }
 
         return false;
@@ -168,7 +168,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             if (_options.EnableTraceLogs)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[{nameof(ConnectionHub)}] unregister-miss id={connection.ID}");
+                                        .Info($"[NW.{nameof(ConnectionHub)}] unregister-miss id={connection.ID}");
             }
 
             return false;
@@ -186,7 +186,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         if (_options.EnableTraceLogs)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(ConnectionHub)}] unregister id={connection.ID} total={_count}");
+                                    .Trace($"[NW.{nameof(ConnectionHub)}] unregister id={connection.ID} total={_count}");
         }
 
         ConnectionUnregistered?.Invoke(existing ?? connection);
@@ -240,7 +240,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             if (_options.EnableTraceLogs)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(ConnectionHub)}] map-rebind id={id} old={oldUsername} new={username}");
+                                        .Trace($"[NW.{nameof(ConnectionHub)}] map-rebind id={id} old={oldUsername} new={username}");
             }
         }
 
@@ -251,7 +251,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         if (_options.EnableTraceLogs)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(ConnectionHub)}] map user=\"{username}\" id={id}");
+                                    .Trace($"[NW.{nameof(ConnectionHub)}] map user=\"{username}\" id={id}");
         }
     }
 
@@ -264,8 +264,12 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
     public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id)
-        => _connections.TryGetValue(id, out IConnection connection) ? connection : null;
+    {
+        IConnection connection;
+        return this._connections.TryGetValue(id, out connection) ? connection : null;
+    }
 
     /// <summary>
     /// Retrieves a connection by its serialized identifier.
@@ -275,8 +279,12 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
     public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> id)
-        => _connections.TryGetValue(Snowflake.FromBytes(id), out IConnection connection) ? connection : null;
+    {
+        IConnection connection;
+        return this._connections.TryGetValue(Snowflake.FromBytes(id), out connection) ? connection : null;
+    }
 
     /// <summary>
     /// Retrieves a connection by its associated username.
@@ -287,9 +295,12 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public IConnection GetConnectionByUsername([System.Diagnostics.CodeAnalysis.NotNull] System.String username)
-        => System.String.IsNullOrWhiteSpace(username)
-        ? null : _usernameToId.TryGetValue(username, out ISnowflake id) ? this.GetConnection(id) : null;
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
+    public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] System.String username)
+    {
+        ISnowflake id;
+        return System.String.IsNullOrWhiteSpace(username) ? null : (this._usernameToId.TryGetValue(username, out id) ? this.GetConnection(id) : null);
+    }
 
     /// <summary>
     /// Retrieves the username associated with a connection identifier.
@@ -299,8 +310,12 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
     public System.String GetUsername([System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id)
-        => _usernames.TryGetValue(id, out System.String username) ? username : null;
+    {
+        System.String username;
+        return this._usernames.TryGetValue(id, out username) ? username : null;
+    }
 
     /// <inheritdoc />
     /// <summary>
@@ -371,7 +386,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         if (connections is null || connections.Count == 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(ConnectionHub)}] broadcast-skip total=0");
+                                    .Trace($"[NW.{nameof(ConnectionHub)}] broadcast-skip total=0");
             return;
         }
 
@@ -418,7 +433,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         catch (System.OperationCanceledException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(ConnectionHub)}] broadcast-cancel");
+                                    .Info($"[NW.{nameof(ConnectionHub)}] broadcast-cancel");
         }
     }
 
@@ -484,7 +499,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         catch (System.OperationCanceledException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(ConnectionHub)}] broadcast-cancel");
+                                    .Info($"[NW.{nameof(ConnectionHub)}] broadcast-cancel");
         }
         finally
         {
@@ -522,8 +537,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(ConnectionHub)}] " +
-                                               $"disconnect-error id={connection.ID}", ex);
+                                        .Error($"[NW.{nameof(ConnectionHub)}] disconnect-error id={connection.ID}", ex);
             }
         });
 
@@ -534,7 +548,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _ = System.Threading.Interlocked.Exchange(ref _count, 0);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(ConnectionHub)}] disconnect-all total={connections.Count}");
+                                .Info($"[NW.{nameof(ConnectionHub)}] disconnect-all total={connections.Count}");
     }
 
     /// <summary>
@@ -589,7 +603,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         this.CloseAllConnections("disposed");
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(ConnectionHub)}] disposed");
+                                .Info($"[NW.{nameof(ConnectionHub)}] disposed");
     }
 
     #endregion APIs
@@ -607,8 +621,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     private void HandleConnectionLimit(IConnection newConnection)
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(ConnectionHub)}] connection-limit-reached " +
-                                      $"policy={_options.RejectPolicy} max={_options.MaxConnections}");
+                                .Info($"[NW.{nameof(ConnectionHub)}] connection-limit-reached policy={_options.RejectPolicy} max={_options.MaxConnections}");
 
         switch (_options.RejectPolicy)
         {
@@ -624,7 +637,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                     if (_connections.TryGetValue(oldestId, out IConnection oldestConn) && !_usernames.ContainsKey(oldestId))
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Info($"[{nameof(ConnectionHub)}] evicting-anonymous id={oldestConn.ID}");
+                                                .Info($"[NW.{nameof(ConnectionHub)}] evicting-anonymous id={oldestConn.ID}");
 
                         oldestConn.Disconnect("evicted to make room for new connection");
                         return;
@@ -635,7 +648,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
                 // No anonymous connections found, reject new connection instead
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[{nameof(ConnectionHub)}] no-anonymous-to-evict, rejecting-new");
+                                        .Info($"[NW.{nameof(ConnectionHub)}] no-anonymous-to-evict, rejecting-new");
 
                 newConnection.Disconnect("connection limit reached, no anonymous connections to evict");
                 break;
