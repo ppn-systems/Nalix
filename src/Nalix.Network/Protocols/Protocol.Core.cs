@@ -55,13 +55,13 @@ public abstract partial class Protocol : IProtocol
                 args.Connection.Disconnect();
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(Protocol)}:{nameof(PostProcessMessage)}] disconnect id={args.Connection.ID}");
+                                        .Trace($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] disconnect id={args.Connection.ID}");
             }
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(Protocol)}{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
+                                    .Error($"[NW.{nameof(Protocol)}{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
 
             // Notify protocol-level error handler
             this.OnConnectionError(args.Connection, ex);
@@ -80,7 +80,7 @@ public abstract partial class Protocol : IProtocol
         [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean isEnabled)
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(Protocol)}:{nameof(SetConnectionAcceptance)}] accepting={(isEnabled ? "enabled" : "disabled")}");
+                                .Info($"[NW.{nameof(Protocol)}:{nameof(SetConnectionAcceptance)}] accepting={(isEnabled ? "enabled" : "disabled")}");
 
         _accepting = isEnabled ? 1 : 0;
     }

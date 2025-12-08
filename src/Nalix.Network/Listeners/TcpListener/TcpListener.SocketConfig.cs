@@ -45,15 +45,14 @@ public abstract partial class TcpListenerBase
                 var epV6Any = new System.Net.IPEndPoint(System.Net.IPAddress.IPv6Any, this._port);
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any} (v6)");
+                                        .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any} (v6)");
 
                 listener.Bind(epV6Any);
                 listener.Listen(Config.Backlog);
 
                 _listener = listener;
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[{nameof(TcpListenerBase)}:{nameof(Initialize)}] " +
-                                               $"config-listen {_listener.LocalEndPoint} (dual)");
+                                        .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint} (dual)");
                 return;
             }
             catch
@@ -89,13 +88,13 @@ public abstract partial class TcpListenerBase
         var epV4Any = new System.Net.IPEndPoint(System.Net.IPAddress.Any, this._port);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any} (v4)");
+                                .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any} (v4)");
 
         _listener.Bind(epV4Any);
         _listener.Listen(Config.Backlog);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}");
+                                .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}");
     }
 
     [System.Diagnostics.DebuggerStepThrough]

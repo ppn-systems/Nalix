@@ -133,8 +133,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
             if (existing.CurrentConnections >= _maxPerIp)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(ConnectionLimiter)}] over-limit ip={endPoint} " +
-                                               $"now={existing.CurrentConnections} limit={_maxPerIp}");
+                                        .Trace($"[NW.{nameof(ConnectionLimiter)}] over-limit ip={endPoint} now={existing.CurrentConnections} limit={_maxPerIp}");
                 return false;
             }
 
@@ -150,8 +149,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
             if (_map.TryUpdate(key, proposed, existing))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(ConnectionLimiter)}] allow ip={endPoint} " +
-                                               $"now={proposed.CurrentConnections} limit={_maxPerIp}");
+                                        .Trace($"[NW.{nameof(ConnectionLimiter)}] allow ip={endPoint} now={proposed.CurrentConnections} limit={_maxPerIp}");
                 return true;
             }
         }
@@ -216,8 +214,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
             if (_map.TryUpdate(args.Connection.EndPoint, proposed, existing))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[{nameof(ConnectionLimiter)}] close ip={args.Connection.EndPoint} " +
-                                               $"now={proposed.CurrentConnections} limit={_maxPerIp}");
+                                        .Trace($"[NW.{nameof(ConnectionLimiter)}] close ip={args.Connection.EndPoint} now={proposed.CurrentConnections} limit={_maxPerIp}");
                 return;
             }
         }
@@ -338,13 +335,13 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
             if (removed > 0)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[{nameof(ConnectionLimiter)}] cleanup scanned={scanned} removed={removed}");
+                                        .Debug($"[NW.{nameof(ConnectionLimiter)}] cleanup scanned={scanned} removed={removed}");
             }
         }
         catch (System.Exception ex) when (ex is not System.ObjectDisposedException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(ConnectionLimiter)}] cleanup-error msg={ex.Message}");
+                                    .Error($"[NW.{nameof(ConnectionLimiter)}] cleanup-error msg={ex.Message}");
         }
     }
 
@@ -371,7 +368,7 @@ public sealed class ConnectionLimiter : System.IDisposable, IReportable
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(ConnectionLimiter)}] dispose-error msg={ex.Message}");
+                                    .Error($"[NW.{nameof(ConnectionLimiter)}] dispose-error msg={ex.Message}");
         }
 
         System.GC.SuppressFinalize(this);

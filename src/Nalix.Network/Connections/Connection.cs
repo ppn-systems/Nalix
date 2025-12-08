@@ -68,7 +68,7 @@ public sealed partial class Connection : IConnection
         this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(Connection)}] created remote={this.EndPoint} id={this.ID}");
+                                .Debug($"[NW.{nameof(Connection)}] created remote={this.EndPoint} id={this.ID}");
     }
 
     #endregion Constructor
@@ -187,7 +187,7 @@ public sealed partial class Connection : IConnection
 
 #if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(FramedSocketChannel)}:{InjectIncoming}] inject-bytes len={bytes.Length}");
+                                .Debug($"[NW.{nameof(FramedSocketChannel)}:{InjectIncoming}] inject-bytes len={bytes.Length}");
 #endif
     }
 
@@ -205,7 +205,7 @@ public sealed partial class Connection : IConnection
 
 #if DEBUG
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(Connection)}:{Close}] close request id={this.ID} remote={this.EndPoint}");
+                                .Debug($"[NW.{nameof(Connection)}:{Close}] close request id={this.ID} remote={this.EndPoint}");
 #endif
     }
 
@@ -246,7 +246,7 @@ public sealed partial class Connection : IConnection
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(Connection)}:{Dispose}] dispose-error msg={ex.Message}");
+                                    .Error($"[NW.{nameof(Connection)}:{Dispose}] dispose-error msg={ex.Message}");
         }
 
         System.GC.SuppressFinalize(this);

@@ -54,8 +54,7 @@ public abstract partial class UdpListenerBase
             {
                 _ = System.Threading.Interlocked.Increment(ref _recvErrors);
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(UdpListenerBase)}:{nameof(ReceiveDatagramsAsync)}] " +
-                                               $"recv-error port={_port}", ex);
+                                        .Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ReceiveDatagramsAsync)}] recv-error port={_port}", ex);
 
                 await System.Threading.Tasks.Task.Delay(50, cancellationToken)
                                                  .ConfigureAwait(false);
@@ -68,8 +67,7 @@ public abstract partial class UdpListenerBase
         if (result.Buffer.Length < PacketConstants.HeaderSize + Snowflake.Size)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                                           $"short-packet len={result.Buffer.Length} from={result.RemoteEndPoint}");
+                                    .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] short-packet len={result.Buffer.Length} from={result.RemoteEndPoint}");
             return;
         }
 
@@ -77,7 +75,7 @@ public abstract partial class UdpListenerBase
         {
             _ = System.Threading.Interlocked.Increment(ref _dropShort);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(UdpListenerBase)}] [{nameof(ConnectionHub)}] null");
+                                    .Error($"[NW.{nameof(UdpListenerBase)}] [{nameof(ConnectionHub)}] null");
             return;
         }
 
@@ -88,7 +86,7 @@ public abstract partial class UdpListenerBase
         {
             _ = System.Threading.Interlocked.Increment(ref _dropUnknown);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] unknown-packet from={result.RemoteEndPoint}");
+                                    .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] unknown-packet from={result.RemoteEndPoint}");
             return;
         }
 
@@ -96,7 +94,7 @@ public abstract partial class UdpListenerBase
         {
             _ = System.Threading.Interlocked.Increment(ref _dropUnauth);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] unauth from={result.RemoteEndPoint}");
+                                    .Warn($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] unauth from={result.RemoteEndPoint}");
             return;
         }
 
@@ -106,7 +104,7 @@ public abstract partial class UdpListenerBase
         connection.InjectIncoming(result.Buffer[..^Snowflake.Size]);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Meta($"[{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] inject id={connection.ID} size={result.Buffer.Length}");
+                                .Meta($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] inject id={connection.ID} size={result.Buffer.Length}");
     }
 }
 
