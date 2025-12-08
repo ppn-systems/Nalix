@@ -87,10 +87,10 @@ public interface ITransportOptions
     /// Encryption key used for secure communication.
     /// Set by <c>HandshakeExtensions</c> after the X25519 key exchange completes.
     /// </summary>
-    System.Byte[] EncryptionKey { get; set; }
+    System.Byte[] Secret { get; set; }
 
     /// <summary>
     /// Cipher suite used for encrypting packets.
     /// </summary>
-    CipherSuiteType EncryptionMode { get; set; }
+    CipherSuiteType Algorithm { get; set; }
 }
