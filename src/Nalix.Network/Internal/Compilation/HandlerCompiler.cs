@@ -193,23 +193,20 @@ internal sealed class HandlerCompiler<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static HandlerInvoker<TPacket> CompileMethodAccessor(System.Reflection.MethodInfo method)
     {
-        System.Linq.Expressions.ParameterExpression x00 = System.Linq.Expressions.Expression
-            .Parameter(typeof(System.Object), "instance");
+        System.Linq.Expressions.ParameterExpression x00 =
+            System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
 
-        System.Linq.Expressions.ParameterExpression x01 = System.Linq.Expressions.Expression
-            .Parameter(typeof(PacketContext<TPacket>), "context");
+        System.Linq.Expressions.ParameterExpression x01 =
+            System.Linq.Expressions.Expression.Parameter(typeof(PacketContext<TPacket>), "context");
 
-        System.Linq.Expressions.MemberExpression x02 = System.Linq.Expressions.Expression
-            .Property(x01, typeof(PacketContext<TPacket>)
-            .GetProperty(nameof(PacketContext<>.Packet))!);
+        System.Linq.Expressions.MemberExpression x02 =
+            System.Linq.Expressions.Expression.Property(x01, typeof(PacketContext<TPacket>).GetProperty(nameof(PacketContext<>.Packet))!);
 
-        System.Linq.Expressions.MemberExpression x03 = System.Linq.Expressions.Expression
-            .Property(x01, typeof(PacketContext<TPacket>)
-            .GetProperty(nameof(PacketContext<>.Connection))!);
+        System.Linq.Expressions.MemberExpression x03 =
+            System.Linq.Expressions.Expression.Property(x01, typeof(PacketContext<TPacket>).GetProperty(nameof(PacketContext<>.Connection))!);
 
-        System.Linq.Expressions.MemberExpression x04 = System.Linq.Expressions.Expression
-            .Property(x01, typeof(PacketContext<TPacket>)
-            .GetProperty(nameof(PacketContext<>.CancellationToken))!);
+        System.Linq.Expressions.MemberExpression x04 =
+            System.Linq.Expressions.Expression.Property(x01, typeof(PacketContext<TPacket>).GetProperty(nameof(PacketContext<>.CancellationToken))!);
 
 
         // Get the actual parameter types of the method

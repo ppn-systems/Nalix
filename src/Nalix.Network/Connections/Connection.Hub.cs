@@ -25,6 +25,9 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 {
     #region Fields
 
+    // Queue tracking order of anonymous connections for O(1)-amortized eviction
+    private readonly System.Collections.Concurrent.ConcurrentQueue<ISnowflake> _anonymousQueue;
+
     // Separate dictionaries for better cache locality and reduced contention
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> _connections;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, System.String> _usernames;
@@ -77,6 +80,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         _usernames = new(concurrencyLevel, _options.InitialUsernameCapacity);
         _connections = new(concurrencyLevel, _options.InitialConnectionCapacity);
+        _anonymousQueue = new System.Collections.Concurrent.ConcurrentQueue<ISnowflake>();
         _usernameToId = new(concurrencyLevel, _options.InitialUsernameCapacity, System.StringComparer.OrdinalIgnoreCase);
     }
 
@@ -111,6 +115,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         {
             connection.OnCloseEvent += this.OnClientDisconnected;
             _ = System.Threading.Interlocked.Increment(ref _count);
+            _anonymousQueue.Enqueue(connection.ID);
 
             if (_options.EnableTraceLogs)
             {
@@ -149,7 +154,8 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         // Wait for OnCloseEvent to complete if configured
         if (_options.UnregisterDrainMillis > 0)
         {
-            System.Threading.Thread.Sleep(_options.UnregisterDrainMillis);
+            _ = System.Threading.Tasks.Task.Delay(_options.UnregisterDrainMillis)
+                                           .ConfigureAwait(false);
         }
 
         if (!_connections.TryRemove(connection.ID, out IConnection existing))
@@ -198,15 +204,19 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// Thrown if <paramref name="connection"/> or <paramref name="username"/> is null or empty.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "SYSLIB1045:Convert to 'GeneratedRegexAttribute'.", Justification = "<Pending>")]
     public void AssociateUsername(
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String username)
     {
-        if (connection is null ||
-            System.String.IsNullOrWhiteSpace(username) ||
-            _disposed)
+        if (connection is null || System.String.IsNullOrWhiteSpace(username) || _disposed)
         {
             return;
+        }
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(username, "^[a-zA-Z0-9_]+$"))
+        {
+            throw new System.ArgumentException("Username contains invalid characters.", nameof(username));
         }
 
         // Apply username policies
@@ -607,32 +617,27 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                 break;
 
             case RejectPolicy.DROP_OLDEST_ANONYMOUS:
-                // Find oldest anonymous connection (connection without username)
-                IConnection oldestAnonymous = null;
-                foreach (var kvp in _connections)
+                // Efficient eviction: use queue of anonymous IDs and dequeue until we find a valid anonymous to evict.
+                while (_anonymousQueue.TryDequeue(out ISnowflake oldestId))
                 {
-                    if (!_usernames.ContainsKey(kvp.Key))
+                    // if the ID is still present and still anonymous (no username mapped) -> evict
+                    if (_connections.TryGetValue(oldestId, out IConnection oldestConn) && !_usernames.ContainsKey(oldestId))
                     {
-                        oldestAnonymous = kvp.Value;
-                        break; // Take first anonymous found (oldest due to dictionary order)
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Info($"[{nameof(ConnectionHub)}] evicting-anonymous id={oldestConn.ID}");
+
+                        oldestConn.Disconnect("evicted to make room for new connection");
+                        return;
                     }
+
+                    // otherwise continue to next queued id (stale or already authenticated)
                 }
 
-                if (oldestAnonymous is not null)
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Info($"[{nameof(ConnectionHub)}] evicting-anonymous id={oldestAnonymous.ID}");
+                // No anonymous connections found, reject new connection instead
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Info($"[{nameof(ConnectionHub)}] no-anonymous-to-evict, rejecting-new");
 
-                    oldestAnonymous.Disconnect("evicted to make room for new connection");
-                }
-                else
-                {
-                    // No anonymous connections found, reject new connection instead
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Info($"[{nameof(ConnectionHub)}] no-anonymous-to-evict, rejecting-new");
-
-                    newConnection.Disconnect("connection limit reached, no anonymous connections to evict");
-                }
+                newConnection.Disconnect("connection limit reached, no anonymous connections to evict");
                 break;
         }
     }
