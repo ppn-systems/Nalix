@@ -244,7 +244,7 @@ public abstract partial class TcpListenerBase
                                     .Deactivate(System.Threading.CancellationToken.None);
         }
 
-        var cts = System.Threading.Interlocked.Exchange(ref _cts, null);
+        System.Threading.CancellationTokenSource cts = System.Threading.Interlocked.Exchange(ref _cts, null);
         try
         {
             try { _cancelReg.Dispose(); } catch { }
