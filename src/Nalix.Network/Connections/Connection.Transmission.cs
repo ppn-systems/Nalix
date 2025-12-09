@@ -1,6 +1,14 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Abstractions;
+using Nalix.Common.Networking;
+using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
+using Nalix.Framework.Time;
+using Nalix.Network.Routing.Results.Primitives;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -10,14 +18,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Memory.Objects;
-using Nalix.Framework.Time;
-using Nalix.Network.Routing.Results.Primitives;
 
 #if DEBUG
 using Nalix.Network.Internal.Transport;
@@ -90,13 +90,7 @@ public sealed partial class Connection : IConnection
         /// <summary>
         /// Initializes a new instance of the <see cref="UdpTransport"/> class.
         /// </summary>
-        public UdpTransport()
-        {
-            _socket = new Socket(
-                AddressFamily.InterNetwork,
-                SocketType.Dgram,
-                ProtocolType.Udp);
-        }
+        public UdpTransport() => _socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UdpTransport"/> class.
