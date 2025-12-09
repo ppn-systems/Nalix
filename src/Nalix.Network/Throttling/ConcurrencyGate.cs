@@ -167,7 +167,8 @@ public static class ConcurrencyGate
 
             try
             {
-                await e.Sem.WaitAsync(ct).ConfigureAwait(false);
+                await e.Sem.WaitAsync(ct)
+                           .ConfigureAwait(false);
 
                 e.Touch();
                 return new Lease(e.Sem);
@@ -179,7 +180,8 @@ public static class ConcurrencyGate
         }
         else
         {
-            await e.Sem.WaitAsync(ct).ConfigureAwait(false);
+            await e.Sem.WaitAsync(ct)
+                       .ConfigureAwait(false);
 
             e.Touch();
             return new Lease(e.Sem);
