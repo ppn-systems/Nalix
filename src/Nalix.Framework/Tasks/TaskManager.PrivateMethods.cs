@@ -65,7 +65,7 @@ public partial class TaskManager
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(TaskManager)}] cleanup-error msg={ex.Message}");
+                                    .Error($"[FW.{nameof(TaskManager)}] cleanup-error msg={ex.Message}");
         }
     }
 
@@ -177,7 +177,7 @@ public partial class TaskManager
                 {
                     s.MarkFailure();
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(TaskManager)}] recurring-timeout name={s.Name} msg={oce.Message}");
+                                            .Error($"[FW.{nameof(TaskManager)}] recurring-timeout name={s.Name} msg={oce.Message}");
 
                     await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
                 }
@@ -185,7 +185,7 @@ public partial class TaskManager
                 {
                     s.MarkFailure();
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(TaskManager)}] recurring-error name={s.Name} msg={ex.Message}");
+                                            .Error($"[FW.{nameof(TaskManager)}] recurring-error name={s.Name} msg={ex.Message}");
 
                     await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
                 }
@@ -203,7 +203,7 @@ public partial class TaskManager
             {
                 s.MarkFailure();
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(TaskManager)}] recurring-loop-error name={s.Name} msg={ex.Message}");
+                                        .Error($"[FW.{nameof(TaskManager)}] recurring-loop-error name={s.Name} msg={ex.Message}");
 
                 await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
             }

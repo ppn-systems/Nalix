@@ -37,7 +37,7 @@ public static class Csprng
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[Csprng] init using {(_f == OsCsprng.Fill ? "OS_CSPRNG" : "FA_RANDOM")}");
+                                .Info($"[FW.Csprng] init using {(_f == OsCsprng.Fill ? "OS_CSPRNG" : "FA_RANDOM")}");
     }
 
     #region APIs
