@@ -141,7 +141,7 @@ public sealed class ObjectPoolManager : IReportable
         ObjectPool pool = GetOrCreatePool<T>();
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(ObjectPoolManager)}] prealloc type={typeof(T).Name} count={count}");
+                                .Debug($"[SH.{nameof(ObjectPoolManager)}] prealloc type={typeof(T).Name} count={count}");
 
         return pool.Prealloc<T>(count);
     }
@@ -171,8 +171,7 @@ public sealed class ObjectPoolManager : IReportable
         _poolDict[type] = pool;
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                        .Info($"[{nameof(ObjectPoolManager)}] " +
-                              $"set-max type={typeof(T).Name} cap={maxCapacity}");
+                        .Info($"[SH.{nameof(ObjectPoolManager)}] set-max type={typeof(T).Name} cap={maxCapacity}");
 
         return true;
     }
@@ -254,7 +253,7 @@ public sealed class ObjectPoolManager : IReportable
         System.Int64 returns = System.Threading.Interlocked.Read(ref _totalReturnOperations);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(ObjectPoolManager)}] " +
+                                .Info($"[SH.{nameof(ObjectPoolManager)}] " +
                                       $"stats-before-reset gets={gets} returns={returns} " +
                                       $"uptime={Uptime.TotalSeconds:F0}s pools={PoolCount}");
 
@@ -269,7 +268,7 @@ public sealed class ObjectPoolManager : IReportable
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Meta($"[{nameof(ObjectPoolManager)}] stats-reset-complete");
+                                .Meta($"[SH.{nameof(ObjectPoolManager)}] stats-reset-complete");
     }
 
     /// <summary>
@@ -301,7 +300,7 @@ public sealed class ObjectPoolManager : IReportable
                 catch (System.Exception ex)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[{nameof(ObjectPoolManager)}] trim-task-error", ex);
+                                            .Error($"[SH.{nameof(ObjectPoolManager)}] trim-task-error", ex);
                 }
             }
         }, cancellationToken);
