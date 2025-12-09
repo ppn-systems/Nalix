@@ -27,7 +27,7 @@ Nalix.Network, Nalix.SDK, Nalix.Shared, and Nalix.Logging.
 
 		<PackageReleaseNotes>
 			- Introduced core abstractions for connection handling, caching, and environment directories.
-			- Added attribute and enum definitions (CipherSuiteType, IdentifierType, PermissionLevel, etc.).
+			- Added attribute and enum definitions (CipherSuiteType, SnowflakeType, PermissionLevel, etc.).
 			- Implemented directory environment helpers (Lazy, Properties, UnixDirPerms).
 			- Added exceptions subsystem with models and abstractions for framework-wide usage.
 			- Added foundational interfaces for protocols, packets, repositories, and serialization.
