@@ -76,7 +76,7 @@ public partial class ConfigurationLoader
 
         configFile.WriteValue(section, property.Name, valueToWrite);
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(ConfigurationLoader)}:{nameof(HandleEmptyValue)}] " +
+                                .Debug($"[FW.{nameof(ConfigurationLoader)}:{nameof(HandleEmptyValue)}] " +
                                        $"default-written section={section} key={property.Name} val={valueToWrite}");
     }
 
@@ -123,7 +123,7 @@ public partial class ConfigurationLoader
     private static System.Object ThrowUnsupported(PropertyMetadata property)
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Error($"[{nameof(ConfigurationLoader)}:{nameof(ThrowUnsupported)}] " +
+                                .Error($"[FW.{nameof(ConfigurationLoader)}:{nameof(ThrowUnsupported)}] " +
                                        $"unsupported-type type={property.PropertyType.Name} key={property.Name}");
 
         throw new System.NotSupportedException($"Value type {property.PropertyType.Name} is not supported for configuration files.");

@@ -48,7 +48,7 @@ public sealed partial class TaskManager : ITaskManager
         }, this, CleanupInterval, CleanupInterval);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Meta($"[{nameof(TaskManager)}] init");
+                                .Meta($"[FW.{nameof(TaskManager)}] init");
     }
 
     #endregion Ctors
@@ -95,7 +95,7 @@ public sealed partial class TaskManager : ITaskManager
         st.Task = System.Threading.Tasks.Task.Run(() => RECURRING_LOOP_ASYNC(st, work), cts.Token);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(TaskManager)}] start-recurring name={name} " +
+                                .Debug($"[FW.{nameof(TaskManager)}] start-recurring name={name} " +
                                        $"iv={interval.TotalMilliseconds:F0}ms " +
                                        $"nonReentrant={options.NonReentrant} tag={options.Tag ?? "-"}");
         return st;
@@ -133,7 +133,7 @@ public sealed partial class TaskManager : ITaskManager
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[{nameof(TaskManager)}] run-once-error name={name} msg={ex.Message}");
+                                    .Error($"[FW.{nameof(TaskManager)}] run-once-error name={name} msg={ex.Message}");
             throw;
         }
     }
@@ -208,8 +208,7 @@ public sealed partial class TaskManager : ITaskManager
                         if (!acquired)
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[{nameof(TaskManager)}] " +
-                                                          $"worker-reject name={name} group={group} reason=group-cap");
+                                                    .Warn($"[FW.{nameof(TaskManager)}] worker-reject name={name} group={group} reason=group-cap");
 
                             _ = _workers.TryRemove(id, out _);
                             try
@@ -254,7 +253,7 @@ public sealed partial class TaskManager : ITaskManager
                 failure = ex;
                 st.MarkError(ex);
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[{nameof(TaskManager)}] worker-error id={id} name={name} msg={ex.Message}");
+                                        .Error($"[FW.{nameof(TaskManager)}] worker-error id={id} name={name} msg={ex.Message}");
             }
             finally
             {
@@ -272,7 +271,7 @@ public sealed partial class TaskManager : ITaskManager
                 catch (System.Exception cbex)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[{nameof(TaskManager)}] worker-callback-error id={id} msg={cbex.Message}");
+                                            .Warn($"[FW.{nameof(TaskManager)}] worker-callback-error id={id} msg={cbex.Message}");
                 }
 
                 if (gate is not null && acquired)
@@ -289,7 +288,7 @@ public sealed partial class TaskManager : ITaskManager
         }, cts.Token);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[{nameof(TaskManager)}] worker-start id={id} name={name} group={group} tag={options.Tag ?? "-"}");
+                                .Info($"[FW.{nameof(TaskManager)}] worker-start id={id} name={name} group={group} tag={options.Tag ?? "-"}");
 
         return st;
     }
@@ -341,7 +340,7 @@ public sealed partial class TaskManager : ITaskManager
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[{nameof(TaskManager)}] cancel recurring name={name}");
+                                    .Warn($"[FW.{nameof(TaskManager)}] cancel recurring name={name}");
             return true;
         }
 
@@ -373,7 +372,7 @@ public sealed partial class TaskManager : ITaskManager
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[{nameof(TaskManager)}] worker-cancel id={id} name={st.Name} group={st.Group}");
+                                    .Warn($"[FW.{nameof(TaskManager)}] worker-cancel id={id} name={st.Name} group={st.Group}");
             return true;
         }
         return false;
@@ -405,7 +404,7 @@ public sealed partial class TaskManager : ITaskManager
         if (n > 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(TaskManager)}] group-cancel group={group} count={n}");
+                                    .Info($"[FW.{nameof(TaskManager)}] group-cancel group={group} count={n}");
         }
 
         return n;
@@ -432,7 +431,7 @@ public sealed partial class TaskManager : ITaskManager
         if (n > 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(TaskManager)}] cancel-all-workers count={n}");
+                                    .Info($"[FW.{nameof(TaskManager)}] cancel-all-workers count={n}");
         }
 
         return n;
@@ -702,7 +701,7 @@ public sealed partial class TaskManager : ITaskManager
         _groupGates.Clear();
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(TaskManager)}] disposed");
+                                .Debug($"[FW.{nameof(TaskManager)}] disposed");
 
         System.GC.SuppressFinalize(this);
     }

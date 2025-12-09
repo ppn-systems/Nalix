@@ -2,7 +2,6 @@
 
 namespace Nalix.Framework.Random.Core;
 
-
 /// <summary>
 /// Provides cryptographically secure random number generation using the operating system's CSPRNG facilities.
 /// </summary>
