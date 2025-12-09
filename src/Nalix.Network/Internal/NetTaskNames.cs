@@ -17,7 +17,7 @@ namespace Nalix.Network.Internal;
 /// networking subsystem, using consistent <c>TaskNames.Groups</c> and <c>TaskNames.Workers</c>
 /// patterns.
 /// </remarks>
-internal static class NetTaskCatalog
+internal static class NetTaskNames
 {
     #region Segments
 
