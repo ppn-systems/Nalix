@@ -25,16 +25,29 @@ namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
 {
+    #region Constants
+
+    private const int NonceSize = sizeof(ulong);
     private const long MaxReplayWindowMs = 30_000;
     private const int TimestampSize = sizeof(long);
-    private const int NonceSize = sizeof(ulong);
     private const int AuthenticationTagSize = Poly1305.TagSize;
     private const int AuthenticationMetadataSize = Snowflake.Size + TimestampSize + NonceSize + AuthenticationTagSize;
 
+    #endregion Constants
+
+    /// <summary>
+    /// Receives UDP datagrams until cancellation and dispatches each accepted datagram for processing.
+    /// </summary>
+    /// <param name="cancellationToken">The token that stops the receive loop.</param>
+    /// <remarks>
+    /// Override this method to customize receive scheduling, batching, or diagnostics. Implementations
+    /// should preserve the cancellation semantics and ensure that inbound datagrams still flow into
+    /// <see cref="ProcessDatagram(UdpReceiveResult)"/> or an equivalent processing path.
+    /// </remarks>
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private async Task ReceiveDatagramsAsync(
+    protected virtual async Task ReceiveDatagramsAsync(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(_udpClient);
@@ -82,7 +95,16 @@ public abstract partial class UdpListenerBase
         }
     }
 
-    private void ProcessDatagram(UdpReceiveResult result)
+    /// <summary>
+    /// Processes a single received datagram, performs authentication checks, and injects accepted payloads.
+    /// </summary>
+    /// <param name="result">The received UDP datagram and its remote endpoint.</param>
+    /// <remarks>
+    /// Override this method only when a derived listener needs to change the inbound datagram pipeline.
+    /// Implementations are responsible for preserving authentication, accounting, and connection injection
+    /// semantics expected by the rest of the networking stack.
+    /// </remarks>
+    protected virtual void ProcessDatagram(UdpReceiveResult result)
     {
         if (result.Buffer.Length < PacketConstants.HeaderSize + AuthenticationMetadataSize)
         {

@@ -1,14 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.Net.Sockets;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
@@ -18,6 +10,15 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.Network.Internal;
 using Nalix.Network.Timekeeping;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Globalization;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -25,6 +26,7 @@ namespace Nalix.Network.Listeners.Udp;
 /// Provides a base implementation for a UDP network listener, supporting asynchronous listening,
 /// protocol processing, and time synchronization. Inherit from this class to implement custom UDP listeners.
 /// </summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [DebuggerDisplay("Port={s_config?.Port}, Running={_isRunning}")]
 public abstract partial class UdpListenerBase : IListener
 {
