@@ -42,10 +42,16 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// <exception cref="System.ArgumentNullException">
     /// Thrown if <paramref name="options"/> is <see langword="null"/>.
     /// </exception>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Style", "IDE0290:UsePrimaryConstructor", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0016:Use 'throw' expression", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1510:Use ArgumentNullException throw helper", Justification = "<Pending>")]
     protected PacketDispatcherBase(PacketDispatchOptions<TPacket> options)
-        => this.Options = options ?? throw new System.ArgumentNullException(nameof(options));
+    {
+        if (options == null)
+        {
+            throw new System.ArgumentNullException(nameof(options));
+        }
+        this.Options = options;
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatcherBase{TPacket}"/> class
@@ -54,9 +60,16 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// <param name="configure">
     /// An optional delegate to configure the <see cref="PacketDispatchOptions{TPacket}"/> instance.
     /// </param>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1005:Delegate invocation can be simplified.", Justification = "<Pending>")]
     protected PacketDispatcherBase(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.Action<PacketDispatchOptions<TPacket>> configure = null)
-        : this(new PacketDispatchOptions<TPacket>()) => configure?.Invoke(this.Options);
+            : this(new PacketDispatchOptions<TPacket>())
+    {
+        if (configure != null)
+        {
+            configure(this.Options);
+        }
+    }
 
     #endregion Constructors
 

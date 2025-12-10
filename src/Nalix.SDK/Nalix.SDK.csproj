@@ -8,20 +8,20 @@
 		<Deterministic>true</Deterministic>
 
 		<!-- NativeAOT: export UnmanagedCallersOnly symbols as a real DLL/.so/.dylib -->
+		<Optimize>true</Optimize>
 		<PublishAot>true</PublishAot>
 		<StripSymbols>true</StripSymbols>
-		<Optimize>true</Optimize>
 		<InvariantGlobalization>true</InvariantGlobalization>
 
 		<!-- Reduce reflection metadata; keep it small & fast for interop -->
-		<IlcGenerateCompleteTypeMetadata>false</IlcGenerateCompleteTypeMetadata>
 		<IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+		<IlcGenerateCompleteTypeMetadata>false</IlcGenerateCompleteTypeMetadata>
 
 		<!-- Versions -->
-		<Version>8.9.0</Version>
-		<FileVersion>8.9.0.0</FileVersion>
-		<PackageVersion>8.9.0</PackageVersion>
-		<InformationalVersion>8.9.0+$(SourceRevisionId)</InformationalVersion>
+		<Version>9.0.0</Version>
+		<FileVersion>9.0.0.0</FileVersion>
+		<PackageVersion>9.0.0</PackageVersion>
+		<InformationalVersion>9.0.0+$(SourceRevisionId)</InformationalVersion>
 
 		<Description>
 Nalix.SDK provides the client-side development kit for the Nalix ecosystem,
