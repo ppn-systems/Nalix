@@ -90,29 +90,41 @@ public partial class ConfigurationLoader
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static System.String GetDefaultValueString(PropertyMetadata propertyType)
-        => propertyType.TypeCode switch
+    {
+        switch (propertyType.TypeCode)
         {
-            System.TypeCode.Byte => "0",
-            System.TypeCode.SByte => "0",
-            System.TypeCode.Decimal => "0",
-            System.TypeCode.Int16 => "0",
-            System.TypeCode.UInt16 => "0",
-            System.TypeCode.Int32 => "0",
-            System.TypeCode.UInt32 => "0",
-            System.TypeCode.Int64 => "0",
-            System.TypeCode.UInt64 => "0",
-            System.TypeCode.Single => "0",
-            System.TypeCode.Double => "0",
-            System.TypeCode.Boolean => "false",
-            System.TypeCode.Char => System.String.Empty,
-            System.TypeCode.String => System.String.Empty,
-            System.TypeCode.Object when propertyType.PropertyType == typeof(System.Guid) =>
-            System.Guid.Empty.ToString("c", System.Globalization.CultureInfo.InvariantCulture),
-            System.TypeCode.DateTime => System.DateTime.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
-            System.TypeCode.Object when propertyType.PropertyType == typeof(System.TimeSpan) =>
-            System.TimeSpan.Zero.ToString("c", System.Globalization.CultureInfo.InvariantCulture),
-            _ => System.String.Empty,
-        };
+            case System.TypeCode.Object:
+                if (propertyType.PropertyType == typeof(System.Guid))
+                {
+                    return System.Guid.Empty.ToString("c", System.Globalization.CultureInfo.InvariantCulture);
+                }
+                if (propertyType.PropertyType == typeof(System.TimeSpan))
+                {
+                    return System.TimeSpan.Zero.ToString("c", System.Globalization.CultureInfo.InvariantCulture);
+                }
+                break;
+            case System.TypeCode.Char:
+            case System.TypeCode.String:
+                return string.Empty;
+            case System.TypeCode.Boolean:
+                return "false";
+            case System.TypeCode.SByte:
+            case System.TypeCode.Byte:
+            case System.TypeCode.Int16:
+            case System.TypeCode.UInt16:
+            case System.TypeCode.Int32:
+            case System.TypeCode.UInt32:
+            case System.TypeCode.Int64:
+            case System.TypeCode.UInt64:
+            case System.TypeCode.Single:
+            case System.TypeCode.Double:
+            case System.TypeCode.Decimal:
+                return "0";
+            case System.TypeCode.DateTime:
+                return System.DateTime.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture);
+        }
+        return string.Empty;
+    }
 
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]

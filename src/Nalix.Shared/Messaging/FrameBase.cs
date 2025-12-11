@@ -50,11 +50,11 @@ public abstract class FrameBase : IPacket
     System.UInt16 IPacket.Length => this.Length;
 
     /// <inheritdoc/>
+    public abstract void ResetForPool();
+
+    /// <inheritdoc/>
     public abstract System.Byte[] Serialize();
 
     /// <inheritdoc/>
     public abstract System.Int32 Serialize(System.Span<System.Byte> buffer);
-
-    /// <inheritdoc/>
-    public abstract void ResetForPool();
 }
