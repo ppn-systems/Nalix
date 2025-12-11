@@ -162,9 +162,6 @@ public sealed class TcpSession : BaseTcpSession
     /// </exception>
     public TcpSession(TransportOptions options, IPacketRegistry registry) : base()
     {
-        System.ArgumentNullException.ThrowIfNull(options);
-        System.ArgumentNullException.ThrowIfNull(registry);
-
         Options = options;
         Catalog = registry;
     }
@@ -174,10 +171,10 @@ public sealed class TcpSession : BaseTcpSession
     /// <summary>
     /// Creates internal frame sender and receiver helpers.
     /// </summary>
-    protected override void CreateFrameHelpers()
+    protected override void InitializeFrame()
     {
-        _sender = new FRAME_SENDER(GET_CONNECTED_SOCKET_OR_THROW, Options, REPORT_BYTES_SENT, HANDLE_SEND_ERROR);
-        _receiver = new FRAME_READER(GET_CONNECTED_SOCKET_OR_THROW, Options, HANDLE_RECEIVE_MESSAGE, HANDLE_RECEIVE_ERROR, REPORT_BYTES_RECEIVED);
+        _sender = new FRAME_SENDER(RequireConnectedSocket, Options, ReportBytesSent, HandleSendError);
+        _receiver = new FRAME_READER(RequireConnectedSocket, Options, HandleReceiveMessage, HandleReceiveError, ReportBytesReceived);
 
         Logging?.Debug($"[SDK.{GetType().Name}] Frame helpers created");
     }
@@ -249,14 +246,14 @@ public sealed class TcpSession : BaseTcpSession
         if (IsConnected)
         {
             Logging?.Debug($"[SDK.{GetType().Name}] Cleaning up existing connection");
-            CLEANUP_CONNECTION();
+            TearDownConnection();
         }
 
         lock (_sync)
         {
             if (_loopCts is not null)
             {
-                CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
+                CancelAndDispose(ref _loopCts);
             }
         }
 
@@ -294,7 +291,7 @@ public sealed class TcpSession : BaseTcpSession
                     _port = effectivePort;
                 }
 
-                CreateFrameHelpers();
+                InitializeFrame();
 
                 System.Boolean isReconnect = System.Threading.Interlocked.Exchange(ref _hasEverConnected, 1) == 1;
                 if (isReconnect)
@@ -326,23 +323,23 @@ public sealed class TcpSession : BaseTcpSession
     }
 
     /// <inheritdoc/>
-    protected override void REPORT_BYTES_SENT(System.Int32 count)
+    protected override void ReportBytesSent(System.Int32 count)
     {
         System.Threading.Interlocked.Add(ref _bytesSent, count);
         System.Threading.Interlocked.Add(ref _sendCounterForInterval, count);
-        base.REPORT_BYTES_SENT(count);
+        base.ReportBytesSent(count);
     }
 
     /// <inheritdoc/>
-    protected override void REPORT_BYTES_RECEIVED(System.Int32 count)
+    protected override void ReportBytesReceived(System.Int32 count)
     {
         System.Threading.Interlocked.Add(ref _bytesReceived, count);
         System.Threading.Interlocked.Add(ref _receiveCounterForInterval, count);
-        base.REPORT_BYTES_RECEIVED(count);
+        base.ReportBytesReceived(count);
     }
 
     /// <inheritdoc/>
-    protected override void HANDLE_SEND_ERROR(System.Exception ex)
+    protected override void HandleSendError(System.Exception ex)
     {
         Logging?.Warn($"[SDK.{GetType().Name}] Send error: {ex.Message}", ex);
         RaiseError(ex);
@@ -350,7 +347,7 @@ public sealed class TcpSession : BaseTcpSession
     }
 
     /// <inheritdoc/>
-    protected override void HANDLE_RECEIVE_ERROR(System.Exception ex)
+    protected override void HandleReceiveError(System.Exception ex)
     {
         Logging?.Warn($"[SDK.{GetType().Name}] Receive error: {ex.Message}", ex);
         RaiseError(ex);
@@ -371,10 +368,10 @@ public sealed class TcpSession : BaseTcpSession
     }
 
     /// <inheritdoc/>
-    protected override void CLEANUP_CONNECTION()
+    protected override void TearDownConnection()
     {
         System.Boolean wasConnected = IsConnected;
-        base.CLEANUP_CONNECTION();
+        base.TearDownConnection();
 
         try
         {
@@ -399,7 +396,7 @@ public sealed class TcpSession : BaseTcpSession
         }
         catch (System.Exception ex)
         {
-            Logging?.Warn($"[SDK.{GetType().Name}] Exception during CLEANUP_CONNECTION: {ex.Message}", ex);
+            Logging?.Warn($"[SDK.{GetType().Name}] Exception during TearDownConnection: {ex.Message}", ex);
         }
 
         if (wasConnected)
@@ -409,10 +406,10 @@ public sealed class TcpSession : BaseTcpSession
         }
     }
 
-    internal async System.Threading.Tasks.Task HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(System.Exception cause)
+    private async System.Threading.Tasks.Task HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(System.Exception cause)
     {
         Logging?.Debug($"[SDK.{GetType().Name}] HANDLE_DISCONNECT_AND_RECONNECT_ASYNC called after: {cause.Message}");
-        CLEANUP_CONNECTION();
+        TearDownConnection();
 
         if (!Options.ReconnectEnabled || System.Threading.Volatile.Read(ref _disposed) == 1)
         {
