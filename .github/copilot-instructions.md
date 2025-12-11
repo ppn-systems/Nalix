@@ -1,201 +1,145 @@
 # Copilot Instructions
 
-This document defines how Copilot must generate C# code, documentation, structure, and architecture inside the **Nalix** ecosystem.  
-All generated code must follow the rules below.
+This repository is the **Nalix** ecosystem. Generated code, docs, and refactors must match the current solution structure and coding style used in `src/` and `tests/`.
 
----
+## 1. Repository Snapshot
 
-## 1. Coding Style & Conventions
+- Language/runtime: C# 14 on `.NET 10` (`net10.0`)
+- Main solution: `src/Nalix.sln`
+- Test solution: `tests/Nalix.Tests.sln`
+- Current packages/projects:
+  - `Nalix.Common`
+  - `Nalix.Framework`
+  - `Nalix.Logging`
+  - `Nalix.Network`
+  - `Nalix.SDK`
 
-- Always use modern C# features (`Span<T>`, `ReadOnlySpan<T>`, `Memory<T>`, `readonly struct`, pattern matching, file-scoped namespaces).
-- Prefer `==` for reference type equality comparisons.
-- Write XML documentation comments following Microsoft standards.
-- Naming rules:
-  - Private fields: `_fieldName`
-  - Interfaces: `IType`
-  - Async methods: suffix `Async`
-- Avoid unnecessary memory allocations.
-- Avoid mutable global/static state except pure utility types.
-- Prefer explicit types unless `var` improves clarity.
-  
----
+Do not refer to `Nalix.Shared`; that is outdated for this repository state.
 
-## 2. Architecture & Layering (Nalix Ecosystem)
+## 2. Project Responsibilities
 
-Follow **SOLID** and **Domain-Driven Design** principles.
+### `Nalix.Common`
+Contains cross-cutting contracts and low-level shared types, including:
+- abstractions and attributes
+- diagnostics interfaces and log models
+- environment helpers
+- common exceptions
+- identity contracts and primitive types
+- middleware metadata
+- networking contracts
+- security enums/contracts
+- serialization contracts
 
-### Nalix.Shared  
-Contains only:
-- Low-level primitives  
-- Memory utilities  
-- Hashing, AEAD, cryptography  
-- Compression (LZ4)  
-- Serialization (LiteSerializer and formatters)  
+`Nalix.Common` is the lowest-level shared dependency. Keep it lightweight and broadly reusable.
 
-**Must NOT depend on Nalix.Framework or Nalix.Network.**
+### `Nalix.Framework`
+Builds on `Nalix.Common` and contains higher-level foundational features, including:
+- configuration
+- data frames and packet registry support
+- dependency injection / instance management
+- identifiers such as `Snowflake`
+- LZ4
+- memory pools and object/buffer helpers
+- options
+- random / CSPRNG helpers
+- security engines and hashing
+- serialization implementation
+- task orchestration and timing
 
-### Nalix.Framework  
-Contains:
-- Logging (console, file, batch, structured)  
-- Dependency Injection  
-- High-level random utilities  
-- Configuration  
-- Threading and task scheduling  
+### `Nalix.Logging`
+Builds on `Nalix.Common` and `Nalix.Framework` and contains:
+- `NLogix` logging facade
+- logging engine and distributor
+- console/file/batch sinks
+- internal formatters and pooling helpers
+- logging configuration objects
 
-May depend on Shared.
+### `Nalix.Network`
+Builds on `Nalix.Common` and `Nalix.Framework` and contains:
+- TCP/UDP listeners
+- connection and hub management
+- protocol lifecycle/metrics/public methods
+- middleware pipelines
+- routing and dispatch infrastructure
+- throttling and timing systems
 
-### Nalix.Network  
-Contains:
-- TCP/UDP transports  
-- Protocol design  
-- Dispatching, routing  
-- Connection and handshake logic  
+### `Nalix.SDK`
+Builds on `Nalix.Common` and `Nalix.Framework` and contains:
+- transport/session clients
+- SDK configuration
+- client-facing extensions
+- dispatcher abstractions
 
-May depend on Shared and Framework.
+## 3. Dependency Rules
 
-### Architecture Rules
-- No circular dependencies.
-- Separate Domain, Application, and Infrastructure logic.
-- Prefer composition over inheritance.
-- Use `sealed` classes unless extensibility is explicitly required.
+Respect the current reference direction:
+- `Nalix.Common` must not depend on other Nalix projects.
+- `Nalix.Framework` may depend only on `Nalix.Common`.
+- `Nalix.Logging` may depend on `Nalix.Common` and `Nalix.Framework`.
+- `Nalix.Network` may depend on `Nalix.Common` and `Nalix.Framework`.
+- `Nalix.SDK` may depend on `Nalix.Common` and `Nalix.Framework`.
 
----
+Do not introduce circular references.
 
-## 3. Performance Guidelines
+## 4. Coding Style
 
-Code must follow high-performance practices:
+- Use file-scoped namespaces.
+- Keep nullable reference types enabled.
+- Prefer explicit, readable control flow over clever abstractions.
+- Follow existing naming patterns:
+  - private fields: `_fieldName`
+  - static private fields: existing code may use `s_fieldName` or project-specific names; match the surrounding file
+  - interfaces: `IType`
+  - async methods: suffix `Async`
+- Prefer `sealed` for classes unless extension is a real requirement.
+- Prefer `readonly struct` and `readonly` members where appropriate.
+- Keep XML documentation on public APIs; the project generates XML docs.
+- Match the style already present in the target file before introducing a new pattern.
 
-- Prefer `Span<T>` and `ReadOnlySpan<T>` instead of `byte[]` for temporary buffers.
-- Use `stackalloc` for small, fixed-size temporary memory.
-- Avoid LINQ in performance-critical code; use explicit loops.
-- Use:
+## 5. Performance Expectations
 
-```csharp
-[MethodImpl(MethodImplOptions.AggressiveInlining)]
-```
+Nalix is performance-oriented. In hot paths:
+- prefer `Span<T>`, `ReadOnlySpan<T>`, `Memory<T>`, and pooled buffers where appropriate
+- avoid unnecessary allocations
+- avoid LINQ when a simple loop is clearer and cheaper
+- avoid boxing and unnecessary virtual/interface dispatch
+- use `Try*` APIs when failure is expected
+- prefer non-throwing fast paths for parsing, serialization, encoding, and transport work
+- use inlining or low-level attributes only when justified by surrounding code patterns
 
-for frequently-used small methods.
+Do not add complexity in the name of optimization unless it fits the local design and measurable intent of the module.
 
-- Prefer readonly struct when appropriate.
-- Use GC.AllocateUninitializedArray<T> where safe.
-- Avoid boxing and interface dispatch in hot paths.
-- Avoid throwing exceptions in hot paths; use Try-based APIs.
+## 6. Security Expectations
 
----
+- Validate all external input lengths, ranges, and boundaries before processing.
+- Never log secrets, keys, tokens, or raw sensitive payloads.
+- Reuse existing Nalix security primitives instead of inventing new cryptographic designs.
+- Keep nonce/IV/key handling explicit and safe.
+- Prefer constant-time or hardened existing implementations when dealing with authentication and cryptography.
 
-## 4. Security Requirements
+## 7. Testing Expectations
 
-Generated code must follow strict security standards:
-- Sensitive buffers (keys, nonces, passwords, secrets) must be cleared immediately after use:
-  ```csharp
-  MemorySecurity.ZeroMemory(buffer);
-  ```
-- Do not write sensitive data to logs under any circumstance.
+Current tests use:
+- `xUnit`
+- `FluentAssertions`
+- `Moq` in framework tests where needed
+- `Xunit.SkippableFact` where environment-dependent coverage is necessary
 
-- Always validate external inputs:
-    - Check for null references
-    - Check lengths and boundaries
-    - Validate ranges for numeric values    
-    - Validate array and buffer sizes before reading or writing
+When adding tests:
+- place them in the matching test project under `tests/`
+- follow the naming style already used in that area
+- cover happy path, invalid input, and edge cases
+- for serialization, cryptography, networking, memory, and timing code, include regression-focused tests
 
-- For randomness, always use:
-    - OS CSPRNG
-    - Or SecureRandom inside Nalix
-    - Never design or implement custom cryptographic primitives.
+## 8. Build and Documentation Alignment
 
-- Use only approved Nalix cryptographic components:
-    - ChaCha20
-    - Poly1305
-    - ChaCha20-Poly1305 (AEAD)
-    - PBKDF2
-    - EnvelopeCipher
+- Target `net10.0`.
+- Keep code compatible with deterministic builds and XML documentation generation.
+- Prefer documentation that describes the current architecture:
+  - `Common` = contracts/primitives/shared foundations
+  - `Framework` = foundational runtime utilities
+  - `Logging` = logging subsystem
+  - `Network` = networking runtime
+  - `SDK` = client-side/session-facing API layer
 
-- Avoid insecure patterns:
-    - Predictable seeds
-    - Static nonces
-    - Reusable IVs
-    - Weak hashing algorithms
-    - Ensure exception messages never reveal sensitive internal state.
-
----
-
-## 5. Code Generation Requirements
-
-- When Copilot generates new C# files, it must:
-  - Include complete XML documentation for all public types, methods, and properties.
-  - Apply debugger-focused attributes when appropriate:
-[DebuggerNonUserCode]
-[DebuggerStepThrough]
-
-- Use the namespace structure:
-  ```text
-  Nalix.<Layer>.<Module>
-  ```
-  where `<Layer>` is one of `Shared`, `Framework`, or `Network`, and `<Module>` reflects the specific functionality.
-  - Prefer sealed classes unless extensibility is required.
-  - Prefer readonly fields whenever possible.
-  - Prioritize immutable or partially immutable object design.
-  - Avoid unnecessary abstraction layers or over-engineering.
-  - Do not place expensive logic inside constructors.
-
-- Use Try-style APIs instead of throwing exceptions in performance-critical paths:
-  - TryParse
-  - TryFormat
-  - TryEncrypt
-  - TryDecode
-  - Favor pure functions with predictable behavior.
-  - Maintain consistent formatting, naming, and coding conventions throughout the Nalix ecosystem.
-
----
-
-## 6. Unit Testing Standards
-
-- Generated tests must:
-
-  - Use xUnit as the testing framework.
-
-- Follow the naming pattern:
-  - MethodName_Scenario_ExpectedResult
-  - Test edge cases and invalid inputs.
-
-- For cryptography:
-  - Validate official test vectors
-  - Validate tamper detection
-  - Validate behavior with incorrect keys and nonces
-
-- For serialization:
-  - Test null, empty, nested, dynamic, and random objects
-  - Ensure round-trip serialization correctness
-
-- For compression:
-  - Test random data across multiple sizes
-  - Validate decompression length and integrity
-  - Avoid large allocations or excessive randomness inside tests unless required.
-
----
-
-## 7. Docker-Friendly Code
-
-- Generated server-side or service code must:
-  - Write all logs to STDOUT, not to local files.
-  - Avoid hardcoded file paths; use environment variables or configuration injection.
-  - Support graceful shutdown on SIGTERM (container stop).
-  - Avoid platform-specific APIs unless guarded with runtime checks.
-  - Ensure no feature requires interactive UI or desktop APIs.
-  - Prefer asynchronous operations for I/O-heavy tasks.
-
----
-
-## 8. General Behavior Rules for Generated Code
-
-- Prefer immutable data structures or readonly members.
-- Avoid unnecessary allocations and boxing.
-- Favor deterministic behavior and explicit control flow.
-
-- Concurrency-related code must be thread-safe:
-  - Prefer lock-free constructs (ConcurrentQueue, ConcurrentDictionary)
-  - Use Interlocked for counters and fast atomic operations
-
-- Provide descriptive, minimal, and safe exception messages.
-- Avoid any form of hidden side effects.
-- Follow defensive programming guidelines throughout.
+When generating README text, comments, XML docs, or architecture notes, use the current package names and responsibilities above.

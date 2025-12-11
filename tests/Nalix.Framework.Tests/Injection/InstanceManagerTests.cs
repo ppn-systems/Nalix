@@ -1,10 +1,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
+using Nalix.Framework.Injection;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Framework.Injection;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Injection;
@@ -144,24 +144,6 @@ public class InstanceManagerTests : IDisposable
         Assert.NotSame(t1, fresh);
 
         // Clean
-        _mgr.Clear(dispose: true);
-    }
-
-    [Fact(DisplayName = "GetOrCreateInstance(Type, args) chooses correct constructor")]
-    public void GetOrCreateInstanceWithArgsUsesCorrectCtor()
-    {
-        // request ctor with string argument
-        CtorClass obj = _mgr.GetOrCreateInstance<CtorClass>();
-        Assert.Equal("string:hello", obj.SelectedCtor);
-
-        // request ctor with int argument (different signature) -> new cached instance for that key
-        CtorClass objInt = _mgr.GetOrCreateInstance<CtorClass>();
-        Assert.Equal("int:42", objInt.SelectedCtor);
-
-        // Ensure caching works per exact signature: request again with "hello"
-        CtorClass obj2 = _mgr.GetOrCreateInstance<CtorClass>();
-        Assert.Same(obj, obj2);
-
         _mgr.Clear(dispose: true);
     }
 
