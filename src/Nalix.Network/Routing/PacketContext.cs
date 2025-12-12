@@ -26,7 +26,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
 {
     #region Fields
 
-    private static readonly IPacketRegistry s_registry = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
+    private static readonly ObjectPoolManager s_object = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     private System.Int32 _state;
     private System.Boolean _isInitialized;
@@ -144,6 +144,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// <param name="packet">The packet to process.</param>
     /// <param name="connection">The connection associated with the packet.</param>
     /// <param name="descriptor">The metadata describing the packet.</param>
+    /// <param name="token">The cancellation token for the context.</param>
     /// <remarks>
     /// This method is thread-safe and transitions the context to the <see cref="PacketContextState.IN_USE"/> state.
     /// </remarks>
@@ -152,7 +153,8 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     internal void Initialize(
         [System.Diagnostics.CodeAnalysis.MaybeNull] TPacket packet,
         [System.Diagnostics.CodeAnalysis.MaybeNull] IConnection connection,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] PacketMetadata descriptor)
+        [System.Diagnostics.CodeAnalysis.MaybeNull] PacketMetadata descriptor,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Threading.CancellationToken token = default)
     {
         _ = System.Threading.Interlocked.Exchange(
             ref _state,
@@ -161,8 +163,8 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
         this.Packet = packet;
         this.Connection = connection;
         this.Attributes = descriptor;
-        this.Sender = new PacketSender<TPacket>(this, s_registry);
-        this.CancellationToken = new System.Threading.CancellationToken();
+        this.CancellationToken = token;
+        this.Sender = s_object.Get<PacketSender<TPacket>>();
 
         _isInitialized = true;
     }
@@ -177,8 +179,13 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal void Reset()
     {
-        this.Packet = default!;
+        if (this.Sender is PacketSender<TPacket> concreteSender)
+        {
+            s_object.Return<PacketSender<TPacket>>(concreteSender);
+        }
+
         this.Sender = default!;
+        this.Packet = default!;
         this.Attributes = default;
         this.Connection = default!;
 

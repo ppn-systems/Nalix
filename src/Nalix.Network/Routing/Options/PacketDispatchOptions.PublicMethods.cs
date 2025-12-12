@@ -83,6 +83,31 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <summary>
     /// Configures how the middleware pipeline handles exceptions thrown during packet processing.
     /// </summary>
+    /// <param name="continueOnError">
+    /// A value indicating whether the pipeline should continue processing subsequent middleware
+    /// when an exception occurs. If <see langword="true"/>, execution continues; otherwise, the
+    /// pipeline is terminated.
+    /// </param>
+    /// <param name="errorHandler">
+    /// An optional delegate that is invoked when an exception is thrown. The delegate receives
+    /// the <see cref="System.Exception"/> instance and the <see cref="System.Type"/> of the packet
+    /// being processed. If <see langword="null"/>, no custom error handling is applied.
+    /// </param>
+    /// <returns>
+    /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance, allowing for method chaining.
+    /// </returns>
+    /// <remarks>
+    /// This method allows fine-grained control over error handling behavior in the middleware pipeline.
+    /// Use <paramref name="continueOnError"/> with caution, as continuing after exceptions may lead
+    /// to inconsistent state depending on middleware implementation.
+    /// </remarks>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown if required dependencies within the pipeline are not initialized.
+    /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public PacketDispatchOptions<TPacket> WithErrorHandlingMiddleware(
         System.Boolean continueOnError,
         System.Action<System.Exception, System.Type> errorHandler = null)
