@@ -21,7 +21,10 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Boolean operator ==(Snowflake left, Snowflake right) => left.Equals(right);
+    public static System.Boolean operator ==(Snowflake left, Snowflake right)
+    {
+        return left.Equals(right);
+    }
 
     /// <summary>
     /// Determines whether two <see cref="Snowflake"/> instances are not equal.
@@ -35,7 +38,10 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Boolean operator !=(Snowflake left, Snowflake right) => !left.Equals(right);
+    public static System.Boolean operator !=(Snowflake left, Snowflake right)
+    {
+        return !left.Equals(right);
+    }
 
     /// <summary>
     /// Determines whether one <see cref="Snowflake"/> identifier is less than another.
@@ -49,7 +55,10 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Boolean operator <(Snowflake a, Snowflake b) => a.__combined < b.__combined;
+    public static System.Boolean operator <(Snowflake a, Snowflake b)
+    {
+        return a.__combined < b.__combined;
+    }
 
     /// <summary>
     /// Determines whether one <see cref="Snowflake"/> identifier is greater than another.
@@ -63,7 +72,10 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Boolean operator >(Snowflake a, Snowflake b) => a.__combined > b.__combined;
+    public static System.Boolean operator >(Snowflake a, Snowflake b)
+    {
+        return a.__combined > b.__combined;
+    }
 
     /// <summary>
     /// Determines whether one <see cref="Snowflake"/> identifier is less than or equal to another.
@@ -77,7 +89,10 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Boolean operator <=(Snowflake a, Snowflake b) => a.__combined <= b.__combined;
+    public static System.Boolean operator <=(Snowflake a, Snowflake b)
+    {
+        return a.__combined <= b.__combined;
+    }
 
     /// <summary>
     /// Determines whether one <see cref="Snowflake"/> identifier is greater than or equal to another.
@@ -91,7 +106,10 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Boolean operator >=(Snowflake a, Snowflake b) => a.__combined >= b.__combined;
+    public static System.Boolean operator >=(Snowflake a, Snowflake b)
+    {
+        return a.__combined >= b.__combined;
+    }
 
     #endregion Operators
 
