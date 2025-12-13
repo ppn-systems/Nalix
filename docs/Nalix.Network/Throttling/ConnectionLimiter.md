@@ -27,15 +27,15 @@ It prevents resource abuse (DoS, DDoS, client floods), safeguards fairness, and 
 
 ## Configuration
 
-Main tuning is via `ConnectionLimitOptions`:
+`ConnectionLimiter` is driven by `ConnectionLimitOptions`:
 
-- **MaxConnectionsPerIpAddress** – Maximum connections per endpoint
-- **CleanupInterval** – How often to prune/expire idle endpoint slots (seconds/minutes)
-- **InactivityThreshold** – Remove entries that have not been active for this long
-- **MaxConnectionsPerWindow** – Max allowed connection attempts in short window (anti-DDoS)
-- **BanDuration** – How long to block an endpoint when DDoS is detected
+- `MaxConnectionsPerIpAddress`: concurrent connection cap per address.
+- `MaxConnectionsPerWindow` + `ConnectionRateWindow`: sliding window for counting attempts before a ban.
+- `BanDuration`: how long to remain denied after the rate window is exceeded.
+- `DDoSLogSuppressWindow`: suppress repeated reject logs per endpoint within this interval.
+- `CleanupInterval` & `InactivityThreshold`: clean up idle entries to keep memory usage bounded.
 
-Can be supplied via constructor or from ambient configuration (`ConfigurationManager.Instance.Get<ConnectionLimitOptions>()`).
+Load them via `ConfigurationManager.Instance.Get<ConnectionLimitOptions>()` or pass the options directly to the constructor, and run `Validate()` during startup to ensure values are within their documented ranges.
 
 ---
 
@@ -58,6 +58,14 @@ limiter.OnConnectionClosed(sender, connectEventArgs);
 ```
 
 Or wire this as an event handler in your connection logic.
+
+## Integration notes
+
+- Call `IsConnectionAllowed()` before accepting a socket so misbehaving IPs are rejected before handshake/processing.
+- Attach `OnConnectionClosed` to each `Connection.OnCloseEvent` path; that event decrements the active count and prevents perpetual bans.
+- The limiter schedules a `TaskManager`-backed cleanup job every `CleanupInterval` seconds that removes entries idle for `InactivityThreshold`.
+- Use `GenerateReport()` for real-time metrics (attempts, rejections, tracked endpoints, suppression stats) in diagnostics dashboards.
+
 
 ---
 

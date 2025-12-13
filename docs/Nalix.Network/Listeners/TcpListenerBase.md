@@ -58,6 +58,22 @@ Configure through your DI container, config manager, or code.
 
 ---
 
+## Activation, timeout & shutdown flow
+
+`Activate(ct)` mirrors the current implementation:
+
+- Validates `MaxParallelAccepts` ≥ 1, binds the socket (IPv4/IPv6), and resets the listener state.
+- Schedules `MaxParallelAccepts` accept workers through `TaskManager.ScheduleWorker`, tagging them for easy cancellation, and records their IDs for later cleanup.
+- When `NetworkSocketOptions.EnableTimeout` is `true`, it activates the shared `TimingWheel` so idle connections are auto-disconnected. The wheel is wired to `TimingWheelOptions`.
+- Launches the dispatcher process channel which hands accepted sockets over to `ProcessChannel` for `IProtocol`/middleware handling.
+- Sets `_acceptWorkerIds`, `ConnectionHub`, and `ConnectionLimiter` so the listener can report stats and enforce global limits.
+
+`Deactivate(ct)` transitions state to `STOPPING`, cancels the worker token, closes the socket, stops the process channel, cancels the `TaskManager` worker group, drains `ConnectionHub` (closing all connections), and deactivates the `TimingWheel`. The method also logs state transitions so instrumentation can detect fast shutdown/resume cycles.
+
+Graceful disposal ensures acceptors are removed, connection pools are released, and background timers/cleanup jobs are stopped before the listener returns to `STOPPED`.
+
+---
+
 ## Technical Highlights
 
 - Synchronous and asynchronous accept logic (wait, handle, process)
@@ -68,6 +84,12 @@ Configure through your DI container, config manager, or code.
 - Custom protocol instances are injected per service (no inheritance lock-in)
 - Time synchronization event (`IsTimeSyncEnabled`) available for tightly-timed distributed systems
 - Diagnostics ("report") include config, live connections, protocol, thread pool
+
+## Diagnostics & Runtime Telemetry
+
+`GenerateReport()` builds the status dump shown in `TcpListener.PublicMethods.GenerateReport()`: it prints the active port, listener `State`, the socket configuration (timeout flag, parallel accept count, buffer size, keep-alive, reuse/address options, backlog), metrics (total accepted, rejected, errors), the bound protocol name, active connection count via `ConnectionHub`, threading minima, and time-sync status (`IsTimeSyncEnabled`). This mirrors the live string logged in production for alerting/health checks.
+
+Use the report in monitoring dashboards or admin UIs to capture listener health before/after deployments.
 
 ---
 
