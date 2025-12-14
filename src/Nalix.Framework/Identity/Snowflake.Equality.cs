@@ -162,7 +162,10 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Int32 Compare(Snowflake a, Snowflake b) => a.CompareTo(b);
+    public static System.Int32 Compare(Snowflake a, Snowflake b)
+    {
+        return a.CompareTo(b);
+    }
 
     /// <summary>
     /// Determines whether two <see cref="Snowflake"/> instances are equal.
@@ -176,7 +179,10 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Boolean Equals(Snowflake a, Snowflake b) => a.Equals(b);
+    public static System.Boolean Equals(Snowflake a, Snowflake b)
+    {
+        return a.Equals(b);
+    }
 
     /// <summary>
     /// Determines whether this identifier is equal to another <see cref="Snowflake"/>.
@@ -189,7 +195,10 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean Equals(Snowflake other) => __combined == other.__combined;
+    public System.Boolean Equals(Snowflake other)
+    {
+        return __combined == other.__combined;
+    }
 
     /// <summary>
     /// Determines whether this identifier is equal to another <see cref="ISnowflake"/>.
@@ -202,7 +211,10 @@ public readonly partial struct Snowflake : System.IEquatable<Snowflake>, System.
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean Equals(ISnowflake? other) => other is Snowflake s && Equals(s);
+    public System.Boolean Equals(ISnowflake? other)
+    {
+        return other is Snowflake s && Equals(s);
+    }
 
     #endregion Equality and Comparison Methods
 }
