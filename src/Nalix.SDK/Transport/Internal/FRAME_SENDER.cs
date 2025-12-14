@@ -48,10 +48,10 @@ internal sealed class FRAME_SENDER : IDisposable
 
     #region Fields
 
-    private static readonly FragmentOptions s_fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
-
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0052:Remove unread private members", Justification = "<Pending>")]
     private readonly TransportOptions _options;
+    private readonly FragmentOptions _fragmentOptions;
+    private readonly ILogger? _logger;
     private readonly Func<Socket> _getSocket;
     private readonly Action<int> _reportBytesSent;
     private readonly Action<Exception> _onError;
@@ -84,11 +84,13 @@ internal sealed class FRAME_SENDER : IDisposable
         Func<Socket> getSocket,
         TransportOptions options,
         Action<int> reportBytesSent,
-        Action<Exception> onError)
+        Action<Exception> onError,
+        ILogger? logger = null)
     {
-        s_fragmentOptions.Validate();
-
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
+        _fragmentOptions.Validate();
+        _logger = logger ?? InstanceManager.Instance.GetExistingInstance<ILogger>();
         _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
         _reportBytesSent = reportBytesSent ?? throw new ArgumentNullException(nameof(reportBytesSent));
         _onError = onError ?? throw new ArgumentNullException(nameof(onError));
@@ -136,7 +138,7 @@ internal sealed class FRAME_SENDER : IDisposable
         ObjectDisposedException.ThrowIf(
             Volatile.Read(ref _disposed) == 1, nameof(FRAME_SENDER));
 
-        if (payload.Length >= s_fragmentOptions.ChunkThreshold)
+        if (payload.Length >= _fragmentOptions.ChunkThreshold)
         {
             return await this.SEND_FRAGMENTED_ASYNC(payload, cancellationToken).ConfigureAwait(false);
         }
@@ -246,8 +248,7 @@ internal sealed class FRAME_SENDER : IDisposable
         }
         catch (Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[SDK.{nameof(FRAME_SENDER)}] drain-loop-faulted: {ex.Message}", ex);
+            _logger?.Error($"[SDK.{nameof(FRAME_SENDER)}] drain-loop-faulted: {ex.Message}", ex);
 
             _onError(ex);
         }
@@ -292,8 +293,7 @@ internal sealed class FRAME_SENDER : IDisposable
         }
         catch (Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[SDK.{nameof(FRAME_SENDER)}:{nameof(SEND_FRAME_ASYNC)}] send-error: {ex.Message}", ex);
+            _logger?.Error($"[SDK.{nameof(FRAME_SENDER)}:{nameof(SEND_FRAME_ASYNC)}] send-error: {ex.Message}", ex);
 
             _ = tcs.TrySetResult(false);
             _onError(ex);
@@ -311,14 +311,14 @@ internal sealed class FRAME_SENDER : IDisposable
     // ── Fragmented Send ──────────────────────────────────────────────────────
     private async Task<bool> SEND_FRAGMENTED_ASYNC(ReadOnlyMemory<byte> payload, CancellationToken token)
     {
-        if (payload.Length > s_fragmentOptions.MaxPayloadSize)
+        if (payload.Length > _fragmentOptions.MaxPayloadSize)
         {
             throw new ArgumentOutOfRangeException(nameof(payload),
-                $"Payload exceeds MaxPayloadSize {s_fragmentOptions.MaxPayloadSize}");
+                $"Payload exceeds MaxPayloadSize {_fragmentOptions.MaxPayloadSize}");
         }
 
         ushort streamId = FragmentStreamId.Next();
-        int chunkBodySize = s_fragmentOptions.ChunkBodySize;
+        int chunkBodySize = _fragmentOptions.ChunkBodySize;
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
 
         byte[] headerSpan = new byte[FragmentHeader.WireSize];
