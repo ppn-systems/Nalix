@@ -5,6 +5,7 @@ using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Security;
+using Nalix.Common.Shared;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
@@ -20,12 +21,13 @@ public sealed partial class Connection : IConnection
 {
     #region Fields
 
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+
     private readonly System.Threading.Lock _lock;
     private readonly ConnectionEventArgs _evtArgs;
     private readonly FramedSocketConnection _cstream;
-
-    [System.Diagnostics.CodeAnalysis.AllowNull]
-    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     private UdpTransport _udp;
     private System.Byte[] _secret;
@@ -171,19 +173,18 @@ public sealed partial class Connection : IConnection
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [System.Obsolete]
-    internal void InjectIncoming(System.Byte[] bytes)
+    internal void InjectIncoming(IBufferLease lease)
     {
-        if (bytes.Length == 0 || this._disposed)
-        {
-            return;
-        }
-
         _cstream.Cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
-        //_cstream.Cache.PushIncoming(BufferLease.CopyFrom(bytes));
+        lease.Retain(); // Retain for the callback; released in Connection.cs after processing.
+
+        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+        args.Initialize(lease, this);
+
+        System.Boolean queued = AsyncCallback.Invoke(OnProcessEventBridge, this, args);
 
 #if DEBUG
-        s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{InjectIncoming}] inject-bytes len={bytes.Length}");
+        s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{InjectIncoming}] inject-bytes len={lease.Length}");
 #endif
     }
 

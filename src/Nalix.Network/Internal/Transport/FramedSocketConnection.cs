@@ -391,10 +391,9 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
             System.Int32 sent = 0;
             while (sent < totalLength)
             {
-                System.Int32 n = await _socket.SendAsync(
-                    System.MemoryExtensions.AsMemory(heapBuf, sent, totalLength - sent),
-                    System.Net.Sockets.SocketFlags.None, cancellationToken)
-                    .ConfigureAwait(false);
+                System.Int32 n = await _socket.SendAsync(System.MemoryExtensions
+                                              .AsMemory(heapBuf, sent, totalLength - sent), System.Net.Sockets.SocketFlags.None, cancellationToken)
+                                              .ConfigureAwait(false);
 
                 if (n == 0)
                 {
@@ -483,9 +482,8 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
         {
             token.ThrowIfCancellationRequested();
 
-            System.Int32 n = await _recvCtx!
-                .ReceiveAsync(_socket, buffer, offset + read, count - read)
-                .ConfigureAwait(false);
+            System.Int32 n = await _recvCtx.ReceiveAsync(_socket, buffer, offset + read, count - read)
+                                           .ConfigureAwait(false);
 
             if (n == 0)
             {
@@ -531,9 +529,8 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                 await SAEA_RECEIVE_EXACTLY_ASYNC(0, HeaderSize, token)
                     .ConfigureAwait(false);
 
-                System.UInt16 size = System.Buffers.Binary.BinaryPrimitives
-                    .ReadUInt16LittleEndian(
-                        System.MemoryExtensions.AsSpan(buffer, 0, HeaderSize));
+                System.UInt16 size = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(System.MemoryExtensions
+                                                                           .AsSpan(buffer, 0, HeaderSize));
 
 #if DEBUG
                 s_logger?.Trace(
@@ -568,8 +565,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                                            .CopyTo(System.MemoryExtensions
                                            .AsSpan(newBuf));
 
-                    System.Byte[] swapped =
-                        System.Threading.Interlocked.Exchange(ref buffer, newBuf);
+                    System.Byte[] swapped = System.Threading.Interlocked.Exchange(ref buffer, newBuf);
 
                     if (swapped is not null && swapped != newBuf)
                     {
@@ -593,8 +589,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                 // MaxPerConnectionPendingPackets in-flight, drop this packet and
                 // return the buffer immediately — flood traffic never reaches
                 // AsyncCallback or the ThreadPool.
-                System.Int32 pending =
-                    System.Threading.Interlocked.Increment(ref _pendingProcessCallbacks);
+                System.Int32 pending = System.Threading.Interlocked.Increment(ref _pendingProcessCallbacks);
 
                 if (pending > MaxPerConnectionPendingPackets)
                 {
@@ -606,8 +601,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                         $"ep={_sender?.NetworkEndpoint.Address} — packet dropped");
 
                     // Return buffer to pool — rent a fresh one for next receive.
-                    System.Byte[] dropped =
-                        System.Threading.Interlocked.Exchange(ref buffer, null!);
+                    System.Byte[] dropped = System.Threading.Interlocked.Exchange(ref buffer, null!);
                     if (dropped is not null)
                     {
                         BufferLease.ByteArrayPool.Return(dropped);
@@ -717,8 +711,8 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
             // 3. Return PooledReceiveContext to ObjectPoolManager.
             if (_recvCtx is not null)
             {
-                _recvCtx.ResetForPool();
                 s_pool.Return<PooledSocketReceiveContext>(_recvCtx);
+
                 _recvCtx = null;
             }
 
