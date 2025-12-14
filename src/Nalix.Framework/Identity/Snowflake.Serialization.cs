@@ -60,7 +60,10 @@ public readonly partial struct Snowflake
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public UInt56 ToUInt56() => __combined;
+    public UInt56 ToUInt56()
+    {
+        return __combined;
+    }
 
     /// <inheritdoc/>
     [System.ComponentModel.EditorBrowsable(
