@@ -1,15 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Diagnostics;
-using Nalix.Common.Identity;
-using Nalix.Common.Networking;
-using Nalix.Framework.Injection;
-using Nalix.Framework.Options;
-using Nalix.Framework.Tasks;
-using Nalix.Framework.Time;
-using Nalix.Network.Internal;
-using Nalix.Network.Timekeeping;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -19,6 +10,15 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using Nalix.Common.Diagnostics;
+using Nalix.Common.Identity;
+using Nalix.Common.Networking;
+using Nalix.Framework.Injection;
+using Nalix.Framework.Options;
+using Nalix.Framework.Tasks;
+using Nalix.Framework.Time;
+using Nalix.Network.Internal;
+using Nalix.Network.Timekeeping;
 
 namespace Nalix.Network.Listeners.Udp;
 
