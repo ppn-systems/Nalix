@@ -18,7 +18,7 @@ public sealed partial class NLogix
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Meta(System.String format, params System.Object[] args)
-        => base.CreateFormattedLogEntry(LogLevel.Meta, EventId.Empty, format, args);
+        => base.Publish(LogLevel.Meta, EventId.Empty, format, args);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
@@ -40,7 +40,7 @@ public sealed partial class NLogix
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Trace(System.String format, params System.Object[] args)
-        => base.CreateFormattedLogEntry(LogLevel.Trace, EventId.Empty, format, args);
+        => base.Publish(LogLevel.Trace, EventId.Empty, format, args);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
@@ -62,7 +62,7 @@ public sealed partial class NLogix
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Debug(System.String format, params System.Object[] args)
-        => base.CreateFormattedLogEntry(LogLevel.Debug, EventId.Empty, format, args);
+        => base.Publish(LogLevel.Debug, EventId.Empty, format, args);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
@@ -93,7 +93,7 @@ public sealed partial class NLogix
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Info(System.String format, params System.Object[] args)
-        => base.CreateFormattedLogEntry(LogLevel.Information, EventId.Empty, format, args);
+        => base.Publish(LogLevel.Information, EventId.Empty, format, args);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
@@ -115,7 +115,7 @@ public sealed partial class NLogix
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Warn(System.String format, params System.Object[] args)
-        => base.CreateFormattedLogEntry(LogLevel.Warning, EventId.Empty, format, args);
+        => base.Publish(LogLevel.Warning, EventId.Empty, format, args);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
@@ -137,7 +137,7 @@ public sealed partial class NLogix
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Error(System.String format, params System.Object[] args)
-        => base.CreateFormattedLogEntry(LogLevel.Error, EventId.Empty, format, args);
+        => base.Publish(LogLevel.Error, EventId.Empty, format, args);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
@@ -183,7 +183,7 @@ public sealed partial class NLogix
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Fatal(System.String format, params System.Object[] args)
-        => base.CreateFormattedLogEntry(LogLevel.Critical, EventId.Empty, format, args);
+        => base.Publish(LogLevel.Critical, EventId.Empty, format, args);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(

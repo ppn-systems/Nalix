@@ -73,7 +73,7 @@ public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Publish(LogEntry logMessage)
-        => _provider.WriteEntry(_formatter.FormatLog(logMessage));
+        => _provider.WriteEntry(_formatter.Format(logMessage));
 
     /// <summary>
     /// Releases all resources used by the <see cref="ChannelFileLogTarget"/>.

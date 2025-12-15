@@ -77,7 +77,7 @@ public sealed class FileLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     /// <param name="logMessage">The log entry to be published.</param>
     public void Publish(LogEntry logMessage)
-        => _loggerPrv.WriteEntry(_loggerFormatter.FormatLog(logMessage));
+        => _loggerPrv.WriteEntry(_loggerFormatter.Format(logMessage));
 
     #endregion Public Methods
 

@@ -8,7 +8,7 @@ public static partial class NLogixFx
 {
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static void CreateLogEntry(
+    internal static void PublishLogEntry(
         LogLevel level,
         System.String message,
         System.String? sourceName,
@@ -22,7 +22,7 @@ public static partial class NLogixFx
             return;
         }
 
-        System.String fullMessage = BuildFullMessage(
+        System.String fullMessage = FormatLogMessage(
             message, sourceName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -31,15 +31,16 @@ public static partial class NLogixFx
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static System.String BuildFullMessage(
-        System.String message, System.String? sourceName, System.Object? extendedData,
-        System.String callerMemberName, System.String callerFilePath, System.Int32 callerLineNumber)
+    internal static System.String FormatLogMessage(
+        System.String message,
+        System.String? sourceName,
+        System.Object? extendedData,
+        System.String callerMemberName,
+        System.String callerFilePath, System.Int32 callerLineNumber)
     {
-        System.String extendedDataString = extendedData != null ? $"ExtendedData: {extendedData}" : "";
-
         return $"[Message]: {message}\n" +
                $"[Source]: {sourceName ?? "NONE"}\n" +
                $"[Caller]: {callerMemberName} in {callerFilePath} at line {callerLineNumber}\n" +
-               $"{extendedDataString.Trim()}";
+               $"{(extendedData != null ? $"ExtendedData: {extendedData}" : "").Trim()}";
     }
 }

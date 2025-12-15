@@ -57,7 +57,7 @@ public sealed partial class NLogix : NLogixEngine, ILogger
         LogLevel level,
         EventId eventId,
         System.String message,
-        System.Exception? exception = null) => base.CreateLogEntry(level, eventId, message, exception);
+        System.Exception? exception = null) => base.Publish(level, eventId, message, exception);
 
     #endregion Private Methods
 }

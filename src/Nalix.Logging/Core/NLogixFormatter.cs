@@ -27,10 +27,7 @@ public class NLogixFormatter(System.Boolean colors = false) : ILoggerFormatter
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.String FormatLog(LogEntry logMsg)
-        => FormatLogEntry(
-            logMsg.TimeStamp, logMsg.LogLevel,
-            logMsg.EventId, logMsg.Message, logMsg.Exception);
+    public System.String Format(LogEntry logMsg) => Format(logMsg.TimeStamp, logMsg.LogLevel, logMsg.EventId, logMsg.Message, logMsg.Exception);
 
     /// <summary>
     /// Formats a static log message.
@@ -48,11 +45,12 @@ public class NLogixFormatter(System.Boolean colors = false) : ILoggerFormatter
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.String FormatLogEntry(
+    public System.String Format(
         System.DateTime timeStamp, LogLevel logLevel,
         EventId eventId, System.String message, System.Exception? exception)
     {
-        System.Text.StringBuilder logBuilder = new();
+        const int DefaultCapacity = 256;
+        System.Text.StringBuilder logBuilder = new(DefaultCapacity);
 
         LogBuilder.BuildLog(logBuilder, timeStamp, logLevel, eventId, message, exception, _colors);
 
