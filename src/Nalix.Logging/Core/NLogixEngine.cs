@@ -53,8 +53,8 @@ public abstract class NLogixEngine : System.IDisposable
             // Apply default configuration
             _ = _logOptions.ConfigureDefaults(cfg =>
             {
-                _ = cfg.AddTarget(new ConsoleLogTarget());
-                _ = cfg.AddTarget(new FileLogTarget(_logOptions.FileOptions));
+                _ = cfg.RegisterTarget(new ConsoleLogTarget());
+                _ = cfg.RegisterTarget(new FileLogTarget(_logOptions.FileOptions));
                 return cfg;
             });
         }
@@ -77,11 +77,12 @@ public abstract class NLogixEngine : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    protected void Configure(System.Action<NLogixOptions> configureOptions)
+    protected void ConfigureOptions(System.Action<NLogixOptions> configureOptions)
     {
         configureOptions?.Invoke(_logOptions);
 
-        _minLevel = _logOptions.MinLevel;
+        System.Threading.Volatile.Write(ref System.Runtime.CompilerServices.Unsafe
+                                 .As<LogLevel, System.Int32>(ref _minLevel), (System.Int32)_logOptions.MinLevel);
     }
 
     /// <summary>
@@ -92,7 +93,11 @@ public abstract class NLogixEngine : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean IsEnabled(LogLevel level) => level >= _minLevel;
+    public System.Boolean IsLevelEnabled(LogLevel level)
+    {
+        return level >= (LogLevel)System.Threading.Volatile.Read(ref System.Runtime.CompilerServices.Unsafe
+                                                           .As<LogLevel, System.Int32>(ref _minLevel));
+    }
 
     /// <summary>
     /// Creates and publishes a log entry if the log level is enabled.
@@ -108,13 +113,13 @@ public abstract class NLogixEngine : System.IDisposable
         "Reliability", "CA2012:Use ValueTasks correctly", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    protected void CreateLogEntry(
+    protected void Publish(
         [System.Diagnostics.CodeAnalysis.NotNull] LogLevel level,
         [System.Diagnostics.CodeAnalysis.NotNull] EventId eventId,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String message,
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.Exception? error = null)
     {
-        if (_isDisposed != 0 || !IsEnabled(level))
+        if (_isDisposed != 0 || !IsLevelEnabled(level))
         {
             return;
         }
@@ -133,18 +138,16 @@ public abstract class NLogixEngine : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    protected void CreateFormattedLogEntry(
-        LogLevel level, EventId eventId,
-        System.String format, params System.Object[] args)
+    protected void Publish(LogLevel level, EventId eventId, System.String format, params System.Object[] args)
     {
         // Skip expensive string formatting if the log level is disabled
-        if (_isDisposed != 0 || !IsEnabled(level))
+        if (_isDisposed != 0 || !IsLevelEnabled(level))
         {
             return;
         }
 
         // Format the message only if we're going to use it
-        CreateLogEntry(level, eventId, FormatMessage(format, args));
+        Publish(level, eventId, FormatMessage(format, args));
     }
 
     /// <summary>

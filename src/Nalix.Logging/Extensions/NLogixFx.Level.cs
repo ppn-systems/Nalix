@@ -26,7 +26,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(LogLevel.Meta, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
+        => PublishLogEntry(LogLevel.Meta, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
 
     /// <summary>
     /// Logs a debug message to the console.
@@ -46,7 +46,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Meta, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -68,7 +68,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Meta, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -94,7 +94,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Debug, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -116,7 +116,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Debug, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -138,7 +138,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Debug, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -164,7 +164,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Trace, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -186,7 +186,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Trace, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -208,7 +208,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Trace, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -234,7 +234,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Warning, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -256,7 +256,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Warning, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -278,7 +278,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Warning, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -304,7 +304,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Critical, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -326,7 +326,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Critical, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -348,7 +348,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Critical, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -374,7 +374,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Information, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -396,7 +396,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Information, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -418,7 +418,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Information, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -444,7 +444,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Error, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -466,7 +466,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Error, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -488,7 +488,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => CreateLogEntry(
+        => PublishLogEntry(
             LogLevel.Error, message, source, ex,
             callerMemberName, callerFilePath, callerLineNumber);
 
