@@ -77,6 +77,13 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     [System.ComponentModel.DataAnnotations.Range(0, System.Int32.MaxValue, ErrorMessage = "BroadcastBatchSize cannot be negative.")]
     public System.Int32 BroadcastBatchSize { get; init; } = 0;
 
+    /// <summary>
+    /// Gets or sets the number of shards used for connection dictionaries.
+    /// </summary>
+    [IniComment("Shard count for connection storage (uses connection ID hash, minimum 1)")]
+    [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "ShardCount must be at least 1.")]
+    public System.Int32 ShardCount { get; init; } = System.Math.Max(1, System.Environment.ProcessorCount);
+
     // Dispose behavior
 
     /// <summary>
@@ -114,3 +121,4 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
         }
     }
 }
+
