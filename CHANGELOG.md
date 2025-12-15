@@ -5,6 +5,21 @@ This project follows [Semantic Versioning](https://semver.org/) guidelines.
 
 ---
 
+# [11.8.0] - 2026-03-24
+
+### Added
+
+- ConnectionHub now emits telemetry for shard count, anonymous queue depth, and capacity-limit events so operators can monitor throttling at runtime.
+- PacketDispatchChannel diagnostics report dispatch loops, semaphore health, and middleware correlations alongside the documentation so the dispatcher behavior is visible in the docs.
+- UDP listener authentication tightened with timestamp replay checks, Poly1305 MAC validation, and safer connection/password handling; throttling utilities (ConnectionLimiter, TokenBucketLimiter, PolicyRateLimiter) were documented as part of this release.
+
+### Documentation
+
+- Regenerated `docs/README.md` and the changelog so they highlight the metadata now emitted from the `<Description>`/`<PackageReleaseNotes>` CDATA blocks embedded in each `.csproj`; this lets the documentation consume the same text that shows up on NuGet.
+- Updated module summaries and release notes to call out the latest ConnectionHub/dispatch/UDP changes to keep doc readers in sync with the new metadata.
+
+---
+
 ## [11.4.0] - 2026-03-15
 
 ### Documentation
