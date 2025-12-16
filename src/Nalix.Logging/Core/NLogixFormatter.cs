@@ -52,7 +52,7 @@ public class NLogixFormatter(System.Boolean colors = false) : ILoggerFormatter
         const int DefaultCapacity = 256;
         System.Text.StringBuilder logBuilder = new(DefaultCapacity);
 
-        LogBuilder.BuildLog(logBuilder, timeStamp, logLevel, eventId, message, exception, _colors);
+        LogMessageBuilder.AppendFormatted(logBuilder, timeStamp, logLevel, eventId, message, exception, _colors);
 
         return logBuilder.ToString();
     }

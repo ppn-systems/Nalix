@@ -12,7 +12,7 @@ namespace Nalix.Logging.Internal.Formatters;
 /// <summary>
 /// Provides ANSI color codes for console output styling in the logging system.
 /// </summary>
-internal static class ColorAnsi
+internal static class AnsiColors
 {
     // Basic colors
     public const System.String Reset = "\u001b[0m";       // Reset all styling
@@ -44,7 +44,7 @@ internal static class ColorAnsi
     /// <summary>
     /// Static constructor to initialize the color cache
     /// </summary>
-    static ColorAnsi()
+    static AnsiColors()
     {
         // Initialize color cache
         _levelColorCache[(System.Int32)LogLevel.None] = Cyan;
@@ -62,7 +62,7 @@ internal static class ColorAnsi
     /// </summary>
     /// <param name="level">The logging level to get a color for.</param>
     /// <returns>An ANSI color code string.</returns>
-    internal static System.String GetColorCode(LogLevel level)
+    internal static System.String GetForLevel(LogLevel level)
     {
         // Use the cached color if level is within range
         if ((System.Int32)level >= 0 && (System.Int32)level < _levelColorCache.Length)

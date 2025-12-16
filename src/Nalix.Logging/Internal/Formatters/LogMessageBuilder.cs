@@ -15,7 +15,7 @@ namespace Nalix.Logging.Internal.Formatters;
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-internal static class LogBuilder
+internal static class LogMessageBuilder
 {
     #region Constants
 
@@ -52,7 +52,7 @@ internal static class LogBuilder
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void BuildLog(
+    public static void AppendFormatted(
         System.Text.StringBuilder builder,
         in System.DateTime timeStamp, LogLevel logLevel,
         in EventId eventId, System.String message, System.Exception? exception,
@@ -65,14 +65,14 @@ internal static class LogBuilder
         // Ensure the builder has enough capacity
         if (colors)
         {
-            _ = builder.Append(ColorAnsi.White);
+            _ = builder.Append(AnsiColors.White);
             EnsureCapacity(builder, estimatedLength + initialLength + 9);
             AppendTimestamp(builder, timeStamp, customTimestampFormat, true);
             AppendLogLevel(builder, logLevel, true);
             AppendEventId(builder, eventId, true);
             AppendMessage(builder, message);
             AppendException(builder, exception, true);
-            _ = builder.Append(ColorAnsi.Reset);
+            _ = builder.Append(AnsiColors.Reset);
         }
         else
         {
@@ -132,9 +132,9 @@ internal static class LogBuilder
 
             if (colors)
             {
-                _ = builder.Append(ColorAnsi.Blue);
+                _ = builder.Append(AnsiColors.Blue);
                 _ = builder.Append(dateBuffer[..charsWritten]);
-                _ = builder.Append(ColorAnsi.White);
+                _ = builder.Append(AnsiColors.White);
             }
             else
             {
@@ -158,13 +158,13 @@ internal static class LogBuilder
         _ = builder.Append(NLogixConstants.LogSpaceSeparator)
                    .Append(NLogixConstants.LogBracketOpen);
 
-        System.ReadOnlySpan<System.Char> levelText = LogLevelFormatter.GetShortLogLevel(logLevel);
+        System.ReadOnlySpan<System.Char> levelText = LogLevelShortNames.GetShortName(logLevel);
 
         if (colors)
         {
-            _ = builder.Append(ColorAnsi.GetColorCode(logLevel));
+            _ = builder.Append(AnsiColors.GetForLevel(logLevel));
             _ = builder.Append(levelText);
-            _ = builder.Append(ColorAnsi.White);
+            _ = builder.Append(AnsiColors.White);
         }
         else
         {
@@ -195,18 +195,18 @@ internal static class LogBuilder
         if (colors)
         {
             // Colored path
-            _ = builder.Append(ColorAnsi.Cyan)
+            _ = builder.Append(AnsiColors.Cyan)
                        .Append(eventId.Id);
 
             if (!System.String.IsNullOrEmpty(eventId.Name))
             {
-                _ = builder.Append(ColorAnsi.White)
+                _ = builder.Append(AnsiColors.White)
                            .Append(':')
-                           .Append(ColorAnsi.DarkGray)
+                           .Append(AnsiColors.DarkGray)
                            .Append(eventId.Name);
             }
 
-            _ = builder.Append(ColorAnsi.White);
+            _ = builder.Append(AnsiColors.White);
         }
         else
         {
@@ -257,9 +257,9 @@ internal static class LogBuilder
             if (colors)
             {
                 // Header in red, details in white, then reset once.
-                _ = builder.Append(ColorAnsi.Red);
+                _ = builder.Append(AnsiColors.Red);
                 WriteHeader(builder, exception);
-                _ = builder.Append(ColorAnsi.White);
+                _ = builder.Append(AnsiColors.White);
 
                 // Details: skip header at level 0 to avoid duplication.
                 FormatExceptionDetails(builder, exception, level: 0, includeHeader: false);
