@@ -1,148 +1,82 @@
-# UdpListenerBase Documentation
+# UdpListenerBase — Abstract UDP listener foundation
 
-## Overview
+`UdpListenerBase` is the base class for UDP-based listeners in Nalix.Network. It owns the `UdpClient`, activation/deactivation flow, datagram receive worker, protocol integration, authentication hook, time-sync wiring, and runtime counters used in diagnostics.
 
-The `UdpListenerBase` class (namespace: `Nalix.Network.Listeners.Udp`) is an abstract base class for building high-performance UDP network listeners in .NET. It handles asynchronous datagram reception, protocol processing, socket configuration, diagnostics, and integrates with time synchronization and dependency injection systems. It is designed to be extended for custom UDP-based servers or services.
+## Mapped sources
 
----
+- `src/Nalix.Network/Listeners/UdpListener/UdpListener.Core.cs`
+- `src/Nalix.Network/Listeners/UdpListener/UdpListener.PublicMethods.cs`
+- `src/Nalix.Network/Listeners/UdpListener/UdpListener.PrivateMethods.cs`
+- `src/Nalix.Network/Listeners/UdpListener/UdpListener.Receive.cs`
+- `src/Nalix.Network/Listeners/UdpListener/UdpListener.SocketConfig.cs`
 
-## Functional Summary
+## Construction
 
-- **UDP Reception:** Listens for UDP datagrams on a specified port and processes them asynchronously.
-- **Protocol Integration:** Passes incoming datagrams to a user-supplied protocol handler.
-- **Resource Management:** Handles activation, deactivation, and proper disposal of sockets and resources.
-- **Time Synchronization:** Integrates with a time sync system for distributed environments.
-- **Object Pooling:** Designed to work efficiently with pooled objects and reusable contexts.
-- **Diagnostics & Reporting:** Tracks packet statistics, errors, and runtime health for monitoring.
-- **Socket Configuration:** Optimizes socket options (buffer size, no delay, keep-alive, etc.) for best performance.
-- **Security:** Supports authentication checks on incoming packets (via `IsAuthenticated`).
+- Accepts either an explicit port plus `IProtocol`, or a protocol only and then uses `NetworkSocketOptions.Port`.
+- Validates `NetworkSocketOptions` in the static constructor.
+- Subscribes to `TimeSynchronizer.TimeSynchronized` so the listener can track last sync and drift.
 
----
+## Lifecycle
 
-## Detailed Structure and Explanation
+`Activate(ct)`:
 
-### Fields and Properties
+- throws if the instance is disposed
+- initializes the UDP socket if needed
+- creates a linked CTS
+- marks the listener as running
+- schedules a background worker through `TaskManager`
 
-- `_port`: The UDP port being listened on.
-- `_protocol`: The protocol handler for incoming datagrams.
-- `_udpClient`: The underlying `UdpClient` socket.
-- `_cts`, `_cancellationToken`: Used for cooperative cancellation.
-- `_isRunning`, `_isDisposed`: Track listener status.
-- Diagnostics counters: `_rxPackets`, `_rxBytes`, `_dropShort`, `_dropUnauth`, `_dropUnknown`, `_recvErrors`.
-- Time sync diagnostics: `_lastSyncUnixMs`, `_lastDriftMs`.
-- `IsListening`: Indicates if the listener is running.
-- `IsTimeSyncEnabled`: Property to enable/disable time sync (must be set when not running).
+`Deactivate(ct)`:
 
-### Initialization
+- cancels the CTS
+- closes and nulls the `UdpClient`
+- resets the running state
 
-- **Constructor:**  
-  Sets up the protocol handler, port, and time sync event handlers.
-- **Initialize():**  
-  Creates the `UdpClient`, configures the underlying socket, and prepares for data reception.
+`Dispose()`:
 
-### Public API
+- cancels and disposes the CTS
+- closes the UDP socket
+- unsubscribes from `TimeSynchronizer`
+- disposes the internal semaphore lock
 
-- **Activate(CancellationToken):**  
-  Starts listening for datagrams, spawns async receive workers, and integrates with background task manager.
-- **Deactivate(CancellationToken):**  
-  Stops listening and cleans up resources.
-- **Dispose():**  
-  Releases all resources, cancels tasks, and detaches event handlers.
-- **GenerateReport():**  
-  Returns a detailed diagnostic report with runtime, socket, traffic, and error stats.
-- **SynchronizeTime(long milliseconds):**  
-  Records and processes server time sync events; can be overridden for custom behavior.
+## Extensibility points
 
-### Socket Configuration
+- `IsAuthenticated(IConnection connection, in UdpReceiveResult result)` is required and decides whether an inbound datagram is accepted.
+- `OnTimeSynchronized(serverMs, localMs, driftMs)` is optional and lets derived listeners react to time drift updates.
 
-- **ConfigureHighPerformanceSocket(Socket):**  
-  Applies performance-optimized socket options (NoDelay, buffer sizes, keep-alive).
+## Diagnostics tracked in code
 
----
+The class keeps counters for:
 
-## Usage
+- received packets and bytes
+- short-packet drops
+- unauthenticated drops
+- unknown-packet drops
+- receive errors
+- last synchronized Unix milliseconds
+- last measured local drift
+
+`GenerateReport()` prints listener state, socket settings, worker-group details, time-sync stats, traffic counters, error counts, and whether the live `UdpClient` / `CancellationTokenSource` objects currently exist.
+
+## Usage sketch
 
 ```csharp
-// Subclass UdpListenerBase to implement authentication and custom logic
-public class MyUdpListener : UdpListenerBase
+public sealed class EchoUdpListener : UdpListenerBase
 {
-    public MyUdpListener(IProtocol protocol) : base(protocol) { }
+    public EchoUdpListener(IProtocol protocol) : base(protocol) { }
 
     protected override bool IsAuthenticated(IConnection connection, in UdpReceiveResult result)
-    {
-        // Implement your own authentication logic here
-        return true;
-    }
-
-    protected override void OnTimeSynchronized(long serverMs, long localMs, long driftMs)
-    {
-        // Optional: handle time sync drift
-    }
+        => true;
 }
-
-// Start listening
-var listener = new MyUdpListener(new MyProtocolHandler());
-listener.Activate();
-
-// ... Later, to stop
-listener.Deactivate();
-listener.Dispose();
 ```
 
----
+## Notes
 
-## Example
+- `Activate(...)` is marked `[Obsolete]` in the current source, so treat the API as stable-but-legacy until the listener surface is refreshed.
+- `IsTimeSyncEnabled` cannot be changed while the listener is running.
+- The scheduled worker uses `NetworkSocketOptions.MaxGroupConcurrency` as the group concurrency limit.
 
-```csharp
-public class EchoProtocol : IProtocol
-{
-    public void OnAccept(IConnection conn, CancellationToken token) { /* not used in UDP */ }
-    // Implement packet handling as needed
-}
+## See also
 
-public class EchoUdpListener : UdpListenerBase
-{
-    public EchoUdpListener() : base(new EchoProtocol()) { }
-
-    protected override bool IsAuthenticated(IConnection conn, in UdpReceiveResult result) => true;
-}
-
-var udpListener = new EchoUdpListener();
-udpListener.Activate();
-```
-
----
-
-## Notes & Security
-
-- **Authentication:** Always override `IsAuthenticated` for your application to prevent unauthorized packets.
-- **Resource Management:** Always call `Deactivate()` and `Dispose()` for a clean shutdown.
-- **Diagnostics:** Use `GenerateReport()` for runtime monitoring and troubleshooting.
-- **Thread Safety:** All operations are thread-safe and designed for concurrent environments.
-- **Performance:** Uses background workers, pooling, and efficient socket options for high throughput.
-- **Configuration:** Socket settings are loaded from `NetworkSocketOptions` for environment-specific tuning.
-
----
-
-## SOLID & DDD Principles
-
-- **Single Responsibility:** Each method and class handles a focused concern (socket setup, receive loop, reporting, etc.).
-- **Open/Closed:** Easily extended for new protocols and authentication strategies.
-- **Liskov Substitution:** Can be subclassed and replaced with custom implementations.
-- **Interface Segregation:** Implements only necessary interfaces and keeps concerns separated.
-- **Dependency Inversion:** Uses protocol and logger abstractions for flexibility and testability.
-
-**Domain-Driven Design:**  
-All low-level networking and infrastructure logic is separated from domain-level application logic, keeping your business code clean and maintainable.
-
----
-
-## Additional Remarks
-
-- **Best Practices:**  
-  - Enable time synchronization if needed for distributed systems.
-  - Monitor and tune buffer sizes and concurrency for your workload.
-  - Handle all exceptions and log errors for robust production deployments.
-  - Customize reporting for your operational needs.
-
----
+- [NetworkSocketOptions](../Configuration/NetworkSocketOptions.md)
+- [Protocol README](../Protocol/README.md)

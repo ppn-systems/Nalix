@@ -1,47 +1,51 @@
-# PacketContext — Request Context for Packet Handlers
+# PacketContext — Pooled per-request packet state
 
-`PacketContext<TPacket>` is the object passed into packet handlers. It holds the current packet, connection, metadata, cancellation, and a sender that applies encryption/compression according to handler attributes.
+`PacketContext<TPacket>` is the request-scoped object used by context-aware handlers in Nalix.Network. It carries the packet, connection, resolved metadata, request cancellation token, and a pooled sender that can emit outbound packets using the current handler rules.
 
-- **Namespace:** `Nalix.Network.Routing`
-- **Pooled:** Yes (object pooling for high throughput).
+## Mapped source
 
----
+- `src/Nalix.Network/Routing/PacketContext.cs`
 
-## Properties
+## State carried by the context
 
-| Property            | Description                                                                                            |
-|---------------------|--------------------------------------------------------------------------------------------------------|
-| `Packet`            | The current packet being processed.                                                                    |
-| `Connection`        | The client connection (`IConnection`).                                                                 |
-| `Attributes`        | Packet metadata (opcode, encryption, permission, rate limit, timeout, etc.).                           |
-| `Sender`            | `IPacketSender<TPacket>` — use to send packets with automatic encrypt/compress per handler attributes. |
-| `CancellationToken` | Cancellation for this request.                                                                         |
-| `SkipOutbound`      | When true, outbound middleware is skipped (e.g. after sending via `Sender`).                           |
+| Property | Purpose |
+|---|---|
+| `Packet` | Current deserialized packet instance. |
+| `Connection` | Current `IConnection`. |
+| `Attributes` | `PacketMetadata` resolved for the handler. |
+| `CancellationToken` | Request-scoped cancellation token. |
+| `SkipOutbound` | Internal flag that skips normal outbound middleware after the handler finishes. |
+| `Sender` | Pooled `IPacketSender<TPacket>` resolved during initialization. |
 
----
+## Pooling behavior
 
-## When to Use Return vs Sender
+- Implements `IPoolable`.
+- Uses `ObjectPoolManager`.
+- Static initialization preallocates and sets max capacity based on `PoolingOptions`.
+- `Initialize(...)` moves the object into the in-use state and rents a `PacketSender<TPacket>`.
+- `Reset()` returns the rented sender and clears packet / connection / metadata state.
+- `Return()` only returns the instance when the state transitions from `IN_USE` to `RETURNED`, preventing double-return races.
 
-- **Return value:** Handler returns a packet (or `Task<T>`) → pipeline runs outbound middleware (e.g. wrap/encrypt) and sends the result. Use for a single response tied to the request.
-- **Sender:** Use `context.Sender.SendAsync(packet, ct)` when you want to send one or more packets from inside the handler with the same encryption/compression rules, without going through the normal return path.
+## Handler guidance
 
----
-
-## Example
+Use a context-based handler when you need metadata or manual sending:
 
 ```csharp
 [PacketOpcode(0x1002)]
-public async ValueTask OnRequest(PacketContext<MyPacket> context, CancellationToken ct)
+public async ValueTask Handle(PacketContext<MyPacket> context, CancellationToken ct)
 {
-    var response = BuildResponse(context.Packet);
-    await context.Sender.SendAsync(response, ct);
+    await context.Sender.SendAsync(BuildReply(context.Packet), ct);
 }
 ```
 
----
+Returning a packet from the handler uses the normal return-type pipeline. Sending through `context.Sender` is the explicit path for immediate or multiple replies.
 
-## See Also
+## Notes
 
-- [Packet Dispatch & Handler](./PacketDispatchChannel.md)
-- [Packet Attributes](./PacketAttributes.md)
-- [Middleware](../Middleware/README.md)
+- `Sender` is required; initialization throws if the pool returns `null`.
+- `SkipOutbound` is internal because it is controlled by the dispatcher / return pipeline, not by external callers.
+
+## See also
+
+- [PacketDispatchChannel](./PacketDispatchChannel.md)
+- [PacketAttributes](./PacketAttributes.md)
