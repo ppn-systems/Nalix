@@ -3,7 +3,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Security;
 using Nalix.Framework.Random;
@@ -50,8 +49,8 @@ namespace Nalix.Framework.Security;
 /// For XTEA, a 32-byte key is deterministically reduced to 16 bytes by the lower-level engine.
 /// </description></item>
 /// <item><description>
-/// <b>Decryption hard-fails softly:</b> this API returns <c>false</c> on parse/tag failure
-/// and clears the output rather than throwing.
+/// <b>Decryption failures are exceptional:</b> invalid envelopes, unsupported algorithms,
+/// and authentication failures throw exceptions.
 /// </description></item>
 /// </list>
 /// </para>
@@ -166,8 +165,8 @@ public static class EnvelopeCipher
     };
 
     /// <summary>
-    /// Encrypts <paramref name="plaintext"/> using the selected <paramref name="algorithm"/>,
-    /// returning a newly allocated envelope buffer.
+    /// Encrypts <paramref name="plaintext"/> using the selected <paramref name="algorithm"/>
+    /// and writes the envelope into <paramref name="ciphertext"/>.
     /// </summary>
     /// <param name="key">Secret key (length depends on the suite).</param>
     /// <param name="plaintext">Plaintext to encrypt.</param>
@@ -186,12 +185,9 @@ public static class EnvelopeCipher
     /// non-AEAD (stream/CTR) suites produce <c>header||nonce||ciphertext</c>.
     /// </param>
     /// <param name="written">Written output</param>
-    /// <returns>
-    /// A newly allocated byte array containing the full envelope.
-    /// </returns>
     /// <exception cref="ArgumentException">
-    /// Thrown if <paramref name="algorithm"/> is not recognized. Key/nonce length errors may be
-    /// thrown by the underlying engines.
+    /// Thrown if <paramref name="algorithm"/> is not recognized, the output buffer is too small,
+    /// or key/nonce length errors are detected by the underlying engines.
     /// </exception>
     /// <example>
     /// <code>
@@ -203,12 +199,12 @@ public static class EnvelopeCipher
     /// </code>
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public static bool Encrypt(
+    public static void Encrypt(
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> plaintext,
         Span<byte> ciphertext,
         ReadOnlySpan<byte> aad, uint? seq, CipherSuiteType algorithm,
-        [NotNullWhen(true)] out int written)
+        out int written)
     {
         written = 0;
 
@@ -217,92 +213,81 @@ public static class EnvelopeCipher
         Span<byte> nonce = nonceStack[..nonceLength];
         Csprng.Fill(nonce);
 
-        return algorithm switch
+        switch (algorithm)
         {
-            CipherSuiteType.Salsa20 or CipherSuiteType.Chacha20 => SymmetricEngine.Encrypt(key, plaintext, ciphertext, nonce, seq, algorithm, out written),// Assume SymmetricEngine.Encrypt uses an out parameter for written
-            CipherSuiteType.Salsa20Poly1305 or CipherSuiteType.Chacha20Poly1305 => AeadEngine.Encrypt(key, plaintext, ciphertext, nonce, aad, seq, algorithm, out written),
-            _ => throw new ArgumentException("Unsupported cipher type", nameof(algorithm)),
-        };
+            case CipherSuiteType.Salsa20:
+            case CipherSuiteType.Chacha20:
+                SymmetricEngine.Encrypt(key, plaintext, ciphertext, nonce, seq, algorithm, out written);
+                return;
+
+            case CipherSuiteType.Salsa20Poly1305:
+            case CipherSuiteType.Chacha20Poly1305:
+                AeadEngine.Encrypt(key, plaintext, ciphertext, nonce, aad, seq, algorithm, out written);
+                return;
+
+            default:
+                throw new ArgumentException("Unsupported cipher type", nameof(algorithm));
+        }
     }
 
     /// <summary>
-    /// Attempts to decrypt an encrypted envelope.
+    /// Decrypts an encrypted envelope.
     /// </summary>
     /// <param name="key">Secret key (length depends on the suite).</param>
     /// <param name="envelope">Concatenation of <c>header || nonce || ciphertext</c> [|| <c>tag</c>].</param>
     /// <param name="plaintext">
-    /// On success, receives a newly allocated plaintext buffer; otherwise set to <c>null</c>.
+    /// Destination buffer for the plaintext.
     /// </param>
     /// <param name="aad">
     /// Optional Associated Data (AEAD suites only). Must match the value (if any) used at encryption time.
     /// Ignored for non-AEAD suites.
     /// </param>
     /// <param name="written">Number of plaintext bytes written on success.</param>
-    /// <returns>
-    /// <c>true</c> if parsing and (for AEAD) authentication succeeded; otherwise <c>false</c>.
-    /// </returns>
     /// <remarks>
     /// For AEAD suites, the same AAD convention is used as in encryption:
     /// <c>header || nonce || userAAD</c>.
     /// </remarks>
     /// <example>
     /// <code>
-    /// if (EnvelopeCipher.Decrypt(key32, envelope, out var pt, aad))
-    /// {
-    ///     // use pt
-    /// }
-    /// else
-    /// {
-    ///     // failed to authenticate or parse
-    /// }
+    /// EnvelopeCipher.Decrypt(key32, envelope, plaintext, aad, out var written);
+    /// // use plaintext[..written]
     /// </code>
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public static bool Decrypt(
+    public static void Decrypt(
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> envelope,
         Span<byte> plaintext,
         ReadOnlySpan<byte> aad,
-        [NotNullWhen(true)] out int written)
+        out int written)
     {
         written = 0;
 
         if (!EnvelopeFormat.TryParseEnvelope(envelope, out EnvelopeFormat.ParsedEnvelope env))
         {
-            return false; // Parsing failed, likely not a valid envelope
+            throw new ArgumentException("The envelope is invalid or malformed.", nameof(envelope));
         }
 
         switch (env.AeadType)
         {
             case CipherSuiteType.Salsa20:
             case CipherSuiteType.Chacha20:
-                // Assume SymmetricEngine.Encrypt uses an out parameter for written
-                if (SymmetricEngine.Decrypt(key, envelope, plaintext, out written))
-                {
-                    return true;
-                }
-
-                break;
+                SymmetricEngine.Decrypt(key, envelope, plaintext, out written);
+                return;
 
             case CipherSuiteType.Salsa20Poly1305:
             case CipherSuiteType.Chacha20Poly1305:
-                if (AeadEngine.Decrypt(key, envelope, plaintext, aad, out written))
-                {
-                    return true;
-                }
-
-                break;
+                AeadEngine.Decrypt(key, envelope, plaintext, aad, out written);
+                return;
 
             default:
-                return false;
+                throw new NotSupportedException("Unsupported cipher type.");
         }
-
-        return false;
     }
 
     /// <summary>
-    /// Encrypts <paramref name="plaintext"/> using the selected <paramref name="algorithm"/>,
-    /// returning a newly allocated envelope buffer.
+    /// Encrypts <paramref name="plaintext"/> using the selected <paramref name="algorithm"/>
+    /// and writes the envelope into <paramref name="ciphertext"/>.
     /// </summary>
     /// <param name="key">Secret key (length depends on the suite).</param>
     /// <param name="plaintext">Plaintext to encrypt.</param>
@@ -316,12 +301,8 @@ public static class EnvelopeCipher
     /// non-AEAD (stream/CTR) suites produce <c>header||nonce||ciphertext</c>.
     /// </param>
     /// <param name="written">Written output</param>
-    /// <returns>
-    /// A newly allocated byte array containing the full envelope.
-    /// </returns>
     /// <exception cref="ArgumentException">
-    /// Thrown if <paramref name="algorithm"/> is not recognized. Key/nonce length errors may be
-    /// thrown by the underlying engines.
+    /// Thrown if <paramref name="algorithm"/> is not recognized or the destination buffer is too small.
     /// </exception>
     /// <example>
     /// <code>
@@ -333,45 +314,36 @@ public static class EnvelopeCipher
     /// </code>
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public static bool Encrypt(
+    public static void Encrypt(
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> plaintext,
         Span<byte> ciphertext,
         uint? seq, CipherSuiteType algorithm,
-        [NotNullWhen(true)] out int written) => Encrypt(key, plaintext, ciphertext, default, seq, algorithm, out written);
+        out int written) => Encrypt(key, plaintext, ciphertext, default, seq, algorithm, out written);
 
     /// <summary>
-    /// Attempts to decrypt an encrypted envelope.
+    /// Decrypts an encrypted envelope.
     /// </summary>
     /// <param name="key">Secret key (length depends on the suite).</param>
     /// <param name="envelope">Concatenation of <c>header || nonce || ciphertext</c> [|| <c>tag</c>].</param>
     /// <param name="plaintext">
-    /// On success, receives a newly allocated plaintext buffer; otherwise set to <c>null</c>.
+    /// Destination buffer for the plaintext.
     /// </param>
     /// <param name="written">Number of plaintext bytes written on success.</param>
-    /// <returns>
-    /// <c>true</c> if parsing and (for AEAD) authentication succeeded; otherwise <c>false</c>.
-    /// </returns>
     /// <remarks>
     /// For AEAD suites, the same AAD convention is used as in encryption:
     /// <c>header || nonce || userAAD</c>.
     /// </remarks>
     /// <example>
     /// <code>
-    /// if (EnvelopeCipher.Decrypt(key32, envelope, out var pt, aad))
-    /// {
-    ///     // use pt
-    /// }
-    /// else
-    /// {
-    ///     // failed to authenticate or parse
-    /// }
+    /// EnvelopeCipher.Decrypt(key32, envelope, plaintext, out var written);
+    /// // use plaintext[..written]
     /// </code>
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public static bool Decrypt(
+    public static void Decrypt(
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> envelope,
         Span<byte> plaintext,
-        [NotNullWhen(true)] out int written) => Decrypt(key, envelope, plaintext, default, out written);
+        out int written) => Decrypt(key, envelope, plaintext, default, out written);
 }

@@ -13,11 +13,6 @@ using Nalix.Network.Routing.Results.Primitives;
 using Nalix.Network.Routing.Results.Task;
 using Nalix.Network.Routing.Results.Void;
 
-#if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
-
 namespace Nalix.Network.Routing.Results;
 
 /// <summary>

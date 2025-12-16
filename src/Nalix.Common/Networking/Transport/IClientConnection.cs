@@ -99,8 +99,7 @@ public interface IClientConnection : IDisposable
     /// <param name="ct">
     /// A cancellation token that can cancel the send operation.
     /// </param>
-    /// <returns><c>true</c> if sent successfully; <c>false</c> on socket error.</returns>
-    Task<bool> SendAsync(
+    Task SendAsync(
         IPacket packet,
         CancellationToken ct = default);
 
@@ -111,8 +110,7 @@ public interface IClientConnection : IDisposable
     /// <param name="ct">
     /// A cancellation token that can cancel the send operation.
     /// </param>
-    /// <returns><c>true</c> if sent successfully; <c>false</c> on socket error.</returns>
-    Task<bool> SendAsync(
+    Task SendAsync(
         ReadOnlyMemory<byte> payload,
         CancellationToken ct = default);
 

@@ -56,10 +56,9 @@ public static class AeadEngine
     /// <item><description><c>"salsa"</c>, <c>"salsa20"</c>, <c>"salsa20-poly1305"</c></description></item>
     /// </list>
     /// </param>
-    /// <param name="written">Write length</param>
-    /// <returns>A newly allocated byte array containing the full envelope.</returns>
+    /// <param name="written">Write length.</param>
     /// <exception cref="System.ArgumentException">
-    /// Thrown if the algorithm is unsupported or the key length is invalid for the chosen suite.
+    /// Thrown if the output buffer is too small, the algorithm is unsupported, or the key length is invalid for the chosen suite.
     /// </exception>
     /// <remarks>
     /// <para>
@@ -70,14 +69,14 @@ public static class AeadEngine
     /// </list>
     /// </para>
     /// </remarks>
-    public static bool Encrypt(
+    public static void Encrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> plaintext,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> ciphertext,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> nonce,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> aad,
         uint? seq, CipherSuiteType algorithm,
-        [System.Diagnostics.CodeAnalysis.NotNull] out int written)
+        out int written)
     {
         written = 0;
         uint seqVal = seq ?? Csprng.NextUInt32();
@@ -85,7 +84,7 @@ public static class AeadEngine
 
         if (ciphertext.Length < total)
         {
-            return false;
+            throw new System.ArgumentException("The destination ciphertext buffer is too small for the generated envelope.", nameof(ciphertext));
         }
 
         // Instead of renting a temporary buffer, encrypt directly into the destination
@@ -108,7 +107,8 @@ public static class AeadEngine
             case CipherSuiteType.Chacha20:
 
             default:
-                return false;
+                ThrowHelper.ThrowNotSupportedException("Unsupported aead algorithm");
+                return;
         }
 
         // Write the envelope header/nonce and copy ciphertext+tag into the output span.
@@ -118,7 +118,6 @@ public static class AeadEngine
 
         // Clear sensitive temporary areas if necessary (we avoid extra temporaries here).
         written = total;
-        return true;
     }
 
     /// <summary>
@@ -132,39 +131,40 @@ public static class AeadEngine
     /// otherwise set to <c>null</c>.
     /// </param>
     /// <param name="aad">Optional associated data to be authenticated (not encrypted).</param>
-    /// <param name="written"></param>
-    /// <returns><c>true</c> if decryption and tag verification succeeded; otherwise <c>false</c>.</returns>
+    /// <param name="written">Number of plaintext bytes written on success.</param>
+    /// <exception cref="System.ArgumentException">Thrown when the envelope is invalid or the destination buffer is too small.</exception>
+    /// <exception cref="System.Security.Cryptography.CryptographicException">Thrown when authentication fails.</exception>
+    /// <exception cref="System.NotSupportedException">Thrown when the envelope algorithm is not supported.</exception>
     /// <remarks>
     /// The same AAD convention is used as in <see cref="Encrypt"/>:
     /// <c>header || nonce || userAAD</c>.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static bool Decrypt(
+    public static void Decrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> envelope,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> plaintext,
         System.ReadOnlySpan<byte> aad,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int written)
+        out int written)
     {
         written = 0;
 
         if (!EnvelopeFormat.TryParseEnvelope(envelope, out EnvelopeFormat.ParsedEnvelope env))
         {
-            return false;
+            throw new System.ArgumentException("The envelope is invalid or malformed.", nameof(envelope));
         }
 
         int ctLen = env.Ciphertext.Length;
 
         if (plaintext.Length < env.Ciphertext.Length)
         {
-            return false;
+            throw new System.ArgumentException("The destination plaintext buffer is too small for the decrypted payload.", nameof(plaintext));
         }
 
-        int result = 0;
         System.Span<byte> ptSlice = plaintext[..ctLen];
 
+        int result;
         switch (env.AeadType)
         {
             case CipherSuiteType.Chacha20Poly1305:
@@ -177,19 +177,18 @@ public static class AeadEngine
 
             case CipherSuiteType.Salsa20:
             case CipherSuiteType.Chacha20:
-                return false;
+                throw new System.NotSupportedException("Authenticated decryption is not supported for the selected non-AEAD algorithm.");
 
             default:
                 ThrowHelper.ThrowNotSupportedException("Unsupported aead algorithm");
-                break;
+                return;
         }
 
         if (result < 0)
         {
-            return false;
+            throw new System.Security.Cryptography.CryptographicException("AEAD authentication failed.");
         }
 
         written = result;
-        return true;
     }
 }

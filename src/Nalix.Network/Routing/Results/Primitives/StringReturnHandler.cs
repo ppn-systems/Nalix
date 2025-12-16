@@ -60,12 +60,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
 
                         try
                         {
-                            bool sent = await context.Connection.TCP.SendAsync(buffer).ConfigureAwait(false);
-                            if (!sent)
-                            {
-                                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                        .Warn($"[{nameof(StringReturnHandler<>)}] send-failed");
-                            }
+                            await context.Connection.TCP.SendAsync(buffer).ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
@@ -101,12 +96,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
 
                     try
                     {
-                        bool sent = await context.Connection.TCP.SendAsync(buffer).ConfigureAwait(false);
-                        if (!sent)
-                        {
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[{nameof(StringReturnHandler<>)}] send-failed msg=chunk");
-                        }
+                        await context.Connection.TCP.SendAsync(buffer).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {

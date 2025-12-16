@@ -54,7 +54,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
     public void Initialize(PacketContext<TPacket> context) => _context = context ?? throw new ArgumentNullException(nameof(context));
 
     /// <inheritdoc/>
-    public ValueTask<bool> SendAsync(
+    public ValueTask SendAsync(
         TPacket packet,
         CancellationToken ct = default)
     {
@@ -65,7 +65,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
     }
 
     /// <inheritdoc/>
-    public ValueTask<bool> SendAsync(
+    public ValueTask SendAsync(
         TPacket packet,
         bool forceEncrypt,
         CancellationToken ct = default)
@@ -75,7 +75,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
 
     #region Private Methods
 
-    private static async ValueTask<bool> SEND_CORE_ASYNC(
+    private static async ValueTask SEND_CORE_ASYNC(
         PacketContext<TPacket> context,
         TPacket packet,
         bool needEncrypt,
@@ -87,148 +87,136 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
 
         // Serialize packet
         BufferLease rawLease = BufferLease.Rent(packet.Length);
-        int written = packet.Serialize(rawLease.SpanFull);
-        rawLease.CommitLength(written);
-
-        bool enableCompress = s_options.Enabled && written >= s_options.MinSizeToCompress;
-
-#if DEBUG
-        s_logger?.Debug($"[NW.PacketSender] Serialized: {written} bytes | Compress={enableCompress}");
-#endif
-
-        // Case 1: No compress, no encrypt
-        if (!enableCompress && !needEncrypt)
+        try
         {
-#if DEBUG
-            s_logger?.Debug("[NW.PacketSender] Case 1: Plain Send");
-#endif
-            _ = await context.Connection.TCP.SendAsync(rawLease.Memory, ct).ConfigureAwait(false);
-            rawLease.Dispose();
-            return true;
-        }
+            int written = packet.Serialize(rawLease.SpanFull);
+            rawLease.CommitLength(written);
 
-        // Case 2: Compress only
-        if (enableCompress && !needEncrypt)
-        {
+            bool enableCompress = s_options.Enabled && written >= s_options.MinSizeToCompress;
+
 #if DEBUG
-            s_logger?.Debug("[NW.PacketSender] Case 2: Compress Only");
+            s_logger?.Debug($"[NW.PacketSender] Serialized: {written} bytes | Compress={enableCompress}");
 #endif
 
-            int maxCompressedLength = FrameTransformer.GetMaxCompressedSize(written);
-            BufferLease compressedLease = BufferLease.Rent(maxCompressedLength + FrameTransformer.Offset);
-
-            bool compressed = FrameTransformer.TryCompress(rawLease, compressedLease);
-            rawLease.Dispose();
-
-            if (!compressed)
+            // Case 1: No compress, no encrypt
+            if (!enableCompress && !needEncrypt)
             {
 #if DEBUG
-                s_logger?.Debug("[NW.PacketSender] Compression failed");
+                s_logger?.Debug("[NW.PacketSender] Case 1: Plain Send");
 #endif
-                compressedLease.Dispose();
-                return false;
+                await context.Connection.TCP.SendAsync(rawLease.Memory, ct).ConfigureAwait(false);
+                return;
             }
 
-            compressedLease.Span.WriteFlagsLE(compressedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
-            _ = await context.Connection.TCP.SendAsync(compressedLease.Memory, ct).ConfigureAwait(false);
-            compressedLease.Dispose();
-            return true;
-        }
+            // Case 2: Compress only
+            if (enableCompress && !needEncrypt)
+            {
+#if DEBUG
+                s_logger?.Debug("[NW.PacketSender] Case 2: Compress Only");
+#endif
 
-        // Case 3: Encrypt only
-        if (!enableCompress && needEncrypt)
+                int maxCompressedLength = FrameTransformer.GetMaxCompressedSize(written);
+                BufferLease compressedLease = BufferLease.Rent(maxCompressedLength + FrameTransformer.Offset);
+                try
+                {
+                    FrameTransformer.Compress(rawLease, compressedLease);
+
+                    compressedLease.Span.WriteFlagsLE(compressedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
+                    await context.Connection.TCP.SendAsync(compressedLease.Memory, ct).ConfigureAwait(false);
+                }
+                finally
+                {
+                    compressedLease.Dispose();
+                }
+
+                return;
+            }
+
+            // Case 3: Encrypt only
+            if (!enableCompress && needEncrypt)
+            {
+#if DEBUG
+                s_logger?.Debug("[NW.PacketSender] Case 3: Encrypt Only");
+#endif
+
+                int maxCipherLength = FrameTransformer.GetMaxCiphertextSize(
+                    context.Connection.Algorithm,
+                    rawLease.Length);
+
+                BufferLease encryptedLease = BufferLease.Rent(maxCipherLength + FrameTransformer.Offset);
+                try
+                {
+                    FrameTransformer.Encrypt(
+                        rawLease,
+                        encryptedLease,
+                        context.Connection.Secret,
+                        context.Connection.Algorithm);
+
+                    encryptedLease.Span.WriteFlagsLE(encryptedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
+                    await context.Connection.TCP.SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
+                }
+                finally
+                {
+                    encryptedLease.Dispose();
+                }
+
+                return;
+            }
+
+            // Case 4: Compress + Encrypt
+            if (enableCompress && needEncrypt)
+            {
+#if DEBUG
+                s_logger?.Debug("[NW.PacketSender] Case 4: Compress + Encrypt");
+#endif
+
+                int maxCompressedLength = FrameTransformer.GetMaxCompressedSize(written);
+                BufferLease compressedLease = BufferLease.Rent(maxCompressedLength + FrameTransformer.Offset);
+                try
+                {
+                    FrameTransformer.Compress(rawLease, compressedLease);
+
+                    compressedLease.Span.WriteFlagsLE(compressedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
+
+                    int maxCipherLength = FrameTransformer.GetMaxCiphertextSize(
+                        context.Connection.Algorithm,
+                        compressedLease.Length);
+
+                    BufferLease encryptedLease = BufferLease.Rent(maxCipherLength + FrameTransformer.Offset);
+                    try
+                    {
+                        FrameTransformer.Encrypt(
+                            compressedLease,
+                            encryptedLease,
+                            context.Connection.Secret,
+                            context.Connection.Algorithm);
+
+                        encryptedLease.Span.WriteFlagsLE(encryptedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
+                        await context.Connection.TCP.SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        encryptedLease.Dispose();
+                    }
+                }
+                finally
+                {
+                    compressedLease.Dispose();
+                }
+
+                return;
+            }
+
+#if DEBUG
+            s_logger?.Debug("[NW.PacketSender] ERROR: Unexpected state reached!");
+#endif
+
+            throw new InvalidOperationException("Unexpected state in packet sending logic.");
+        }
+        finally
         {
-#if DEBUG
-            s_logger?.Debug("[NW.PacketSender] Case 3: Encrypt Only");
-#endif
-
-            int maxCipherLength = FrameTransformer.GetMaxCiphertextSize(
-                context.Connection.Algorithm,
-                rawLease.Length);
-
-            BufferLease encryptedLease = BufferLease.Rent(maxCipherLength + FrameTransformer.Offset);
-
-            bool encrypted = FrameTransformer.TryEncrypt(
-                rawLease,
-                encryptedLease,
-                context.Connection.Secret,
-                context.Connection.Algorithm);
-
             rawLease.Dispose();
-
-            if (!encrypted)
-            {
-#if DEBUG
-                s_logger?.Debug("[NW.PacketSender] Encryption failed");
-#endif
-                encryptedLease.Dispose();
-                return false;
-            }
-
-            encryptedLease.Span.WriteFlagsLE(encryptedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
-            _ = await context.Connection.TCP.SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
-            encryptedLease.Dispose();
-            return true;
         }
-
-        // Case 4: Compress + Encrypt
-        if (enableCompress && needEncrypt)
-        {
-#if DEBUG
-            s_logger?.Debug("[NW.PacketSender] Case 4: Compress + Encrypt");
-#endif
-
-            int maxCompressedLength = FrameTransformer.GetMaxCompressedSize(written);
-            BufferLease compressedLease = BufferLease.Rent(maxCompressedLength + FrameTransformer.Offset);
-
-            bool compressed = FrameTransformer.TryCompress(rawLease, compressedLease);
-            rawLease.Dispose();
-
-            if (!compressed)
-            {
-#if DEBUG
-                s_logger?.Debug("[NW.PacketSender] Compression failed (Case 4)");
-#endif
-                compressedLease.Dispose();
-                return false;
-            }
-
-            compressedLease.Span.WriteFlagsLE(compressedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
-
-            int maxCipherLength = FrameTransformer.GetMaxCiphertextSize(
-                context.Connection.Algorithm,
-                compressedLease.Length);
-
-            BufferLease encryptedLease = BufferLease.Rent(maxCipherLength + FrameTransformer.Offset);
-
-            bool encrypted = FrameTransformer.TryEncrypt(
-                compressedLease,
-                encryptedLease,
-                context.Connection.Secret,
-                context.Connection.Algorithm);
-
-            compressedLease.Dispose();
-
-            if (!encrypted)
-            {
-#if DEBUG
-                s_logger?.Debug("[NW.PacketSender] Encryption failed (Case 4)");
-#endif
-                encryptedLease.Dispose();
-                return false;
-            }
-
-            encryptedLease.Span.WriteFlagsLE(encryptedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
-            _ = await context.Connection.TCP.SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
-            encryptedLease.Dispose();
-            return true;
-        }
-
-#if DEBUG
-        s_logger?.Debug("[NW.PacketSender] ERROR: Unexpected state reached!");
-#endif
-
-        throw new InvalidOperationException("Unexpected state in packet sending logic.");
     }
 
     private PacketContext<TPacket> GET_CONTEXT_OR_THROW()

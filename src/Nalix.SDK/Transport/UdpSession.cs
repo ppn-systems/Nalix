@@ -409,7 +409,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public Task<bool> SendAsync(IPacket packet, CancellationToken ct = default)
+    public Task SendAsync(IPacket packet, CancellationToken ct = default)
         => this.SendAsync(packet, encrypt: false, ct);
 
     /// <summary>
@@ -427,7 +427,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     /// Compression and encryption follow the same packet-transform rules used by TCP sessions, but the final output
     /// is emitted as a single UDP datagram.
     /// </remarks>
-    public async Task<bool> SendAsync(IPacket packet, bool encrypt, CancellationToken ct = default)
+    public async Task SendAsync(IPacket packet, bool encrypt, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(packet);
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(UdpSession));
@@ -439,20 +439,21 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
         if (packet.Length == 0)
         {
-            return false;
+            throw new ArgumentException("Packet length must be greater than zero.", nameof(packet));
         }
 
         BufferLease rawLease = BufferLease.Rent(packet.Length);
-        int written = packet.Serialize(rawLease.SpanFull);
-        rawLease.CommitLength(written);
-
-        bool enableCompression = this.Options.EnableCompression && written >= this.Options.MinSizeToCompress;
-
         try
         {
+            int written = packet.Serialize(rawLease.SpanFull);
+            rawLease.CommitLength(written);
+
+            bool enableCompression = this.Options.EnableCompression && written >= this.Options.MinSizeToCompress;
+
             if (!enableCompression && !encrypt)
             {
-                return await this.SendAsync(rawLease.Memory, ct).ConfigureAwait(false);
+                await this.SendAsync(rawLease.Memory, ct).ConfigureAwait(false);
+                return;
             }
 
             if (enableCompression && !encrypt)
@@ -462,15 +463,13 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
                 try
                 {
-                    if (!FrameTransformer.TryCompress(rawLease, compressedLease))
-                    {
-                        return false;
-                    }
+                    FrameTransformer.Compress(rawLease, compressedLease);
 
                     compressedLease.Span.WriteFlagsLE(
                         compressedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
 
-                    return await this.SendAsync(compressedLease.Memory, ct).ConfigureAwait(false);
+                    await this.SendAsync(compressedLease.Memory, ct).ConfigureAwait(false);
+                    return;
                 }
                 finally
                 {
@@ -485,15 +484,13 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
                 try
                 {
-                    if (!FrameTransformer.TryEncrypt(rawLease, encryptedLease, this.Options.Secret, this.Options.Algorithm))
-                    {
-                        return false;
-                    }
+                    FrameTransformer.Encrypt(rawLease, encryptedLease, this.Options.Secret, this.Options.Algorithm);
 
                     encryptedLease.Span.WriteFlagsLE(
                         encryptedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
 
-                    return await this.SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
+                    await this.SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
+                    return;
                 }
                 finally
                 {
@@ -506,10 +503,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
             try
             {
-                if (!FrameTransformer.TryCompress(rawLease, compressLease))
-                {
-                    return false;
-                }
+                FrameTransformer.Compress(rawLease, compressLease);
 
                 compressLease.Span.WriteFlagsLE(
                     compressLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
@@ -519,15 +513,13 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
                 try
                 {
-                    if (!FrameTransformer.TryEncrypt(compressLease, encryptLease, this.Options.Secret, this.Options.Algorithm))
-                    {
-                        return false;
-                    }
+                    FrameTransformer.Encrypt(compressLease, encryptLease, this.Options.Secret, this.Options.Algorithm);
 
                     encryptLease.Span.WriteFlagsLE(
                         encryptLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
 
-                    return await this.SendAsync(encryptLease.Memory, ct).ConfigureAwait(false);
+                    await this.SendAsync(encryptLease.Memory, ct).ConfigureAwait(false);
+                    return;
                 }
                 finally
                 {
@@ -550,7 +542,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     /// When UDP authentication metadata is enabled and fully configured, the sent datagram format is
     /// <c>[payload][session-id][timestamp][nonce][poly1305-tag]</c>.
     /// </remarks>
-    public async Task<bool> SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default)
+    public async Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(UdpSession));
 
@@ -558,7 +550,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
         if (payload.IsEmpty)
         {
-            return false;
+            throw new ArgumentException("Payload must not be empty.", nameof(payload));
         }
 
         try
@@ -568,16 +560,16 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
             if (sent != datagram.Length)
             {
-                return false;
+                throw new InvalidOperationException("UDP datagram send completed partially.");
             }
 
             this.ReportBytesSent(sent);
-            return true;
+            return;
         }
         catch (Exception ex)
         {
             this.HandleTransportError(ex);
-            return false;
+            throw;
         }
     }
 
@@ -688,11 +680,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
                 {
                     BufferLease decryptedLease = BufferLease.Rent(FrameTransformer.GetPlaintextLength(current.Span));
 
-                    if (!FrameTransformer.TryDecrypt(current, decryptedLease, this.Options.Secret))
-                    {
-                        decryptedLease.Dispose();
-                        return;
-                    }
+                    FrameTransformer.Decrypt(current, decryptedLease, this.Options.Secret);
 
                     decryptedLease.Span.WriteFlagsLE(
                         decryptedLease.Span.ReadFlagsLE().RemoveFlag(PacketFlags.ENCRYPTED));
@@ -710,11 +698,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
                 {
                     BufferLease decompressedLease = BufferLease.Rent(FrameTransformer.GetDecompressedLength(current.Span));
 
-                    if (!FrameTransformer.TryDecompress(current, decompressedLease))
-                    {
-                        decompressedLease.Dispose();
-                        return;
-                    }
+                    FrameTransformer.Decompress(current, decompressedLease);
 
                     decompressedLease.Span.WriteFlagsLE(
                         decompressedLease.Span.ReadFlagsLE().RemoveFlag(PacketFlags.COMPRESSED));
