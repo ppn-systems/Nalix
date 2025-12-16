@@ -14,7 +14,7 @@ namespace Nalix.Logging.Internal.Formatters;
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-internal static class LogLevelFormatter
+internal static class LogLevelShortNames
 {
     #region Constants
 
@@ -43,10 +43,10 @@ internal static class LogLevelFormatter
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    internal static System.ReadOnlySpan<System.Char> GetShortLogLevel(LogLevel logLevel)
+    internal static System.ReadOnlySpan<System.Char> GetShortName(LogLevel logLevel)
     {
         // Bounds checking with bitwise operation for performance
-        if (!((System.Byte)logLevel < MaxLogLevels))
+        if ((System.Byte)logLevel >= MaxLogLevels)
         {
             // Fall back to the string representation for unknown levels
             return System.MemoryExtensions.AsSpan(logLevel.ToString().ToUpperInvariant());
