@@ -409,17 +409,13 @@ public sealed class AeadEngineTests
         byte[] envelope = new byte[EnvelopeSize(nLen, s_plaintextShort.Length)];
         byte[] plaintext = new byte[s_plaintextShort.Length];
 
-        bool encOk = AeadEngine.Encrypt(
+        AeadEngine.Encrypt(
             s_key32, s_plaintextShort, envelope, nonce,
             s_aad, seq: 1u, algorithm, out int encWritten);
-
-        Assert.True(encOk);
         Assert.Equal(EnvelopeSize(nLen, s_plaintextShort.Length), encWritten);
 
-        bool decOk = AeadEngine.Decrypt(
+        AeadEngine.Decrypt(
             s_key32, envelope.AsSpan()[..encWritten], plaintext, s_aad, out int decWritten);
-
-        Assert.True(decOk);
         Assert.Equal(s_plaintextShort.Length, decWritten);
         Assert.Equal(s_plaintextShort, plaintext);
     }
@@ -433,17 +429,13 @@ public sealed class AeadEngineTests
         int nLen = NonceLen(algorithm);
         byte[] envelope = new byte[EnvelopeSize(nLen, 0)];
 
-        bool encOk = AeadEngine.Encrypt(
+        AeadEngine.Encrypt(
             s_key32, [], envelope, nonce,
             s_aad, seq: 0u, algorithm, out int encWritten);
-
-        Assert.True(encOk);
         Assert.Equal(EnvelopeSize(nLen, 0), encWritten);
 
-        bool decOk = AeadEngine.Decrypt(
+        AeadEngine.Decrypt(
             s_key32, envelope.AsSpan()[..encWritten], [], s_aad, out int decWritten);
-
-        Assert.True(decOk);
         Assert.Equal(0, decWritten);
     }
 
@@ -457,16 +449,12 @@ public sealed class AeadEngineTests
         byte[] envelope = new byte[EnvelopeSize(nLen, s_plaintextMulti.Length)];
         byte[] plaintext = new byte[s_plaintextMulti.Length];
 
-        bool encOk = AeadEngine.Encrypt(
+        AeadEngine.Encrypt(
             s_key32, s_plaintextMulti, envelope, nonce,
             s_aad, seq: 99u, algorithm, out int encWritten);
 
-        Assert.True(encOk);
-
-        bool decOk = AeadEngine.Decrypt(
+        AeadEngine.Decrypt(
             s_key32, envelope.AsSpan()[..encWritten], plaintext, s_aad, out int decWritten);
-
-        Assert.True(decOk);
         Assert.Equal(s_plaintextMulti.Length, decWritten);
         Assert.Equal(s_plaintextMulti, plaintext);
     }
@@ -481,20 +469,12 @@ public sealed class AeadEngineTests
         byte[] envelope = new byte[EnvelopeSize(nLen, s_plaintextShort.Length)];
         byte[] plaintext = new byte[s_plaintextShort.Length];
 
-        bool encOk = AeadEngine.Encrypt(
+        AeadEngine.Encrypt(
             s_key32, s_plaintextShort, envelope, nonce,
             s_aad, seq: null, algorithm, out int encWritten);
 
-        // Explicit message để biết ĐÚNG bước nào fail
-        Assert.True(encOk,
-            $"[{algorithm}] Encrypt failed. encWritten={encWritten}");
-
-        bool decOk = AeadEngine.Decrypt(
+        AeadEngine.Decrypt(
             s_key32, envelope.AsSpan()[..encWritten], plaintext, s_aad, out int decWritten);
-
-        Assert.True(decOk,
-            $"[{algorithm}] Decrypt failed. encWritten={encWritten}, " +
-            $"envelopeLen={envelope.Length}, plaintextBufLen={plaintext.Length}");
 
         Assert.Equal(s_plaintextShort.Length, decWritten);
         Assert.Equal(s_plaintextShort, plaintext);
@@ -508,12 +488,9 @@ public sealed class AeadEngineTests
         byte[] nonce = NonceFor(algorithm);
         byte[] tinyBuffer = new byte[1];
 
-        bool ok = AeadEngine.Encrypt(
+        Assert.Throws<ArgumentException>(() => AeadEngine.Encrypt(
             s_key32, s_plaintextShort, tinyBuffer, nonce,
-            s_aad, seq: 0u, algorithm, out int written);
-
-        Assert.False(ok);
-        Assert.Equal(0, written);
+            s_aad, seq: 0u, algorithm, out _));
     }
 
     [Fact]
@@ -523,15 +500,12 @@ public sealed class AeadEngineTests
         byte[] envelope = new byte[EnvelopeSize(nLen, s_plaintextShort.Length)];
         byte[] ptBuf = new byte[s_plaintextShort.Length];
 
-        _ = AeadEngine.Encrypt(s_key32, s_plaintextShort, envelope, s_nonce12,
+        AeadEngine.Encrypt(s_key32, s_plaintextShort, envelope, s_nonce12,
             s_aad, seq: 1u, CipherSuiteType.Chacha20Poly1305, out _);
 
         envelope[0] ^= 0xFF;
 
-        bool decOk = AeadEngine.Decrypt(s_key32, envelope, ptBuf, s_aad, out int decWritten);
-
-        Assert.False(decOk);
-        Assert.Equal(0, decWritten);
+        Assert.Throws<ArgumentException>(() => AeadEngine.Decrypt(s_key32, envelope, ptBuf, s_aad, out _));
     }
 
     [Fact]
@@ -541,7 +515,7 @@ public sealed class AeadEngineTests
         byte[] envelope = new byte[EnvelopeSize(nLen, s_plaintextShort.Length)];
         byte[] ptBuf = new byte[s_plaintextShort.Length];
 
-        _ = AeadEngine.Encrypt(s_key32, s_plaintextShort, envelope, s_nonce12,
+        AeadEngine.Encrypt(s_key32, s_plaintextShort, envelope, s_nonce12,
             s_aad, seq: 1u, CipherSuiteType.Chacha20Poly1305, out int encWritten);
 
         // FIX: only corrupt if ciphertext region is non-empty
@@ -552,10 +526,8 @@ public sealed class AeadEngineTests
 
         int ctOffset = HeaderSize + nLen; // first byte of ciphertext in envelope
         envelope[ctOffset] ^= 0x01;
-        bool decOk = AeadEngine.Decrypt(
-            s_key32, envelope.AsSpan()[..encWritten], ptBuf, s_aad, out _);
-
-        Assert.False(decOk);
+        Assert.Throws<System.Security.Cryptography.CryptographicException>(() => AeadEngine.Decrypt(
+            s_key32, envelope.AsSpan()[..encWritten], ptBuf, s_aad, out _));
     }
 
     [Fact]
@@ -565,18 +537,14 @@ public sealed class AeadEngineTests
         byte[] envelope = new byte[EnvelopeSize(nLen, s_plaintextShort.Length)];
         byte[] ptBuf = new byte[s_plaintextShort.Length];
 
-        bool encOk = AeadEngine.Encrypt(s_key32, s_plaintextShort, envelope, s_nonce12,
+        AeadEngine.Encrypt(s_key32, s_plaintextShort, envelope, s_nonce12,
             s_aad, seq: 5u, CipherSuiteType.Chacha20Poly1305, out int encWritten);
-
-        Assert.True(encOk, "Encrypt must succeed for tamper-tag test");
         Assert.True(encWritten >= HeaderSize + nLen + s_plaintextShort.Length + TagSize, "Envelope length must include tag");
 
         envelope[encWritten - 1] ^= 0xFF; // last byte = last byte of tag
 
-        bool decOk = AeadEngine.Decrypt(
-            s_key32, envelope.AsSpan()[..encWritten], ptBuf, s_aad, out _);
-
-        Assert.False(decOk);
+        Assert.Throws<System.Security.Cryptography.CryptographicException>(() => AeadEngine.Decrypt(
+            s_key32, envelope.AsSpan()[..encWritten], ptBuf, s_aad, out _));
     }
 
     [Fact]
@@ -586,24 +554,19 @@ public sealed class AeadEngineTests
         byte[] envelope = new byte[EnvelopeSize(nLen, s_plaintextShort.Length)];
         byte[] ptBuf = new byte[s_plaintextShort.Length];
 
-        _ = AeadEngine.Encrypt(s_key32, s_plaintextShort, envelope, s_nonce12,
+        AeadEngine.Encrypt(s_key32, s_plaintextShort, envelope, s_nonce12,
             s_aad, seq: 3u, CipherSuiteType.Chacha20Poly1305, out int encWritten);
 
-        bool decOk = AeadEngine.Decrypt(
+        Assert.Throws<System.Security.Cryptography.CryptographicException>(() => AeadEngine.Decrypt(
             s_key32, envelope.AsSpan()[..encWritten], ptBuf,
-            System.Text.Encoding.UTF8.GetBytes("wrong-aad"), out _);
-
-        Assert.False(decOk);
+            System.Text.Encoding.UTF8.GetBytes("wrong-aad"), out _));
     }
 
     [Fact]
     public void AeadEngineEnvelopeEmptyEnvelopeDecryptReturnsFalse()
     {
         byte[] ptBuf = new byte[10];
-        bool ok = AeadEngine.Decrypt(s_key32, [], ptBuf, s_aad, out int written);
-
-        Assert.False(ok);
-        Assert.Equal(0, written);
+        Assert.Throws<ArgumentException>(() => AeadEngine.Decrypt(s_key32, [], ptBuf, s_aad, out _));
     }
 
     [Fact]
@@ -613,14 +576,11 @@ public sealed class AeadEngineTests
         byte[] envelope = new byte[EnvelopeSize(nLen, s_plaintextShort.Length)];
         byte[] ptBuf = new byte[s_plaintextShort.Length];
 
-        _ = AeadEngine.Encrypt(s_key32, s_plaintextShort, envelope, s_nonce12,
+        AeadEngine.Encrypt(s_key32, s_plaintextShort, envelope, s_nonce12,
             s_aad, seq: 2u, CipherSuiteType.Chacha20Poly1305, out _);
 
-        bool ok = AeadEngine.Decrypt(
-            s_key32, envelope.AsSpan()[..HeaderSize], ptBuf, s_aad, out int written);
-
-        Assert.False(ok);
-        Assert.Equal(0, written);
+        Assert.Throws<ArgumentException>(() => AeadEngine.Decrypt(
+            s_key32, envelope.AsSpan()[..HeaderSize], ptBuf, s_aad, out _));
     }
 
     // =========================================================================
@@ -658,11 +618,8 @@ public sealed class AeadEngineTests
         byte[] env2 = new byte[EnvelopeSize(nLen, s_plaintextShort.Length)];
         byte[] key2 = new byte[32]; key2[0] = 0xAB;
 
-        bool ok1 = AeadEngine.Encrypt(s_key32, s_plaintextShort, env1, nonce, s_aad, seq: 1u, algorithm, out int w1);
-        bool ok2 = AeadEngine.Encrypt(key2, s_plaintextShort, env2, nonce, s_aad, seq: 1u, algorithm, out int w2);
-
-        Assert.True(ok1, "Encrypt with Key32 must succeed");
-        Assert.True(ok2, "Encrypt with key2 must succeed");
+        AeadEngine.Encrypt(s_key32, s_plaintextShort, env1, nonce, s_aad, seq: 1u, algorithm, out int w1);
+        AeadEngine.Encrypt(key2, s_plaintextShort, env2, nonce, s_aad, seq: 1u, algorithm, out int w2);
 
         // Compare only ciphertext+tag (bytes after header+nonce) — these MUST differ
         byte[] ct1 = env1[ctStart..w1];
