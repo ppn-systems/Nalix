@@ -1,283 +1,402 @@
-﻿using Nalix.Common.Environment;
+#nullable enable
+
+using Nalix.Common.Environment;
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Configuration.Binding;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Configuration;
 
 /// <summary>
-/// Tests for <see cref="ConfigurationManager"/> and configuration loading infrastructure.
+/// Provides unit tests for the public API exposed by <see cref="ConfigurationManager"/>.
 /// </summary>
 public sealed class ConfigurationManagerTests : IDisposable
 {
     private readonly String _testDirectory;
-    private readonly String _testConfigFilePath;
+    private readonly List<ConfigurationManager> _managers = [];
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ConfigurationManagerTests"/> class.
+    /// </summary>
     public ConfigurationManagerTests()
     {
-        _testDirectory = Directories.ConfigurationDirectory;
+        _testDirectory = Path.Combine(
+            Directories.ConfigurationDirectory,
+            "ConfigurationManagerTests",
+            Guid.NewGuid().ToString("N"));
+
         Directory.CreateDirectory(_testDirectory);
-        _testConfigFilePath = _testConfigFilePath = Path.Combine(_testDirectory, $"test_{Guid.NewGuid()}.ini");
     }
 
+    /// <inheritdoc />
     public void Dispose()
     {
-        if (Directory.Exists(_testDirectory))
+        foreach (ConfigurationManager manager in _managers)
         {
-            Directory.Delete(_testDirectory, recursive: true);
+            try
+            {
+                manager.Dispose();
+            }
+            catch
+            {
+                // Test cleanup should be best-effort.
+            }
+        }
+
+        try
+        {
+            if (Directory.Exists(_testDirectory))
+            {
+                Directory.Delete(_testDirectory, recursive: true);
+            }
+        }
+        catch
+        {
+            // FileSystemWatcher cleanup can be asynchronous on some platforms.
         }
     }
 
-    #region Helper
-
-    /// <summary>
-    /// A dummy configuration class for testing.
-    /// </summary>
-    public sealed class DummyConfig : ConfigurationLoader
-    {
-        /// <summary>
-        /// A sample int property.
-        /// </summary>
-        public Int32 IntValue { get; set; }
-
-        /// <summary>
-        /// A sample string property.
-        /// </summary>
-        public String StringValue { get; set; } = String.Empty;
-    }
-
-    #endregion
-
     [Fact]
-    public void Get_HappyPath_CreatesAndReturnsConfigInstance()
+    public void Get_WhenConfigurationFileContainsValues_ReturnsInitializedConfiguration()
     {
-        // Arrange
-        WriteIniFile("[Dummy]\nIntValue=42\nStringValue=hello");
+        String filePath = WriteConfigFile(
+            "appsettings.ini",
+            """
+            [Sample]
+            Number = 42
+            Message = hello
+            """);
 
-        var mgr = CreateManager();
+        using ConfigurationManager manager = CreateManager(filePath);
 
-        // Act
-        var result = mgr.Get<DummyConfig>();
+        SampleConfig configuration = manager.Get<SampleConfig>();
 
-        // Assert
-        Assert.NotNull(result);
-        Assert.True(result.IsInitialized);
-        Assert.Equal(42, result.IntValue);
-        Assert.Equal("hello", result.StringValue);
-    }
-
-
-    [Fact]
-    public void Get_NullIniValues_DefaultsApplied()
-    {
-        // Arrange: Only section, no key
-        WriteIniFile("[Dummy]");
-
-        var mgr = CreateManager();
-
-        // Act
-        var result = mgr.Get<DummyConfig>();
-
-        // Assert
-        Assert.Equal(0, result.IntValue); // Default of int
-        Assert.Equal(String.Empty, result.StringValue);
+        Assert.True(configuration.IsInitialized);
+        Assert.Equal(42, configuration.Number);
+        Assert.Equal("hello", configuration.Message);
+        Assert.True(manager.IsLoaded<SampleConfig>());
+        Assert.True(manager.ConfigFileExists);
     }
 
     [Fact]
-    public void SetConfigFilePath_OutsideConfigDirectory_ThrowsSecurityException()
+    public void Get_WhenCalledMultipleTimes_ReturnsSameCachedInstance()
     {
-        var mgr = new ConfigurationManager();
-        String unsafePath = Path.Combine(Path.GetTempPath(), "..", "unsafe.ini");
+        String filePath = WriteConfigFile(
+            "cached.ini",
+            """
+            [Sample]
+            Number = 7
+            Message = cache
+            """);
 
-        // Assert
-        Assert.Throws<InternalErrorException>(() =>
-        {
-            mgr.SetConfigFilePath(unsafePath);
-        });
+        using ConfigurationManager manager = CreateManager(filePath);
+
+        SampleConfig first = manager.Get<SampleConfig>();
+        SampleConfig second = manager.Get<SampleConfig>();
+
+        Assert.Same(first, second);
     }
 
     [Fact]
-    public void SetConfigFilePath_SamePath_ReturnsFalse()
+    public void Get_WhenConfigurationFileDoesNotExist_ReturnsDefaultValues()
     {
-        // Arrange
-        var mgr = CreateManager();
-        var path = mgr.ConfigFilePath;
+        String filePath = Path.Combine(_testDirectory, "missing.ini");
 
-        // Act
-        var result = mgr.SetConfigFilePath(path);
+        using ConfigurationManager manager = CreateManager(filePath);
 
-        // Assert
-        Assert.False(result);
+        Assert.False(manager.ConfigFileExists);
+
+        SampleConfig configuration = manager.Get<SampleConfig>();
+
+        Assert.NotNull(configuration);
+        Assert.True(configuration.IsInitialized);
+        Assert.Equal(0, configuration.Number);
+        Assert.Equal(String.Empty, configuration.Message);
+        Assert.True(manager.IsLoaded<SampleConfig>());
     }
 
     [Fact]
-    public void IsLoaded_AfterGet_ReturnsTrue()
+    public void Get_WithPathOverload_UsesProvidedConfigurationFile()
     {
-        var mgr = CreateManager();
+        String filePath = WriteConfigFile(
+            "overload.ini",
+            """
+            [Sample]
+            Number = 15
+            Message = overload
+            """);
 
-        Assert.False(mgr.IsLoaded<DummyConfig>());
+        using ConfigurationManager manager = CreateManager();
 
-        var _ = mgr.Get<DummyConfig>();
+        SampleConfig configuration = manager.Get<SampleConfig>(filePath);
 
-        Assert.True(mgr.IsLoaded<DummyConfig>());
+        Assert.Equal(filePath, manager.ConfigFilePath);
+        Assert.Equal(15, configuration.Number);
+        Assert.Equal("overload", configuration.Message);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void SetConfigFilePath_WhenPathIsNullOrWhitespace_ThrowsArgumentException(String? path)
+    {
+        using ConfigurationManager manager = CreateManager();
+
+        Assert.Throws<ArgumentException>(() => manager.SetConfigFilePath(path!));
     }
 
     [Fact]
-    public void Remove_Config_RemovesFromCache()
+    public void SetConfigFilePath_WhenPathIsOutsideConfigurationDirectory_ThrowsInternalErrorException()
     {
-        var mgr = CreateManager();
-        mgr.Get<DummyConfig>();
+        using ConfigurationManager manager = CreateManager();
+        String outsidePath = Path.Combine(Path.GetTempPath(), $"outside_{Guid.NewGuid():N}.ini");
 
-        Assert.True(mgr.IsLoaded<DummyConfig>());
+        Assert.Throws<InternalErrorException>(() => manager.SetConfigFilePath(outsidePath));
+    }
 
-        var removed = mgr.Remove<DummyConfig>();
+    [Fact]
+    public void SetConfigFilePath_WhenPathIsUnchanged_ReturnsFalse()
+    {
+        String filePath = WriteConfigFile(
+            "same-path.ini",
+            """
+            [Sample]
+            Number = 1
+            Message = same
+            """);
+
+        using ConfigurationManager manager = CreateManager(filePath);
+
+        Boolean changed = manager.SetConfigFilePath(filePath);
+
+        Assert.False(changed);
+        Assert.Equal(filePath, manager.ConfigFilePath);
+    }
+
+    [Fact]
+    public void SetConfigFilePath_WhenAutoReloadIsDisabled_KeepsExistingValuesUntilReloadAll()
+    {
+        String firstPath = WriteConfigFile(
+            "first.ini",
+            """
+            [Sample]
+            Number = 1
+            Message = first
+            """);
+
+        String secondPath = WriteConfigFile(
+            "second.ini",
+            """
+            [Sample]
+            Number = 2
+            Message = second
+            """);
+
+        using ConfigurationManager manager = CreateManager(firstPath);
+        SampleConfig configuration = manager.Get<SampleConfig>();
+
+        Boolean changed = manager.SetConfigFilePath(secondPath, autoReload: false);
+
+        Assert.True(changed);
+        Assert.Equal(secondPath, manager.ConfigFilePath);
+        Assert.Equal(1, configuration.Number);
+        Assert.Equal("first", configuration.Message);
+
+        Boolean reloaded = manager.ReloadAll();
+
+        Assert.True(reloaded);
+        Assert.Equal(2, configuration.Number);
+        Assert.Equal("second", configuration.Message);
+    }
+
+    [Fact]
+    public void SetConfigFilePath_WhenAutoReloadIsEnabled_UpdatesExistingLoadedInstance()
+    {
+        String firstPath = WriteConfigFile(
+            "auto-first.ini",
+            """
+            [Sample]
+            Number = 10
+            Message = before
+            """);
+
+        String secondPath = WriteConfigFile(
+            "auto-second.ini",
+            """
+            [Sample]
+            Number = 20
+            Message = after
+            """);
+
+        using ConfigurationManager manager = CreateManager(firstPath);
+        SampleConfig configuration = manager.Get<SampleConfig>();
+
+        DateTime beforeReload = manager.LastReloadTime;
+        Boolean changed = manager.SetConfigFilePath(secondPath, autoReload: true);
+
+        Assert.True(changed);
+        Assert.Equal(secondPath, manager.ConfigFilePath);
+        Assert.Equal(20, configuration.Number);
+        Assert.Equal("after", configuration.Message);
+        Assert.True(manager.LastReloadTime >= beforeReload);
+    }
+
+    [Fact]
+    public void ReloadAll_WhenConfigurationFileChanges_ReloadsLoadedConfigurationsAndUpdatesTimestamp()
+    {
+        String filePath = WriteConfigFile(
+            "reload.ini",
+            """
+            [Sample]
+            Number = 5
+            Message = initial
+            """);
+
+        using ConfigurationManager manager = CreateManager(filePath);
+        SampleConfig configuration = manager.Get<SampleConfig>();
+        DateTime beforeReload = manager.LastReloadTime;
+
+        System.Threading.Thread.Sleep(20);
+
+        File.WriteAllText(
+            filePath,
+            """
+            [Sample]
+            Number = 99
+            Message = updated
+            """);
+
+        Boolean reloaded = manager.ReloadAll();
+
+        Assert.True(reloaded);
+        Assert.Equal(99, configuration.Number);
+        Assert.Equal("updated", configuration.Message);
+        Assert.True(manager.LastReloadTime > beforeReload);
+    }
+
+    [Fact]
+    public void Remove_WhenConfigurationWasLoaded_RemovesItFromCache()
+    {
+        String filePath = WriteConfigFile(
+            "remove.ini",
+            """
+            [Sample]
+            Number = 8
+            Message = remove
+            """);
+
+        using ConfigurationManager manager = CreateManager(filePath);
+        SampleConfig first = manager.Get<SampleConfig>();
+
+        Boolean removed = manager.Remove<SampleConfig>();
+        SampleConfig second = manager.Get<SampleConfig>();
 
         Assert.True(removed);
-        Assert.False(mgr.IsLoaded<DummyConfig>());
+        Assert.NotSame(first, second);
+        Assert.True(manager.IsLoaded<SampleConfig>());
     }
 
     [Fact]
-    public void ClearAll_RemovesAllConfigs()
+    public void Remove_WhenConfigurationWasNotLoaded_ReturnsFalse()
     {
-        var mgr = CreateManager();
-        mgr.Get<DummyConfig>();
-        Assert.True(mgr.IsLoaded<DummyConfig>());
-        mgr.ClearAll();
-        Assert.False(mgr.IsLoaded<DummyConfig>());
+        using ConfigurationManager manager = CreateManager();
+
+        Boolean removed = manager.Remove<SampleConfig>();
+
+        Assert.False(removed);
     }
 
     [Fact]
-    public void ReloadAll_ConfigReloaded_ValuesAreUpToDate()
+    public void ClearAll_WhenConfigurationsWereLoaded_RemovesAllCachedInstances()
     {
-        // Arrange
-        WriteIniFile("[Dummy]\nIntValue=1\nStringValue=abc");
-        var mgr = CreateManager();
+        String filePath = WriteConfigFile(
+            "clear.ini",
+            """
+            [Sample]
+            Number = 3
+            Message = clear
+            [Another]
+            Enabled = true
+            """);
 
-        var cfg = mgr.Get<DummyConfig>();
+        using ConfigurationManager manager = CreateManager(filePath);
+        SampleConfig sample = manager.Get<SampleConfig>();
+        AnotherConfig another = manager.Get<AnotherConfig>();
 
-        // Act: Update file, reload, check update
-        WriteIniFile("[Dummy]\nIntValue=99\nStringValue=new");
-        var reloadResult = mgr.ReloadAll();
+        manager.ClearAll();
 
-        var newCfg = mgr.Get<DummyConfig>();
+        Assert.False(manager.IsLoaded<SampleConfig>());
+        Assert.False(manager.IsLoaded<AnotherConfig>());
 
-        // Assert
-        Assert.True(reloadResult);
-        Assert.Equal(99, newCfg.IntValue);
-        Assert.Equal("new", newCfg.StringValue);
+        SampleConfig reloadedSample = manager.Get<SampleConfig>();
+        AnotherConfig reloadedAnother = manager.Get<AnotherConfig>();
+
+        Assert.NotSame(sample, reloadedSample);
+        Assert.NotSame(another, reloadedAnother);
     }
 
     [Fact]
-    public void Get_ConfigFileDoesNotExist_DefaultsApplied()
+    public void Flush_WhenConfigurationHasNotBeenCreated_DoesNotThrow()
     {
-        // Arrange (no file written)
-        var mgr = CreateManager();
+        String filePath = Path.Combine(_testDirectory, "flush.ini");
 
-        // Act
-        var cfg = mgr.Get<DummyConfig>();
+        using ConfigurationManager manager = CreateManager(filePath);
 
-        // Assert
-        Assert.Equal(0, cfg.IntValue);
-        Assert.Equal(String.Empty, cfg.StringValue);
+        Exception? exception = Record.Exception(manager.Flush);
+
+        Assert.Null(exception);
     }
 
-    [Fact]
-    public void SetConfigFilePath_PathIsNull_ThrowsArgException()
+    private ConfigurationManager CreateManager(String? filePath = null)
     {
-        var mgr = CreateManager();
+        ConfigurationManager manager = new();
+        _managers.Add(manager);
 
-        Assert.Throws<ArgumentException>(() => mgr.SetConfigFilePath(null!));
-        Assert.Throws<ArgumentException>(() => mgr.SetConfigFilePath(""));
+        if (filePath is not null)
+        {
+            Boolean changed = manager.SetConfigFilePath(filePath, autoReload: true);
+            Assert.True(changed);
+        }
+
+        return manager;
     }
 
-    // Test
-    [Fact]
-    public void Get_WithCustomPath_UsesCorrectFile()
+    private String WriteConfigFile(String fileName, String content)
     {
-        var filePath1 = Path.Combine(_testDirectory, $"test1_{Guid.NewGuid()}.ini");
-        var filePath2 = Path.Combine(_testDirectory, $"test2_{Guid.NewGuid()}.ini");
-        File.WriteAllText(filePath1, "[Dummy]\nIntValue=5\nStringValue=s1");
-        File.WriteAllText(filePath2, "[Dummy]\nIntValue=8\nStringValue=s2");
-
-        var mgr1 = new ConfigurationManager();
-        mgr1.SetConfigFilePath(filePath1, autoReload: true);
-        var cfg1 = mgr1.Get<DummyConfig>();
-
-        var mgr2 = new ConfigurationManager();
-        mgr2.SetConfigFilePath(filePath2, autoReload: true);
-        var cfg2 = mgr2.Get<DummyConfig>();
-
-        Assert.Equal(5, cfg1.IntValue);
-        Assert.Equal("s1", cfg1.StringValue);
-        Assert.Equal(8, cfg2.IntValue);
-        Assert.Equal("s2", cfg2.StringValue);
-
-        Directory.Delete(_testDirectory, true); // Cleanup
-    }
-
-    [Fact]
-    public void Flush_WritesData_NoException()
-    {
-        // Arrange
-        var mgr = CreateManager();
-
-        // Act & Assert (should not throw)
-        mgr.Flush();
-    }
-
-    [Fact]
-    public void Clone_HappyPath_ClonesValuesCorrectly()
-    {
-        // Arrange
-        var mgr = CreateManager();
-        WriteIniFile("[Dummy]\nIntValue=13\nStringValue=abc");
-        var cfg = mgr.Get<DummyConfig>();
-
-        // Act
-        var clone = cfg.Clone<DummyConfig>();
-
-        // Assert
-        Assert.NotSame(cfg, clone);
-        Assert.Equal(cfg.IntValue, clone.IntValue);
-        Assert.Equal(cfg.StringValue, clone.StringValue);
-        Assert.Equal(cfg.LastInitializationTime, clone.LastInitializationTime);
-    }
-
-    [Fact]
-    public void ConfigFileWatcher_TriggersReload()
-    {
-        // Arrange
-        WriteIniFile("[Dummy]\nIntValue=1\nStringValue=abc");
-        var mgr = CreateManager();
-        var cfg = mgr.Get<DummyConfig>();
-
-        // Act: Update file on disk, wait for watcher to detect
-        WriteIniFile("[Dummy]\nIntValue=7\nStringValue=watcher");
-        System.Threading.Thread.Sleep(300); // Allow watcher event to fire
-
-        mgr.ReloadAll(); // fallback explicit
-
-        var newCfg = mgr.Get<DummyConfig>();
-
-        Assert.Equal(7, newCfg.IntValue);
-        Assert.Equal("watcher", newCfg.StringValue);
+        String filePath = Path.Combine(_testDirectory, fileName);
+        File.WriteAllText(filePath, content.ReplaceLineEndings(Environment.NewLine));
+        return filePath;
     }
 
     /// <summary>
-    /// Helper: write an INI file to the test location.
+    /// Represents a configuration type used to validate scalar binding.
     /// </summary>
-    private void WriteIniFile(String content) => File.WriteAllText(_testConfigFilePath, content.Replace("\n", Environment.NewLine));
+    public sealed class SampleConfig : ConfigurationLoader
+    {
+        /// <summary>
+        /// Gets or sets the numeric value used by the test configuration.
+        /// </summary>
+        public Int32 Number { get; set; }
+
+        /// <summary>
+        /// Gets or sets the text value used by the test configuration.
+        /// </summary>
+        public String Message { get; set; } = String.Empty;
+    }
 
     /// <summary>
-    /// Helper: create a ConfigurationManager with a test config file path.
+    /// Represents an additional configuration type used to verify cache clearing.
     /// </summary>
-    private ConfigurationManager CreateManager()
+    public sealed class AnotherConfig : ConfigurationLoader
     {
-        var mgr = new ConfigurationManager();
-        mgr.SetConfigFilePath(_testConfigFilePath, autoReload: true);
-        return mgr;
+        /// <summary>
+        /// Gets or sets a value indicating whether the configuration is enabled.
+        /// </summary>
+        public Boolean Enabled { get; set; }
     }
 }
