@@ -1,10 +1,5 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-#if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Benchmarks")]
-#endif
-
 namespace Nalix.Logging.Internal.Exceptions;
 
 /// <summary>
