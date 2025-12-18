@@ -184,7 +184,7 @@ public sealed class TimingWheel : IActivatable
         );
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[NW.{nameof(TimingWheel)}] activate " +
+                                .Info($"[NW.{nameof(TimingWheel)}:{nameof(Activate)}] activate " +
                                       $"wheelsize={WheelSize} tick={TickMs}ms idle={IdleTimeoutMs}ms mask={_useMask}");
     }
 
@@ -212,7 +212,7 @@ public sealed class TimingWheel : IActivatable
         DrainAndReleaseAllBuckets();
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[NW.{nameof(TimingWheel)}] deactivate");
+                                .Info($"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] deactivate");
     }
 
     #endregion IActivatable
@@ -334,13 +334,13 @@ public sealed class TimingWheel : IActivatable
                     if (idleMs >= IdleTimeoutMs)
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Debug($"[NW.{nameof(TimingWheel)}] timeout remote={task.Conn.EndPoint}, idle={idleMs}ms");
+                                                .Debug($"[NW.{nameof(TimingWheel)}:Internal] timeout remote={task.Conn.EndPoint}, idle={idleMs}ms");
 
                         try { task.Conn.Close(force: true); }
                         catch (System.Exception ex)
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[NW.{nameof(TimingWheel)}] close-error remote={task.Conn.EndPoint} ex={ex.Message}");
+                                                    .Warn($"[NW.{nameof(TimingWheel)}:Internal] close-error remote={task.Conn.EndPoint} ex={ex.Message}");
                         }
 
                         InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Return(task);
@@ -368,7 +368,7 @@ public sealed class TimingWheel : IActivatable
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(TimingWheel)}] loop-error", ex);
+                                    .Error($"[NW.{nameof(TimingWheel)}:Internal] loop-error", ex);
         }
     }
 
