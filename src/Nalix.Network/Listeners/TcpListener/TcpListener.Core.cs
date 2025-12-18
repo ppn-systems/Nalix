@@ -142,7 +142,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
         _acceptWorkerIds = new(s_config.MaxParallel);
         _lock = new System.Threading.SemaphoreSlim(1, 1);
 
-        InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().TimeSynchronized += this.SynchronizeTime;
+        InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().TimeSynchronized += SynchronizeTime;
 
         PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
         options.Validate();
@@ -242,7 +242,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     [System.Diagnostics.DebuggerStepThrough]
     public void Dispose()
     {
-        this.Dispose(true);
+        Dispose(true);
         System.GC.SuppressFinalize(this);
     }
 
@@ -256,21 +256,21 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     protected virtual void Dispose(System.Boolean disposing)
     {
         // Atomic check-and-set: 0 -> 1
-        if (System.Threading.Interlocked.CompareExchange(ref this._isDisposed, 1, 0) != 0)
+        if (System.Threading.Interlocked.CompareExchange(ref _isDisposed, 1, 0) != 0)
         {
             return;
         }
 
         if (disposing)
         {
-            this.Deactivate();
+            Deactivate();
 
             try
             {
                 try { _cancelReg.Dispose(); } catch { }
 
-                this._cts?.Cancel();
-                this._cts?.Dispose();
+                _cts?.Cancel();
+                _cts?.Dispose();
 
                 _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STOPPING);
 
@@ -286,13 +286,13 @@ public abstract partial class TcpListenerBase : IListener, IReportable
                 }
 
                 InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
-                               .TimeSynchronized -= this.SynchronizeTime;
+                               .TimeSynchronized -= SynchronizeTime;
             }
             catch { }
 
             _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STOPPED);
 
-            this._lock.Dispose();
+            _lock.Dispose();
         }
 
         s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] disposed");

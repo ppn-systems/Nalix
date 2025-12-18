@@ -121,4 +121,3 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
         }
     }
 }
-

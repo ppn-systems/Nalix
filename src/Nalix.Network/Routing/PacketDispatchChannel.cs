@@ -122,7 +122,7 @@ public sealed class PacketDispatchChannel
 
         // Decide how many parallel dispatch loops to start.
         // Rule of thumb: cores/2, clamped to [1..12]
-        _dispatchLoops = this.Options.DispatchLoopCount ?? System.Math.Clamp(System.Environment.ProcessorCount / 2, 1, 12);
+        _dispatchLoops = Options.DispatchLoopCount ?? System.Math.Clamp(System.Environment.ProcessorCount / 2, 1, 12);
         _workerHandle = new IWorkerHandle[_dispatchLoops];
 
         for (System.Int32 i = 0; i < _dispatchLoops; i++)
@@ -448,11 +448,11 @@ public sealed class PacketDispatchChannel
     [System.Diagnostics.DebuggerNonUserCode]
     public void Dispose()
     {
-        this.Deactivate();
+        Deactivate();
 
         _linkedCts?.Dispose();
         _cts?.Dispose();
-        this._semaphore.Dispose();
+        _semaphore.Dispose();
     }
 
     #endregion IDisposable

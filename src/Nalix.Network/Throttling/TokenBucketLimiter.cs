@@ -1262,11 +1262,11 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     private void SCHEDULE_CLEANUP_JOB()
     {
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-            name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
+            name: TaskNaming.Recurring.CleanupJobId(RecurringName, GetHashCode()),
             interval: System.TimeSpan.FromSeconds(_cleanupIntervalSec),
             work: _ =>
             {
-                this.CLEANUP_STALE_ENDPOINTS();
+                CLEANUP_STALE_ENDPOINTS();
                 return System.Threading.Tasks.ValueTask.CompletedTask;
             },
             options: new RecurringOptions
@@ -1324,8 +1324,8 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         InstanceManager.Instance.GetOrCreateInstance<TaskManager>()?
                                 .CancelRecurring(TaskNaming.Recurring
-                                .CleanupJobId(RecurringName, this
-                                .GetHashCode()));
+                                .CleanupJobId(RecurringName,
+                                GetHashCode()));
 
         s_logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:{nameof(Dispose)}] disposed");
     }

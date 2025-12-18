@@ -94,7 +94,7 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
             work: async (ctx, ct) =>
             {
                 System.Threading.CancellationTokenSource linkedCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
-                await this.CONSUME_LOOP_ASYNC(ctx, linkedCts.Token);
+                await CONSUME_LOOP_ASYNC(ctx, linkedCts.Token);
             },
             options: new WorkerOptions
             {

@@ -89,7 +89,7 @@ internal sealed class BufferPoolCollection : System.IDisposable
     {
         if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity, _config.SecureClear)))
         {
-            this.UpdateSortedKeys();
+            UpdateSortedKeys();
         }
     }
 
@@ -124,9 +124,9 @@ internal sealed class BufferPoolCollection : System.IDisposable
 
         System.Byte[] buffer = pool.AcquireBuffer();
 
-        if (this.AdjustCounter(poolSize, isRent: true))
+        if (AdjustCounter(poolSize, isRent: true))
         {
-            this.EvaluateResize(pool);
+            EvaluateResize(pool);
         }
 
         return buffer;
@@ -152,9 +152,9 @@ internal sealed class BufferPoolCollection : System.IDisposable
 
         pool.ReleaseBuffer(buffer);
 
-        if (this.AdjustCounter(buffer.Length, isRent: false))
+        if (AdjustCounter(buffer.Length, isRent: false))
         {
-            this.EvaluateResize(pool);
+            EvaluateResize(pool);
         }
     }
 
@@ -196,17 +196,17 @@ internal sealed class BufferPoolCollection : System.IDisposable
         System.Int64 now = System.Environment.TickCount64;
         System.Int32 cooldown = GetAdaptiveCooldown(usage, missRate);
 
-        if (this.IsCooldownActive(state.BufferSize, now, cooldown))
+        if (IsCooldownActive(state.BufferSize, now, cooldown))
         {
             return;
         }
 
-        if (this.TryExpandPool(pool, in state, usage, missRate, now))
+        if (TryExpandPool(pool, in state, usage, missRate, now))
         {
             return;
         }
 
-        this.TryShrinkPool(pool, in state, usage, now);
+        TryShrinkPool(pool, in state, usage, now);
     }
 
     /// <summary>
@@ -264,7 +264,7 @@ internal sealed class BufferPoolCollection : System.IDisposable
             return false;
         }
 
-        System.Int32 step = this.CalculateExpandStep(state, usage, expandThreshold);
+        System.Int32 step = CalculateExpandStep(state, usage, expandThreshold);
         if (step <= 0)
         {
             return false;

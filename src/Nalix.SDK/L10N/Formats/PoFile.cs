@@ -128,7 +128,7 @@ public partial class PoFile
         // Extract metadata
         if (_translations.TryGetValue("", out var metadata))
         {
-            this.ParseMetadata(metadata);
+            ParseMetadata(metadata);
         }
     }
 

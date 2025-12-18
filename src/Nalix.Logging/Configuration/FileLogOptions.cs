@@ -153,11 +153,11 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// <returns>The constructed log file name.</returns>
     public System.String BuildCustomFileName(System.DateTime date, System.Int32 index)
     {
-        System.String baseName = this.LogFileName;
+        System.String baseName = LogFileName;
 
-        if (this.FormatLogFileName != null)
+        if (FormatLogFileName != null)
         {
-            baseName = this.FormatLogFileName(baseName);
+            baseName = FormatLogFileName(baseName);
         }
 
         System.String ext = System.IO.Path.GetExtension(baseName);
@@ -165,7 +165,7 @@ public sealed class FileLogOptions : ConfigurationLoader
         System.String datePart = date.ToString("yy_MM_dd");
         System.String newName = $"{stem}_{datePart}_{index}{ext}";
 
-        if (this.UsePerProcessSuffix)
+        if (UsePerProcessSuffix)
         {
             using System.Diagnostics.Process p = System.Diagnostics.Process.GetCurrentProcess();
             System.String processSuffix = $"_{p.ProcessName}_{p.Id}";

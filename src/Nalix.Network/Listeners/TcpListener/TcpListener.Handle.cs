@@ -77,7 +77,7 @@ public abstract partial class TcpListenerBase
         }
 
         // De-subscribe to prevent memory leaks
-        args.Connection.OnCloseEvent -= this.HandleConnectionClose;
+        args.Connection.OnCloseEvent -= HandleConnectionClose;
         args.Connection.OnCloseEvent -= _limiter.OnConnectionClosed;
 
         args.Connection.OnProcessEvent -= _protocol.ProcessMessage;
@@ -129,7 +129,7 @@ public abstract partial class TcpListenerBase
 
         IConnection connection = new Connection(socket);
 
-        connection.OnCloseEvent += this.HandleConnectionClose;
+        connection.OnCloseEvent += HandleConnectionClose;
         connection.OnCloseEvent += _limiter.OnConnectionClosed;
 
         connection.OnProcessEvent += _protocol.ProcessMessage;
@@ -242,7 +242,7 @@ public abstract partial class TcpListenerBase
 
                     // Create and process connection similar to async version
                     PooledAcceptContext context = ((PooledSocketAsyncEventArgs)args).Context!;
-                    IConnection connection = this.InitializeConnection(socket, context);
+                    IConnection connection = InitializeConnection(socket, context);
 
                     // Process the connection
                     PooledListenerProcessContext ctx = s_pool.Get<PooledListenerProcessContext>();
@@ -347,12 +347,12 @@ public abstract partial class TcpListenerBase
     {
         try
         {
-            this.HandleAccept(args);
+            HandleAccept(args);
         }
         finally
         {
             // Unsubscribe before returning to pool to prevent duplicate callbacks
-            args.Completed -= this.OnSyncAcceptCompleted;
+            args.Completed -= OnSyncAcceptCompleted;
 
             // Ensure the args is clean before returning to pool
             args.AcceptSocket = null;
@@ -364,9 +364,9 @@ public abstract partial class TcpListenerBase
 
         newArgs.Context = context;
         context.BindArgsForSync(newArgs);
-        newArgs.Completed += this.OnSyncAcceptCompleted;
+        newArgs.Completed += OnSyncAcceptCompleted;
 
-        this.AcceptNext(newArgs, _cancellationToken);
+        AcceptNext(newArgs, _cancellationToken);
     }
 
     /// <summary>
@@ -528,7 +528,7 @@ public abstract partial class TcpListenerBase
             IConnection connection;
             try
             {
-                connection = await this.CreateConnectionAsync(cancellationToken)
+                connection = await CreateConnectionAsync(cancellationToken)
                                        .ConfigureAwait(false);
             }
             catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -668,7 +668,7 @@ public abstract partial class TcpListenerBase
                 throw new NetworkException($"Connection rejected: {socket.RemoteEndPoint}");
             }
 
-            return this.InitializeConnection(socket, context);
+            return InitializeConnection(socket, context);
         }
         catch (System.Net.Sockets.SocketException ex)
         {
