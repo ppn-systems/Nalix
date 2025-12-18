@@ -61,7 +61,7 @@ public abstract partial class UdpListenerBase : IListener
             try
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[NW.{nameof(UdpListenerBase)}] listening port={_port}");
+                                        .Info($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] listening port={_port}");
 
                 System.Threading.Tasks.Task receiveTask = this.ReceiveDatagramsAsync(this._cancellationToken);
                 _ = receiveTask.ConfigureAwait(false);

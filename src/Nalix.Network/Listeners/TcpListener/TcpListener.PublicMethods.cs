@@ -102,7 +102,7 @@ public abstract partial class TcpListenerBase
 
         if (Config.MaxParallel < 1)
         {
-            throw new System.InvalidOperationException($"[{nameof(TcpListenerBase)}:{nameof(Activate)}] Config.MaxParallel must be at least 1.");
+            throw new System.InvalidOperationException($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] Config.MaxParallel must be at least 1.");
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?

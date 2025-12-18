@@ -20,7 +20,7 @@ public abstract partial class UdpListenerBase
         ConfigureHighPerformanceSocket(_udpClient.Client);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(UdpListenerBase)}] init-ok port={_port} reuse={Config.ReuseAddress} buf={Config.BufferSize}");
+                                .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] init-ok port={_port} reuse={Config.ReuseAddress} buf={Config.BufferSize}");
     }
 
     [System.Diagnostics.DebuggerStepThrough]
@@ -32,11 +32,10 @@ public abstract partial class UdpListenerBase
         "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
     private static void ConfigureHighPerformanceSocket(System.Net.Sockets.Socket socket)
     {
+        socket.Blocking = false;
         socket.NoDelay = Config.NoDelay;
         socket.SendBufferSize = Config.BufferSize;
         socket.ReceiveBufferSize = Config.BufferSize;
-
-        socket.Blocking = false;
 
         if (Config.KeepAlive)
         {
