@@ -98,7 +98,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     private readonly Shard[] _shards;
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
-    private readonly ILogger _logger; // NEW: cache logger
+    private readonly ILogger _logger;
 
     private System.Boolean _disposed;
 
@@ -146,11 +146,10 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             }
         );
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(TokenBucketLimiter)}] init cap={_opt.CapacityTokens} " +
-                                       $"refill={_opt.RefillTokensPerSecond}/s scale={_opt.TokenScale} " +
-                                       $"shards={_opt.ShardCount} stale_s={_opt.StaleEntrySeconds} " +
-                                       $"cleanup_s={_opt.CleanupIntervalSeconds} hardlock_s={_opt.HardLockoutSeconds}");
+        _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}] init cap={_opt.CapacityTokens} " +
+                       $"refill={_opt.RefillTokensPerSecond}/s scale={_opt.TokenScale} " +
+                       $"shards={_opt.ShardCount} stale_s={_opt.StaleEntrySeconds} " +
+                       $"cleanup_s={_opt.CleanupIntervalSeconds} hardlock_s={_opt.HardLockoutSeconds}");
 
     }
 
@@ -204,7 +203,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         if (isNew)
         {
-            _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}] new-endpoint ep={key.Address}");
+            _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:Internal] new-endpoint ep={key.Address}");
         }
 
         lock (state.Gate)
@@ -215,7 +214,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             if (state.HardBlockedUntilSw > now)
             {
                 System.Int32 retryMsHard = ComputeMs(now, state.HardBlockedUntilSw);
-                _logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}] hard-blocked ep={key.Address} retry_ms={retryMsHard}");
+                _logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] hard-blocked ep={key.Address} retry_ms={retryMsHard}");
 
                 return new LimitDecision
                 {
@@ -237,7 +236,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
                 if (credit <= 1)
                 {
-                    _logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}] allow ep={key.Address} credit={credit}");
+                    _logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] allow ep={key.Address} credit={credit}");
                 }
 
                 return new LimitDecision
@@ -581,14 +580,12 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
             if (removed > 0)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[NW.{nameof(TokenBucketLimiter)}] Cleanup visited={visited} removed={removed}");
+                _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:Internal] Cleanup visited={visited} removed={removed}");
             }
         }
         catch (System.Exception ex) when (ex is not System.ObjectDisposedException)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(TokenBucketLimiter)}] cleanup-error msg={ex.Message}");
+            _logger?.Error($"[NW.{nameof(TokenBucketLimiter)}:Internal] cleanup-error msg={ex.Message}");
         }
     }
 
@@ -613,8 +610,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         await System.Threading.Tasks.Task.Yield();
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(TokenBucketLimiter)}] disposed");
+        _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:{nameof(Dispose)}] disposed");
     }
 
     #endregion IDisposable & IAsyncDisposable
