@@ -75,7 +75,7 @@ public abstract partial class UdpListenerBase
         {
             _ = System.Threading.Interlocked.Increment(ref _dropShort);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(UdpListenerBase)}] [{nameof(ConnectionHub)}] null");
+                                    .Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] [{nameof(ConnectionHub)}] null");
             return;
         }
 

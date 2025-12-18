@@ -167,7 +167,7 @@ public abstract partial class UdpListenerBase
 
         this._isDisposed = true;
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[NW.{nameof(UdpListenerBase)}] disposed");
+                                .Info($"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] disposed");
     }
 
     #endregion IDisposable
