@@ -120,7 +120,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             if (_options.EnableTraceLogs)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[NW.{nameof(ConnectionHub)}] register id={connection.ID} total={_count}");
+                                        .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={_count}");
             }
 
             return true;
@@ -129,7 +129,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         if (_options.EnableTraceLogs)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[NW.{nameof(ConnectionHub)}] register-dup id={connection.ID}");
+                                    .Info($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register-dup id={connection.ID}");
         }
 
         return false;
@@ -168,7 +168,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             if (_options.EnableTraceLogs)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[NW.{nameof(ConnectionHub)}] unregister-miss id={connection.ID}");
+                                        .Info($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister-miss id={connection.ID}");
             }
 
             return false;
@@ -186,7 +186,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         if (_options.EnableTraceLogs)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[NW.{nameof(ConnectionHub)}] unregister id={connection.ID} total={_count}");
+                                    .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={connection.ID} total={_count}");
         }
 
         ConnectionUnregistered?.Invoke(existing ?? connection);
@@ -240,7 +240,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             if (_options.EnableTraceLogs)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[NW.{nameof(ConnectionHub)}] map-rebind id={id} old={oldUsername} new={username}");
+                                        .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(AssociateUsername)}] map-rebind id={id} old={oldUsername} new={username}");
             }
         }
 
@@ -251,7 +251,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         if (_options.EnableTraceLogs)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[NW.{nameof(ConnectionHub)}] map user=\"{username}\" id={id}");
+                                    .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(AssociateUsername)}] map user=\"{username}\" id={id}");
         }
     }
 
@@ -374,8 +374,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     public async System.Threading.Tasks.Task BroadcastAsync<T>(
         [System.Diagnostics.CodeAnalysis.NotNull] T message,
         System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
-        System.Threading.CancellationToken cancellationToken = default)
-        where T : class
+        System.Threading.CancellationToken cancellationToken = default) where T : class
     {
         if (message is null || sendFunc is null || _disposed)
         {
@@ -386,7 +385,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         if (connections is null || connections.Count == 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[NW.{nameof(ConnectionHub)}] broadcast-skip total=0");
+                                    .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] broadcast-skip total=0");
             return;
         }
 
@@ -433,7 +432,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         catch (System.OperationCanceledException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[NW.{nameof(ConnectionHub)}] broadcast-cancel");
+                                    .Info($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] broadcast-cancel");
         }
     }
 
@@ -454,8 +453,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     public async System.Threading.Tasks.Task BroadcastWhereAsync<T>(
         [System.Diagnostics.CodeAnalysis.NotNull] T message,
         System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
-        System.Func<IConnection, System.Boolean> predicate, System.Threading.CancellationToken cancellation = default)
-        where T : class
+        System.Func<IConnection, System.Boolean> predicate, System.Threading.CancellationToken cancellation = default) where T : class
     {
         if (message is null || sendFunc is null || predicate is null || _disposed)
         {
@@ -499,7 +497,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         catch (System.OperationCanceledException)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[NW.{nameof(ConnectionHub)}] broadcast-cancel");
+                                    .Info($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastWhereAsync)}] broadcast-cancel");
         }
         finally
         {
@@ -537,7 +535,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[NW.{nameof(ConnectionHub)}] disconnect-error id={connection.ID}", ex);
+                                        .Error($"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-error id={connection.ID}", ex);
             }
         });
 
@@ -548,7 +546,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _ = System.Threading.Interlocked.Exchange(ref _count, 0);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[NW.{nameof(ConnectionHub)}] disconnect-all total={connections.Count}");
+                                .Info($"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-all total={connections.Count}");
     }
 
     /// <summary>
@@ -603,7 +601,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         this.CloseAllConnections("disposed");
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[NW.{nameof(ConnectionHub)}] disposed");
+                                .Info($"[NW.{nameof(ConnectionHub)}:{nameof(Dispose)}] disposed");
     }
 
     #endregion APIs
@@ -621,7 +619,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     private void HandleConnectionLimit(IConnection newConnection)
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[NW.{nameof(ConnectionHub)}] connection-limit-reached policy={_options.RejectPolicy} max={_options.MaxConnections}");
+                                .Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] connection-limit-reached policy={_options.RejectPolicy} max={_options.MaxConnections}");
 
         switch (_options.RejectPolicy)
         {
@@ -637,7 +635,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                     if (_connections.TryGetValue(oldestId, out IConnection oldestConn) && !_usernames.ContainsKey(oldestId))
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Info($"[NW.{nameof(ConnectionHub)}] evicting-anonymous id={oldestConn.ID}");
+                                                .Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] evicting-anonymous id={oldestConn.ID}");
 
                         oldestConn.Disconnect("evicted to make room for new connection");
                         return;
@@ -648,7 +646,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
                 // No anonymous connections found, reject new connection instead
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[NW.{nameof(ConnectionHub)}] no-anonymous-to-evict, rejecting-new");
+                                        .Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] no-anonymous-to-evict, rejecting-new");
 
                 newConnection.Disconnect("connection limit reached, no anonymous connections to evict");
                 break;
@@ -661,8 +659,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Diagnostics.StackTraceHidden]
     private async System.Threading.Tasks.Task BroadcastBatchedAsync<T>(
         System.Collections.Generic.IReadOnlyCollection<IConnection> connections, T message,
-        System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc, System.Threading.CancellationToken cancellationToken)
-        where T : class
+        System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc, System.Threading.CancellationToken cancellationToken) where T : class
     {
         System.Int32 batchSize = _options.BroadcastBatchSize;
         System.Collections.Generic.List<System.Threading.Tasks.Task> currentBatch = new(batchSize);

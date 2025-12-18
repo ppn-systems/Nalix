@@ -315,7 +315,7 @@ public sealed partial class Connection : IConnection
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(Connection)}] send-failed");
+                                    .Warn($"[NW.{nameof(Connection)}:{nameof(Send)}] send-failed");
             return false;
         }
 
@@ -442,7 +442,7 @@ public sealed partial class Connection : IConnection
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(Connection)}] send-async-failed");
+                                    .Warn($"[NW.{nameof(Connection)}:{nameof(SendAsync)}] send-async-failed");
             return false;
         }
 
