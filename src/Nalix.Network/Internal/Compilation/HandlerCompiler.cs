@@ -65,15 +65,13 @@ internal sealed class HandlerCompiler<
                 $"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(HandlerCompiler<,>)}] " +
-                                       $"scan controller={controllerType.Name}");
+                                .Debug($"[{nameof(HandlerCompiler<,>)}:{nameof(CompileHandlers)}] scan controller={controllerType.Name}");
 
         // Get or compile all handler methods
         var compiledMethods = GetOrCompileMethodAccessors(controllerType);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(HandlerCompiler<,>)}] " +
-                                       $"found count={compiledMethods.Count}");
+                                .Debug($"[{nameof(HandlerCompiler<,>)}:{nameof(CompileHandlers)}] found count={compiledMethods.Count}");
 
         // Create the controller instance
         TController controllerInstance = factory();
@@ -100,9 +98,8 @@ internal sealed class HandlerCompiler<
                                               .Take(compiledMethods.Keys, 6), o => $"0x{o:X4}"));
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(HandlerCompiler<,>)}] " +
-                                       $"found count={compiledMethods.Count} " +
-                                       $"controller={controllerType.FullName} " +
+                                .Debug($"[{nameof(HandlerCompiler<,>)}:{nameof(CompileHandlers)}] " +
+                                       $"found count={compiledMethods.Count} controller={controllerType.FullName} " +
                                        $"ops=[{firstOps}{(compiledMethods.Count > 6 ? ",..." : System.String.Empty)}]");
 
         return descriptors;
@@ -134,11 +131,11 @@ internal sealed class HandlerCompiler<
         if (methodInfos.Length == 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[NW.{nameof(HandlerCompiler<,>)}] no-method controller={controllerType.Name}");
+                                    .Debug($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(GetOrCompileMethodAccessors)}] no-method controller={controllerType.Name}");
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(HandlerCompiler<,>)}] compile count={methodInfos.Length} controller={controllerType.Name}");
+                                .Debug($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(GetOrCompileMethodAccessors)}] compile count={methodInfos.Length} controller={controllerType.Name}");
 
         return _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
         {
@@ -152,7 +149,7 @@ internal sealed class HandlerCompiler<
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[NW.{nameof(HandlerCompiler<,>)}] dup-opcode " +
+                                            .Warn($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(GetOrCompileMethodAccessors)}] dup-opcode " +
                                                   $"{X00(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
 
                     continue;
@@ -164,14 +161,14 @@ internal sealed class HandlerCompiler<
                     compiled[opcodeAttr.OpCode] = compiledMethod;
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[NW.{nameof(HandlerCompiler<,>)}] compiled " +
+                                            .Trace($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(GetOrCompileMethodAccessors)}] compiled " +
                                                    $"{X00(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
                 }
                 catch (System.Exception ex)
                 {
                     System.String ___ = X00(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[NW.{nameof(HandlerCompiler<,>)}] " +
+                                            .Error($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(GetOrCompileMethodAccessors)}] " +
                                                    $"failed-compile {___} ex={ex.GetType().Name}", ex);
                 }
             }
