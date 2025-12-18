@@ -17,11 +17,11 @@ public interface IPacketTimestamped : IPacket
     /// Gets or sets the wall-clock timestamp (Unix epoch milliseconds)
     /// when the packet was created by the sender.
     /// </summary>
-    System.Int64 Timestamp { get; set; }
+    long Timestamp { get; set; }
 
     /// <summary>
     /// Gets or sets the monotonic clock ticks at packet creation.
     /// Useful for RTT measurement, since it is not affected by system clock changes.
     /// </summary>
-    System.Int64 MonoTicks { get; set; }
+    long MonoTicks { get; set; }
 }

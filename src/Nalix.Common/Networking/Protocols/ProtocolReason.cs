@@ -8,7 +8,7 @@ namespace Nalix.Common.Networking.Protocols;
 /// Grouped by ranges to ease logging, analytics, and client decisioning.
 /// Inspired by WebSocket close codes, MQTT v5 reason codes, gRPC, HTTP, and QUIC.
 /// </summary>
-public enum ProtocolReason : System.UInt16
+public enum ProtocolReason : ushort
 {
     #region 0–49: General
 
@@ -52,7 +52,7 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     INTERNAL_ERROR = 7,
 
-    #endregion
+    #endregion 0–49: General
 
     #region 100–149: Transport / Network
 
@@ -106,7 +106,7 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     KEEPALIVE_FAILED = 109,
 
-    #endregion
+    #endregion 100–149: Transport / Network
 
     #region 150–199: Protocol / Framing
 
@@ -171,7 +171,7 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     MALFORMED_PACKET = 161,
 
-    #endregion
+    #endregion 150–199: Protocol / Framing
 
     #region 200–259: Security / AuthN / AuthZ
 
@@ -230,7 +230,7 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     DEVICE_UNTRUSTED = 210,
 
-    #endregion
+    #endregion 200–259: Security / AuthN / AuthZ
 
     #region 260–299: Crypto / Integrity
 
@@ -274,7 +274,7 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     NONCE_INVALID = 267,
 
-    #endregion
+    #endregion 260–299: Crypto / Integrity
 
     #region 300–349: Service / Infrastructure
 
@@ -318,7 +318,7 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     QUEUE_UNAVAILABLE = 307,
 
-    #endregion
+    #endregion 300–349: Service / Infrastructure
 
     #region 350–399: Application / Semantics
 
@@ -367,7 +367,7 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     TRANSFORM_FAILED = 358,
 
-    #endregion
+    #endregion 350–399: Application / Semantics
 
     #region 400–449: Flow Control / QoS
 
@@ -391,7 +391,7 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     WINDOW_EXCEEDED = 403,
 
-    #endregion
+    #endregion 400–449: Flow Control / QoS
 
     #region 450–499: Resource / Quota
 
@@ -425,7 +425,7 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     CPU_LIMIT = 455,
 
-    #endregion
+    #endregion 450–499: Resource / Quota
 
     #region 500–549: Client / Local Decisions
 
@@ -454,7 +454,7 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     COMPRESSION_FAILED = 504,
 
-    #endregion
+    #endregion 500–549: Client / Local Decisions
 
     #region 550–599: Session / Time / Clock
 
@@ -483,7 +483,7 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     TIME_SKEW = 554,
 
-    #endregion
+    #endregion 550–599: Session / Time / Clock
 
     #region 600–649: Consistency / Coordination
 
@@ -507,7 +507,7 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     STALE_READ = 603,
 
-    #endregion
+    #endregion 600–649: Consistency / Coordination
 
     #region 650–699: Routing / Placement
 
@@ -526,7 +526,7 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     REGION_UNAVAILABLE = 652,
 
-    #endregion
+    #endregion 650–699: Routing / Placement
 
     #region 700–749: Compliance / Policy
 
@@ -555,7 +555,7 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     WEAK_PASSWORD = 704,
 
-    #endregion
+    #endregion 700–749: Compliance / Policy
 
     #region 900–999: Reserved / Vendor Specific
 
@@ -569,5 +569,5 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     RESERVED_901 = 901,
 
-    #endregion
+    #endregion 900–999: Reserved / Vendor Specific
 }

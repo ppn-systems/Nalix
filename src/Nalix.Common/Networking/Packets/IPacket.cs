@@ -22,19 +22,19 @@ public interface IPacket : IPacketSequenced
     /// Gets the total size, in bytes, of the serialized packet, including headers and payload.
     /// </summary>
     [SerializeIgnore]
-    System.UInt16 Length { get; }
+    ushort Length { get; }
 
     /// <summary>
     /// Gets the magic number that uniquely identifies the packet format or protocol.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.MAGIC_NUMBER)]
-    System.UInt32 MagicNumber { get; set; }
+    uint MagicNumber { get; set; }
 
     /// <summary>
     /// Gets the operation code (OpCode) that specifies the command or type of the packet.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.OP_CODE)]
-    System.UInt16 OpCode { get; set; }
+    ushort OpCode { get; set; }
 
     /// <summary>
     /// Gets the flags associated with the packet, indicating its state or processing options.
@@ -67,7 +67,7 @@ public interface IPacket : IPacketSequenced
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    System.Byte[] Serialize();
+    byte[] Serialize();
 
     /// <summary>
     /// Serializes the packet into the specified destination buffer.
@@ -79,7 +79,7 @@ public interface IPacket : IPacketSequenced
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    System.Int32 Serialize(System.Span<System.Byte> buffer);
+    int Serialize(System.Span<byte> buffer);
 
     #endregion Packet Methods
 }

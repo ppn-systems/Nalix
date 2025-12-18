@@ -18,6 +18,7 @@ public interface IActivatable : System.IDisposable
     /// <summary>
     /// Activates the component, transitioning it into an operational state.
     /// </summary>
+    /// <param name="cancellationToken"></param>
     /// <remarks>
     /// This method should be idempotent: calling it multiple times
     /// should not cause side effects if the component is already active.
@@ -27,6 +28,7 @@ public interface IActivatable : System.IDisposable
     /// <summary>
     /// Deactivates the component, transitioning it into a non-operational state.
     /// </summary>
+    /// <param name="cancellationToken"></param>
     /// <remarks>
     /// This method should release any resources or stop any
     /// background work started during <see cref="Activate"/>.

@@ -13,7 +13,7 @@ public interface IPacketDispatcher : System.IDisposable
     /// <summary>
     /// Gets a value indicating whether the dispatcher contains no registered handlers.
     /// </summary>
-    System.Boolean IsEmpty { get; }
+    bool IsEmpty { get; }
 
     /// <summary>
     /// Dispatch an incoming packet to registered handlers.
@@ -29,5 +29,5 @@ public interface IPacketDispatcher : System.IDisposable
     /// Register a one-shot handler: handler invoked once when a packet matching predicate arrives.
     /// The handler is removed after the first matching packet.
     /// </summary>
-    void RegisterOnce<TPacket>(System.Func<TPacket, System.Boolean> predicate, System.Action<TPacket> handler) where TPacket : class, IPacket;
+    void RegisterOnce<TPacket>(System.Func<TPacket, bool> predicate, System.Action<TPacket> handler) where TPacket : class, IPacket;
 }

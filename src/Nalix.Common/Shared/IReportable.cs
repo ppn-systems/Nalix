@@ -12,5 +12,5 @@ public interface IReportable
     /// Generates a human-readable report about the current state.
     /// </summary>
     /// <returns>A formatted report string.</returns>
-    System.String GenerateReport();
+    string GenerateReport();
 }

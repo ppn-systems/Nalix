@@ -15,7 +15,7 @@ public interface IProtocol : System.IDisposable, IReportable
     /// Gets a value indicating whether the protocol should keep the connection open after receiving a packet.
     /// If true, the connection will remain open after message processing.
     /// </summary>
-    System.Boolean KeepConnectionOpen { get; }
+    bool KeepConnectionOpen { get; }
 
     /// <summary>
     /// Processes an incoming message from the connection.
@@ -25,7 +25,7 @@ public interface IProtocol : System.IDisposable, IReportable
     /// <param name="args">The event arguments containing connection and message data.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when args is null.</exception>
     void ProcessMessage(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args);
 
     /// <summary>
@@ -36,7 +36,7 @@ public interface IProtocol : System.IDisposable, IReportable
     /// <param name="args">The event arguments containing connection and message data.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when args is null.</exception>
     void PostProcessMessage(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.NotNull] object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args);
 
     /// <summary>

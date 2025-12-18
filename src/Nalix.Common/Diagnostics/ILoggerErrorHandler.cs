@@ -7,9 +7,9 @@ namespace Nalix.Common.Diagnostics;
 /// Defines a contract for handling errors that occur during log processing.
 /// </summary>
 /// <remarks>
-/// Implementations of this interface can be used to manage exceptions thrown by <see cref="ILoggerTarget"/> 
+/// Implementations of this interface can be used to manage exceptions thrown by <see cref="ILoggerTarget"/>
 /// or other logging components when publishing log entries.
-/// Typical use cases include retry mechanisms, writing errors to a fallback log, 
+/// Typical use cases include retry mechanisms, writing errors to a fallback log,
 /// or sending notifications to monitoring systems.
 /// </remarks>
 public interface ILoggerErrorHandler

@@ -15,10 +15,10 @@ namespace Nalix.Common.Networking.Packets;
 /// The unique operation code that identifies the packet type.
 /// </param>
 [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-public sealed class PacketOpcodeAttribute(System.UInt16 opcode) : System.Attribute
+public sealed class PacketOpcodeAttribute(ushort opcode) : System.Attribute
 {
     /// <summary>
     /// Gets the operation code associated with the target method.
     /// </summary>
-    public System.UInt16 OpCode { get; } = opcode;
+    public ushort OpCode { get; } = opcode;
 }

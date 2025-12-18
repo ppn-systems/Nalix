@@ -19,7 +19,7 @@ public interface IConnectionErrorTracked
     /// This value can be used to evaluate connection health and determine
     /// whether the connection should be restricted or banned.
     /// </remarks>
-    System.Int32 ErrorCount { get; }
+    int ErrorCount { get; }
 
     /// <summary>
     /// Atomically increments the <see cref="ErrorCount"/>.

@@ -15,10 +15,10 @@ namespace Nalix.Common.Networking.Packets;
 /// The timeout duration in milliseconds before the packet operation is considered to have timed out.
 /// </param>
 [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-public sealed class PacketTimeoutAttribute(System.Int32 timeoutMilliseconds) : System.Attribute
+public sealed class PacketTimeoutAttribute(int timeoutMilliseconds) : System.Attribute
 {
     /// <summary>
     /// Gets the timeout duration, in milliseconds, specified for the method.
     /// </summary>
-    public System.Int32 TimeoutMilliseconds { get; } = timeoutMilliseconds;
+    public int TimeoutMilliseconds { get; } = timeoutMilliseconds;
 }

@@ -17,5 +17,5 @@ public interface INetworkEndpoint
     /// Gets the canonical textual representation of the address part
     /// (IPv4 or IPv6), without any port information.
     /// </summary>
-    System.String Address { get; }
+    string Address { get; }
 }
