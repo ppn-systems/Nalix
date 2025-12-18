@@ -17,34 +17,34 @@ internal static class JsonFormatter
     /// <summary>
     /// Escapes a string for inclusion in JSON string literal.
     /// </summary>
-    public static System.String EscapeString(System.String value)
+    public static string EscapeString(string value)
     {
-        if (System.String.IsNullOrEmpty(value))
+        if (string.IsNullOrEmpty(value))
         {
-            return System.String.Empty;
+            return string.Empty;
         }
 
         System.Text.StringBuilder sb = new(value.Length + 16);
-        foreach (System.Char c in value)
+        foreach (char c in value)
         {
             switch (c)
             {
-                case '"': sb.Append("\\\""); break;
-                case '\b': sb.Append("\\b"); break;
-                case '\f': sb.Append("\\f"); break;
-                case '\n': sb.Append("\\n"); break;
-                case '\r': sb.Append("\\r"); break;
-                case '\t': sb.Append("\\t"); break;
-                case '\\': sb.Append("\\\\"); break;
+                case '"': _ = sb.Append("\\\""); break;
+                case '\b': _ = sb.Append("\\b"); break;
+                case '\f': _ = sb.Append("\\f"); break;
+                case '\n': _ = sb.Append("\\n"); break;
+                case '\r': _ = sb.Append("\\r"); break;
+                case '\t': _ = sb.Append("\\t"); break;
+                case '\\': _ = sb.Append("\\\\"); break;
                 default:
-                    if (c is < (System.Char)32 or (>= (System.Char)0x7f and <= (System.Char)0x9f))
+                    if (c is < (char)32 or (>= (char)0x7f and <= (char)0x9f))
                     {
-                        sb.Append("\\u");
-                        sb.Append(((System.Int32)c).ToString("x4"));
+                        _ = sb.Append("\\u");
+                        _ = sb.Append(((int)c).ToString("x4"));
                     }
                     else
                     {
-                        sb.Append(c);
+                        _ = sb.Append(c);
                     }
                     break;
             }
@@ -55,10 +55,10 @@ internal static class JsonFormatter
     /// <summary>
     /// Wraps and escapes a string as a JSON string literal.
     /// </summary>
-    public static System.String Quote(System.String value) => $"\"{EscapeString(value)}\"";
+    public static string Quote(string value) => $"\"{EscapeString(value)}\"";
 
     /// <summary>
     /// Formats a DateTime as ISO 8601 (round-trip 'o' format).
     /// </summary>
-    public static System.String FormatDateTime(System.DateTime value) => value.ToString("o");
+    public static string FormatDateTime(System.DateTime value) => value.ToString("o");
 }

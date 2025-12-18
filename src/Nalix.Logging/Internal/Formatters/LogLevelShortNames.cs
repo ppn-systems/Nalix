@@ -20,19 +20,26 @@ internal static class LogLevelShortNames
 {
     #region Constants
 
-    // Constants for optimized memory layout
-    private const System.Int32 MaxLogLevels = 8;
+    /// <summary>
+    /// Constants for optimized memory layout
+    /// </summary>
+    private const int MaxLogLevels = 8;
 
-    private const System.Int32 LogLevelLength = 4;
-    private const System.Int32 LogLevelPaddedLength = 5; // 4 chars + null terminator
+    private const int LogLevelLength = 4;
+    /// <summary>
+    /// 4 chars + null terminator
+    /// </summary>
+    private const int LogLevelPaddedLength = 5;
 
     #endregion Constants
 
     #region Fields
 
-    // Character buffer is organized as fixed-length segments with null terminators
-    // This enables fast slicing without calculating offsets each time
-    private static System.ReadOnlySpan<System.Char> LogLevelChars =>
+    /// <summary>
+    /// Character buffer is organized as fixed-length segments with null terminators
+    /// This enables fast slicing without calculating offsets each time
+    /// </summary>
+    private static System.ReadOnlySpan<char> LogLevelChars =>
     [
         'N', 'O', 'N', 'E', '\0', // LogLevel.NONE        (0)
         'M', 'E', 'T', 'A', '\0', // LogLevel.Meta        (1)
@@ -51,17 +58,17 @@ internal static class LogLevelShortNames
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.ReadOnlySpan<System.Char> GetShortName(LogLevel logLevel)
+    public static System.ReadOnlySpan<char> GetShortName(LogLevel logLevel)
     {
         // Bounds checking with bitwise operation for performance
-        if ((System.Byte)logLevel >= MaxLogLevels)
+        if ((byte)logLevel >= MaxLogLevels)
         {
             // Fall back to the string representation for unknown levels
             return System.MemoryExtensions.AsSpan(logLevel.ToString().ToUpperInvariant());
         }
 
         // Get the pre-computed span for this log level
-        return LogLevelChars.Slice((System.Byte)logLevel * LogLevelPaddedLength, LogLevelLength);
+        return LogLevelChars.Slice((byte)logLevel * LogLevelPaddedLength, LogLevelLength);
     }
 
     #endregion APIs

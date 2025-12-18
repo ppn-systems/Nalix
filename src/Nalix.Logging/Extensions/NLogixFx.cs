@@ -65,13 +65,13 @@ public static partial class NLogixFx
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
     public static void Log(
-        this System.String message,
-        System.String source,
+        this string message,
+        string source,
         LogLevel messageType,
-        System.Object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        object? extendedData = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
     {
         PUBLISH_LOG_ENTRY(
             messageType, message, source, extendedData,
@@ -89,13 +89,13 @@ public static partial class NLogixFx
     /// <param name="callerFilePath">The caller file path.</param>
     /// <param name="callerLineNumber">The caller line ProtocolType.</param>
     public static void Log(
-        this System.String message,
+        this string message,
         System.Type source,
         LogLevel messageType,
-        System.Object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        object? extendedData = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
     {
         PUBLISH_LOG_ENTRY(
             messageType, message, source?.FullName, extendedData,
@@ -113,11 +113,11 @@ public static partial class NLogixFx
     /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
     public static void Log(
         this System.Exception ex,
-        System.String? source = null,
-        System.String? message = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        string? source = null,
+        string? message = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
     {
         if (ex is null)
         {
@@ -141,10 +141,10 @@ public static partial class NLogixFx
     public static void Log(
         this System.Exception ex,
         System.Type? source = null,
-        System.String? message = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        string? message = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
     {
         if (ex is null)
         {
