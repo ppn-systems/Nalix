@@ -47,8 +47,8 @@ internal sealed class NullableValueListFormatter<
         }
 
         // Per-element: write null flag then payload (if any)
-        var byteFormatter = FormatterProvider.Get<System.Byte>();
-        var elemFormatter = FormatterProvider.Get<T>();
+        IFormatter<System.Byte> byteFormatter = FormatterProvider.Get<System.Byte>();
+        IFormatter<T> elemFormatter = FormatterProvider.Get<T>();
 
         for (System.Int32 i = 0; i < count; i++)
         {
@@ -80,8 +80,8 @@ internal sealed class NullableValueListFormatter<
             return [];
         }
 
-        var byteFormatter = FormatterProvider.Get<System.Byte>();
-        var elemFormatter = FormatterProvider.Get<T>();
+        IFormatter<System.Byte> byteFormatter = FormatterProvider.Get<System.Byte>();
+        IFormatter<T> elemFormatter = FormatterProvider.Get<T>();
 
         System.Collections.Generic.List<T?> list = new(length);
         for (System.Int32 i = 0; i < length; i++)
@@ -138,8 +138,8 @@ internal sealed class NullableRefListFormatter<
             return;
         }
 
-        var byteFormatter = FormatterProvider.Get<System.Byte>();
-        var elemFormatter = FormatterProvider.Get<T>();
+        IFormatter<System.Byte> byteFormatter = FormatterProvider.Get<System.Byte>();
+        IFormatter<T> elemFormatter = FormatterProvider.Get<T>();
 
         for (System.Int32 i = 0; i < count; i++)
         {
@@ -171,8 +171,8 @@ internal sealed class NullableRefListFormatter<
             return [];
         }
 
-        var byteFormatter = FormatterProvider.Get<System.Byte>();
-        var elemFormatter = FormatterProvider.Get<T>();
+        IFormatter<System.Byte> byteFormatter = FormatterProvider.Get<System.Byte>();
+        IFormatter<T> elemFormatter = FormatterProvider.Get<T>();
 
         System.Collections.Generic.List<T?> list = new(length);
         for (System.Int32 i = 0; i < length; i++)

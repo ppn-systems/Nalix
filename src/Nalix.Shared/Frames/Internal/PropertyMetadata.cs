@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Linq.Expressions;
 using Nalix.Common.Serialization;
 
 namespace Nalix.Shared.Frames.Internal;
@@ -118,12 +119,12 @@ internal sealed class PropertyMetadata
         // Compiled once; avoids MethodInfo.Invoke overhead and argument-array alloc.
         if (prop.CanRead && prop.GetMethod is not null)
         {
-            var instanceParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
-            var castInstance = System.Linq.Expressions.Expression.Convert(instanceParam, prop.DeclaringType);
-            var propAccess = System.Linq.Expressions.Expression.Property(castInstance, prop);
-            var boxResult = System.Linq.Expressions.Expression.Convert(propAccess, typeof(System.Object));
+            ParameterExpression instanceParam = Expression.Parameter(typeof(System.Object), "instance");
+            UnaryExpression castInstance = Expression.Convert(instanceParam, prop.DeclaringType);
+            MemberExpression propAccess = Expression.Property(castInstance, prop);
+            UnaryExpression boxResult = Expression.Convert(propAccess, typeof(System.Object));
 
-            _getter = System.Linq.Expressions.Expression
+            _getter = Expression
                           .Lambda<System.Func<System.Object, System.Object?>>(boxResult, instanceParam)
                           .Compile();
         }
@@ -136,14 +137,14 @@ internal sealed class PropertyMetadata
         {
             try
             {
-                var instanceParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
-                var valueParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "value");
-                var castInstance = System.Linq.Expressions.Expression.Convert(instanceParam, prop.DeclaringType);
-                var castValue = System.Linq.Expressions.Expression.Convert(valueParam, prop.PropertyType);
-                var propAccess = System.Linq.Expressions.Expression.Property(castInstance, prop);
-                var assignExpr = System.Linq.Expressions.Expression.Assign(propAccess, castValue);
+                ParameterExpression instanceParam = Expression.Parameter(typeof(System.Object), "instance");
+                ParameterExpression valueParam = Expression.Parameter(typeof(System.Object), "value");
+                UnaryExpression castInstance = Expression.Convert(instanceParam, prop.DeclaringType);
+                UnaryExpression castValue = Expression.Convert(valueParam, prop.PropertyType);
+                MemberExpression propAccess = Expression.Property(castInstance, prop);
+                BinaryExpression assignExpr = Expression.Assign(propAccess, castValue);
 
-                _setter = System.Linq.Expressions.Expression
+                _setter = Expression
                               .Lambda<System.Action<System.Object, System.Object?>>(assignExpr, instanceParam, valueParam)
                               .Compile();
             }
@@ -235,6 +236,10 @@ internal sealed class PropertyMetadata
 
             // Recursively resolve enum underlying type.
             _ when type.IsEnum => ComputeFixedSize(System.Enum.GetUnderlyingType(type)),
+            System.TypeCode.Empty => throw new System.NotImplementedException(),
+            System.TypeCode.DBNull => throw new System.NotImplementedException(),
+            System.TypeCode.DateTime => throw new System.NotImplementedException(),
+            System.TypeCode.String => throw new System.NotImplementedException(),
 
             // Unknown / reference / dynamic — caller must handle as IsDynamic.
             _ => 0

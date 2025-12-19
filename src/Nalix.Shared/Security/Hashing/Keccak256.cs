@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.Intrinsics;
+
 namespace Nalix.Shared.Security.Hashing;
 
 /// <summary>
@@ -347,14 +349,14 @@ public static class Keccak256
                     if (System.Runtime.Intrinsics.X86.Avx512F.IsSupported &&
                         System.Runtime.Intrinsics.X86.Avx512DQ.IsSupported)
                     {
-                        var b0 = System.Runtime.CompilerServices.Unsafe
-                            .ReadUnaligned<System.Runtime.Intrinsics.Vector512<System.UInt64>>(pBlock);
-                        var b1 = System.Runtime.CompilerServices.Unsafe
-                            .ReadUnaligned<System.Runtime.Intrinsics.Vector512<System.UInt64>>(pBlock + 64);
-                        var s0 = System.Runtime.CompilerServices.Unsafe
-                            .ReadUnaligned<System.Runtime.Intrinsics.Vector512<System.UInt64>>((System.Byte*)pState);
-                        var s1 = System.Runtime.CompilerServices.Unsafe
-                            .ReadUnaligned<System.Runtime.Intrinsics.Vector512<System.UInt64>>((System.Byte*)pState + 64);
+                        Vector512<System.UInt64> b0 = System.Runtime.CompilerServices.Unsafe
+                            .ReadUnaligned<Vector512<System.UInt64>>(pBlock);
+                        Vector512<System.UInt64> b1 = System.Runtime.CompilerServices.Unsafe
+                            .ReadUnaligned<Vector512<System.UInt64>>(pBlock + 64);
+                        Vector512<System.UInt64> s0 = System.Runtime.CompilerServices.Unsafe
+                            .ReadUnaligned<Vector512<System.UInt64>>((System.Byte*)pState);
+                        Vector512<System.UInt64> s1 = System.Runtime.CompilerServices.Unsafe
+                            .ReadUnaligned<Vector512<System.UInt64>>((System.Byte*)pState + 64);
 
                         System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                             (System.Byte*)pState, System.Runtime.Intrinsics.X86.Avx512F.Xor(b0, s0));
@@ -373,10 +375,10 @@ public static class Keccak256
                     {
                         for (System.Int32 off = 0; off < 128; off += 32)
                         {
-                            var vb = System.Runtime.CompilerServices.Unsafe
-                                .ReadUnaligned<System.Runtime.Intrinsics.Vector256<System.UInt64>>(pBlock + off);
-                            var vs = System.Runtime.CompilerServices.Unsafe
-                                .ReadUnaligned<System.Runtime.Intrinsics.Vector256<System.UInt64>>((System.Byte*)pState + off);
+                            Vector256<System.UInt64> vb = System.Runtime.CompilerServices.Unsafe
+                                .ReadUnaligned<Vector256<System.UInt64>>(pBlock + off);
+                            Vector256<System.UInt64> vs = System.Runtime.CompilerServices.Unsafe
+                                .ReadUnaligned<Vector256<System.UInt64>>((System.Byte*)pState + off);
                             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                                 (System.Byte*)pState + off,
                                 System.Runtime.Intrinsics.X86.Avx2.Xor(vb, vs));
@@ -393,10 +395,10 @@ public static class Keccak256
                     {
                         for (System.Int32 off = 0; off < 128; off += 16)
                         {
-                            var vb = System.Runtime.CompilerServices.Unsafe
-                                .ReadUnaligned<System.Runtime.Intrinsics.Vector128<System.UInt64>>(pBlock + off);
-                            var vs = System.Runtime.CompilerServices.Unsafe
-                                .ReadUnaligned<System.Runtime.Intrinsics.Vector128<System.UInt64>>((System.Byte*)pState + off);
+                            Vector128<System.UInt64> vb = System.Runtime.CompilerServices.Unsafe
+                                .ReadUnaligned<Vector128<System.UInt64>>(pBlock + off);
+                            Vector128<System.UInt64> vs = System.Runtime.CompilerServices.Unsafe
+                                .ReadUnaligned<Vector128<System.UInt64>>((System.Byte*)pState + off);
                             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                                 (System.Byte*)pState + off,
                                 System.Runtime.Intrinsics.Arm.AdvSimd.Xor(vb, vs));
@@ -413,10 +415,10 @@ public static class Keccak256
                     {
                         for (System.Int32 off = 0; off < 128; off += 16)
                         {
-                            var vb = System.Runtime.CompilerServices.Unsafe
-                                .ReadUnaligned<System.Runtime.Intrinsics.Vector128<System.UInt64>>(pBlock + off);
-                            var vs = System.Runtime.CompilerServices.Unsafe
-                                .ReadUnaligned<System.Runtime.Intrinsics.Vector128<System.UInt64>>((System.Byte*)pState + off);
+                            Vector128<System.UInt64> vb = System.Runtime.CompilerServices.Unsafe
+                                .ReadUnaligned<Vector128<System.UInt64>>(pBlock + off);
+                            Vector128<System.UInt64> vs = System.Runtime.CompilerServices.Unsafe
+                                .ReadUnaligned<Vector128<System.UInt64>>((System.Byte*)pState + off);
                             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                                 (System.Byte*)pState + off,
                                 System.Runtime.Intrinsics.X86.Sse2.Xor(vb, vs));
