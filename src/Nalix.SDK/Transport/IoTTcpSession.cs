@@ -22,12 +22,12 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
 {
     #region Fields
 
-    private System.String? _host;
-    private System.UInt16? _port;
-    internal System.Int64 _bytesSent = 0;
-    private System.Int32 _reconnecting = 0;
-    internal System.Int64 _bytesReceived = 0;
-    private System.Int32 _hasEverConnected = 0;
+    private string? _host;
+    private ushort? _port;
+    internal long _bytesSent;
+    private int _reconnecting;
+    internal long _bytesReceived;
+    private int _hasEverConnected;
 
     /// <summary>
     /// Serializes Connect/Disconnect operations — prevents concurrent reconnect races.
@@ -42,12 +42,12 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
     /// <summary>
     /// Gets the total number of bytes sent.
     /// </summary>
-    public System.Int64 BytesSent => System.Threading.Interlocked.Read(ref _bytesSent);
+    public long BytesSent => System.Threading.Interlocked.Read(ref _bytesSent);
 
     /// <summary>
     /// Gets the total number of bytes received.
     /// </summary>
-    public System.Int64 BytesReceived => System.Threading.Interlocked.Read(ref _bytesReceived);
+    public long BytesReceived => System.Threading.Interlocked.Read(ref _bytesReceived);
 
     #endregion Properties
 
@@ -61,7 +61,7 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
     /// Thrown when <see cref="IPacketRegistry"/> is not registered
     /// or <see cref="TransportOptions"/> fails validation.
     /// </exception>
-    public IoTTcpSession() : base()
+    public IoTTcpSession()
     {
         Catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
             ?? throw new System.InvalidOperationException(
@@ -78,7 +78,7 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
     /// </summary>
     /// <param name="options">Transport configuration. Must not be <see langword="null"/>.</param>
     /// <param name="registry">Packet registry. Must not be <see langword="null"/>.</param>
-    public IoTTcpSession(TransportOptions options, IPacketRegistry registry) : base()
+    public IoTTcpSession(TransportOptions options, IPacketRegistry registry)
     {
         Options = options;
         Catalog = registry;
@@ -131,8 +131,8 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
 
     /// <inheritdoc/>
     public override async System.Threading.Tasks.Task ConnectAsync(
-        System.String? host = null,
-        System.UInt16? port = null,
+        string? host = null,
+        ushort? port = null,
         System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(
@@ -142,17 +142,17 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
         await _connectLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            System.String? effectiveHost = System.String.IsNullOrWhiteSpace(host) ? Options.Address : host;
-            System.UInt16 effectivePort = port ?? Options.Port;
+            string? effectiveHost = string.IsNullOrWhiteSpace(host) ? Options.Address : host;
+            ushort effectivePort = port ?? Options.Port;
 
-            if (System.String.IsNullOrWhiteSpace(effectiveHost))
+            if (string.IsNullOrWhiteSpace(effectiveHost))
             {
                 throw new System.ArgumentException("Host is required.", nameof(host));
             }
 
             // Already connected to the same endpoint — nothing to do.
             if (IsConnected &&
-                System.String.Equals(_host, effectiveHost, System.StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(_host, effectiveHost, System.StringComparison.OrdinalIgnoreCase) &&
                 _port == effectivePort)
             {
                 Logging?.Debug($"[SDK.{nameof(IoTTcpSession)}] Already connected to {effectiveHost}:{effectivePort}.");
@@ -176,7 +176,7 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
             SetState(TcpSessionState.Connecting);
 
             // IoT networks are often slow — always apply a connect timeout.
-            System.Int32 timeoutMs = Options.ConnectTimeoutMillis > 0
+            int timeoutMs = Options.ConnectTimeoutMillis > 0
                 ? Options.ConnectTimeoutMillis
                 : 15_000; // 15 s default for IoT
 
@@ -222,7 +222,7 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
 
                     InitializeFrame();
 
-                    System.Boolean isReconnect =
+                    bool isReconnect =
                         System.Threading.Interlocked.Exchange(ref _hasEverConnected, 1) == 1;
 
                     if (isReconnect)
@@ -237,7 +237,7 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
                     }
 
                     StartReceiveWorker(loopToken);
-                    System.Threading.Interlocked.Exchange(ref _reconnecting, 0);
+                    _ = System.Threading.Interlocked.Exchange(ref _reconnecting, 0);
 
                     return;
                 }
@@ -259,25 +259,25 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
             SetState(TcpSessionState.Disconnected);
             throw lastEx
                 ?? new System.Net.Sockets.SocketException(
-                    (System.Int32)System.Net.Sockets.SocketError.HostNotFound);
+                    (int)System.Net.Sockets.SocketError.HostNotFound);
         }
         finally
         {
-            _connectLock.Release();
+            _ = _connectLock.Release();
         }
     }
 
     /// <inheritdoc/>
-    protected override void ReportBytesSent(System.Int32 count)
+    protected override void ReportBytesSent(int count)
     {
-        System.Threading.Interlocked.Add(ref _bytesSent, count);
+        _ = System.Threading.Interlocked.Add(ref _bytesSent, count);
         base.ReportBytesSent(count);
     }
 
     /// <inheritdoc/>
-    protected override void ReportBytesReceived(System.Int32 count)
+    protected override void ReportBytesReceived(int count)
     {
-        System.Threading.Interlocked.Add(ref _bytesReceived, count);
+        _ = System.Threading.Interlocked.Add(ref _bytesReceived, count);
         base.ReportBytesReceived(count);
     }
 
@@ -300,7 +300,7 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
     /// <inheritdoc/>
     protected override void TearDownConnection()
     {
-        System.Boolean wasConnected = IsConnected;
+        bool wasConnected = IsConnected;
         base.TearDownConnection();
 
         if (wasConnected)
@@ -311,14 +311,14 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
     }
 
     /// <inheritdoc/>
-    public void Dispose(System.Boolean disposing)
+    public void Dispose(bool disposing)
     {
         if (disposing)
         {
             _connectLock.Dispose();
         }
 
-        base.Dispose();
+        Dispose();
     }
 
     #endregion Overrides
@@ -329,6 +329,7 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
     /// Triggers a non-reentrant reconnect cycle after a send/receive error.
     /// Uses the same exponential backoff + jitter strategy as <see cref="TcpSession"/>.
     /// </summary>
+    /// <param name="cause"></param>
     private void TriggerReconnect(System.Exception cause)
     {
         if (!Options.ReconnectEnabled)
@@ -352,17 +353,17 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
         TearDownConnection();
 
         if (System.Threading.Volatile.Read(ref _disposed) == 1 ||
-            System.String.IsNullOrEmpty(_host) || _port == 0)
+            string.IsNullOrEmpty(_host) || _port == 0)
         {
-            System.Threading.Interlocked.Exchange(ref _reconnecting, 0);
+            _ = System.Threading.Interlocked.Exchange(ref _reconnecting, 0);
             return;
         }
 
         SetState(TcpSessionState.Reconnecting);
 
-        System.Int32 attempt = 0;
-        System.Int64 max = System.Math.Max(1, Options.ReconnectMaxDelayMillis);
-        System.Int64 delay = System.Math.Max(1, Options.ReconnectBaseDelayMillis);
+        int attempt = 0;
+        long max = System.Math.Max(1, Options.ReconnectMaxDelayMillis);
+        long delay = System.Math.Max(1, Options.ReconnectBaseDelayMillis);
 
         // Dedicated CTS so Dispose() can abort the delay immediately.
         using System.Threading.CancellationTokenSource reconnectCts = new();
@@ -371,12 +372,12 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
                (Options.ReconnectMaxAttempts == 0 || attempt < Options.ReconnectMaxAttempts))
         {
             attempt++;
-            System.Int64 jitter = (System.Int64)(Csprng.NextDouble() * delay * 0.3);
+            long jitter = (long)(Csprng.NextDouble() * delay * 0.3);
 
             try
             {
                 await System.Threading.Tasks.Task.Delay(
-                    (System.Int32)System.Math.Min(delay + jitter, System.Int32.MaxValue),
+                    (int)System.Math.Min(delay + jitter, int.MaxValue),
                     reconnectCts.Token).ConfigureAwait(false);
             }
             catch (System.OperationCanceledException)
@@ -403,7 +404,7 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
         }
 
         Logging?.Error($"[SDK.{nameof(IoTTcpSession)}] Reconnect exhausted after {attempt} attempt(s).");
-        System.Threading.Interlocked.Exchange(ref _reconnecting, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _reconnecting, 0);
         SetState(TcpSessionState.Disconnected);
     }
 

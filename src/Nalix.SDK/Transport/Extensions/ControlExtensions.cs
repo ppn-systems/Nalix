@@ -30,6 +30,7 @@ public static class ControlExtensions
     /// Use <see cref="NewControl"/> to create an instance,
     /// then chain configuration methods before calling <see cref="Build"/>.
     /// </summary>
+    /// <param name="c"></param>
     /// <remarks>
     /// This is a <see langword="ref struct"/> — it cannot be captured in lambdas or stored on the heap.
     /// Use <see cref="Build"/> to materialize the <see cref="Control"/> before passing it to async code.
@@ -41,7 +42,7 @@ public static class ControlExtensions
         /// <returns>The current builder.</returns>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public ControlBuilder WithSeq(System.UInt32 seq) { c.SequenceId = seq; return this; }
+        public ControlBuilder WithSeq(uint seq) { c.SequenceId = seq; return this; }
 
         /// <summary>Sets the reason code.</summary>
         /// <param name="reason">The protocol reason code.</param>
@@ -59,7 +60,7 @@ public static class ControlExtensions
 
         /// <summary>
         /// Stamps the control with the current Unix timestamp (milliseconds) and the sender's monotonic ticks.
-        /// Note: <see cref="Control.Initialize(System.UInt16, ControlType, System.UInt32, ProtocolReason, ProtocolType)"/> already stamps on construction; call this only to refresh.
+        /// Note: <see cref="Control.Initialize(ushort, ControlType, uint, ProtocolReason, ProtocolType)"/> already stamps on construction; call this only to refresh.
         /// </summary>
         /// <returns>The current builder.</returns>
         [System.Runtime.CompilerServices.MethodImpl(
@@ -80,7 +81,7 @@ public static class ControlExtensions
 
     /// <summary>
     /// Creates a new CONTROL frame with the specified operation code and type.
-    /// The frame is pre-stamped with the current time via <see cref="Control.Initialize(System.UInt16, ControlType, System.UInt32, ProtocolReason, ProtocolType)"/>.
+    /// The frame is pre-stamped with the current time via <see cref="Control.Initialize(ushort, ControlType, uint, ProtocolReason, ProtocolType)"/>.
     /// </summary>
     /// <param name="_">The client connection (unused; provided for fluent extension syntax).</param>
     /// <param name="opCode">The operation code.</param>
@@ -96,7 +97,7 @@ public static class ControlExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static ControlBuilder NewControl(
         this IClientConnection _,
-        System.UInt16 opCode,
+        ushort opCode,
         ControlType type,
         ProtocolType transport = ProtocolType.TCP)
     {
@@ -124,8 +125,8 @@ public static class ControlExtensions
     /// <exception cref="System.OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
     public static System.Threading.Tasks.Task<TPkt> AwaitPacketAsync<TPkt>(
         this IClientConnection client,
-        System.Func<TPkt, System.Boolean> predicate,
-        System.Int32 timeoutMs,
+        System.Func<TPkt, bool> predicate,
+        int timeoutMs,
         System.Threading.CancellationToken ct = default)
         where TPkt : class, IPacket
     {
@@ -178,12 +179,12 @@ public static class ControlExtensions
     /// var (rtt, pong) = await client.PingAsync(opCode: 3, timeoutMs: 2000, syncClock: true, ct: ct);
     /// </code>
     /// </example>
-    public static async System.Threading.Tasks.Task<(System.Double rttMs, Control pong)> PingAsync(
+    public static async System.Threading.Tasks.Task<(double rttMs, Control pong)> PingAsync(
         this IClientConnection client,
-        System.UInt16 opCode,
-        System.UInt32? sequenceId = null,
-        System.Int32 timeoutMs = 3000,
-        System.Boolean syncClock = false,
+        ushort opCode,
+        uint? sequenceId = null,
+        int timeoutMs = 3000,
+        bool syncClock = false,
         System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(client);
@@ -193,13 +194,13 @@ public static class ControlExtensions
             throw new System.InvalidOperationException("Client not connected.");
         }
 
-        System.UInt32 seq = sequenceId ?? Csprng.NextUInt32();
+        uint seq = sequenceId ?? Csprng.NextUInt32();
 
         Control ping = client.NewControl(opCode, ControlType.PING)
                              .WithSeq(seq)
                              .Build();
 
-        System.Int64 sendMono = ping.MonoTicks != 0 ? ping.MonoTicks : Clock.MonoTicksNow();
+        long sendMono = ping.MonoTicks != 0 ? ping.MonoTicks : Clock.MonoTicksNow();
 
         // RequestAsync: subscribe → send → await PONG in one race-condition-free call.
         Control pong = await client.RequestAsync<Control, Control>(
@@ -208,15 +209,15 @@ public static class ControlExtensions
             timeoutMs: timeoutMs,
             ct: ct).ConfigureAwait(false);
 
-        System.Int64 nowMono = Clock.MonoTicksNow();
-        System.Double rtt = pong.MonoTicks > 0 && pong.MonoTicks <= nowMono
+        long nowMono = Clock.MonoTicksNow();
+        double rtt = pong.MonoTicks > 0 && pong.MonoTicks <= nowMono
             ? Clock.MonoTicksToMilliseconds(nowMono - pong.MonoTicks)
             : Clock.MonoTicksToMilliseconds(nowMono - sendMono);
 
         if (syncClock && pong.Timestamp > 0)
         {
             System.DateTime serverUtc = System.DateTime.UnixEpoch.AddMilliseconds(pong.Timestamp + (rtt * 0.5));
-            Clock.SynchronizeTime(serverUtc);
+            _ = Clock.SynchronizeTime(serverUtc);
         }
 
         return (rtt, pong);
@@ -240,10 +241,10 @@ public static class ControlExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Threading.Tasks.Task<Control> AwaitControlAsync(
         this IClientConnection client,
-        System.Func<Control, System.Boolean> predicate,
-        System.Int32 timeoutMs,
+        System.Func<Control, bool> predicate,
+        int timeoutMs,
         System.Threading.CancellationToken ct = default)
-        => AwaitPacketAsync<Control>(client, predicate, timeoutMs, ct);
+        => AwaitPacketAsync(client, predicate, timeoutMs, ct);
 
     /// <summary>
     /// Sends a CONTROL frame using a fluent configuration callback.
@@ -273,7 +274,7 @@ public static class ControlExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Threading.Tasks.Task SendControlAsync(
         this IClientConnection client,
-        System.UInt16 opCode,
+        ushort opCode,
         ControlType type,
         System.Action<Control>? configure = null,
         System.Threading.CancellationToken ct = default)

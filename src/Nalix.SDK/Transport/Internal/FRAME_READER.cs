@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Common.Networking.Packets;
 using Nalix.SDK.Configuration;
 using Nalix.Shared.Extensions;
@@ -19,28 +20,32 @@ namespace Nalix.SDK.Transport.Internal;
 ///   FRAME_READER never touches the lease after calling _onMessage.
 /// </remarks>
 internal sealed class FRAME_READER(
-    System.Func<System.Net.Sockets.Socket> getSocket,
+    Func<System.Net.Sockets.Socket> getSocket,
     TransportOptions options,
-    System.Action<BufferLease> onMessage,
-    System.Action<System.Exception> onError,
-    System.Action<System.Int32> reportBytesReceived)
+    Action<BufferLease> onMessage,
+    Action<Exception> onError,
+    Action<int> reportBytesReceived)
 {
-    private readonly TransportOptions _options = options ?? throw new System.ArgumentNullException(nameof(options));
+    private readonly TransportOptions _options = options ?? throw new ArgumentNullException(nameof(options));
 
-    private readonly System.Func<System.Net.Sockets.Socket> _getSocket = getSocket ?? throw new System.ArgumentNullException(nameof(getSocket));
+    private readonly Func<System.Net.Sockets.Socket> _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
 
-    private readonly System.Action<System.Exception> _onError = onError ?? throw new System.ArgumentNullException(nameof(onError));
+    private readonly Action<Exception> _onError = onError ?? throw new ArgumentNullException(nameof(onError));
 
-    // Concrete type BufferLease — HandleReceiveMessage should call CopyFrom(lease.Span)
-    // without casts.
-    private readonly System.Action<BufferLease> _onMessage = onMessage ?? throw new System.ArgumentNullException(nameof(onMessage));
+    /// <summary>
+    /// Concrete type BufferLease — HandleReceiveMessage should call CopyFrom(lease.Span)
+    /// without casts.
+    /// </summary>
+    private readonly Action<BufferLease> _onMessage = onMessage ?? throw new ArgumentNullException(nameof(onMessage));
 
-    private readonly System.Action<System.Int32> _reportBytesReceived = reportBytesReceived ?? throw new System.ArgumentNullException(nameof(reportBytesReceived));
+    private readonly Action<int> _reportBytesReceived = reportBytesReceived ?? throw new ArgumentNullException(nameof(reportBytesReceived));
 
     /// <summary>
     /// Main receive loop. Reads framed messages with a 2-byte little-endian total-length header.
     /// On each full frame, creates a BufferLease (ownership transferred to _onMessage).
     /// </summary>
+    /// <param name="token"></param>
+    /// <exception cref="System.Net.Sockets.SocketException"></exception>
     public async System.Threading.Tasks.Task ReceiveLoopAsync(
         System.Threading.CancellationToken token)
     {
@@ -50,7 +55,7 @@ internal sealed class FRAME_READER(
             s = _getSocket();
             TcpSessionBase.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop starting; endpoint={FORMAT_ENDPOINT(s)}");
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             TcpSessionBase.Logging?.Error($"[SDK.{nameof(FRAME_READER)}] receive-start-error {ex.Message}", ex);
             _onError(ex);
@@ -62,16 +67,16 @@ internal sealed class FRAME_READER(
             while (!token.IsCancellationRequested)
             {
                 // 1) Read 2-byte length header
-                System.Byte[] headerBuffer =
-                    System.Buffers.ArrayPool<System.Byte>.Shared.Rent(TcpSession.HeaderSize);
+                byte[] headerBuffer =
+                    System.Buffers.ArrayPool<byte>.Shared.Rent(TcpSession.HeaderSize);
                 try
                 {
-                    var headerMemory = new System.Memory<System.Byte>(
+                    Memory<byte> headerMemory = new(
                         headerBuffer, 0, TcpSession.HeaderSize);
 
                     await RECEIVE_EXACTLY_ASYNC(s, headerMemory, token).ConfigureAwait(false);
 
-                    System.UInt16 totalLen =
+                    ushort totalLen =
                         System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(
                             headerMemory.Span);
 
@@ -84,14 +89,14 @@ internal sealed class FRAME_READER(
                             $"headerSize={TcpSession.HeaderSize} max={_options.MaxPacketSize} " +
                             $"endpoint={FORMAT_ENDPOINT(s)}");
                         throw new System.Net.Sockets.SocketException(
-                            (System.Int32)System.Net.Sockets.SocketError.ProtocolNotSupported);
+                            (int)System.Net.Sockets.SocketError.ProtocolNotSupported);
                     }
 
-                    System.Int32 payloadLen = totalLen - TcpSession.HeaderSize;
+                    int payloadLen = totalLen - TcpSession.HeaderSize;
 
                     // 2) Rent buffer for full frame and read payload
-                    System.Byte[] rented = BufferLease.ByteArrayPool.Rent(totalLen);
-                    const System.Boolean ownershipTransferred = false;
+                    byte[] rented = BufferLease.ByteArrayPool.Rent(totalLen);
+                    const bool ownershipTransferred = false;
 
                     try
                     {
@@ -100,14 +105,14 @@ internal sealed class FRAME_READER(
                             $"frameTotal={totalLen} payload={payloadLen} endpoint={FORMAT_ENDPOINT(s)}");
 
                         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(
-                            System.MemoryExtensions.AsSpan(rented, 0, TcpSession.HeaderSize),
+                            MemoryExtensions.AsSpan(rented, 0, TcpSession.HeaderSize),
                             totalLen);
 
                         if (payloadLen > 0)
                         {
                             await RECEIVE_EXACTLY_ASYNC(
                                 s,
-                                System.MemoryExtensions.AsMemory(
+                                MemoryExtensions.AsMemory(
                                     rented, TcpSession.HeaderSize, payloadLen),
                                 token).ConfigureAwait(false);
                         }
@@ -117,7 +122,7 @@ internal sealed class FRAME_READER(
                         {
                             _reportBytesReceived(totalLen);
                         }
-                        catch (System.Exception teleEx)
+                        catch (Exception teleEx)
                         {
                             TcpSessionBase.Logging?.Warn(
                                 $"[SDK.{nameof(FRAME_READER)}] report-bytes-received failed: {teleEx.Message}",
@@ -140,7 +145,7 @@ internal sealed class FRAME_READER(
                             {
                                 decryptedLease.Dispose();
                                 lease.Dispose();
-                                throw new System.Exception("Failed to decrypt");
+                                throw new Exception("Failed to decrypt");
                             }
                             decryptedLease.Span.WriteFlagsLE(decryptedLease.Span.ReadFlagsLE().RemoveFlag(PacketFlags.ENCRYPTED));
                             lease.Dispose();
@@ -156,7 +161,7 @@ internal sealed class FRAME_READER(
                             {
                                 decomLease.Dispose();
                                 lease.Dispose();
-                                throw new System.Exception("Failed to decompress");
+                                throw new Exception("Failed to decompress");
                             }
                             decomLease.Span.WriteFlagsLE(decomLease.Span.ReadFlagsLE().RemoveFlag(PacketFlags.COMPRESSED));
                             lease.Dispose();
@@ -173,7 +178,7 @@ internal sealed class FRAME_READER(
                             TcpSessionBase.Logging?.Trace(
                                 $"[SDK.{nameof(FRAME_READER)}] handler-invoked-success payload={payloadLen} endpoint={FORMAT_ENDPOINT(s)}");
                         }
-                        catch (System.Exception handlerEx)
+                        catch (Exception handlerEx)
                         {
                             // Handler faulted after ownershipTransferred = true.
                             // HandleReceiveMessage should finally { lease.Dispose(); }
@@ -183,7 +188,7 @@ internal sealed class FRAME_READER(
                                 handlerEx);
                         }
                     }
-                    catch (System.Exception)
+                    catch (Exception)
                     {
                         // Only return raw buffer if lease was NOT created (ownershipTransferred == false).
                         if (!ownershipTransferred)
@@ -193,7 +198,7 @@ internal sealed class FRAME_READER(
                                 BufferLease.ByteArrayPool.Return(rented);
                                 TcpSessionBase.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] returned-rented-buffer size={rented?.Length} endpoint={FORMAT_ENDPOINT(s)}");
                             }
-                            catch (System.Exception returnEx)
+                            catch (Exception returnEx)
                             {
                                 TcpSessionBase.Logging?.Warn($"[SDK.{nameof(FRAME_READER)}] failed-returning-buffer: {returnEx.Message}", returnEx);
                             }
@@ -205,19 +210,19 @@ internal sealed class FRAME_READER(
                 }
                 finally
                 {
-                    System.Buffers.ArrayPool<System.Byte>.Shared.Return(headerBuffer);
+                    System.Buffers.ArrayPool<byte>.Shared.Return(headerBuffer);
                 }
             }
 
             // Normal cancellation: log graceful stop
             TcpSessionBase.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop ending normally endpoint={FORMAT_ENDPOINT(s)}");
         }
-        catch (System.OperationCanceledException) when (token.IsCancellationRequested)
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             // Normal shutdown — not an error.
             TcpSessionBase.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop cancelled endpoint={FORMAT_ENDPOINT(s)}");
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             TcpSessionBase.Logging?.Error($"[SDK.{nameof(FRAME_READER)}:{nameof(ReceiveLoopAsync)}] faulted msg={ex.Message} endpoint={FORMAT_ENDPOINT(s)}", ex);
 
@@ -227,13 +232,13 @@ internal sealed class FRAME_READER(
 
     private static async System.Threading.Tasks.Task RECEIVE_EXACTLY_ASYNC(
         System.Net.Sockets.Socket s,
-        System.Memory<System.Byte> dst,
+        Memory<byte> dst,
         System.Threading.CancellationToken token)
     {
-        System.Int32 read = 0;
+        int read = 0;
         while (read < dst.Length)
         {
-            System.Int32 n = await s.ReceiveAsync(
+            int n = await s.ReceiveAsync(
                 dst[read..],
                 System.Net.Sockets.SocketFlags.None,
                 token).ConfigureAwait(false);
@@ -241,16 +246,20 @@ internal sealed class FRAME_READER(
             if (n == 0)
             {
                 throw new System.Net.Sockets.SocketException(
-                    (System.Int32)System.Net.Sockets.SocketError.ConnectionReset);
+                    (int)System.Net.Sockets.SocketError.ConnectionReset);
             }
 
             read += n;
         }
     }
 
-    // Safe formatting when socket may be null or disposed in some error paths.
+    /// <summary>
+    /// Safe formatting when socket may be null or disposed in some error paths.
+    /// </summary>
+    /// <param name="s"></param>
+    /// <returns></returns>
     [System.Diagnostics.DebuggerStepThrough]
-    private static System.String FORMAT_ENDPOINT(System.Net.Sockets.Socket? s)
+    private static string FORMAT_ENDPOINT(System.Net.Sockets.Socket? s)
     {
         if (s is null)
         {
@@ -258,7 +267,7 @@ internal sealed class FRAME_READER(
         }
 
         try { return s.RemoteEndPoint?.ToString() ?? "<unknown>"; }
-        catch (System.ObjectDisposedException) { return "<disposed>"; }
+        catch (ObjectDisposedException) { return "<disposed>"; }
         catch { return "<unknown>"; }
     }
 }
