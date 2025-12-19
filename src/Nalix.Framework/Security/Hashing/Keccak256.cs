@@ -250,7 +250,8 @@ public static class Keccak256
     /// Declared as <see langword="ref struct"/> so the runtime guarantees it never
     /// escapes to the heap.
     /// </summary>
-    internal struct Sponge
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public struct Sponge
     {
         /// <summary>
         /// 200 B on the stack
@@ -266,6 +267,7 @@ public static class Keccak256
 
         // ── Absorb ────────────────────────────────────────────────────────────────
 
+        /// <inheritdoc/>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -308,6 +310,7 @@ public static class Keccak256
 
         // ── Pad + Squeeze ─────────────────────────────────────────────────────────
 
+        /// <inheritdoc/>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
