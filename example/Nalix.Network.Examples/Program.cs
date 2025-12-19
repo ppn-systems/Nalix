@@ -9,8 +9,9 @@ using Nalix.Logging;
 using Nalix.Logging.Configuration;
 using Nalix.Logging.Sinks;
 using Nalix.Network.Configurations;
-using Nalix.Network.Examples.Custom;
+using Nalix.Network.Examples.Attributes;
 using Nalix.Network.Examples.Handlers;
+using Nalix.Network.Examples.Middleware;
 using Nalix.Network.Examples.Protocols;
 using Nalix.Network.Middleware.Inbound;
 using Nalix.Network.Routing;
@@ -19,57 +20,58 @@ internal class Program
 {
     private static void Main(string[] args)
     {
+        // Turn on debug logs so the sample shows the full packet and connection flow.
         ConfigurationManager.Instance.Get<NLogixOptions>()
                             .MinLevel = LogLevel.Debug;
 
+        // Register a console logger first because the routing pipeline and protocols
+        // rely on ILogger being available from the shared container.
         ILogger logger = new NLogix(cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true)));
         InstanceManager.Instance.Register(logger);
+
+        // Packet handlers are discovered through the registry, so the sample
+        // registers one up front before any protocol starts processing packets.
         IPacketRegistry packetRegistry = new PacketRegistryFactory().CreateCatalog();
         InstanceManager.Instance.Register(packetRegistry);
 
-        // Setup configuration and dependency injection
+        // This sets the listening port used by the server example.
         NetworkSocketOptions listenerOptions = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-        listenerOptions.Port = 12345; // Set listening port
-                                      // ... Additional configuration as needed
+        listenerOptions.Port = 12345;
 
-        // You can setup configuration from default.ini.
-        // Windwow: C:\ProgramData\Nalix\config\default.ini
-        // Linux: If XDG_DATA_HOME is not set → use ~/.local/share → for example /home/<Username>/.local/share/Nalix
-        // Container (Docker/Kubernetes): /data
+        // Register the custom metadata provider so handler annotations are visible to the packet pipeline.
+        PacketMetadataProviders.Register(new PacketTagMetadataProvider());
 
-        // register the custom metadata provider to enable processing of PacketCustomAttribute on handler methods
-        PacketMetadataProviders.Register(new PacketCustomAttributeProvider());
-
-
-        // IF YOU WANT TO USE PacketDispatchChannel, YOU NEED REGISTER DI IPacketRegistry.
+        // The dispatch channel is the "business logic" layer:
+        // it wires middleware, error handling, and the packet handlers themselves.
         PacketDispatchChannel channel = new(dispatchOptions =>
         {
-            // Inbound
+            // Timeout middleware should run before custom logic so slow handlers
+            // are rejected consistently.
+            _ = dispatchOptions.WithLogging(logger);
             _ = dispatchOptions.WithMiddleware(new TimeoutMiddleware());
 
-            // Custom middleware
-            _ = dispatchOptions.WithMiddleware(new CustomMiddleware());
+            // Custom middleware can inspect attributes added by the metadata provider.
+            _ = dispatchOptions.WithMiddleware(new PacketTagMiddleware());
 
-            // Logging
-            // DONT REGISTER LOGGER HERE, IT YOU DONT REGISTER LOGGER BEFOREHAND, IT WILL CAUSE ERROR.
-            _ = dispatchOptions.WithLogging(logger);
+            // Route handler failures through the shared logger instead of crashing the sample.
+            _ = dispatchOptions.WithErrorHandling((exception, command) =>
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                       .Error($"Error handling command: {command}", exception));
 
-            _ = dispatchOptions.WithErrorHandling((exception, command)
-                => InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                           .Error($"Error handling command: {command}", exception));
-
-            // Handlers
-            _ = dispatchOptions.WithHandler(() => new PingHandlers());
+            // Register the object that contains the packet handler methods.
+            _ = dispatchOptions.WithHandler(() => new PacketCommandHandler());
         });
 
-        AutoXProtocol xProtocol = new(channel);
-        AutoXListener xListener = new(xProtocol);
+        // The protocol bridges the socket listener and the packet dispatch pipeline.
+        ExamplePacketProtocol protocol = new(channel);
+        ExampleTcpListener listener = new(protocol);
 
-        // Start listening for incoming connections
-        xListener.Activate();
+        // Start both layers: the listener accepts connections, the channel handles packets.
+        listener.Activate();
         channel.Activate();
 
-        Console.WriteLine(xListener.GenerateReport());
+        // Print a small runtime report so the user can confirm the listener is alive.
+        Console.WriteLine(listener.GenerateReport());
         _ = Console.ReadLine();
     }
 }
