@@ -9,7 +9,7 @@ namespace Nalix.Framework.Tasks;
 /// Conventions:
 /// - Groups use path-style with '/' separators (e.g., "net/tcp/5720").
 /// - Workers use dot-style with '.' separators (e.g., "tcp.accept.5720.0").
-/// - All names are lowercase; only [A-Za-z0-9-_.] allowed after <see cref="SanitizeToken(System.String)"/>.
+/// - All names are lowercase; only [A-Za-z0-9-_.] allowed after <see cref="SanitizeToken(string)"/>.
 /// </para>
 /// </summary>
 /// <remarks>
@@ -31,32 +31,32 @@ public static class TaskNaming
         /// <summary>
         /// Tag for tasks that process data or requests.
         /// </summary>
-        public const System.String Process = "proc";
+        public const string Process = "proc";
 
         /// <summary>
         /// Tag for tasks that synchronize time or state.
         /// </summary>
-        public const System.String Worker = "worker";
+        public const string Worker = "worker";
 
         /// <summary>
         /// Tag for tasks that accept connections or requests.
         /// </summary>
-        public const System.String Accept = "accept";
+        public const string Accept = "accept";
 
         /// <summary>
         /// Tag for tasks that perform cleanup operations.
         /// </summary>
-        public const System.String Cleanup = "cleanup";
+        public const string Cleanup = "cleanup";
 
         /// <summary>
         /// Tag for tasks related to service operations.
         /// </summary>
-        public const System.String Service = "service";
+        public const string Service = "service";
 
         /// <summary>
         /// Tag for tasks that dispatch work or messages.
         /// </summary>
-        public const System.String Dispatch = "dispatch";
+        public const string Dispatch = "dispatch";
     }
 
     /// <summary>
@@ -69,7 +69,7 @@ public static class TaskNaming
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-        public static System.String CleanupJobId(System.String prefix, System.Int32 instanceKey) => $"{SanitizeToken(prefix)}.{Tags.Cleanup}.{instanceKey:X8}";
+        public static string CleanupJobId(string prefix, int instanceKey) => $"{SanitizeToken(prefix)}.{Tags.Cleanup}.{instanceKey:X8}";
     }
 
     /// <summary>
@@ -79,26 +79,26 @@ public static class TaskNaming
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [System.Runtime.CompilerServices.SkipLocalsInit]
-    public static System.String SanitizeToken(System.String s)
+    public static string SanitizeToken(string s)
     {
-        if (System.String.IsNullOrEmpty(s))
+        if (string.IsNullOrEmpty(s))
         {
             return "-";
         }
 
-        System.ReadOnlySpan<System.Char> input = System.MemoryExtensions.AsSpan(s);
-        System.Span<System.Char> buf = input.Length <= 256
-            ? stackalloc System.Char[input.Length]
-            : new System.Char[input.Length];
+        System.ReadOnlySpan<char> input = System.MemoryExtensions.AsSpan(s);
+        System.Span<char> buf = input.Length <= 256
+            ? stackalloc char[input.Length]
+            : new char[input.Length];
 
-        System.Int32 k = 0;
-        for (System.Int32 i = 0; i < input.Length; i++)
+        int k = 0;
+        for (int i = 0; i < input.Length; i++)
         {
-            System.Char c = input[i];
-            buf[k++] = System.Char.IsLetterOrDigit(c) || c is '-' or '_' or '.'
+            char c = input[i];
+            buf[k++] = char.IsLetterOrDigit(c) || c is '-' or '_' or '.'
                 ? c : '_';
         }
 
-        return new System.String(buf[..k]);
+        return new string(buf[..k]);
     }
 }

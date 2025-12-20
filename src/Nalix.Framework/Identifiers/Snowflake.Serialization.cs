@@ -40,7 +40,7 @@ public readonly partial struct Snowflake
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Snowflake FromBytes(System.ReadOnlySpan<System.Byte> bytes)
+    public static Snowflake FromBytes(System.ReadOnlySpan<byte> bytes)
     {
         // Input validation - buffer overflow protection
         if (bytes.Length != Size)
@@ -51,9 +51,9 @@ public readonly partial struct Snowflake
         }
 
         // Optimized deserialization using BinaryPrimitives (bounds-checked, vectorized)
-        System.UInt32 value = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(bytes);
-        System.UInt16 machineId = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(bytes.Slice(4, 2));
-        System.Byte type = bytes[6];
+        uint value = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(bytes);
+        ushort machineId = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(bytes.Slice(4, 2));
+        byte type = bytes[6];
 
         // Cast directly without additional validation for performance
         return new Snowflake(value, machineId, (SnowflakeType)type);
@@ -71,13 +71,13 @@ public readonly partial struct Snowflake
     /// Thrown when <paramref name="bytes"/> is not exactly <see cref="Size"/> (7) bytes.
     /// </exception>
     /// <remarks>
-    /// This overload accepts a byte array and delegates to the span-based <see cref="FromBytes(System.ReadOnlySpan{System.Byte})"/> method.
+    /// This overload accepts a byte array and delegates to the span-based <see cref="FromBytes(System.ReadOnlySpan{byte})"/> method.
     /// Prefer using the span-based overload when possible to avoid unnecessary array allocations.
     /// </remarks>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Snowflake FromBytes(System.Byte[] bytes)
+    public static Snowflake FromBytes(byte[] bytes)
     {
         return bytes is null
             ? throw new System.ArgumentNullException(nameof(bytes), "Byte array cannot be null.")
@@ -100,9 +100,9 @@ public readonly partial struct Snowflake
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Byte[] ToByteArray()
+    public byte[] ToByteArray()
     {
-        System.Byte[] result = new System.Byte[Size];
+        byte[] result = new byte[Size];
         _ = TryWriteBytes(result);
         return result;
     }
@@ -110,9 +110,9 @@ public readonly partial struct Snowflake
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean TryWriteBytes(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> destination,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 bytesWritten)
+    public bool TryWriteBytes(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> destination,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int bytesWritten)
     {
         // Buffer overflow protection - validate size before writing
         if (destination.Length < Size)
@@ -124,7 +124,7 @@ public readonly partial struct Snowflake
         // Optimized serialization using direct property access and BinaryPrimitives
         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(destination, Value);
         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(destination.Slice(4, 2), MachineId);
-        destination[6] = (System.Byte)Type;
+        destination[6] = (byte)Type;
 
         bytesWritten = Size;
         return true;
@@ -133,7 +133,7 @@ public readonly partial struct Snowflake
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean TryWriteBytes(System.Span<System.Byte> destination)
+    public bool TryWriteBytes(System.Span<byte> destination)
     {
         // Buffer overflow protection - validate size before writing
         if (destination.Length < Size)
@@ -144,7 +144,7 @@ public readonly partial struct Snowflake
         // Optimized serialization using direct property access and BinaryPrimitives
         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(destination, Value);
         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(destination.Slice(4, 2), MachineId);
-        destination[6] = (System.Byte)Type;
+        destination[6] = (byte)Type;
 
         return true;
     }

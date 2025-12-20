@@ -13,16 +13,16 @@ public partial class ConfigurationLoader
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static System.String GetSectionName(System.Type type)
+    private static string GetSectionName(System.Type type)
         => _sectionNameCache.GetOrAdd(type, t =>
         {
-            System.String section = t.Name;
+            string section = t.Name;
 
             // Manual iteration to avoid LINQ allocation overhead
-            System.String? longestMatch = null;
-            System.Int32 longestLength = 0;
+            string? longestMatch = null;
+            int longestLength = 0;
 
-            foreach (System.String suffix in _suffixesToTrim)
+            foreach (string suffix in _suffixesToTrim)
             {
                 if (suffix.Length > longestLength &&
                     section.EndsWith(suffix, System.StringComparison.OrdinalIgnoreCase))
@@ -48,6 +48,6 @@ public partial class ConfigurationLoader
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static System.String Capitalize(System.String input)
-        => System.String.IsNullOrEmpty(input) ? input : System.Char.ToUpperInvariant(input[0]) + input[1..];
+    private static string Capitalize(string input)
+        => string.IsNullOrEmpty(input) ? input : char.ToUpperInvariant(input[0]) + input[1..];
 }

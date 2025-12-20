@@ -33,18 +33,18 @@ internal static class OsRandom
 {
     #region Fields
 
-    private static readonly System.UInt64 s_tag0;
-    private static readonly System.UInt64 s_tag1;
-    private static volatile System.Int32 s_version;      // bump on reseed
-    private static readonly System.UInt64[] s_state;     // global base state
-    private static readonly System.Byte[] s_instanceTag; // per-process tag (GUID bytes)
+    private static readonly ulong s_tag0;
+    private static readonly ulong s_tag1;
+    private static volatile int s_version;      // bump on reseed
+    private static readonly ulong[] s_state;     // global base state
+    private static readonly byte[] s_instanceTag; // per-process tag (GUID bytes)
 
     private static volatile IRecurringHandle? s_reseedHandle; // IRecurringHandle 
 
     // Thread-local state
-    [System.ThreadStatic] private static System.Int32 t_version;
-    [System.ThreadStatic] private static System.UInt64 t_counter;
-    [System.ThreadStatic] private static System.UInt64[]? t_state;
+    [System.ThreadStatic] private static int t_version;
+    [System.ThreadStatic] private static ulong t_counter;
+    [System.ThreadStatic] private static ulong[]? t_state;
 
     #endregion Fields
 
@@ -52,17 +52,17 @@ internal static class OsRandom
 
     static OsRandom()
     {
-        s_state = new System.UInt64[4];
-        s_instanceTag = new System.Byte[16];
+        s_state = new ulong[4];
+        s_instanceTag = new byte[16];
 
         // Seed from monotonic/time/process/thread + GUID (no OS RNG).
         // This is not cryptographically strong, but good enough for non-crypto randomness.
-        System.Span<System.Byte> seed = stackalloc System.Byte[32];
+        System.Span<byte> seed = stackalloc byte[32];
 
-        System.Int64 ticks = System.DateTime.UtcNow.Ticks;
-        System.Int64 tc64 = System.Environment.TickCount64;
-        System.Int32 pid = System.Environment.ProcessId;
-        System.Int32 tid = System.Environment.CurrentManagedThreadId;
+        long ticks = System.DateTime.UtcNow.Ticks;
+        long tc64 = System.Environment.TickCount64;
+        int pid = System.Environment.ProcessId;
+        int tid = System.Environment.CurrentManagedThreadId;
 
         System.Runtime.InteropServices.MemoryMarshal.Write(seed[0..8], in ticks);
         System.Runtime.InteropServices.MemoryMarshal.Write(seed[8..16], in tc64);
@@ -70,7 +70,7 @@ internal static class OsRandom
         System.Runtime.InteropServices.MemoryMarshal.Write(seed[20..24], in tid);
 
         // Guid-based per-process tag to spread instances on the same host
-        System.Byte[] g = System.Guid.NewGuid().ToByteArray();
+        byte[] g = System.Guid.NewGuid().ToByteArray();
         System.MemoryExtensions.AsSpan(g, 0, 16).CopyTo(s_instanceTag);
 
         s_tag0 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(System.MemoryExtensions.AsSpan(s_instanceTag, 0, 8));
@@ -145,39 +145,39 @@ internal static class OsRandom
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void Fill([System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst)
+    public static void Fill([System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> dst)
     {
         if (dst.Length == 0)
         {
             return;
         }
 
-        System.UInt64[] st = THREAD_STATE();
+        ulong[] st = THREAD_STATE();
 
         if (dst.Length < 8)
         {
-            System.UInt64 x = NEXT_U64(st);
-            for (System.Int32 i = 0; i < dst.Length; i++)
+            ulong x = NEXT_U64(st);
+            for (int i = 0; i < dst.Length; i++)
             {
-                dst[i] = (System.Byte)(x & 0xFF);
+                dst[i] = (byte)(x & 0xFF);
                 x >>= 8;
             }
             return;
         }
 
-        System.Span<System.UInt64> u64 = System.Runtime.InteropServices.MemoryMarshal.Cast<System.Byte, System.UInt64>(dst);
-        for (System.Int32 i = 0; i < u64.Length; i++)
+        System.Span<ulong> u64 = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, ulong>(dst);
+        for (int i = 0; i < u64.Length; i++)
         {
             u64[i] = NEXT_U64(st);
         }
 
-        System.Int32 rem = dst.Length - (u64.Length * 8);
+        int rem = dst.Length - (u64.Length * 8);
         if (rem > 0)
         {
-            System.UInt64 x = NEXT_U64(st);
-            for (System.Int32 i = 0; i < rem; i++)
+            ulong x = NEXT_U64(st);
+            for (int i = 0; i < rem; i++)
             {
-                dst[dst.Length - rem + i] = (System.Byte)(x & 0xFF);
+                dst[dst.Length - rem + i] = (byte)(x & 0xFF);
                 x >>= 8;
             }
         }
@@ -190,25 +190,25 @@ internal static class OsRandom
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static System.UInt64[] THREAD_STATE()
+    private static ulong[] THREAD_STATE()
     {
-        var st = t_state;
+        ulong[]? st = t_state;
         if (st is not null && t_version == s_version)
         {
             return st;
         }
 
-        System.UInt64 base0 = s_state[0];
-        System.UInt64 base1 = s_state[1];
-        System.UInt64 base2 = s_state[2];
-        System.UInt64 base3 = s_state[3];
+        ulong base0 = s_state[0];
+        ulong base1 = s_state[1];
+        ulong base2 = s_state[2];
+        ulong base3 = s_state[3];
 
-        System.UInt64 tid = (System.UInt64)System.Environment.CurrentManagedThreadId;
-        System.UInt64 now = (System.UInt64)System.DateTime.UtcNow.Ticks;
-        System.UInt64 tagMix = SPLIT_MIX_64(s_tag0 ^ System.Numerics.BitOperations.RotateLeft(s_tag1, 11));
+        ulong tid = (ulong)System.Environment.CurrentManagedThreadId;
+        ulong now = (ulong)System.DateTime.UtcNow.Ticks;
+        ulong tagMix = SPLIT_MIX_64(s_tag0 ^ System.Numerics.BitOperations.RotateLeft(s_tag1, 11));
 
-        System.UInt64[] local = [base0 ^ tid, base1 ^ (tid * 0x9E3779B97F4A7C15UL), base2 ^ now, base3 ^ tagMix];
-        for (System.Int32 i = 0; i < 16; i++)
+        ulong[] local = [base0 ^ tid, base1 ^ (tid * 0x9E3779B97F4A7C15UL), base2 ^ now, base3 ^ tagMix];
+        for (int i = 0; i < 16; i++)
         {
             _ = XOSHIRO_NEXT(local);
         }
@@ -223,13 +223,13 @@ internal static class OsRandom
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.UInt64 NEXT_U64(System.UInt64[] st)
+    private static ulong NEXT_U64(ulong[] st)
     {
         // xoshiro256++ core
-        System.UInt64 r = XOSHIRO_NEXT(st);
+        ulong r = XOSHIRO_NEXT(st);
 
         // Mix per-thread counter and process tag to mitigate repeats
-        System.UInt64 c = ++t_counter;
+        ulong c = ++t_counter;
         r ^= System.Numerics.BitOperations.RotateLeft(c, 17);
         r ^= ((c >> 3) & 1) == 0 ? s_tag0 : s_tag1; // alternate 0/8 offsets
 
@@ -239,10 +239,10 @@ internal static class OsRandom
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.UInt64 XOSHIRO_NEXT(System.UInt64[] s)
+    private static ulong XOSHIRO_NEXT(ulong[] s)
     {
-        System.UInt64 result = System.Numerics.BitOperations.RotateLeft(s[0] + s[3], 23) + s[0];
-        System.UInt64 t = s[1] << 17;
+        ulong result = System.Numerics.BitOperations.RotateLeft(s[0] + s[3], 23) + s[0];
+        ulong t = s[1] << 17;
 
         s[2] ^= s[0];
         s[3] ^= s[1];
@@ -257,18 +257,18 @@ internal static class OsRandom
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void INITIALIZE_STATE(System.ReadOnlySpan<System.Byte> seed)
+    private static void INITIALIZE_STATE(System.ReadOnlySpan<byte> seed)
     {
         // Expand 32 bytes into 4x64 via SPLIT_MIX_64 to avoid linearities
-        System.UInt64 z0 = READ_U64(seed, 0);
-        System.UInt64 z1 = READ_U64(seed, 8);
-        System.UInt64 z2 = READ_U64(seed, 16);
-        System.UInt64 z3 = READ_U64(seed, 24);
+        ulong z0 = READ_U64(seed, 0);
+        ulong z1 = READ_U64(seed, 8);
+        ulong z2 = READ_U64(seed, 16);
+        ulong z3 = READ_U64(seed, 24);
 
-        System.UInt64 a = SPLIT_MIX_64(z0 ^ 0x9E3779B97F4A7C15UL);
-        System.UInt64 b = SPLIT_MIX_64(z1 ^ 0xBF58476D1CE4E5B9UL);
-        System.UInt64 c = SPLIT_MIX_64(z2 ^ 0x94D049BB133111EBUL);
-        System.UInt64 d = SPLIT_MIX_64(z3 ^ 0xD2B74407B1CE6E93UL);
+        ulong a = SPLIT_MIX_64(z0 ^ 0x9E3779B97F4A7C15UL);
+        ulong b = SPLIT_MIX_64(z1 ^ 0xBF58476D1CE4E5B9UL);
+        ulong c = SPLIT_MIX_64(z2 ^ 0x94D049BB133111EBUL);
+        ulong d = SPLIT_MIX_64(z3 ^ 0xD2B74407B1CE6E93UL);
 
         s_state[0] = a;
         s_state[1] = b;
@@ -276,7 +276,7 @@ internal static class OsRandom
         s_state[3] = d;
 
         // burn-in
-        for (System.Int32 i = 0; i < 20; i++)
+        for (int i = 0; i < 20; i++)
         {
             _ = XOSHIRO_NEXT(s_state);
         }
@@ -288,34 +288,34 @@ internal static class OsRandom
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void RESEED_GLOBAL()
     {
-        System.Span<System.Byte> seed = stackalloc System.Byte[32];
+        System.Span<byte> seed = stackalloc byte[32];
 
-        System.Int64 ticks = System.DateTime.UtcNow.Ticks;
-        System.Int64 tc64 = System.Environment.TickCount64;
-        System.Int32 pid = System.Environment.ProcessId;
+        long ticks = System.DateTime.UtcNow.Ticks;
+        long tc64 = System.Environment.TickCount64;
+        int pid = System.Environment.ProcessId;
 
         System.Runtime.InteropServices.MemoryMarshal.Write(seed[0..8], in ticks);
         System.Runtime.InteropServices.MemoryMarshal.Write(seed[8..16], in tc64);
         System.Runtime.InteropServices.MemoryMarshal.Write(seed[16..20], in pid);
 
         // Fold in the process tag and a moving counter derived from WorkingSet and Stopwatch
-        System.UInt64 tag0 = READ_U64(s_instanceTag, 0);
-        System.UInt64 tag1 = READ_U64(s_instanceTag, 8);
-        System.UInt64 mono = (System.UInt64)System.Diagnostics.Stopwatch.GetTimestamp();
+        ulong tag0 = READ_U64(s_instanceTag, 0);
+        ulong tag1 = READ_U64(s_instanceTag, 8);
+        ulong mono = (ulong)System.Diagnostics.Stopwatch.GetTimestamp();
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(
-            seed[24..32], tag0 ^ System.Numerics.BitOperations.RotateLeft(tag1, 13) ^ mono ^ (System.UInt64)System.Environment.WorkingSet);
+            seed[24..32], tag0 ^ System.Numerics.BitOperations.RotateLeft(tag1, 13) ^ mono ^ (ulong)System.Environment.WorkingSet);
 
-        System.UInt64 a = SPLIT_MIX_64(READ_U64(seed, 0) ^ 0x9E3779B97F4A7C15UL);
-        System.UInt64 b = SPLIT_MIX_64(READ_U64(seed, 8) ^ 0xBF58476D1CE4E5B9UL);
-        System.UInt64 c = SPLIT_MIX_64(READ_U64(seed, 16) ^ 0x94D049BB133111EBUL);
-        System.UInt64 d = SPLIT_MIX_64(READ_U64(seed, 24) ^ 0xD2B74407B1CE6E93UL);
+        ulong a = SPLIT_MIX_64(READ_U64(seed, 0) ^ 0x9E3779B97F4A7C15UL);
+        ulong b = SPLIT_MIX_64(READ_U64(seed, 8) ^ 0xBF58476D1CE4E5B9UL);
+        ulong c = SPLIT_MIX_64(READ_U64(seed, 16) ^ 0x94D049BB133111EBUL);
+        ulong d = SPLIT_MIX_64(READ_U64(seed, 24) ^ 0xD2B74407B1CE6E93UL);
 
         s_state[0] = System.Numerics.BitOperations.RotateLeft(s_state[0], 7) + a;
         s_state[1] ^= b;
         s_state[2] = System.Numerics.BitOperations.RotateLeft(s_state[2] + c, 17);
         s_state[3] ^= System.Numerics.BitOperations.RotateLeft(d, 29);
 
-        for (System.Int32 i = 0; i < 8; i++)
+        for (int i = 0; i < 8; i++)
         {
             _ = XOSHIRO_NEXT(s_state);
         }
@@ -326,10 +326,10 @@ internal static class OsRandom
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.UInt64 SPLIT_MIX_64(System.UInt64 z)
+    private static ulong SPLIT_MIX_64(ulong z)
     {
         z += 0x9E3779B97F4A7C15UL;
-        System.UInt64 x = z;
+        ulong x = z;
         x ^= x >> 30; x *= 0xBF58476D1CE4E5B9UL;
         x ^= x >> 27; x *= 0x94D049BB133111EBUL;
         x ^= x >> 31;
@@ -339,7 +339,7 @@ internal static class OsRandom
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.UInt64 READ_U64(System.ReadOnlySpan<System.Byte> s, System.Int32 offset)
+    private static ulong READ_U64(System.ReadOnlySpan<byte> s, int offset)
         => System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(s.Slice(offset, 8));
 
     #endregion Privates

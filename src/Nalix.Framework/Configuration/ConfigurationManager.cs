@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Environment;
 using Nalix.Common.Exceptions;
@@ -37,10 +38,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     #region Fields
 
     // volatile: assigned atomically in SetConfigFilePath; all threads must see the latest reference.
-    private volatile System.Lazy<IniConfig> _iniFile;
-    private readonly System.String _baseConfigDirectory;
+    private volatile Lazy<IniConfig> _iniFile;
+    private readonly string _baseConfigDirectory;
     private readonly System.Threading.ReaderWriterLockSlim _configLock;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Lazy<ConfigurationLoader>> _configContainerDict;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Lazy<ConfigurationLoader>> _configContainerDict;
 
     // SemaphoreSlim(1,1): serialises ReloadAll / SetConfigFilePath.
     // Using Wait() instead of Interlocked.Exchange means callers BLOCK until the current
@@ -51,12 +52,12 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     // Debounce: FileSystemWatcher fires 2-3 Changed events per single file write on most OSes.
     // We reset a one-shot timer on every event; only the last one fires ReloadAll().
     private System.Threading.Timer? _debounceTimer;
-    private static readonly System.TimeSpan _debounceDelay = System.TimeSpan.FromMilliseconds(300);
+    private static readonly TimeSpan _debounceDelay = TimeSpan.FromMilliseconds(300);
 
     // volatile: read/written from multiple threads without a full lock.
-    private volatile System.Boolean _directoryChecked;
+    private volatile bool _directoryChecked;
 
-    private System.String _configFilePath;
+    private string _configFilePath;
     private System.IO.FileSystemWatcher? _configFileWatcher;
 
     #endregion Fields
@@ -66,7 +67,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <summary>
     /// Gets the path to the active configuration file.
     /// </summary>
-    public System.String ConfigFilePath
+    public string ConfigFilePath
     {
         get
         {
@@ -79,12 +80,12 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <summary>
     /// Gets a value indicating whether the configuration file exists on disk.
     /// </summary>
-    public System.Boolean ConfigFileExists
+    public bool ConfigFileExists
     {
         get
         {
             // Snapshot under read lock to avoid a TOCTOU race with SetConfigFilePath.
-            System.Lazy<IniConfig> snapshot;
+            Lazy<IniConfig> snapshot;
             _configLock.EnterReadLock();
             try { snapshot = _iniFile; }
             finally { _configLock.ExitReadLock(); }
@@ -96,7 +97,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <summary>
     /// Gets the last reload timestamp.
     /// </summary>
-    public System.DateTime LastReloadTime { get; private set; } = System.DateTime.UtcNow;
+    public DateTime LastReloadTime { get; private set; } = DateTime.UtcNow;
 
     #endregion Properties
 
@@ -107,11 +108,11 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </summary>
     public ConfigurationManager()
     {
-        System.String configDirectory = Directories.ConfigurationDirectory;
+        string configDirectory = Directories.ConfigurationDirectory;
 
-        if (System.String.IsNullOrWhiteSpace(configDirectory))
+        if (string.IsNullOrWhiteSpace(configDirectory))
         {
-            throw new System.InvalidOperationException("Configuration directory cannot be null or empty.");
+            throw new InvalidOperationException("Configuration directory cannot be null or empty.");
         }
 
         _baseConfigDirectory = System.IO.Path.GetFullPath(configDirectory);
@@ -148,33 +149,33 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public System.Boolean SetConfigFilePath(System.String newConfigFilePath, System.Boolean autoReload = true)
+    public bool SetConfigFilePath(string newConfigFilePath, bool autoReload = true)
     {
-        if (System.String.IsNullOrWhiteSpace(newConfigFilePath))
+        if (string.IsNullOrWhiteSpace(newConfigFilePath))
         {
-            throw new System.ArgumentException(
+            throw new ArgumentException(
                 "Configuration file path cannot be null or whitespace.",
                 nameof(newConfigFilePath));
         }
 
-        System.String normalizedPath = System.IO.Path.GetFullPath(newConfigFilePath);
+        string normalizedPath = System.IO.Path.GetFullPath(newConfigFilePath);
         VALIDATE_CONFIG_PATH(normalizedPath);
 
         // Wait up to 5 s for any concurrent reload/path-change to finish.
-        if (!_reloadGate.Wait(System.TimeSpan.FromSeconds(5)))
+        if (!_reloadGate.Wait(TimeSpan.FromSeconds(5)))
         {
             return false;
         }
 
-        System.Boolean success = false;
-        System.String? pathToWatch = null;
+        bool success = false;
+        string? pathToWatch = null;
 
         try
         {
             _configLock.EnterWriteLock();
             try
             {
-                if (System.String.Equals(_configFilePath, normalizedPath, System.StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(_configFilePath, normalizedPath, StringComparison.OrdinalIgnoreCase))
                 {
                     return false; // no-op
                 }
@@ -184,7 +185,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                     try { _iniFile.Value.Flush(); } catch { /* ignore flush errors on the old file */ }
                 }
 
-                System.String oldPath = _configFilePath;
+                string oldPath = _configFilePath;
                 _configFilePath = normalizedPath;
                 _directoryChecked = false;
                 _iniFile = CREATE_LAZY_INI_CONFIG(_configFilePath);
@@ -199,7 +200,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                     {
                         IniConfig newIniFile = _iniFile.Value; // force-load the new file
 
-                        foreach (var lazy in _configContainerDict.Values)
+                        foreach (Lazy<ConfigurationLoader> lazy in _configContainerDict.Values)
                         {
                             if (lazy.IsValueCreated)
                             {
@@ -207,7 +208,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                             }
                         }
 
-                        LastReloadTime = System.DateTime.UtcNow;
+                        LastReloadTime = DateTime.UtcNow;
 
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                 .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
@@ -216,7 +217,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                         pathToWatch = normalizedPath;
                         success = true;
                     }
-                    catch (System.Exception ex)
+                    catch (Exception ex)
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                             .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
@@ -252,7 +253,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         }
         finally
         {
-            _reloadGate.Release();
+            _ = _reloadGate.Release();
         }
     }
 
@@ -272,7 +273,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public TClass Get<TClass>() where TClass : ConfigurationLoader, new()
     {
-        System.Lazy<IniConfig> iniSnapshot;
+        Lazy<IniConfig> iniSnapshot;
         _configLock.EnterReadLock();
 
         try
@@ -284,9 +285,9 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             _configLock.ExitReadLock();
         }
 
-        System.Lazy<ConfigurationLoader> lazy = _configContainerDict.GetOrAdd(
+        Lazy<ConfigurationLoader> lazy = _configContainerDict.GetOrAdd(
             typeof(TClass),
-            _ => new System.Lazy<ConfigurationLoader>(() =>
+            _ => new Lazy<ConfigurationLoader>(() =>
             {
                 TClass container = new();
                 container.Initialize(iniSnapshot.Value);
@@ -315,7 +316,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <see langword="true"/> if the path was changed successfully;
     /// otherwise, <see langword="false"/>.
     /// </returns>
-    /// <exception cref="System.ArgumentException">
+    /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="configFilePath"/> is null or whitespace.
     /// </exception>
     /// <exception cref="System.Security.SecurityException">
@@ -339,10 +340,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public TClass Get<TClass>(System.String configFilePath, System.Boolean autoReload = true)
+    public TClass Get<TClass>(string configFilePath, bool autoReload = true)
         where TClass : ConfigurationLoader, new()
     {
-        SetConfigFilePath(configFilePath, autoReload);
+        _ = SetConfigFilePath(configFilePath, autoReload);
         return Get<TClass>();
     }
 
@@ -362,15 +363,15 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public System.Boolean ReloadAll()
+    public bool ReloadAll()
     {
-        if (!_reloadGate.Wait(System.TimeSpan.FromSeconds(5)))
+        if (!_reloadGate.Wait(TimeSpan.FromSeconds(5)))
         {
             return false;
         }
 
-        System.Boolean reloadSuccess = false;
-        System.Exception? reloadException = null;
+        bool reloadSuccess = false;
+        Exception? reloadException = null;
 
         try
         {
@@ -382,7 +383,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                     _iniFile.Value.Reload();
                 }
 
-                foreach (var lazy in _configContainerDict.Values)
+                foreach (Lazy<ConfigurationLoader> lazy in _configContainerDict.Values)
                 {
                     if (lazy.IsValueCreated)
                     {
@@ -390,10 +391,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                     }
                 }
 
-                LastReloadTime = System.DateTime.UtcNow;
+                LastReloadTime = DateTime.UtcNow;
                 reloadSuccess = true;
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 reloadException = ex;
             }
@@ -421,7 +422,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         }
         finally
         {
-            _reloadGate.Release();
+            _ = _reloadGate.Release();
         }
     }
 
@@ -440,7 +441,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean IsLoaded<TClass>() where TClass : ConfigurationLoader => _configContainerDict.ContainsKey(typeof(TClass));
+    public bool IsLoaded<TClass>() where TClass : ConfigurationLoader => _configContainerDict.ContainsKey(typeof(TClass));
 
     /// <summary>
     /// Removes a specific configuration from the cache.
@@ -456,7 +457,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public System.Boolean Remove<TClass>() where TClass : ConfigurationLoader
+    public bool Remove<TClass>() where TClass : ConfigurationLoader
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(Remove)}] remove {typeof(TClass).Name}");
@@ -492,7 +493,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     public void Flush()
     {
         // Snapshot under read lock — avoids TOCTOU race between IsValueCreated and .Value.
-        System.Lazy<IniConfig> snapshot;
+        Lazy<IniConfig> snapshot;
         _configLock.EnterReadLock();
         try { snapshot = _iniFile; }
         finally { _configLock.ExitReadLock(); }
@@ -505,7 +506,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushed");
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushErr msg={ex.Message}", ex);
@@ -549,15 +550,15 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         _configFileWatcher?.Dispose();
         _configFileWatcher = null;
 
-        System.String currentPath;
+        string currentPath;
         _configLock.EnterReadLock();
         try { currentPath = _configFilePath; }
         finally { _configLock.ExitReadLock(); }
 
-        System.String? directory = System.IO.Path.GetDirectoryName(currentPath);
-        System.String? file = System.IO.Path.GetFileName(currentPath);
+        string? directory = System.IO.Path.GetDirectoryName(currentPath);
+        string? file = System.IO.Path.GetFileName(currentPath);
 
-        if (System.String.IsNullOrEmpty(directory) || System.String.IsNullOrEmpty(file))
+        if (string.IsNullOrEmpty(directory) || string.IsNullOrEmpty(file))
         {
             return;
         }
@@ -568,11 +569,11 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         };
 
         // Capture path at setup time — lambda must not close over _configFilePath directly.
-        System.String watchedPath = currentPath;
+        string watchedPath = currentPath;
 
         _configFileWatcher.Changed += (_, e) =>
         {
-            if (!e.FullPath.Equals(watchedPath, System.StringComparison.OrdinalIgnoreCase))
+            if (!e.FullPath.Equals(watchedPath, StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
@@ -596,26 +597,26 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         _configFileWatcher.EnableRaisingEvents = true;
     }
 
-    private System.Lazy<IniConfig> CREATE_LAZY_INI_CONFIG(System.String filePath)
+    private Lazy<IniConfig> CREATE_LAZY_INI_CONFIG(string filePath)
     {
-        return new System.Lazy<IniConfig>(() =>
+        return new Lazy<IniConfig>(() =>
         {
             ENSURE_CONFIG_DIRECTORY_EXISTS();
             return new IniConfig(filePath);
         }, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
-    private void VALIDATE_CONFIG_PATH(System.String pathToValidate)
+    private void VALIDATE_CONFIG_PATH(string pathToValidate)
     {
-        var normalizedPath = System.IO.Path.GetFullPath(pathToValidate);
-        var normalizedBaseDir = System.IO.Path.GetFullPath(_baseConfigDirectory);
+        string normalizedPath = System.IO.Path.GetFullPath(pathToValidate);
+        string normalizedBaseDir = System.IO.Path.GetFullPath(_baseConfigDirectory);
 
         if (!normalizedBaseDir.EndsWith(System.IO.Path.DirectorySeparatorChar.ToString()))
         {
             normalizedBaseDir += System.IO.Path.DirectorySeparatorChar;
         }
 
-        if (!normalizedPath.StartsWith(normalizedBaseDir, System.StringComparison.OrdinalIgnoreCase))
+        if (!normalizedPath.StartsWith(normalizedBaseDir, StringComparison.OrdinalIgnoreCase))
         {
             throw new InternalErrorException(
                 $"Configuration file path '{pathToValidate}' is outside the allowed " +
@@ -634,11 +635,11 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             return;
         }
 
-        System.String? directory = System.IO.Path.GetDirectoryName(_configFilePath);
+        string? directory = System.IO.Path.GetDirectoryName(_configFilePath);
 
-        if (System.String.IsNullOrWhiteSpace(directory))
+        if (string.IsNullOrWhiteSpace(directory))
         {
-            throw new System.InvalidOperationException(
+            throw new InvalidOperationException(
                 "Configuration file path does not contain a valid directory component.");
         }
 
@@ -650,12 +651,12 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
                 if (!dirInfo.Exists)
                 {
-                    throw new System.InvalidOperationException($"Directory creation reported success but directory does not exist: {directory}");
+                    throw new InvalidOperationException($"Directory creation reported success but directory does not exist: {directory}");
                 }
             }
-            catch (System.UnauthorizedAccessException ex)
+            catch (UnauthorizedAccessException ex)
             {
-                throw new System.UnauthorizedAccessException(
+                throw new UnauthorizedAccessException(
                     $"Access denied when creating configuration directory: {directory}", ex);
             }
             catch (System.IO.PathTooLongException ex)
@@ -668,9 +669,9 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 throw new System.IO.IOException(
                     $"I/O error creating configuration directory: {directory}", ex);
             }
-            catch (System.Exception ex) when (ex is not System.InvalidOperationException)
+            catch (Exception ex) when (ex is not InvalidOperationException)
             {
-                throw new System.InvalidOperationException(
+                throw new InvalidOperationException(
                     $"Unexpected error creating configuration directory: {directory}", ex);
             }
         }

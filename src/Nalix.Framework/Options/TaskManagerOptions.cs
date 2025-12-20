@@ -35,31 +35,31 @@ public sealed class TaskManagerOptions : ConfigurationLoader
     /// latency information for diagnostic or performance monitoring purposes.
     /// </remarks>
     [IniComment("Enable latency measurement for diagnostic and performance monitoring")]
-    public System.Boolean IsEnableLatency { get; init; } = true;
+    public bool IsEnableLatency { get; init; } = true;
 
     /// <summary>
     /// Enables or disables dynamic concurrency adjustment. Default is true.
     /// </summary>
     [IniComment("Enable dynamic concurrency adjustment based on system load")]
-    public System.Boolean DynamicAdjustmentEnabled { get; init; } = true;
+    public bool DynamicAdjustmentEnabled { get; init; } = true;
 
     /// <summary>
     /// Maximum number of workers in the entire TaskManager (global limit). Defaults to 100.
     /// </summary>
     [IniComment("Global maximum number of concurrent workers (1–int.MaxValue)")]
-    public System.Int32 MaxWorkers { get; init; } = 100;
+    public int MaxWorkers { get; init; } = 100;
 
     /// <summary>
     /// High CPU utilization threshold to reduce concurrency. Default is 80%.
     /// </summary>
     [IniComment("CPU usage % above which concurrency is reduced (0–100)")]
-    public System.Double ThresholdHighCpu { get; init; } = 80.0;
+    public double ThresholdHighCpu { get; init; } = 80.0;
 
     /// <summary>
     /// Low CPU utilization threshold to increase concurrency. Default is 40%.
     /// </summary>
     [IniComment("CPU usage % below which concurrency is increased (0–100)")]
-    public System.Double ThresholdLowCpu { get; init; } = 40.0;
+    public double ThresholdLowCpu { get; init; } = 40.0;
 
     /// <summary>
     /// Time interval for monitoring system load (default 5 seconds).

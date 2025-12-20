@@ -13,12 +13,12 @@ public sealed class RecurringOptions : IRecurringOptions
     /// <summary>
     /// Gets an optional tag for identifying the recurring task.
     /// </summary>
-    public System.String? Tag { get; init; }
+    public string? Tag { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the recurring task is non-reentrant.
     /// </summary>
-    public System.Boolean NonReentrant { get; init; } = true;
+    public bool NonReentrant { get; init; } = true;
 
     /// <summary>
     /// Gets an optional jitter to randomize the start time of the recurring task.
@@ -33,7 +33,7 @@ public sealed class RecurringOptions : IRecurringOptions
     /// <summary>
     /// Gets the number of consecutive failures before backoff is applied.
     /// </summary>
-    public System.Int32 FailuresBeforeBackoff { get; init; } = 1;
+    public int FailuresBeforeBackoff { get; init; } = 1;
 
     /// <summary>
     /// Gets the maximum backoff duration after consecutive failures.
