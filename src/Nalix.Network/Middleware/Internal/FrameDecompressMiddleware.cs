@@ -25,7 +25,7 @@ internal class FrameDecompressMiddleware : INetworkBufferMiddleware
         System.Func<IBufferLease, System.Threading.CancellationToken, System.Threading.Tasks.Task<IBufferLease>> next)
     {
 #if DEBUG
-        System.String debugId = $"{connection?.NetworkEndpoint}/{connection?.ID.ToString() ?? "?"}/leasePtr=0x{lease.GetHashCode():X8}";
+        string debugId = $"{connection?.NetworkEndpoint}/{connection?.ID.ToString() ?? "?"}/leasePtr=0x{lease.GetHashCode():X8}";
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Trace($"[DECOMPRESS][{debugId}] Start - Flags={lease.Span.ReadFlagsLE()} LeaseLen={lease.Length}");
 #endif
@@ -57,8 +57,8 @@ internal class FrameDecompressMiddleware : INetworkBufferMiddleware
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[DECOMPRESS][{debugId}] Decompression success! FlagsAfter={dest.Span.ReadFlagsLE()} DestLen={dest.Length}");
 
-            System.Int32 sampleLen = System.Math.Min(16, dest.Length);
-            System.String hexSample = System.BitConverter.ToString(dest.Span[..sampleLen].ToArray());
+            int sampleLen = System.Math.Min(16, dest.Length);
+            string hexSample = System.BitConverter.ToString(dest.Span[..sampleLen].ToArray());
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[DECOMPRESS][{debugId}] Decompressed buffer sample: {hexSample}");
 #endif

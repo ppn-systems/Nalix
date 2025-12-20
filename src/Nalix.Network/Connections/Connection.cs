@@ -28,12 +28,10 @@ public sealed partial class Connection : IConnection
     private readonly FramedSocketConnection _cstream;
 
     private UdpTransport _udp;
-    private System.Byte[] _secret;
-    private System.Int64 _bytesSent;
-    private System.Int32 _errorCount;
-    private System.Int32 _closeSignaled;
+    private int _errorCount;
+    private int _closeSignaled;
 
-    private volatile System.Boolean _disposed;
+    private volatile bool _disposed;
 
     private System.EventHandler<IConnectEventArgs> _onCloseEvent;
     private System.EventHandler<IConnectEventArgs> _onProcessEvent;
@@ -51,7 +49,7 @@ public sealed partial class Connection : IConnection
     public Connection(System.Net.Sockets.Socket socket)
     {
         _lock = new System.Threading.Lock();
-        _secret = [];
+        Secret = [];
         _disposed = false;
 
         ID = Snowflake.NewId(SnowflakeType.Session);
@@ -84,13 +82,13 @@ public sealed partial class Connection : IConnection
     public INetworkEndpoint NetworkEndpoint { get; }
 
     /// <inheritdoc />
-    public System.Int32 ErrorCount => _errorCount;
+    public int ErrorCount => _errorCount;
 
     /// <inheritdoc />
-    public System.Int64 UpTime => _cstream.Cache.Uptime;
+    public long UpTime => _cstream.Cache.Uptime;
 
     /// <inheritdoc />
-    public System.Int64 LastPingTime => _cstream.Cache.LastPingTime;
+    public long LastPingTime => _cstream.Cache.LastPingTime;
 
     /// <inheritdoc />
     public PermissionLevel Level { get; set; } = PermissionLevel.NONE;
@@ -99,25 +97,25 @@ public sealed partial class Connection : IConnection
     public CipherSuiteType Algorithm { get; set; } = CipherSuiteType.CHACHA20_POLY1305;
 
     /// <inheritdoc />
-    public System.Byte[] Secret
+    public byte[] Secret
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get => _secret;
+        get;
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        set => _secret = value;
+        set;
     }
 
     /// <summary>
     /// Gets the total number of bytes sent through this connection.
     /// </summary>
-    public System.Int64 BytesSent
+    public long BytesSent
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get => System.Threading.Interlocked.Read(ref _bytesSent);
+        get => System.Threading.Interlocked.Read(ref field); private set;
     }
 
     #endregion Properties
@@ -153,7 +151,7 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public void Close(System.Boolean force = false)
+    public void Close(bool force = false)
     {
         if (_disposed)
         {
@@ -171,7 +169,7 @@ public sealed partial class Connection : IConnection
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Disconnect([System.Diagnostics.CodeAnalysis.AllowNull] System.String reason = null) => Close(force: true);
+    public void Disconnect([System.Diagnostics.CodeAnalysis.AllowNull] string reason = null) => Close(force: true);
 
     #endregion Methods
 
@@ -201,7 +199,7 @@ public sealed partial class Connection : IConnection
             if (_udp != null)
             {
                 InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Return<UdpTransport>(_udp);
+                                    .Return(_udp);
             }
         }
         catch (System.Exception ex)
@@ -220,7 +218,7 @@ public sealed partial class Connection : IConnection
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void OnCloseEventBridge(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.AllowNull] object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs e)
     {
         if (System.Threading.Interlocked.Exchange(ref _closeSignaled, 1) != 0)
@@ -229,14 +227,14 @@ public sealed partial class Connection : IConnection
         }
 
         // Close events bypas backpressure — cleanup must never be delayed
-        AsyncCallback.InvokeHighPriority(_onCloseEvent, e.Connection, e);
+        _ = AsyncCallback.InvokeHighPriority(_onCloseEvent, e.Connection, e);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void OnProcessEventBridge(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.AllowNull] object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs e)
     {
         if (sender is not Connection self)
@@ -244,14 +242,14 @@ public sealed partial class Connection : IConnection
             return;
         }
 
-        AsyncCallback.Invoke(self._onProcessEvent, self, e);
+        _ = AsyncCallback.Invoke(self._onProcessEvent, self, e);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void OnPostProcessEventBridge(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.AllowNull] object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs e)
     {
         if (sender is not Connection self)
@@ -259,7 +257,7 @@ public sealed partial class Connection : IConnection
             return;
         }
 
-        AsyncCallback.Invoke(self._onPostProcessEvent, self, e);
+        _ = AsyncCallback.Invoke(self._onPostProcessEvent, self, e);
     }
 
     #endregion Event Bridges

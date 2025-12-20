@@ -18,29 +18,22 @@ namespace Nalix.Network.Internal.Transport;
 [System.Diagnostics.DebuggerDisplay("Uptime={Uptime}ms, Dropped={DroppedPackets}, Incoming={Incoming.Count}")]
 internal sealed class FramedSocketCache
 {
-    #region Fields
-
-    private readonly System.Int64 _startTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
-
-    private System.Int64 _lastPingTime;
-
-    #endregion Fields
 
     #region Properties
 
     /// <summary>
     /// Gets the connection uptime in milliseconds (how long the connection has been active).
     /// </summary>
-    public System.Int64 Uptime => (System.Int64)Clock.UnixTime().TotalMilliseconds - _startTime;
+    public long Uptime { get => (long)Clock.UnixTime().TotalMilliseconds - field; } = (long)Clock.UnixTime().TotalMilliseconds;
 
     /// <summary>
     /// Gets or sets the timestamp (in milliseconds) of the last received ping.
     /// Thread-safe via Interlocked operations.
     /// </summary>
-    public System.Int64 LastPingTime
+    public long LastPingTime
     {
-        get => System.Threading.Interlocked.Read(ref _lastPingTime);
-        set => System.Threading.Interlocked.Exchange(ref _lastPingTime, value);
+        get => System.Threading.Interlocked.Read(ref field);
+        set => System.Threading.Interlocked.Exchange(ref field, value);
     }
 
     #endregion Properties

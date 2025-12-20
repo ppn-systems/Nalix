@@ -25,6 +25,6 @@ internal interface IReturnHandler<TPacket> where TPacket : IPacket
     /// <param name="result">The method return value, may be null.</param>
     /// <param name="context">The context associated with the packet and connection.</param>
     System.Threading.Tasks.ValueTask HandleAsync(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object result,
+        [System.Diagnostics.CodeAnalysis.AllowNull] object result,
         [System.Diagnostics.CodeAnalysis.NotNull] PacketContext<TPacket> context);
 }

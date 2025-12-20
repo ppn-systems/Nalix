@@ -14,7 +14,7 @@ internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket>
 {
     /// <inheritdoc/>
     public async System.Threading.Tasks.ValueTask HandleAsync(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object result,
+        [System.Diagnostics.CodeAnalysis.AllowNull] object result,
         [System.Diagnostics.CodeAnalysis.NotNull] PacketContext<TPacket> context)
     {
         if (result is not TPacket packet)
@@ -31,8 +31,8 @@ internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket>
 
         try
         {
-            System.ReadOnlyMemory<System.Byte> bytes = packet.Serialize();
-            System.Boolean sent = await context.Connection.TCP.SendAsync(bytes).ConfigureAwait(false);
+            System.ReadOnlyMemory<byte> bytes = packet.Serialize();
+            bool sent = await context.Connection.TCP.SendAsync(bytes).ConfigureAwait(false);
 
             if (!sent)
             {

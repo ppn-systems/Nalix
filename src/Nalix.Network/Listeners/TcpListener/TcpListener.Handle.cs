@@ -34,7 +34,7 @@ public abstract partial class TcpListenerBase
         {
             _protocol.OnAccept(connection, _cancellationToken);
 
-            _metrics.RECORD_ACCEPTED();
+            Metrics.RECORD_ACCEPTED();
             s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection?.NetworkEndpoint}");
         }
         catch (System.Exception ex)
@@ -68,7 +68,7 @@ public abstract partial class TcpListenerBase
     /// </remarks>
     [System.Diagnostics.DebuggerStepThrough]
     protected void HandleConnectionClose(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.AllowNull] object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
     {
         if (args?.Connection == null)
@@ -125,7 +125,7 @@ public abstract partial class TcpListenerBase
 
         // Trả context ngay tại đây, trước khi tạo connection
         // Context chỉ cần cho việc Accept, không cần sau đó
-        s_pool.Return<PooledAcceptContext>(context);
+        s_pool.Return(context);
 
         IConnection connection = new Connection(socket);
 
@@ -213,6 +213,7 @@ public abstract partial class TcpListenerBase
     /// </list>
     /// </para>
     /// </remarks>
+    /// <exception cref="NetworkException"></exception>
     [System.Diagnostics.DebuggerStepThrough]
     protected void HandleAccept(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketAsyncEventArgs args)
@@ -241,7 +242,7 @@ public abstract partial class TcpListenerBase
                     }
 
                     // Create and process connection similar to async version
-                    PooledAcceptContext context = ((PooledSocketAsyncEventArgs)args).Context!;
+                    PooledAcceptContext context = ((PooledSocketAsyncEventArgs)args).Context;
                     IConnection connection = InitializeConnection(socket, context);
 
                     // Process the connection
@@ -265,7 +266,7 @@ public abstract partial class TcpListenerBase
                     SafeCloseSocket(socket);
                     if (args is PooledSocketAsyncEventArgs pooled && pooled.Context != null)
                     {
-                        s_pool.Return<PooledAcceptContext>(pooled.Context);
+                        s_pool.Return(pooled.Context);
 
                         // Rebind a fresh context for next accepts on this args
                         PooledAcceptContext newCtx = s_pool.Get<PooledAcceptContext>();
@@ -276,12 +277,12 @@ public abstract partial class TcpListenerBase
                 }
                 catch (System.Exception ex)
                 {
-                    _metrics.RECORD_ERROR();
+                    Metrics.RECORD_ERROR();
                     s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error port={_port}", ex);
 
                     SafeCloseSocket(socket);
 
-                    s_pool.Return<PooledAcceptContext>(((PooledSocketAsyncEventArgs)args).Context!);
+                    s_pool.Return(((PooledSocketAsyncEventArgs)args).Context);
 
                     PooledAcceptContext newCtx = s_pool.Get<PooledAcceptContext>();
 
@@ -297,7 +298,7 @@ public abstract partial class TcpListenerBase
                 {
                     if (pooled.Context is not null)
                     {
-                        s_pool.Return<PooledAcceptContext>(pooled.Context);
+                        s_pool.Return(pooled.Context);
                     }
 
                     pooled.Context = s_pool.Get<PooledAcceptContext>();
@@ -342,7 +343,7 @@ public abstract partial class TcpListenerBase
     /// </remarks>
     [System.Diagnostics.DebuggerStepThrough]
     protected void OnSyncAcceptCompleted(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.AllowNull] object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketAsyncEventArgs args)
     {
         try
@@ -556,7 +557,7 @@ public abstract partial class TcpListenerBase
                     break;
                 }
 
-                _metrics.RECORD_ERROR();
+                Metrics.RECORD_ERROR();
                 s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] transient-socket-error={ex.SocketErrorCode} port={_port}");
 
                 await System.Threading.Tasks.Task.Delay(50, System.Threading.CancellationToken.None)
@@ -565,7 +566,7 @@ public abstract partial class TcpListenerBase
             }
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                _metrics.RECORD_ERROR();
+                Metrics.RECORD_ERROR();
                 s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accept-error port={_port}", ex);
 
                 await System.Threading.Tasks.Task.Delay(50, cancellationToken)
@@ -640,7 +641,7 @@ public abstract partial class TcpListenerBase
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        System.Boolean contextReturned = false;
+        bool contextReturned = false;
         PooledAcceptContext context = s_pool.Get<PooledAcceptContext>();
 
         try
@@ -662,9 +663,9 @@ public abstract partial class TcpListenerBase
 
                 // Trả context ở đây vì InitializeConnection sẽ không được gọi
                 contextReturned = true;
-                s_pool.Return<PooledAcceptContext>(context);
+                s_pool.Return(context);
 
-                _metrics.RECORD_REJECTED();
+                Metrics.RECORD_REJECTED();
                 throw new NetworkException($"Connection rejected: {socket.RemoteEndPoint}");
             }
 
@@ -674,7 +675,7 @@ public abstract partial class TcpListenerBase
         {
             if (!contextReturned)
             {
-                s_pool.Return<PooledAcceptContext>(context);
+                s_pool.Return(context);
             }
 
             throw new NetworkException($"Socket error while accepting. Code={ex.SocketErrorCode}", ex);
@@ -683,7 +684,7 @@ public abstract partial class TcpListenerBase
         {
             if (!contextReturned)
             {
-                s_pool.Return<PooledAcceptContext>(context);
+                s_pool.Return(context);
             }
 
             throw;
@@ -696,10 +697,10 @@ public abstract partial class TcpListenerBase
         {
             if (!contextReturned)
             {
-                s_pool.Return<PooledAcceptContext>(context);
+                s_pool.Return(context);
             }
 
-            System.String remote = "unknown";
+            string remote = "unknown";
 
             try
             {

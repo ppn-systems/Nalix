@@ -80,7 +80,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 
         if (!decision.Allowed)
         {
-            System.UInt32 sequenceId = context.Packet is IPacketSequenced sequenced
+            uint sequenceId = context.Packet is IPacketSequenced sequenced
                 ? sequenced.SequenceId
                 : 0;
 
@@ -92,7 +92,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
                 sequenceId: sequenceId,
                 flags: ControlFlags.IS_TRANSIENT,
                 arg0: context.Attributes.PacketOpcode?.OpCode ?? 0u,
-                arg1: (System.UInt32)decision.RetryAfterMs,
+                arg1: (uint)decision.RetryAfterMs,
                 arg2: decision.Credit
             ).ConfigureAwait(false);
 

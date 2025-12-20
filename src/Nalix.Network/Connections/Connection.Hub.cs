@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
@@ -28,30 +29,40 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 {
     #region Fields
 
-    // Queue tracking order of anonymous connections for O(1)-amortized eviction
+    /// <summary>
+    /// Queue tracking order of anonymous connections for O(1)-amortized eviction
+    /// </summary>
     private readonly System.Collections.Concurrent.ConcurrentQueue<ISnowflake> _anonymousQueue;
 
-    // Separate dictionaries for better cache locality and reduced contention
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, System.String> _usernames;
+    /// <summary>
+    /// Separate dictionaries for better cache locality and reduced contention
+    /// </summary>
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, string> _usernames;
 
-    // Username-to-ID reverse lookup for fast user-based operations
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, ISnowflake> _usernameToId;
+    /// <summary>
+    /// Username-to-ID reverse lookup for fast user-based operations
+    /// </summary>
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ISnowflake> _usernameToId;
 
-    private readonly System.Int32 _shardCount;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Int32, System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection>> _shards;
+    private readonly int _shardCount;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection>> _shards;
 
     private readonly ConnectionHubOptions _options;
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
     private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
-    // Connections statistics for monitoring
-    private volatile System.Int32 _count;
-    private volatile System.Boolean _disposed;
-    private volatile System.Int32 _evictedConnections;
-    private volatile System.Int32 _rejectedConnections;
+    /// <summary>
+    /// Connections statistics for monitoring
+    /// </summary>
+    private volatile int _count;
+    private volatile bool _disposed;
+    private volatile int _evictedConnections;
+    private volatile int _rejectedConnections;
 
-    // Outbound-allocated collections for bulk operations
+    /// <summary>
+    /// Outbound-allocated collections for bulk operations
+    /// </summary>
     private static readonly System.Buffers.ArrayPool<IConnection> s_connectionPool;
 
     #endregion Fields
@@ -61,7 +72,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <summary>
     /// Gets the current number of active connections.
     /// </summary>
-    public System.Int32 Count => _count;
+    public int Count => _count;
 
     /// <summary>
     /// Raised after a connection is successfully unregistered.
@@ -106,11 +117,11 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _options.Validate();
 
         _shardCount = System.Math.Max(1, _options.ShardCount);
-        System.Int32 concurrencyLevel = System.Environment.ProcessorCount * 2;
+        int concurrencyLevel = System.Environment.ProcessorCount * 2;
 
         _shards = new();
 
-        for (System.Int32 i = 0; i < _shardCount; i++)
+        for (int i = 0; i < _shardCount; i++)
         {
             _shards[i] = new System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection>();
         }
@@ -134,7 +145,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Boolean RegisterConnection([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
+    public bool RegisterConnection([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
         if (connection is null || _disposed)
         {
@@ -154,7 +165,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             scope = TimingScope.Start();
         }
 
-        System.Int32 shardIndex = GetShardIndex(connection.ID);
+        int shardIndex = GetShardIndex(connection.ID);
         System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
 
         if (shard.TryAdd(connection.ID, connection))
@@ -188,7 +199,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Boolean UnregisterConnection([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
+    public bool UnregisterConnection([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
         if (connection is null || _disposed)
         {
@@ -209,12 +220,12 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             scope = TimingScope.Start();
         }
 
-        System.Int32 shardIndex = GetShardIndex(connection.ID);
+        int shardIndex = GetShardIndex(connection.ID);
         System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
 
         if (!shard.TryRemove(connection.ID, out IConnection existing))
         {
-            if (_usernames.TryRemove(connection.ID, out System.String orphanUser) && orphanUser is not null)
+            if (_usernames.TryRemove(connection.ID, out string orphanUser) && orphanUser is not null)
             {
                 _ = _usernameToId.TryRemove(orphanUser, out _);
             }
@@ -224,7 +235,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return false;
         }
 
-        if (_usernames.TryRemove(connection.ID, out System.String username))
+        if (_usernames.TryRemove(connection.ID, out string username))
         {
             _ = _usernameToId.TryRemove(username, out _);
         }
@@ -258,9 +269,9 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "SYSLIB1045:Convert to 'GeneratedRegexAttribute'.", Justification = "<Pending>")]
     public void AssociateUsername(
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String username)
+        [System.Diagnostics.CodeAnalysis.NotNull] string username)
     {
-        if (connection is null || System.String.IsNullOrWhiteSpace(username) || _disposed)
+        if (connection is null || string.IsNullOrWhiteSpace(username) || _disposed)
         {
             return;
         }
@@ -284,7 +295,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         ISnowflake id = connection.ID;
 
         // Remove old association if exists
-        if (_usernames.TryGetValue(id, out System.String oldUsername) && oldUsername != username)
+        if (_usernames.TryGetValue(id, out string oldUsername) && oldUsername != username)
         {
             _ = _usernameToId.TryRemove(oldUsername, out _);
 
@@ -327,7 +338,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
-    public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> id)
+    public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> id)
     {
         ISnowflake snowflake = Snowflake.FromBytes(id);
 
@@ -347,10 +358,17 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
-    public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] System.String username)
+    public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] string username)
     {
         ISnowflake id;
-        return System.String.IsNullOrWhiteSpace(username) ? null : (_usernameToId.TryGetValue(username, out id) ? GetConnection(id) : null);
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            return null;
+        }
+        else
+        {
+            return _usernameToId.TryGetValue(username, out id) ? GetConnection(id) : null;
+        }
     }
 
     /// <summary>
@@ -362,9 +380,9 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
-    public System.String GetUsername([System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id)
+    public string GetUsername([System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id)
     {
-        System.String username;
+        string username;
         return _usernames.TryGetValue(id, out username) ? username : null;
     }
 
@@ -378,7 +396,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
-    public System.Collections.Generic.IReadOnlyCollection<IConnection> ListConnections()
+    public IReadOnlyCollection<IConnection> ListConnections()
     {
         if (_disposed || _count == 0)
         {
@@ -387,7 +405,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         if (_count < 10000)
         {
-            System.Collections.Generic.List<IConnection> connections = [];
+            List<IConnection> connections = [];
 
             foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
             {
@@ -397,12 +415,12 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return connections.AsReadOnly();
         }
 
-        System.Int32 estimatedCount = _count;
+        int estimatedCount = _count;
         IConnection[] buffer = s_connectionPool.Rent(estimatedCount);
 
         try
         {
-            System.Int32 index = 0;
+            int index = 0;
 
             foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
             {
@@ -456,7 +474,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return;
         }
 
-        System.Collections.Generic.IReadOnlyCollection<IConnection> connections = ListConnections();
+        IReadOnlyCollection<IConnection> connections = ListConnections();
         if (connections is null || connections.Count == 0)
         {
             s_logger.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] broadcast-skip total=0");
@@ -483,8 +501,8 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Collections.Concurrent.OrderablePartitioner<IConnection> partitioner = System.Collections.Concurrent.Partitioner.Create(
             connections, System.Collections.Concurrent.EnumerablePartitionerOptions.NoBuffering);
 
-        System.Collections.Generic.List<System.Threading.Tasks.Task> tasks = [];
-        foreach (System.Collections.Generic.IEnumerator<IConnection> partition in partitioner.GetPartitions(_shardCount))
+        List<System.Threading.Tasks.Task> tasks = [];
+        foreach (IEnumerator<IConnection> partition in partitioner.GetPartitions(_shardCount))
         {
             tasks.Add(
                 System.Threading.Tasks.Task.Run(async () =>
@@ -541,14 +559,14 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     public async System.Threading.Tasks.Task BroadcastWhereAsync<T>(
         [System.Diagnostics.CodeAnalysis.NotNull] T message,
         System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
-        System.Func<IConnection, System.Boolean> predicate, System.Threading.CancellationToken cancellation = default) where T : class
+        System.Func<IConnection, bool> predicate, System.Threading.CancellationToken cancellation = default) where T : class
     {
         if (message is null || sendFunc is null || predicate is null || _disposed)
         {
             return;
         }
 
-        System.Collections.Generic.List<IConnection> filteredConnections = [];
+        List<IConnection> filteredConnections = [];
 
         foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shared in _shards.Values)
         {
@@ -571,7 +589,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         try
         {
-            System.Int32 index = 0;
+            int index = 0;
             foreach (IConnection connection in filteredConnections)
             {
                 if (cancellation.IsCancellationRequested)
@@ -605,7 +623,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Int32 ForceClose([System.Diagnostics.CodeAnalysis.NotNull] INetworkEndpoint networkEndpoint)
+    public int ForceClose([System.Diagnostics.CodeAnalysis.NotNull] INetworkEndpoint networkEndpoint)
     {
         System.ArgumentNullException.ThrowIfNull(networkEndpoint);
 
@@ -616,14 +634,14 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return 0;
         }
 
-        System.Int32 closedCount = 0;
-        System.String targetAddress = networkEndpoint.Address;
+        int closedCount = 0;
+        string targetAddress = networkEndpoint.Address;
 
         foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
         {
             foreach (IConnection conn in shard.Values)
             {
-                System.String connAddress = conn?.NetworkEndpoint?.Address ?? "null";
+                string connAddress = conn?.NetworkEndpoint?.Address ?? "null";
 
                 if (connAddress != targetAddress)
                 {
@@ -657,14 +675,14 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void CloseAllConnections([System.Diagnostics.CodeAnalysis.AllowNull] System.String reason = null)
+    public void CloseAllConnections([System.Diagnostics.CodeAnalysis.AllowNull] string reason = null)
     {
         if (_disposed)
         {
             return;
         }
 
-        System.Collections.Generic.IReadOnlyCollection<IConnection> connections = ListConnections();
+        IReadOnlyCollection<IConnection> connections = ListConnections();
 
         System.Threading.Tasks.ParallelOptions parallelOptions = new()
         {
@@ -700,17 +718,17 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.String GenerateReport()
+    public string GenerateReport()
     {
-        const System.Int32 Limit = 15;
+        const int Limit = 15;
 
-        System.Int32 count = 0;
-        System.Int64 sumBytesSent = 0, sumUptime = 0, maxUptime = 0, minUptime = System.Int64.MaxValue;
+        int count = 0;
+        long sumBytesSent = 0, sumUptime = 0, maxUptime = 0, minUptime = long.MaxValue;
 
         System.Text.StringBuilder sb = new();
         ConnectionHubStatistics stats = Statistics;
-        System.Collections.Generic.Dictionary<System.String, System.Int32> algoCounts = new(System.StringComparer.OrdinalIgnoreCase);
-        System.Collections.Generic.Dictionary<System.String, System.Int32> statusCounts = new(System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, int> algoCounts = new(System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, int> statusCounts = new(System.StringComparer.OrdinalIgnoreCase);
 
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionHub Status:");
         _ = sb.AppendLine($"Total Connections    : {_count}");
@@ -731,7 +749,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                 sumBytesSent += conn.BytesSent;
 
                 // Uptime
-                System.Int64 up = conn.UpTime;
+                long up = conn.UpTime;
                 sumUptime += up;
 
                 if (up > maxUptime)
@@ -744,18 +762,18 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                     minUptime = up;
                 }
 
-                System.String status = conn.Level.ToString();
-                System.String algo = conn.Algorithm.ToString();
+                string status = conn.Level.ToString();
+                string algo = conn.Algorithm.ToString();
 
-                algoCounts[algo] = algoCounts.TryGetValue(algo, out System.Int32 n) ? n + 1 : 1;
-                statusCounts[status] = statusCounts.TryGetValue(status, out System.Int32 current) ? current + 1 : 1;
+                algoCounts[algo] = algoCounts.TryGetValue(algo, out int n) ? n + 1 : 1;
+                statusCounts[status] = statusCounts.TryGetValue(status, out int current) ? current + 1 : 1;
             }
         }
 
-        sb.AppendLine($"Total Bytes Sent   : {sumBytesSent:N0}");
-        sb.AppendLine($"Average Uptime     : {(_count > 0 ? sumUptime / _count : 0)}s");
-        sb.AppendLine($"Max Connection Time: {maxUptime}s");
-        sb.AppendLine($"Min Connection Time: {(minUptime == System.Int64.MaxValue ? 0 : minUptime)}s");
+        _ = sb.AppendLine($"Total Bytes Sent   : {sumBytesSent:N0}");
+        _ = sb.AppendLine($"Average Uptime     : {(_count > 0 ? sumUptime / _count : 0)}s");
+        _ = sb.AppendLine($"Max Connection Time: {maxUptime}s");
+        _ = sb.AppendLine($"Min Connection Time: {(minUptime == long.MaxValue ? 0 : minUptime)}s");
 
         _ = sb.AppendLine();
         // ===== Connection Status Summary =====
@@ -765,7 +783,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _ = sb.AppendLine("Status          | Count");
         _ = sb.AppendLine("----------------------------------------");
 
-        foreach (var kvp in statusCounts)
+        foreach (KeyValuePair<string, int> kvp in statusCounts)
         {
             _ = sb.AppendLine($"{kvp.Key,-15} | {kvp.Value,5}");
         }
@@ -773,16 +791,16 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _ = sb.AppendLine("----------------------------------------");
         _ = sb.AppendLine();
 
-        sb.AppendLine("Algorithm Summary:");
-        sb.AppendLine("----------------------------------------");
-        sb.AppendLine("Algorithm         | Count");
-        sb.AppendLine("----------------------------------------");
-        foreach (var kvp in algoCounts)
+        _ = sb.AppendLine("Algorithm Summary:");
+        _ = sb.AppendLine("----------------------------------------");
+        _ = sb.AppendLine("Algorithm         | Count");
+        _ = sb.AppendLine("----------------------------------------");
+        foreach (KeyValuePair<string, int> kvp in algoCounts)
         {
-            sb.AppendLine($"{kvp.Key,-16} | {kvp.Value,5}");
+            _ = sb.AppendLine($"{kvp.Key,-16} | {kvp.Value,5}");
         }
-        sb.AppendLine("----------------------------------------");
-        sb.AppendLine();
+        _ = sb.AppendLine("----------------------------------------");
+        _ = sb.AppendLine();
 
         // ===== Active Connections =====
         _ = sb.AppendLine("Active Connections:");
@@ -792,10 +810,10 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
         {
-            foreach (System.Collections.Generic.KeyValuePair<ISnowflake, IConnection> kvp in shard)
+            foreach (KeyValuePair<ISnowflake, IConnection> kvp in shard)
             {
                 ISnowflake id = kvp.Key;
-                System.String username = GetUsername(id) ?? "(anonymous)";
+                string username = GetUsername(id) ?? "(anonymous)";
 
                 _ = sb.AppendLine($"{id,-14} | {username}");
 
@@ -842,13 +860,13 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Int32 GetShardIndex(ISnowflake id) => (id.GetHashCode() & 0x7FFFFFFF) % _shardCount;
+    private int GetShardIndex(ISnowflake id) => (id.GetHashCode() & 0x7FFFFFFF) % _shardCount;
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> GetShard(ISnowflake id)
     {
-        System.Int32 index = GetShardIndex(id);
+        int index = GetShardIndex(id);
         return _shards[index];
     }
 
@@ -856,7 +874,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnClientDisconnected(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.AllowNull] object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args) => UnregisterConnection(args.Connection);
 
     [System.Diagnostics.StackTraceHidden]
@@ -867,50 +885,60 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         switch (_options.DropPolicy)
         {
             case DropPolicy.DROP_NEWEST:
-                {
-                    NotifyCapacityLimit(newConnection, "drop-newest");
-                    newConnection.Disconnect("connection limit reached");
-                    System.Threading.Interlocked.Increment(ref _rejectedConnections);
-                    break;
-                }
+                NotifyCapacityLimit(newConnection, "drop-newest");
+                newConnection.Disconnect("connection limit reached");
+                _ = System.Threading.Interlocked.Increment(ref _rejectedConnections);
+                break;
+
 
             case DropPolicy.DROP_OLDEST:
+                while (_anonymousQueue.TryDequeue(out ISnowflake oldestId))
                 {
-                    while (_anonymousQueue.TryDequeue(out ISnowflake oldestId))
+                    int shardIndex = GetShardIndex(oldestId);
+                    System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
+
+                    if (shard.TryGetValue(oldestId, out IConnection oldestConn) && !_usernames.ContainsKey(oldestId))
                     {
-                        System.Int32 shardIndex = GetShardIndex(oldestId);
-                        System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
+                        s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] evicting-anonymous id={oldestConn.ID}");
+                        NotifyCapacityLimit(newConnection, "evict-oldest");
 
-                        if (shard.TryGetValue(oldestId, out IConnection oldestConn) && !_usernames.ContainsKey(oldestId))
-                        {
-                            s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] evicting-anonymous id={oldestConn.ID}");
-                            NotifyCapacityLimit(newConnection, "evict-oldest");
-
-                            oldestConn.Disconnect("evicted to make room for new connection");
-                            return;
-                        }
+                        oldestConn.Disconnect("evicted to make room for new connection");
+                        return;
                     }
-
-                    s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] no-anonymous-to-evict, rejecting-new");
-                    NotifyCapacityLimit(newConnection, "evict-oldest-no-anonymous");
-
-                    newConnection.Disconnect("connection limit reached, no anonymous connections to evict");
-                    System.Threading.Interlocked.Increment(ref _evictedConnections);
-                    break;
                 }
+
+                s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] no-anonymous-to-evict, rejecting-new");
+                NotifyCapacityLimit(newConnection, "evict-oldest-no-anonymous");
+
+                newConnection.Disconnect("connection limit reached, no anonymous connections to evict");
+                _ = System.Threading.Interlocked.Increment(ref _evictedConnections);
+                break;
+
+
+            case DropPolicy.BLOCK:
+                break;
+            case DropPolicy.COALESCE:
+                break;
+            default:
+                break;
         }
     }
 
     /// <summary>
     /// Broadcasts a message using batching to reduce memory pressure.
     /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="connections"></param>
+    /// <param name="message"></param>
+    /// <param name="sendFunc"></param>
+    /// <param name="cancellationToken"></param>
     [System.Diagnostics.StackTraceHidden]
     private async System.Threading.Tasks.Task BroadcastBatchedAsync<T>(
-        System.Collections.Generic.IReadOnlyCollection<IConnection> connections, T message,
+        IReadOnlyCollection<IConnection> connections, T message,
         System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc, System.Threading.CancellationToken cancellationToken) where T : class
     {
-        System.Int32 batchSize = _options.BroadcastBatchSize;
-        System.Collections.Generic.List<System.Threading.Tasks.Task> currentBatch = new(batchSize);
+        int batchSize = _options.BroadcastBatchSize;
+        List<System.Threading.Tasks.Task> currentBatch = new(batchSize);
 
         foreach (IConnection connection in connections)
         {
@@ -939,14 +967,14 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void NotifyCapacityLimit(IConnection newConnection, System.String reason)
+    private void NotifyCapacityLimit(IConnection newConnection, string reason)
     {
         ConnectionHubEventArgs args = new(
             dropPolicy: _options.DropPolicy,
             currentConnections: _count,
             maxConnections: _options.MaxConnections,
             triggeredConnectionId: newConnection?.ID,
-            reason: reason ?? System.String.Empty,
+            reason: reason ?? string.Empty,
             snapshot: Statistics);
 
         CapacityLimitReached?.Invoke(this, args);

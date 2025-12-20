@@ -48,7 +48,7 @@ public abstract partial class UdpListenerBase : IListener
             Initialize();
         }
 
-        System.Boolean started = false;
+        bool started = false;
 
         try
         {
@@ -71,10 +71,7 @@ public abstract partial class UdpListenerBase : IListener
                 _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.ScheduleWorker(
                     name: $"{NetTaskNames.Udp}.{TaskNaming.Tags.Process}",              // "udp.proc"
                     group: $"{NetTaskNames.Net}/{NetTaskNames.Udp}/{_port}",            // "net/udp/port"
-                    work: async (_, ct) =>
-                    {
-                        await ReceiveDatagramsAsync(ct).ConfigureAwait(false);
-                    },
+                    work: async (_, ct) => await ReceiveDatagramsAsync(ct).ConfigureAwait(false),
                     options: new WorkerOptions
                     {
                         Tag = NetTaskNames.Udp,
@@ -129,6 +126,7 @@ public abstract partial class UdpListenerBase : IListener
     /// <summary>
     /// Stops the listener from receiving further UDP datagrams.
     /// </summary>
+    /// <param name="cancellationToken"></param>
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -171,10 +169,10 @@ public abstract partial class UdpListenerBase : IListener
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public virtual void SynchronizeTime(System.Int64 milliseconds)
+    public virtual void SynchronizeTime(long milliseconds)
     {
         // Record last sync and drift vs local clock
-        System.Int64 now = Clock.UnixMillisecondsNow();
+        long now = Clock.UnixMillisecondsNow();
         _lastSyncUnixMs = milliseconds;
         _lastDriftMs = now - milliseconds;
 
@@ -191,7 +189,7 @@ public abstract partial class UdpListenerBase : IListener
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    protected virtual void OnTimeSynchronized(System.Int64 serverMs, System.Int64 localMs, System.Int64 driftMs)
+    protected virtual void OnTimeSynchronized(long serverMs, long localMs, long driftMs)
     {
         // No-op by default
     }
@@ -200,11 +198,13 @@ public abstract partial class UdpListenerBase : IListener
     /// Determines whether the incoming packet is authenticated.
     /// Default returns true (i.e., trusted). Override in derived class.
     /// </summary>
+    /// <param name="connection"></param>
+    /// <param name="result"></param>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    protected abstract System.Boolean IsAuthenticated(
+    protected abstract bool IsAuthenticated(
         IConnection connection, in System.Net.Sockets.UdpReceiveResult result);
 
     /// <summary>
@@ -214,7 +214,7 @@ public abstract partial class UdpListenerBase : IListener
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.String GenerateReport()
+    public string GenerateReport()
     {
         System.Text.StringBuilder sb = new(512);
 
@@ -244,7 +244,7 @@ public abstract partial class UdpListenerBase : IListener
 
         // Time sync
         // property getter used by base:contentReference[oaicite:13]{index=13}
-        System.Boolean timeSyncEnabled = InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
+        bool timeSyncEnabled = InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
                                                         .IsTimeSyncEnabled;
         _ = sb.AppendLine("Time Sync:");
         _ = sb.AppendLine("------------------------------------------------------------");
@@ -254,11 +254,11 @@ public abstract partial class UdpListenerBase : IListener
         _ = sb.AppendLine();
 
         // Traffic stats
-        System.Int64 rxPackets = System.Threading.Interlocked.Read(ref _rxPackets);
-        System.Int64 rxBytes = System.Threading.Interlocked.Read(ref _rxBytes);
-        System.Int64 dropShort = System.Threading.Interlocked.Read(ref _dropShort);
-        System.Int64 dropUnauth = System.Threading.Interlocked.Read(ref _dropUnauth);
-        System.Int64 dropUnknown = System.Threading.Interlocked.Read(ref _dropUnknown);
+        long rxPackets = System.Threading.Interlocked.Read(ref _rxPackets);
+        long rxBytes = System.Threading.Interlocked.Read(ref _rxBytes);
+        long dropShort = System.Threading.Interlocked.Read(ref _dropShort);
+        long dropUnauth = System.Threading.Interlocked.Read(ref _dropUnauth);
+        long dropUnknown = System.Threading.Interlocked.Read(ref _dropUnknown);
 
         _ = sb.AppendLine("Traffic:");
         _ = sb.AppendLine("------------------------------------------------------------");
@@ -268,7 +268,7 @@ public abstract partial class UdpListenerBase : IListener
         _ = sb.AppendLine();
 
         // Errors summary (bind/recv/shutdown) from Activate/Receive handling:contentReference[oaicite:14]{index=14}:contentReference[oaicite:15]{index=15}
-        System.Int64 recvErrors = System.Threading.Interlocked.Read(ref _recvErrors);
+        long recvErrors = System.Threading.Interlocked.Read(ref _recvErrors);
 
         _ = sb.AppendLine("Errors:");
         _ = sb.AppendLine("------------------------------------------------------------");

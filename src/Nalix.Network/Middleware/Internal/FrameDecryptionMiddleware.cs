@@ -22,7 +22,7 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
     {
 
 #if DEBUG
-        System.String debugId = $"{connection?.NetworkEndpoint}/{connection?.ID.ToString() ?? "?"}/leasePtr=0x{lease.GetHashCode():X8}";
+        string debugId = $"{connection?.NetworkEndpoint}/{connection?.ID.ToString() ?? "?"}/leasePtr=0x{lease.GetHashCode():X8}";
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Trace($"[DECRYPT][{debugId}] Start - Flags={lease.Span.ReadFlagsLE()} LeaseLen={lease.Length}");
 #endif
@@ -66,8 +66,8 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[DECRYPT][{debugId}] Decryption success! FlagsAfter={dest.Span.ReadFlagsLE()} DestLen={dest.Length}");
 
-            System.Int32 sampleLen = System.Math.Min(16, dest.Length);
-            System.String hexSample = System.BitConverter.ToString(dest.Span[..sampleLen].ToArray());
+            int sampleLen = System.Math.Min(16, dest.Length);
+            string hexSample = System.BitConverter.ToString(dest.Span[..sampleLen].ToArray());
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[DECRYPT][{debugId}] Decrypted buffer sample: {hexSample}");
 #endif

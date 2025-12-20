@@ -9,8 +9,8 @@ public abstract partial class Protocol : IReportable
 {
     #region Fields
 
-    private System.UInt64 _totalErrors;
-    private System.UInt64 _totalMessages;
+    private ulong _totalErrors;
+    private ulong _totalMessages;
 
     #endregion Fields
 
@@ -19,12 +19,12 @@ public abstract partial class Protocol : IReportable
     /// <summary>
     /// Total number of errors encountered during message processing.
     /// </summary>
-    public System.UInt64 TotalErrors => System.Threading.Interlocked.Read(ref _totalErrors);
+    public ulong TotalErrors => System.Threading.Interlocked.Read(ref _totalErrors);
 
     /// <summary>
     /// Total number of messages processed by this protocol.
     /// </summary>
-    public System.UInt64 TotalMessages => System.Threading.Interlocked.Read(ref _totalMessages);
+    public ulong TotalMessages => System.Threading.Interlocked.Read(ref _totalMessages);
 
     #endregion Properties
 
@@ -38,7 +38,7 @@ public abstract partial class Protocol : IReportable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public virtual System.String GenerateReport()
+    public virtual string GenerateReport()
     {
         System.Text.StringBuilder sb = new(128);
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Protocol Status:");

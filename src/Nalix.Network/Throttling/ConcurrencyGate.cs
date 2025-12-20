@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
@@ -22,9 +23,9 @@ public sealed class ConcurrencyGate : IReportable
 {
     #region Constants
 
-    private const System.Double CircuitBreakerThreshold = 0.95;
-    private const System.Int32 CircuitBreakerMinSamples = 1000;
-    private const System.Int32 CircuitBreakerResetAfterSeconds = 60;
+    private const double CircuitBreakerThreshold = 0.95;
+    private const int CircuitBreakerMinSamples = 1000;
+    private const int CircuitBreakerResetAfterSeconds = 60;
 
     private readonly System.TimeSpan MinIdleAge = System.TimeSpan.FromMinutes(10);
     private readonly System.TimeSpan CleanupInterval = System.TimeSpan.FromMinutes(1);
@@ -33,21 +34,23 @@ public sealed class ConcurrencyGate : IReportable
 
     #region Fields
 
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.UInt16, Entry> s_table = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<ushort, Entry> s_table = new();
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
     private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
-    private System.Int64 _totalAcquired;
-    private System.Int64 _totalRejected;
-    private System.Int64 _totalQueued;
-    private System.Int64 _totalCleanedEntries;
-    private System.Int64 _circuitBreakerTrips;
+    private long _totalAcquired;
+    private long _totalRejected;
+    private long _totalQueued;
+    private long _totalCleanedEntries;
+    private long _circuitBreakerTrips;
     private readonly System.TimeSpan _timeout = System.TimeSpan.FromSeconds(20);
 
-    // FIX #1: Circuit breaker state management
-    private System.Int32 _circuitBreakerOpen; // 0 = closed, 1 = open
-    private System.Int64 _circuitBreakerResetTimeTicks;
+    /// <summary>
+    /// FIX #1: Circuit breaker state management
+    /// </summary>
+    private int _circuitBreakerOpen; // 0 = closed, 1 = open
+    private long _circuitBreakerResetTimeTicks;
 
     #endregion Fields
 
@@ -94,28 +97,33 @@ public sealed class ConcurrencyGate : IReportable
     /// </summary>
     public sealed class Entry : System.IDisposable
     {
-        private System.Int32 _queueCount;
-        private System.Int32 _activeUsers; // Reference count
-        private System.Int64 _lastUsedUtcTicks;
-        private System.Int32 _disposed;
+        private int _queueCount;
+        /// <summary>
+        /// Reference count
+        /// </summary>
+        private int _activeUsers;
+        private long _lastUsedUtcTicks;
+        private int _disposed;
 
-        // FIX #2: Add lock for disposal coordination
+        /// <summary>
+        /// FIX #2: Add lock for disposal coordination
+        /// </summary>
         private readonly System.Threading.Lock _disposalLock = new();
 
         /// <summary>
         /// Gets a value indicating whether FIFO queuing is enabled for this entry.
         /// </summary>
-        public System.Boolean Queue { get; }
+        public bool Queue { get; }
 
         /// <summary>
         /// Gets the maximum number of concurrent operations allowed for this entry.
         /// </summary>
-        public System.Int32 Capacity { get; }
+        public int Capacity { get; }
 
         /// <summary>
         /// Gets the maximum number of operations that can be queued for this entry.
         /// </summary>
-        public System.Int32 QueueMax { get; }
+        public int QueueMax { get; }
 
         /// <summary>
         /// Gets the semaphore used to enforce the concurrency limit for this entry.
@@ -125,7 +133,10 @@ public sealed class ConcurrencyGate : IReportable
         /// <summary>
         /// Initializes a new instance of the <see cref="Entry"/> class.
         /// </summary>
-        public Entry(System.Int32 max, System.Boolean queue, System.Int32 queueMax)
+        /// <param name="max"></param>
+        /// <param name="queue"></param>
+        /// <param name="queueMax"></param>
+        public Entry(int max, bool queue, int queueMax)
         {
             if (max <= 0)
             {
@@ -134,7 +145,7 @@ public sealed class ConcurrencyGate : IReportable
 
             Queue = queue;
             Capacity = max;
-            QueueMax = queueMax < 0 ? System.Int32.MaxValue : queueMax;
+            QueueMax = queueMax < 0 ? int.MaxValue : queueMax;
             Sem = new System.Threading.SemaphoreSlim(Capacity, Capacity);
 
             _activeUsers = 0;
@@ -151,8 +162,8 @@ public sealed class ConcurrencyGate : IReportable
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void Touch()
         {
-            System.Int64 nowTicks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
-            System.Threading.Interlocked.Exchange(ref _lastUsedUtcTicks, nowTicks);
+            long nowTicks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+            _ = System.Threading.Interlocked.Exchange(ref _lastUsedUtcTicks, nowTicks);
         }
 
         /// <summary>
@@ -162,7 +173,7 @@ public sealed class ConcurrencyGate : IReportable
         {
             get
             {
-                System.Int64 ticks = System.Threading.Interlocked.Read(ref _lastUsedUtcTicks);
+                long ticks = System.Threading.Interlocked.Read(ref _lastUsedUtcTicks);
                 return new System.DateTimeOffset(ticks, System.TimeSpan.Zero);
             }
         }
@@ -170,12 +181,12 @@ public sealed class ConcurrencyGate : IReportable
         /// <summary>
         /// Gets current queue count.
         /// </summary>
-        public System.Int32 QueueCount => System.Threading.Volatile.Read(ref _queueCount);
+        public int QueueCount => System.Threading.Volatile.Read(ref _queueCount);
 
         /// <summary>
         /// Entry is idle when no slots are in use and queue is empty.
         /// </summary>
-        public System.Boolean IsIdle
+        public bool IsIdle
         {
             get
             {
@@ -184,11 +195,11 @@ public sealed class ConcurrencyGate : IReportable
                     return false;
                 }
 
-                System.Int32 activeUsers = System.Threading.Volatile.Read(ref _activeUsers);
-                System.Int32 queueCount = System.Threading.Volatile.Read(ref _queueCount);
+                int activeUsers = System.Threading.Volatile.Read(ref _activeUsers);
+                int queueCount = System.Threading.Volatile.Read(ref _queueCount);
 
                 // FIX #3: Use SpinLock for atomic read of semaphore state
-                System.Int32 available = Sem.CurrentCount;
+                int available = Sem.CurrentCount;
 
                 return activeUsers == 0 && available == Capacity && queueCount == 0;
             }
@@ -199,7 +210,7 @@ public sealed class ConcurrencyGate : IReportable
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public System.Boolean TryAcquire()
+        public bool TryAcquire()
         {
             // FIX #4: Check disposed BEFORE incrementing
             if (System.Threading.Volatile.Read(ref _disposed) != 0)
@@ -207,19 +218,19 @@ public sealed class ConcurrencyGate : IReportable
                 return false;
             }
 
-            System.Int32 newCount = System.Threading.Interlocked.Increment(ref _activeUsers);
+            int newCount = System.Threading.Interlocked.Increment(ref _activeUsers);
 
             // Double-check after increment
             if (System.Threading.Volatile.Read(ref _disposed) != 0)
             {
-                System.Threading.Interlocked.Decrement(ref _activeUsers);
+                _ = System.Threading.Interlocked.Decrement(ref _activeUsers);
                 return false;
             }
 
             // FIX #5: Prevent overflow
             if (newCount <= 0) // Overflow detection
             {
-                System.Threading.Interlocked.Decrement(ref _activeUsers);
+                _ = System.Threading.Interlocked.Decrement(ref _activeUsers);
                 s_logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] activeUsers overflow detected");
                 return false;
             }
@@ -234,13 +245,13 @@ public sealed class ConcurrencyGate : IReportable
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void Release()
         {
-            System.Int32 remaining = System.Threading.Interlocked.Decrement(ref _activeUsers);
+            int remaining = System.Threading.Interlocked.Decrement(ref _activeUsers);
 
             // FIX #6: Detect underflow
             if (remaining < 0)
             {
                 s_logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] activeUsers underflow detected");
-                System.Threading.Interlocked.Exchange(ref _activeUsers, 0);
+                _ = System.Threading.Interlocked.Exchange(ref _activeUsers, 0);
             }
         }
 
@@ -249,25 +260,25 @@ public sealed class ConcurrencyGate : IReportable
         /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public System.Boolean TryIncrementQueue()
+        public bool TryIncrementQueue()
         {
-            if (QueueMax == System.Int32.MaxValue)
+            if (QueueMax == int.MaxValue)
             {
-                System.Threading.Interlocked.Increment(ref _queueCount);
+                _ = System.Threading.Interlocked.Increment(ref _queueCount);
                 return true;
             }
 
             // Spin-loop CAS for atomic check-and-increment
             while (true)
             {
-                System.Int32 current = System.Threading.Volatile.Read(ref _queueCount);
+                int current = System.Threading.Volatile.Read(ref _queueCount);
 
                 if (current >= QueueMax)
                 {
                     return false;
                 }
 
-                System.Int32 original = System.Threading.Interlocked.CompareExchange(
+                int original = System.Threading.Interlocked.CompareExchange(
                     ref _queueCount,
                     current + 1,
                     current);
@@ -289,13 +300,13 @@ public sealed class ConcurrencyGate : IReportable
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void DecrementQueue()
         {
-            System.Int32 remaining = System.Threading.Interlocked.Decrement(ref _queueCount);
+            int remaining = System.Threading.Interlocked.Decrement(ref _queueCount);
 
             // FIX #8: Detect underflow
             if (remaining < 0)
             {
                 s_logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] queueCount underflow detected");
-                System.Threading.Interlocked.Exchange(ref _queueCount, 0);
+                _ = System.Threading.Interlocked.Exchange(ref _queueCount, 0);
             }
         }
 
@@ -314,10 +325,10 @@ public sealed class ConcurrencyGate : IReportable
                 }
 
                 // Wait for active users with exponential backoff
-                System.Int32 waitedMs = 0;
-                System.Int32 backoffMs = 1;
-                const System.Int32 maxWaitMs = 500;
-                const System.Int32 maxBackoffMs = 50;
+                int waitedMs = 0;
+                int backoffMs = 1;
+                const int maxWaitMs = 500;
+                const int maxBackoffMs = 50;
 
                 while (System.Threading.Volatile.Read(ref _activeUsers) > 0 && waitedMs < maxWaitMs)
                 {
@@ -327,7 +338,7 @@ public sealed class ConcurrencyGate : IReportable
                 }
 
                 //  FIX #10: Log if forced disposal with active users
-                System.Int32 remainingUsers = System.Threading.Volatile.Read(ref _activeUsers);
+                int remainingUsers = System.Threading.Volatile.Read(ref _activeUsers);
                 if (remainingUsers > 0)
                 {
                     s_logger?.Warn(
@@ -359,7 +370,9 @@ public sealed class ConcurrencyGate : IReportable
     /// Represents a lease on a concurrency slot.
     /// Disposing this struct releases the slot back to the semaphore.
     /// </summary>
-    public readonly struct Lease(System.Threading.SemaphoreSlim sem, ConcurrencyGate.Entry entry) : System.IDisposable
+    /// <param name="sem"></param>
+    /// <param name="entry"></param>
+    public readonly struct Lease(System.Threading.SemaphoreSlim sem, Entry entry) : System.IDisposable
     {
         private readonly Entry _entry = entry ?? throw new System.ArgumentNullException(nameof(entry));
         private readonly System.Threading.SemaphoreSlim _sem = sem ?? throw new System.ArgumentNullException(nameof(sem));
@@ -378,7 +391,7 @@ public sealed class ConcurrencyGate : IReportable
 
             try
             {
-                _sem.Release();
+                _ = _sem.Release();
             }
             catch (System.ObjectDisposedException)
             {
@@ -402,17 +415,20 @@ public sealed class ConcurrencyGate : IReportable
     /// <summary>
     /// Attempts to enter immediately without waiting.
     /// </summary>
+    /// <param name="opcode"></param>
+    /// <param name="attr"></param>
+    /// <param name="lease"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean TryEnter(
-        System.UInt16 opcode,
+    public bool TryEnter(
+        ushort opcode,
         [System.Diagnostics.CodeAnalysis.NotNull] PacketConcurrencyLimitAttribute attr,
         out Lease lease)
     {
         // FIX #12: Check and reset circuit breaker
         if (IS_CIRCUIT_OPEN())
         {
-            System.Threading.Interlocked.Increment(ref _circuitBreakerTrips);
+            _ = System.Threading.Interlocked.Increment(ref _circuitBreakerTrips);
             lease = default;
             return false;
         }
@@ -423,7 +439,7 @@ public sealed class ConcurrencyGate : IReportable
 
         if (!entry.TryAcquire())
         {
-            System.Threading.Interlocked.Increment(ref _totalRejected);
+            _ = System.Threading.Interlocked.Increment(ref _totalRejected);
             lease = default;
             return false;
         }
@@ -433,20 +449,20 @@ public sealed class ConcurrencyGate : IReportable
             if (entry.Sem.Wait(0))
             {
                 entry.Touch();
-                System.Threading.Interlocked.Increment(ref _totalAcquired);
+                _ = System.Threading.Interlocked.Increment(ref _totalAcquired);
 
                 lease = new Lease(entry.Sem, entry);
                 return true;
             }
 
-            System.Threading.Interlocked.Increment(ref _totalRejected);
+            _ = System.Threading.Interlocked.Increment(ref _totalRejected);
             lease = default;
             return false;
         }
         catch (System.ObjectDisposedException)
         {
             // Entry was disposed - treat as rejection
-            System.Threading.Interlocked.Increment(ref _totalRejected);
+            _ = System.Threading.Interlocked.Increment(ref _totalRejected);
             lease = default;
             return false;
         }
@@ -465,10 +481,15 @@ public sealed class ConcurrencyGate : IReportable
     /// <summary>
     /// Enters with optional waiting when queuing is enabled.
     /// </summary>
+    /// <param name="opcode"></param>
+    /// <param name="attr"></param>
+    /// <param name="ct"></param>
+    /// <exception cref="ConcurrencyConflictException"></exception>
+    /// <exception cref="System.TimeoutException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public async System.Threading.Tasks.ValueTask<Lease> EnterAsync(
-        System.UInt16 opcode,
+        ushort opcode,
         [System.Diagnostics.CodeAnalysis.NotNull] PacketConcurrencyLimitAttribute attr,
         System.Threading.CancellationToken ct = default)
     {
@@ -496,13 +517,13 @@ public sealed class ConcurrencyGate : IReportable
             {
                 if (!entry.Sem.Wait(0, linkedCts.Token))
                 {
-                    System.Threading.Interlocked.Increment(ref _totalRejected);
+                    _ = System.Threading.Interlocked.Increment(ref _totalRejected);
                     throw new ConcurrencyConflictException(
                         $"Concurrency limit reached for opcode {opcode:X4} (no queue)");
                 }
 
                 entry.Touch();
-                System.Threading.Interlocked.Increment(ref _totalAcquired);
+                _ = System.Threading.Interlocked.Increment(ref _totalAcquired);
 
                 return new Lease(entry.Sem, entry);
             }
@@ -512,7 +533,7 @@ public sealed class ConcurrencyGate : IReportable
         }
         catch (System.OperationCanceledException) when (timeoutCts.IsCancellationRequested)
         {
-            System.Threading.Interlocked.Increment(ref _totalRejected);
+            _ = System.Threading.Interlocked.Increment(ref _totalRejected);
             throw new System.TimeoutException(
                 $"Concurrency gate timeout after {_timeout.TotalSeconds}s for opcode {opcode:X4}");
         }
@@ -527,13 +548,13 @@ public sealed class ConcurrencyGate : IReportable
     /// Gets diagnostic statistics.
     /// </summary>
     public (
-        System.Int64 TotalAcquired,
-        System.Int64 TotalRejected,
-        System.Int64 TotalQueued,
-        System.Int64 TotalCleaned,
-        System.Int64 CircuitBreakerTrips,
-        System.Boolean CircuitBreakerOpen,
-        System.Int32 TrackedOpcodes
+        long TotalAcquired,
+        long TotalRejected,
+        long TotalQueued,
+        long TotalCleaned,
+        long CircuitBreakerTrips,
+        bool CircuitBreakerOpen,
+        int TrackedOpcodes
     ) GetStatistics()
     {
         return (
@@ -552,12 +573,12 @@ public sealed class ConcurrencyGate : IReportable
     /// </summary>
     internal void ResetStatistics()
     {
-        System.Threading.Interlocked.Exchange(ref _totalAcquired, 0);
-        System.Threading.Interlocked.Exchange(ref _totalRejected, 0);
-        System.Threading.Interlocked.Exchange(ref _totalQueued, 0);
-        System.Threading.Interlocked.Exchange(ref _totalCleanedEntries, 0);
-        System.Threading.Interlocked.Exchange(ref _circuitBreakerTrips, 0);
-        System.Threading.Interlocked.Exchange(ref _circuitBreakerOpen, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _totalAcquired, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _totalRejected, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _totalQueued, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _totalCleanedEntries, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _circuitBreakerTrips, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _circuitBreakerOpen, 0);
     }
 
     #endregion Public API
@@ -568,26 +589,26 @@ public sealed class ConcurrencyGate : IReportable
     /// Generates a human-readable diagnostic report of the concurrency gate state.
     /// </summary>
     [System.Diagnostics.StackTraceHidden]
-    public System.String GenerateReport()
+    public string GenerateReport()
     {
         // Take snapshot
-        System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<System.UInt16, Entry>> snapshot =
+        List<KeyValuePair<ushort, Entry>> snapshot =
             [.. s_table];
 
         // Sort by load (highest pressure first)
         snapshot.Sort((a, b) =>
         {
-            System.Int32 aPressure = a.Value.Capacity - a.Value.Sem.CurrentCount;
-            System.Int32 bPressure = b.Value.Capacity - b.Value.Sem.CurrentCount;
+            int aPressure = a.Value.Capacity - a.Value.Sem.CurrentCount;
+            int bPressure = b.Value.Capacity - b.Value.Sem.CurrentCount;
 
-            System.Int32 cmp = bPressure.CompareTo(aPressure);
+            int cmp = bPressure.CompareTo(aPressure);
             return cmp != 0 ? cmp : b.Value.QueueCount.CompareTo(a.Value.QueueCount);
         });
 
         // Calculate metrics
-        var stats = GetStatistics();
-        System.Double rejectionRate = 0.0;
-        System.Int64 totalAttempts = stats.TotalAcquired + stats.TotalRejected;
+        (long TotalAcquired, long TotalRejected, long TotalQueued, long TotalCleaned, long CircuitBreakerTrips, bool CircuitBreakerOpen, int TrackedOpcodes) stats = GetStatistics();
+        double rejectionRate = 0.0;
+        long totalAttempts = stats.TotalAcquired + stats.TotalRejected;
         if (totalAttempts > 0)
         {
             rejectionRate = stats.TotalRejected * 100.0 / totalAttempts;
@@ -604,70 +625,70 @@ public sealed class ConcurrencyGate : IReportable
 
     private void APPEND_REPORT_HEADER(
         System.Text.StringBuilder sb,
-        (System.Int64 TotalAcquired, System.Int64 TotalRejected, System.Int64 TotalQueued,
-         System.Int64 TotalCleaned, System.Int64 CircuitBreakerTrips, System.Boolean CircuitBreakerOpen,
-         System.Int32 TrackedOpcodes) stats,
-        System.Double rejectionRate)
+        (long TotalAcquired, long TotalRejected, long TotalQueued,
+         long TotalCleaned, long CircuitBreakerTrips, bool CircuitBreakerOpen,
+         int TrackedOpcodes) stats,
+        double rejectionRate)
     {
-        sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConcurrencyGate Status:");
-        sb.AppendLine($"CleanupInterval    : {CleanupInterval.TotalMinutes:F1} min");
-        sb.AppendLine($"MinIdleAge         : {MinIdleAge.TotalMinutes:F1} min");
-        sb.AppendLine($"TrackedOpcodes     : {stats.TrackedOpcodes}");
-        sb.AppendLine($"TotalAcquired      : {stats.TotalAcquired:N0}");
-        sb.AppendLine($"TotalRejected      : {stats.TotalRejected:N0}");
-        sb.AppendLine($"TotalQueued        : {stats.TotalQueued:N0}");
-        sb.AppendLine($"TotalCleaned       : {stats.TotalCleaned:N0}");
-        sb.AppendLine($"RejectionRate      : {rejectionRate:F2}%");
-        sb.AppendLine($"CircuitBreaker     : {(stats.CircuitBreakerOpen ? "OPEN" : "Closed")} (trips={stats.CircuitBreakerTrips})");
-        sb.AppendLine();
+        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConcurrencyGate Status:");
+        _ = sb.AppendLine($"CleanupInterval    : {CleanupInterval.TotalMinutes:F1} min");
+        _ = sb.AppendLine($"MinIdleAge         : {MinIdleAge.TotalMinutes:F1} min");
+        _ = sb.AppendLine($"TrackedOpcodes     : {stats.TrackedOpcodes}");
+        _ = sb.AppendLine($"TotalAcquired      : {stats.TotalAcquired:N0}");
+        _ = sb.AppendLine($"TotalRejected      : {stats.TotalRejected:N0}");
+        _ = sb.AppendLine($"TotalQueued        : {stats.TotalQueued:N0}");
+        _ = sb.AppendLine($"TotalCleaned       : {stats.TotalCleaned:N0}");
+        _ = sb.AppendLine($"RejectionRate      : {rejectionRate:F2}%");
+        _ = sb.AppendLine($"CircuitBreaker     : {(stats.CircuitBreakerOpen ? "OPEN" : "Closed")} (trips={stats.CircuitBreakerTrips})");
+        _ = sb.AppendLine();
     }
 
     private static void APPEND_OPCODE_DETAILS(
         System.Text.StringBuilder sb,
-        System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<System.UInt16, Entry>> snapshot)
+        List<KeyValuePair<ushort, Entry>> snapshot)
     {
-        sb.AppendLine("Top Opcodes by Load:");
-        sb.AppendLine("---------------------------------------------------------------------------------");
-        sb.AppendLine("Opcode | Capacity | InUse | Avail | Queue | QueueMax | Queuing | LastUsed");
-        sb.AppendLine("---------------------------------------------------------------------------------");
+        _ = sb.AppendLine("Top Opcodes by Load:");
+        _ = sb.AppendLine("---------------------------------------------------------------------------------");
+        _ = sb.AppendLine("Opcode | Capacity | InUse | Avail | Queue | QueueMax | Queuing | LastUsed");
+        _ = sb.AppendLine("---------------------------------------------------------------------------------");
 
         if (snapshot.Count == 0)
         {
-            sb.AppendLine("(no tracked opcodes)");
+            _ = sb.AppendLine("(no tracked opcodes)");
         }
         else
         {
             APPEND_TOP_OPCODES(sb, snapshot, maxRows: 50);
         }
 
-        sb.AppendLine("---------------------------------------------------------------------------------");
+        _ = sb.AppendLine("---------------------------------------------------------------------------------");
     }
 
     private static void APPEND_TOP_OPCODES(
         System.Text.StringBuilder sb,
-        System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<System.UInt16, Entry>> snapshot,
-        System.Int32 maxRows)
+        List<KeyValuePair<ushort, Entry>> snapshot,
+        int maxRows)
     {
-        System.Int32 rows = 0;
+        int rows = 0;
 
-        foreach (var kvp in snapshot)
+        foreach (KeyValuePair<ushort, Entry> kvp in snapshot)
         {
             if (rows++ >= maxRows)
             {
                 break;
             }
 
-            System.UInt16 opcode = kvp.Key;
+            ushort opcode = kvp.Key;
             Entry entry = kvp.Value;
 
-            System.Int32 available = entry.Sem.CurrentCount;
-            System.Int32 inUse = entry.Capacity - available;
-            System.Int32 queueCount = entry.QueueCount;
-            System.String queueEnabled = entry.Queue ? "yes" : " no";
-            System.String queueMaxStr = entry.QueueMax == System.Int32.MaxValue ? "∞" : entry.QueueMax.ToString();
+            int available = entry.Sem.CurrentCount;
+            int inUse = entry.Capacity - available;
+            int queueCount = entry.QueueCount;
+            string queueEnabled = entry.Queue ? "yes" : " no";
+            string queueMaxStr = entry.QueueMax == int.MaxValue ? "∞" : entry.QueueMax.ToString();
             System.DateTimeOffset lastUsed = entry.LastUsedUtc;
 
-            sb.AppendLine(
+            _ = sb.AppendLine(
                 $"0x{opcode:X4} | " +
                 $"{entry.Capacity,8} | " +
                 $"{inUse,5} | " +
@@ -686,32 +707,29 @@ public sealed class ConcurrencyGate : IReportable
     /// <summary>
     /// Checks if circuit breaker is open and attempts to close if timeout expired.
     /// </summary>
-    private System.Boolean IS_CIRCUIT_OPEN()
+    private bool IS_CIRCUIT_OPEN()
     {
         // Check if already open
         if (System.Threading.Volatile.Read(ref _circuitBreakerOpen) == 1)
         {
             // Try to close if reset time passed
-            System.Int64 resetTimeTicks = System.Threading.Volatile.Read(ref _circuitBreakerResetTimeTicks);
-            System.Int64 nowTicks = System.DateTime.UtcNow.Ticks;
+            long resetTimeTicks = System.Threading.Volatile.Read(ref _circuitBreakerResetTimeTicks);
+            long nowTicks = System.DateTime.UtcNow.Ticks;
 
-            if (nowTicks >= resetTimeTicks)
+            if (nowTicks >= resetTimeTicks && System.Threading.Interlocked.CompareExchange(ref _circuitBreakerOpen, 0, 1) == 1)
             {
-                if (System.Threading.Interlocked.CompareExchange(ref _circuitBreakerOpen, 0, 1) == 1)
-                {
-                    // Reset counters
-                    System.Threading.Interlocked.Exchange(ref _totalAcquired, 0);
-                    System.Threading.Interlocked.Exchange(ref _totalRejected, 0);
+                // Reset counters
+                _ = System.Threading.Interlocked.Exchange(ref _totalAcquired, 0);
+                _ = System.Threading.Interlocked.Exchange(ref _totalRejected, 0);
 
-                    s_logger?.Info($"[NW.{nameof(ConcurrencyGate)}] circuit breaker closed");
-                }
+                s_logger?.Info($"[NW.{nameof(ConcurrencyGate)}] circuit breaker closed");
             }
 
             return System.Threading.Volatile.Read(ref _circuitBreakerOpen) == 1;
         }
 
         // Check if should open
-        System.Int64 totalAttempts = System.Threading.Volatile.Read(ref _totalAcquired) +
+        long totalAttempts = System.Threading.Volatile.Read(ref _totalAcquired) +
                                      System.Threading.Volatile.Read(ref _totalRejected);
 
         if (totalAttempts < CircuitBreakerMinSamples)
@@ -719,14 +737,14 @@ public sealed class ConcurrencyGate : IReportable
             return false;
         }
 
-        System.Double rejectionRate = (System.Double)System.Threading.Volatile.Read(ref _totalRejected) / totalAttempts;
+        double rejectionRate = (double)System.Threading.Volatile.Read(ref _totalRejected) / totalAttempts;
 
         if (rejectionRate > CircuitBreakerThreshold)
         {
             if (System.Threading.Interlocked.CompareExchange(ref _circuitBreakerOpen, 1, 0) == 0)
             {
-                System.Int64 resetTime = System.DateTime.UtcNow.AddSeconds(CircuitBreakerResetAfterSeconds).Ticks;
-                System.Threading.Interlocked.Exchange(ref _circuitBreakerResetTimeTicks, resetTime);
+                long resetTime = System.DateTime.UtcNow.AddSeconds(CircuitBreakerResetAfterSeconds).Ticks;
+                _ = System.Threading.Interlocked.Exchange(ref _circuitBreakerResetTimeTicks, resetTime);
 
                 s_logger?.Error(
                     $"[NW.{nameof(ConcurrencyGate)}] circuit breaker opened " +
@@ -763,7 +781,7 @@ public sealed class ConcurrencyGate : IReportable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private Entry GET_OR_CREATE_ENTRY(
-        System.UInt16 opcode,
+        ushort opcode,
         PacketConcurrencyLimitAttribute attr)
     {
         return s_table.GetOrAdd(
@@ -773,31 +791,31 @@ public sealed class ConcurrencyGate : IReportable
 
     private async System.Threading.Tasks.ValueTask<Lease> ENTER_WITH_QUEUE_ASYNC(
         Entry entry,
-        System.UInt16 opcode,
+        ushort opcode,
         System.Threading.CancellationToken ct)
     {
         if (!entry.TryIncrementQueue())
         {
-            System.Threading.Interlocked.Increment(ref _totalRejected);
+            _ = System.Threading.Interlocked.Increment(ref _totalRejected);
             throw new ConcurrencyConflictException(
                 $"Concurrency queue is full for opcode {opcode:X4} " +
                 $"(limit={entry.QueueMax}, current={entry.QueueCount})");
         }
 
-        System.Threading.Interlocked.Increment(ref _totalQueued);
+        _ = System.Threading.Interlocked.Increment(ref _totalQueued);
 
         try
         {
             await entry.Sem.WaitAsync(ct).ConfigureAwait(false);
 
             entry.Touch();
-            System.Threading.Interlocked.Increment(ref _totalAcquired);
+            _ = System.Threading.Interlocked.Increment(ref _totalAcquired);
 
             return new Lease(entry.Sem, entry);
         }
         catch (System.OperationCanceledException)
         {
-            System.Threading.Interlocked.Increment(ref _totalRejected);
+            _ = System.Threading.Interlocked.Increment(ref _totalRejected);
             throw;
         }
         finally
@@ -812,11 +830,11 @@ public sealed class ConcurrencyGate : IReportable
         try
         {
             System.DateTimeOffset now = System.DateTimeOffset.UtcNow;
-            System.Int32 removed = 0;
+            int removed = 0;
 
-            foreach (var kvp in s_table)
+            foreach (KeyValuePair<ushort, Entry> kvp in s_table)
             {
-                System.UInt16 opcode = kvp.Key;
+                ushort opcode = kvp.Key;
                 Entry entry = kvp.Value;
 
                 if (!entry.IsIdle)
@@ -835,7 +853,7 @@ public sealed class ConcurrencyGate : IReportable
                 {
                     removedEntry.Dispose();
                     removed++;
-                    System.Threading.Interlocked.Increment(ref _totalCleanedEntries);
+                    _ = System.Threading.Interlocked.Increment(ref _totalCleanedEntries);
                 }
             }
 

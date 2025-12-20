@@ -27,22 +27,20 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     /// </summary>
     public static readonly System.TimeSpan DefaultPeriod = System.TimeSpan.FromMilliseconds(16);
 
-    #endregion
+    #endregion Constants
 
     #region Fields
 
     private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-
-    private System.TimeSpan _period = DefaultPeriod;
     private readonly System.Threading.Lock _gate = new();
     private System.Threading.CancellationTokenSource _cts;
 
-    private System.Int32 _isRunning;
-    private System.Int32 _isDisposed;
-    private System.Int32 _enabled;
-    private volatile System.Boolean _fireAndForget;
+    private int _isRunning;
+    private int _isDisposed;
+    private int _enabled;
+    private volatile bool _fireAndForget;
 
-    #endregion
+    #endregion Fields
 
     #region Events
 
@@ -50,21 +48,21 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     /// Raised every tick with the current Unix timestamp in milliseconds.
     /// NOTE: Handlers should be lightweight. Consider enabling FireAndForget if handlers may block.
     /// </summary>
-    public event System.Action<System.Int64> TimeSynchronized;
+    public event System.Action<long> TimeSynchronized;
 
-    #endregion
+    #endregion Events
 
     #region Properties
 
     /// <summary>
     /// True if the background loop is currently running.
     /// </summary>
-    public System.Boolean IsRunning => System.Threading.Volatile.Read(ref _isRunning) == 1;
+    public bool IsRunning => System.Threading.Volatile.Read(ref _isRunning) == 1;
 
     /// <summary>
     /// True if synchronization is enabled (and the loop should run).
     /// </summary>
-    public System.Boolean IsTimeSyncEnabled
+    public bool IsTimeSyncEnabled
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -88,11 +86,12 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     /// <summary>
     /// Gets or sets the tick period. Only applied on (re)start.
     /// </summary>
+    /// <exception cref="System.ArgumentOutOfRangeException"></exception>
     public System.TimeSpan Period
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get => _period;
+        get;
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -103,17 +102,17 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
                 throw new System.ArgumentOutOfRangeException(nameof(value), "Period must be positive.");
             }
 
-            _period = value;
+            field = value;
             // If running, restart to apply new period
             if (IsRunning) { Restart(); }
         }
-    }
+    } = DefaultPeriod;
 
     /// <summary>
     /// If true, handlers are dispatched to the ThreadPool to avoid blocking the tick loop.
     /// Default is false for minimal overhead.
     /// </summary>
-    public System.Boolean FireAndForget
+    public bool FireAndForget
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -124,7 +123,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
         set => _fireAndForget = value;
     }
 
-    #endregion
+    #endregion Properties
 
     #region APIs
 
@@ -136,6 +135,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     /// <summary>
     /// Enables synchronization and ensures the loop is running.
     /// </summary>
+    /// <param name="cancellationToken"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Activate(System.Threading.CancellationToken cancellationToken = default)
@@ -153,6 +153,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     /// <summary>
     /// Disables synchronization and stops the loop.
     /// </summary>
+    /// <param name="cancellationToken"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
@@ -236,9 +237,9 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
             {
                 try
                 {
-                    using System.Threading.PeriodicTimer timer = new(_period);
+                    using System.Threading.PeriodicTimer timer = new(Period);
 
-                    s_logger?.Info($"[NW.{nameof(TimeSynchronizer)}] started period={_period.TotalMilliseconds:0.#}ms");
+                    s_logger?.Info($"[NW.{nameof(TimeSynchronizer)}] started period={Period.TotalMilliseconds:0.#}ms");
 
                     while (!ct.IsCancellationRequested)
                     {
@@ -252,8 +253,8 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
                             continue;
                         }
 
-                        System.Int64 timestamp = Clock.UnixMillisecondsNow();
-                        System.Action<System.Int64> handler = TimeSynchronized;
+                        long timestamp = Clock.UnixMillisecondsNow();
+                        System.Action<long> handler = TimeSynchronized;
 
                         if (handler is not null)
                         {
@@ -261,7 +262,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
                             {
                                 _ = System.Threading.ThreadPool.UnsafeQueueUserWorkItem(static state =>
                                 {
-                                    (System.Action<System.Int64> h, System.Int64 ts) = ((System.Action<System.Int64>, System.Int64))state!;
+                                    (System.Action<long> h, long ts) = ((System.Action<long>, long))state;
                                     try
                                     {
                                         h(ts);
@@ -285,12 +286,12 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
                             }
                         }
 
-                        System.Int64 elapsed = Clock.UnixMillisecondsNow() - timestamp;
-                        if (elapsed > _period.TotalMilliseconds * 1.5)
+                        long elapsed = Clock.UnixMillisecondsNow() - timestamp;
+                        if (elapsed > Period.TotalMilliseconds * 1.5)
                         {
                             s_logger?.Warn(
                                 $"[NW.{nameof(TimeSynchronizer)}] tick overrun " +
-                                $"elapsed={elapsed}ms period={_period.TotalMilliseconds:0.#}ms");
+                                $"elapsed={elapsed}ms period={Period.TotalMilliseconds:0.#}ms");
                         }
 
                         ctx?.Beat();
@@ -323,7 +324,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void TERMINATE_SYNC_LOOP()
     {
-        System.Threading.Interlocked.Exchange(ref _isRunning, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _isRunning, 0);
 
         System.Threading.CancellationTokenSource toCancel;
         lock (_gate)

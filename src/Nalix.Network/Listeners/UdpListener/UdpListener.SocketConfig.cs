@@ -45,11 +45,11 @@ public abstract partial class UdpListenerBase
 
             if (System.OperatingSystem.IsWindows())
             {
-                const System.Int32 on = 1;
-                const System.Int32 time = 3_000;
-                const System.Int32 interval = 1_000;
+                const int on = 1;
+                const int time = 3_000;
+                const int interval = 1_000;
 
-                System.Span<System.Byte> keepAlive = stackalloc System.Byte[12];
+                System.Span<byte> keepAlive = stackalloc byte[12];
                 System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(keepAlive[..4], on);
                 System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(keepAlive.Slice(4, 4), time);
                 System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(keepAlive.Slice(8, 4), interval);

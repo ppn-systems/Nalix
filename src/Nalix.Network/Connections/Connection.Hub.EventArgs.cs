@@ -9,15 +9,21 @@ namespace Nalix.Network.Connections;
 /// <summary>
 /// Event arguments raised when a capacity limit is hit.
 /// </summary>
+/// <param name="dropPolicy"></param>
+/// <param name="currentConnections"></param>
+/// <param name="maxConnections"></param>
+/// <param name="triggeredConnectionId"></param>
+/// <param name="reason"></param>
+/// <param name="snapshot"></param>
 /// <remarks>
 /// Initializes a new instance of the <see cref="ConnectionHubEventArgs"/> class.
 /// </remarks>
 public sealed class ConnectionHubEventArgs(
     DropPolicy dropPolicy,
-    System.Int32 currentConnections,
-    System.Int32 maxConnections,
+    int currentConnections,
+    int maxConnections,
     ISnowflake triggeredConnectionId,
-    System.String reason,
+    string reason,
     ConnectionHubStatistics snapshot) : System.EventArgs
 {
 
@@ -29,12 +35,12 @@ public sealed class ConnectionHubEventArgs(
     /// <summary>
     /// Gets the number of registered connections when the limit was reached.
     /// </summary>
-    public System.Int32 CurrentConnections { get; } = currentConnections;
+    public int CurrentConnections { get; } = currentConnections;
 
     /// <summary>
     /// Gets the configured maximum number of connections.
     /// </summary>
-    public System.Int32 MaxConnections { get; } = maxConnections;
+    public int MaxConnections { get; } = maxConnections;
 
     /// <summary>
     /// Gets the connection that triggered the limit (may be null if not available).
@@ -44,7 +50,7 @@ public sealed class ConnectionHubEventArgs(
     /// <summary>
     /// Gets the textual reason for the limit notification.
     /// </summary>
-    public System.String Reason { get; } = reason ?? System.String.Empty;
+    public string Reason { get; } = reason ?? string.Empty;
 
     /// <summary>
     /// Gets a snapshot of hub statistics at the time of the event.

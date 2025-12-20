@@ -13,10 +13,10 @@ internal sealed class MemoryReturnHandler<TPacket> : IReturnHandler<TPacket> whe
 {
     /// <inheritdoc/>
     public async System.Threading.Tasks.ValueTask HandleAsync(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object result,
+        [System.Diagnostics.CodeAnalysis.AllowNull] object result,
         [System.Diagnostics.CodeAnalysis.NotNull] PacketContext<TPacket> context)
     {
-        if (result is not System.Memory<System.Byte> memory)
+        if (result is not System.Memory<byte> memory)
         {
             return;
         }
@@ -30,7 +30,7 @@ internal sealed class MemoryReturnHandler<TPacket> : IReturnHandler<TPacket> whe
 
         try
         {
-            System.Boolean sent = await context.Connection.TCP.SendAsync(memory).ConfigureAwait(false);
+            bool sent = await context.Connection.TCP.SendAsync(memory).ConfigureAwait(false);
             if (!sent)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
