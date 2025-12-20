@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Networking.Packets;
+using Nalix.Common.Security;
 using Nalix.Common.Shared;
 using Nalix.Shared.LZ4;
 using Nalix.Shared.LZ4.Encoders;
@@ -27,7 +28,7 @@ public static class FrameTransformer
     /// <summary>
     /// Offset in bytes where the payload (DATA_REGION) starts in the packet.
     /// </summary>
-    public const System.Int32 Offset = (System.Int32)PacketHeaderOffset.DATA_REGION;
+    public const int Offset = (int)PacketHeaderOffset.DATA_REGION;
 
     /// <summary>
     /// Calculates the maximum ciphertext size required for encrypting a plaintext of the given size
@@ -38,10 +39,10 @@ public static class FrameTransformer
     /// <returns>
     /// Maximum bytes required for the ciphertext buffer, i.e., encrypted envelope size.
     /// </returns>
-    public static System.Int32 GetMaxCiphertextSize(CipherSuiteType type, System.Int32 plaintextSize)
+    public static int GetMaxCiphertextSize(CipherSuiteType type, int plaintextSize)
     {
-        System.Int32 tagSize = EnvelopeCipher.GetTagLength(type);
-        System.Int32 nonceSize = EnvelopeCipher.GetNonceLength(type);
+        int tagSize = EnvelopeCipher.GetTagLength(type);
+        int nonceSize = EnvelopeCipher.GetNonceLength(type);
 
         // Total envelope size: header + nonce + ciphertext + tag (if any)
         return EnvelopeFormat.HeaderSize + nonceSize + plaintextSize + tagSize;
@@ -51,7 +52,8 @@ public static class FrameTransformer
     /// Returns the size of plaintext from an encrypted envelope (header || nonce || ciphertext [|| tag]).
     /// </summary>
     /// <param name="envelope">The input envelope.</param>
-    public static System.Int32 GetPlaintextLength(System.ReadOnlySpan<System.Byte> envelope)
+    /// <exception cref="System.ArgumentException"></exception>
+    public static int GetPlaintextLength(System.ReadOnlySpan<byte> envelope)
         => !EnvelopeFormat.TryParseEnvelope(envelope[Offset..], out EnvelopeFormat.ParsedEnvelope parsed)
         ? throw new System.ArgumentException("Malformed envelope", nameof(envelope)) : parsed.Ciphertext.Length;
 
@@ -59,11 +61,10 @@ public static class FrameTransformer
     /// Calculates the maximum compressed size for a given plaintext size using LZ4 compression.
     /// </summary>
     /// <param name="plaintextSize">Size of the plaintext input in bytes.</param>
-    /// <returns></returns>
-    public static System.Int32 GetMaxCompressedSize(System.Int32 plaintextSize) => LZ4BlockEncoder.GetMinOutputBufferSize(plaintextSize);
+    public static int GetMaxCompressedSize(int plaintextSize) => LZ4BlockEncoder.GetMinOutputBufferSize(plaintextSize);
 
     /// <inheritdoc/>
-    public static System.Int32 GetDecompressedLength(System.ReadOnlySpan<System.Byte> src)
+    public static int GetDecompressedLength(System.ReadOnlySpan<byte> src)
     {
         LZ4BlockHeader header = MemOps.ReadUnaligned<LZ4BlockHeader>(src);
 
@@ -84,12 +85,13 @@ public static class FrameTransformer
     /// The header portion of the packet is copied unchanged.
     /// Only the payload is encrypted.
     /// </remarks>
+    /// <exception cref="System.ArgumentNullException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean Encrypt(
+    public static bool Encrypt(
         IBufferLease src,
         IBufferLease dest,
-        System.ReadOnlySpan<System.Byte> key,
+        System.ReadOnlySpan<byte> key,
         CipherSuiteType suite)
     {
         if (key.IsEmpty)
@@ -106,11 +108,11 @@ public static class FrameTransformer
         // Copy header
         src.SpanFull[..Offset].CopyTo(dest.SpanFull[..Offset]);
 
-        System.Span<System.Byte> plainData = src.Span[Offset..];
-        System.Span<System.Byte> outData = dest.SpanFull[Offset..];
+        System.Span<byte> plainData = src.Span[Offset..];
+        System.Span<byte> outData = dest.SpanFull[Offset..];
 
         // Encrypt
-        _ = EnvelopeCipher.Encrypt(key, plainData, outData, null, null, suite, out System.Int32 encrypted);
+        _ = EnvelopeCipher.Encrypt(key, plainData, outData, null, null, suite, out int encrypted);
         dest.CommitLength(Offset + encrypted);
 
         return true;
@@ -129,12 +131,13 @@ public static class FrameTransformer
     /// The header portion is copied unchanged.
     /// Only the payload is decrypted.
     /// </remarks>
+    /// <exception cref="System.ArgumentNullException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean Decrypt(
+    public static bool Decrypt(
         IBufferLease src,
         IBufferLease dest,
-        System.ReadOnlySpan<System.Byte> key)
+        System.ReadOnlySpan<byte> key)
     {
         if (key.IsEmpty)
         {
@@ -150,11 +153,11 @@ public static class FrameTransformer
         // Copy header
         src.Span[..Offset].CopyTo(dest.SpanFull[..Offset]);
 
-        System.Span<System.Byte> cipherData = src.Span[Offset..];
-        System.Span<System.Byte> outData = dest.SpanFull[Offset..];
+        System.Span<byte> cipherData = src.Span[Offset..];
+        System.Span<byte> outData = dest.SpanFull[Offset..];
 
         // Decrypt payload
-        if (!EnvelopeCipher.Decrypt(key, cipherData, outData, null, out System.Int32 decrypted))
+        if (!EnvelopeCipher.Decrypt(key, cipherData, outData, null, out int decrypted))
         {
             return false;
         }
@@ -177,7 +180,7 @@ public static class FrameTransformer
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean Compress(IBufferLease src, IBufferLease dest)
+    public static bool Compress(IBufferLease src, IBufferLease dest)
     {
 
         if (src.Length <= Offset || dest.Capacity <= Offset)
@@ -189,10 +192,10 @@ public static class FrameTransformer
         src.Span[..Offset].CopyTo(dest.SpanFull[..Offset]);
 
         // Compress payload
-        System.Span<System.Byte> input = src.Span[Offset..];
-        System.Span<System.Byte> output = dest.SpanFull[Offset..];
+        System.Span<byte> input = src.Span[Offset..];
+        System.Span<byte> output = dest.SpanFull[Offset..];
 
-        System.Int32 compressed = LZ4Codec.Encode(input, output);
+        int compressed = LZ4Codec.Encode(input, output);
         if (compressed < 0)
         {
             return false;
@@ -215,7 +218,7 @@ public static class FrameTransformer
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean Decompress(IBufferLease src, IBufferLease dest)
+    public static bool Decompress(IBufferLease src, IBufferLease dest)
     {
         if (src.Length <= Offset || dest.Capacity <= Offset)
         {
@@ -226,10 +229,10 @@ public static class FrameTransformer
         src.Span[..Offset].CopyTo(dest.SpanFull[..Offset]);
 
         // Decompress payload
-        System.Span<System.Byte> input = src.Span[Offset..];
-        System.Span<System.Byte> output = dest.SpanFull[Offset..];
+        System.Span<byte> input = src.Span[Offset..];
+        System.Span<byte> output = dest.SpanFull[Offset..];
 
-        System.Int32 decoded = LZ4Codec.Decode(input, output);
+        int decoded = LZ4Codec.Decode(input, output);
 
         if (decoded < 0)
         {
@@ -245,10 +248,10 @@ public static class FrameTransformer
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean TryEncrypt(
+    public static bool TryEncrypt(
         IBufferLease src,
         IBufferLease dest,
-        System.ReadOnlySpan<System.Byte> key,
+        System.ReadOnlySpan<byte> key,
         CipherSuiteType suite)
     {
         try
@@ -266,10 +269,10 @@ public static class FrameTransformer
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean TryDecrypt(
+    public static bool TryDecrypt(
         IBufferLease src,
         IBufferLease dest,
-        System.ReadOnlySpan<System.Byte> key)
+        System.ReadOnlySpan<byte> key)
     {
         try
         {
@@ -286,7 +289,7 @@ public static class FrameTransformer
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean TryCompress(IBufferLease src, IBufferLease dest)
+    public static bool TryCompress(IBufferLease src, IBufferLease dest)
     {
         try
         {
@@ -303,7 +306,7 @@ public static class FrameTransformer
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean TryDecompress(IBufferLease src, IBufferLease dest)
+    public static bool TryDecompress(IBufferLease src, IBufferLease dest)
     {
         try
         {

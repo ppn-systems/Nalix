@@ -5,6 +5,7 @@
 // Supports: CHACHA20 (nonce 12 bytes, counter uint32), SALSA20 (nonce 8 bytes, counter uint64).
 // Also includes envelope helpers using EnvelopeFormat (header || nonce || ciphertext).
 
+using Nalix.Common.Security;
 using Nalix.Framework.Random;
 using Nalix.Shared.Security.Internal;
 using Nalix.Shared.Security.Symmetric;
@@ -43,33 +44,35 @@ public static class SymmetricEngine
     /// <returns><see langword="true"/> on success; <see langword="false"/> on unsupported algorithm.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Boolean Encrypt(
+    public static bool Encrypt(
         CipherSuiteType type,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst,
-        out System.Int32 written)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> nonce,
+        ulong counter,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> src,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> dst,
+        out int written)
     {
         written = 0;
 
         switch (type)
         {
             case CipherSuiteType.CHACHA20:
-                {
-                    ChaCha20 chacha = new(key, nonce, (System.UInt32)counter);
-                    written = chacha.Encrypt(src, dst);
-                    chacha.Clear();
-                    return true;
-                }
+                ChaCha20 chacha = new(key, nonce, (uint)counter);
+                written = chacha.Encrypt(src, dst);
+                chacha.Clear();
+                return true;
+
 
             case CipherSuiteType.SALSA20:
-                {
-                    written = Salsa20.Encrypt(key, nonce, counter, src, dst);
-                    return true;
-                }
+                written = Salsa20.Encrypt(key, nonce, counter, src, dst);
+                return true;
 
+
+            case CipherSuiteType.SALSA20_POLY1305:
+                break;
+            case CipherSuiteType.CHACHA20_POLY1305:
+                break;
             default:
                 ThrowHelper.ThrowNotSupportedException("Unsupported symmetric algorithm");
                 return false;
@@ -103,20 +106,20 @@ public static class SymmetricEngine
     /// <returns><see langword="true"/> on success; <see langword="false"/> if the output buffer is too small.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Boolean Encrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> ciphertext,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt32? seq, CipherSuiteType algorithm, out System.Int32 written)
+    public static bool Encrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> ciphertext,
+        System.ReadOnlySpan<byte> nonce,
+        uint? seq, CipherSuiteType algorithm, out int written)
     {
         written = 0;
 
         // Resolve seq / counter
-        System.UInt32 seqVal;
+        uint seqVal;
         if (seq is null)
         {
-            System.Span<System.Byte> tmp = stackalloc System.Byte[4];
+            System.Span<byte> tmp = stackalloc byte[4];
             Csprng.Fill(tmp);
             seqVal = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(tmp);
         }
@@ -125,15 +128,15 @@ public static class SymmetricEngine
             seqVal = seq.Value;
         }
 
-        System.Int32 total = EnvelopeFormat.HeaderSize + nonce.Length + plaintext.Length;
+        int total = EnvelopeFormat.HeaderSize + nonce.Length + plaintext.Length;
 
         if (ciphertext.Length < total)
         {
             return false;
         }
 
-        System.UInt64 counter = seqVal;
-        System.Span<System.Byte> ctSlice = ciphertext.Slice(EnvelopeFormat.HeaderSize + nonce.Length, plaintext.Length);
+        ulong counter = seqVal;
+        System.Span<byte> ctSlice = ciphertext.Slice(EnvelopeFormat.HeaderSize + nonce.Length, plaintext.Length);
 
         _ = Encrypt(algorithm, key, nonce, counter, plaintext, ctSlice, out _);
         _ = EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonce, ctSlice);
@@ -143,16 +146,20 @@ public static class SymmetricEngine
 
     /// <summary>
     /// Attempts to decrypt an envelope produced by
-    /// <see cref="Encrypt(System.ReadOnlySpan{System.Byte}, System.ReadOnlySpan{System.Byte}, System.Span{System.Byte}, System.ReadOnlySpan{System.Byte}, System.UInt32?, CipherSuiteType, out System.Int32)"/>.
+    /// <see cref="Encrypt(System.ReadOnlySpan{byte}, System.ReadOnlySpan{byte}, System.Span{byte}, System.ReadOnlySpan{byte}, uint?, CipherSuiteType, out int)"/>.
     /// On success, <paramref name="plaintext"/> is populated and <paramref name="written"/> holds the byte count.
     /// </summary>
+    /// <param name="key"></param>
+    /// <param name="envelope"></param>
+    /// <param name="plaintext"></param>
+    /// <param name="written"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Boolean Decrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> envelope,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> plaintext,
-        out System.Int32 written)
+    public static bool Decrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> envelope,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> plaintext,
+        out int written)
     {
         written = 0;
 
