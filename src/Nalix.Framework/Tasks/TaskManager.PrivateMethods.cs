@@ -11,7 +11,7 @@ public partial class TaskManager
 {
     #region Types
 
-    private sealed record GATE(System.Threading.SemaphoreSlim SemaphoreSlim, System.Int32 Capacity);
+    private sealed record Gate(System.Threading.SemaphoreSlim SemaphoreSlim, System.Int32 Capacity);
 
     #endregion Types
 
@@ -177,7 +177,7 @@ public partial class TaskManager
                 {
                     s.MarkFailure();
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[FW.{nameof(TaskManager)}] recurring-timeout name={s.Name} msg={oce.Message}");
+                                            .Error($"[FW.{nameof(TaskManager)}:Internal] recurring-timeout name={s.Name} msg={oce.Message}");
 
                     await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
                 }
@@ -185,7 +185,7 @@ public partial class TaskManager
                 {
                     s.MarkFailure();
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[FW.{nameof(TaskManager)}] recurring-error name={s.Name} msg={ex.Message}");
+                                            .Error($"[FW.{nameof(TaskManager)}:Internal] recurring-error name={s.Name} msg={ex.Message}");
 
                     await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
                 }
@@ -203,7 +203,7 @@ public partial class TaskManager
             {
                 s.MarkFailure();
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[FW.{nameof(TaskManager)}] recurring-loop-error name={s.Name} msg={ex.Message}");
+                                        .Error($"[FW.{nameof(TaskManager)}:Internal] recurring-loop-error name={s.Name} msg={ex.Message}");
 
                 await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
             }
@@ -282,7 +282,7 @@ public partial class TaskManager
                 }
             }
 
-            if (!hasSameGroup && _groupGates.TryRemove(st.Group, out GATE? g))
+            if (!hasSameGroup && _groupGates.TryRemove(st.Group, out Gate? g))
             {
                 try { g.SemaphoreSlim.Dispose(); } catch { }
             }
