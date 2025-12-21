@@ -72,6 +72,8 @@ public abstract partial class ConfigurationLoader
     /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
     /// The section and key names in the INI file are derived from the class and property names.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1160:Abstract type should not have public constructors", Justification = "<Pending>")]
     public ConfigurationLoader()
     {
     }
@@ -135,7 +137,7 @@ public abstract partial class ConfigurationLoader
         System.String section = GetSectionName(type);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Meta($"[FW.{nameof(ConfigurationLoader)}] init type={type.Name} section={section}");
+                                .Meta($"[FW.{nameof(ConfigurationLoader)}:Internal] init type={type.Name} section={section}");
 
         // Process each bindable property
         foreach (PropertyMetadata propertyInfo in metadata.BindableProperties)
@@ -150,7 +152,7 @@ public abstract partial class ConfigurationLoader
                    (value is System.String strValue && System.String.IsNullOrEmpty(strValue)))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[FW.{nameof(ConfigurationLoader)}] missing-value section={section} key={propertyInfo.Name}");
+                                            .Trace($"[FW.{nameof(ConfigurationLoader)}:Internal] missing-value section={section} key={propertyInfo.Name}");
 
                     this.HandleEmptyValue(configFile, section, propertyInfo);
                     continue;
@@ -162,7 +164,7 @@ public abstract partial class ConfigurationLoader
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[FW.{nameof(ConfigurationLoader)}] set-error section={section} key={propertyInfo.Name}", ex);
+                                        .Warn($"[FW.{nameof(ConfigurationLoader)}:Internal] set-error section={section} key={propertyInfo.Name}", ex);
             }
         }
 

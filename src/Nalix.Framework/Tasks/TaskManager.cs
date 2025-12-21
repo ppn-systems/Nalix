@@ -22,7 +22,7 @@ public sealed partial class TaskManager : ITaskManager
     private static readonly System.TimeSpan CleanupInterval = System.TimeSpan.FromSeconds(30);
 
     private readonly System.Threading.Timer _cleanupTimer;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, GATE> _groupGates;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, Gate> _groupGates;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, WorkerState> _workers;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, RecurringState> _recurring;
 
@@ -95,7 +95,7 @@ public sealed partial class TaskManager : ITaskManager
         st.Task = System.Threading.Tasks.Task.Run(() => RECURRING_LOOP_ASYNC(st, work), cts.Token);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(TaskManager)}] start-recurring name={name} " +
+                                .Debug($"[FW.{nameof(TaskManager)}:{nameof(ScheduleRecurring)}] start-recurring name={name} " +
                                        $"iv={interval.TotalMilliseconds:F0}ms " +
                                        $"nonReentrant={options.NonReentrant} tag={options.Tag ?? "-"}");
         return st;
@@ -133,7 +133,7 @@ public sealed partial class TaskManager : ITaskManager
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[FW.{nameof(TaskManager)}] run-once-error name={name} msg={ex.Message}");
+                                    .Error($"[FW.{nameof(TaskManager)}:{nameof(RunOnceAsync)}] run-once-error name={name} msg={ex.Message}");
             throw;
         }
     }
@@ -179,16 +179,16 @@ public sealed partial class TaskManager : ITaskManager
 
         if (!_workers.TryAdd(id, st))
         {
-            throw new System.InvalidOperationException($"[{nameof(TaskManager)}] cannot add worker");
+            throw new System.InvalidOperationException($"[{nameof(TaskManager)}:{nameof(StartWorker)}] cannot add worker");
         }
 
         // Optional concurrency cap per-group
-        GATE? gate = null;
+        Gate? gate = null;
         System.Exception? failure = null;
 
         if (options.GroupConcurrencyLimit is System.Int32 cap && cap > 0)
         {
-            gate = _groupGates.GetOrAdd(group, _ => new GATE(new System.Threading.SemaphoreSlim(cap, cap), cap));
+            gate = _groupGates.GetOrAdd(group, _ => new Gate(new System.Threading.SemaphoreSlim(cap, cap), cap));
         }
 
         // run
@@ -340,7 +340,7 @@ public sealed partial class TaskManager : ITaskManager
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[FW.{nameof(TaskManager)}] cancel recurring name={name}");
+                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cancel recurring name={name}");
             return true;
         }
 
@@ -372,7 +372,7 @@ public sealed partial class TaskManager : ITaskManager
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[FW.{nameof(TaskManager)}] worker-cancel id={id} name={st.Name} group={st.Group}");
+                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] worker-cancel id={id} name={st.Name} group={st.Group}");
             return true;
         }
         return false;
@@ -404,7 +404,7 @@ public sealed partial class TaskManager : ITaskManager
         if (n > 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[FW.{nameof(TaskManager)}] group-cancel group={group} count={n}");
+                                    .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelGroup)}] group-cancel group={group} count={n}");
         }
 
         return n;
@@ -431,7 +431,7 @@ public sealed partial class TaskManager : ITaskManager
         if (n > 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[FW.{nameof(TaskManager)}] cancel-all-workers count={n}");
+                                    .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelAllWorkers)}] cancel-all-workers count={n}");
         }
 
         return n;
@@ -573,7 +573,7 @@ public sealed partial class TaskManager : ITaskManager
         foreach (System.Collections.Generic.KeyValuePair<System.String, (System.Int32 running, System.Int32 total)> gkv in perGroup)
         {
             System.String gname = PadName(gkv.Key, 28);
-            if (_groupGates.TryGetValue(gkv.Key, out GATE? gate))
+            if (_groupGates.TryGetValue(gkv.Key, out Gate? gate))
             {
                 System.Int32 total = gate.Capacity;
                 System.Int32 used = total - gate.SemaphoreSlim.CurrentCount;
@@ -614,7 +614,7 @@ public sealed partial class TaskManager : ITaskManager
 
         static System.String FormatAge(System.DateTimeOffset start)
         {
-            var ts = System.DateTimeOffset.UtcNow - start;
+            System.TimeSpan ts = System.DateTimeOffset.UtcNow - start;
             return ts.TotalHours >= 1
                 ? $"{(System.Int32)ts.TotalHours}h{ts.Minutes:D2}m"
                 : ts.TotalMinutes >= 1 ? $"{(System.Int32)ts.TotalMinutes}m{ts.Seconds:D2}s" : $"{(System.Int32)ts.TotalSeconds}s";
@@ -641,12 +641,12 @@ public sealed partial class TaskManager : ITaskManager
 
         try { _cleanupTimer?.Dispose(); } catch { }
 
-        foreach (var kv in _recurring)
+        foreach (System.Collections.Generic.KeyValuePair<System.String, RecurringState> kv in _recurring)
         {
-            var st = kv.Value;
+            RecurringState st = kv.Value;
             st.Cancel();
 
-            var t = st.Task;
+            System.Threading.Tasks.Task? t = st.Task;
             if (t is not null)
             {
                 _ = t.ContinueWith(_ =>
@@ -661,47 +661,71 @@ public sealed partial class TaskManager : ITaskManager
             }
             else
             {
-                try { st.CancellationTokenSource.Dispose(); } catch { }
-                try { st.Gate.Dispose(); } catch { }
+                try
+                {
+                    st.CancellationTokenSource.Dispose();
+                }
+                catch { }
+                try
+                {
+                    st.Gate.Dispose();
+                }
+                catch { }
             }
         }
 
-        foreach (var kv in _workers)
+        foreach (System.Collections.Generic.KeyValuePair<ISnowflake, WorkerState> kv in _workers)
         {
-            var st = kv.Value;
+            WorkerState st = kv.Value;
             st.Cancel();
 
-            var t = st.Task;
+            System.Threading.Tasks.Task? t = st.Task;
             if (t?.IsCompleted == true)
             {
-                try { st.Cts.Dispose(); } catch { }
+                try
+                {
+                    st.Cts.Dispose();
+                }
+                catch { }
             }
             else if (t is not null)
             {
                 _ = t.ContinueWith(_ =>
                 {
-                    try { st.Cts.Dispose(); } catch { }
+                    try
+                    {
+                        st.Cts.Dispose();
+                    }
+                    catch { }
                 }, System.Threading.CancellationToken.None,
                 System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously,
                 System.Threading.Tasks.TaskScheduler.Default);
             }
             else
             {
-                try { st.Cts.Dispose(); } catch { }
+                try
+                {
+                    st.Cts.Dispose();
+                }
+                catch { }
             }
         }
 
         _recurring.Clear(); _workers.Clear();
 
-        foreach (var g in _groupGates)
+        foreach (System.Collections.Generic.KeyValuePair<System.String, Gate> g in _groupGates)
         {
-            try { g.Value.SemaphoreSlim.Dispose(); } catch { }
+            try
+            {
+                g.Value.SemaphoreSlim.Dispose();
+            }
+            catch { }
         }
 
         _groupGates.Clear();
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(TaskManager)}] disposed");
+                                .Debug($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] disposed");
 
         System.GC.SuppressFinalize(this);
     }

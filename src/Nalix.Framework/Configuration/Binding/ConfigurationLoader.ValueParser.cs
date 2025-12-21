@@ -76,7 +76,7 @@ public partial class ConfigurationLoader
 
         configFile.WriteValue(section, property.Name, valueToWrite);
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(ConfigurationLoader)}:{nameof(HandleEmptyValue)}] " +
+                                .Debug($"[FW.{nameof(ConfigurationLoader)}:Internal] " +
                                        $"default-written section={section} key={property.Name} val={valueToWrite}");
     }
 
@@ -105,7 +105,7 @@ public partial class ConfigurationLoader
                 break;
             case System.TypeCode.Char:
             case System.TypeCode.String:
-                return string.Empty;
+                return System.String.Empty;
             case System.TypeCode.Boolean:
                 return "false";
             case System.TypeCode.SByte:
@@ -123,7 +123,7 @@ public partial class ConfigurationLoader
             case System.TypeCode.DateTime:
                 return System.DateTime.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture);
         }
-        return string.Empty;
+        return System.String.Empty;
     }
 
     [System.Diagnostics.StackTraceHidden]
@@ -135,7 +135,7 @@ public partial class ConfigurationLoader
     private static System.Object ThrowUnsupported(PropertyMetadata property)
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Error($"[FW.{nameof(ConfigurationLoader)}:{nameof(ThrowUnsupported)}] " +
+                                .Error($"[FW.{nameof(ConfigurationLoader)}:Internal] " +
                                        $"unsupported-type type={property.PropertyType.Name} key={property.Name}");
 
         throw new System.NotSupportedException($"Value type {property.PropertyType.Name} is not supported for configuration files.");
