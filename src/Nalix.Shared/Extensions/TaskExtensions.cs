@@ -58,7 +58,7 @@ public static class TaskExtensions
     /// <param name="this">The <see cref="Task" /> on which this method is called.</param>
     /// <param name="continueOnCapturedContext">If set to <see langword="true"/>,
     /// attempts to marshal the continuation back to the original context captured.
-    /// This parameter has the same effect as calling the <see cref="Task.ConfigureAwait(System.Boolean)"/>
+    /// This parameter has the same effect as calling the <see cref="Task.ConfigureAwait(bool)"/>
     /// method.</param>
     /// <exception cref="System.ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
     [System.Diagnostics.DebuggerStepThrough]
@@ -67,7 +67,7 @@ public static class TaskExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Await(
         this Task @this,
-        System.Boolean continueOnCapturedContext)
+        bool continueOnCapturedContext)
     {
         System.ArgumentNullException.ThrowIfNull(@this);
 
@@ -96,7 +96,7 @@ public static class TaskExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static async Task<T?> WithTimeout<T>(
         this Task<T> @this,
-        System.Int32 msTimeout)
+        int msTimeout)
     {
         Task timeout = Task.Delay(msTimeout);
         Task completed = await Task.WhenAny(@this, timeout);
@@ -123,7 +123,11 @@ public static class TaskExtensions
     private sealed class DummyDisposable : System.IDisposable
     {
         public static readonly DummyDisposable Instance = new();
-        private DummyDisposable() { }
-        public void Dispose() { }
+
+        private DummyDisposable()
+        { }
+
+        public void Dispose()
+        { }
     }
 }

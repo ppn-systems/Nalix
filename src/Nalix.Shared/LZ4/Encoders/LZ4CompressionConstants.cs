@@ -13,7 +13,7 @@ public static class LZ4CompressionConstants
     /// <summary>
     /// The minimum length of a match for LZ4 compression.
     /// </summary>
-    public const System.Int32 MinMatchLength = 0x4;
+    public const int MinMatchLength = 0x4;
 
     /// <summary>
     /// The maximum backward offset allowed for a match in LZ4 format.
@@ -26,7 +26,7 @@ public static class LZ4CompressionConstants
     /// ⚠️ <b>DO NOT CHANGE THIS VALUE</b> - it would break LZ4 format compatibility.
     /// </para>
     /// </remarks>
-    public const System.Int32 MaxOffset = 0xFFFF;
+    public const int MaxOffset = 0xFFFF;
 
     /// <summary>
     /// The maximum block size supported by this implementation.
@@ -44,7 +44,7 @@ public static class LZ4CompressionConstants
     /// for practical reasons. For larger data, use chunked/streaming compression.
     /// </para>
     /// </remarks>
-    public const System.Int32 MaxBlockSize = 0x40000;
+    public const int MaxBlockSize = 0x40000;
 
     /// <summary>
     /// The number of trailing bytes required to safely encode a final literal segment.
@@ -53,7 +53,7 @@ public static class LZ4CompressionConstants
     /// This constant ensures there's enough space at the end of the input buffer
     /// to safely process the last few bytes without bounds checking in the hot loop.
     /// </remarks>
-    public const System.Int32 LastLiteralSize = 0x5;
+    public const int LastLiteralSize = 0x5;
 
     /// <summary>
     /// A bitmask for extracting the match length from the token (low 4 bits).
@@ -65,7 +65,7 @@ public static class LZ4CompressionConstants
     /// [3:0] Match length (0-15)
     /// </code>
     /// </remarks>
-    public const System.Int32 TokenMatchMask = 0x0F;
+    public const int TokenMatchMask = 0x0F;
 
     /// <summary>
     /// A bitmask for extracting the literal length from the token (high 4 bits).
@@ -77,5 +77,5 @@ public static class LZ4CompressionConstants
     /// [3:0] Match length (0-15)
     /// </code>
     /// </remarks>
-    public const System.Int32 TokenLiteralMask = 0x0F;
+    public const int TokenLiteralMask = 0x0F;
 }

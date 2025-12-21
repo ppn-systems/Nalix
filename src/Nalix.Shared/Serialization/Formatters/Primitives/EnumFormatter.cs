@@ -24,7 +24,7 @@ public sealed class EnumFormatter<
     private static readonly DeserializeDelegate _deserialize;
 
     private static readonly System.TypeCode UnderlyingTypeCode;
-    private static System.String DebuggerDisplay => $"EnumFormatter<{typeof(T).FullName}>";
+    private static string DebuggerDisplay => $"EnumFormatter<{typeof(T).FullName}>";
 
     static EnumFormatter()
     {
@@ -66,6 +66,7 @@ public sealed class EnumFormatter<
     #region Delegates for Enum Formatter
 
     private delegate T DeserializeDelegate(ref DataReader reader);
+
     private delegate void SerializeDelegate(ref DataWriter writer, T value);
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -79,105 +80,105 @@ public sealed class EnumFormatter<
             System.TypeCode.Byte => (
                 (ref DataWriter writer, T value) =>
                 {
-                    writer.Expand(sizeof(System.Byte));
-                    System.Byte b = System.Runtime.CompilerServices.Unsafe.As<T, System.Byte>(ref value);
-                    FormatterProvider.Get<System.Byte>().Serialize(ref writer, b);
+                    writer.Expand(sizeof(byte));
+                    byte b = System.Runtime.CompilerServices.Unsafe.As<T, byte>(ref value);
+                    FormatterProvider.Get<byte>().Serialize(ref writer, b);
                 },
                 (ref DataReader reader) =>
                 {
-                    System.Byte b = FormatterProvider.Get<System.Byte>().Deserialize(ref reader);
-                    return System.Runtime.CompilerServices.Unsafe.As<System.Byte, T>(ref b);
+                    byte b = FormatterProvider.Get<byte>().Deserialize(ref reader);
+                    return System.Runtime.CompilerServices.Unsafe.As<byte, T>(ref b);
                 }
             ),
             System.TypeCode.SByte => (
                 (ref DataWriter writer, T value) =>
                 {
-                    writer.Expand(sizeof(System.SByte));
-                    System.SByte b = System.Runtime.CompilerServices.Unsafe.As<T, System.SByte>(ref value);
-                    FormatterProvider.Get<System.SByte>().Serialize(ref writer, b);
+                    writer.Expand(sizeof(sbyte));
+                    sbyte b = System.Runtime.CompilerServices.Unsafe.As<T, sbyte>(ref value);
+                    FormatterProvider.Get<sbyte>().Serialize(ref writer, b);
                 },
                 (ref DataReader reader) =>
                 {
-                    System.SByte b = FormatterProvider.Get<System.SByte>().Deserialize(ref reader);
-                    return System.Runtime.CompilerServices.Unsafe.As<System.SByte, T>(ref b);
+                    sbyte b = FormatterProvider.Get<sbyte>().Deserialize(ref reader);
+                    return System.Runtime.CompilerServices.Unsafe.As<sbyte, T>(ref b);
                 }
             ),
             System.TypeCode.Int16 => (
                 (ref DataWriter writer, T value) =>
                 {
-                    writer.Expand(sizeof(System.Int16));
-                    System.Int16 v = System.Runtime.CompilerServices.Unsafe.As<T, System.Int16>(ref value);
-                    FormatterProvider.Get<System.Int16>().Serialize(ref writer, v);
+                    writer.Expand(sizeof(short));
+                    short v = System.Runtime.CompilerServices.Unsafe.As<T, short>(ref value);
+                    FormatterProvider.Get<short>().Serialize(ref writer, v);
                 },
                 (ref DataReader reader) =>
                 {
-                    System.Int16 v = FormatterProvider.Get<System.Int16>().Deserialize(ref reader);
-                    return System.Runtime.CompilerServices.Unsafe.As<System.Int16, T>(ref v);
+                    short v = FormatterProvider.Get<short>().Deserialize(ref reader);
+                    return System.Runtime.CompilerServices.Unsafe.As<short, T>(ref v);
                 }
             ),
             System.TypeCode.UInt16 => (
                 (ref DataWriter writer, T value) =>
                 {
-                    writer.Expand(sizeof(System.UInt16));
-                    System.UInt16 v = System.Runtime.CompilerServices.Unsafe.As<T, System.UInt16>(ref value);
-                    FormatterProvider.Get<System.UInt16>().Serialize(ref writer, v);
+                    writer.Expand(sizeof(ushort));
+                    ushort v = System.Runtime.CompilerServices.Unsafe.As<T, ushort>(ref value);
+                    FormatterProvider.Get<ushort>().Serialize(ref writer, v);
                 },
                 (ref DataReader reader) =>
                 {
-                    System.UInt16 v = FormatterProvider.Get<System.UInt16>().Deserialize(ref reader);
-                    return System.Runtime.CompilerServices.Unsafe.As<System.UInt16, T>(ref v);
+                    ushort v = FormatterProvider.Get<ushort>().Deserialize(ref reader);
+                    return System.Runtime.CompilerServices.Unsafe.As<ushort, T>(ref v);
                 }
             ),
             System.TypeCode.Int32 => (
                 (ref DataWriter writer, T value) =>
                 {
-                    writer.Expand(sizeof(System.Int32));
-                    System.Int32 v = System.Runtime.CompilerServices.Unsafe.As<T, System.Int32>(ref value);
-                    FormatterProvider.Get<System.Int32>().Serialize(ref writer, v);
+                    writer.Expand(sizeof(int));
+                    int v = System.Runtime.CompilerServices.Unsafe.As<T, int>(ref value);
+                    FormatterProvider.Get<int>().Serialize(ref writer, v);
                 },
                 (ref DataReader reader) =>
                 {
-                    System.Int32 v = FormatterProvider.Get<System.Int32>().Deserialize(ref reader);
-                    return System.Runtime.CompilerServices.Unsafe.As<System.Int32, T>(ref v);
+                    int v = FormatterProvider.Get<int>().Deserialize(ref reader);
+                    return System.Runtime.CompilerServices.Unsafe.As<int, T>(ref v);
                 }
             ),
             System.TypeCode.UInt32 => (
                 (ref DataWriter writer, T value) =>
                 {
-                    writer.Expand(sizeof(System.UInt32));
-                    System.UInt32 v = System.Runtime.CompilerServices.Unsafe.As<T, System.UInt32>(ref value);
-                    FormatterProvider.Get<System.UInt32>().Serialize(ref writer, v);
+                    writer.Expand(sizeof(uint));
+                    uint v = System.Runtime.CompilerServices.Unsafe.As<T, uint>(ref value);
+                    FormatterProvider.Get<uint>().Serialize(ref writer, v);
                 },
                 (ref DataReader reader) =>
                 {
-                    System.UInt32 v = FormatterProvider.Get<System.UInt32>().Deserialize(ref reader);
-                    return System.Runtime.CompilerServices.Unsafe.As<System.UInt32, T>(ref v);
+                    uint v = FormatterProvider.Get<uint>().Deserialize(ref reader);
+                    return System.Runtime.CompilerServices.Unsafe.As<uint, T>(ref v);
                 }
             ),
             System.TypeCode.Int64 => (
                 (ref DataWriter writer, T value) =>
                 {
-                    writer.Expand(sizeof(System.Int64));
-                    System.Int64 v = System.Runtime.CompilerServices.Unsafe.As<T, System.Int64>(ref value);
-                    FormatterProvider.Get<System.Int64>().Serialize(ref writer, v);
+                    writer.Expand(sizeof(long));
+                    long v = System.Runtime.CompilerServices.Unsafe.As<T, long>(ref value);
+                    FormatterProvider.Get<long>().Serialize(ref writer, v);
                 },
                 (ref DataReader reader) =>
                 {
-                    System.Int64 v = FormatterProvider.Get<System.Int64>().Deserialize(ref reader);
-                    return System.Runtime.CompilerServices.Unsafe.As<System.Int64, T>(ref v);
+                    long v = FormatterProvider.Get<long>().Deserialize(ref reader);
+                    return System.Runtime.CompilerServices.Unsafe.As<long, T>(ref v);
                 }
             ),
             System.TypeCode.UInt64 => (
                 (ref DataWriter writer, T value) =>
                 {
-                    writer.Expand(sizeof(System.UInt64));
-                    System.UInt64 v = System.Runtime.CompilerServices.Unsafe.As<T, System.UInt64>(ref value);
-                    FormatterProvider.Get<System.UInt64>().Serialize(ref writer, v);
+                    writer.Expand(sizeof(ulong));
+                    ulong v = System.Runtime.CompilerServices.Unsafe.As<T, ulong>(ref value);
+                    FormatterProvider.Get<ulong>().Serialize(ref writer, v);
                 },
                 (ref DataReader reader) =>
                 {
-                    System.UInt64 v = FormatterProvider.Get<System.UInt64>().Deserialize(ref reader);
-                    return System.Runtime.CompilerServices.Unsafe.As<System.UInt64, T>(ref v);
+                    ulong v = FormatterProvider.Get<ulong>().Deserialize(ref reader);
+                    return System.Runtime.CompilerServices.Unsafe.As<ulong, T>(ref v);
                 }
             ),
             System.TypeCode.Empty => throw new System.NotImplementedException(),

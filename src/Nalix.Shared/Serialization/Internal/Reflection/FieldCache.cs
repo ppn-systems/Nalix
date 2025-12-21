@@ -22,19 +22,22 @@ internal static partial class FieldCache<
 
     private static readonly FieldSchema[] _metadata;
     private static readonly SerializeLayout _layout;
-    private static readonly Dictionary<System.String, System.Int32> _fieldIndex;
+    private static readonly Dictionary<string, int> _fieldIndex;
 
-    private static readonly Dictionary<System.String, PropertyInfo> _propertyCache;
+    private static readonly Dictionary<string, PropertyInfo> _propertyCache;
 
     #endregion Static Fields
 
     #region Compiled Delegates Cache
 
-    // Store as object delegates, will be cast at runtime
+    /// <summary>
+    /// Store as object delegates, will be cast at runtime
+    /// </summary>
     private static readonly System.Delegate[] _getters;
+
     private static readonly System.Delegate[] _setters;
 
-    #endregion
+    #endregion Compiled Delegates Cache
 
     #region Static Constructor
 
@@ -47,7 +50,7 @@ internal static partial class FieldCache<
     {
         _layout = GetSerializeLayout();
 
-        _propertyCache = new Dictionary<System.String, PropertyInfo>(
+        _propertyCache = new Dictionary<string, PropertyInfo>(
             capacity: 32,
             comparer: System.StringComparer.Ordinal
         );
@@ -67,7 +70,7 @@ internal static partial class FieldCache<
         _getters = new System.Delegate[_metadata.Length];
         _setters = new System.Delegate[_metadata.Length];
 
-        for (System.Int32 i = 0; i < _metadata.Length; i++)
+        for (int i = 0; i < _metadata.Length; i++)
         {
             FieldInfo field = _metadata[i].FieldInfo;
             _getters[i] = CreateGetter(field);
@@ -91,7 +94,7 @@ internal static partial class FieldCache<
         System.Type type = typeof(TField);
 
         List<FieldInfo> fields = [];
-        while (type != null && type != typeof(System.Object))
+        while (type != null && type != typeof(object))
         {
             fields.AddRange(type.GetFields(
             BindingFlags.Public |
@@ -102,7 +105,7 @@ internal static partial class FieldCache<
         }
 
         List<FieldSchema> includedFields = new(fields.Count);
-        System.Int32 sequentialOrder = 0;
+        int sequentialOrder = 0;
 
         foreach (FieldInfo field in fields)
         {
@@ -111,11 +114,11 @@ internal static partial class FieldCache<
                 continue;
             }
 
-            System.Int32 order;
+            int order;
 
             if (_layout is SerializeLayout.Explicit)
             {
-                var explicitOrder = GetExplicitOrder(field);
+                int? explicitOrder = GetExplicitOrder(field);
                 if (explicitOrder is null)
                 {
                     continue;
@@ -153,13 +156,13 @@ internal static partial class FieldCache<
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static Dictionary<System.String, System.Int32> BuildFieldIndex()
+    private static Dictionary<string, int> BuildFieldIndex()
     {
         // Performance: StringComparer.Ordinal nhanh hơn default
-        Dictionary<System.String, System.Int32> index = new(
+        Dictionary<string, int> index = new(
             _metadata.Length, System.StringComparer.Ordinal);
 
-        for (System.Int32 i = 0; i < _metadata.Length; i++)
+        for (int i = 0; i < _metadata.Length; i++)
         {
             index[_metadata[i].Name] = i;
         }
@@ -167,7 +170,11 @@ internal static partial class FieldCache<
         return index;
     }
 
-    // Updated method to move the DynamicallyAccessedMembersAttribute to the parameter
+    /// <summary>
+    /// Updated method to move the DynamicallyAccessedMembersAttribute to the parameter
+    /// </summary>
+    /// <param name="field"></param>
+    /// <returns></returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality",
@@ -175,7 +182,7 @@ internal static partial class FieldCache<
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
         "IL2090:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. " +
         "The generic parameter of the source method or type does not have matching annotations.", Justification = "<Pending>")]
-    private static System.Int32? GetExplicitOrder(FieldInfo field)
+    private static int? GetExplicitOrder(FieldInfo field)
     {
         System.Type? type = field.DeclaringType;
         if (type is null)
@@ -189,7 +196,7 @@ internal static partial class FieldCache<
         {
             if (field.Name == property.Name || IsBackingFieldFor(field, property))
             {
-                SerializeOrderAttribute? attr = CustomAttributeExtensions.GetCustomAttribute<SerializeOrderAttribute>(property);
+                SerializeOrderAttribute? attr = property.GetCustomAttribute<SerializeOrderAttribute>();
                 if (attr is not null)
                 {
                     return attr.Order;
@@ -202,7 +209,7 @@ internal static partial class FieldCache<
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Boolean IsBackingFieldFor(
+    private static bool IsBackingFieldFor(
         FieldInfo field,
         PropertyInfo property) => field.Name == $"<{property.Name}>k__BackingField";
 
@@ -212,16 +219,16 @@ internal static partial class FieldCache<
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static System.Boolean ShouldIgnoreField(FieldInfo field)
+    private static bool ShouldIgnoreField(FieldInfo field)
     {
         // Rule 1: Skip backing fields nếu property có SerializeIgnoreAttribute
         if (field.Name.StartsWith('<') && field.Name.Contains(">k__BackingField"))
         {
-            var propertyName = field.Name[1..field.Name.IndexOf('>')];
+            string propertyName = field.Name[1..field.Name.IndexOf('>')];
             if (_propertyCache.TryGetValue(propertyName, out PropertyInfo? property))
             {
                 // Nếu property bị ignore thì skip backing field
-                if (CustomAttributeExtensions.GetCustomAttribute<SerializeIgnoreAttribute>(property) is not null)
+                if (property.GetCustomAttribute<SerializeIgnoreAttribute>() is not null)
                 {
                     return true;
                 }
@@ -229,7 +236,7 @@ internal static partial class FieldCache<
         }
 
         // Rule 2: Skip fields có SerializeIgnoreAttribute
-        return CustomAttributeExtensions.GetCustomAttribute<SerializeIgnoreAttribute>(field) is not null;
+        return field.GetCustomAttribute<SerializeIgnoreAttribute>() is not null;
     }
 
     #endregion Domain Rules - Business Logic
@@ -275,16 +282,16 @@ internal static partial class FieldCache<
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void EnsureNoDuplicateOrders()
     {
-        IEnumerable<System.Linq.IGrouping<System.Int32, FieldSchema>> orderGroups = System.Linq.Enumerable.Where(
+        IEnumerable<System.Linq.IGrouping<int, FieldSchema>> orderGroups = System.Linq.Enumerable.Where(
             System.Linq.Enumerable.GroupBy(_metadata, f => f.Order),
             g => System.Linq.Enumerable.Count(g) > 1
         );
 
         if (System.Linq.Enumerable.Any(orderGroups))
         {
-            System.String duplicates = System.String.Join(", ",
+            string duplicates = string.Join(", ",
                 System.Linq.Enumerable.Select(orderGroups, g =>
-                    $"Order {g.Key}: [{System.String.Join(", ",
+                    $"Order {g.Key}: [{string.Join(", ",
                         System.Linq.Enumerable.Select(g, f => f.Name))}]"));
 
             throw new System.InvalidOperationException(
@@ -303,7 +310,7 @@ internal static partial class FieldCache<
 
         if (System.Linq.Enumerable.Any(negativeOrders))
         {
-            var negativeFields = System.String.Join(", ",
+            string negativeFields = string.Join(", ",
                 System.Linq.Enumerable.Select(negativeOrders, f => $"{f.Name}({f.Order})"));
 
             throw new System.InvalidOperationException(

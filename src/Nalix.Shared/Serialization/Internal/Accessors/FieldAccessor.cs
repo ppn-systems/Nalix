@@ -20,11 +20,15 @@ internal abstract class FieldAccessor<
 {
     #region Fields
 
-    // Cached MethodInfo to avoid repeated reflection lookups
+    /// <summary>
+    /// Cached MethodInfo to avoid repeated reflection lookups
+    /// </summary>
     private static readonly System.Reflection.MethodInfo s_createTypedGeneric;
 
-    // Cache of compiled factories per field runtime type
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<System.Int32, FieldAccessor<T>>> s_factories;
+    /// <summary>
+    /// Cache of compiled factories per field runtime type
+    /// </summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<int, FieldAccessor<T>>> s_factories;
 
     #endregion Fields
 
@@ -48,7 +52,7 @@ internal abstract class FieldAccessor<
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static FieldAccessor<T> Create(FieldSchema schema, System.Int32 index)
+    public static FieldAccessor<T> Create(FieldSchema schema, int index)
     {
         if (schema.Equals(default))
         {
@@ -72,14 +76,14 @@ internal abstract class FieldAccessor<
         try
         {
             // Get or create compiled factory for this fieldType
-            System.Func<System.Int32, FieldAccessor<T>> factory = s_factories.GetOrAdd(fieldType, static ft =>
+            System.Func<int, FieldAccessor<T>> factory = s_factories.GetOrAdd(fieldType, static ft =>
             {
                 // Build closed generic method: CreateTyped<TField>(int)
                 System.Reflection.MethodInfo mi = s_createTypedGeneric.MakeGenericMethod(ft);
 
                 // Compile to delegate to avoid MethodInfo.Invoke overhead
                 // Signature: Func<int, FieldAccessor<T>>
-                return mi.CreateDelegate<System.Func<System.Int32, FieldAccessor<T>>>();
+                return mi.CreateDelegate<System.Func<int, FieldAccessor<T>>>();
             });
 
             return factory(index);
@@ -93,5 +97,5 @@ internal abstract class FieldAccessor<
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static FieldAccessorImpl<T, TField> CreateTyped<TField>(System.Int32 index) => new(index);
+    private static FieldAccessorImpl<T, TField> CreateTyped<TField>(int index) => new(index);
 }

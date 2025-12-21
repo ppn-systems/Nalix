@@ -12,7 +12,7 @@ namespace Nalix.Shared.Serialization.Internal.Types;
 /// Represents the kind of type.
 /// </summary>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-internal enum TypeKind : System.Byte
+internal enum TypeKind : byte
 {
     /// <summary>
     /// No specific type assigned.

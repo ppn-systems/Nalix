@@ -24,7 +24,7 @@ public static class FormatterProvider
 {
     #region Fields
 
-    private static Int32 _cntTotal, _cntPrimitives, _cntNullables, _cntArrays, _cntNullableArrays, _cntLists, _cntEnums, _cntStrings;
+    private static int _cntTotal, _cntPrimitives, _cntNullables, _cntArrays, _cntNullableArrays, _cntLists, _cntEnums, _cntStrings;
     private static readonly System.Diagnostics.Stopwatch _sw = System.Diagnostics.Stopwatch.StartNew();
 
     private static readonly System.Collections.Generic.HashSet<Type> s_valueTupleDefinitions =
@@ -35,7 +35,7 @@ public static class FormatterProvider
         typeof(ValueTuple<,,,,>)
     ];
 
-    private static readonly System.Collections.Generic.Dictionary<Int32, Type> s_valueTupleFormatterDefs = new()
+    private static readonly System.Collections.Generic.Dictionary<int, Type> s_valueTupleFormatterDefs = new()
     {
         { 2, typeof(ValueTupleFormatter<,>) },
         { 3, typeof(ValueTupleFormatter<,,>) },
@@ -43,8 +43,10 @@ public static class FormatterProvider
         { 5, typeof(ValueTupleFormatter<,,,,>) },
     };
 
-    // Factory cache (type -> factory delegate)
-    private static readonly ConcurrentDictionary<Type, Func<Object>> _formatterFactories = new();
+    /// <summary>
+    /// Factory cache (type -> factory delegate)
+    /// </summary>
+    private static readonly ConcurrentDictionary<Type, Func<object>> _formatterFactories = new();
 
     #endregion Fields
 
@@ -62,19 +64,19 @@ public static class FormatterProvider
 
         // ============================================================ //
         // Integer types
-        Register(new UnmanagedFormatter<Char>());
-        Register(new UnmanagedFormatter<Byte>());
-        Register(new UnmanagedFormatter<SByte>());
-        Register(new UnmanagedFormatter<Int16>());
-        Register(new UnmanagedFormatter<Int32>());
-        Register(new UnmanagedFormatter<Int64>());
-        Register(new UnmanagedFormatter<UInt16>());
-        Register(new UnmanagedFormatter<UInt32>());
-        Register(new UnmanagedFormatter<UInt64>());
-        Register(new UnmanagedFormatter<Single>());
-        Register(new UnmanagedFormatter<Double>());
-        Register(new UnmanagedFormatter<Boolean>());
-        Register(new UnmanagedFormatter<Decimal>());
+        Register(new UnmanagedFormatter<char>());
+        Register(new UnmanagedFormatter<byte>());
+        Register(new UnmanagedFormatter<sbyte>());
+        Register(new UnmanagedFormatter<short>());
+        Register(new UnmanagedFormatter<int>());
+        Register(new UnmanagedFormatter<long>());
+        Register(new UnmanagedFormatter<ushort>());
+        Register(new UnmanagedFormatter<uint>());
+        Register(new UnmanagedFormatter<ulong>());
+        Register(new UnmanagedFormatter<float>());
+        Register(new UnmanagedFormatter<double>());
+        Register(new UnmanagedFormatter<bool>());
+        Register(new UnmanagedFormatter<decimal>());
 
         Register(new UnmanagedFormatter<Guid>());
         Register(new UnmanagedFormatter<DateOnly>());
@@ -85,18 +87,18 @@ public static class FormatterProvider
 
         // ============================================================ //
         // Integer arrays
-        Register(new ArrayFormatter<Char>());
-        Register(new ArrayFormatter<Byte>());
-        Register(new ArrayFormatter<SByte>());
-        Register(new ArrayFormatter<Int16>());
-        Register(new ArrayFormatter<Int32>());
-        Register(new ArrayFormatter<Int64>());
-        Register(new ArrayFormatter<UInt16>());
-        Register(new ArrayFormatter<UInt32>());
-        Register(new ArrayFormatter<UInt64>());
-        Register(new ArrayFormatter<Single>());
-        Register(new ArrayFormatter<Double>());
-        Register(new ArrayFormatter<Boolean>());
+        Register(new ArrayFormatter<char>());
+        Register(new ArrayFormatter<byte>());
+        Register(new ArrayFormatter<sbyte>());
+        Register(new ArrayFormatter<short>());
+        Register(new ArrayFormatter<int>());
+        Register(new ArrayFormatter<long>());
+        Register(new ArrayFormatter<ushort>());
+        Register(new ArrayFormatter<uint>());
+        Register(new ArrayFormatter<ulong>());
+        Register(new ArrayFormatter<float>());
+        Register(new ArrayFormatter<double>());
+        Register(new ArrayFormatter<bool>());
 
         Register(new ArrayFormatter<Guid>());
         Register(new ArrayFormatter<DateOnly>());
@@ -107,19 +109,19 @@ public static class FormatterProvider
 
         // ============================================================ //
         // Nullable types
-        Register(new NullableFormatter<Char>());
-        Register(new NullableFormatter<Byte>());
-        Register(new NullableFormatter<SByte>());
-        Register(new NullableFormatter<Int16>());
-        Register(new NullableFormatter<Int32>());
-        Register(new NullableFormatter<Int64>());
-        Register(new NullableFormatter<UInt16>());
-        Register(new NullableFormatter<UInt32>());
-        Register(new NullableFormatter<UInt64>());
-        Register(new NullableFormatter<Single>());
-        Register(new NullableFormatter<Double>());
-        Register(new NullableFormatter<Decimal>());
-        Register(new NullableFormatter<Boolean>());
+        Register(new NullableFormatter<char>());
+        Register(new NullableFormatter<byte>());
+        Register(new NullableFormatter<sbyte>());
+        Register(new NullableFormatter<short>());
+        Register(new NullableFormatter<int>());
+        Register(new NullableFormatter<long>());
+        Register(new NullableFormatter<ushort>());
+        Register(new NullableFormatter<uint>());
+        Register(new NullableFormatter<ulong>());
+        Register(new NullableFormatter<float>());
+        Register(new NullableFormatter<double>());
+        Register(new NullableFormatter<decimal>());
+        Register(new NullableFormatter<bool>());
 
         // Nullable complex types
         Register(new NullableFormatter<Guid>());
@@ -129,19 +131,19 @@ public static class FormatterProvider
         Register(new NullableFormatter<TimeOnly>());
         Register(new NullableFormatter<DateTimeOffset>());
 
-        Register(new NullableArrayFormatter<Char>());
-        Register(new NullableArrayFormatter<Byte>());
-        Register(new NullableArrayFormatter<SByte>());
-        Register(new NullableArrayFormatter<Int16>());
-        Register(new NullableArrayFormatter<Int32>());
-        Register(new NullableArrayFormatter<Int64>());
-        Register(new NullableArrayFormatter<UInt16>());
-        Register(new NullableArrayFormatter<UInt32>());
-        Register(new NullableArrayFormatter<UInt64>());
-        Register(new NullableArrayFormatter<Single>());
-        Register(new NullableArrayFormatter<Double>());
-        Register(new NullableArrayFormatter<Boolean>());
-        Register(new NullableArrayFormatter<Decimal>());
+        Register(new NullableArrayFormatter<char>());
+        Register(new NullableArrayFormatter<byte>());
+        Register(new NullableArrayFormatter<sbyte>());
+        Register(new NullableArrayFormatter<short>());
+        Register(new NullableArrayFormatter<int>());
+        Register(new NullableArrayFormatter<long>());
+        Register(new NullableArrayFormatter<ushort>());
+        Register(new NullableArrayFormatter<uint>());
+        Register(new NullableArrayFormatter<ulong>());
+        Register(new NullableArrayFormatter<float>());
+        Register(new NullableArrayFormatter<double>());
+        Register(new NullableArrayFormatter<bool>());
+        Register(new NullableArrayFormatter<decimal>());
 
         Register(new NullableArrayFormatter<Guid>());
         Register(new NullableArrayFormatter<DateOnly>());
@@ -198,11 +200,11 @@ public static class FormatterProvider
 
         Type t = typeof(T);
         Type ut = t;
-        Boolean isArray = ut.IsArray;
-        Boolean isNullable = ut.IsGenericType && ut.GetGenericTypeDefinition() == typeof(Nullable<>);
+        bool isArray = ut.IsArray;
+        bool isNullable = ut.IsGenericType && ut.GetGenericTypeDefinition() == typeof(Nullable<>);
 
         _ = System.Threading.Interlocked.Increment(ref _cntTotal);
-        if (t == typeof(String))
+        if (t == typeof(string))
         {
             _ = System.Threading.Interlocked.Increment(ref _cntStrings); return;
         }
@@ -228,8 +230,8 @@ public static class FormatterProvider
 
         if (ut.IsPrimitive ||
             ut == typeof(Guid) ||
-            ut == typeof(Char) ||
-            ut == typeof(Decimal) ||
+            ut == typeof(char) ||
+            ut == typeof(decimal) ||
             ut == typeof(DateTime) ||
             ut == typeof(TimeSpan) ||
             ut == typeof(DateTimeOffset))
@@ -241,7 +243,6 @@ public static class FormatterProvider
         if (ut.IsGenericType && ut.GetGenericTypeDefinition() == typeof(System.Collections.Generic.List<>))
         {
             _ = System.Threading.Interlocked.Increment(ref _cntLists);
-            return;
         }
     }
 
@@ -272,14 +273,14 @@ public static class FormatterProvider
         {
             // Use Interlocked.CompareExchange to ensure only the first successful writer wins.
             // If another thread already set ComplexTypeCache<T>.Struct, we keep the existing one.
-            _ = System.Threading.Interlocked.CompareExchange(ref ComplexTypeCache<T>.Struct!, formatter, default!);
+            _ = System.Threading.Interlocked.CompareExchange(ref ComplexTypeCache<T>.Struct, formatter, default);
 
             return;
         }
         else if (type.IsClass)
         {
             // Same for class formatters.
-            _ = System.Threading.Interlocked.CompareExchange(ref ComplexTypeCache<T>.Class!, formatter, default!);
+            _ = System.Threading.Interlocked.CompareExchange(ref ComplexTypeCache<T>.Class, formatter, default);
 
             return;
         }
@@ -386,7 +387,7 @@ public static class FormatterProvider
         }
 
         // 5) Class (exclude string)
-        if (t.IsClass && t != typeof(String))
+        if (t.IsClass && t != typeof(string))
         {
             if (Attribute.IsDefined(t, typeof(SerializePackableAttribute)))
             {
@@ -439,8 +440,8 @@ public static class FormatterProvider
             }
 
             // Use cached factory delegate instead of reflection
-            Func<Object> factory = GetFormatterFactory(type, typeof(StructFormatter<>));
-            Object? @struct = factory() ?? throw new InvalidOperationException($"Failed to create instance of StructFormatter<{type.Name}>.");
+            Func<object> factory = GetFormatterFactory(type, typeof(StructFormatter<>));
+            object? @struct = factory() ?? throw new InvalidOperationException($"Failed to create instance of StructFormatter<{type.Name}>.");
             RegisterComplex((IFormatter<T>)@struct);
             return ComplexTypeCache<T>.Struct;
         }
@@ -452,8 +453,8 @@ public static class FormatterProvider
                 return formatter;
             }
 
-            Func<Object> factory = GetFormatterFactory(type, typeof(ObjectFormatter<>));
-            Object? @object = factory() ?? throw new InvalidOperationException($"Failed to create instance of ObjectFormatter<{type.Name}>.");
+            Func<object> factory = GetFormatterFactory(type, typeof(ObjectFormatter<>));
+            object? @object = factory() ?? throw new InvalidOperationException($"Failed to create instance of ObjectFormatter<{type.Name}>.");
             RegisterComplex((IFormatter<T>)@object);
             return ComplexTypeCache<T>.Class;
         }
@@ -478,14 +479,14 @@ public static class FormatterProvider
     /// </summary>
     /// <param name="type">Target type</param>
     /// <param name="genericFormatterType">Generic definition, e.g. typeof(StructFormatter&lt;&gt;)</param>
-    private static Func<Object> GetFormatterFactory(Type type, Type genericFormatterType)
+    private static Func<object> GetFormatterFactory(Type type, Type genericFormatterType)
     {
         return _formatterFactories.GetOrAdd(type, t =>
         {
             Type constructed = genericFormatterType.MakeGenericType(t);
             ConstructorInfo ctor = constructed.GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException($"No parameterless constructor for {constructed}");
             System.Linq.Expressions.NewExpression newExpr = System.Linq.Expressions.Expression.New(ctor);
-            System.Linq.Expressions.Expression<Func<Object>> lambda = System.Linq.Expressions.Expression.Lambda<Func<Object>>(newExpr);
+            System.Linq.Expressions.Expression<Func<object>> lambda = System.Linq.Expressions.Expression.Lambda<Func<object>>(newExpr);
 
             return lambda.Compile();
         });
@@ -505,10 +506,8 @@ public static class FormatterProvider
             Register(enumFormatter);
             return enumFormatter;
         }
-        else
-        {
-            return null;
-        }
+
+        return null;
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -639,7 +638,7 @@ public static class FormatterProvider
 
         Type elementType = t.GetGenericArguments()[0];
 
-        return elementType.IsClass && elementType != typeof(String)
+        return elementType.IsClass && elementType != typeof(string)
             ? null : (IFormatter<T>)Activator.CreateInstance(typeof(QueueFormatter<>).MakeGenericType(elementType))!;
     }
 
@@ -659,7 +658,7 @@ public static class FormatterProvider
 
         Type elem = t.GetGenericArguments()[0];
 
-        return elem.IsClass && elem != typeof(String)
+        return elem.IsClass && elem != typeof(string)
             ? null : (IFormatter<T>)Activator.CreateInstance(typeof(StackFormatter<>).MakeGenericType(elem))!;
     }
 
@@ -679,7 +678,7 @@ public static class FormatterProvider
 
         Type elem = t.GetGenericArguments()[0];
 
-        return elem.IsClass && elem != typeof(String)
+        return elem.IsClass && elem != typeof(string)
             ? null : (IFormatter<T>)Activator.CreateInstance(typeof(HashSetFormatter<>).MakeGenericType(elem))!;
     }
 
@@ -701,11 +700,18 @@ public static class FormatterProvider
 
         Type elem = t.GetGenericArguments()[0];
 
-        return !TypeMetadata.IsUnmanaged(elem)
-            ? throw new NotSupportedException($"MemoryFormatter only supports unmanaged element types. T='{elem.Name}' is not unmanaged. For strings, use IFormatter<string> directly.")
-            : def == typeof(Memory<>)
-            ? (IFormatter<T>)Activator.CreateInstance(typeof(MemoryFormatter<>).MakeGenericType(elem))!
-            : (IFormatter<T>)Activator.CreateInstance(typeof(ReadOnlyMemoryFormatter<>).MakeGenericType(elem))!;
+        if (!TypeMetadata.IsUnmanaged(elem))
+        {
+            return throw new NotSupportedException($"MemoryFormatter only supports unmanaged element types. T='{elem.Name}' is not unmanaged. For strings, use IFormatter<string> directly.");
+        }
+        else if (def == typeof(Memory<>))
+        {
+            return (IFormatter<T>)Activator.CreateInstance(typeof(MemoryFormatter<>).MakeGenericType(elem))!;
+        }
+        else
+        {
+            return (IFormatter<T>)Activator.CreateInstance(typeof(ReadOnlyMemoryFormatter<>).MakeGenericType(elem))!;
+        }
     }
 
     private static IFormatter<T>? TryCreateValueTupleFormatter<
@@ -729,9 +735,9 @@ public static class FormatterProvider
         }
 
         Type[] typeArgs = t.GetGenericArguments();
-        Int32 arity = typeArgs.Length;
+        int arity = typeArgs.Length;
 
-        Int32 formatterArity = Math.Min(arity, 5);
+        int formatterArity = Math.Min(arity, 5);
 
         if (!s_valueTupleFormatterDefs.TryGetValue(formatterArity, out Type? formatterDef))
         {

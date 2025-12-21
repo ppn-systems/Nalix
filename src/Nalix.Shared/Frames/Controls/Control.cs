@@ -33,18 +33,18 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
     /// Gets or sets the timestamp associated with this packet.s
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.DATA_REGION + 2)]
-    public System.Int64 Timestamp { get; set; }
+    public long Timestamp { get; set; }
 
     /// <summary>
     /// Gets or sets the monotonic timestamp (in ticks) for RTT measurement.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.DATA_REGION + 3)]
-    public System.Int64 MonoTicks { get; set; }
+    public long MonoTicks { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the Control class with default metadata values.
     /// </summary>
-    public Control() : base() => ResetForPool();
+    public Control() => ResetForPool();
 
     /// <summary>
     /// Initializes the control packet with full metadata.
@@ -54,7 +54,7 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
     /// <param name="reasonCode">The reason code (optional, default = 0).</param>
     /// <param name="transport">The transport protocol (default = TCP).</param>
     public void Initialize(
-        ControlType type, System.UInt32 sequenceId = 0,
+        ControlType type, uint sequenceId = 0,
         ProtocolReason reasonCode = ProtocolReason.NONE, ProtocolType transport = ProtocolType.TCP)
     {
         Type = type;
@@ -74,7 +74,7 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
     /// <param name="reasonCode">The reason code (optional, default = 0).</param>
     /// <param name="transport">The transport protocol (default = TCP).</param>
     public void Initialize(
-        System.UInt16 opCode, ControlType type, System.UInt32 sequenceId = 0,
+        ushort opCode, ControlType type, uint sequenceId = 0,
         ProtocolReason reasonCode = ProtocolReason.NONE, ProtocolType transport = ProtocolType.TCP)
     {
         OpCode = opCode;
@@ -94,7 +94,7 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
     }
 
     /// <inheritdoc/>
-    public override System.String ToString() =>
+    public override string ToString() =>
         $"Control(Op={OpCode}, Len={Length}, Flg={Flags}, Pri={Priority}, " +
         $"Tr={Protocol}, SEQ={SequenceId}, Rsn={Reason}, Typ={Type}, Ts={Timestamp}, Mono={MonoTicks})";
 }

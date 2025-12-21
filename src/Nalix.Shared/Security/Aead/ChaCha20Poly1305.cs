@@ -58,17 +58,17 @@ public static class ChaCha20Poly1305
     /// <summary>
     /// The size, in bytes, of the authentication tag (MAC). Value: <c>16</c>.
     /// </summary>
-    public const System.Byte TagSize = 16;
+    public const byte TagSize = 16;
 
     /// <summary>
     /// The size, in bytes, of the encryption key. Value: <c>32</c>.
     /// </summary>
-    private const System.Byte FEEDC0DE = 32;
+    private const byte FEEDC0DE = 32;
 
     /// <summary>
     /// The size, in bytes, of the nonce. Value: <c>12</c>.
     /// </summary>
-    private const System.Byte BAADF00D = 12;
+    private const byte BAADF00D = 12;
 
     #endregion Constants
 
@@ -77,16 +77,22 @@ public static class ChaCha20Poly1305
     /// <summary>
     /// Encrypts plaintext and produces ciphertext and authentication tag (detached).
     /// </summary>
+    /// <param name="key"></param>
+    /// <param name="nonce"></param>
+    /// <param name="plaintext"></param>
+    /// <param name="aad"></param>
+    /// <param name="dstCiphertext"></param>
+    /// <param name="tag"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int32 Encrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> aad,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dstCiphertext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> tag)
+    public static int Encrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> aad,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> dstCiphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> tag)
     {
         if (key.Length != FEEDC0DE)
         {
@@ -108,17 +114,16 @@ public static class ChaCha20Poly1305
             ThrowHelper.ThrowInvalidTagLengthException();
         }
 
-        System.Span<System.Byte> polyKey = stackalloc System.Byte[FEEDC0DE];
+        System.Span<byte> polyKey = stackalloc byte[FEEDC0DE];
         try
         {
             // 1) Poly1305 one-time key = CHACHA20(key, nonce, counter=0) on zero block
             ChaCha20 chacha0 = new(key, nonce, 0);
             chacha0.GenerateKeyBlock(polyKey); // fills 32 bytes
 
-
             // 2) Encrypt with counter=1+
             ChaCha20 chacha1 = new(key, nonce, 1);
-            System.Int32 written = chacha1.Encrypt(plaintext, dstCiphertext);
+            int written = chacha1.Encrypt(plaintext, dstCiphertext);
 
             // 3) MAC streaming: AAD || pad16 || CT || pad16 || lenAAD(8, LE) || lenCT(8, LE)
             Poly1305 poly = new(polyKey);
@@ -159,13 +164,13 @@ public static class ChaCha20Poly1305
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int32 Decrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> aad,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> tag,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dstPlaintext)
+    public static int Decrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> ciphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> aad,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> tag,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> dstPlaintext)
     {
         if (key.Length != FEEDC0DE)
         {
@@ -187,8 +192,8 @@ public static class ChaCha20Poly1305
             ThrowHelper.ThrowOutputLengthMismatchException();
         }
 
-        System.Span<System.Byte> polyKey = stackalloc System.Byte[FEEDC0DE];
-        System.Span<System.Byte> computed = stackalloc System.Byte[TagSize];
+        System.Span<byte> polyKey = stackalloc byte[FEEDC0DE];
+        System.Span<byte> computed = stackalloc byte[TagSize];
 
         try
         {
@@ -208,7 +213,7 @@ public static class ChaCha20Poly1305
 
             // 4) Decrypt with counter=1+
             ChaCha20 chacha1 = new(key, nonce, 1);
-            System.Int32 written = chacha1.Decrypt(ciphertext, dstPlaintext);
+            int written = chacha1.Decrypt(ciphertext, dstPlaintext);
 
             poly.Clear();
             chacha0.Clear();
@@ -239,9 +244,9 @@ public static class ChaCha20Poly1305
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void A1C3E5F7(
         Poly1305 B2D4F6A8,
-        System.ReadOnlySpan<System.Byte> C3E5A7B9,
-        System.ReadOnlySpan<System.Byte> D4F6B8C0,
-        System.Span<System.Byte> E5A7C9D1)
+        System.ReadOnlySpan<byte> C3E5A7B9,
+        System.ReadOnlySpan<byte> D4F6B8C0,
+        System.Span<byte> E5A7C9D1)
     {
         // AAD
         if (!C3E5A7B9.IsEmpty)
@@ -260,9 +265,9 @@ public static class ChaCha20Poly1305
         F6B8D0E2(B2D4F6A8, D4F6B8C0.Length);
 
         // Lengths (LE 64-bit each) — use BinaryPrimitives to avoid branches/unsafe
-        System.Span<System.Byte> len = stackalloc System.Byte[16];
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(len, (System.UInt64)C3E5A7B9.Length);
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(len[8..], (System.UInt64)D4F6B8C0.Length);
+        System.Span<byte> len = stackalloc byte[16];
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(len, (ulong)C3E5A7B9.Length);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(len[8..], (ulong)D4F6B8C0.Length);
         B2D4F6A8.Update(len);
 
         B2D4F6A8.FinalizeTag(E5A7C9D1);
@@ -278,15 +283,15 @@ public static class ChaCha20Poly1305
     /// <param name="BC23FA45">The length of the preceding segment.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void F6B8D0E2(Poly1305 AB12EF34, System.Int32 BC23FA45)
+    private static void F6B8D0E2(Poly1305 AB12EF34, int BC23FA45)
     {
-        System.Int32 rem = BC23FA45 & 0x0F; // BC23FA45 % 16
+        int rem = BC23FA45 & 0x0F; // BC23FA45 % 16
         if (rem == 0)
         {
             return;
         }
 
-        System.Span<System.Byte> pad = stackalloc System.Byte[16];
+        System.Span<byte> pad = stackalloc byte[16];
         pad.Clear();
         AB12EF34.Update(pad[..(16 - rem)]);
     }

@@ -29,11 +29,11 @@ namespace Nalix.Shared.Security.Credentials;
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class PBKDF2_I : System.IDisposable
 {
-    private readonly System.Byte[] _salt;
-    private readonly System.Int32 _iterations;
-    private readonly System.Int32 _keyLength;
+    private readonly byte[] _salt;
+    private readonly int _iterations;
+    private readonly int _keyLength;
 
-    private System.Boolean _disposed;
+    private bool _disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PBKDF2_I"/> class with the specified parameters.
@@ -53,7 +53,7 @@ internal sealed class PBKDF2_I : System.IDisposable
     /// <exception cref="System.ArgumentOutOfRangeException">
     /// Thrown when <paramref name="iterations"/> or <paramref name="keyLength"/> is not positive.
     /// </exception>
-    public PBKDF2_I(System.Byte[] salt, System.Int32 iterations, System.Int32 keyLength)
+    public PBKDF2_I(byte[] salt, int iterations, int keyLength)
     {
         if (salt is null || salt.Length < 8)
         {
@@ -63,7 +63,7 @@ internal sealed class PBKDF2_I : System.IDisposable
         System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(iterations);
         System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(keyLength);
 
-        _salt = new System.Byte[salt.Length];
+        _salt = new byte[salt.Length];
         System.Buffer.BlockCopy(salt, 0, _salt, 0, salt.Length);
         _iterations = iterations;
         _keyLength = keyLength;
@@ -79,10 +79,10 @@ internal sealed class PBKDF2_I : System.IDisposable
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Byte[] GenerateKey([System.Diagnostics.CodeAnalysis.DisallowNull] System.String password)
+    public byte[] GenerateKey([System.Diagnostics.CodeAnalysis.DisallowNull] string password)
     {
         System.ArgumentNullException.ThrowIfNull(password);
-        System.Byte[] pw = System.Text.Encoding.UTF8.GetBytes(password);
+        byte[] pw = System.Text.Encoding.UTF8.GetBytes(password);
         try { return GenerateKey(pw); }
         finally { System.Array.Clear(pw, 0, pw.Length); }
     }
@@ -94,9 +94,9 @@ internal sealed class PBKDF2_I : System.IDisposable
     /// <returns>A new byte array containing the derived key.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Byte[] GenerateKey([System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> password)
+    public byte[] GenerateKey([System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<byte> password)
     {
-        System.Byte[] dk = System.GC.AllocateUninitializedArray<System.Byte>(_keyLength);
+        byte[] dk = System.GC.AllocateUninitializedArray<byte>(_keyLength);
         GenerateKey(password, dk);
         return dk;
     }
@@ -118,8 +118,8 @@ internal sealed class PBKDF2_I : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void GenerateKey(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> password,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Span<System.Byte> output)
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<byte> password,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Span<byte> output)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
         if (output.Length < _keyLength)
@@ -127,19 +127,19 @@ internal sealed class PBKDF2_I : System.IDisposable
             throw new System.ArgumentException("Output buffer is too small.", nameof(output));
         }
 
-        const System.Int32 hLen = 32;   // SHA3-256 digest length
-        const System.Int32 B = 136;     // HMAC block size (SHA3-256 rate)
-        System.Int32 l = (System.Int32)System.Math.Ceiling(_keyLength / (System.Double)hLen);
-        System.Int32 r = _keyLength - ((l - 1) * hLen);
+        const int hLen = 32;   // SHA3-256 digest length
+        const int B = 136;     // HMAC block size (SHA3-256 rate)
+        int l = (int)System.Math.Ceiling(_keyLength / (double)hLen);
+        int r = _keyLength - ((l - 1) * hLen);
 
-        System.Byte[] block = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(hLen);
+        byte[] block = System.Buffers.ArrayPool<byte>.Shared.Rent(hLen);
         try
         {
-            System.Int32 offset = 0;
-            for (System.Int32 i = 1; i <= l; i++)
+            int offset = 0;
+            for (int i = 1; i <= l; i++)
             {
                 F(password, _salt, _iterations, i, System.MemoryExtensions.AsSpan(block, 0, hLen), B);
-                System.Int32 toCopy = i == l ? r : hLen;
+                int toCopy = i == l ? r : hLen;
                 System.MemoryExtensions.AsSpan(block, 0, toCopy).CopyTo(output.Slice(offset, toCopy));
                 offset += toCopy;
             }
@@ -147,7 +147,7 @@ internal sealed class PBKDF2_I : System.IDisposable
         finally
         {
             System.Array.Clear(block, 0, block.Length);
-            System.Buffers.ArrayPool<System.Byte>.Shared.Return(block);
+            System.Buffers.ArrayPool<byte>.Shared.Return(block);
         }
     }
 
@@ -166,10 +166,10 @@ internal sealed class PBKDF2_I : System.IDisposable
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean GenerateKey(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> password,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Span<System.Byte> output,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 bytesWritten)
+    public bool GenerateKey(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<byte> password,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Span<byte> output,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int bytesWritten)
     {
         System.ObjectDisposedException.ThrowIf(_disposed, this);
         if (output.Length < _keyLength)
@@ -187,18 +187,18 @@ internal sealed class PBKDF2_I : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void F(
-        System.ReadOnlySpan<System.Byte> password,
-        System.ReadOnlySpan<System.Byte> salt,
-        System.Int32 iterations, System.Int32 blockIndex,
-        System.Span<System.Byte> output, System.Int32 blockSize)
+        System.ReadOnlySpan<byte> password,
+        System.ReadOnlySpan<byte> salt,
+        int iterations, int blockIndex,
+        System.Span<byte> output, int blockSize)
     {
-        const System.Int32 hLen = 32;
+        const int hLen = 32;
 
-        System.Span<System.Byte> u = stackalloc System.Byte[hLen];
-        System.Span<System.Byte> t = stackalloc System.Byte[hLen];
+        System.Span<byte> u = stackalloc byte[hLen];
+        System.Span<byte> t = stackalloc byte[hLen];
 
         // salt || INT(i)
-        System.Span<System.Byte> si = stackalloc System.Byte[salt.Length + 4];
+        System.Span<byte> si = stackalloc byte[salt.Length + 4];
         salt.CopyTo(si);
         WriteInt32BE(blockIndex, si.Slice(salt.Length, 4));
 
@@ -207,10 +207,10 @@ internal sealed class PBKDF2_I : System.IDisposable
         u.CopyTo(t);
 
         // U2..Uc
-        for (System.Int32 c = 2; c <= iterations; c++)
+        for (int c = 2; c <= iterations; c++)
         {
             HmacSha3_256(password, u, u, blockSize);
-            for (System.Int32 i = 0; i < t.Length; i++)
+            for (int i = 0; i < t.Length; i++)
             {
                 t[i] ^= u[i];
             }
@@ -225,15 +225,15 @@ internal sealed class PBKDF2_I : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void HmacSha3_256(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> data,
-        System.Span<System.Byte> output, System.Int32 blockSize)
+        System.ReadOnlySpan<byte> key,
+        System.ReadOnlySpan<byte> data,
+        System.Span<byte> output, int blockSize)
     {
         // Prepare key block
-        System.Span<System.Byte> k0 = stackalloc System.Byte[blockSize];
+        System.Span<byte> k0 = stackalloc byte[blockSize];
         if (key.Length > blockSize)
         {
-            System.Span<System.Byte> kh = stackalloc System.Byte[32];
+            System.Span<byte> kh = stackalloc byte[32];
             Keccak256.HashData(key, kh);
             kh.CopyTo(k0);
             kh.Clear();
@@ -248,17 +248,17 @@ internal sealed class PBKDF2_I : System.IDisposable
         }
 
         // ipad/opad
-        System.Span<System.Byte> ipad = stackalloc System.Byte[blockSize];
-        System.Span<System.Byte> opad = stackalloc System.Byte[blockSize];
-        for (System.Int32 i = 0; i < blockSize; i++)
+        System.Span<byte> ipad = stackalloc byte[blockSize];
+        System.Span<byte> opad = stackalloc byte[blockSize];
+        for (int i = 0; i < blockSize; i++)
         {
-            System.Byte b = k0[i];
-            ipad[i] = (System.Byte)(b ^ 0x36);
-            opad[i] = (System.Byte)(b ^ 0x5c);
+            byte b = k0[i];
+            ipad[i] = (byte)(b ^ 0x36);
+            opad[i] = (byte)(b ^ 0x5c);
         }
 
         // inner = H(ipad || data)
-        System.Span<System.Byte> inner = stackalloc System.Byte[32];
+        System.Span<byte> inner = stackalloc byte[32];
         {
             Keccak256.Sponge hInner = new();
             hInner.Absorb(ipad);
@@ -280,15 +280,15 @@ internal sealed class PBKDF2_I : System.IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void WriteInt32BE(System.Int32 value, System.Span<System.Byte> dest)
+    private static void WriteInt32BE(int value, System.Span<byte> dest)
     {
-        dest[0] = (System.Byte)((System.UInt32)value >> 24);
-        dest[1] = (System.Byte)((System.UInt32)value >> 16);
-        dest[2] = (System.Byte)((System.UInt32)value >> 8);
-        dest[3] = (System.Byte)value;
+        dest[0] = (byte)((uint)value >> 24);
+        dest[1] = (byte)((uint)value >> 16);
+        dest[2] = (byte)((uint)value >> 8);
+        dest[3] = (byte)value;
     }
 
-    #endregion
+    #endregion Core PBKDF2
 
     #region IDisposable
 
@@ -307,5 +307,5 @@ internal sealed class PBKDF2_I : System.IDisposable
         System.Array.Clear(_salt, 0, _salt.Length);
     }
 
-    #endregion
+    #endregion IDisposable
 }

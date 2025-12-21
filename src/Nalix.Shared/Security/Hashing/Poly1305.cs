@@ -39,7 +39,7 @@ namespace Nalix.Shared.Security.Hashing;
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-public ref struct Poly1305
+public struct Poly1305
 {
     #region Constants
 

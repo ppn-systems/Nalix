@@ -20,24 +20,27 @@ public sealed class Handshake : PacketBase<Handshake>
     /// <summary>
     /// Suggested minimum granularity for allocation.
     /// </summary>
-    public const System.Int32 DynamicSize = 32;
+    public const int DynamicSize = 32;
 
     /// <summary>
     /// Gets or sets the binary content of the packet.
     /// </summary>
     [SerializeDynamicSize(DynamicSize)]
     [SerializeOrder(PacketHeaderOffset.DATA_REGION + 1)]
-    public System.Byte[] Data { get; set; } = [];
+    public byte[] Data { get; set; } = [];
 
     /// <summary>
     /// Initializes a new <see cref="Handshake"/> with empty content.
     /// </summary>
-    public Handshake() : base() => ResetForPool();
+    public Handshake() => ResetForPool();
 
     /// <summary>
     /// Initializes a new instance with the specified operation code, binary data, and protocol.
     /// </summary>
-    public Handshake(System.UInt16 opCode, System.Byte[] data, ProtocolType transport = ProtocolType.TCP) : this()
+    /// <param name="opCode"></param>
+    /// <param name="data"></param>
+    /// <param name="transport"></param>
+    public Handshake(ushort opCode, byte[] data, ProtocolType transport = ProtocolType.TCP) : this()
     {
         Data = data ?? [];
         OpCode = opCode;
@@ -47,7 +50,9 @@ public sealed class Handshake : PacketBase<Handshake>
     /// <summary>
     /// Initializes the packet with binary data and an optional transport protocol.
     /// </summary>
-    public void Initialize(System.Byte[] data, ProtocolType transport = ProtocolType.TCP)
+    /// <param name="data"></param>
+    /// <param name="transport"></param>
+    public void Initialize(byte[] data, ProtocolType transport = ProtocolType.TCP)
     {
         Data = data ?? [];
         Protocol = transport;
@@ -56,7 +61,7 @@ public sealed class Handshake : PacketBase<Handshake>
     /// <summary>
     /// Returns a string representation including all relevant fields.
     /// </summary>
-    public override System.String ToString() => $"HANDSHAKE(OpCode={OpCode}, Length={Length}, Flags={Flags}, Priority={Priority}, Protocol={Protocol}, Data={Data?.Length ?? 0} bytes)";
+    public override string ToString() => $"HANDSHAKE(OpCode={OpCode}, Length={Length}, Flags={Flags}, Priority={Priority}, Protocol={Protocol}, Data={Data?.Length ?? 0} bytes)";
 
     /// <summary>
     /// Resets this instance to its default state for pooling reuse.

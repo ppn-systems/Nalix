@@ -18,7 +18,7 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 /// <list type="bullet">
 /// <item>
 /// <description>
-/// <c>[4 bytes]</c> Count (<see cref="System.Int32"/>, little-endian)
+/// <c>[4 bytes]</c> Count (<see cref="int"/>, little-endian)
 /// — <c>-1</c> indicates <c>null</c>, <c>0</c> indicates empty dictionary.
 /// </description>
 /// </item>
@@ -55,7 +55,7 @@ internal sealed class DictionaryFormatter<
     /// <summary>
     /// Gets the debugger display string for this formatter.
     /// </summary>
-    private static System.String DebuggerDisplay =>
+    private static string DebuggerDisplay =>
         $"DictionaryFormatter<{typeof(TKey).Name}, {typeof(TValue).Name}>";
 
     /// <summary>
@@ -79,8 +79,8 @@ internal sealed class DictionaryFormatter<
     /// Key type restrictions:
     /// </para>
     /// <list type="bullet">
-    /// <item><description>Allowed: primitive types, <see cref="System.String"/>, enums, unmanaged structs.</description></item>
-    /// <item><description>Not allowed: reference types (except <see cref="System.String"/>).</description></item>
+    /// <item><description>Allowed: primitive types, <see cref="string"/>, enums, unmanaged structs.</description></item>
+    /// <item><description>Not allowed: reference types (except <see cref="string"/>).</description></item>
     /// </list>
     /// <para>
     /// This restriction ensures deterministic equality and stable hashing behavior
@@ -92,7 +92,7 @@ internal sealed class DictionaryFormatter<
         // ── Validate TKey ──────────────────────────────────────────────
         // Chỉ cho phép: primitive, string, enum, unmanaged struct
         System.Type keyType = typeof(TKey);
-        if (keyType.IsClass && keyType != typeof(System.String))
+        if (keyType.IsClass && keyType != typeof(string))
         {
             throw new System.NotSupportedException(
                 $"DictionaryFormatter: TKey='{keyType.Name}' is a class — only supports primitive, string, enum, or unmanaged struct as key.");
@@ -129,15 +129,15 @@ internal sealed class DictionaryFormatter<
     {
         if (value is null)
         {
-            writer.Expand(sizeof(System.Int32));
-            FormatterProvider.Get<System.Int32>()
+            writer.Expand(sizeof(int));
+            FormatterProvider.Get<int>()
                              .Serialize(ref writer, -1);
             return;
         }
 
-        System.Int32 count = value.Count;
-        writer.Expand(sizeof(System.Int32));
-        FormatterProvider.Get<System.Int32>()
+        int count = value.Count;
+        writer.Expand(sizeof(int));
+        FormatterProvider.Get<int>()
                          .Serialize(ref writer, count);
 
         if (count is 0)
@@ -182,7 +182,7 @@ internal sealed class DictionaryFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.Dictionary<TKey, TValue>? Deserialize(ref DataReader reader)
     {
-        System.Int32 count = FormatterProvider.Get<System.Int32>()
+        int count = FormatterProvider.Get<int>()
                                               .Deserialize(ref reader);
 
         if (count == -1)
@@ -192,11 +192,10 @@ internal sealed class DictionaryFormatter<
 
         System.Collections.Generic.Dictionary<TKey, TValue> dict = new(count);
 
-        for (System.Int32 i = 0; i < count; i++)
+        for (int i = 0; i < count; i++)
         {
             TKey key = _keyFormatter.Deserialize(ref reader);
-            TValue val = _valueFormatter.Deserialize(ref reader);
-            dict[key] = val;
+            dict[key] = _valueFormatter.Deserialize(ref reader);
         }
 
         return dict;

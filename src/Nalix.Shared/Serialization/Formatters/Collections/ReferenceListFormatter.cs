@@ -23,7 +23,7 @@ internal sealed class ReferenceListFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<System.Collections.Generic.List<T>> where T : class
 {
     private static readonly IFormatter<T> _elementFormatter = FormatterProvider.Get<T>();
-    private static System.String DebuggerDisplay => $"ReferenceListFormatter<{typeof(T).FullName}>";
+    private static string DebuggerDisplay => $"ReferenceListFormatter<{typeof(T).FullName}>";
 
     /// <summary>
     /// Serializes a list of reference type elements into the provided writer.
@@ -39,17 +39,17 @@ internal sealed class ReferenceListFormatter<
     {
         if (value is null)
         {
-            writer.Expand(sizeof(System.UInt16));
-            FormatterProvider.Get<System.UInt16>()
+            writer.Expand(sizeof(ushort));
+            FormatterProvider.Get<ushort>()
                              .Serialize(ref writer, SerializerBounds.Null);
             return;
         }
 
-        writer.Expand(sizeof(System.UInt16));
-        System.UInt16 count = (System.UInt16)value.Count;
-        FormatterProvider.Get<System.UInt16>().Serialize(ref writer, count);
+        writer.Expand(sizeof(ushort));
+        ushort count = (ushort)value.Count;
+        FormatterProvider.Get<ushort>().Serialize(ref writer, count);
 
-        for (System.Int32 i = 0; i < count; i++)
+        for (int i = 0; i < count; i++)
         {
             _elementFormatter.Serialize(ref writer, value[i]);
         }
@@ -67,7 +67,7 @@ internal sealed class ReferenceListFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
     {
-        System.UInt16 count = FormatterProvider.Get<System.UInt16>()
+        ushort count = FormatterProvider.Get<ushort>()
                                         .Deserialize(ref reader);
 
         if (count == 0)
@@ -86,7 +86,7 @@ internal sealed class ReferenceListFormatter<
         }
 
         System.Collections.Generic.List<T> list = new(count);
-        for (System.UInt16 i = 0; i < count; i++)
+        for (ushort i = 0; i < count; i++)
         {
             list.Add(_elementFormatter.Deserialize(ref reader));
         }

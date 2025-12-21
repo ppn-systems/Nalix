@@ -66,6 +66,8 @@ internal readonly struct EnvelopeHeader
     /// <summary>
     /// Writes header into dest (must be at least Size).
     /// </summary>
+    /// <param name="dest"></param>
+    /// <param name="header"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal static void Encode(
@@ -88,6 +90,8 @@ internal readonly struct EnvelopeHeader
     /// <summary>
     /// Try parse header from src. Returns false if malformed/too short.
     /// </summary>
+    /// <param name="src"></param>
+    /// <param name="header"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
