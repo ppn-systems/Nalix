@@ -6,11 +6,9 @@
 // and Symmetric (header || nonce || ciphertext) formats.
 // Header + nonce SHOULD be included in AEAD AAD.
 
-
-
-#if DEBUG
 using Nalix.Common.Security;
 
+#if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
@@ -33,8 +31,8 @@ internal static class EnvelopeFormat
     /// Parse envelope into constituent spans without allocations.
     /// Supports both AEAD (with tag) and Symmetric (no tag) formats.
     /// </summary>
-    /// <param name="blob"></param>
-    /// <param name="env"></param>
+    /// <param name="blob">The serialized envelope to parse.</param>
+    /// <param name="env">The parsed envelope view when parsing succeeds.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -110,13 +108,13 @@ internal static class EnvelopeFormat
     /// <summary>
     /// Compose AEAD envelope: header || nonce || ciphertext || tag.
     /// </summary>
-    /// <param name="dest"></param>
-    /// <param name="type"></param>
-    /// <param name="flags"></param>
-    /// <param name="seq"></param>
-    /// <param name="nonce"></param>
-    /// <param name="ciphertext"></param>
-    /// <param name="tag"></param>
+    /// <param name="dest">Destination buffer for the composed envelope.</param>
+    /// <param name="type">The cipher suite encoded into the header.</param>
+    /// <param name="flags">Header flags to write.</param>
+    /// <param name="seq">Sequence number stored in the header.</param>
+    /// <param name="nonce">Nonce bytes to embed after the header.</param>
+    /// <param name="ciphertext">Ciphertext payload to write.</param>
+    /// <param name="tag">Authentication tag appended after the ciphertext.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -149,12 +147,12 @@ internal static class EnvelopeFormat
     /// <summary>
     /// Compose Symmetric envelope: header || nonce || ciphertext (no tag).
     /// </summary>
-    /// <param name="dest"></param>
-    /// <param name="type"></param>
-    /// <param name="flags"></param>
-    /// <param name="seq"></param>
-    /// <param name="nonce"></param>
-    /// <param name="ciphertext"></param>
+    /// <param name="dest">Destination buffer for the composed envelope.</param>
+    /// <param name="type">The cipher suite encoded into the header.</param>
+    /// <param name="flags">Header flags to write.</param>
+    /// <param name="seq">Sequence number stored in the header.</param>
+    /// <param name="nonce">Nonce bytes to embed after the header.</param>
+    /// <param name="ciphertext">Ciphertext payload to write.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]

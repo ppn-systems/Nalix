@@ -292,10 +292,10 @@ internal sealed class FileWriter : System.IDisposable
         {
             System.Text.StringBuilder sb = new(256);
             _ = sb.AppendLine("-----------------------------------------------------");
-            _ = sb.AppendLine($"Log File Created: {System.DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
-            _ = sb.AppendLine($"USER: {System.Environment.UserName}");
-            _ = sb.AppendLine($"Machine: {System.Environment.MachineName}");
-            _ = sb.AppendLine($"OS: {System.Environment.OSVersion}");
+            _ = sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"Log File Created: {System.DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
+            _ = sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"USER: {System.Environment.UserName}");
+            _ = sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"Machine: {System.Environment.MachineName}");
+            _ = sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"OS: {System.Environment.OSVersion}");
             _ = sb.AppendLine("-----------------------------------------------------");
 
             string header = sb.ToString();
