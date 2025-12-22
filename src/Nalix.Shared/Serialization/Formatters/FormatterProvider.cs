@@ -119,7 +119,7 @@ public static class FormatterProvider
         Register<UInt56?[]>(new NullableArrayFormatter<UInt56>());
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info(
-        "[FormatterProvider] init-ok in {0} ms. Total={1}, Primitives={2}, Nullables={3}, Arrays={4}, NullableArrays={5}, Lists={6}, Enums={7}, Strings={8}",
+        "[SH.FormatterProvider] init-ok in {0} ms. Total={1}, Primitives={2}, Nullables={3}, Arrays={4}, NullableArrays={5}, Lists={6}, Enums={7}, Strings={8}",
         [
             FormatterProvider._sw.ElapsedMilliseconds,
             FormatterProvider._cntTotal,
