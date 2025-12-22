@@ -61,7 +61,7 @@ internal static partial class FieldCache<T>
 
         if (fieldName.Length is 0)
         {
-            return throw new System.ArgumentException("Field name cannot be empty.", nameof(fieldName));
+            throw new System.ArgumentException("Field name cannot be empty.", nameof(fieldName));
         }
         else if (_fieldIndex.TryGetValue(fieldName, out int index))
         {
@@ -69,7 +69,7 @@ internal static partial class FieldCache<T>
         }
         else
         {
-            return throw new System.Collections.Generic.KeyNotFoundException($"Field '{fieldName}' not found in type {typeof(T).FullName}");
+            throw new System.Collections.Generic.KeyNotFoundException($"Field '{fieldName}' not found in type {typeof(T).FullName}");
         }
     }
 

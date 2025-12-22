@@ -84,7 +84,7 @@ internal sealed class NullableFormatter<
         }
         else if (hasValue != HasValueFlag)
         {
-            return throw new SerializationException("Invalid nullable data!");
+            throw new SerializationException("Invalid nullable data!");
         }
         else
         {

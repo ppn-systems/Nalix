@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+#pragma warning disable CA1000 
+
 namespace Nalix.Shared.Memory.Pools;
 
 /// <summary>

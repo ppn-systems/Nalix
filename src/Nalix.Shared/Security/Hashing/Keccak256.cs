@@ -80,11 +80,6 @@ public static class Keccak256
 
     #region Precomputed Tables (immutable)
 
-    /// <summary>
-    /// Round constants stored as a ReadOnlySpan<ulong> literal.
-    /// The JIT/runtime places this in the .rdata segment — it cannot be mutated
-    /// at runtime (no heap allocation, no array reference to share/corrupt).
-    /// </summary>
     private static System.ReadOnlySpan<ulong> RC =>
     [
         0x0000000000000001UL, 0x0000000000008082UL,
@@ -648,8 +643,6 @@ public static class Keccak256
 [System.Runtime.CompilerServices.InlineArray(25)]
 internal struct InlineArray25<T>
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Roslynator", "RCS1213:Remove unused member declaration", Justification = "Required by InlineArray")]
     private T _element0;
 }
 
@@ -658,7 +651,5 @@ internal struct InlineArray25<T>
 [System.Runtime.CompilerServices.InlineArray(136)]
 internal struct InlineArray136<T>
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Roslynator", "RCS1213:Remove unused member declaration", Justification = "Required by InlineArray")]
     private T _element0;
 }

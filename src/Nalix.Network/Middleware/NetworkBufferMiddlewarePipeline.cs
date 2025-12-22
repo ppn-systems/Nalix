@@ -140,7 +140,7 @@ public class NetworkBufferMiddlewarePipeline
         {
             MiddlewareEntry current = snapshot[i];
             System.Func<IBufferLease, System.Threading.CancellationToken, System.Threading.Tasks.Task<IBufferLease>> localNext = next;
-            next = async (buffer, token) => await current.Middleware.InvokeAsync(buffer, connection, token, localNext);
+            next = async (buffer, token) => await current.Middleware.InvokeAsync(buffer, connection, localNext, token);
         }
 
         return next(buffer, ct);

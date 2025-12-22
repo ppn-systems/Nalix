@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Globalization;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Shared;
 using Nalix.Framework.Configuration;
@@ -212,7 +213,6 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     public void Return(byte[]? array, bool arrayClear = false)
     {
@@ -633,7 +633,6 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private int CALCULATE_SAFE_SHRINK_STEP(in BufferPoolState info, int cycle)
     {
@@ -860,24 +859,24 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void APPEND_REPORT_HEADER(System.Text.StringBuilder sb)
     {
-        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] BufferPoolManager Status:");
-        _ = sb.AppendLine($"Initialized: {_isInitialized}");
-        _ = sb.AppendLine($"Total Buffers (Configured): {_config.TotalBuffers}");
-        _ = sb.AppendLine($"Pools: {_bufferAllocations.Length}");
-        _ = sb.AppendLine($"Min Buffer SIZE: {MinBufferSize}");
-        _ = sb.AppendLine($"Max Buffer SIZE: {MaxBufferSize}");
-        _ = sb.AppendLine($"Enable Trimming: {_config.EnableMemoryTrimming}");
-        _ = sb.AppendLine($"Enable Analytics: {_config.EnableAnalytics}");
-        _ = sb.AppendLine($"Enable SecureClear: {_config.SecureClear}");
-        _ = sb.AppendLine($"Fallback to ArrayPool: {_config.FallbackToArrayPool}");
-        _ = sb.AppendLine($"Trim Interval (min): {_config.TrimIntervalMinutes}");
-        _ = sb.AppendLine($"Deep Trim Interval (min): {_config.DeepTrimIntervalMinutes}");
-        _ = sb.AppendLine($"Trim Cycles Run: {_trimCycleCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] BufferPoolManager Status:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Initialized: {_isInitialized}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Buffers (Configured): {_config.TotalBuffers}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Pools: {_bufferAllocations.Length}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Min Buffer SIZE: {MinBufferSize}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Buffer SIZE: {MaxBufferSize}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Enable Trimming: {_config.EnableMemoryTrimming}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Enable Analytics: {_config.EnableAnalytics}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Enable SecureClear: {_config.SecureClear}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Fallback to ArrayPool: {_config.FallbackToArrayPool}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Trim Interval (min): {_config.TrimIntervalMinutes}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Deep Trim Interval (min): {_config.DeepTrimIntervalMinutes}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Trim Cycles Run: {_trimCycleCount}");
         _ = sb.AppendLine();
         _ = sb.AppendLine("Shrink Safety Policy:");
-        _ = sb.AppendLine($"  Minimum Retention: {_shrinkPolicy.MinimumRetentionPercent * 100:F1}%");
-        _ = sb.AppendLine($"  Max Single Shrink Step: {_shrinkPolicy.MaxSingleShrinkStep}");
-        _ = sb.AppendLine($"  Max Shrink Per Cycle: {_shrinkPolicy.MaxShrinkPercentPerCycle * 100:F1}%");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  Minimum Retention: {_shrinkPolicy.MinimumRetentionPercent * 100:F1}%");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  Max Single Shrink Step: {_shrinkPolicy.MaxSingleShrinkStep}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  Max Shrink Per Cycle: {_shrinkPolicy.MaxShrinkPercentPerCycle * 100:F1}%");
         _ = sb.AppendLine();
     }
 
@@ -899,7 +898,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
             double usage = info.GetUsageRatio() * 100.0;
             double miss = info.GetMissRate() * 100.0;
 
-            _ = sb.AppendLine($"{info.BufferSize,8} | {info.TotalBuffers,6} | {info.FreeBuffers,5} | {inUse,7} | {usage,8:F2}% | {miss,7:F2}%");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,8} | {info.TotalBuffers,6} | {info.FreeBuffers,5} | {inUse,7} | {usage,8:F2}% | {miss,7:F2}%");
         }
 
         _ = sb.AppendLine("----------------------------------------------------------------------");
@@ -926,11 +925,11 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
                     ? $"{metrics.TotalBytesReturned / 1_000_000}MB"
                     : $"{metrics.TotalBytesReturned / 1024}KB";
 
-                _ = sb.AppendLine($"{info.BufferSize,8} | {metrics.ShrinkAttempted,9} | {metrics.ShrinkSkipped,11} | {metrics.ExpandAttempted,9} | {bytesReturnedStr,14}");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,8} | {metrics.ShrinkAttempted,9} | {metrics.ShrinkSkipped,11} | {metrics.ExpandAttempted,9} | {bytesReturnedStr,14}");
             }
             else
             {
-                _ = sb.AppendLine($"{info.BufferSize,8} | {0,9} | {0,11} | {0,9} | {"0KB",14}");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,8} | {0,9} | {0,11} | {0,9} | {"0KB",14}");
             }
         }
 

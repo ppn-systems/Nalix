@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
+using System.Globalization;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
@@ -194,7 +195,6 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     /// <param name="args">Connection event arguments.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter", Justification = "Event handler signature")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Event handler signature")]
     public void OnConnectionClosed(
         [System.Diagnostics.CodeAnalysis.AllowNull] object sender,
@@ -218,7 +218,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         }
 
         System.DateTime now = Clock.NowUtc();
-        INetworkEndpoint key = Connection.Endpoint.FromIpAddress(
+        Connection.Endpoint key = Connection.Endpoint.FromIpAddress(
             System.Net.IPAddress.Parse(args.Connection.NetworkEndpoint.Address)
         );
 
@@ -411,7 +411,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     /// </summary>
     /// <param name="key"></param>
     /// <param name="now"></param>
-    private bool TRY_RELEASE_CONNECTION_SLOT(INetworkEndpoint key, System.DateTime now)
+    private bool TRY_RELEASE_CONNECTION_SLOT(Connection.Endpoint key, System.DateTime now)
     {
         if (!_map.TryGetValue(key, out ConnectionLimitEntry entry))
         {
@@ -633,20 +633,20 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
     private void APPEND_REPORT_HEADER(System.Text.StringBuilder sb, GlobalMetrics metrics)
     {
-        _ = sb.AppendLine($"[{Clock.NowUtc():yyyy-MM-dd HH:mm:ss}] ConnectionLimiter Status:");
-        _ = sb.AppendLine($"MaxPerEndpoint     : {_maxPerEndpoint}");
-        _ = sb.AppendLine($"CleanupInterval    : {_cleanupInterval.TotalSeconds:F0}s");
-        _ = sb.AppendLine($"InactivityThreshold: {_inactivityThreshold.TotalSeconds:F0}s");
-        _ = sb.AppendLine($"TrackedEndpoints   : {metrics.TotalEndpoints}");
-        _ = sb.AppendLine($"TotalConcurrent    : {metrics.TotalConcurrent}");
-        _ = sb.AppendLine($"TotalAttempts      : {metrics.TotalAttempts:N0}");
-        _ = sb.AppendLine($"TotalRejections    : {metrics.TotalRejections:N0}");
-        _ = sb.AppendLine($"TotalCleaned       : {metrics.TotalCleaned:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{Clock.NowUtc():yyyy-MM-dd HH:mm:ss}] ConnectionLimiter Status:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"MaxPerEndpoint     : {_maxPerEndpoint}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CleanupInterval    : {_cleanupInterval.TotalSeconds:F0}s");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"InactivityThreshold: {_inactivityThreshold.TotalSeconds:F0}s");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TrackedEndpoints   : {metrics.TotalEndpoints}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalConcurrent    : {metrics.TotalConcurrent}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalAttempts      : {metrics.TotalAttempts:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalRejections    : {metrics.TotalRejections:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalCleaned       : {metrics.TotalCleaned:N0}");
 
         if (metrics.TotalAttempts > 0)
         {
             double rejectionRate = metrics.TotalRejections * 100.0 / metrics.TotalAttempts;
-            _ = sb.AppendLine($"RejectionRate      : {rejectionRate:F2}%");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"RejectionRate      : {rejectionRate:F2}%");
         }
 
         _ = sb.AppendLine();
@@ -693,8 +693,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
                 ? $"{address[..27]}\u2026"
                 : address.PadRight(27);
 
-            _ = sb.AppendLine(
-                $"{addressCol} | {info.CurrentConnections,7} | {info.TotalConnectionsToday,9} | {info.LastConnectionTime:u}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{addressCol} | {info.CurrentConnections,7} | {info.TotalConnectionsToday,9} | {info.LastConnectionTime:u}");
         }
     }
 

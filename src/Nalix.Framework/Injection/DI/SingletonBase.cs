@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+#pragma warning disable CA1000
+
 namespace Nalix.Framework.Injection.DI;
 
 /// <summary>
@@ -15,14 +17,20 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
 {
     #region Fields
 
-    // Lazy with full publication safety.
+    /// <summary>
+    /// Lazy with full publication safety.
+    /// </summary>
     private static readonly System.Lazy<T> s_instance =
         new(valueFactory: CREATE_INSTANCE_INTERNAL, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
-    // Compiled .ctor delegate (private/protected allowed) � built once per closed generic.
+    /// <summary>
+    /// Compiled .ctor delegate (private/protected allowed) � built once per closed generic.
+    /// </summary>
     private static readonly System.Func<T> s_ctor = CREATE_CONSTRUCTORS();
 
-    // 0 = not disposed, 1 = disposed
+    /// <summary>
+    /// 0 = not disposed, 1 = disposed
+    /// </summary>
     private int _disposed;
 
     #endregion Fields
@@ -37,9 +45,6 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     /// <summary>
     /// Returns true if the instance has been created, without forcing creation.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Roslynator", "RCS1158:Static member in generic type should use a type parameter",
-        Justification = "Property bound to closed generic SingletonBase<T>.")]
     public static bool IsCreated => s_instance.IsValueCreated;
 
     #endregion Properties
@@ -47,9 +52,13 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     #region APIs
 
     /// <inheritdoc />
-    protected SingletonBase() { }
+    protected SingletonBase()
+    { }
 
-    /// <summary>Best-effort: returns existing instance if created, else false without creating it.</summary>
+    /// <summary>
+    /// Best-effort: returns existing instance if created, else false without creating it.
+    /// </summary>
+    /// <param name="instance">Instance</param>
     public static bool TryGetInstance([System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T instance)
     {
         if (IsCreated)
@@ -57,16 +66,13 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
             instance = s_instance.Value;
             return true;
         }
-        instance = default!;
+        instance = default;
         return false;
     }
 
     /// <summary>Force-creates the instance (useful for warmup).</summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Roslynator", "RCS1158:Static member in generic type should use a type parameter",
-        Justification = "Static member intentionally bound to closed generic SingletonBase<T>.")]
     public static void EnsureCreated() => _ = s_instance.Value;
 
     #endregion APIs
@@ -90,7 +96,8 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    protected virtual void DisposeManaged() { }
+    protected virtual void DisposeManaged()
+    { }
 
     #endregion IDisposable Support
 
@@ -117,6 +124,7 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     /// Builds a compiled lambda that invokes the non-public parameterless constructor of T.
     /// This runs once per closed generic T.
     /// </summary>
+    /// <exception cref="System.MissingMethodException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Func<T> CREATE_CONSTRUCTORS()

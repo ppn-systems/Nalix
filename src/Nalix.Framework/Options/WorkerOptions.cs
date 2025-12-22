@@ -53,7 +53,6 @@ public sealed class WorkerOptions : IWorkerOptions
     /// </summary>
     public System.Threading.CancellationToken CancellationToken { get; init; }
 
-
     /// <summary>
     /// Gets the action to invoke when the worker has completed successfully.
     /// </summary>

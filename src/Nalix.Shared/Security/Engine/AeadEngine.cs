@@ -44,6 +44,7 @@ public static class AeadEngine
     /// </summary>
     /// <param name="key">Secret key (length depends on suite; see remarks).</param>
     /// <param name="plaintext">Plaintext to encrypt.</param>
+    /// <param name="nonce">Nonce</param>
     /// <param name="ciphertext">The output ciphertext</param>
     /// <param name="aad">Optional associated data to be authenticated (not encrypted).</param>
     /// <param name="seq">Optional 4-byte sequence number stored in the header; if null, a random value is used.</param>
@@ -131,6 +132,7 @@ public static class AeadEngine
     /// otherwise set to <c>null</c>.
     /// </param>
     /// <param name="aad">Optional associated data to be authenticated (not encrypted).</param>
+    /// <param name="written"></param>
     /// <returns><c>true</c> if decryption and tag verification succeeded; otherwise <c>false</c>.</returns>
     /// <remarks>
     /// The same AAD convention is used as in <see cref="Encrypt"/>:

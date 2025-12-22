@@ -46,6 +46,7 @@ internal sealed class FRAME_READER(
     /// </summary>
     /// <param name="token"></param>
     /// <exception cref="System.Net.Sockets.SocketException"></exception>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "<Pending>")]
     public async System.Threading.Tasks.Task ReceiveLoopAsync(
         System.Threading.CancellationToken token)
     {
