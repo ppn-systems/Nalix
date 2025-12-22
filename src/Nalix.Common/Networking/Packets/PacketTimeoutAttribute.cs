@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
@@ -14,8 +16,8 @@ namespace Nalix.Common.Networking.Packets;
 /// <param name="timeoutMilliseconds">
 /// The timeout duration in milliseconds before the packet operation is considered to have timed out.
 /// </param>
-[System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-public sealed class PacketTimeoutAttribute(int timeoutMilliseconds) : System.Attribute
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+public sealed class PacketTimeoutAttribute(int timeoutMilliseconds) : Attribute
 {
     /// <summary>
     /// Gets the timeout duration, in milliseconds, specified for the method.

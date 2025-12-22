@@ -1,6 +1,8 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Common.Middleware;
 
 /// <summary>
@@ -11,8 +13,8 @@ namespace Nalix.Common.Middleware;
 /// Initializes a new instance of the <see cref="MiddlewareOrderAttribute"/> class.
 /// </remarks>
 /// <param name="order">The execution order value.</param>
-[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
-public sealed class MiddlewareOrderAttribute(int order) : System.Attribute
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
+public sealed class MiddlewareOrderAttribute(int order) : Attribute
 {
     /// <summary>
     /// Gets the execution order of the middleware.

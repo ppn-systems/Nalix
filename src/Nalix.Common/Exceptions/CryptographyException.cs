@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Common.Exceptions;
 
 /// <summary>
@@ -44,7 +46,7 @@ public class CryptographyException : BaseException
     /// <param name="innerException">
     /// The exception that caused the current exception.
     /// </param>
-    public CryptographyException(string message, System.Exception innerException)
+    public CryptographyException(string message, Exception innerException)
         : base(message, innerException)
     {
     }

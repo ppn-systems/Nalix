@@ -1,6 +1,10 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+#pragma warning disable CA1716
+
+using System;
+
 namespace Nalix.Common.Diagnostics;
 
 /// <summary>
@@ -146,7 +150,7 @@ public interface ILogger
     /// <param name="message">The error message text.</param>
     /// <param name="exception">The associated exception.</param>
     /// <param name="eventId">An optional event identifier for correlation and filtering.</param>
-    void Error(string message, System.Exception exception, EventId? eventId = null);
+    void Error(string message, Exception exception, EventId? eventId = null);
 
     // =========================
     // Fatal / Critical
@@ -172,5 +176,5 @@ public interface ILogger
     /// <param name="message">The critical error message text.</param>
     /// <param name="exception">The associated exception.</param>
     /// <param name="eventId">An optional event identifier for correlation and filtering.</param>
-    void Fatal(string message, System.Exception exception, EventId? eventId = null);
+    void Fatal(string message, Exception exception, EventId? eventId = null);
 }

@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Common.Identity;
 using Nalix.Common.Security;
 
@@ -9,7 +10,7 @@ namespace Nalix.Common.Networking;
 /// <summary>
 /// Represents an interface for managing a network connection.
 /// </summary>
-public partial interface IConnection : System.IDisposable, IConnectionErrorTracked
+public partial interface IConnection : IDisposable, IConnectionErrorTracked
 {
     /// <summary>
     /// Gets the unique identifier for the connection.
@@ -57,21 +58,24 @@ public partial interface IConnection : System.IDisposable, IConnectionErrorTrack
     /// <summary>
     /// Occurs when the connection is closed.
     /// </summary>
-    event System.EventHandler<IConnectEventArgs> OnCloseEvent;
+    event EventHandler<IConnectEventArgs> OnCloseEvent;
 
     /// <summary>
     /// Occurs when data is received and processed.
     /// </summary>
-    event System.EventHandler<IConnectEventArgs> OnProcessEvent;
+    event EventHandler<IConnectEventArgs> OnProcessEvent;
 
     /// <summary>
     /// Occurs after data has been successfully processed.
     /// </summary>
-    event System.EventHandler<IConnectEventArgs> OnPostProcessEvent;
+    event EventHandler<IConnectEventArgs> OnPostProcessEvent;
 
     /// <summary>
     /// Closes the connection and releases all associated resources.
     /// </summary>
+    /// <param name="force">
+    /// <c>true</c> to force the connection closed immediately; otherwise, attempt a normal close.
+    /// </param>
     /// <remarks>
     /// Ensures that both the socket and associated streams are properly closed.
     /// </remarks>

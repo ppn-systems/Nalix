@@ -1,13 +1,16 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
+
 namespace Nalix.Common.Middleware;
 
 /// <summary>
 /// Specifies the execution stage of middleware in the pipeline.
 /// </summary>
-[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
-public sealed class MiddlewareStageAttribute : System.Attribute
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
+public sealed class MiddlewareStageAttribute : Attribute
 {
     /// <summary>
     /// Gets the execution stage of the middleware.
@@ -24,6 +27,6 @@ public sealed class MiddlewareStageAttribute : System.Attribute
     /// Initializes a new instance of the <see cref="MiddlewareStageAttribute"/> class.
     /// </summary>
     /// <param name="stage">The execution stage.</param>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
+    [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public MiddlewareStageAttribute(MiddlewareStage stage) => Stage = stage;
 }

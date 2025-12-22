@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Common.Diagnostics;
 
 /// <summary>
@@ -22,30 +24,30 @@ public readonly struct LogEntry(
     LogLevel level,
     EventId eventId,
     string message,
-    System.Exception exception = null)
+    Exception exception = null)
 {
     /// <summary>
     /// Gets the severity level of the log entry.
     /// </summary>
-    public readonly LogLevel LogLevel = level;
+    public readonly LogLevel LogLevel { get; } = level;
 
     /// <summary>
     /// Gets the identifier associated with the event that produced the log entry.
     /// </summary>
-    public readonly EventId EventId = eventId;
+    public readonly EventId EventId { get; } = eventId;
 
     /// <summary>
     /// Gets the content of the log message.
     /// </summary>
-    public readonly string Message = message;
+    public readonly string Message { get; } = message;
 
     /// <summary>
     /// Gets the exception associated with the log entry, if any.
     /// </summary>
-    public readonly System.Exception Exception = exception;
+    public readonly Exception Exception { get; } = exception;
 
     /// <summary>
     /// Gets the UTC timestamp indicating when the log entry was created.
     /// </summary>
-    public readonly System.DateTime TimeStamp = System.DateTime.UtcNow;
+    public readonly DateTime TimeStamp { get; } = DateTime.UtcNow;
 }

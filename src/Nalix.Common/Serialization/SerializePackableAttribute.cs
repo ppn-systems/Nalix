@@ -1,17 +1,18 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Common.Serialization;
 
 /// <summary>
 /// An attribute that marks a class, struct, or interface as serializable with a specified layout.
 /// This attribute is used to configure the serialization behavior for types in the Nalix serialization framework.
 /// </summary>
-/// <param name="layout"></param>
-[System.AttributeUsage(
-    System.AttributeTargets.Class | System.AttributeTargets.Struct |
-    System.AttributeTargets.Interface, Inherited = true)]
-public sealed class SerializePackableAttribute(SerializeLayout layout) : System.Attribute
+[AttributeUsage(
+    AttributeTargets.Class | AttributeTargets.Struct |
+    AttributeTargets.Interface, Inherited = true)]
+public sealed class SerializePackableAttribute(SerializeLayout layout) : Attribute
 {
     /// <summary>
     /// Gets the layout strategy to be used during serialization of the marked type.

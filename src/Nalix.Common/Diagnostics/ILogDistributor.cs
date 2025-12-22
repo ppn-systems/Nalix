@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Threading.Tasks;
+
 namespace Nalix.Common.Diagnostics;
 
 /// <summary>
@@ -22,7 +25,7 @@ namespace Nalix.Common.Diagnostics;
 /// distributor.Publish(new LogEntry(LogLevel.Info, new EventId(1001, "Startup"), "Server started."));
 /// </code>
 /// </example>
-public interface ILogDistributor : System.IDisposable
+public interface ILogDistributor : IDisposable
 {
     /// <summary>
     /// Registers a logging target to receive published log entries.
@@ -61,7 +64,7 @@ public interface ILogDistributor : System.IDisposable
     /// The <see cref="LogEntry"/> to publish, or <see langword="null"/> to ignore.
     /// </param>
     /// <returns>
-    /// A <see cref="System.Threading.Tasks.ValueTask"/> representing the asynchronous operation.
+    /// A <see cref="ValueTask"/> representing the asynchronous operation.
     /// </returns>
-    System.Threading.Tasks.ValueTask PublishAsync(LogEntry? entry);
+    ValueTask PublishAsync(LogEntry? entry);
 }

@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Common.Identity;
 
 namespace Nalix.Common.Concurrency;
@@ -9,7 +10,7 @@ namespace Nalix.Common.Concurrency;
 /// Provides status and control information for a background worker, including identity,
 /// group, running state, progress, timing, and configuration options.
 /// </summary>
-public interface IWorkerHandle : System.IDisposable
+public interface IWorkerHandle : IDisposable
 {
     /// <summary>
     /// Gets the unique identifier of the worker.
@@ -54,10 +55,10 @@ public interface IWorkerHandle : System.IDisposable
     /// <summary>
     /// Gets the UTC start time of the worker.
     /// </summary>
-    System.DateTimeOffset StartedUtc { get; }
+    DateTimeOffset StartedUtc { get; }
 
     /// <summary>
     /// Gets the UTC time of the worker's last heartbeat signal, if any.
     /// </summary>
-    System.DateTimeOffset? LastHeartbeatUtc { get; }
+    DateTimeOffset? LastHeartbeatUtc { get; }
 }

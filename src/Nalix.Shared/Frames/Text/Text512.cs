@@ -16,7 +16,7 @@ namespace Nalix.Shared.Frames.Text;
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("TEXT512 OP_CODE={OP_CODE}, Length={Length}, FLAGS={FLAGS}")]
+[System.Diagnostics.DebuggerDisplay("TEXT512 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>
 {
     /// <inheritdoc/>
@@ -33,7 +33,7 @@ public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>
     /// Gets or sets the UTF-8 string content of the packet.
     /// </summary>
     [SerializeDynamicSize(DynamicSize)]
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION)]
+    [SerializeOrder(PacketHeaderOffset.Region)]
     public string Content { get; set; }
 
     /// <summary>
@@ -45,7 +45,7 @@ public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>
         Protocol = ProtocolType.NONE;
         Content = string.Empty;
         Priority = PacketPriority.NONE;
-        OpCode = PacketConstants.OPCODE_DEFAULT;
+        OpCode = PacketConstants.OpcodeDefault;
     }
 
     /// <summary>Initializes the packet with content and transport protocol.</summary>
@@ -107,6 +107,6 @@ public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>
 
     /// <inheritdoc/>
     public override string ToString()
-        => $"TEXT512(OP_CODE={OpCode}, Length={Length}, FLAGS={Flags}, " +
-           $"PRIORITY={Priority}, Protocol={Protocol}, Content={System.Text.Encoding.UTF8.GetByteCount(Content)} bytes)";
+        => $"TEXT512(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+           $"Priority={Priority}, Protocol={Protocol}, Content={System.Text.Encoding.UTF8.GetByteCount(Content)} bytes)";
 }

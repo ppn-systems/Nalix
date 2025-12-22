@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+#pragma warning disable CA1711
+
+using System;
 using Nalix.Common.Shared;
 
 namespace Nalix.Common.Networking;
@@ -8,7 +11,7 @@ namespace Nalix.Common.Networking;
 /// <summary>
 /// Represents connection events and provides event data.
 /// </summary>
-public interface IConnectEventArgs : System.IDisposable
+public interface IConnectEventArgs : IDisposable
 {
     /// <summary>
     /// The connection related to the event.
