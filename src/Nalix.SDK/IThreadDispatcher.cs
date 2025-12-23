@@ -1,6 +1,8 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.SDK;
 
 /// <summary>
@@ -18,5 +20,5 @@ public interface IThreadDispatcher
     /// <param name="action">
     /// The action to execute on the UI thread.
     /// </param>
-    void Post(System.Action action);
+    void Post(Action action);
 }

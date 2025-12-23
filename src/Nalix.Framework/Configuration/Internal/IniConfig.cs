@@ -1,13 +1,21 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading;
 using Nalix.Common.Exceptions;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Tests.")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests.")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
 namespace Nalix.Framework.Configuration.Internal;
@@ -15,12 +23,12 @@ namespace Nalix.Framework.Configuration.Internal;
 /// <summary>
 /// A high-performance wrapper class for reading and writing INI files.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-[System.Diagnostics.DebuggerDisplay("Path = {_path}, Sections = {_iniData.Count}, Dirty = {_isDirty}")]
-internal sealed class IniConfig : System.IDisposable
+[DebuggerNonUserCode]
+[SkipLocalsInit]
+[ExcludeFromCodeCoverage]
+[EditorBrowsable(EditorBrowsableState.Never)]
+[DebuggerDisplay("Path = {_path}, Sections = {_iniData.Count}, Dirty = {_isDirty}")]
+internal sealed class IniConfig : IDisposable
 {
     #region Constants
 
@@ -41,9 +49,9 @@ internal sealed class IniConfig : System.IDisposable
     private static readonly string SectionSeparator = "; " + new string('-', 78);
 
     // Thread synchronization for file operations
-    private readonly System.Threading.ReaderWriterLockSlim _fileLock;
+    private readonly ReaderWriterLockSlim _fileLock;
 
-    [System.Diagnostics.CodeAnalysis.NotNull]
+    [NotNull]
     private readonly string _path;
     private readonly Dictionary<string,
                      Dictionary<string, string>> _iniData;
@@ -60,7 +68,7 @@ internal sealed class IniConfig : System.IDisposable
     // Values are never loaded from file — only populated by WriteComment().
     private readonly Dictionary<string, string> _comments;
 
-    private System.DateTime _lastFileReadTime;
+    private DateTime _lastFileReadTime;
 
     #endregion Fields
 
@@ -79,19 +87,19 @@ internal sealed class IniConfig : System.IDisposable
     /// Initializes a new instance of the <see cref="IniConfig"/> class for the specified path.
     /// </summary>
     /// <param name="path">The path to the INI file.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown when path is null.</exception>
-    /// <exception cref="System.ArgumentException">Thrown when path is invalid.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when path is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when path is invalid.</exception>
     /// <exception cref="InternalErrorException">Thrown when path contains path traversal attempts.</exception>
     public IniConfig(string path)
     {
         if (path == null)
         {
-            throw new System.ArgumentNullException(nameof(path), "Configuration file path cannot be null.");
+            throw new ArgumentNullException(nameof(path), "Configuration file path cannot be null.");
         }
 
         if (string.IsNullOrWhiteSpace(path))
         {
-            throw new System.ArgumentException("Configuration file path cannot be empty or whitespace.", nameof(path));
+            throw new ArgumentException("Configuration file path cannot be empty or whitespace.", nameof(path));
         }
 
         // Validate path for security - prevent path traversal
@@ -99,31 +107,31 @@ internal sealed class IniConfig : System.IDisposable
         {
             _path = Path.GetFullPath(path);
         }
-        catch (System.ArgumentException ex)
+        catch (ArgumentException ex)
         {
-            throw new System.ArgumentException($"Invalid configuration file path: {path}", nameof(path), ex);
+            throw new ArgumentException($"Invalid configuration file path: {path}", nameof(path), ex);
         }
         catch (InternalErrorException ex)
         {
             throw new InternalErrorException($"Security error accessing path: {path}", ex);
         }
-        catch (System.NotSupportedException ex)
+        catch (NotSupportedException ex)
         {
-            throw new System.ArgumentException($"Unsupported path format: {path}", nameof(path), ex);
+            throw new ArgumentException($"Unsupported path format: {path}", nameof(path), ex);
         }
 
         // Additional validation - ensure path doesn't contain invalid characters
         if (_path.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
         {
-            throw new System.ArgumentException(
+            throw new ArgumentException(
                 $"Configuration file path contains invalid characters: {path}", nameof(path));
         }
 
         // Use case-insensitive keys for sections and keys
-        _iniData = new(System.StringComparer.OrdinalIgnoreCase);
-        _valueCache = new(System.StringComparer.OrdinalIgnoreCase);
-        _comments = new(System.StringComparer.OrdinalIgnoreCase);
-        _fileLock = new(System.Threading.LockRecursionPolicy.NoRecursion);
+        _iniData = new(StringComparer.OrdinalIgnoreCase);
+        _valueCache = new(StringComparer.OrdinalIgnoreCase);
+        _comments = new(StringComparer.OrdinalIgnoreCase);
+        _fileLock = new(LockRecursionPolicy.NoRecursion);
 
         // Load the file if it exists
         if (ExistsFile)
@@ -139,9 +147,9 @@ internal sealed class IniConfig : System.IDisposable
     /// <summary>
     /// Reloads the INI file from disk, discarding any unsaved changes.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public void Reload() => Load();
 
     /// <summary>
@@ -150,29 +158,29 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <param name="value">The value to write.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown when section, key, or value is null.</exception>
-    /// <exception cref="System.ArgumentException">Thrown when section or key contains invalid characters.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    /// <exception cref="ArgumentNullException">Thrown when section, key, or value is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when section or key contains invalid characters.</exception>
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
     public void WriteValue(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key,
-        [System.Diagnostics.CodeAnalysis.NotNull] object value)
+        [NotNull] string section,
+        [NotNull] string key,
+        [NotNull] object value)
     {
-        System.ArgumentNullException.ThrowIfNull(key, nameof(key));
-        System.ArgumentNullException.ThrowIfNull(section, nameof(section));
-        System.ArgumentNullException.ThrowIfNull(value, nameof(value));
+        ArgumentNullException.ThrowIfNull(key, nameof(key));
+        ArgumentNullException.ThrowIfNull(section, nameof(section));
+        ArgumentNullException.ThrowIfNull(value, nameof(value));
 
         // Validate section and key don't contain special characters that would break INI format
         if (section.IndexOfAny(['\r', '\n', '[', ']']) >= 0)
         {
-            throw new System.ArgumentException(
+            throw new ArgumentException(
                 "Section name cannot contain newline, '[', or ']' characters.", nameof(section));
         }
 
         if (key.IndexOfAny(['\r', '\n', '=']) >= 0)
         {
-            throw new System.ArgumentException(
+            throw new ArgumentException(
                 "Key name cannot contain newline or '=' characters.", nameof(key));
         }
 
@@ -190,7 +198,7 @@ internal sealed class IniConfig : System.IDisposable
                 try
                 {
                     sectionData = new Dictionary<
-                        string, string>(System.StringComparer.OrdinalIgnoreCase);
+                        string, string>(StringComparer.OrdinalIgnoreCase);
 
                     _iniData[section] = sectionData;
                 }
@@ -248,10 +256,10 @@ internal sealed class IniConfig : System.IDisposable
     /// Comments are stored in memory and flushed to disk on the next <see cref="WriteFile"/> call.
     /// They are never read back from disk — re-running the application re-registers them from attributes.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
     public void WriteComment(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [NotNull] string section,
         string? key,
         string? comment)
     {
@@ -261,7 +269,7 @@ internal sealed class IniConfig : System.IDisposable
             return;
         }
 
-        System.ArgumentNullException.ThrowIfNull(section, nameof(section));
+        ArgumentNullException.ThrowIfNull(section, nameof(section));
 
         // Build the lookup key: "Section" for section-level, "Section:Key" for property-level
         string commentKey = string.IsNullOrEmpty(key)
@@ -307,26 +315,26 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The string value, or an empty string if not found.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown when section or key is null.</exception>
-    /// <exception cref="System.ArgumentException">Thrown when section or key is empty.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    /// <exception cref="ArgumentNullException">Thrown when section or key is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when section or key is empty.</exception>
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public string GetString(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key)
+        [NotNull] string section,
+        [NotNull] string key)
     {
-        System.ArgumentNullException.ThrowIfNull(key, nameof(key));
-        System.ArgumentNullException.ThrowIfNull(section, nameof(section));
+        ArgumentNullException.ThrowIfNull(key, nameof(key));
+        ArgumentNullException.ThrowIfNull(section, nameof(section));
 
         if (string.IsNullOrWhiteSpace(key))
         {
-            throw new System.ArgumentException("Configuration key cannot be empty or whitespace.", nameof(key));
+            throw new ArgumentException("Configuration key cannot be empty or whitespace.", nameof(key));
         }
 
         if (string.IsNullOrWhiteSpace(section))
         {
-            throw new System.ArgumentException("Configuration section cannot be empty or whitespace.", nameof(section));
+            throw new ArgumentException("Configuration section cannot be empty or whitespace.", nameof(section));
         }
 
         // Check for file changes before reading
@@ -338,7 +346,7 @@ internal sealed class IniConfig : System.IDisposable
             return _iniData.TryGetValue(section,
                 out Dictionary<string, string>? sectionData) &&
                 sectionData.TryGetValue(key, out string? value)
-                ? value.Equals("null", System.StringComparison.OrdinalIgnoreCase) ? null! : value
+                ? value.Equals("null", StringComparison.OrdinalIgnoreCase) ? null! : value
                 : string.Empty;
         }
         finally
@@ -353,12 +361,12 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The character value if the string has exactly one character; otherwise, null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
     public char? GetChar(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key)
+        [NotNull] string section,
+        [NotNull] string key)
     {
         string stringValue = GetString(section, key);
         return !string.IsNullOrEmpty(stringValue) && stringValue.Length == 1 ? stringValue[0] : null;
@@ -370,12 +378,12 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The boolean value if parsed successfully, otherwise null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
     public bool? GetBool(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key)
+        [NotNull] string section,
+        [NotNull] string key)
     {
         string cacheKey = CreateCacheKey(section, key, "bool");
 
@@ -387,22 +395,22 @@ internal sealed class IniConfig : System.IDisposable
         string stringValue = GetString(section, key);
         bool? result = null;
 
-        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
         else if (!string.IsNullOrEmpty(stringValue))
         {
             // Optimize common boolean representations
-            if (stringValue.Equals("true", System.StringComparison.OrdinalIgnoreCase) ||
-                stringValue.Equals("1", System.StringComparison.OrdinalIgnoreCase) ||
-                stringValue.Equals("yes", System.StringComparison.OrdinalIgnoreCase))
+            if (stringValue.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                stringValue.Equals("1", StringComparison.OrdinalIgnoreCase) ||
+                stringValue.Equals("yes", StringComparison.OrdinalIgnoreCase))
             {
                 result = true;
             }
-            else if (stringValue.Equals("false", System.StringComparison.OrdinalIgnoreCase) ||
-                     stringValue.Equals("0", System.StringComparison.OrdinalIgnoreCase) ||
-                     stringValue.Equals("no", System.StringComparison.OrdinalIgnoreCase))
+            else if (stringValue.Equals("false", StringComparison.OrdinalIgnoreCase) ||
+                     stringValue.Equals("0", StringComparison.OrdinalIgnoreCase) ||
+                     stringValue.Equals("no", StringComparison.OrdinalIgnoreCase))
             {
                 result = false;
             }
@@ -425,12 +433,12 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The decimal value if parsed successfully, otherwise null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
     public decimal? GetDecimal(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key)
+        [NotNull] string section,
+        [NotNull] string key)
     {
         string cacheKey = CreateCacheKey(section, key, "decimal");
 
@@ -441,13 +449,13 @@ internal sealed class IniConfig : System.IDisposable
 
         string stringValue = GetString(section, key);
 
-        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
         else if (decimal.TryParse(
-            stringValue, System.Globalization.NumberStyles.Number,
-            System.Globalization.CultureInfo.InvariantCulture, out decimal parsedValue))
+            stringValue, NumberStyles.Number,
+            CultureInfo.InvariantCulture, out decimal parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -462,12 +470,12 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The byte value if parsed successfully, otherwise null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
     public byte? GetByte(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key)
+        [NotNull] string section,
+        [NotNull] string key)
     {
         string cacheKey = CreateCacheKey(section, key, "byte");
 
@@ -478,7 +486,7 @@ internal sealed class IniConfig : System.IDisposable
 
         string stringValue = GetString(section, key);
 
-        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
@@ -497,12 +505,12 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The sbyte value if parsed successfully, otherwise null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
     public sbyte? GetSByte(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key)
+        [NotNull] string section,
+        [NotNull] string key)
     {
         string cacheKey = CreateCacheKey(section, key, "sbyte");
 
@@ -513,7 +521,7 @@ internal sealed class IniConfig : System.IDisposable
 
         string stringValue = GetString(section, key);
 
-        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
@@ -532,12 +540,12 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The short value if parsed successfully, otherwise null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
     public short? GetInt16(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key)
+        [NotNull] string section,
+        [NotNull] string key)
     {
         string cacheKey = CreateCacheKey(section, key, "int16");
 
@@ -548,7 +556,7 @@ internal sealed class IniConfig : System.IDisposable
 
         string stringValue = GetString(section, key);
 
-        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
@@ -567,12 +575,12 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The unsigned short value if parsed successfully, otherwise null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
     public ushort? GetUInt16(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key)
+        [NotNull] string section,
+        [NotNull] string key)
     {
         string cacheKey = CreateCacheKey(section, key, "uint16");
 
@@ -583,7 +591,7 @@ internal sealed class IniConfig : System.IDisposable
 
         string stringValue = GetString(section, key);
 
-        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
@@ -602,12 +610,12 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The integer value if parsed successfully, otherwise null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
     public int? GetInt32(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key)
+        [NotNull] string section,
+        [NotNull] string key)
     {
         string cacheKey = CreateCacheKey(section, key, "int32");
 
@@ -618,7 +626,7 @@ internal sealed class IniConfig : System.IDisposable
 
         string stringValue = GetString(section, key);
 
-        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
@@ -637,12 +645,12 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The unsigned integer value if parsed successfully, otherwise null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
     public uint? GetUInt32(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key)
+        [NotNull] string section,
+        [NotNull] string key)
     {
         string cacheKey = CreateCacheKey(section, key, "uint32");
 
@@ -653,7 +661,7 @@ internal sealed class IniConfig : System.IDisposable
 
         string stringValue = GetString(section, key);
 
-        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
@@ -672,9 +680,9 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The long value if parsed successfully, otherwise null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
     public long? GetInt64(string section, string key)
     {
         string cacheKey = CreateCacheKey(section, key, "int64");
@@ -686,7 +694,7 @@ internal sealed class IniConfig : System.IDisposable
 
         string stringValue = GetString(section, key);
 
-        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
@@ -705,12 +713,12 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The unsigned long value if parsed successfully, otherwise null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
     public ulong? GetUInt64(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key)
+        [NotNull] string section,
+        [NotNull] string key)
     {
         string cacheKey = CreateCacheKey(section, key, "uint64");
 
@@ -721,7 +729,7 @@ internal sealed class IniConfig : System.IDisposable
 
         string stringValue = GetString(section, key);
 
-        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
@@ -740,12 +748,12 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The float value if parsed successfully, otherwise null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
     public float? GetSingle(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key)
+        [NotNull] string section,
+        [NotNull] string key)
     {
         string cacheKey = CreateCacheKey(section, key, "single");
 
@@ -756,13 +764,13 @@ internal sealed class IniConfig : System.IDisposable
 
         string stringValue = GetString(section, key);
 
-        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
         else if (float.TryParse(
-            stringValue, System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture, out float parsedValue))
+            stringValue, NumberStyles.Float,
+            CultureInfo.InvariantCulture, out float parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -777,9 +785,9 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The double value if parsed successfully, otherwise null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
     public double? GetDouble(string section, string key)
     {
         string cacheKey = CreateCacheKey(section, key, "double");
@@ -791,13 +799,13 @@ internal sealed class IniConfig : System.IDisposable
 
         string stringValue = GetString(section, key);
 
-        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
         else if (double.TryParse(
-            stringValue, System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture, out double parsedValue))
+            stringValue, NumberStyles.Float,
+            CultureInfo.InvariantCulture, out double parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -812,29 +820,29 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The DateTime value if parsed successfully, otherwise null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.DateTime? GetDateTime(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key)
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
+    public DateTime? GetDateTime(
+        [NotNull] string section,
+        [NotNull] string key)
     {
         string cacheKey = CreateCacheKey(section, key, "datetime");
 
         if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
-            return (System.DateTime?)cachedValue;
+            return (DateTime?)cachedValue;
         }
 
         string stringValue = GetString(section, key);
 
-        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
-        else if (System.DateTime.TryParse(
-            stringValue, System.Globalization.CultureInfo.InvariantCulture,
-            System.Globalization.DateTimeStyles.None, out System.DateTime parsedValue))
+        else if (DateTime.TryParse(
+            stringValue, CultureInfo.InvariantCulture,
+            DateTimeStyles.None, out DateTime parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -849,29 +857,29 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The TimeSpan value if parsed successfully, otherwise null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.TimeSpan? GetTimeSpan(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key)
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
+    public TimeSpan? GetTimeSpan(
+        [NotNull] string section,
+        [NotNull] string key)
     {
         string cacheKey = CreateCacheKey(section, key, "timespan");
 
         if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
-            return (System.TimeSpan?)cachedValue;
+            return (TimeSpan?)cachedValue;
         }
 
         string stringValue = GetString(section, key);
 
-        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
-        else if (System.TimeSpan.TryParse(
+        else if (TimeSpan.TryParse(
             stringValue,
-            System.Globalization.CultureInfo.InvariantCulture, out System.TimeSpan parsedValue))
+            CultureInfo.InvariantCulture, out TimeSpan parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -886,27 +894,27 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The Guid value if parsed successfully, otherwise null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.Guid? GetGuid(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key)
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
+    public Guid? GetGuid(
+        [NotNull] string section,
+        [NotNull] string key)
     {
         string cacheKey = CreateCacheKey(section, key, "guid");
 
         if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
-            return (System.Guid?)cachedValue;
+            return (Guid?)cachedValue;
         }
 
         string stringValue = GetString(section, key);
 
-        if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
-        else if (System.Guid.TryParse(stringValue, out System.Guid parsedValue))
+        else if (Guid.TryParse(stringValue, out Guid parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -922,12 +930,12 @@ internal sealed class IniConfig : System.IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The enum value if parsed successfully, otherwise null.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
     public TEnum? GetEnum<TEnum>(
-        [System.Diagnostics.CodeAnalysis.NotNull] string section,
-        [System.Diagnostics.CodeAnalysis.NotNull] string key) where TEnum : struct, System.Enum
+        [NotNull] string section,
+        [NotNull] string key) where TEnum : struct, Enum
     {
         string cacheKey = CreateCacheKey(section, key, $"enum:{typeof(TEnum).FullName}");
 
@@ -941,13 +949,13 @@ internal sealed class IniConfig : System.IDisposable
         {
             return null;
         }
-        else if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
+        else if (stringValue.Equals("null", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
 
         // Try parse name (case-insensitive)
-        if (System.Enum.TryParse(stringValue, true, out TEnum result))
+        if (Enum.TryParse(stringValue, true, out TEnum result))
         {
             _valueCache[cacheKey] = result;
             return result;
@@ -956,11 +964,11 @@ internal sealed class IniConfig : System.IDisposable
         // Try parse numeric value (handles all underlying types)
         try
         {
-            object numeric = System.Convert.ChangeType(stringValue,
-                System.Enum.GetUnderlyingType(typeof(TEnum)),
-                System.Globalization.CultureInfo.InvariantCulture);
+            object numeric = Convert.ChangeType(stringValue,
+                Enum.GetUnderlyingType(typeof(TEnum)),
+                CultureInfo.InvariantCulture);
 
-            TEnum boxed = (TEnum)System.Enum.ToObject(typeof(TEnum), numeric);
+            TEnum boxed = (TEnum)Enum.ToObject(typeof(TEnum), numeric);
             _valueCache[cacheKey] = boxed;
             return boxed;
         }
@@ -973,8 +981,8 @@ internal sealed class IniConfig : System.IDisposable
     /// <summary>
     /// Forces a write of any pending changes to the file.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
     public void Flush()
     {
         if (_isDirty)
@@ -990,10 +998,10 @@ internal sealed class IniConfig : System.IDisposable
     /// <summary>
     /// Creates a cache key from section, key, and optional type suffix.
     /// </summary>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [return: NotNull]
     private static string CreateCacheKey(
         string section,
         string key,
@@ -1002,8 +1010,8 @@ internal sealed class IniConfig : System.IDisposable
     /// <summary>
     /// Formats a value for storage in the INI file.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static string FormatValue(object value)
     {
         if (value == null)
@@ -1014,10 +1022,10 @@ internal sealed class IniConfig : System.IDisposable
         // ToByteArray numeric values with invariant culture for consistency
         return value switch
         {
-            float f => f.ToString("G", System.Globalization.CultureInfo.InvariantCulture),
-            double d => d.ToString("G", System.Globalization.CultureInfo.InvariantCulture),
-            decimal m => m.ToString("G", System.Globalization.CultureInfo.InvariantCulture),
-            System.DateTime dt => dt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+            float f => f.ToString("G", CultureInfo.InvariantCulture),
+            double d => d.ToString("G", CultureInfo.InvariantCulture),
+            decimal m => m.ToString("G", CultureInfo.InvariantCulture),
+            DateTime dt => dt.ToString("O", CultureInfo.InvariantCulture),
             _ => value.ToString() ?? string.Empty
         };
     }
@@ -1025,9 +1033,9 @@ internal sealed class IniConfig : System.IDisposable
     /// <summary>
     /// Loads the INI file with retry logic for handling file access issues.
     /// </summary>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private void LoadWithRetry()
     {
         const int maxRetries = 3;
@@ -1050,7 +1058,7 @@ internal sealed class IniConfig : System.IDisposable
                 }
 
                 // Push exponential backoff delay
-                System.Threading.Thread.Sleep(100 * (int)System.Math.Pow(2, retryCount - 1));
+                Thread.Sleep(100 * (int)Math.Pow(2, retryCount - 1));
             }
         }
     }
@@ -1059,10 +1067,10 @@ internal sealed class IniConfig : System.IDisposable
     /// Loads the data from the INI file into memory with optimized parsing.
     /// </summary>
     /// <exception cref="IOException">Thrown when file reading fails.</exception>
-    /// <exception cref="System.UnauthorizedAccessException">Thrown when file access is denied.</exception>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    /// <exception cref="UnauthorizedAccessException">Thrown when file access is denied.</exception>
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private void Load()
     {
         if (!ExistsFile)
@@ -1072,7 +1080,7 @@ internal sealed class IniConfig : System.IDisposable
 
         _fileLock.EnterReadLock();
 
-        System.Text.StringBuilder pendingComments = new();
+        StringBuilder pendingComments = new();
         string currentSection = string.Empty;
         Dictionary<string, string> currentSectionData;
 
@@ -1082,12 +1090,12 @@ internal sealed class IniConfig : System.IDisposable
             _iniData.Clear();
             _valueCache.Clear();
 
-            currentSectionData = new(System.StringComparer.OrdinalIgnoreCase);
+            currentSectionData = new(StringComparer.OrdinalIgnoreCase);
             _iniData[currentSection] = currentSectionData;
 
             // Use a buffered reader for better performance
             using StreamReader reader = new(
-                _path, System.Text.Encoding.UTF8, true, DefaultBufferSize);
+                _path, Encoding.UTF8, true, DefaultBufferSize);
 
             int lineNumber = 0;
             string? line;
@@ -1130,7 +1138,7 @@ internal sealed class IniConfig : System.IDisposable
 
                     if (!_iniData.TryGetValue(currentSection, out currentSectionData!))
                     {
-                        currentSectionData = new(System.StringComparer.OrdinalIgnoreCase);
+                        currentSectionData = new(StringComparer.OrdinalIgnoreCase);
                         _iniData[currentSection] = currentSectionData;
                     }
 
@@ -1163,16 +1171,16 @@ internal sealed class IniConfig : System.IDisposable
         {
             throw new IOException($"Configuration file not found: {_path}", ex);
         }
-        catch (System.UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException ex)
         {
-            throw new System.UnauthorizedAccessException($"Access denied to configuration file: {_path}", ex);
+            throw new UnauthorizedAccessException($"Access denied to configuration file: {_path}", ex);
         }
         catch (IOException)
         {
             // Re-throw IO exceptions as-is
             throw;
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             throw new IOException($"Error reading configuration file: {_path}", ex);
         }
@@ -1193,10 +1201,10 @@ internal sealed class IniConfig : System.IDisposable
     /// </para>
     /// Must only be called from inside a write lock (i.e. from <see cref="WriteFile"/>).
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
+    [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private void WriteInlineComment(
         StreamWriter writer,
         string section,
@@ -1219,12 +1227,12 @@ internal sealed class IniConfig : System.IDisposable
         // Support multi-line comments embedded via \n in the attribute string.
         // First line gets the "KeyName: " prefix; subsequent lines are indented with spaces
         // to align with the text after the prefix so the block stays readable.
-        System.ReadOnlySpan<char> remaining = System.MemoryExtensions.AsSpan(comment);
+        ReadOnlySpan<char> remaining = MemoryExtensions.AsSpan(comment);
         bool isFirstLine = true;
         while (!remaining.IsEmpty)
         {
-            int nl = System.MemoryExtensions.IndexOf(remaining, '\n');
-            System.ReadOnlySpan<char> segment =
+            int nl = MemoryExtensions.IndexOf(remaining, '\n');
+            ReadOnlySpan<char> segment =
                 nl < 0 ? remaining : remaining[..nl];
 
             writer.Write(CommentChar);
@@ -1238,10 +1246,10 @@ internal sealed class IniConfig : System.IDisposable
                 isFirstLine = false;
             }
 
-            writer.WriteLine(System.MemoryExtensions.Trim(segment).ToString());
+            writer.WriteLine(MemoryExtensions.Trim(segment).ToString());
 
             remaining = nl < 0
-                ? System.ReadOnlySpan<char>.Empty
+                ? ReadOnlySpan<char>.Empty
                 : remaining[(nl + 1)..];
         }
     }
@@ -1249,9 +1257,9 @@ internal sealed class IniConfig : System.IDisposable
     /// <summary>
     /// Checks if the file has been modified externally and reloads if necessary.
     /// </summary>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private void CheckFileChanges()
     {
         if (!ExistsFile)
@@ -1261,7 +1269,7 @@ internal sealed class IniConfig : System.IDisposable
 
         try
         {
-            System.DateTime lastWriteTime = File.GetLastWriteTimeUtc(_path);
+            DateTime lastWriteTime = File.GetLastWriteTimeUtc(_path);
             if (lastWriteTime > _lastFileReadTime)
             {
                 Load();
@@ -1278,10 +1286,10 @@ internal sealed class IniConfig : System.IDisposable
     /// Uses atomic file replacement to prevent data corruption.
     /// </summary>
     /// <exception cref="IOException">Thrown when file writing fails.</exception>
-    /// <exception cref="System.UnauthorizedAccessException">Thrown when file access is denied.</exception>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    /// <exception cref="UnauthorizedAccessException">Thrown when file access is denied.</exception>
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private void WriteFile()
     {
         _fileLock.EnterWriteLock();
@@ -1302,7 +1310,7 @@ internal sealed class IniConfig : System.IDisposable
                 string? directory = Path.GetDirectoryName(_path);
                 if (string.IsNullOrWhiteSpace(directory))
                 {
-                    throw new System.InvalidOperationException(
+                    throw new InvalidOperationException(
                         "Cannot write configuration file: invalid directory path.");
                 }
 
@@ -1312,9 +1320,9 @@ internal sealed class IniConfig : System.IDisposable
                     {
                         _ = Directory.CreateDirectory(directory);
                     }
-                    catch (System.UnauthorizedAccessException ex)
+                    catch (UnauthorizedAccessException ex)
                     {
-                        throw new System.UnauthorizedAccessException(
+                        throw new UnauthorizedAccessException(
                             $"Access denied when creating directory: {directory}", ex);
                     }
                 }
@@ -1332,12 +1340,12 @@ internal sealed class IniConfig : System.IDisposable
                     catch (IOException)
                     {
                         // If we can't delete the temp file, try with a different name
-                        tempFileName = $"{_path}.{System.Guid.NewGuid():N}.tmp";
+                        tempFileName = $"{_path}.{Guid.NewGuid():N}.tmp";
                     }
                 }
 
                 using (StreamWriter writer = new(
-                    tempFileName, false, System.Text.Encoding.UTF8, DefaultBufferSize))
+                    tempFileName, false, Encoding.UTF8, DefaultBufferSize))
                 {
                     bool isFirstSection = true;
                     foreach (KeyValuePair<string, Dictionary<string, string>> section in _iniData)
@@ -1433,9 +1441,9 @@ internal sealed class IniConfig : System.IDisposable
                 _isDirty = false;
                 committed = true;
             }
-            catch (System.UnauthorizedAccessException ex)
+            catch (UnauthorizedAccessException ex)
             {
-                throw new System.UnauthorizedAccessException($"Access denied when writing configuration file: {_path}", ex);
+                throw new UnauthorizedAccessException($"Access denied when writing configuration file: {_path}", ex);
             }
             catch (PathTooLongException ex)
             {
@@ -1467,7 +1475,7 @@ internal sealed class IniConfig : System.IDisposable
         }
     }
 
-    public void Dispose() => throw new System.NotImplementedException();
+    public void Dispose() => throw new NotImplementedException();
 
     #endregion Private Methods
 }

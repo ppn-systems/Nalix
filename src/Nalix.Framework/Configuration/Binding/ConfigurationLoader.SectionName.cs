@@ -1,6 +1,12 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
+
 namespace Nalix.Framework.Configuration.Binding;
 
 public partial class ConfigurationLoader
@@ -8,12 +14,12 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Gets the section name for a configuration type, with caching for performance.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static string GetSectionName(System.Type type)
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    [return: NotNull]
+    private static string GetSectionName(Type type)
         => _sectionNameCache.GetOrAdd(type, t =>
         {
             string section = t.Name;
@@ -25,7 +31,7 @@ public partial class ConfigurationLoader
             foreach (string suffix in _suffixesToTrim)
             {
                 if (suffix.Length > longestLength &&
-                    section.EndsWith(suffix, System.StringComparison.OrdinalIgnoreCase))
+                    section.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
                 {
                     longestMatch = suffix;
                     longestLength = suffix.Length;
@@ -43,11 +49,11 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Capitalizes the first letter of a string.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [return: NotNull]
     private static string Capitalize(string input)
         => string.IsNullOrEmpty(input) ? input : char.ToUpperInvariant(input[0]) + input[1..];
 }

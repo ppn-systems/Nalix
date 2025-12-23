@@ -1,6 +1,13 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Shared;
 using Nalix.Framework.Configuration.Internal;
 
@@ -11,18 +18,18 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Creates configuration metadata for a type.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static ConfigurationMetadata CreateConfigurationMetadata(System.Type type)
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    [return: NotNull]
+    private static ConfigurationMetadata CreateConfigurationMetadata(Type type)
     {
-        System.Collections.Generic.List<PropertyMetadata> bindableProperties = [];
-        string? sectionComment = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<IniCommentAttribute>(type)?.Comment;
+        List<PropertyMetadata> bindableProperties = [];
+        string? sectionComment = CustomAttributeExtensions.GetCustomAttribute<IniCommentAttribute>(type)?.Comment;
 
-        foreach (System.Reflection.PropertyInfo property in type.GetProperties(
-                 System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+        foreach (PropertyInfo property in type.GetProperties(
+                 BindingFlags.Public | BindingFlags.Instance))
         {
             // Skip properties with the ConfiguredIgnore attribute
             if (property.IsDefined(typeof(ConfiguredIgnoreAttribute), inherit: true))
@@ -36,7 +43,7 @@ public partial class ConfigurationLoader
                 continue;
             }
 
-            string? propComment = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<IniCommentAttribute>(property, inherit: true)?.Comment;
+            string? propComment = CustomAttributeExtensions.GetCustomAttribute<IniCommentAttribute>(property, inherit: true)?.Comment;
 
             // Create the property metadata
             PropertyMetadata propertyMetadata = new()
@@ -45,7 +52,7 @@ public partial class ConfigurationLoader
                 Comment = propComment,
                 PropertyInfo = property,
                 PropertyType = property.PropertyType,
-                TypeCode = System.Type.GetTypeCode(property.PropertyType)
+                TypeCode = Type.GetTypeCode(property.PropertyType)
             };
 
             bindableProperties.Add(propertyMetadata);
@@ -62,10 +69,10 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Gets the configuration metadata for a type, creating it if it doesn't exist.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static ConfigurationMetadata GetOrCreateMetadata(System.Type type) => _metadataCache.GetOrAdd(type, CreateConfigurationMetadata);
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [return: NotNull]
+    private static ConfigurationMetadata GetOrCreateMetadata(Type type) => _metadataCache.GetOrAdd(type, CreateConfigurationMetadata);
 }

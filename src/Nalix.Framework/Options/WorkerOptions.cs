@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Threading;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Identity;
 
@@ -30,13 +32,13 @@ public sealed class WorkerOptions : IWorkerOptions
     /// Gets the optional execution timeout for the worker instance.
     /// If set, the worker will be cancelled if execution exceeds this duration.
     /// </summary>
-    public System.TimeSpan? ExecutionTimeout { get; }
+    public TimeSpan? ExecutionTimeout { get; }
 
     /// <summary>
     /// Gets the duration for which finished workers are retained for diagnostics.
-    /// Set to <c>null</c> or <see cref="System.TimeSpan.Zero"/> to auto-remove.
+    /// Set to <c>null</c> or <see cref="TimeSpan.Zero"/> to auto-remove.
     /// </summary>
-    public System.TimeSpan? RetainFor { get; init; } = System.TimeSpan.FromMinutes(2);
+    public TimeSpan? RetainFor { get; init; } = TimeSpan.FromMinutes(2);
 
     /// <summary>
     /// Gets the optional per-group concurrency cap. If set, executions in this group are gated.
@@ -51,15 +53,15 @@ public sealed class WorkerOptions : IWorkerOptions
     /// <summary>
     /// Gets the cancellation token that is linked to the worker's execution.
     /// </summary>
-    public System.Threading.CancellationToken CancellationToken { get; init; }
+    public CancellationToken CancellationToken { get; init; }
 
     /// <summary>
     /// Gets the action to invoke when the worker has completed successfully.
     /// </summary>
-    public System.Action<IWorkerHandle>? OnCompleted { get; set; }
+    public Action<IWorkerHandle>? OnCompleted { get; set; }
 
     /// <summary>
     /// Gets the action to invoke when the worker has failed.
     /// </summary>
-    public System.Action<IWorkerHandle, System.Exception>? OnFailed { get; set; }
+    public Action<IWorkerHandle, Exception>? OnFailed { get; set; }
 }

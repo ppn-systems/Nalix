@@ -1,23 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Networking.Packets;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.IO;
 using System.Net;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Common.Networking.Packets;
 
 namespace Nalix.Common.Networking;
 
@@ -49,9 +37,9 @@ public partial interface IConnection
     /// <returns>
     /// An initialized <see cref="IUdp"/> instance bound to this connection.
     /// </returns>
-    /// <exception cref="System.InvalidOperationException">
+    /// <exception cref="InvalidOperationException">
     /// Thrown if the underlying connection does not expose a valid
-    /// <see cref="System.Net.IPEndPoint"/> required for UDP initialization.
+    /// <see cref="IPEndPoint"/> required for UDP initialization.
     /// </exception>
     IUdp GetOrCreateUDP(ref IPEndPoint iPEndPoint);
 
