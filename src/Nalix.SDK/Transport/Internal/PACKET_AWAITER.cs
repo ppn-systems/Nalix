@@ -3,6 +3,7 @@
 
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Transport;
@@ -35,11 +36,11 @@ internal static class PACKET_AWAITER
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     /// <exception cref="TimeoutException"></exception>
     /// <exception cref="OperationCanceledException"></exception>
-    internal static async System.Threading.Tasks.Task<TPkt> AwaitAsync<TPkt>(
+    internal static async Task<TPkt> AwaitAsync<TPkt>(
         IClientConnection client,
         Func<TPkt, bool> predicate,
         int timeoutMs,
-        Func<CancellationToken, System.Threading.Tasks.Task> sendAsync,
+        Func<CancellationToken, Task> sendAsync,
         CancellationToken ct)
         where TPkt : class, IPacket
     {
@@ -53,8 +54,8 @@ internal static class PACKET_AWAITER
             throw new ArgumentOutOfRangeException(nameof(timeoutMs), "timeoutMs must be >= 0 (0 = infinite)");
         }
 
-        System.Threading.Tasks.TaskCompletionSource<TPkt> tcs = new(
-            System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<TPkt> tcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
 
         using CancellationTokenSource lcts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
@@ -93,12 +94,12 @@ internal static class PACKET_AWAITER
         {
             return await tcs.Task.ConfigureAwait(false);
         }
-        catch (System.Threading.Tasks.TaskCanceledException) when (!ct.IsCancellationRequested)
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
             s_logger?.Debug($"[SDK.{nameof(PACKET_AWAITER)}] Timeout waiting for {typeof(TPkt).Name} after {timeoutMs}ms.");
             throw new TimeoutException($"No {typeof(TPkt).Name} received within {timeoutMs} ms.");
         }
-        catch (System.Threading.Tasks.TaskCanceledException) when (ct.IsCancellationRequested)
+        catch (TaskCanceledException) when (ct.IsCancellationRequested)
         {
             s_logger?.Debug($"[SDK.{nameof(PACKET_AWAITER)}] Operation cancelled by caller while waiting for {typeof(TPkt).Name}.");
             throw new OperationCanceledException(ct);

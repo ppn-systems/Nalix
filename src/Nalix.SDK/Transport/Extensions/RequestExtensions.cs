@@ -1,6 +1,10 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Transport;
@@ -9,7 +13,6 @@ using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport.Extensions;
-
 
 /// <summary>
 /// Provides request-response helpers for <see cref="IClientConnection"/>.
@@ -27,7 +30,7 @@ namespace Nalix.SDK.Transport.Extensions;
 /// Marshal to the main thread before touching Unity GameObjects or WPF/MAUI UI controls.
 /// </para>
 /// <para>
-/// <b>Retry:</b> only <see cref="System.TimeoutException"/> triggers a retry.
+/// <b>Retry:</b> only <see cref="TimeoutException"/> triggers a retry.
 /// Fatal errors (send failure, disconnect) propagate immediately.
 /// </para>
 /// <para>
@@ -40,7 +43,7 @@ namespace Nalix.SDK.Transport.Extensions;
 /// guarantees no missed responses even under high concurrency or very low-latency servers.
 /// </para>
 /// </remarks>
-[System.Runtime.CompilerServices.SkipLocalsInit]
+[SkipLocalsInit]
 public static class RequestExtensions
 {
     /// <summary>
@@ -61,17 +64,17 @@ public static class RequestExtensions
     /// </param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The first matching <typeparamref name="TResponse"/>.</returns>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="client"/>, <paramref name="request"/>,
     /// or <paramref name="predicate"/> is <c>null</c>.
     /// </exception>
-    /// <exception cref="System.InvalidOperationException">
+    /// <exception cref="InvalidOperationException">
     /// Thrown when the client is not connected.
     /// </exception>
-    /// <exception cref="System.TimeoutException">
+    /// <exception cref="TimeoutException">
     /// Thrown when no matching response is received within <paramref name="timeoutMs"/>.
     /// </exception>
-    /// <exception cref="System.OperationCanceledException">
+    /// <exception cref="OperationCanceledException">
     /// Thrown when <paramref name="ct"/> is canceled.
     /// </exception>
     /// <example>
@@ -83,22 +86,22 @@ public static class RequestExtensions
     ///     ct: ct);
     /// </code>
     /// </example>
-    public static System.Threading.Tasks.Task<TResponse> RequestAsync<TRequest, TResponse>(
+    public static Task<TResponse> RequestAsync<TRequest, TResponse>(
         this IClientConnection client,
         TRequest request,
-        System.Func<TResponse, bool> predicate,
+        Func<TResponse, bool> predicate,
         int timeoutMs = 5000,
-        System.Threading.CancellationToken ct = default)
+        CancellationToken ct = default)
         where TRequest : class, IPacket
         where TResponse : class, IPacket
     {
-        System.ArgumentNullException.ThrowIfNull(client);
-        System.ArgumentNullException.ThrowIfNull(request);
-        System.ArgumentNullException.ThrowIfNull(predicate);
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(predicate);
 
         if (!client.IsConnected)
         {
-            throw new System.InvalidOperationException("Client is not connected.");
+            throw new InvalidOperationException("Client is not connected.");
         }
 
         // PacketAwaiter handles: subscribe → send → await → timeout → unsubscribe.
@@ -121,14 +124,14 @@ public static class RequestExtensions
     /// <param name="timeoutMs">Timeout in milliseconds. Default is <c>5000</c> ms.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The first matching response packet.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Threading.Tasks.Task<TPacket> RequestAsync<TPacket>(
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static Task<TPacket> RequestAsync<TPacket>(
         this IClientConnection client,
         TPacket request,
-        System.Func<TPacket, bool> predicate,
+        Func<TPacket, bool> predicate,
         int timeoutMs = 5000,
-        System.Threading.CancellationToken ct = default)
+        CancellationToken ct = default)
         where TPacket : class, IPacket => RequestAsync<TPacket, TPacket>(client, request, predicate, timeoutMs, ct);
 
     /// <summary>
@@ -149,19 +152,19 @@ public static class RequestExtensions
     /// </param>
     /// <param name="ct">Cancellation token for the entire operation (all attempts).</param>
     /// <returns>The first matching response packet.</returns>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// <paramref name="client"/> or <paramref name="request"/> is <see langword="null"/>.
     /// </exception>
-    /// <exception cref="System.InvalidOperationException">
+    /// <exception cref="InvalidOperationException">
     /// Client not connected, or <c>SendAsync</c> returned <see langword="false"/>.
     /// </exception>
-    /// <exception cref="System.TimeoutException">
+    /// <exception cref="TimeoutException">
     /// No response arrived within the allotted timeout on all attempts.
     /// </exception>
-    /// <exception cref="System.OperationCanceledException">
+    /// <exception cref="OperationCanceledException">
     /// <paramref name="ct"/> was cancelled, or the connection dropped mid-wait.
     /// </exception>
-    /// <exception cref="System.ArgumentException">
+    /// <exception cref="ArgumentException">
     /// <see cref="RequestOptions.Encrypt"/> is <see langword="true"/> but
     /// <paramref name="client"/> is not a <see cref="TcpSessionBase"/>.
     /// </exception>
@@ -184,35 +187,35 @@ public static class RequestExtensions
     ///     predicate: r => r.RequestId == tradeRequest.Id);
     /// </code>
     /// </example>
-    public static async System.Threading.Tasks.Task<TResponse> RequestAsync<TResponse>(
+    public static async Task<TResponse> RequestAsync<TResponse>(
         this IClientConnection client,
         IPacket request,
         RequestOptions? options = null,
-        System.Func<TResponse, bool>? predicate = null,
-        System.Threading.CancellationToken ct = default)
+        Func<TResponse, bool>? predicate = null,
+        CancellationToken ct = default)
         where TResponse : class, IPacket
     {
-        System.ArgumentNullException.ThrowIfNull(client);
-        System.ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(request);
 
         options ??= RequestOptions.Default;
         options.Validate();
 
         if (!client.IsConnected)
         {
-            throw new System.InvalidOperationException(
+            throw new InvalidOperationException(
                 $"[SDK.RequestAsync<{typeof(TResponse).Name}>] Client is not connected.");
         }
 
         // Fail-fast: Encrypt requires BaseTcpSession — check before any attempt.
         if (options.Encrypt && client is not TcpSessionBase)
         {
-            throw new System.ArgumentException(
+            throw new ArgumentException(
                 $"[SDK.RequestAsync<{typeof(TResponse).Name}>] RequestOptions.Encrypt=true requires TcpSessionBase. Got: {client.GetType().Name}", nameof(client));
         }
 
-        System.Func<TResponse, bool> effectivePredicate = predicate ?? (_ => true);
-        System.Exception? lastException = null;
+        Func<TResponse, bool> effectivePredicate = predicate ?? (_ => true);
+        Exception? lastException = null;
         int totalAttempts = options.RetryCount + 1;
 
         for (int attempt = 1; attempt <= totalAttempts; attempt++)
@@ -235,13 +238,13 @@ public static class RequestExtensions
                             {
                                 if (!t.Result)
                                 {
-                                    throw new System.InvalidOperationException(
+                                    throw new InvalidOperationException(
                                         $"[SDK.RequestAsync<{typeof(TResponse).Name}>] SendAsync returned false; packet was not transmitted.");
                                 }
                             },
                             token,
-                            System.Threading.Tasks.TaskContinuationOptions.OnlyOnRanToCompletion,
-                            System.Threading.Tasks.TaskScheduler.Default),
+                            TaskContinuationOptions.OnlyOnRanToCompletion,
+                            TaskScheduler.Default),
                     ct).ConfigureAwait(false);
 
                 if (attempt > 1)
@@ -252,7 +255,7 @@ public static class RequestExtensions
 
                 return result;
             }
-            catch (System.TimeoutException tex) when (attempt < totalAttempts)
+            catch (TimeoutException tex) when (attempt < totalAttempts)
             {
                 // Only TimeoutException is retryable.
                 // OperationCanceledException, InvalidOperationException, etc. propagate immediately.
@@ -262,7 +265,7 @@ public static class RequestExtensions
             }
         }
 
-        throw new System.TimeoutException(
+        throw new TimeoutException(
             $"[SDK.RequestAsync<{typeof(TResponse).Name}>] No response after {totalAttempts} attempt(s) (timeout={options.TimeoutMs}ms each).", lastException);
     }
 }

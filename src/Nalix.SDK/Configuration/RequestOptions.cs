@@ -1,6 +1,8 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Threading;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Transport;
 using Nalix.SDK.Transport;
@@ -9,7 +11,7 @@ using Nalix.SDK.Transport.Extensions;
 namespace Nalix.SDK.Configuration;
 
 /// <summary>
-/// Controls the behaviour of <see cref="RequestExtensions.RequestAsync{TResponse}(IClientConnection, IPacket, RequestOptions, System.Func{TResponse, bool}, System.Threading.CancellationToken)"/>.
+/// Controls the behaviour of <see cref="RequestExtensions.RequestAsync{TResponse}(IClientConnection, IPacket, RequestOptions, Func{TResponse, bool}, CancellationToken)"/>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -23,7 +25,7 @@ namespace Nalix.SDK.Configuration;
 /// </code>
 /// </para>
 /// <para>
-/// <b>Retry semantics:</b> a retry is triggered only on <see cref="System.TimeoutException"/>.
+/// <b>Retry semantics:</b> a retry is triggered only on <see cref="TimeoutException"/>.
 /// Fatal errors (dropped connection, send failure) propagate immediately — they are never retried.
 /// Each attempt gets its own <see cref="TimeoutMs"/> window; total wall-clock time is at most
 /// <c>TimeoutMs × (RetryCount + 1)</c>.
@@ -62,14 +64,14 @@ public sealed record RequestOptions
     // ── Validation ───────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Throws <see cref="System.ArgumentOutOfRangeException"/> if <see cref="RetryCount"/> is negative.
+    /// Throws <see cref="ArgumentOutOfRangeException"/> if <see cref="RetryCount"/> is negative.
     /// </summary>
-    /// <exception cref="System.ArgumentOutOfRangeException"></exception>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
     public void Validate()
     {
         if (RetryCount < 0)
         {
-            throw new System.ArgumentOutOfRangeException(
+            throw new ArgumentOutOfRangeException(
                 nameof(RetryCount), RetryCount, $"{nameof(RetryCount)} must be >= 0.");
         }
     }
