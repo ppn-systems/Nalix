@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Diagnostics;
 using Nalix.Logging.Configuration;
 using Nalix.Logging.Internal.File;
@@ -17,9 +20,9 @@ namespace Nalix.Logging.Sinks;
 /// <see cref="BatchFileLogTarget"/>, but it uses <see cref="FileLoggerProvider"/> internally
 /// to buffer and asynchronously write logs to the file system.
 /// </remarks>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Diagnostics.DebuggerDisplay("ChannelFileLogTarget")]
-public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
+[DebuggerNonUserCode]
+[DebuggerDisplay("ChannelFileLogTarget")]
+public sealed class BatchFileLogTarget : ILoggerTarget, IDisposable
 {
     #region Fields
 
@@ -34,10 +37,10 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     /// <param name="options">The file log options to configure file paths, size limits, and rolling behavior.</param>
     /// <param name="formatter">The log formatter used to convert log entries into string format.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="formatter"/> or <paramref name="options"/> is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="formatter"/> or <paramref name="options"/> is null.</exception>
     public BatchFileLogTarget(FileLogOptions? options, ILoggerFormatter formatter)
     {
-        System.ArgumentNullException.ThrowIfNull(formatter);
+        ArgumentNullException.ThrowIfNull(formatter);
 
         _provider = new FileLoggerProvider(formatter, options);
     }
@@ -56,7 +59,7 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with custom configuration logic.
     /// </summary>
     /// <param name="options">An action that configures the <see cref="FileLogOptions"/> before use.</param>
-    public BatchFileLogTarget(System.Action<FileLogOptions> options)
+    public BatchFileLogTarget(Action<FileLogOptions> options)
         : this(Configure(options), new LogFormatter(false))
     {
     }
@@ -69,9 +72,9 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// Publishes a log entry to the file logging channel.
     /// </summary>
     /// <param name="logMessage">The log entry to be written.</param>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public void Publish(LogEntry logMessage) => _provider.Enqueue(logMessage);
 
     /// <summary>
@@ -80,15 +83,15 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// <remarks>
     /// Ensures the log queue is flushed before disposal.
     /// </remarks>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     public void Dispose()
     {
         _provider.Flush();
         _provider.Dispose();
-        System.GC.SuppressFinalize(this);
+        GC.SuppressFinalize(this);
     }
 
     #endregion APIs
@@ -100,10 +103,10 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     /// <param name="configure">The action that configures the file log options.</param>
     /// <returns>A configured <see cref="FileLogOptions"/> instance.</returns>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static FileLogOptions Configure(System.Action<FileLogOptions> configure)
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    private static FileLogOptions Configure(Action<FileLogOptions> configure)
     {
         FileLogOptions opts = new();
         configure?.Invoke(opts);

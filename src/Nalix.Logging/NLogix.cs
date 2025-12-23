@@ -1,6 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Diagnostics;
 using Nalix.Logging.Configuration;
 using Nalix.Logging.Engine;
@@ -21,9 +26,9 @@ namespace Nalix.Logging;
 /// The <see cref="NLogix"/> logger supports dependency injection or can be accessed via <see cref="Host"/>.
 /// Logging targets and behavior can be customized during initialization using <see cref="NLogixOptions"/>.
 /// </remarks>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Logger=NLogix, {GetType().Name,nq}")]
+[DebuggerNonUserCode]
+[ExcludeFromCodeCoverage]
+[DebuggerDisplay("Logger=NLogix, {GetType().Name,nq}")]
 public sealed partial class NLogix : NLogixEngine, ILogger
 {
     #region Constructors
@@ -32,9 +37,9 @@ public sealed partial class NLogix : NLogixEngine, ILogger
     /// Initializes the logging system with optional configuration.
     /// </summary>
     /// <param name="configure">An optional action to configure the logging system.</param>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+    [SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    public NLogix(System.Action<NLogixOptions>? configure = null)
+    public NLogix(Action<NLogixOptions>? configure = null)
         : base(configure)
     {
     }
@@ -47,9 +52,9 @@ public sealed partial class NLogix : NLogixEngine, ILogger
     /// Sanitize log message to prevent log forging
     /// Removes potentially dangerous characters (e.g., newlines or control characters)
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static string SanitizeLogMessage(string? message)
     {
         if (string.IsNullOrEmpty(message))
@@ -58,7 +63,7 @@ public sealed partial class NLogix : NLogixEngine, ILogger
         }
 
         // Chỉ allocate nếu thực sự có ký tự cần xóa
-        if (System.MemoryExtensions.IndexOfAny(System.MemoryExtensions.AsSpan(message), '\n', '\r') < 0)
+        if (MemoryExtensions.IndexOfAny(MemoryExtensions.AsSpan(message), '\n', '\r') < 0)
         {
             return message; // fast path: không cần sanitize
         }
@@ -69,14 +74,14 @@ public sealed partial class NLogix : NLogixEngine, ILogger
     /// <summary>
     /// Writes a log entry with the specified level, event ProtocolType, message, and optional exception.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private void WriteLog(
         LogLevel level,
         EventId eventId,
         string message,
-        System.Exception? exception = null) => Publish(level, eventId, message, exception);
+        Exception? exception = null) => Publish(level, eventId, message, exception);
 
     #endregion Private Methods
 }
