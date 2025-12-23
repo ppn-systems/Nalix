@@ -3,6 +3,7 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Client;
 using Nalix.Common.Logging;
+using Nalix.Common.Packets;
 using Nalix.Common.Packets.Abstractions;
 using Nalix.Common.Tasks;
 using Nalix.Framework.Configuration;
@@ -35,9 +36,20 @@ public sealed class ReliableClient : IReliableClient
 
     private System.Int32 _discNotified; // 0/1 gate for Disconnected
 
+    // New: bounded channels for inbound/outbound
+    private System.Threading.Channels.Channel<IPacket> _recvChannel;
+    private System.Threading.Channels.Channel<System.ReadOnlyMemory<System.Byte>> _sendChannel;
+
     #endregion Fields
 
     #region Properties
+
+    // Optional dispatcher instance (user may create their own and subscribe)
+    /// <summary>
+    /// Gets or sets the optional dispatcher instance for handling received packets.
+    /// Users may assign their own dispatcher and subscribe to packet events.
+    /// </summary>
+    public IReliableDispatcher Dispatcher;
 
     /// <summary>
     /// Gets the context associated with the network connection.
@@ -96,7 +108,7 @@ public sealed class ReliableClient : IReliableClient
     /// </summary>
     public event System.Action<System.Exception> Disconnected;
 
-    #endregion
+    #endregion Events
 
     #region Constructor
 
@@ -106,7 +118,7 @@ public sealed class ReliableClient : IReliableClient
     public ReliableClient()
     {
         _connGate = new(1, 1);
-        _workerId = new ISnowflake[2];
+        _workerId = new ISnowflake[3]; // extra slot for sender/recv consumer
         _client = new System.Net.Sockets.TcpClient { NoDelay = true };
 
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
@@ -160,12 +172,32 @@ public sealed class ReliableClient : IReliableClient
             _outbound = new FRAME_SENDER<IPacket>(_stream);
             _inbound = new FRAME_READER<IPacket>(_stream);
 
+            // Initialize bounded channels
+            // Receive channel: bounded, wait when full -> backpressure
+            _recvChannel = System.Threading.Channels.Channel.CreateBounded<IPacket>(new System.Threading.Channels.BoundedChannelOptions(1024)
+            {
+                SingleReader = true,
+                SingleWriter = false,
+                FullMode = System.Threading.Channels.BoundedChannelFullMode.Wait
+            });
+
+            // Send channel: bounded, wait when full -> backpressure to sender
+            _sendChannel = System.Threading.Channels.Channel.CreateBounded<System.ReadOnlyMemory<System.Byte>>(new System.Threading.Channels.BoundedChannelOptions(1024)
+            {
+                SingleReader = true,
+                SingleWriter = false,
+                FullMode = System.Threading.Channels.BoundedChannelFullMode.Wait
+            });
+
+            // Provide a default dispatcher (optional)
+            Dispatcher = new ReliableDispatcher();
+
             // Notify connected
             SAFE_INVOKE(Connected, InstanceManager.Instance.GetExistingInstance<ILogger>());
 
-            // Start background receive worker through TaskManager
-            IWorkerHandle woker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
-                name: $"tcp-recv-{Options.Address}:{Options.Port}",
+            // Start background receive network worker through TaskManager (same as before but enqueue to _recvChannel)
+            IWorkerHandle recvNetWorker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+                name: $"tcp-recv-net-{Options.Address}:{Options.Port}",
                 group: "network",
                 async (ctx, ct) =>
                 {
@@ -188,7 +220,8 @@ public sealed class ReliableClient : IReliableClient
 
                             if (packet != null)
                             {
-                                SAFE_INVOKE(PacketReceived, packet, InstanceManager.Instance.GetExistingInstance<ILogger>());
+                                // best-effort dispatch before error handling
+                                _ = _recvChannel.Writer.WaitToWriteAsync(ct).AsTask().ContinueWith(t => _recvChannel.Writer.TryWrite(packet));
                             }
 
                             if (System.Threading.Interlocked.Exchange(ref _discNotified, 1) == 0)
@@ -201,7 +234,16 @@ public sealed class ReliableClient : IReliableClient
                             break;
                         }
 
-                        SAFE_INVOKE(PacketReceived, packet, InstanceManager.Instance.GetExistingInstance<ILogger>());
+                        // Enqueue to bounded channel (wait if full) to provide backpressure
+                        try
+                        {
+                            await _recvChannel.Writer.WriteAsync(packet, ct).ConfigureAwait(false);
+                        }
+                        catch (System.OperationCanceledException)
+                        {
+                            // writer canceled -> exit
+                            break;
+                        }
                     }
                 },
                 new WorkerOptions
@@ -211,7 +253,150 @@ public sealed class ReliableClient : IReliableClient
                                                                    .Warn($"[SDK.ReliableClient.GM] Worker failed: {ex.Message}")
                 });
 
-            _workerId[0] = woker.Id;
+            _workerId[0] = recvNetWorker.Id;
+
+            // Start receive consumer worker: read from channel and invoke PacketReceived + dispatcher
+            IWorkerHandle recvConsumer = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+                name: $"tcp-recv-consumer-{Options.Address}:{Options.Port}",
+                group: "network",
+                async (ctx, ct) =>
+                {
+                    System.Threading.Channels.ChannelReader<IPacket> reader = _recvChannel.Reader;
+                    try
+                    {
+                        if (!Dispatcher.IsEmpty)
+                        {
+                            await foreach (IPacket p in System.Threading.Tasks.TaskAsyncEnumerableExtensions.ConfigureAwait(reader.ReadAllAsync(ct), false))
+                            {
+                                // Dispatch to dispatcher (non-blocking) and then raise event for backwards compatibility.
+                                try
+                                {
+                                    Dispatcher?.Dispatch(p);
+                                }
+                                catch (System.Exception ex)
+                                {
+                                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                            .Warn($"[SDK.ReliableClient] Dispatcher threw: {ex.Message}");
+                                }
+
+                                SAFE_INVOKE(PacketReceived, p, InstanceManager.Instance.GetExistingInstance<ILogger>());
+                            }
+                        }
+                        else
+                        {
+                            await foreach (IPacket p in System.Threading.Tasks.TaskAsyncEnumerableExtensions.ConfigureAwait(reader.ReadAllAsync(ct), false))
+                            {
+                                // No dispatcher: just raise event
+                                SAFE_INVOKE(PacketReceived, p, InstanceManager.Instance.GetExistingInstance<ILogger>());
+                            }
+                        }
+                    }
+                    catch (System.OperationCanceledException)
+                    {
+                        // canceled
+                    }
+                    catch (System.Exception ex)
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Warn($"[SDK.ReliableClient] Receive consumer failed: {ex.Message}");
+                    }
+                },
+                new WorkerOptions { Tag = "tcp" });
+
+            _workerId[1] = recvConsumer.Id;
+
+            // Start sender worker that batches outgoing packets
+            IWorkerHandle senderWorker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+                name: $"tcp-send-batch-{Options.Address}:{Options.Port}",
+                group: "network",
+                async (ctx, ct) =>
+                {
+                    // configuration
+                    const System.Int32 maxBatchBytes = 64 * 1024; // 64 KB
+                    const System.Int32 maxBatchCount = 64;
+                    const System.Int32 batchDelayMs = 1; // optional small delay to accumulate more packets
+
+                    var reader = _sendChannel.Reader;
+
+                    while (!ct.IsCancellationRequested && IsConnected)
+                    {
+                        System.ReadOnlyMemory<System.Byte> first;
+                        try
+                        {
+                            first = await reader.ReadAsync(ct).ConfigureAwait(false);
+                        }
+                        catch (System.OperationCanceledException)
+                        {
+                            break;
+                        }
+
+                        // accumulate
+                        System.Collections.Generic.List<System.ReadOnlyMemory<System.Byte>> segments = new(4) { first };
+                        System.Int32 totalBytes = first.Length + 2; // header bytes included per frame
+                        while (segments.Count < maxBatchCount && totalBytes < maxBatchBytes && reader.TryRead(out var next))
+                        {
+                            segments.Add(next);
+                            totalBytes += next.Length + 2;
+                        }
+
+                        // If small batch and channel has items, optionally wait a short time to let more packets arrive
+                        if (segments.Count == 1 && totalBytes < maxBatchBytes)
+                        {
+                            // Small opportunistic delay
+                            try { await System.Threading.Tasks.Task.Delay(batchDelayMs, ct).ConfigureAwait(false); } catch { }
+                            // Drain any newly arrived items up to limits
+                            while (segments.Count < maxBatchCount && totalBytes < maxBatchBytes && reader.TryRead(out var next2))
+                            {
+                                segments.Add(next2);
+                                totalBytes += next2.Length + 2;
+                            }
+                        }
+
+                        // Build a single buffer containing framed packets: [total:U16 LE][payload]...
+                        // Use ArrayPool to avoid repeated allocations
+                        var rented = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(totalBytes);
+                        try
+                        {
+                            System.Int32 pos = 0;
+                            foreach (var seg in segments)
+                            {
+                                System.Int32 payloadLen = seg.Length;
+                                System.UInt16 total = (System.UInt16)(payloadLen + sizeof(System.UInt16));
+                                System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(System.MemoryExtensions.AsSpan(rented, pos, 2), total);
+                                pos += 2;
+                                if (payloadLen > 0)
+                                {
+                                    seg.CopyTo(System.MemoryExtensions.AsMemory(rented, pos, payloadLen));
+                                    pos += payloadLen;
+                                }
+                            }
+
+                            // Single write + flush
+                            try
+                            {
+                                await _stream.WriteAsync(System.MemoryExtensions.AsMemory(rented, 0, pos), ct).ConfigureAwait(false);
+                                await _stream.FlushAsync(ct).ConfigureAwait(false);
+                            }
+                            catch (System.Exception ex)
+                            {
+                                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Error($"[SDK.ReliableClient] Sender worker write failed: {ex.Message}");
+                                // Mark IO dead and disconnect
+                                this.MARK_IO_DEAD(ex);
+                                this.Disconnect();
+                                break;
+                            }
+                        }
+                        finally
+                        {
+                            System.Array.Clear(rented, 0, totalBytes);
+                            System.Buffers.ArrayPool<System.Byte>.Shared.Return(rented);
+                        }
+                    }
+                },
+                new WorkerOptions { Tag = "tcp" });
+
+            _workerId[2] = senderWorker.Id;
         }
         catch (System.OperationCanceledException) when (cts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
@@ -234,7 +419,46 @@ public sealed class ReliableClient : IReliableClient
     public System.Threading.Tasks.Task SendAsync(
         [System.Diagnostics.CodeAnalysis.NotNull] IPacket packet,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken ct = default)
-        => (_outbound ?? throw new System.InvalidOperationException("Not connected.")).SEND_ASYNC(packet, ct);
+    {
+        System.ArgumentNullException.ThrowIfNull(packet);
+
+        if (_sendChannel is null)
+        {
+            // Not connected or send channel not initialized: fallback to direct outbound sender
+            return (_outbound ?? throw new System.InvalidOperationException("Not connected.")).SEND_ASYNC(packet, ct);
+        }
+
+        // Serialize and enqueue to send channel (bounded). This will apply backpressure when full.
+        var mem = packet.Serialize();
+
+        // Validate size
+        if (mem.Length > PacketConstants.PacketSizeLimit)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(packet), "Packet too large.");
+        }
+
+        // Try to write quickly; otherwise await available space
+        var writer = _sendChannel.Writer;
+        return !writer.TryWrite(mem) ? writer.WriteAsync(mem, ct).AsTask() : System.Threading.Tasks.Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public System.Threading.Tasks.Task SendRawAsync(System.ReadOnlyMemory<System.Byte> bytes, System.Threading.CancellationToken ct = default)
+    {
+        if (_sendChannel is null)
+        {
+            // fallback to direct write
+            return (_outbound ?? throw new System.InvalidOperationException("Not connected.")).SEND_ASYNC(bytes, ct);
+        }
+
+        if (bytes.Length > PacketConstants.PacketSizeLimit)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(bytes), "Packet too large.");
+        }
+
+        var writer = _sendChannel.Writer;
+        return !writer.TryWrite(bytes) ? writer.WriteAsync(bytes, ct).AsTask() : System.Threading.Tasks.Task.CompletedTask;
+    }
 
     /// <inheritdoc/>
     [System.Diagnostics.DebuggerStepThrough]
@@ -265,6 +489,13 @@ public sealed class ReliableClient : IReliableClient
 
         _outbound = null;
         _inbound = null;
+
+        // Complete channels to unblock workers
+        try { _ = (_recvChannel?.Writer.TryComplete()); } catch { }
+        try { _ = (_sendChannel?.Writer.TryComplete()); } catch { }
+
+        // Dispose dispatcher if owned
+        try { Dispatcher?.Dispose(); } catch { }
 
         // Notify once on explicit disconnect as well
         if (System.Threading.Interlocked.Exchange(ref _discNotified, 1) == 0)
@@ -302,8 +533,6 @@ public sealed class ReliableClient : IReliableClient
 
         try
         {
-            // Default to graceful linger of 0 (no lingering) during normal operation.
-            // Final abortive close is performed in DEEP_CLOSE via ABORTIVE_CLOSE.
             client.LingerState = new System.Net.Sockets.LingerOption(false, 0);
         }
         catch { /* ignore */ }
@@ -350,21 +579,18 @@ public sealed class ReliableClient : IReliableClient
 
         try
         {
-            // Enable abortive close (RST) to avoid TIME_WAIT
             s.LingerState = new System.Net.Sockets.LingerOption(true, 0);
         }
         catch { /* ignore */ }
 
         try
         {
-            // Best effort shutdown; may throw if already closed
             s.Shutdown(System.Net.Sockets.SocketShutdown.Both);
         }
         catch { /* ignore */ }
 
         try
         {
-            // Close immediately; Close(0) is equivalent to Dispose()
             s.Close(0);
         }
         catch { /* ignore */ }
@@ -374,18 +600,14 @@ public sealed class ReliableClient : IReliableClient
 
     private void DEEP_CLOSE()
     {
-        // 1) Dispose the stream first to stop pending IEndpointKey /O
         try { _stream?.Dispose(); } catch { /* ignore */ }
         _stream = null;
 
-        // 2) Abortive-close underlying socket
         try { ABORTIVE_CLOSE(_client?.Client); } catch { /* ignore */ }
 
-        // 3) Dispose TcpClient wrapper
         try { _client?.Dispose(); } catch { /* ignore */ }
         _client = null;
 
-        // 4) Clear transport pipe refs
         _outbound = null;
         _inbound = null;
     }
