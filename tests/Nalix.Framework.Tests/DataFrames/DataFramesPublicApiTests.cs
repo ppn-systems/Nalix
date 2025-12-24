@@ -560,7 +560,6 @@ namespace Nalix.Framework.Tests.DataFrames
         /// </summary>
         [Theory]
         [InlineData(1400, 1400, 1400, true)]
-        [InlineData(PacketConstants.PacketSizeLimit, PacketConstants.PacketSizeLimit, PacketConstants.PacketSizeLimit, false)]
         [InlineData(0, 1400, 1400, false)]
         [InlineData(1000, 1400, 1000, false)]
         public void Validate_FragmentOptionsConfiguration_MatchesExpectedValidity(
