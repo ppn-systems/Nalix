@@ -1,44 +1,51 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Nalix.Common.Networking;
 
 namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
 {
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private void Initialize()
     {
         if (s_config.EnableIPv6)
         {
             // Try IPv6 + DualMode first
-            System.Net.Sockets.Socket sock = null;
+            Socket sock = null;
             try
             {
-                sock = new System.Net.Sockets.Socket(
-                    System.Net.Sockets.AddressFamily.InterNetworkV6,
-                    System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp)
+                sock = new Socket(
+                    AddressFamily.InterNetworkV6,
+                    SocketType.Stream, ProtocolType.Tcp)
                 {
                     Blocking = true,
                     DualMode = s_config.DualMode,                 // Must set before Bind
                     ExclusiveAddressUse = !s_config.ReuseAddress, // fast rebind combo with ReuseAddress
-                    LingerState = new System.Net.Sockets.LingerOption(false, 0)
+                    LingerState = new LingerOption(false, 0)
                 };
 
                 // Reuse BEFORE bind
                 sock.SetSocketOption(
-                    System.Net.Sockets.SocketOptionLevel.Socket,
-                    System.Net.Sockets.SocketOptionName.ReuseAddress, s_config.ReuseAddress ? 1 : 0);
+                    SocketOptionLevel.Socket,
+                    SocketOptionName.ReuseAddress, s_config.ReuseAddress ? 1 : 0);
 
                 // Optional: larger listen buffer (per-connection tuning is more important)
                 sock.SetSocketOption(
-                    System.Net.Sockets.SocketOptionLevel.Socket,
-                    System.Net.Sockets.SocketOptionName.ReceiveBuffer, s_config.BufferSize);
+                    SocketOptionLevel.Socket,
+                    SocketOptionName.ReceiveBuffer, s_config.BufferSize);
 
-                System.Net.IPEndPoint epV6Any = new(System.Net.IPAddress.IPv6Any, _port);
+                IPEndPoint epV6Any = new(IPAddress.IPv6Any, _port);
 
                 s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any}.v6)");
 
@@ -50,7 +57,7 @@ public abstract partial class TcpListenerBase
 
                 return;
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] failed-bind ex={ex.Message}");
 
@@ -71,24 +78,24 @@ public abstract partial class TcpListenerBase
         }
 
         // Fallback: IPv4-only
-        _listener = new System.Net.Sockets.Socket(
-            System.Net.Sockets.AddressFamily.InterNetwork,
-            System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp)
+        _listener = new Socket(
+            AddressFamily.InterNetwork,
+            SocketType.Stream, ProtocolType.Tcp)
         {
             Blocking = true,
             ExclusiveAddressUse = !s_config.ReuseAddress,
-            LingerState = new System.Net.Sockets.LingerOption(false, 0)
+            LingerState = new LingerOption(false, 0)
         };
 
         _listener.SetSocketOption(
-            System.Net.Sockets.SocketOptionLevel.Socket,
-            System.Net.Sockets.SocketOptionName.ReuseAddress, s_config.ReuseAddress ? 1 : 0);
+            SocketOptionLevel.Socket,
+            SocketOptionName.ReuseAddress, s_config.ReuseAddress ? 1 : 0);
 
         _listener.SetSocketOption(
-            System.Net.Sockets.SocketOptionLevel.Socket,
-            System.Net.Sockets.SocketOptionName.ReceiveBuffer, s_config.BufferSize);
+            SocketOptionLevel.Socket,
+            SocketOptionName.ReceiveBuffer, s_config.BufferSize);
 
-        System.Net.IPEndPoint epV4Any = new(System.Net.IPAddress.Any, _port);
+        IPEndPoint epV4Any = new(IPAddress.Any, _port);
 
         s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any}.v4");
 
@@ -118,7 +125,7 @@ public abstract partial class TcpListenerBase
     ///     <description>
     ///     Keeps the socket in blocking mode. Task-based async I/O works correctly with
     ///     blocking sockets; forcing non-blocking mode here would require all receive/send
-    ///     loops to handle <see cref="System.Net.Sockets.SocketError.WouldBlock"/> explicitly.
+    ///     loops to handle <see cref="SocketError.WouldBlock"/> explicitly.
     ///     </description>
     ///   </item>
     ///   <item>
@@ -161,7 +168,7 @@ public abstract partial class TcpListenerBase
     /// runtimes or restricted environments — the method falls back to the Windows-only
     /// <c>SIO_KEEPALIVE_VALS</c> IOControl, which packs the same three values into a
     /// 12-byte little-endian struct sent via
-    /// <see cref="System.Net.Sockets.Socket.IOControl(System.Net.Sockets.IOControlCode, byte[], byte[])"/>.
+    /// <see cref="Socket.IOControl(IOControlCode, byte[], byte[])"/>.
     /// The fallback is silently skipped on non-Windows platforms.
     /// </para>
     /// <para>
@@ -170,14 +177,14 @@ public abstract partial class TcpListenerBase
     /// protocol-specific buffer sizing).
     /// </para>
     /// </remarks>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    [SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+    [SuppressMessage(
         "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
-    protected static void InitializeOptions([System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.Socket socket)
+    protected static void InitializeOptions([NotNull] Socket socket)
     {
         // When you want to disconnect immediately without making sure the data has been sent.
         // socket.LingerState = new LingerOption(true, NetworkSocketOptions.False);
@@ -194,25 +201,25 @@ public abstract partial class TcpListenerBase
         if (s_config.KeepAlive)
         {
             // Windows specific settings
-            socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Socket,
-                                   System.Net.Sockets.SocketOptionName.KeepAlive, true);
+            socket.SetSocketOption(SocketOptionLevel.Socket,
+                                   SocketOptionName.KeepAlive, true);
 
             try
             {
                 // Cross-platform in modern .NET
-                socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp,
-                                       System.Net.Sockets.SocketOptionName.TcpKeepAliveTime, 3);
+                socket.SetSocketOption(SocketOptionLevel.Tcp,
+                                       SocketOptionName.TcpKeepAliveTime, 3);
 
-                socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp,
-                                       System.Net.Sockets.SocketOptionName.TcpKeepAliveInterval, 1);
+                socket.SetSocketOption(SocketOptionLevel.Tcp,
+                                       SocketOptionName.TcpKeepAliveInterval, 1);
 
-                socket.SetSocketOption(System.Net.Sockets.SocketOptionLevel.Tcp,
-                                       System.Net.Sockets.SocketOptionName.TcpKeepAliveRetryCount, 3);
+                socket.SetSocketOption(SocketOptionLevel.Tcp,
+                                       SocketOptionName.TcpKeepAliveRetryCount, 3);
             }
             catch
             {
                 // Fallback Windows-only SIO_KEEPALIVE_VALS if needed
-                if (System.OperatingSystem.IsWindows())
+                if (OperatingSystem.IsWindows())
                 {
                     // Win32 SIO_KEEPALIVE_VALS: [on(4)][time(4 ms)][interval(4 ms)]
                     // 1. Turning on Keep-Alive
@@ -224,28 +231,28 @@ public abstract partial class TcpListenerBase
                     const int interval = 1_000;
 
                     byte[] vals = new byte[12];
-                    System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(System.MemoryExtensions.AsSpan(vals)[0..4], on);
-                    System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(System.MemoryExtensions.AsSpan(vals)[4..8], time);
-                    System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(System.MemoryExtensions.AsSpan(vals)[8..12], interval);
-                    _ = socket.IOControl(System.Net.Sockets.IOControlCode.KeepAliveValues, vals, null);
+                    System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(MemoryExtensions.AsSpan(vals)[0..4], on);
+                    System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(MemoryExtensions.AsSpan(vals)[4..8], time);
+                    System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(MemoryExtensions.AsSpan(vals)[8..12], interval);
+                    _ = socket.IOControl(IOControlCode.KeepAliveValues, vals, null);
                 }
             }
         }
     }
 
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [return: NotNull]
     private static bool IsIgnorableAcceptError(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketError code,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken token)
+        [NotNull] SocketError code,
+        [NotNull] CancellationToken token)
         => token.IsCancellationRequested || code
-        is System.Net.Sockets.SocketError.Shutdown
-        or System.Net.Sockets.SocketError.TimedOut
-        or System.Net.Sockets.SocketError.NotSocket
-        or System.Net.Sockets.SocketError.WouldBlock
-        or System.Net.Sockets.SocketError.Interrupted
-        or System.Net.Sockets.SocketError.InvalidArgument
-        or System.Net.Sockets.SocketError.OperationAborted;
+        is SocketError.Shutdown
+        or SocketError.TimedOut
+        or SocketError.NotSocket
+        or SocketError.WouldBlock
+        or SocketError.Interrupted
+        or SocketError.InvalidArgument
+        or SocketError.OperationAborted;
 }

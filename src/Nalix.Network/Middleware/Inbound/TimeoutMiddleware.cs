@@ -1,7 +1,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -19,9 +22,9 @@ namespace Nalix.Network.Middleware.Inbound;
 public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
 {
     /// <inheritdoc/>
-    public async System.Threading.Tasks.Task InvokeAsync(
+    public async Task InvokeAsync(
         PacketContext<IPacket> context,
-        System.Func<CancellationToken, System.Threading.Tasks.Task> next)
+        Func<CancellationToken, Task> next)
     {
         int timeout = context.Attributes.Timeout?.TimeoutMilliseconds ?? 0;
         if (timeout <= 0)
@@ -46,17 +49,17 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
         }
     }
 
-    private static async System.Threading.Tasks.Task ExecuteHandlerAsync(
+    private static async Task ExecuteHandlerAsync(
         int timeout,
         PacketContext<IPacket> context,
-        System.Func<CancellationToken, System.Threading.Tasks.Task> next,
+        Func<CancellationToken, Task> next,
         CancellationToken token)
     {
         try
         {
             await next(token).ConfigureAwait(false);
         }
-        catch (System.OperationCanceledException) when (token.IsCancellationRequested && !context.CancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (token.IsCancellationRequested && !context.CancellationToken.IsCancellationRequested)
         {
             uint sequenceId = context.Packet is IPacketSequenced sequenced ? sequenced.SequenceId : 0;
 

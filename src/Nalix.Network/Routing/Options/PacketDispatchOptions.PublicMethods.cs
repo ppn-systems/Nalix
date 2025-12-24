@@ -1,7 +1,13 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
@@ -22,11 +28,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public PacketDispatchOptions<TPacket> WithLogging([System.Diagnostics.CodeAnalysis.NotNull] ILogger logger)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
+    public PacketDispatchOptions<TPacket> WithLogging([NotNull] ILogger logger)
     {
         Logging = logger;
         Logging.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithLogging)}] logger-attached");
@@ -44,12 +50,12 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public PacketDispatchOptions<TPacket> WithErrorHandling(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Action<System.Exception, ushort> errorHandler)
+        [NotNull] Action<Exception, ushort> errorHandler)
     {
         Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithErrorHandling)}] error-handler-set");
         _errorHandler = errorHandler;
@@ -66,13 +72,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public PacketDispatchOptions<TPacket> WithMiddleware([System.Diagnostics.CodeAnalysis.NotNull] IPacketMiddleware<TPacket> middleware)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
+    public PacketDispatchOptions<TPacket> WithMiddleware([NotNull] IPacketMiddleware<TPacket> middleware)
     {
-        System.ArgumentNullException.ThrowIfNull(middleware);
+        ArgumentNullException.ThrowIfNull(middleware);
 
         Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
 
@@ -89,16 +95,16 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// If <see langword="null"/>, the dispatcher chooses automatically based on the host CPU.
     /// </param>
     /// <returns>The current options instance.</returns>
-    /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public PacketDispatchOptions<TPacket> WithDispatchLoopCount(int? loopCount)
     {
         if (loopCount.HasValue && (loopCount.Value < 1 || loopCount.Value > 64))
         {
-            throw new System.ArgumentOutOfRangeException(
+            throw new ArgumentOutOfRangeException(
                 nameof(loopCount),
                 "Dispatch loop count must be between 1 and 64.");
         }
@@ -118,7 +124,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </param>
     /// <param name="errorHandler">
     /// An optional delegate that is invoked when an exception is thrown. The delegate receives
-    /// the <see cref="System.Exception"/> instance and the <see cref="System.Type"/> of the packet
+    /// the <see cref="Exception"/> instance and the <see cref="Type"/> of the packet
     /// being processed. If <see langword="null"/>, no custom error handling is applied.
     /// </param>
     /// <returns>
@@ -129,16 +135,16 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// Use <paramref name="continueOnError"/> with caution, as continuing after exceptions may lead
     /// to inconsistent state depending on middleware implementation.
     /// </remarks>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown if required dependencies within the pipeline are not initialized.
     /// </exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public PacketDispatchOptions<TPacket> WithErrorHandlingMiddleware(
         bool continueOnError,
-        System.Action<System.Exception, System.Type> errorHandler = null)
+        Action<Exception, Type> errorHandler = null)
     {
         _pipeline.ConfigureErrorHandling(continueOnError, errorHandler);
         return this;
@@ -152,14 +158,14 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// The type of the controller to register. Must have a parameterless constructor.
     /// </typeparam>
     /// <returns>The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public PacketDispatchOptions<TPacket> WithHandler<[
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TController>()
+        DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicMethods |
+            DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TController>()
         where TController : class, new() => WithHandler(() => new TController());
 
     /// <summary>
@@ -170,15 +176,15 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.
     /// </returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public PacketDispatchOptions<TPacket> WithHandler<[
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TController>(
-        [System.Diagnostics.CodeAnalysis.NotNull] TController instance)
+        DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicMethods |
+            DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TController>(
+        [NotNull] TController instance)
         where TController : class => WithHandler(() => ThrowIfNull(instance, nameof(instance)));
 
     /// <summary>
@@ -199,7 +205,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// first parameter to determine the concrete packet type it expects. That type is stored in
     /// <c>_packetTypeMap[opCode]</c> and consulted at dispatch time to emit an early, actionable
     /// warning when the deserialized packet's runtime type does not match the handler signature —
-    /// rather than a cryptic <see cref="System.InvalidCastException"/> deep inside an expression tree.
+    /// rather than a cryptic <see cref="InvalidCastException"/> deep inside an expression tree.
     /// </para>
     /// <para>
     /// For context-style handlers whose first parameter is <c>PacketContext&lt;TPacket&gt;</c>,
@@ -207,31 +213,31 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// interface — the cast is deferred to handler code itself.
     /// </para>
     /// </remarks>
-    /// <exception cref="System.InvalidOperationException"></exception>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    /// <exception cref="InvalidOperationException"></exception>
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public PacketDispatchOptions<TPacket> WithHandler<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController>(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Func<TController> factory) where TController : class
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicMethods)] TController>(
+        [NotNull] Func<TController> factory) where TController : class
     {
-        System.Type controllerType = typeof(TController);
+        Type controllerType = typeof(TController);
 
-        PacketControllerAttribute controllerAttr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketControllerAttribute>(controllerType)
-            ?? throw new System.InvalidOperationException($"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
+        PacketControllerAttribute controllerAttr = CustomAttributeExtensions.GetCustomAttribute<PacketControllerAttribute>(controllerType)
+            ?? throw new InvalidOperationException($"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         PacketHandler<TPacket>[] handlerDescriptors = HandlerCompiler<TController, TPacket>.CompileHandlers(factory);
 
-        System.Type contextType = typeof(PacketContext<TPacket>);
+        Type contextType = typeof(PacketContext<TPacket>);
 
         foreach (PacketHandler<TPacket> descriptor in handlerDescriptors)
         {
             if (_handlerCache.ContainsKey(descriptor.OpCode))
             {
-                throw new System.InvalidOperationException($"OpCode '{descriptor.OpCode}' has already been registered.");
+                throw new InvalidOperationException($"OpCode '{descriptor.OpCode}' has already been registered.");
             }
 
             _handlerCache[descriptor.OpCode] = descriptor;
@@ -247,7 +253,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             //   • Legacy-style   (SomePacket, IConnection[, CT]) → store SomePacket's Type
             //     even when SomePacket *is* the TPacket interface itself.
             // ------------------------------------------------------------------
-            System.Type concretePacketType = ResolveConcretePacketType(descriptor.MethodInfo, contextType);
+            Type concretePacketType = ResolveConcretePacketType(descriptor.MethodInfo, contextType);
             _packetTypeMap[descriptor.OpCode] = concretePacketType;
 
             if (concretePacketType is not null && concretePacketType != typeof(TPacket))
@@ -275,15 +281,15 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// <see langword="true"/> if a handler delegate was found for the specified opcode; otherwise, <see langword="false"/>.
     /// </returns>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public bool TryResolveHandler(
-        [System.Diagnostics.CodeAnalysis.NotNull] ushort opCode,
-        [System.Diagnostics.CodeAnalysis.AllowNull]
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Func<TPacket, IConnection, System.Threading.Tasks.Task> handler)
+        [NotNull] ushort opCode,
+        [AllowNull]
+        [NotNullWhen(true)] out Func<TPacket, IConnection, Task> handler)
     {
         if (TryResolveHandlerDescriptor(opCode, out PacketHandler<TPacket> descriptor))
         {
@@ -321,13 +327,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// <see langword="true"/> if a handler descriptor was found; otherwise, <see langword="false"/>.
     /// </returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public bool TryResolveHandlerDescriptor(
-        [System.Diagnostics.CodeAnalysis.NotNull] ushort opCode,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PacketHandler<TPacket> descriptor)
+        [NotNull] ushort opCode,
+        [NotNullWhen(true)] out PacketHandler<TPacket> descriptor)
     {
         if (_handlerCache.TryGetValue(opCode, out descriptor))
         {

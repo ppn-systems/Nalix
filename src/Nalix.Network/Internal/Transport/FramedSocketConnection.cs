@@ -1,6 +1,15 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
@@ -12,8 +21,8 @@ using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Memory.Objects;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
 
 #nullable enable
@@ -35,12 +44,12 @@ namespace Nalix.Network.Internal.Transport;
 /// starving legitimate connections.</para>
 /// </summary>
 /// <param name="socket">The accepted, connected socket.</param>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.DebuggerDisplay("{ToString()}")]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) : System.IDisposable
+[DebuggerNonUserCode]
+[SkipLocalsInit]
+[DebuggerDisplay("{ToString()}")]
+[ExcludeFromCodeCoverage]
+[EditorBrowsable(EditorBrowsableState.Never)]
+internal sealed class FramedSocketConnection(Socket socket) : IDisposable
 {
     #region Const
 
@@ -62,19 +71,19 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 
     #region Fields
 
-    private readonly System.Net.Sockets.Socket _socket = socket;
-    private readonly System.Threading.CancellationTokenSource _cts = new();
+    private readonly Socket _socket = socket;
+    private readonly CancellationTokenSource _cts = new();
 
     /// <summary>
     /// PooledReceiveContext wraps a PooledSocketAsyncEventArgs from ObjectPoolManager.
     /// One context per connection; returned to the pool on Dispose.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.AllowNull] private IConnection _sender;
-    [System.Diagnostics.CodeAnalysis.AllowNull] private IConnectEventArgs _cachedArgs;
-    [System.Diagnostics.CodeAnalysis.AllowNull] private PooledSocketReceiveContext _recvCtx;
-    [System.Diagnostics.CodeAnalysis.AllowNull] private System.EventHandler<IConnectEventArgs> _callbackPost;
-    [System.Diagnostics.CodeAnalysis.AllowNull] private System.EventHandler<IConnectEventArgs> _callbackClose;
-    [System.Diagnostics.CodeAnalysis.AllowNull] private System.EventHandler<IConnectEventArgs> _callbackProcess;
+    [AllowNull] private IConnection _sender;
+    [AllowNull] private IConnectEventArgs _cachedArgs;
+    [AllowNull] private PooledSocketReceiveContext _recvCtx;
+    [AllowNull] private EventHandler<IConnectEventArgs> _callbackPost;
+    [AllowNull] private EventHandler<IConnectEventArgs> _callbackClose;
+    [AllowNull] private EventHandler<IConnectEventArgs> _callbackProcess;
 
     private int _pendingProcessCallbacks;
 
@@ -92,7 +101,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     /// </summary>
     private int _cancelSignaled;
 
-    [System.Diagnostics.CodeAnalysis.AllowNull]
+    [AllowNull]
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
@@ -100,7 +109,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     /// Receive buffer — owned by this connection during its lifetime.
     /// Swapped atomically when a larger packet arrives (rare).
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.AllowNull]
+    [AllowNull]
     private byte[] buffer = BufferLease.ByteArrayPool.Rent();
 
     #endregion Fields
@@ -108,7 +117,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     #region Properties
 
     /// <summary>Caches incoming packets.</summary>
-    [System.Diagnostics.CodeAnalysis.DisallowNull]
+    [DisallowNull]
     public FramedSocketCache Cache { get; } = new();
 
     /// <summary>
@@ -117,7 +126,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     /// Used by diagnostics and the per-connection throttle check.
     /// </summary>
     public int PendingPackets
-        => System.Threading.Volatile.Read(ref _pendingProcessCallbacks);
+        => Volatile.Read(ref _pendingProcessCallbacks);
 
     #endregion Properties
 
@@ -131,21 +140,21 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     /// <param name="close"></param>
     /// <param name="post"></param>
     /// <param name="process"></param>
-    /// <exception cref="System.ArgumentNullException"></exception>
-    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_sender), nameof(_cachedArgs))]
+    /// <exception cref="ArgumentNullException"></exception>
+    [MemberNotNull(nameof(_sender), nameof(_cachedArgs))]
     public void SetCallback(
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnection sender,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args,
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.EventHandler<IConnectEventArgs> close,
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.EventHandler<IConnectEventArgs> post,
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.EventHandler<IConnectEventArgs> process)
+        [NotNull] IConnection sender,
+        [NotNull] IConnectEventArgs args,
+        [AllowNull] EventHandler<IConnectEventArgs> close,
+        [AllowNull] EventHandler<IConnectEventArgs> post,
+        [AllowNull] EventHandler<IConnectEventArgs> process)
     {
         _callbackPost = post;
         _callbackClose = close;
         _callbackProcess = process;
 
-        _sender = sender ?? throw new System.ArgumentNullException(nameof(sender));
-        _cachedArgs = args ?? throw new System.ArgumentNullException(nameof(args));
+        _sender = sender ?? throw new ArgumentNullException(nameof(sender));
+        _cachedArgs = args ?? throw new ArgumentNullException(nameof(args));
 
 #if DEBUG
         s_logger?.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(SetCallback)}] " +
@@ -158,24 +167,24 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     /// after each packet has been fully processed. Decrements the per-connection pending
     /// counter so the receive loop can accept the next packet from this connection.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal void OnPacketProcessed() => System.Threading.Interlocked.Decrement(ref _pendingProcessCallbacks);
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    internal void OnPacketProcessed() => Interlocked.Decrement(ref _pendingProcessCallbacks);
 
     /// <summary>
     /// Starts the SAEA-backed receive loop exactly once.
     /// The optional <paramref name="cancellationToken"/> participates in cooperative shutdown.
     /// </summary>
     /// <param name="cancellationToken"></param>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+    [SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+    [SuppressMessage(
         "Reliability", "CA2016:Forward the 'CancellationToken' parameter to methods", Justification = "<Pending>")]
-    public void BeginReceive(System.Threading.CancellationToken cancellationToken = default)
+    public void BeginReceive(CancellationToken cancellationToken = default)
     {
         THROW_IF_NOT_CONFIGURED();
 
-        if (System.Threading.Volatile.Read(ref _disposed) != 0)
+        if (Volatile.Read(ref _disposed) != 0)
         {
 #if DEBUG
             s_logger?.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(BeginReceive)}] " +
@@ -185,7 +194,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
         }
 
         // Guard: start exactly once.
-        if (System.Threading.Interlocked.CompareExchange(ref _receiveStarted, 1, 0) != 0)
+        if (Interlocked.CompareExchange(ref _receiveStarted, 1, 0) != 0)
         {
 #if DEBUG
             s_logger?.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(BeginReceive)}] " +
@@ -204,13 +213,13 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                         $"saea-receive-loop started ep={_socket.RemoteEndPoint}");
 #endif
 
-        System.Threading.CancellationTokenSource linked =
-            System.Threading.CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
+        CancellationTokenSource linked =
+            CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
 
         _ = SAEA_RECEIVE_LOOP_ASYNC(linked.Token).ContinueWith(static (t, state) =>
         {
-            (ILogger l, System.Threading.CancellationTokenSource link) =
-                ((ILogger, System.Threading.CancellationTokenSource))state!;
+            (ILogger l, CancellationTokenSource link) =
+                ((ILogger, CancellationTokenSource))state!;
 
             if (t.IsFaulted)
             {
@@ -218,7 +227,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
             }
 
             link.Dispose();
-        }, (s_logger, linked), System.Threading.Tasks.TaskScheduler.Default);
+        }, (s_logger, linked), TaskScheduler.Default);
     }
 
     /// <summary>
@@ -228,15 +237,15 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     /// </summary>
     /// <param name="data"></param>
     /// <returns><see langword="true"/> if the data was sent successfully.</returns>
-    /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public bool Send(System.ReadOnlySpan<byte> data)
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public bool Send(ReadOnlySpan<byte> data)
     {
         THROW_IF_NOT_CONFIGURED();
 
-        if (System.Threading.Volatile.Read(ref _disposed) != 0)
+        if (Volatile.Read(ref _disposed) != 0)
         {
             return false;
         }
@@ -248,7 +257,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 
         if (data.Length > PacketConstants.PacketSizeLimit - HeaderSize)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(data),
+            throw new ArgumentOutOfRangeException(nameof(data),
                 $"Packet size {data.Length} exceeds limit {PacketConstants.PacketSizeLimit - HeaderSize}");
         }
 
@@ -263,13 +272,13 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                 s_logger?.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(Send)}] " +
                                 $"stackalloc len={data.Length} ep={_socket.RemoteEndPoint}");
 #endif
-                System.Span<byte> frameS = stackalloc byte[totalLength];
+                Span<byte> frameS = stackalloc byte[totalLength];
                 WRITE_FRAME_HEADER(frameS, totalLength, data);
 
 #if DEBUG
                 if (s_logger is not null)
                 {
-                    System.Span<byte> payloadSpan = frameS.Slice(HeaderSize, data.Length);
+                    Span<byte> payloadSpan = frameS.Slice(HeaderSize, data.Length);
                     s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(Send)}] " +
                                    $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} ep={_socket.RemoteEndPoint}");
                 }
@@ -298,7 +307,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                 AsyncCallback.Invoke(_callbackPost, _sender, args);
                 return true;
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 s_logger?.Error($"[NW.{nameof(FramedSocketConnection)}:{nameof(Send)}] " +
                                 $"stackalloc-error ep={_socket.RemoteEndPoint}", ex);
@@ -315,13 +324,13 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                             $"pooled len={data.Length} ep={_socket.RemoteEndPoint}");
 #endif
             System.Buffers.Binary.BinaryPrimitives
-                .WriteUInt16LittleEndian(System.MemoryExtensions.AsSpan(heapBuf), totalLength);
-            data.CopyTo(System.MemoryExtensions.AsSpan(heapBuf, HeaderSize));
+                .WriteUInt16LittleEndian(MemoryExtensions.AsSpan(heapBuf), totalLength);
+            data.CopyTo(MemoryExtensions.AsSpan(heapBuf, HeaderSize));
 
 #if DEBUG
             if (s_logger is not null)
             {
-                System.Span<byte> payloadSpan = System.MemoryExtensions.AsSpan(heapBuf, HeaderSize, data.Length);
+                Span<byte> payloadSpan = MemoryExtensions.AsSpan(heapBuf, HeaderSize, data.Length);
                 s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(Send)}] " +
                                $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
                                $"ep={_socket.RemoteEndPoint}");
@@ -332,7 +341,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
             while (sent < totalLength)
             {
                 int n = _socket.Send(heapBuf, sent, totalLength - sent,
-                                              System.Net.Sockets.SocketFlags.None);
+                                              SocketFlags.None);
                 if (n == 0)
                 {
 #if DEBUG
@@ -352,7 +361,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
             AsyncCallback.Invoke(_callbackPost, _sender, args);
             return true;
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             s_logger?.Error($"[NW.{nameof(FramedSocketConnection)}:{nameof(Send)}] " +
                             $"pooled-error ep={_socket.RemoteEndPoint}", ex);
@@ -370,14 +379,14 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     /// <param name="data"></param>
     /// <param name="cancellationToken"></param>
     /// <returns><see langword="true"/> if the data was sent successfully.</returns>
-    /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-    public async System.Threading.Tasks.Task<bool> SendAsync(
-        System.ReadOnlyMemory<byte> data,
-        System.Threading.CancellationToken cancellationToken)
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    public async Task<bool> SendAsync(
+        ReadOnlyMemory<byte> data,
+        CancellationToken cancellationToken)
     {
         THROW_IF_NOT_CONFIGURED();
 
-        if (System.Threading.Volatile.Read(ref _disposed) != 0)
+        if (Volatile.Read(ref _disposed) != 0)
         {
             return false;
         }
@@ -389,7 +398,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 
         if (data.Length > PacketConstants.PacketSizeLimit - HeaderSize)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(data), "Packet too large");
+            throw new ArgumentOutOfRangeException(nameof(data), "Packet too large");
         }
 
         ushort totalLength = (ushort)(data.Length + HeaderSize);
@@ -401,12 +410,12 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
             s_logger?.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(SendAsync)}] " +
                             $"len={data.Length} ep={_socket.RemoteEndPoint}");
 #endif
-            WRITE_FRAME_HEADER(System.MemoryExtensions.AsSpan(heapBuf), totalLength, data.Span);
+            WRITE_FRAME_HEADER(MemoryExtensions.AsSpan(heapBuf), totalLength, data.Span);
 
 #if DEBUG
             if (s_logger is not null)
             {
-                System.ReadOnlySpan<byte> payloadSpan = data.Span;
+                ReadOnlySpan<byte> payloadSpan = data.Span;
                 s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(SendAsync)}] " +
                                $"sending async frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
                                $"ep={_socket.RemoteEndPoint}");
@@ -416,8 +425,8 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
             int sent = 0;
             while (sent < totalLength)
             {
-                int n = await _socket.SendAsync(System.MemoryExtensions
-                                              .AsMemory(heapBuf, sent, totalLength - sent), System.Net.Sockets.SocketFlags.None, cancellationToken)
+                int n = await _socket.SendAsync(MemoryExtensions
+                                              .AsMemory(heapBuf, sent, totalLength - sent), SocketFlags.None, cancellationToken)
                                               .ConfigureAwait(false);
 
                 if (n == 0)
@@ -439,7 +448,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
             AsyncCallback.Invoke(_callbackPost, _sender, args);
             return true;
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             s_logger?.Error($"[NW.{nameof(FramedSocketConnection)}:{nameof(SendAsync)}] " +
                             $"error ep={_socket.RemoteEndPoint}", ex);
@@ -451,25 +460,25 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
         }
     }
 
-    /// <summary>Sends data synchronously from an <see cref="System.ArraySegment{T}"/>.</summary>
+    /// <summary>Sends data synchronously from an <see cref="ArraySegment{T}"/>.</summary>
     /// <param name="segment"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public bool Send(System.ArraySegment<byte> segment)
-        => segment.Array is not null && Send(new System.ReadOnlySpan<byte>(
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public bool Send(ArraySegment<byte> segment)
+        => segment.Array is not null && Send(new ReadOnlySpan<byte>(
             segment.Array, segment.Offset, segment.Count));
 
-    /// <summary>Sends data asynchronously from an <see cref="System.ArraySegment{T}"/>.</summary>
+    /// <summary>Sends data asynchronously from an <see cref="ArraySegment{T}"/>.</summary>
     /// <param name="segment"></param>
     /// <param name="cancellationToken"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Threading.Tasks.Task<bool> SendAsync(
-        System.ArraySegment<byte> segment,
-        System.Threading.CancellationToken cancellationToken)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public Task<bool> SendAsync(
+        ArraySegment<byte> segment,
+        CancellationToken cancellationToken)
         => segment.Array is null
-            ? System.Threading.Tasks.Task.FromResult(false)
-            : SendAsync(new System.ReadOnlyMemory<byte>(
+            ? Task.FromResult(false)
+            : SendAsync(new ReadOnlyMemory<byte>(
                 segment.Array, segment.Offset, segment.Count), cancellationToken);
 
     #endregion Public Methods
@@ -480,14 +489,14 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     public void Dispose()
     {
         DISPOSE(true);
-        System.GC.SuppressFinalize(this);
+        GC.SuppressFinalize(this);
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public override string ToString()
         => $"FramedSocketConnection (Client={_socket.RemoteEndPoint}, " +
-           $"Disposed={System.Threading.Volatile.Read(ref _disposed) != 0}, " +
+           $"Disposed={Volatile.Read(ref _disposed) != 0}, " +
            $"UpTime={Cache.Uptime}ms, LastPing={Cache.LastPingTime}ms, " +
            $"PendingPackets={PendingPackets}.";
 
@@ -503,11 +512,11 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     /// <param name="offset"></param>
     /// <param name="count"></param>
     /// <param name="token"></param>
-    /// <exception cref="System.IO.IOException"></exception>
-    private async System.Threading.Tasks.ValueTask SAEA_RECEIVE_EXACTLY_ASYNC(
+    /// <exception cref="IOException"></exception>
+    private async ValueTask SAEA_RECEIVE_EXACTLY_ASYNC(
         int offset,
         int count,
-        System.Threading.CancellationToken token)
+        CancellationToken token)
     {
         int read = 0;
         while (read < count)
@@ -519,9 +528,9 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 
             if (n == 0)
             {
-                throw new System.IO.IOException("Peer closed (FIN)",
-                    new System.Net.Sockets.SocketException(
-                        (int)System.Net.Sockets.SocketError.Shutdown));
+                throw new IOException("Peer closed (FIN)",
+                    new SocketException(
+                        (int)SocketError.Shutdown));
             }
 
 #if DEBUG
@@ -548,12 +557,12 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     /// without stalling or allocating.</para>
     /// </summary>
     /// <param name="token"></param>
-    /// <exception cref="System.Net.Sockets.SocketException"></exception>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private async System.Threading.Tasks.Task SAEA_RECEIVE_LOOP_ASYNC(
-        System.Threading.CancellationToken token)
+    /// <exception cref="SocketException"></exception>
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    private async Task SAEA_RECEIVE_LOOP_ASYNC(
+        CancellationToken token)
     {
         try
         {
@@ -563,7 +572,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                 await SAEA_RECEIVE_EXACTLY_ASYNC(0, HeaderSize, token)
                     .ConfigureAwait(false);
 
-                ushort size = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(System.MemoryExtensions
+                ushort size = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(MemoryExtensions
                                                                            .AsSpan(buffer, 0, HeaderSize));
 
 #if DEBUG
@@ -579,8 +588,8 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                         $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                         $"invalid-size={size} ep={_sender?.NetworkEndpoint.Address}");
 #endif
-                    throw new System.Net.Sockets.SocketException(
-                        (int)System.Net.Sockets.SocketError.ProtocolNotSupported);
+                    throw new SocketException(
+                        (int)SocketError.ProtocolNotSupported);
                 }
 
                 // ── Step 2: grow buffer only when packet exceeds capacity ──
@@ -595,11 +604,11 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                     byte[] newBuf = BufferLease.ByteArrayPool.Rent(size);
 
                     // Preserve the already-read header bytes in the new buffer.
-                    System.MemoryExtensions.AsSpan(oldBuf, 0, HeaderSize)
-                                           .CopyTo(System.MemoryExtensions
+                    MemoryExtensions.AsSpan(oldBuf, 0, HeaderSize)
+                                           .CopyTo(MemoryExtensions
                                            .AsSpan(newBuf));
 
-                    byte[] swapped = System.Threading.Interlocked.Exchange(ref buffer, newBuf);
+                    byte[] swapped = Interlocked.Exchange(ref buffer, newBuf);
 
                     if (swapped is not null && swapped != newBuf)
                     {
@@ -623,11 +632,11 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                 // MaxPerConnectionPendingPackets in-flight, drop this packet and
                 // return the buffer immediately — flood traffic never reaches
                 // AsyncCallback or the ThreadPool.
-                int pending = System.Threading.Interlocked.Increment(ref _pendingProcessCallbacks);
+                int pending = Interlocked.Increment(ref _pendingProcessCallbacks);
 
                 if (pending > MaxPerConnectionPendingPackets)
                 {
-                    System.Threading.Interlocked.Decrement(ref _pendingProcessCallbacks);
+                    Interlocked.Decrement(ref _pendingProcessCallbacks);
 
                     s_logger?.Warn(
                         $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
@@ -635,7 +644,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                         $"ep={_sender?.NetworkEndpoint.Address} — packet dropped");
 
                     // Return buffer to pool — rent a fresh one for next receive.
-                    byte[] dropped = System.Threading.Interlocked.Exchange(ref buffer, null);
+                    byte[] dropped = Interlocked.Exchange(ref buffer, null);
                     if (dropped is not null)
                     {
                         BufferLease.ByteArrayPool.Return(dropped);
@@ -647,7 +656,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 
                 // ── Step 5: zero-copy handoff to session cache ────────────
                 // Interlocked.Exchange(null) prevents Dispose from double-returning.
-                byte[] currentBuf = System.Threading.Interlocked.Exchange(ref buffer, null);
+                byte[] currentBuf = Interlocked.Exchange(ref buffer, null);
 
                 if (currentBuf is not null)
                 {
@@ -679,28 +688,28 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                 {
                     // Buffer was swapped out by Dispose racing with the loop.
                     // The increment must be undone since no callback will fire.
-                    System.Threading.Interlocked.Decrement(ref _pendingProcessCallbacks);
+                    Interlocked.Decrement(ref _pendingProcessCallbacks);
                 }
 
                 // Rent a fresh buffer for the next receive.
                 buffer = BufferLease.ByteArrayPool.Rent();
             }
         }
-        catch (System.Exception ex) when (IS_BENIGN_DISCONNECT(ex))
+        catch (Exception ex) when (IS_BENIGN_DISCONNECT(ex))
         {
             s_logger?.Trace(
                 $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                 $"ended (peer closed/shutdown) ep={_sender?.NetworkEndpoint.Address}");
         }
-        catch (System.OperationCanceledException)
+        catch (OperationCanceledException)
         {
             s_logger?.Trace(
                 $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                 $"cancelled ep={_sender?.NetworkEndpoint.Address}");
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
-            System.Exception e = (ex as System.AggregateException)?.Flatten() ?? ex;
+            Exception e = (ex as AggregateException)?.Flatten() ?? ex;
             s_logger?.Error(
                 $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                 $"faulted ep={_sender?.NetworkEndpoint.Address}", e);
@@ -716,10 +725,10 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 
     #region Private Methods
 
-    [System.Diagnostics.DebuggerStepThrough]
+    [DebuggerStepThrough]
     private void DISPOSE(bool disposing)
     {
-        if (System.Threading.Interlocked.Exchange(ref _disposed, 1) != 0)
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
         {
             return;
         }
@@ -735,7 +744,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
             {
                 if (_socket.Connected)
                 {
-                    _socket.Shutdown(System.Net.Sockets.SocketShutdown.Both);
+                    _socket.Shutdown(SocketShutdown.Both);
                 }
             }
             catch { /* ignore */ }
@@ -752,7 +761,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 
             // 4. Return the receive buffer (Interlocked prevents double-return).
             byte[] bufToReturn =
-                System.Threading.Interlocked.Exchange(ref buffer, null);
+                Interlocked.Exchange(ref buffer, null);
             if (bufToReturn is not null)
             {
                 BufferLease.ByteArrayPool.Return(bufToReturn);
@@ -773,13 +782,13 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 #endif
     }
 
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static void WRITE_FRAME_HEADER(
-        System.Span<byte> buffer,
+        Span<byte> buffer,
         ushort totalLength,
-        System.ReadOnlySpan<byte> payload)
+        ReadOnlySpan<byte> payload)
     {
         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(buffer, totalLength);
         payload.CopyTo(buffer[HeaderSize..]);
@@ -788,45 +797,45 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     private static bool IS_VALID_PACKET_SIZE(ushort size)
         => size is >= HeaderSize and <= PacketConstants.PacketSizeLimit;
 
-    [System.Diagnostics.DebuggerStepThrough]
-    private static string FORMAT_ENDPOINT(System.Net.Sockets.Socket s)
+    [DebuggerStepThrough]
+    private static string FORMAT_ENDPOINT(Socket s)
     {
         try { return s.RemoteEndPoint?.ToString() ?? "<unknown>"; }
-        catch (System.ObjectDisposedException) { return "<disposed>"; }
+        catch (ObjectDisposedException) { return "<disposed>"; }
         catch { return "<unknown>"; }
     }
 
-    [System.Diagnostics.DebuggerStepThrough]
-    private static bool IS_BENIGN_DISCONNECT(System.Exception ex)
+    [DebuggerStepThrough]
+    private static bool IS_BENIGN_DISCONNECT(Exception ex)
     {
-        if (ex is System.OperationCanceledException or System.ObjectDisposedException)
+        if (ex is OperationCanceledException or ObjectDisposedException)
         {
             return true;
         }
 
-        if (ex is System.Net.Sockets.SocketException se)
+        if (ex is SocketException se)
         {
             return se.SocketErrorCode
-                is System.Net.Sockets.SocketError.ConnectionReset
-                or System.Net.Sockets.SocketError.ConnectionAborted
-                or System.Net.Sockets.SocketError.Shutdown
-                or System.Net.Sockets.SocketError.OperationAborted;
+                is SocketError.ConnectionReset
+                or SocketError.ConnectionAborted
+                or SocketError.Shutdown
+                or SocketError.OperationAborted;
         }
 
-        if (ex is System.IO.IOException ioex &&
-            ioex.InnerException is System.Net.Sockets.SocketException ise)
+        if (ex is IOException ioex &&
+            ioex.InnerException is SocketException ise)
         {
             return ise.SocketErrorCode
-                is System.Net.Sockets.SocketError.ConnectionReset
-                or System.Net.Sockets.SocketError.ConnectionAborted
-                or System.Net.Sockets.SocketError.Shutdown
-                or System.Net.Sockets.SocketError.OperationAborted;
+                is SocketError.ConnectionReset
+                or SocketError.ConnectionAborted
+                or SocketError.Shutdown
+                or SocketError.OperationAborted;
         }
 
-        if (ex is System.AggregateException agg)
+        if (ex is AggregateException agg)
         {
             agg = agg.Flatten();
-            foreach (System.Exception inner in agg.InnerExceptions)
+            foreach (Exception inner in agg.InnerExceptions)
             {
                 if (!IS_BENIGN_DISCONNECT(inner))
                 {
@@ -839,12 +848,12 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
         return false;
     }
 
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private void INVOKE_CLOSE_ONCE()
     {
-        if (System.Threading.Interlocked.Exchange(ref _closeSignaled, 1) != 0)
+        if (Interlocked.Exchange(ref _closeSignaled, 1) != 0)
         {
             return;
         }
@@ -855,11 +864,11 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
         _ = AsyncCallback.Invoke(_callbackClose, _sender, args);
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private void CANCEL_RECEIVE_ONCE()
     {
-        if (System.Threading.Interlocked.Exchange(ref _cancelSignaled, 1) != 0)
+        if (Interlocked.Exchange(ref _cancelSignaled, 1) != 0)
         {
             return;
         }
@@ -871,12 +880,12 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     {
         if (_sender is null || _cachedArgs is null)
         {
-            throw new System.InvalidOperationException("SetCallback must be called before use");
+            throw new InvalidOperationException("SetCallback must be called before use");
         }
     }
 
 #if DEBUG
-    private static string FORMAT_FRAME_FOR_LOG(System.ReadOnlySpan<byte> payload, int maxBytes = 64)
+    private static string FORMAT_FRAME_FOR_LOG(ReadOnlySpan<byte> payload, int maxBytes = 64)
     {
         if (payload.IsEmpty)
         {
@@ -884,7 +893,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
         }
 
         int show = payload.Length > maxBytes ? maxBytes : payload.Length;
-        string hex = System.Convert.ToHexString(payload[..show]);
+        string hex = Convert.ToHexString(payload[..show]);
         if (payload.Length > show)
         {
             hex += "...";

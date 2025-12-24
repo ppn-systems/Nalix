@@ -1,6 +1,14 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
@@ -26,9 +34,9 @@ public abstract partial class TcpListenerBase
     /// If the protocol's <c>OnAccept</c> call throws, the exception is caught, logged, and the
     /// connection is closed immediately — the listener loop continues uninterrupted.
     /// </remarks>
-    [System.Diagnostics.DebuggerStepThrough]
+    [DebuggerStepThrough]
     protected void ProcessConnection(
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
+        [NotNull] IConnection connection)
     {
         try
         {
@@ -37,7 +45,7 @@ public abstract partial class TcpListenerBase
             Metrics.RECORD_ACCEPTED();
             s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection?.NetworkEndpoint}");
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] process-error={connection?.NetworkEndpoint}", ex);
 
@@ -66,10 +74,10 @@ public abstract partial class TcpListenerBase
     /// <see langword="null"/>, this method returns immediately without performing any action.
     /// </para>
     /// </remarks>
-    [System.Diagnostics.DebuggerStepThrough]
+    [DebuggerStepThrough]
     protected void HandleConnectionClose(
-        [System.Diagnostics.CodeAnalysis.AllowNull] object sender,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
+        [AllowNull] object sender,
+        [NotNull] IConnectEventArgs args)
     {
         if (args?.Connection == null)
         {
@@ -93,7 +101,7 @@ public abstract partial class TcpListenerBase
     /// all required event handlers on it.
     /// </summary>
     /// <param name="socket">
-    /// The raw <see cref="System.Net.Sockets.Socket"/> accepted from the listener.
+    /// The raw <see cref="Socket"/> accepted from the listener.
     /// Must not be <see langword="null"/>.
     /// </param>
     /// <param name="context">
@@ -116,10 +124,10 @@ public abstract partial class TcpListenerBase
     /// with the <see cref="TimingWheel"/> for idle-timeout tracking.
     /// </para>
     /// </remarks>
-    [System.Diagnostics.DebuggerStepThrough]
+    [DebuggerStepThrough]
     private IConnection InitializeConnection(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.Socket socket,
-        [System.Diagnostics.CodeAnalysis.NotNull] PooledAcceptContext context)
+        [NotNull] Socket socket,
+        [NotNull] PooledAcceptContext context)
     {
         InitializeOptions(socket);
 
@@ -155,18 +163,18 @@ public abstract partial class TcpListenerBase
     /// indeterminate state. Exceptions are logged at <c>Debug</c> level and not rethrown,
     /// so the caller's error-handling flow is never interrupted by a secondary failure.
     /// </remarks>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     protected static void SafeCloseSocket(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.Socket socket)
+        [NotNull] Socket socket)
     {
         try
         {
             socket?.Close();
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[NW.{nameof(TcpListenerBase)}:Internal] accept-error ex={ex.Message}");
@@ -179,7 +187,7 @@ public abstract partial class TcpListenerBase
     /// the pooled resources on failure.
     /// </summary>
     /// <param name="args">
-    /// The <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> that completed the accept.
+    /// The <see cref="SocketAsyncEventArgs"/> that completed the accept.
     /// Must be a <see cref="PooledSocketAsyncEventArgs"/> instance.
     /// Must not be <see langword="null"/>.
     /// </param>
@@ -192,36 +200,36 @@ public abstract partial class TcpListenerBase
     /// </para>
     /// <para>
     /// On failure the method always ensures that any borrowed pool objects are returned and
-    /// that <see cref="System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket"/> is reset to
+    /// that <see cref="SocketAsyncEventArgs.AcceptSocket"/> is reset to
     /// <see langword="null"/> (in the <c>finally</c> block) so the args is safe to reuse.
     /// </para>
     /// <para>
     /// Three distinct exception paths are handled:
     /// <list type="bullet">
     ///   <item>
-    ///     <see cref="System.ObjectDisposedException"/> — the listener was closed mid-accept;
+    ///     <see cref="ObjectDisposedException"/> — the listener was closed mid-accept;
     ///     logged as a warning, socket and context are cleaned up.
     ///   </item>
     ///   <item>
-    ///     <see cref="System.Exception"/> (general) — metrics are incremented, error is logged,
+    ///     <see cref="Exception"/> (general) — metrics are incremented, error is logged,
     ///     socket and context are cleaned up, and a fresh context is bound for the next accept.
     ///   </item>
     ///   <item>
-    ///     <see cref="System.Net.Sockets.SocketError"/> != <c>Success</c> — accept did not
+    ///     <see cref="SocketError"/> != <c>Success</c> — accept did not
     ///     produce a socket; context is returned and rebound.
     ///   </item>
     /// </list>
     /// </para>
     /// </remarks>
     /// <exception cref="NetworkException"></exception>
-    [System.Diagnostics.DebuggerStepThrough]
+    [DebuggerStepThrough]
     protected void HandleAccept(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketAsyncEventArgs args)
+        [NotNull] SocketAsyncEventArgs args)
     {
         try
         {
-            if (args.SocketError == System.Net.Sockets.SocketError.Success &&
-                args.AcceptSocket is System.Net.Sockets.Socket socket)
+            if (args.SocketError == SocketError.Success &&
+                args.AcceptSocket is Socket socket)
             {
                 try
                 {
@@ -234,7 +242,7 @@ public abstract partial class TcpListenerBase
                         return;
                     }
 
-                    if (socket.RemoteEndPoint is not System.Net.IPEndPoint remoteIp ||
+                    if (socket.RemoteEndPoint is not IPEndPoint remoteIp ||
                         !_limiter.IsConnectionAllowed(remoteIp))
                     {
                         SafeCloseSocket(socket);
@@ -259,7 +267,7 @@ public abstract partial class TcpListenerBase
                     ((PooledSocketAsyncEventArgs)args).Context = nextCtx;
                     nextCtx.BindArgsForSync((PooledSocketAsyncEventArgs)args);
                 }
-                catch (System.ObjectDisposedException)
+                catch (ObjectDisposedException)
                 {
                     s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] disposed-during-accept remote={socket.RemoteEndPoint}");
 
@@ -275,7 +283,7 @@ public abstract partial class TcpListenerBase
                         newCtx.BindArgsForSync(pooled);
                     }
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     Metrics.RECORD_ERROR();
                     s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error port={_port}", ex);
@@ -316,14 +324,14 @@ public abstract partial class TcpListenerBase
 
     /// <summary>
     /// Callback invoked by the socket runtime when a synchronous-path accept operation
-    /// completes asynchronously (i.e. <see cref="System.Net.Sockets.Socket.AcceptAsync(System.Net.Sockets.SocketAsyncEventArgs)"/>
+    /// completes asynchronously (i.e. <see cref="Socket.AcceptAsync(SocketAsyncEventArgs)"/>
     /// returned <see langword="true"/> and later fired the <c>Completed</c> event).
     /// </summary>
     /// <param name="sender">
     /// The source of the event. May be <see langword="null"/>.
     /// </param>
     /// <param name="args">
-    /// The <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> whose accept operation
+    /// The <see cref="SocketAsyncEventArgs"/> whose accept operation
     /// completed. Must be a <see cref="PooledSocketAsyncEventArgs"/> instance.
     /// Must not be <see langword="null"/>.
     /// </param>
@@ -341,10 +349,10 @@ public abstract partial class TcpListenerBase
     /// after it has been returned to the pool.
     /// </para>
     /// </remarks>
-    [System.Diagnostics.DebuggerStepThrough]
+    [DebuggerStepThrough]
     protected void OnSyncAcceptCompleted(
-        [System.Diagnostics.CodeAnalysis.AllowNull] object sender,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketAsyncEventArgs args)
+        [AllowNull] object sender,
+        [NotNull] SocketAsyncEventArgs args)
     {
         try
         {
@@ -372,12 +380,12 @@ public abstract partial class TcpListenerBase
 
     /// <summary>
     /// Drives the synchronous accept loop: calls
-    /// <see cref="System.Net.Sockets.Socket.AcceptAsync(System.Net.Sockets.SocketAsyncEventArgs)"/> in a tight loop, handling
+    /// <see cref="Socket.AcceptAsync(SocketAsyncEventArgs)"/> in a tight loop, handling
     /// both the immediate (synchronous) completion path and scheduling the
     /// asynchronous completion path via the <c>Completed</c> event.
     /// </summary>
     /// <param name="args">
-    /// The <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> to use for each accept call.
+    /// The <see cref="SocketAsyncEventArgs"/> to use for each accept call.
     /// Must be a <see cref="PooledSocketAsyncEventArgs"/> with a bound
     /// <see cref="PooledAcceptContext"/>.
     /// Must not be <see langword="null"/>.
@@ -389,37 +397,37 @@ public abstract partial class TcpListenerBase
     /// </param>
     /// <remarks>
     /// <para>
-    /// When <see cref="System.Net.Sockets.Socket.AcceptAsync(System.Net.Sockets.SocketAsyncEventArgs)"/> returns
+    /// When <see cref="Socket.AcceptAsync(SocketAsyncEventArgs)"/> returns
     /// <see langword="true"/> the operation is pending — the loop breaks and control returns
     /// to the caller; the <c>Completed</c> event on <paramref name="args"/> will resume
     /// processing via <see cref="OnSyncAcceptCompleted"/>.
     /// </para>
     /// <para>
-    /// When <see cref="System.Net.Sockets.Socket.AcceptAsync(System.Net.Sockets.SocketAsyncEventArgs)"/> returns
+    /// When <see cref="Socket.AcceptAsync(SocketAsyncEventArgs)"/> returns
     /// <see langword="false"/> the accept completed synchronously — <see cref="HandleAccept"/>
     /// is called inline and the loop continues.
     /// </para>
     /// <para>
-    /// Expected shutdown exceptions (<see cref="System.ObjectDisposedException"/>,
-    /// <see cref="System.Net.Sockets.SocketError.Interrupted"/>,
-    /// <see cref="System.Net.Sockets.SocketError.OperationAborted"/>,
-    /// <see cref="System.Net.Sockets.SocketError.ConnectionAborted"/>) cause a clean break.
+    /// Expected shutdown exceptions (<see cref="ObjectDisposedException"/>,
+    /// <see cref="SocketError.Interrupted"/>,
+    /// <see cref="SocketError.OperationAborted"/>,
+    /// <see cref="SocketError.ConnectionAborted"/>) cause a clean break.
     /// Other exceptions are logged and the loop pauses for 50 ms before retrying to avoid
     /// CPU-spinning on persistent errors.
     /// </para>
     /// </remarks>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
     protected void AcceptNext(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketAsyncEventArgs args,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken)
+        [NotNull] SocketAsyncEventArgs args,
+        [NotNull] CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
             // Take a stable local copy to reduce races
-            System.Net.Sockets.Socket s = System.Threading.Volatile.Read(ref _listener);
+            Socket s = Volatile.Read(ref _listener);
             if (s?.IsBound != true)
             {
                 break;
@@ -439,25 +447,25 @@ public abstract partial class TcpListenerBase
                 // Sync completion
                 HandleAccept(args);
             }
-            catch (System.ObjectDisposedException)
+            catch (ObjectDisposedException)
             {
                 // Listener closed during/just before AcceptAsync
                 break;
             }
-            catch (System.Net.Sockets.SocketException ex) when (ex.SocketErrorCode is
-                   System.Net.Sockets.SocketError.Interrupted or
-                   System.Net.Sockets.SocketError.OperationAborted or
-                   System.Net.Sockets.SocketError.ConnectionAborted)
+            catch (SocketException ex) when (ex.SocketErrorCode is
+                   SocketError.Interrupted or
+                   SocketError.OperationAborted or
+                   SocketError.ConnectionAborted)
             {
                 // Expected during shutdown
                 break;
             }
-            catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptNext)}] accept-error port={_port}", ex);
 
                 // Brief delay to prevent CPU spinning on repeated errors
-                System.Threading.Tasks.Task.Delay(50, System.Threading.CancellationToken.None)
+                Task.Delay(50, CancellationToken.None)
                                            .GetAwaiter()
                                            .GetResult();
             }
@@ -483,14 +491,14 @@ public abstract partial class TcpListenerBase
     /// Must not be <see langword="null"/>.
     /// </param>
     /// <returns>
-    /// A <see cref="System.Threading.Tasks.Task"/> that completes when the loop has exited.
+    /// A <see cref="Task"/> that completes when the loop has exited.
     /// </returns>
     /// <remarks>
     /// <para>
     /// The following exception types are handled without terminating the loop:
     /// <list type="bullet">
     ///   <item>
-    ///     <see cref="System.OperationCanceledException"/> (when <paramref name="cancellationToken"/>
+    ///     <see cref="OperationCanceledException"/> (when <paramref name="cancellationToken"/>
     ///     is cancelled) — exits the loop cleanly.
     ///   </item>
     ///   <item>
@@ -498,12 +506,12 @@ public abstract partial class TcpListenerBase
     ///     the loop pauses for 10 ms and continues.
     ///   </item>
     ///   <item>
-    ///     <see cref="System.Net.Sockets.SocketException"/> with an ignorable error code
+    ///     <see cref="SocketException"/> with an ignorable error code
     ///     (see <c>IsIgnorableAcceptError</c>) — transient OS-level accept failure; the loop
     ///     pauses for 50 ms and continues.
     ///   </item>
     ///   <item>
-    ///     Any other <see cref="System.Exception"/> (when not cancelled) — unexpected failure;
+    ///     Any other <see cref="Exception"/> (when not cancelled) — unexpected failure;
     ///     metrics are incremented, the error is logged, and the loop pauses for 50 ms.
     ///   </item>
     /// </list>
@@ -513,14 +521,14 @@ public abstract partial class TcpListenerBase
     /// is retrieved from the pool, populated, and forwarded to <see cref="DISPATCH_CONNECTION"/>.
     /// </para>
     /// </remarks>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    protected async System.Threading.Tasks.Task AcceptConnectionsAsync(
-        [System.Diagnostics.CodeAnalysis.NotNull] IWorkerContext ctx,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken)
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    protected async Task AcceptConnectionsAsync(
+        [NotNull] IWorkerContext ctx,
+        [NotNull] CancellationToken cancellationToken)
     {
-        System.TimeSpan heartbeatInterval = System.TimeSpan.FromSeconds(2);
+        TimeSpan heartbeatInterval = TimeSpan.FromSeconds(2);
 
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -532,7 +540,7 @@ public abstract partial class TcpListenerBase
                 connection = await CreateConnectionAsync(cancellationToken)
                                        .ConfigureAwait(false);
             }
-            catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] shutdown-requested port={_port}");
                 break;
@@ -545,11 +553,11 @@ public abstract partial class TcpListenerBase
                 }
 
                 // Rate-limited / rejected connection — tiếp tục
-                await System.Threading.Tasks.Task.Delay(10, System.Threading.CancellationToken.None)
+                await Task.Delay(10, CancellationToken.None)
                                                  .ConfigureAwait(false);
                 continue;
             }
-            catch (System.Net.Sockets.SocketException ex)
+            catch (SocketException ex)
                 when (IsIgnorableAcceptError(ex.SocketErrorCode, cancellationToken))
             {
                 if (cancellationToken.IsCancellationRequested || State != ListenerState.RUNNING)
@@ -560,16 +568,16 @@ public abstract partial class TcpListenerBase
                 Metrics.RECORD_ERROR();
                 s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] transient-socket-error={ex.SocketErrorCode} port={_port}");
 
-                await System.Threading.Tasks.Task.Delay(50, System.Threading.CancellationToken.None)
+                await Task.Delay(50, CancellationToken.None)
                                                  .ConfigureAwait(false);
                 continue;
             }
-            catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 Metrics.RECORD_ERROR();
                 s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accept-error port={_port}", ex);
 
-                await System.Threading.Tasks.Task.Delay(50, cancellationToken)
+                await Task.Delay(50, cancellationToken)
                                                  .ConfigureAwait(false);
                 continue;
             }
@@ -594,14 +602,14 @@ public abstract partial class TcpListenerBase
     /// </summary>
     /// <param name="cancellationToken">
     /// Token used to abort the accept operation. When cancelled,
-    /// <see cref="System.OperationCanceledException"/> is propagated to the caller.
+    /// <see cref="OperationCanceledException"/> is propagated to the caller.
     /// Must not be <see langword="null"/>.
     /// </param>
     /// <returns>
-    /// A <see cref="System.Threading.Tasks.ValueTask{TResult}"/> whose result is the
+    /// A <see cref="ValueTask{TResult}"/> whose result is the
     /// accepted and initialized <see cref="IConnection"/>.
     /// </returns>
-    /// <exception cref="System.InvalidOperationException">
+    /// <exception cref="InvalidOperationException">
     /// Thrown when the listener socket has not been initialized (i.e. <c>_listener</c> is
     /// <see langword="null"/>).
     /// </exception>
@@ -609,11 +617,11 @@ public abstract partial class TcpListenerBase
     /// Thrown in the following cases:
     /// <list type="bullet">
     ///   <item>The remote endpoint was rejected by the connection limiter.</item>
-    ///   <item>A <see cref="System.Net.Sockets.SocketException"/> occurred during accept.</item>
+    ///   <item>A <see cref="SocketException"/> occurred during accept.</item>
     ///   <item>Any other unexpected exception occurred during accept.</item>
     /// </list>
     /// </exception>
-    /// <exception cref="System.OperationCanceledException">
+    /// <exception cref="OperationCanceledException">
     /// Propagated when <paramref name="cancellationToken"/> is cancelled during the
     /// async accept wait.
     /// </exception>
@@ -627,17 +635,17 @@ public abstract partial class TcpListenerBase
     /// </para>
     /// <para>
     /// The <c>cancellationToken</c> parameter is intentionally unused beyond the initial
-    /// <see cref="System.Threading.CancellationToken.ThrowIfCancellationRequested"/> check;
+    /// <see cref="CancellationToken.ThrowIfCancellationRequested"/> check;
     /// the actual token is forwarded to <c>BeginAcceptAsync</c> internally.
     /// </para>
     /// </remarks>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    protected async System.Threading.Tasks.ValueTask<IConnection> CreateConnectionAsync(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken)
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
+    [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    protected async ValueTask<IConnection> CreateConnectionAsync(
+        [NotNull] CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -646,11 +654,11 @@ public abstract partial class TcpListenerBase
 
         try
         {
-            System.Net.Sockets.Socket socket;
+            Socket socket;
 
             if (_listener == null)
             {
-                throw new System.InvalidOperationException("Socket is not initialized.");
+                throw new InvalidOperationException("Socket is not initialized.");
             }
 
             // Wait async accept:
@@ -671,7 +679,7 @@ public abstract partial class TcpListenerBase
 
             return InitializeConnection(socket, context);
         }
-        catch (System.Net.Sockets.SocketException ex)
+        catch (SocketException ex)
         {
             if (!contextReturned)
             {
@@ -680,7 +688,7 @@ public abstract partial class TcpListenerBase
 
             throw new NetworkException($"Socket error while accepting. Code={ex.SocketErrorCode}", ex);
         }
-        catch (System.OperationCanceledException)
+        catch (OperationCanceledException)
         {
             if (!contextReturned)
             {
@@ -693,7 +701,7 @@ public abstract partial class TcpListenerBase
         {
             throw new NetworkException("Internal rejection during accept", ex);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             if (!contextReturned)
             {

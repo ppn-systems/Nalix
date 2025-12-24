@@ -1,6 +1,16 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Shared;
@@ -18,7 +28,7 @@ public sealed partial class Connection : IConnection
     #region APIs
 
     /// <inheritdoc />
-    public IConnection.IUdp GetOrCreateUDP(ref System.Net.IPEndPoint iPEndPoint)
+    public IConnection.IUdp GetOrCreateUDP(ref IPEndPoint iPEndPoint)
     {
         if (_udp == null)
         {
@@ -32,12 +42,12 @@ public sealed partial class Connection : IConnection
     }
 
     /// <inheritdoc />
-    public void IncrementErrorCount() => System.Threading.Interlocked.Increment(ref _errorCount);
+    public void IncrementErrorCount() => Interlocked.Increment(ref _errorCount);
 
     /// <inheritdoc />
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     internal void InjectIncoming(IBufferLease lease)
     {
         _cstream.Cache.LastPingTime = (long)Clock.UnixTime().TotalMilliseconds;
@@ -53,9 +63,9 @@ public sealed partial class Connection : IConnection
 #endif
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [EditorBrowsable(EditorBrowsableState.Never)]
     internal void ReleasePendingPacket() => _cstream.OnPacketProcessed();
 
     #endregion APIs
@@ -63,15 +73,15 @@ public sealed partial class Connection : IConnection
     #region User Datagram Protocol
 
     /// <inheritdoc />
-    [System.Diagnostics.DebuggerNonUserCode]
-    [System.Runtime.CompilerServices.SkipLocalsInit]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public sealed class UdpTransport : IConnection.IUdp, IPoolable, System.IDisposable
+    [DebuggerNonUserCode]
+    [SkipLocalsInit]
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public sealed class UdpTransport : IConnection.IUdp, IPoolable, IDisposable
     {
         #region Fields
 
-        private System.Net.EndPoint _endPoint;
-        private System.Net.Sockets.Socket _socket;
+        private EndPoint _endPoint;
+        private Socket _socket;
 
         #endregion Fields
 
@@ -82,28 +92,28 @@ public sealed partial class Connection : IConnection
         /// </summary>
         public UdpTransport()
         {
-            _socket = new System.Net.Sockets.Socket(
-                System.Net.Sockets.AddressFamily.InterNetwork,
-                System.Net.Sockets.SocketType.Dgram,
-                System.Net.Sockets.ProtocolType.Udp);
+            _socket = new Socket(
+                AddressFamily.InterNetwork,
+                SocketType.Dgram,
+                ProtocolType.Udp);
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UdpTransport"/> class.
         /// </summary>
-        /// <exception cref="System.InvalidOperationException"></exception>
-        public void Initialize(ref System.Net.IPEndPoint iPEndPoint)
+        /// <exception cref="InvalidOperationException"></exception>
+        public void Initialize(ref IPEndPoint iPEndPoint)
         {
             _endPoint = iPEndPoint;
-            System.Net.Sockets.AddressFamily af = iPEndPoint.AddressFamily;
+            AddressFamily af = iPEndPoint.AddressFamily;
 
             if (_socket.AddressFamily != af)
             {
                 _socket.Dispose();
-                _socket = new System.Net.Sockets.Socket(af, System.Net.Sockets.SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
+                _socket = new Socket(af, SocketType.Dgram, ProtocolType.Udp);
             }
 
-            if (af == System.Net.Sockets.AddressFamily.InterNetworkV6)
+            if (af == AddressFamily.InterNetworkV6)
             {
                 try { _socket.DualMode = true; } catch { /* ignore */ }
             }
@@ -123,10 +133,10 @@ public sealed partial class Connection : IConnection
         #region Synchronous Methods
 
         /// <inheritdoc />
-        [System.Diagnostics.StackTraceHidden]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [StackTraceHidden]
+        [MethodImpl(
+            MethodImplOptions.AggressiveOptimization)]
+        [return: NotNull]
         public bool Send(IPacket packet)
         {
             if (packet.Length == 0)
@@ -135,7 +145,7 @@ public sealed partial class Connection : IConnection
             }
             else if (packet.Length < BufferLease.StackAllocThreshold)
             {
-                System.Span<byte> buffer = stackalloc byte[packet.Length * 110 / 100];
+                Span<byte> buffer = stackalloc byte[packet.Length * 110 / 100];
                 int written = packet.Serialize(buffer);
                 try
                 {
@@ -156,18 +166,18 @@ public sealed partial class Connection : IConnection
         }
 
         /// <inheritdoc />
-        [System.Diagnostics.StackTraceHidden]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public bool Send(System.ReadOnlySpan<byte> message)
+        [StackTraceHidden]
+        [MethodImpl(
+            MethodImplOptions.NoInlining)]
+        [return: NotNull]
+        public bool Send(ReadOnlySpan<byte> message)
         {
             if (message.IsEmpty || _endPoint is null)
             {
                 return false;
             }
 
-            int sent = _socket.SendTo(message, System.Net.Sockets.SocketFlags.None, _endPoint);
+            int sent = _socket.SendTo(message, SocketFlags.None, _endPoint);
             return sent == message.Length;
         }
 
@@ -176,13 +186,13 @@ public sealed partial class Connection : IConnection
         #region Asynchronous Methods
 
         /// <inheritdoc />
-        [System.Diagnostics.StackTraceHidden]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public async System.Threading.Tasks.Task<bool> SendAsync(
+        [StackTraceHidden]
+        [MethodImpl(
+            MethodImplOptions.NoInlining)]
+        [return: NotNull]
+        public async Task<bool> SendAsync(
             IPacket packet,
-            System.Threading.CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default)
         {
             if (packet.Length == 0)
             {
@@ -194,7 +204,7 @@ public sealed partial class Connection : IConnection
                 int written = packet.Serialize(buffer);
                 try
                 {
-                    return await SendAsync(new System.ReadOnlyMemory<byte>(buffer, 0, written), cancellationToken)
+                    return await SendAsync(new ReadOnlyMemory<byte>(buffer, 0, written), cancellationToken)
                                      .ConfigureAwait(false);
                 }
                 catch
@@ -212,13 +222,13 @@ public sealed partial class Connection : IConnection
         }
 
         /// <inheritdoc />
-        [System.Diagnostics.StackTraceHidden]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public async System.Threading.Tasks.Task<bool> SendAsync(
-            System.ReadOnlyMemory<byte> message,
-            System.Threading.CancellationToken cancellationToken = default)
+        [StackTraceHidden]
+        [MethodImpl(
+            MethodImplOptions.NoInlining)]
+        [return: NotNull]
+        public async Task<bool> SendAsync(
+            ReadOnlyMemory<byte> message,
+            CancellationToken cancellationToken = default)
         {
             if (message.IsEmpty)
             {
@@ -236,23 +246,23 @@ public sealed partial class Connection : IConnection
         }
 
         /// <inheritdoc />
-        [System.Diagnostics.StackTraceHidden]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        [StackTraceHidden]
+        [MethodImpl(
+            MethodImplOptions.NoInlining)]
         public void ResetForPool()
         {
             _endPoint = null;
             _socket.Dispose();
-            _socket = new System.Net.Sockets.Socket(
-                System.Net.Sockets.AddressFamily.InterNetwork,
-                System.Net.Sockets.SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
+            _socket = new Socket(
+                AddressFamily.InterNetwork,
+                SocketType.Dgram, ProtocolType.Udp);
         }
 
         /// <inheritdoc/>
-        public void Initialize(IConnection outer) => throw new System.NotImplementedException();
+        public void Initialize(IConnection outer) => throw new NotImplementedException();
 
         /// <inheritdoc/>
-        public void Dispose() => throw new System.NotImplementedException();
+        public void Dispose() => throw new NotImplementedException();
 
         #endregion Asynchronous Methods
     }
@@ -262,21 +272,21 @@ public sealed partial class Connection : IConnection
     #region Transmission Control Protocol
 
     /// <inheritdoc />
-    [System.Diagnostics.DebuggerNonUserCode]
-    [System.Runtime.CompilerServices.SkipLocalsInit]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public sealed class TcpTransport([System.Diagnostics.CodeAnalysis.NotNull] Connection outer) : IConnection.ITcp
+    [DebuggerNonUserCode]
+    [SkipLocalsInit]
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public sealed class TcpTransport([NotNull] Connection outer) : IConnection.ITcp
     {
         private readonly Connection _outer = outer;
 
         /// <inheritdoc />
-        [System.Diagnostics.StackTraceHidden]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-        public void BeginReceive(System.Threading.CancellationToken cancellationToken = default)
+        [StackTraceHidden]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining |
+            MethodImplOptions.AggressiveOptimization)]
+        public void BeginReceive(CancellationToken cancellationToken = default)
         {
-            System.ObjectDisposedException.ThrowIf(_outer._disposed, nameof(Connection));
+            ObjectDisposedException.ThrowIf(_outer._disposed, nameof(Connection));
             _outer._cstream.BeginReceive(cancellationToken);
         }
 
@@ -288,10 +298,10 @@ public sealed partial class Connection : IConnection
         /// Always return the response packet so the outbound middleware pipeline
         /// (encryption, compression) can process it correctly.
         /// </remarks>
-        [System.Diagnostics.StackTraceHidden]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [StackTraceHidden]
+        [MethodImpl(
+            MethodImplOptions.AggressiveOptimization)]
+        [return: NotNull]
         public bool Send(IPacket packet)
         {
             if (packet.Length == 0)
@@ -300,7 +310,7 @@ public sealed partial class Connection : IConnection
             }
             else if (packet.Length < BufferLease.StackAllocThreshold)
             {
-                System.Span<byte> buffer = stackalloc byte[packet.Length * 4];
+                Span<byte> buffer = stackalloc byte[packet.Length * 4];
 
                 int written = packet.Serialize(buffer);
                 _outer.AddBytesSent(written);
@@ -324,23 +334,23 @@ public sealed partial class Connection : IConnection
         /// Always return the response packet so the outbound middleware pipeline
         /// (encryption, compression) can process it correctly.
         /// </remarks>
-        [System.Diagnostics.StackTraceHidden]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public bool Send(System.ReadOnlySpan<byte> message) => _outer._cstream.Send(message);
+        [StackTraceHidden]
+        [MethodImpl(
+            MethodImplOptions.NoInlining)]
+        [return: NotNull]
+        public bool Send(ReadOnlySpan<byte> message) => _outer._cstream.Send(message);
 
         /// <inheritdoc/>
-        [System.Diagnostics.StackTraceHidden]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
-        [System.Obsolete(
+        [StackTraceHidden]
+        [MethodImpl(
+            MethodImplOptions.NoInlining)]
+        [return: NotNull]
+        [Obsolete(
             "This method may produce multiple packets for large messages. " +
             "Consider using a different approach for large data transmission.")]
         public bool Send(string message)
         {
-            int byteCount = System.Text.Encoding.UTF8.GetByteCount(message);
+            int byteCount = Encoding.UTF8.GetByteCount(message);
 
             // 1) Try to fit in a single packet (choose the smallest that fits).
             foreach (Candidate c in UTF8_STRING.Candidates)
@@ -397,13 +407,13 @@ public sealed partial class Connection : IConnection
         /// Always return the response packet so the outbound middleware pipeline
         /// (encryption, compression) can process it correctly.
         /// </remarks>
-        [System.Diagnostics.StackTraceHidden]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public async System.Threading.Tasks.Task<bool> SendAsync(
+        [StackTraceHidden]
+        [MethodImpl(
+            MethodImplOptions.NoInlining)]
+        [return: NotNull]
+        public async Task<bool> SendAsync(
             IPacket packet,
-            System.Threading.CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default)
         {
             if (packet.Length == 0)
             {
@@ -415,7 +425,7 @@ public sealed partial class Connection : IConnection
                 int written = packet.Serialize(buffer);
 
                 _outer.AddBytesSent(written);
-                return await SendAsync(new System.ReadOnlyMemory<byte>(buffer, 0, written), cancellationToken)
+                return await SendAsync(new ReadOnlyMemory<byte>(buffer, 0, written), cancellationToken)
                                  .ConfigureAwait(false);
             }
             else
@@ -436,28 +446,28 @@ public sealed partial class Connection : IConnection
         /// Always return the response packet so the outbound middleware pipeline
         /// (encryption, compression) can process it correctly.
         /// </remarks>
-        [System.Diagnostics.StackTraceHidden]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public async System.Threading.Tasks.Task<bool> SendAsync(
-            System.ReadOnlyMemory<byte> message,
-            System.Threading.CancellationToken cancellationToken = default)
+        [StackTraceHidden]
+        [MethodImpl(
+            MethodImplOptions.NoInlining)]
+        [return: NotNull]
+        public async Task<bool> SendAsync(
+            ReadOnlyMemory<byte> message,
+            CancellationToken cancellationToken = default)
             => await _outer._cstream.SendAsync(message, cancellationToken).ConfigureAwait(false);
 
         /// <inheritdoc/>
-        [System.Diagnostics.StackTraceHidden]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
-        [System.Obsolete(
+        [StackTraceHidden]
+        [MethodImpl(
+            MethodImplOptions.NoInlining)]
+        [return: NotNull]
+        [Obsolete(
             "This method may produce multiple packets for large messages. " +
             "Consider using a different approach for large data transmission.")]
-        public async System.Threading.Tasks.Task<bool> SendAsync(
+        public async Task<bool> SendAsync(
             string message,
-            System.Threading.CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default)
         {
-            int byteCount = System.Text.Encoding.UTF8.GetByteCount(message);
+            int byteCount = Encoding.UTF8.GetByteCount(message);
 
             // 1) Try to fit in a single packet (choose the smallest that fits).
             foreach (Candidate c in UTF8_STRING.Candidates)

@@ -1,12 +1,17 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Routing;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
 
 namespace Nalix.Network.Internal.Compilation;
@@ -19,7 +24,7 @@ namespace Nalix.Network.Internal.Compilation;
 /// <param name="MethodInfo"></param>
 /// <param name="ReturnType"></param>
 /// <param name="CompiledInvoker"></param>
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal readonly record struct CompiledHandler<TPacket>(
-    System.Reflection.MethodInfo MethodInfo, System.Type ReturnType,
-    System.Func<object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<object>> CompiledInvoker) where TPacket : IPacket;
+    MethodInfo MethodInfo, Type ReturnType,
+    Func<object, PacketContext<TPacket>, ValueTask<object>> CompiledInvoker) where TPacket : IPacket;

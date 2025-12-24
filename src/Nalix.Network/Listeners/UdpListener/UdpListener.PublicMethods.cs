@@ -1,7 +1,14 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
@@ -18,21 +25,21 @@ namespace Nalix.Network.Listeners.Udp;
 /// Provides a base implementation for a UDP network listener, supporting asynchronous listening,
 /// protocol processing, and time synchronization. Inherit from this class to implement custom UDP listeners.
 /// </summary>
-[System.Diagnostics.DebuggerDisplay("Port={s_config?.Port}, Running={_isRunning}")]
+[DebuggerDisplay("Port={s_config?.Port}, Running={_isRunning}")]
 public abstract partial class UdpListenerBase : IListener
 {
     /// <summary>
     /// Starts listening for incoming UDP datagrams and processes them using the specified protocol.
-    /// The listening process can be cancelled using the provided <see cref="System.Threading.CancellationToken"/>.
+    /// The listening process can be cancelled using the provided <see cref="CancellationToken"/>.
     /// </summary>
-    /// <param name="cancellationToken">A <see cref="System.Threading.CancellationToken"/> to cancel the listening process.</param>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public void Activate(System.Threading.CancellationToken cancellationToken = default)
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the listening process.</param>
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    public void Activate(CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _isDisposed) != 0, this);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
 
         if (_isRunning)
         {
@@ -53,7 +60,7 @@ public abstract partial class UdpListenerBase : IListener
         try
         {
             _cts?.Dispose();
-            _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _cancellationToken = _cts.Token;
 
             _lock.Wait(_cancellationToken);
@@ -85,7 +92,7 @@ public abstract partial class UdpListenerBase : IListener
                 _ = _lock.Release();
             }
         }
-        catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             if (started)
             {
@@ -97,7 +104,7 @@ public abstract partial class UdpListenerBase : IListener
             _cts?.Dispose();
             _cts = null;
         }
-        catch (System.Net.Sockets.SocketException ex)
+        catch (SocketException ex)
         {
             if (started)
             {
@@ -109,7 +116,7 @@ public abstract partial class UdpListenerBase : IListener
             _cts?.Dispose();
             _cts = null;
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             if (started)
             {
@@ -127,13 +134,13 @@ public abstract partial class UdpListenerBase : IListener
     /// Stops the listener from receiving further UDP datagrams.
     /// </summary>
     /// <param name="cancellationToken"></param>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    public void Deactivate(CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _isDisposed) != 0, this);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
 
         _cts?.Cancel();
 
@@ -148,7 +155,7 @@ public abstract partial class UdpListenerBase : IListener
                                         .Info($"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] stopped port={_port}");
             }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                 .Error($"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] stop-error", ex);
@@ -166,9 +173,9 @@ public abstract partial class UdpListenerBase : IListener
     /// Updates the listener with the current server time, provided as a Unix timestamp.
     /// </summary>
     /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public virtual void SynchronizeTime(long milliseconds)
     {
         // Record last sync and drift vs local clock
@@ -186,9 +193,9 @@ public abstract partial class UdpListenerBase : IListener
     /// <param name="serverMs">The current server time in milliseconds since the Unix epoch.</param>
     /// <param name="localMs">The local time in milliseconds since the Unix epoch.</param>
     /// <param name="driftMs">The calculated drift in milliseconds between server and local time.</param>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     protected virtual void OnTimeSynchronized(long serverMs, long localMs, long driftMs)
     {
         // No-op by default
@@ -200,26 +207,26 @@ public abstract partial class UdpListenerBase : IListener
     /// </summary>
     /// <param name="connection"></param>
     /// <param name="result"></param>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     protected abstract bool IsAuthenticated(
-        IConnection connection, in System.Net.Sockets.UdpReceiveResult result);
+        IConnection connection, in UdpReceiveResult result);
 
     /// <summary>
     /// Generates a human-readable diagnostic report of the current listener status.
     /// </summary>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    [return: NotNull]
     public string GenerateReport()
     {
-        System.Text.StringBuilder sb = new(512);
+        StringBuilder sb = new(512);
 
         // IsListening wraps _isRunning:contentReference[oaicite:10]{index=10}
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] UdpListener Status:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] UdpListener Status:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Port: {_port}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"IsListening: {IsListening}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"IsDisposed: {_isDisposed}");
@@ -254,11 +261,11 @@ public abstract partial class UdpListenerBase : IListener
         _ = sb.AppendLine();
 
         // Traffic stats
-        long rxPackets = System.Threading.Interlocked.Read(ref _rxPackets);
-        long rxBytes = System.Threading.Interlocked.Read(ref _rxBytes);
-        long dropShort = System.Threading.Interlocked.Read(ref _dropShort);
-        long dropUnauth = System.Threading.Interlocked.Read(ref _dropUnauth);
-        long dropUnknown = System.Threading.Interlocked.Read(ref _dropUnknown);
+        long rxPackets = Interlocked.Read(ref _rxPackets);
+        long rxBytes = Interlocked.Read(ref _rxBytes);
+        long dropShort = Interlocked.Read(ref _dropShort);
+        long dropUnauth = Interlocked.Read(ref _dropUnauth);
+        long dropUnknown = Interlocked.Read(ref _dropUnknown);
 
         _ = sb.AppendLine("Traffic:");
         _ = sb.AppendLine("------------------------------------------------------------");
@@ -268,7 +275,7 @@ public abstract partial class UdpListenerBase : IListener
         _ = sb.AppendLine();
 
         // Errors summary (bind/recv/shutdown) from Activate/Receive handling:contentReference[oaicite:14]{index=14}:contentReference[oaicite:15]{index=15}
-        long recvErrors = System.Threading.Interlocked.Read(ref _recvErrors);
+        long recvErrors = Interlocked.Read(ref _recvErrors);
 
         _ = sb.AppendLine("Errors:");
         _ = sb.AppendLine("------------------------------------------------------------");

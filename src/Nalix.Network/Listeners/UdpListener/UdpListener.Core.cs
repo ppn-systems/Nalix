@@ -1,6 +1,12 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
@@ -27,11 +33,11 @@ public abstract partial class UdpListenerBase
 
     private readonly ushort _port;
     private readonly IProtocol _protocol;
-    private readonly System.Threading.SemaphoreSlim _lock;
+    private readonly SemaphoreSlim _lock;
 
-    [System.Diagnostics.CodeAnalysis.AllowNull] private System.Net.Sockets.UdpClient _udpClient;
-    [System.Diagnostics.CodeAnalysis.AllowNull] private System.Threading.CancellationTokenSource _cts;
-    private System.Threading.CancellationToken _cancellationToken;
+    [AllowNull] private UdpClient _udpClient;
+    [AllowNull] private CancellationTokenSource _cts;
+    private CancellationToken _cancellationToken;
 
     private int _isDisposed;
     private volatile bool _isRunning;
@@ -66,24 +72,24 @@ public abstract partial class UdpListenerBase
 
     /// <summary>
     /// Gets or sets a value indicating whether time synchronization is enabled for the UDP listener.
-    /// Throws <see cref="System.InvalidOperationException"/> if set while the listener is running.
+    /// Throws <see cref="InvalidOperationException"/> if set while the listener is running.
     /// </summary>
-    /// <exception cref="System.InvalidOperationException"></exception>
+    /// <exception cref="InvalidOperationException"></exception>
     public bool IsTimeSyncEnabled
     {
-        [System.Diagnostics.DebuggerStepThrough]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [DebuggerStepThrough]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
         get => InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled;
 
-        [System.Diagnostics.DebuggerStepThrough]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [DebuggerStepThrough]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
         set
         {
             if (_isRunning)
             {
-                throw new System.InvalidOperationException($"[{nameof(UdpListenerBase)}] Cannot change IsTimeSyncEnabled while listening.");
+                throw new InvalidOperationException($"[{nameof(UdpListenerBase)}] Cannot change IsTimeSyncEnabled while listening.");
             }
 
             InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
@@ -98,8 +104,8 @@ public abstract partial class UdpListenerBase
 
     #region Constructors
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     static UdpListenerBase()
     {
         Config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
@@ -112,15 +118,15 @@ public abstract partial class UdpListenerBase
     /// </summary>
     /// <param name="port">The UDP port to listen on.</param>
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
-    [System.Diagnostics.DebuggerStepThrough]
+    [DebuggerStepThrough]
     protected UdpListenerBase(ushort port, IProtocol protocol)
     {
-        System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
+        ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
 
         _port = port;
         _protocol = protocol;
 
-        _lock = new System.Threading.SemaphoreSlim(1, 1);
+        _lock = new SemaphoreSlim(1, 1);
 
         InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
                        .TimeSynchronized += SynchronizeTime;
@@ -134,7 +140,7 @@ public abstract partial class UdpListenerBase
     /// Initializes a new instance of the <see cref="UdpListenerBase"/> class using the configured port, protocol, buffer pool, and logger.
     /// </summary>
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
-    [System.Diagnostics.DebuggerStepThrough]
+    [DebuggerStepThrough]
     protected UdpListenerBase(IProtocol protocol)
         : this(Config.Port, protocol)
     {
@@ -145,19 +151,19 @@ public abstract partial class UdpListenerBase
     #region IDisposable
 
     /// <inheritdoc/>
-    [System.Diagnostics.DebuggerStepThrough]
+    [DebuggerStepThrough]
     public void Dispose()
     {
         Dispose(true);
-        System.GC.SuppressFinalize(this);
+        GC.SuppressFinalize(this);
     }
 
     /// <inheritdoc/>
-    [System.Diagnostics.DebuggerStepThrough]
+    [DebuggerStepThrough]
     protected virtual void Dispose(bool disposing)
     {
         // Atomic check-and-set: 0 -> 1
-        if (System.Threading.Interlocked.CompareExchange(ref _isDisposed, 1, 0) != 0)
+        if (Interlocked.CompareExchange(ref _isDisposed, 1, 0) != 0)
         {
             return;
         }

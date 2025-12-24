@@ -1,6 +1,9 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
@@ -23,8 +26,8 @@ public abstract partial class Protocol
     /// </summary>
     public bool IsAccepting
     {
-        get => System.Threading.Interlocked.CompareExchange(ref _accepting, 0, 0) == 1;
-        protected set => System.Threading.Interlocked.Exchange(ref _accepting, value ? 1 : 0);
+        get => Interlocked.CompareExchange(ref _accepting, 0, 0) == 1;
+        protected set => Interlocked.Exchange(ref _accepting, value ? 1 : 0);
     }
 
     #endregion Properties
@@ -46,11 +49,11 @@ public abstract partial class Protocol
     /// </summary>
     /// <param name="connection">The connection to be processed.</param>
     /// <param name="cancellationToken">Identifier for cancellation</param>
-    /// <exception cref="System.ArgumentNullException">Thrown when connection is null.</exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when connection is null.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
     public virtual void OnAccept(
         IConnection connection,
-        System.Threading.CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
         // Check if accepting connections is enabled
         if (!IsAccepting)
@@ -61,8 +64,8 @@ public abstract partial class Protocol
             return;
         }
 
-        System.ArgumentNullException.ThrowIfNull(connection);
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _isDisposed) != 0, this);
+        ArgumentNullException.ThrowIfNull(connection);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
 
         // CheckLimit cancellation
         cancellationToken.ThrowIfCancellationRequested();
@@ -82,15 +85,15 @@ public abstract partial class Protocol
             // Connections failed validation, close immediately
             connection.Close();
         }
-        catch (System.OperationCanceledException)
+        catch (OperationCanceledException)
         {
             s_logger.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-canceled id={connection.ID}");
         }
-        catch (System.ObjectDisposedException)
+        catch (ObjectDisposedException)
         {
             s_logger.Warn($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-disposed id={connection.ID}");
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             // Log exception if a logger is available
             OnConnectionError(connection, ex);
@@ -106,8 +109,8 @@ public abstract partial class Protocol
     /// </summary>
     /// <param name="connection">The connection where the error occurred.</param>
     /// <param name="exception">The exception that was thrown.</param>
-    protected virtual void OnConnectionError(IConnection connection, System.Exception exception)
-        => _ = System.Threading.Interlocked.Increment(ref _totalErrors);
+    protected virtual void OnConnectionError(IConnection connection, Exception exception)
+        => _ = Interlocked.Increment(ref _totalErrors);
 
     /// <summary>
     /// Validates the incoming connection before accepting it.
@@ -115,7 +118,7 @@ public abstract partial class Protocol
     /// </summary>
     /// <param name="connection">The connection to validate.</param>
     /// <returns>True if the connection is valid, false otherwise.</returns>
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [return: NotNull]
     protected virtual bool ValidateConnection(IConnection connection) => true;
 
     #endregion Virtual Methods

@@ -1,6 +1,10 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Routing;
 
@@ -19,7 +23,7 @@ public interface IPacketMiddleware<TPacket> where TPacket : IPacket
     /// <param name="context">Encapsulates the packet and its connection metadata.</param>
     /// <param name="next">Delegate to call the next middleware in the sequence.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "<Pending>")]
-    System.Threading.Tasks.Task InvokeAsync(PacketContext<TPacket> context,
-        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next);
+    [SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "<Pending>")]
+    Task InvokeAsync(PacketContext<TPacket> context,
+        Func<CancellationToken, Task> next);
 }

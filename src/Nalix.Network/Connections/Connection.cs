@@ -1,6 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
@@ -19,11 +24,11 @@ public sealed partial class Connection : IConnection
 {
     #region Fields
 
-    [System.Diagnostics.CodeAnalysis.AllowNull]
+    [AllowNull]
     private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
-    private readonly System.Threading.Lock _lock;
+    private readonly Lock _lock;
     private readonly ConnectionEventArgs _evtArgs;
     private readonly FramedSocketConnection _cstream;
 
@@ -34,9 +39,9 @@ public sealed partial class Connection : IConnection
 
     private volatile bool _disposed;
 
-    private System.EventHandler<IConnectEventArgs> _onCloseEvent;
-    private System.EventHandler<IConnectEventArgs> _onProcessEvent;
-    private System.EventHandler<IConnectEventArgs> _onPostProcessEvent;
+    private EventHandler<IConnectEventArgs> _onCloseEvent;
+    private EventHandler<IConnectEventArgs> _onProcessEvent;
+    private EventHandler<IConnectEventArgs> _onPostProcessEvent;
 
     #endregion Fields
 
@@ -46,10 +51,10 @@ public sealed partial class Connection : IConnection
     /// Initializes a new instance of the <see cref="Connection"/> class with a socket, buffer allocator, and optional logger.
     /// </summary>
     /// <param name="socket">The socket used for the connection.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="socket"/> is null.</exception>
-    public Connection(System.Net.Sockets.Socket socket)
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="socket"/> is null.</exception>
+    public Connection(Socket socket)
     {
-        _lock = new System.Threading.Lock();
+        _lock = new Lock();
         Secret = [];
         _disposed = false;
 
@@ -100,12 +105,12 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     public byte[] Secret
     {
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
         get;
 
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
         set;
     }
 
@@ -114,9 +119,9 @@ public sealed partial class Connection : IConnection
     /// </summary>
     public long BytesSent
     {
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get => System.Threading.Interlocked.Read(ref _bytesSent);
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
+        get => Interlocked.Read(ref _bytesSent);
     }
 
     #endregion Properties
@@ -125,21 +130,21 @@ public sealed partial class Connection : IConnection
 
     /// <inheritdoc />
 
-    public event System.EventHandler<IConnectEventArgs> OnCloseEvent
+    public event EventHandler<IConnectEventArgs> OnCloseEvent
     {
         add => _onCloseEvent += value;
         remove => _onCloseEvent -= value;
     }
 
     /// <inheritdoc />
-    public event System.EventHandler<IConnectEventArgs> OnProcessEvent
+    public event EventHandler<IConnectEventArgs> OnProcessEvent
     {
         add => _onProcessEvent += value;
         remove => _onProcessEvent -= value;
     }
 
     /// <inheritdoc />
-    public event System.EventHandler<IConnectEventArgs> OnPostProcessEvent
+    public event EventHandler<IConnectEventArgs> OnPostProcessEvent
     {
         add => _onPostProcessEvent += value;
         remove => _onPostProcessEvent -= value;
@@ -150,8 +155,8 @@ public sealed partial class Connection : IConnection
     #region Methods
 
     /// <inheritdoc />
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     public void Close(bool force = false)
     {
         if (_disposed)
@@ -167,22 +172,22 @@ public sealed partial class Connection : IConnection
     }
 
     /// <inheritdoc />
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Disconnect([System.Diagnostics.CodeAnalysis.AllowNull] string reason = null) => Close(force: true);
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public void Disconnect([AllowNull] string reason = null) => Close(force: true);
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal void AddBytesSent(int count) => _ = System.Threading.Interlocked.Add(ref _bytesSent, count);
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    internal void AddBytesSent(int count) => _ = Interlocked.Add(ref _bytesSent, count);
 
     #endregion Methods
 
     #region Dispose Pattern
 
     /// <inheritdoc />
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     public void Dispose()
     {
         lock (_lock)
@@ -207,26 +212,26 @@ public sealed partial class Connection : IConnection
                                     .Return(_udp);
             }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             s_logger.Error($"[NW.{nameof(Connection)}:{Dispose}] dispose-error msg={ex.Message}");
         }
 
-        System.GC.SuppressFinalize(this);
+        GC.SuppressFinalize(this);
     }
 
     #endregion Dispose Pattern
 
     #region Event Bridges
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     private void OnCloseEventBridge(
-        [System.Diagnostics.CodeAnalysis.AllowNull] object sender,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs e)
+        [AllowNull] object sender,
+        [NotNull] IConnectEventArgs e)
     {
-        if (System.Threading.Interlocked.Exchange(ref _closeSignaled, 1) != 0)
+        if (Interlocked.Exchange(ref _closeSignaled, 1) != 0)
         {
             return;
         }
@@ -235,12 +240,12 @@ public sealed partial class Connection : IConnection
         _ = AsyncCallback.InvokeHighPriority(_onCloseEvent, e.Connection, e);
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     private static void OnProcessEventBridge(
-        [System.Diagnostics.CodeAnalysis.AllowNull] object sender,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs e)
+        [AllowNull] object sender,
+        [NotNull] IConnectEventArgs e)
     {
         if (sender is not Connection self)
         {
@@ -250,12 +255,12 @@ public sealed partial class Connection : IConnection
         _ = AsyncCallback.Invoke(self._onProcessEvent, self, e);
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     private static void OnPostProcessEventBridge(
-        [System.Diagnostics.CodeAnalysis.AllowNull] object sender,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs e)
+        [AllowNull] object sender,
+        [NotNull] IConnectEventArgs e)
     {
         if (sender is not Connection self)
         {
