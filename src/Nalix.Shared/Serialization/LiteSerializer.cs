@@ -1,7 +1,13 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
 using Nalix.Shared.Memory.Buffers;
@@ -12,7 +18,7 @@ namespace Nalix.Shared.Serialization;
 /// <summary>
 /// Provides serialization and deserialization methods for objects.
 /// </summary>
-[System.Diagnostics.DebuggerStepThrough]
+[DebuggerStepThrough]
 public static class LiteSerializer
 {
     #region APIs
@@ -22,15 +28,15 @@ public static class LiteSerializer
     /// </summary>
     /// <typeparam name="T">The type for which the formatter is being registered.</typeparam>
     /// <param name="formatter">The formatter to register.</param>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown if the provided formatter is null.
     /// </exception>
     public static void Register<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
-        [System.Diagnostics.CodeAnalysis.NotNull] IFormatter<T> formatter) => FormatterProvider.Register(formatter);
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
+        [NotNull] IFormatter<T> formatter) => FormatterProvider.Register(formatter);
 
     /// <summary>
     /// Serializes an object into a byte array.
@@ -41,21 +47,21 @@ public static class LiteSerializer
     /// <exception cref="SerializationException">
     /// Thrown if serialization encounters an error.
     /// </exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
+    [Pure]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
+    [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     public static byte[] Serialize<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>(in T value)
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value)
     {
         if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
-            byte[] array = System.GC.AllocateUninitializedArray<byte>(TypeMetadata.SizeOf<T>());
-            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
-                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(array), value);
+            byte[] array = GC.AllocateUninitializedArray<byte>(TypeMetadata.SizeOf<T>());
+            Unsafe.WriteUnaligned(
+                ref MemoryMarshal.GetArrayDataReference(array), value);
 
             return EqualityComparer<T?>.Default.Equals(value, default)
                 ? throw new SerializationException(
@@ -72,7 +78,7 @@ public static class LiteSerializer
                 return SerializerBounds.NullArrayMarker.ToArray();
             }
 
-            System.Array array = (System.Array)(object)value;
+            Array array = (Array)(object)value;
             int length = array.Length;
             if (length is 0)
             {
@@ -80,19 +86,19 @@ public static class LiteSerializer
             }
 
             int dataSize = size * length;
-            byte[] buffer = System.GC.AllocateUninitializedArray<byte>(dataSize + 4);
-            ref byte ptr = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(buffer);
+            byte[] buffer = GC.AllocateUninitializedArray<byte>(dataSize + 4);
+            ref byte ptr = ref MemoryMarshal.GetArrayDataReference(buffer);
 
-            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref ptr, length);
-            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
-                ref System.Runtime.CompilerServices.Unsafe.Add(ref ptr, 4),
-                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(array), (uint)dataSize);
+            Unsafe.WriteUnaligned(ref ptr, length);
+            Unsafe.CopyBlockUnaligned(
+                ref Unsafe.Add(ref ptr, 4),
+                ref MemoryMarshal.GetArrayDataReference(array), (uint)dataSize);
 
             return buffer;
         }
         else if (kind is TypeKind.FixedSizeSerializable)
         {
-            System.Diagnostics.Debug.WriteLine(
+            Debug.WriteLine(
                 $"Serializing fixed-size type {typeof(T).FullName} with size {size} bytes.");
 
             IFormatter<T> formatter = FormatterProvider.Get<T>();
@@ -102,10 +108,10 @@ public static class LiteSerializer
             {
                 formatter.Serialize(ref writer, value);
 
-                System.Diagnostics.Debug.WriteLine(
+                Debug.WriteLine(
                     $"Serialized fixed-size type {typeof(T).FullName} into {writer.WrittenCount} bytes.");
 
-                return writer.WrittenCount == 0 ? System.Array.Empty<byte>() : writer.ToArray();
+                return writer.WrittenCount == 0 ? Array.Empty<byte>() : writer.ToArray();
             }
             finally
             {
@@ -121,7 +127,7 @@ public static class LiteSerializer
             {
                 formatter.Serialize(ref writer, value);
 
-                System.Diagnostics.Debug.WriteLine(
+                Debug.WriteLine(
                     $"Serialized fixed-size type {typeof(T).FullName} into {writer.WrittenCount} bytes.");
 
                 return writer.ToArray();
@@ -147,18 +153,18 @@ public static class LiteSerializer
     /// <exception cref="SerializationException">
     /// Thrown if serialization fails or the buffer is too small.
     /// </exception>
-    /// <exception cref="System.NotSupportedException">
+    /// <exception cref="NotSupportedException">
     /// Thrown if the type is not supported for span-based serialization.
     /// </exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [return: NotNull]
     public static int Serialize<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>(in T value, byte[] buffer)
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value, byte[] buffer)
     {
-        System.ArgumentNullException.ThrowIfNull(buffer);
+        ArgumentNullException.ThrowIfNull(buffer);
 
         // Primitive or unmanaged struct
         if (!TypeMetadata.IsReferenceOrNullable<T>())
@@ -169,8 +175,8 @@ public static class LiteSerializer
                 throw new SerializationException($"Buffer too small. Required: {size}, Actual: {buffer.Length}");
             }
 
-            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
-                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(buffer), value);
+            Unsafe.WriteUnaligned(
+                ref MemoryMarshal.GetArrayDataReference(buffer), value);
 
             return size;
         }
@@ -202,7 +208,7 @@ public static class LiteSerializer
             }
         }
 
-        throw new System.NotSupportedException(
+        throw new NotSupportedException(
             $"Array-based serialization is not supported for type {typeof(T)}. Use Serialize<T>(in T) to get byte[] instead.");
     }
 
@@ -216,16 +222,16 @@ public static class LiteSerializer
     /// <exception cref="SerializationException">
     /// Thrown if serialization fails or the buffer is too small.
     /// </exception>
-    /// <exception cref="System.NotSupportedException">
+    /// <exception cref="NotSupportedException">
     /// Thrown if the type is not supported for span-based serialization.
     /// </exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static int Serialize<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>(in T value, System.Span<byte> buffer)
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.All)] T>(in T value, Span<byte> buffer)
     {
         // ── Case 1: Primitive / unmanaged struct ──────────────────────────────────
         // T is a plain value type with no references (e.g. int, float, custom struct).
@@ -241,8 +247,8 @@ public static class LiteSerializer
                     $"Required: {size}, Actual: {buffer.Length}.");
             }
 
-            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
-                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer), value);
+            Unsafe.WriteUnaligned(
+                ref MemoryMarshal.GetReference(buffer), value);
 
             return size;
         }
@@ -270,7 +276,7 @@ public static class LiteSerializer
                 return 4;
             }
 
-            System.Array array = (System.Array)(object)value;
+            Array array = (Array)(object)value;
             int length = array.Length;
 
             if (length == 0)
@@ -298,14 +304,14 @@ public static class LiteSerializer
             }
 
             // Write the element count as a 4-byte little-endian prefix
-            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
-                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer), length);
+            Unsafe.WriteUnaligned(
+                ref MemoryMarshal.GetReference(buffer), length);
 
             // Bulk-copy all element bytes directly into the span (after the prefix)
-            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
-                ref System.Runtime.CompilerServices.Unsafe.Add(
-                    ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer), 4),
-                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(array),
+            Unsafe.CopyBlockUnaligned(
+                ref Unsafe.Add(
+                    ref MemoryMarshal.GetReference(buffer), 4),
+                ref MemoryMarshal.GetArrayDataReference(array),
                 (uint)dataSize);
 
             return totalSize;
@@ -355,7 +361,7 @@ public static class LiteSerializer
             }
         }
 
-        throw new System.NotSupportedException(
+        throw new NotSupportedException(
             $"Span<byte> serialization is not supported for variable-length type '{typeof(T).FullName}'. Use Serialize<T>(in T value) to obtain a byte[] instead.");
     }
 
@@ -369,20 +375,20 @@ public static class LiteSerializer
     /// <exception cref="SerializationException">
     /// Thrown if deserialization encounters an error or if there is insufficient data in the buffer.
     /// </exception>
-    /// <exception cref="System.ArgumentException">Thrown if the buffer is empty.</exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    /// <exception cref="ArgumentException">Thrown if the buffer is empty.</exception>
+    [Pure]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public static int Deserialize<[
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>(
-        System.ReadOnlySpan<byte> buffer, ref T value)
+        DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(
+        ReadOnlySpan<byte> buffer, ref T value)
     {
         if (buffer.IsEmpty)
         {
-            throw new System.ArgumentException(
+            throw new ArgumentException(
                 $"Cannot deserialize type '{typeof(T)}' from an empty buffer.",
                 nameof(buffer)
             );
@@ -397,8 +403,8 @@ public static class LiteSerializer
                     $"Expected {TypeMetadata.SizeOf<T>()} bytes but got {buffer.Length} bytes."
                 );
             }
-            value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(
-                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer));
+            value = Unsafe.ReadUnaligned<T>(
+                ref MemoryMarshal.GetReference(buffer));
 
             if (EqualityComparer<T?>.Default.Equals(value, default))
             {
@@ -407,7 +413,7 @@ public static class LiteSerializer
             }
             else
             {
-                return System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
+                return Unsafe.SizeOf<T>();
             }
         }
 
@@ -421,14 +427,14 @@ public static class LiteSerializer
                 return 4;
             }
 
-            System.Type elementType = typeof(T).GetElementType()
+            Type elementType = typeof(T).GetElementType()
                 ?? throw new SerializationException(
                     $"TYPE '{typeof(T)}' is expected to be an array, but element type could not be resolved."
                 );
 
             if (IsEmptyArrayMarker(buffer))
             {
-                value = (T)(object)System.Array.CreateInstance(elementType, 0);
+                value = (T)(object)Array.CreateInstance(elementType, 0);
                 return 4;
             }
 
@@ -439,8 +445,8 @@ public static class LiteSerializer
                 );
             }
 
-            int length = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<int>(
-                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer));
+            int length = Unsafe.ReadUnaligned<int>(
+                ref MemoryMarshal.GetReference(buffer));
 
             int dataSize = size * length;
             if (buffer.Length < dataSize + 4)
@@ -451,13 +457,13 @@ public static class LiteSerializer
                 );
             }
 
-            System.Array arr = System.Array.CreateInstance(elementType, length);
-            ref byte dest = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(arr);
+            Array arr = Array.CreateInstance(elementType, length);
+            ref byte dest = ref MemoryMarshal.GetArrayDataReference(arr);
 
-            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+            Unsafe.CopyBlockUnaligned(
                 ref dest,
-                ref System.Runtime.CompilerServices.Unsafe.Add(
-                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer), 4), (uint)dataSize);
+                ref Unsafe.Add(
+                ref MemoryMarshal.GetReference(buffer), 4), (uint)dataSize);
 
             value = (T)(object)arr;
             return dataSize + 4;
@@ -481,20 +487,20 @@ public static class LiteSerializer
     /// <exception cref="SerializationException">
     /// Thrown if deserialization encounters an error or if there is insufficient data in the buffer.
     /// </exception>
-    /// <exception cref="System.ArgumentException"></exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    /// <exception cref="ArgumentException"></exception>
+    [Pure]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
     public static T Deserialize<[
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>(
-        System.ReadOnlySpan<byte> buffer, out int value)
+        DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(
+        ReadOnlySpan<byte> buffer, out int value)
     {
         if (buffer.IsEmpty)
         {
-            throw new System.ArgumentException($"Cannot deserialize type '{typeof(T)}' from an empty buffer.", nameof(buffer));
+            throw new ArgumentException($"Cannot deserialize type '{typeof(T)}' from an empty buffer.", nameof(buffer));
         }
 
         if (!TypeMetadata.IsReferenceOrNullable<T>())
@@ -506,10 +512,10 @@ public static class LiteSerializer
                     $"Expected {TypeMetadata.SizeOf<T>()} bytes but got {buffer.Length} bytes."
                 );
             }
-            value = System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
+            value = Unsafe.SizeOf<T>();
 
-            return System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(
-                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer));
+            return Unsafe.ReadUnaligned<T>(
+                ref MemoryMarshal.GetReference(buffer));
         }
 
         TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
@@ -522,7 +528,7 @@ public static class LiteSerializer
                 return default;
             }
 
-            System.Type elementType = typeof(T).GetElementType()
+            Type elementType = typeof(T).GetElementType()
                 ?? throw new SerializationException(
                     $"TYPE '{typeof(T)}' is expected to be an array, but element type could not be resolved."
                 );
@@ -530,7 +536,7 @@ public static class LiteSerializer
             if (IsEmptyArrayMarker(buffer))
             {
                 value = 4;
-                return (T)(object)System.Array.CreateInstance(elementType, 0);
+                return (T)(object)Array.CreateInstance(elementType, 0);
             }
 
             if (buffer.Length < 4)
@@ -540,8 +546,8 @@ public static class LiteSerializer
                 );
             }
 
-            int length = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<int>(
-                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer));
+            int length = Unsafe.ReadUnaligned<int>(
+                ref MemoryMarshal.GetReference(buffer));
 
             int dataSize = size * length;
             if (buffer.Length < dataSize + 4)
@@ -552,13 +558,13 @@ public static class LiteSerializer
                 );
             }
 
-            System.Array arr = System.Array.CreateInstance(elementType, length);
-            ref byte dest = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(arr);
+            Array arr = Array.CreateInstance(elementType, length);
+            ref byte dest = ref MemoryMarshal.GetArrayDataReference(arr);
 
-            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+            Unsafe.CopyBlockUnaligned(
                 ref dest,
-                ref System.Runtime.CompilerServices.Unsafe.Add(
-                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer), 4), (uint)dataSize);
+                ref Unsafe.Add(
+                ref MemoryMarshal.GetReference(buffer), 4), (uint)dataSize);
 
             value = dataSize + 4;
             return (T)(object)arr;
@@ -576,19 +582,19 @@ public static class LiteSerializer
 
     #region Private Methods
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static bool IsNullArrayMarker(System.ReadOnlySpan<byte> buffer) =>
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    private static bool IsNullArrayMarker(ReadOnlySpan<byte> buffer) =>
         buffer.Length >= 4 &&
-        System.Runtime.CompilerServices.Unsafe.ReadUnaligned<int>(
-            ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer)) == -1;
+        Unsafe.ReadUnaligned<int>(
+            ref MemoryMarshal.GetReference(buffer)) == -1;
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static bool IsEmptyArrayMarker(System.ReadOnlySpan<byte> buffer) =>
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    private static bool IsEmptyArrayMarker(ReadOnlySpan<byte> buffer) =>
         buffer.Length >= 4 &&
-        System.Runtime.CompilerServices.Unsafe.ReadUnaligned<int>(
-            ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer)) == 0;
+        Unsafe.ReadUnaligned<int>(
+            ref MemoryMarshal.GetReference(buffer)) == 0;
 
     #endregion Private Methods
 }

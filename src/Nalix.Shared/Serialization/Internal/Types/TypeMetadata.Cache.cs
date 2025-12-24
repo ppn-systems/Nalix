@@ -1,29 +1,33 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Serialization;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
 namespace Nalix.Shared.Serialization.Internal.Types;
 
 internal static partial class TypeMetadata
 {
-    private const System.Reflection.BindingFlags Flags =
-        System.Reflection.BindingFlags.Static |
-        System.Reflection.BindingFlags.Public |
-        System.Reflection.BindingFlags.Instance |
-        System.Reflection.BindingFlags.NonPublic |
-        System.Reflection.BindingFlags.FlattenHierarchy;
+    private const BindingFlags Flags =
+        BindingFlags.Static |
+        BindingFlags.Public |
+        BindingFlags.Instance |
+        BindingFlags.NonPublic |
+        BindingFlags.FlattenHierarchy;
 
-    public const System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes PropertyAccess =
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties;
+    public const DynamicallyAccessedMemberTypes PropertyAccess =
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.NonPublicProperties;
 
-    private static class Cache<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>
+    private static class Cache<[DynamicallyAccessedMembers(PropertyAccess)] T>
     {
         public static bool IsUnmanaged;
         public static bool IsNullable;
@@ -37,17 +41,17 @@ internal static partial class TypeMetadata
 
         static Cache()
         {
-            System.Type type = typeof(T);
+            Type type = typeof(T);
 
             try
             {
                 IsReference = !type.IsValueType;
-                IsNullable = System.Nullable.GetUnderlyingType(type) != null;
-                IsUnmanaged = !System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<T>();
+                IsNullable = Nullable.GetUnderlyingType(type) != null;
+                IsUnmanaged = !RuntimeHelpers.IsReferenceOrContainsReferences<T>();
 
                 if (type.IsSZArray)
                 {
-                    System.Type? elementType = type.GetElementType();
+                    Type? elementType = type.GetElementType();
                     if (elementType != null && !IsReferenceOrContainsReferences(elementType))
                     {
                         IsUnmanagedSZArray = true;
@@ -56,7 +60,7 @@ internal static partial class TypeMetadata
                 }
                 else if (typeof(IFixedSizeSerializable).IsAssignableFrom(type))
                 {
-                    System.Reflection.PropertyInfo? prop = type.GetProperty(nameof(IFixedSizeSerializable.Size), Flags);
+                    PropertyInfo? prop = type.GetProperty(nameof(IFixedSizeSerializable.Size), Flags);
 
                     if (prop?.GetValue(null) is int size)
                     {

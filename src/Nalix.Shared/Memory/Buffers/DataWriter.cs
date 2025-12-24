@@ -1,19 +1,27 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace Nalix.Shared.Memory.Buffers;
 
 /// <summary>
 /// A mutable, growable write buffer for high-performance serialization.
-/// Internally stores a <see cref="System.Span{Byte}"/> view and, when rented,
+/// Internally stores a <see cref="Span{Byte}"/> view and, when rented,
 /// keeps the backing <see cref="byte"/> array to allow expansion and pooling.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-[System.Diagnostics.DebuggerDisplay("Len={Length}, Written={WrittenCount}, Rent={_rent}, OWNER={( _owner != null )}")]
+[DebuggerNonUserCode]
+[SkipLocalsInit]
+[ExcludeFromCodeCoverage]
+[EditorBrowsable(EditorBrowsableState.Never)]
+[StructLayout(LayoutKind.Sequential)]
+[DebuggerDisplay("Len={Length}, Written={WrittenCount}, Rent={_rent}, OWNER={( _owner != null )}")]
 public ref struct DataWriter
 {
     #region Fields
@@ -21,7 +29,7 @@ public ref struct DataWriter
     /// <summary>
     /// Current writable view
     /// </summary>
-    private System.Span<byte> _span;
+    private Span<byte> _span;
 
     /// <summary>
     /// Backing array when owned (rented or external array); null if wrapping an external span
@@ -41,18 +49,18 @@ public ref struct DataWriter
     /// Creates a writer that rents its internal buffer from the shared array pool.
     /// </summary>
     /// <param name="size">Initial capacity in bytes (must be &gt; 0).</param>
-    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if <paramref name="size"/> is not positive.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="size"/> is not positive.</exception>
     public DataWriter(int size)
     {
         if (size <= 0)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(size), "SIZE must be greater than zero.");
+            throw new ArgumentOutOfRangeException(nameof(size), "SIZE must be greater than zero.");
         }
 
         _rent = true;
         _owner = BufferLease.ByteArrayPool.Rent(size);
-        System.Diagnostics.Debug.Assert(_owner.Length >= size, "ArrayPool returned insufficient buffer");
-        _span = System.MemoryExtensions.AsSpan(_owner);
+        Debug.Assert(_owner.Length >= size, "ArrayPool returned insufficient buffer");
+        _span = MemoryExtensions.AsSpan(_owner);
 
         WrittenCount = 0;
     }
@@ -61,17 +69,17 @@ public ref struct DataWriter
     /// Creates a writer over an existing external array (no renting, no automatic return).
     /// </summary>
     /// <param name="buffer">External backing array (length must be &gt; 0).</param>
-    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if <paramref name="buffer"/> has zero length.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="buffer"/> has zero length.</exception>
     public DataWriter(byte[] buffer)
     {
         if (buffer.Length == 0)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(buffer), "SIZE must be greater than zero.");
+            throw new ArgumentOutOfRangeException(nameof(buffer), "SIZE must be greater than zero.");
         }
 
         _rent = false;
         _owner = buffer;                 // owns an external array (but not rented) → cannot expand by rent policy
-        _span = System.MemoryExtensions.AsSpan(buffer);
+        _span = MemoryExtensions.AsSpan(buffer);
 
         WrittenCount = 0;
     }
@@ -80,12 +88,12 @@ public ref struct DataWriter
     /// Creates a writer over an existing external array (no renting, no automatic return).
     /// </summary>
     /// <param name="span">External backing array (length must be &gt; 0).</param>
-    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if <paramref name="span"/> has zero length.</exception>
-    public DataWriter(System.Span<byte> span)
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="span"/> has zero length.</exception>
+    public DataWriter(Span<byte> span)
     {
         if (span.Length <= 0)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(span), "SIZE must be greater than zero.");
+            throw new ArgumentOutOfRangeException(nameof(span), "SIZE must be greater than zero.");
         }
 
         _span = span;       // direct span view (stackalloc, sliced array, etc.)
@@ -102,14 +110,14 @@ public ref struct DataWriter
     /// <summary>
     /// Gets the number of bytes committed via <see cref="Advance(int)"/>.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
+    [Pure]
     public int WrittenCount { get; private set; }
 
     /// <summary>
     /// Gets a span representing the remaining unwritten segment of the buffer.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    public readonly System.Span<byte> FreeBuffer => _span[WrittenCount..];
+    [Pure]
+    public readonly Span<byte> FreeBuffer => _span[WrittenCount..];
 
     #endregion Properties
 
@@ -119,15 +127,15 @@ public ref struct DataWriter
     /// Advances the write cursor by the specified count.
     /// </summary>
     /// <param name="count">Number of bytes to commit (must fit into <see cref="FreeBuffer"/>).</param>
-    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if out of bounds or non-positive.</exception>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if out of bounds or non-positive.</exception>
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public void Advance(int count)
     {
         if (count <= 0 || (uint)(WrittenCount + count) > (uint)_span.Length)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(count), "Advance out of buffer bounds.");
+            throw new ArgumentOutOfRangeException(nameof(count), "Advance out of buffer bounds.");
         }
 
         WrittenCount += count;
@@ -137,28 +145,28 @@ public ref struct DataWriter
     /// Returns a reference to the first byte of <see cref="FreeBuffer"/> for ref-based writes.
     /// Call <see cref="Expand(int)"/> beforehand to ensure capacity.
     /// </summary>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Diagnostics.CodeAnalysis.UnscopedRef]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public readonly ref byte GetFreeBufferReference() => ref System.Runtime.InteropServices.MemoryMarshal.GetReference(FreeBuffer);
+    [DebuggerStepThrough]
+    [UnscopedRef]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public readonly ref byte GetFreeBufferReference() => ref MemoryMarshal.GetReference(FreeBuffer);
 
     /// <summary>
     /// Ensures at least <paramref name="minimumSize"/> bytes are available in <see cref="FreeBuffer"/>.
     /// Expands only when this instance owns a rented array; throws for fixed/external buffers.
     /// </summary>
     /// <param name="minimumSize">Required free space in bytes (must be &gt; 0).</param>
-    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if non-positive.</exception>
-    /// <exception cref="System.InvalidOperationException">Thrown when expansion is not allowed.</exception>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if non-positive.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when expansion is not allowed.</exception>
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public void Expand(int minimumSize)
     {
         if (minimumSize <= 0)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(minimumSize), "SIZE must be greater than zero.");
+            throw new ArgumentOutOfRangeException(nameof(minimumSize), "SIZE must be greater than zero.");
         }
 
         if (_span.Length - WrittenCount >= minimumSize)
@@ -168,13 +176,13 @@ public ref struct DataWriter
 
         if (!_rent) // external array (or external span if we ever add such ctor) cannot expand by policy
         {
-            throw new System.InvalidOperationException("Cannot expand a fixed buffer.");
+            throw new InvalidOperationException("Cannot expand a fixed buffer.");
         }
 
         // Rent a larger buffer and copy committed bytes
         int current = _owner?.Length ?? 0;
         int needed = WrittenCount + minimumSize;
-        int newSize = current <= 0 ? needed : System.Math.Max(current * 2, needed);
+        int newSize = current <= 0 ? needed : Math.Max(current * 2, needed);
 
         byte[] newOwner = BufferLease.ByteArrayPool.Rent(newSize);
         if (WrittenCount > 0)
@@ -192,33 +200,33 @@ public ref struct DataWriter
         byte[]? oldOwner = _owner;
 
         _owner = newOwner;
-        _span = System.MemoryExtensions.AsSpan(_owner);
+        _span = MemoryExtensions.AsSpan(_owner);
 
         if (oldOwner is not null)
         {
             BufferLease.ByteArrayPool.Return(oldOwner);
         }
 
-        [System.Diagnostics.StackTraceHidden]
-        [System.Diagnostics.DebuggerStepThrough]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [StackTraceHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
         static unsafe void CopyBytes(byte[]? src, byte[] dst, int count)
         {
-            System.ArgumentNullException.ThrowIfNull(src);
-            System.ArgumentNullException.ThrowIfNull(dst);
-            System.ArgumentOutOfRangeException.ThrowIfNegative(count);
+            ArgumentNullException.ThrowIfNull(src);
+            ArgumentNullException.ThrowIfNull(dst);
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
 
             if ((uint)count > (uint)src.Length || (uint)count > (uint)dst.Length)
             {
-                throw new System.ArgumentOutOfRangeException(nameof(count));
+                throw new ArgumentOutOfRangeException(nameof(count));
             }
 
-            fixed (byte* pSrc = &System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(src))
+            fixed (byte* pSrc = &MemoryMarshal.GetArrayDataReference(src))
             {
-                fixed (byte* pDst = &System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(dst))
+                fixed (byte* pDst = &MemoryMarshal.GetArrayDataReference(dst))
                 {
-                    System.Buffer.MemoryCopy(pSrc, pDst, (nuint)count, (nuint)count);
+                    Buffer.MemoryCopy(pSrc, pDst, (nuint)count, (nuint)count);
                 }
             }
         }
@@ -227,8 +235,8 @@ public ref struct DataWriter
     /// <summary>
     /// Copies the committed data into a new tightly sized array.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
+    [Pure]
+    [DebuggerStepThrough]
     public readonly byte[] ToArray()
     {
         int n = WrittenCount;
@@ -244,11 +252,11 @@ public ref struct DataWriter
     /// <summary>
     /// Clears state and returns the rented array to the pool when applicable.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [Pure]
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (_owner is not null)
