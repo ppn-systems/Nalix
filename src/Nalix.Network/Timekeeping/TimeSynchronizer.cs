@@ -329,8 +329,23 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
             _cts = null;
         }
 
-        try { toCancel?.Cancel(); } catch { }
-        try { toCancel?.Dispose(); } catch { }
+        try
+        {
+            toCancel?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // ignore: already disposed
+        }
+
+        try
+        {
+            toCancel?.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+            // ignore
+        }
     }
 
     #endregion Private Methods
