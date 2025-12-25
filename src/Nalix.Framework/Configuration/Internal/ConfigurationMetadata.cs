@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -29,12 +29,10 @@ internal class ConfigurationMetadata
     /// <summary>
     /// Gets or sets the configuration type.
     /// </summary>
-    [NotNull]
     public Type ConfigurationType { get; init; } = null!;
 
     /// <summary>
     /// Gets or sets the bindable properties of the configuration type.
     /// </summary>
-    [NotNull]
     public PropertyMetadata[] BindableProperties { get; init; } = [];
 }

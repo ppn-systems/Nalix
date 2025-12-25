@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System.ComponentModel;
@@ -23,7 +23,6 @@ public static partial class Directories
     /// <c>KUBERNETES_SERVICE_HOST</c>, presence of <c>/.dockerenv</c>, and <c>/proc/1/cgroup</c> markers).
     /// The value is computed once and cached.
     /// </remarks>
-    [NotNull]
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static bool IsRunningInContainer
@@ -47,7 +46,6 @@ public static partial class Directories
     /// The returned path is absolute.
     /// </remarks>
     /// <value>A fully qualified directory path.</value>
-    [NotNull]
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string BaseAssetsDirectory
@@ -68,7 +66,6 @@ public static partial class Directories
     /// </list>
     /// On Unix-like systems, permissions are set to be world-readable.
     /// </remarks>
-    [NotNull]
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string LogsDirectory
@@ -88,7 +85,6 @@ public static partial class Directories
     ///   <item><see cref="BaseAssetsDirectory"/>/<c>data</c>.</item>
     /// </list>
     /// </remarks>
-    [NotNull]
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string DataDirectory
@@ -109,7 +105,6 @@ public static partial class Directories
     /// </list>
     /// Directory permissions are hardened (Unix: 0700).
     /// </remarks>
-    [NotNull]
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string ConfigurationDirectory
@@ -132,7 +127,6 @@ public static partial class Directories
     /// files older than a retention period are removed. The retention period defaults to
     /// 7 days and can be overridden via <c>NALIX_TEMP_RETENTION_DAYS</c> (positive integer).
     /// </remarks>
-    [NotNull]
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string TemporaryDirectory
@@ -153,7 +147,6 @@ public static partial class Directories
     /// </list>
     /// Directory permissions are set for shared read/execute on Unix (0750).
     /// </remarks>
-    [NotNull]
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string StorageDirectory
@@ -174,7 +167,6 @@ public static partial class Directories
     /// </list>
     /// Directory permissions are restricted (Unix: 0700).
     /// </remarks>
-    [NotNull]
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string DatabaseDirectory
@@ -189,7 +181,6 @@ public static partial class Directories
     /// <remarks>
     /// Default location: <see cref="DataDirectory"/>/<c>caches</c>. The directory is created on first access.
     /// </remarks>
-    [NotNull]
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string CacheDirectory
@@ -204,7 +195,6 @@ public static partial class Directories
     /// <remarks>
     /// Default location: <see cref="DataDirectory"/>/<c>uploads</c>. Directory permissions on Unix are set to 0750.
     /// </remarks>
-    [NotNull]
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string UploadsDirectory
@@ -219,7 +209,6 @@ public static partial class Directories
     /// <remarks>
     /// Default location: <see cref="DataDirectory"/>/<c>backups</c>. Directory permissions on Unix are restricted (0700).
     /// </remarks>
-    [NotNull]
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
     public static string BackupsDirectory
