@@ -34,14 +34,12 @@ public abstract partial class TcpListenerBase
                 // Reuse BEFORE bind
                 listener.SetSocketOption(
                     System.Net.Sockets.SocketOptionLevel.Socket,
-                    System.Net.Sockets.SocketOptionName.ReuseAddress,
-                    Config.ReuseAddress ? 1 : 0);
+                    System.Net.Sockets.SocketOptionName.ReuseAddress, Config.ReuseAddress ? 1 : 0);
 
                 // Optional: larger listen buffer (per-connection tuning is more important)
                 listener.SetSocketOption(
                     System.Net.Sockets.SocketOptionLevel.Socket,
-                    System.Net.Sockets.SocketOptionName.ReceiveBuffer,
-                    Config.BufferSize);
+                    System.Net.Sockets.SocketOptionName.ReceiveBuffer, Config.BufferSize);
 
                 System.Net.IPEndPoint epV6Any = new(System.Net.IPAddress.IPv6Any, this._port);
 
@@ -86,13 +84,11 @@ public abstract partial class TcpListenerBase
 
         _listener.SetSocketOption(
             System.Net.Sockets.SocketOptionLevel.Socket,
-            System.Net.Sockets.SocketOptionName.ReuseAddress,
-            Config.ReuseAddress ? 1 : 0);
+            System.Net.Sockets.SocketOptionName.ReuseAddress, Config.ReuseAddress ? 1 : 0);
 
         _listener.SetSocketOption(
             System.Net.Sockets.SocketOptionLevel.Socket,
-            System.Net.Sockets.SocketOptionName.ReceiveBuffer,
-            Config.BufferSize);
+            System.Net.Sockets.SocketOptionName.ReceiveBuffer, Config.BufferSize);
 
         System.Net.IPEndPoint epV4Any = new(System.Net.IPAddress.Any, this._port);
 
