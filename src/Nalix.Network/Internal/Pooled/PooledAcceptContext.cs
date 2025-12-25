@@ -79,8 +79,7 @@ internal sealed class PooledAcceptContext : IPoolable
     /// <param name="newArgs"></param>
     /// <exception cref="ArgumentNullException"></exception>
     [MemberNotNull(nameof(_args))]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void BindArgs(SocketAsyncEventArgs newArgs)
     {
         _args?.Completed -= AsyncAcceptCompleted;
@@ -94,8 +93,7 @@ internal sealed class PooledAcceptContext : IPoolable
     /// <param name="newArgs"></param>
     /// <exception cref="ArgumentNullException"></exception>
     [MemberNotNull(nameof(_args))]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void BindArgsForSync(SocketAsyncEventArgs newArgs)
     {
         _args?.Completed -= AsyncAcceptCompleted;
@@ -170,8 +168,7 @@ internal sealed class PooledAcceptContext : IPoolable
     /// Resets internal state before returning to the pool.
     /// Also returns the inner <see cref="PooledSocketAsyncEventArgs"/> to its pool.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()
     {
         if (_args != null)

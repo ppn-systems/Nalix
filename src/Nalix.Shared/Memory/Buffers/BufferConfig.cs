@@ -216,8 +216,7 @@ public sealed class BufferConfig : ConfigurationLoader
     /// Parses the buffer allocation settings with caching for repeated configurations.
     /// </summary>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static (int, double)[] ParseBufferAllocations(string bufferAllocationsString)
     {
         return string.IsNullOrWhiteSpace(bufferAllocationsString)
@@ -248,8 +247,7 @@ public sealed class BufferConfig : ConfigurationLoader
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static (int allocationSize, double ratio)[] PARSE_ALLOCATIONS(
         string key, string bufferAllocationsString)
     {

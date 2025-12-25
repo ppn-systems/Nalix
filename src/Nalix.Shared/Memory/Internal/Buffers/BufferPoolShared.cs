@@ -86,8 +86,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// <param name="bufferSize"></param>
     /// <param name="initialCapacity"></param>
     /// <param name="secureClear"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BufferPoolShared GetOrCreatePool(int bufferSize, int initialCapacity, bool secureClear)
         => Pools.GetOrAdd(bufferSize, size => new BufferPoolShared(size, initialCapacity, secureClear));
 
@@ -95,8 +94,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// Acquires a buffer from the pool with fast path optimization.
     /// </summary>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] AcquireBuffer()
     {
         if (_freeBuffers.TryDequeue(out byte[]? buffer) && buffer is not null)
@@ -118,8 +116,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// <param name="buffer"></param>
     /// <exception cref="ArgumentException"></exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ReleaseBuffer(byte[] buffer)
     {
         if (buffer is null || buffer.Length != _bufferSize)
@@ -145,8 +142,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// <param name="additionalCapacity"></param>
     /// <exception cref="ArgumentException"></exception>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void IncreaseCapacity(int additionalCapacity)
     {
         if (additionalCapacity <= 0)
@@ -174,8 +170,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// </summary>
     /// <param name="capacityToRemove"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void DecreaseCapacity(int capacityToRemove)
     {
         if (capacityToRemove <= 0)
@@ -228,16 +223,14 @@ internal sealed class BufferPoolShared : IDisposable
     /// Gets information about the buffer pool by value (cheap snapshot).
     /// </summary>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public BufferPoolState GetPoolInfo() => CreatePoolStateSnapshot();
 
     /// <summary>
     /// Gets information about the buffer pool by reference for better performance.
     /// </summary>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref readonly BufferPoolState GetPoolInfoRef()
     {
         _poolInfo = CreatePoolStateSnapshot();
@@ -249,8 +242,7 @@ internal sealed class BufferPoolShared : IDisposable
     #region IDisposable
 
     /// <inheritdoc/>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Dispose()
     {
         Dispose(true);
@@ -269,8 +261,7 @@ internal sealed class BufferPoolShared : IDisposable
 
     #region Private Helpers
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private unsafe void ClearBuffer(byte[] buffer)
     {
         fixed (byte* ptr = buffer)
@@ -284,8 +275,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// </summary>
     /// <param name="capacity"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void PreallocateBuffers(int capacity)
     {
         if (capacity <= 0)
@@ -302,8 +292,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// </summary>
     /// <param name="count"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void RentAndEnqueueBuffers(int count)
     {
         if (count <= 0)
@@ -330,8 +319,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// </summary>
     /// <param name="buffers"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void ReturnBuffersToArrayPool(List<byte[]> buffers)
     {
         for (int i = 0; i < buffers.Count; i++)
@@ -351,8 +339,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// </summary>
     /// <param name="buffers"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void ReturnBuffersToArrayPool(byte[][] buffers)
     {
         for (int i = 0; i < buffers.Length; i++)
@@ -372,8 +359,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// </summary>
     /// <param name="disposing"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void Dispose(bool disposing)
     {
         if (_disposed)
@@ -408,8 +394,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// Creates a snapshot of current pool state.
     /// </summary>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private BufferPoolState CreatePoolStateSnapshot()
     {
         return new BufferPoolState
@@ -422,13 +407,11 @@ internal sealed class BufferPoolShared : IDisposable
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TryBeginOptimize() => Interlocked.CompareExchange(ref _isOptimizing, 1, 0) == 0;
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void EndOptimize() => Volatile.Write(ref _isOptimizing, 0);
 
     #endregion Private Helpers

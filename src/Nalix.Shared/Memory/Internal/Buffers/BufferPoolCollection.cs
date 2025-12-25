@@ -97,8 +97,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// </summary>
     /// <param name="bufferSize"></param>
     /// <param name="initialCapacity"></param>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void CreatePool(int bufferSize, int initialCapacity)
     {
         if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity, _config.SecureClear)))
@@ -124,8 +123,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="InvalidOperationException"></exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] RentBuffer(int size)
     {
         int poolSize = FindSuitablePoolSize(size);
@@ -155,8 +153,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <param name="buffer"></param>
     /// <exception cref="ArgumentException"></exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ReturnBuffer(byte[]? buffer)
     {
         if (buffer is null)
@@ -185,8 +182,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// Updates the sorted keys with proper locking.
     /// </summary>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void UpdateSortedKeys()
     {
         _keysLock.EnterWriteLock();
@@ -205,8 +201,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// </summary>
     /// <param name="pool"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void EvaluateResize(BufferPoolShared pool)
     {
         ref readonly BufferPoolState state = ref pool.GetPoolInfoRef();
@@ -235,8 +230,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <param name="usage"></param>
     /// <param name="missRate"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetAdaptiveCooldown(double usage, double missRate)
     {
         if (usage >= 0.90 || missRate >= 0.10)
@@ -262,8 +256,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <param name="now"></param>
     /// <param name="cooldown"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IsCooldownActive(int bufferSize, long now, int cooldown)
     {
         long last = _cooldowns.GetOrAdd(bufferSize, 0);
@@ -279,8 +272,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <param name="missRate"></param>
     /// <param name="now"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TryExpandPool(
         BufferPoolShared pool,
         in BufferPoolState state,
@@ -314,8 +306,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <param name="usage"></param>
     /// <param name="expandThreshold"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int CalculateExpandStep(in BufferPoolState state, double usage, double expandThreshold)
     {
         int minIncrease = _config.MinimumIncrease;
@@ -338,8 +329,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <param name="usage"></param>
     /// <param name="now"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void TryShrinkPool(
         BufferPoolShared pool,
         in BufferPoolState state,
@@ -373,8 +363,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <param name="poolSize"></param>
     /// <param name="isRent"></param>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool AdjustCounter(int poolSize, bool isRent)
     {
         BufferCounters counters = _adjustmentCounters.GetOrAdd(poolSize, static _ => new BufferCounters());
@@ -402,8 +391,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// </summary>
     /// <param name="size"></param>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int FindSuitablePoolSize(int size)
     {
         _keysLock.EnterReadLock();
@@ -455,8 +443,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// Releases all resources used by the buffer pools.
     /// </summary>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Dispose()
     {
         _ = Parallel.ForEach(_pools.Values, pool => pool.Dispose());

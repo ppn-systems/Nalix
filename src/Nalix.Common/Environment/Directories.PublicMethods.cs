@@ -439,8 +439,7 @@ public static partial class Directories
     /// The parent directory where the hierarchical date-based directory should be created.
     /// </param>
     /// <exception cref="ArgumentNullException"></exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static string CreateHierarchicalDateDirectory(
         [MaybeNull] string parentPath)

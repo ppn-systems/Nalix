@@ -48,8 +48,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     /// Get handler cho specific return type.
     /// </summary>
     /// <param name="returnType"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static IReturnHandler<TPacket> ResolveHandler(
         [NotNull] Type returnType)
@@ -85,8 +84,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     /// <summary>
     /// Create base handlers dictionary.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static System.Collections.Frozen.FrozenDictionary<Type, IReturnHandler<TPacket>> CreateReturnTypeHandlerMap()
     {
         Dictionary<Type, IReturnHandler<TPacket>> handlers = new()
@@ -104,8 +102,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
         return System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(handlers);
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static IReturnHandler<TPacket> CreateTaskWrapperHandler(
         [NotNull] IReturnHandler<TPacket> innerHandler,
         [NotNull] Type resultType)
@@ -114,8 +111,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
         return (IReturnHandler<TPacket>)Activator.CreateInstance(handlerType, innerHandler);
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static IReturnHandler<TPacket> CreateValueTaskWrapperHandler(
         [NotNull] IReturnHandler<TPacket> innerHandler,
         [NotNull] Type resultType)

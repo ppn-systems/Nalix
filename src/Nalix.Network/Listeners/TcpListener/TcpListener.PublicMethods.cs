@@ -36,8 +36,7 @@ public abstract partial class TcpListenerBase
     /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC),
     /// as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public virtual void SynchronizeTime([NotNull] long milliseconds) { }
 
     /// <summary>
@@ -48,8 +47,7 @@ public abstract partial class TcpListenerBase
     /// <exception cref="InvalidOperationException"></exception>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Activate([NotNull] CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
@@ -161,8 +159,7 @@ public abstract partial class TcpListenerBase
     /// <param name="cancellationToken"></param>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Deactivate([NotNull] CancellationToken cancellationToken = default)
     {
         // Skip throwing if already disposed; just return calmly or let ListenerState check handle it.
@@ -233,8 +230,7 @@ public abstract partial class TcpListenerBase
     /// </summary>
     /// <returns>A formatted string report.</returns>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     public virtual string GenerateReport()
     {

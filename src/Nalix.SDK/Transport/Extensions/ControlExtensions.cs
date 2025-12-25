@@ -44,22 +44,19 @@ public static class ControlExtensions
         /// <summary>Sets the sequence identifier.</summary>
         /// <param name="seq">The sequence identifier to assign.</param>
         /// <returns>The current builder.</returns>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ControlBuilder WithSeq(uint seq) { c.SequenceId = seq; return this; }
 
         /// <summary>Sets the reason code.</summary>
         /// <param name="reason">The protocol reason code.</param>
         /// <returns>The current builder.</returns>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ControlBuilder WithReason(ProtocolReason reason) { c.Reason = reason; return this; }
 
         /// <summary>Sets the transport type.</summary>
         /// <param name="tr">The transport type (e.g., <see cref="ProtocolType.TCP"/> or UDP).</param>
         /// <returns>The current builder.</returns>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ControlBuilder WithTransport(ProtocolType tr) { c.Protocol = tr; return this; }
 
         /// <summary>
@@ -67,8 +64,7 @@ public static class ControlExtensions
         /// Note: <see cref="Control.Initialize(ushort, ControlType, uint, ProtocolReason, ProtocolType)"/> already stamps on construction; call this only to refresh.
         /// </summary>
         /// <returns>The current builder.</returns>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ControlBuilder StampNow()
         {
             c.MonoTicks = Clock.MonoTicksNow();
@@ -78,8 +74,7 @@ public static class ControlExtensions
 
         /// <summary>Builds and returns the configured <see cref="Control"/> instance.</summary>
         /// <returns>The configured <see cref="Control"/>.</returns>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Control Build() => c;
     }
 
@@ -97,8 +92,7 @@ public static class ControlExtensions
     /// Control ping = client.NewControl(opCode, ControlType.PING).WithSeq(123).Build();
     /// </code>
     /// </example>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ControlBuilder NewControl(
         this IClientConnection _,
         ushort opCode,
@@ -241,8 +235,7 @@ public static class ControlExtensions
     /// </exception>
     /// <exception cref="TimeoutException">Thrown when no matching CONTROL is received within <paramref name="timeoutMs"/>.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Task<Control> AwaitControlAsync(
         this IClientConnection client,
         Func<Control, bool> predicate,
@@ -274,8 +267,7 @@ public static class ControlExtensions
     ///     ct: ct);
     /// </code>
     /// </example>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Task SendControlAsync(
         this IClientConnection client,
         ushort opCode,

@@ -27,13 +27,11 @@ public abstract partial class Protocol
     public virtual bool KeepConnectionOpen
     {
         [DebuggerStepThrough]
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Interlocked.CompareExchange(ref _keepConnectionOpen, 0, 0) == 1;
 
         [DebuggerStepThrough]
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected set => Interlocked.Exchange(ref _keepConnectionOpen, value ? 1 : 0);
     }
 

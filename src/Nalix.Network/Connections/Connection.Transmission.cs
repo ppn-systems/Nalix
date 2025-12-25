@@ -45,8 +45,7 @@ public sealed partial class Connection : IConnection
     public void IncrementErrorCount() => Interlocked.Increment(ref _errorCount);
 
     /// <inheritdoc />
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     internal void InjectIncoming(IBufferLease lease)
     {
@@ -63,8 +62,7 @@ public sealed partial class Connection : IConnection
 #endif
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
     internal void ReleasePendingPacket() => _cstream.OnPacketProcessed();
 
@@ -134,8 +132,7 @@ public sealed partial class Connection : IConnection
 
         /// <inheritdoc />
         [StackTraceHidden]
-        [MethodImpl(
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         [return: NotNull]
         public bool Send(IPacket packet)
         {
@@ -167,8 +164,7 @@ public sealed partial class Connection : IConnection
 
         /// <inheritdoc />
         [StackTraceHidden]
-        [MethodImpl(
-            MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         [return: NotNull]
         public bool Send(ReadOnlySpan<byte> message)
         {
@@ -187,8 +183,7 @@ public sealed partial class Connection : IConnection
 
         /// <inheritdoc />
         [StackTraceHidden]
-        [MethodImpl(
-            MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         [return: NotNull]
         public async Task<bool> SendAsync(
             IPacket packet,
@@ -223,8 +218,7 @@ public sealed partial class Connection : IConnection
 
         /// <inheritdoc />
         [StackTraceHidden]
-        [MethodImpl(
-            MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         [return: NotNull]
         public async Task<bool> SendAsync(
             ReadOnlyMemory<byte> message,
@@ -247,8 +241,7 @@ public sealed partial class Connection : IConnection
 
         /// <inheritdoc />
         [StackTraceHidden]
-        [MethodImpl(
-            MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void ResetForPool()
         {
             _endPoint = null;
@@ -281,8 +274,7 @@ public sealed partial class Connection : IConnection
 
         /// <inheritdoc />
         [StackTraceHidden]
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining |
+        [MethodImpl(MethodImplOptions.AggressiveInlining |
             MethodImplOptions.AggressiveOptimization)]
         public void BeginReceive(CancellationToken cancellationToken = default)
         {
@@ -299,8 +291,7 @@ public sealed partial class Connection : IConnection
         /// (encryption, compression) can process it correctly.
         /// </remarks>
         [StackTraceHidden]
-        [MethodImpl(
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         [return: NotNull]
         public bool Send(IPacket packet)
         {
@@ -335,15 +326,13 @@ public sealed partial class Connection : IConnection
         /// (encryption, compression) can process it correctly.
         /// </remarks>
         [StackTraceHidden]
-        [MethodImpl(
-            MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         [return: NotNull]
         public bool Send(ReadOnlySpan<byte> message) => _outer._cstream.Send(message);
 
         /// <inheritdoc/>
         [StackTraceHidden]
-        [MethodImpl(
-            MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         [return: NotNull]
         [Obsolete(
             "This method may produce multiple packets for large messages. " +
@@ -408,8 +397,7 @@ public sealed partial class Connection : IConnection
         /// (encryption, compression) can process it correctly.
         /// </remarks>
         [StackTraceHidden]
-        [MethodImpl(
-            MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         [return: NotNull]
         public async Task<bool> SendAsync(
             IPacket packet,
@@ -447,8 +435,7 @@ public sealed partial class Connection : IConnection
         /// (encryption, compression) can process it correctly.
         /// </remarks>
         [StackTraceHidden]
-        [MethodImpl(
-            MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         [return: NotNull]
         public async Task<bool> SendAsync(
             ReadOnlyMemory<byte> message,
@@ -457,8 +444,7 @@ public sealed partial class Connection : IConnection
 
         /// <inheritdoc/>
         [StackTraceHidden]
-        [MethodImpl(
-            MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         [return: NotNull]
         [Obsolete(
             "This method may produce multiple packets for large messages. " +

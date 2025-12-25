@@ -167,8 +167,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     /// after each packet has been fully processed. Decrements the per-connection pending
     /// counter so the receive loop can accept the next packet from this connection.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void OnPacketProcessed() => Interlocked.Decrement(ref _pendingProcessCallbacks);
 
     /// <summary>
@@ -238,8 +237,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     /// <param name="data"></param>
     /// <returns><see langword="true"/> if the data was sent successfully.</returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public bool Send(ReadOnlySpan<byte> data)
     {
@@ -462,8 +460,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
 
     /// <summary>Sends data synchronously from an <see cref="ArraySegment{T}"/>.</summary>
     /// <param name="segment"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Send(ArraySegment<byte> segment)
         => segment.Array is not null && Send(new ReadOnlySpan<byte>(
             segment.Array, segment.Offset, segment.Count));
@@ -471,8 +468,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     /// <summary>Sends data asynchronously from an <see cref="ArraySegment{T}"/>.</summary>
     /// <param name="segment"></param>
     /// <param name="cancellationToken"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Task<bool> SendAsync(
         ArraySegment<byte> segment,
         CancellationToken cancellationToken)
@@ -492,8 +488,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override string ToString()
         => $"FramedSocketConnection (Client={_socket.RemoteEndPoint}, " +
            $"Disposed={Volatile.Read(ref _disposed) != 0}, " +
@@ -559,8 +554,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     /// <param name="token"></param>
     /// <exception cref="SocketException"></exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private async Task SAEA_RECEIVE_LOOP_ASYNC(
         CancellationToken token)
     {
@@ -783,8 +777,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     }
 
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void WRITE_FRAME_HEADER(
         Span<byte> buffer,
         ushort totalLength,
@@ -849,8 +842,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     }
 
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void INVOKE_CLOSE_ONCE()
     {
         if (Interlocked.Exchange(ref _closeSignaled, 1) != 0)
@@ -864,8 +856,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
         _ = AsyncCallback.Invoke(_callbackClose, _sender, args);
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void CANCEL_RECEIVE_ONCE()
     {
         if (Interlocked.Exchange(ref _cancelSignaled, 1) != 0)

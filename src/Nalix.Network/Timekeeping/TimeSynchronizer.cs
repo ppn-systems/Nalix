@@ -68,12 +68,10 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
     /// </summary>
     public bool IsTimeSyncEnabled
     {
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Volatile.Read(ref _enabled) == 1;
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
             if (value)
@@ -93,12 +91,10 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     public TimeSpan Period
     {
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
             if (value <= TimeSpan.Zero)
@@ -118,12 +114,10 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
     /// </summary>
     public bool FireAndForget
     {
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _fireAndForget;
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => _fireAndForget = value;
     }
 
@@ -140,8 +134,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
     /// Enables synchronization and ensures the loop is running.
     /// </summary>
     /// <param name="cancellationToken"></param>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Activate(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, nameof(TimeSynchronizer));
@@ -158,8 +151,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
     /// Disables synchronization and stops the loop.
     /// </summary>
     /// <param name="cancellationToken"></param>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Deactivate(CancellationToken cancellationToken = default)
     {
         if (Interlocked.CompareExchange(ref _enabled, 0, 1) == 0)

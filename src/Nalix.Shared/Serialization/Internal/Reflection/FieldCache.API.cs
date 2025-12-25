@@ -24,8 +24,7 @@ internal static partial class FieldCache<T>
     /// </summary>
     /// <returns>The count of cached fields.</returns>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetFieldCount() => _metadata.Length;
 
     /// <summary>
@@ -33,8 +32,7 @@ internal static partial class FieldCache<T>
     /// </summary>
     /// <returns>A <see cref="ReadOnlySpan{T}"/> containing metadata for all fields.</returns>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ReadOnlySpan<FieldSchema> GetFields()
         => MemoryExtensions.AsSpan(_metadata);
 
@@ -44,8 +42,7 @@ internal static partial class FieldCache<T>
     /// <param name="index">The index of the field.</param>
     /// <returns>The metadata for the specified field.</returns>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FieldSchema GetField(int index) => _metadata[index];
 
     /// <summary>
@@ -58,8 +55,7 @@ internal static partial class FieldCache<T>
     /// </exception>
     /// <exception cref="ArgumentException"></exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FieldSchema GetField(string fieldName)
     {
         ArgumentNullException.ThrowIfNull(fieldName);
@@ -84,8 +80,7 @@ internal static partial class FieldCache<T>
     /// <param name="fieldName">The name of the field to check.</param>
     /// <returns><c>true</c> if the field exists; otherwise, <c>false</c>.</returns>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool HasField(string fieldName) => _fieldIndex.ContainsKey(fieldName);
 
     /// <summary>
@@ -97,7 +92,6 @@ internal static partial class FieldCache<T>
     /// Thrown if the field name does not exist in the cache.
     /// </exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Type GetFieldType(string fieldName) => GetField(fieldName).FieldType;
 }

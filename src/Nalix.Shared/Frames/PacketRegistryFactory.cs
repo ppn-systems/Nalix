@@ -496,8 +496,7 @@ public sealed class PacketRegistryFactory
     {
         public static delegate* managed<ReadOnlySpan<byte>, TPacket> DeserializePtr;
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static IPacket InvokeDeserialize(ReadOnlySpan<byte> raw) => DeserializePtr(raw);
     }
 
@@ -505,8 +504,7 @@ public sealed class PacketRegistryFactory
 
     #region Private: Binding Helpers
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static unsafe delegate* managed<ReadOnlySpan<byte>, TPacket> BIND_DESERIALIZE_PTR<TPacket>(MethodInfo mi)
     {
         nint ptr = mi.MethodHandle.GetFunctionPointer();

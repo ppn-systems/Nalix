@@ -129,8 +129,7 @@ public ref struct DataWriter
     /// <param name="count">Number of bytes to commit (must fit into <see cref="FreeBuffer"/>).</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if out of bounds or non-positive.</exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Advance(int count)
     {
         if (count <= 0 || (uint)(WrittenCount + count) > (uint)_span.Length)
@@ -147,8 +146,7 @@ public ref struct DataWriter
     /// </summary>
     [DebuggerStepThrough]
     [UnscopedRef]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ref byte GetFreeBufferReference() => ref MemoryMarshal.GetReference(FreeBuffer);
 
     /// <summary>
@@ -159,8 +157,7 @@ public ref struct DataWriter
     /// <exception cref="ArgumentOutOfRangeException">Thrown if non-positive.</exception>
     /// <exception cref="InvalidOperationException">Thrown when expansion is not allowed.</exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     public void Expand(int minimumSize)
     {
@@ -209,8 +206,7 @@ public ref struct DataWriter
 
         [StackTraceHidden]
         [DebuggerStepThrough]
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static unsafe void CopyBytes(byte[]? src, byte[] dst, int count)
         {
             ArgumentNullException.ThrowIfNull(src);
@@ -255,8 +251,7 @@ public ref struct DataWriter
     [Pure]
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (_owner is not null)

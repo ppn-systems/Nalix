@@ -119,8 +119,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     /// <returns>True if connection is allowed; false if limit exceeded.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if limiter is disposed.</exception>
     /// <exception cref="InternalErrorException">Thrown if endPoint is null.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool IsConnectionAllowed(
         [NotNull] IPEndPoint endPoint)
     {
@@ -177,8 +176,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     /// <returns>True if connection is allowed; false if limit exceeded.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if limiter is disposed.</exception>
     /// <exception cref="InternalErrorException">Thrown if endPoint is null.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsConnectionAllowed(
         [NotNull] EndPoint endPoint)
     {
@@ -201,8 +199,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     /// </summary>
     /// <param name="sender">Event sender (unused).</param>
     /// <param name="args">Connection event arguments.</param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Event handler signature")]
     public void OnConnectionClosed(
         [AllowNull] object sender,
@@ -255,8 +252,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     /// </summary>
     /// <returns>Formatted report string.</returns>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public string GenerateReport()
     {
         List<
@@ -277,8 +273,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
 
     #region Connection Slot Management
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [SuppressMessage("Performance", "CA1859", Justification = "Interface required")]
     private static INetworkEndpoint CONVERT_TO_NETWORK_ENDPOINT(IPEndPoint endPoint)
         => Connection.Endpoint.FromIpAddress(endPoint.Address);
@@ -395,8 +390,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         }
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int CALCULATE_TOTAL_CONNECTIONS_TODAY(ConnectionLimitInfo info, DateTime today)
     {
         if (info.LastConnectionTime == default)
@@ -502,8 +496,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     /// <param name="nowTicks"></param>
     /// <param name="windowTicks"></param>
     /// <param name="suppressed"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TRY_ACQUIRE_LOG_SLOT(
         ref long lastLogTicks,
         ref long suppressedCount,
@@ -589,8 +582,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         return snapshot;
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void SORT_SNAPSHOT_BY_LOAD(
         List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
     {
@@ -705,8 +697,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         }
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void RETURN_SNAPSHOT_TO_POOL(
         List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot)
     {
@@ -719,8 +710,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     #region Cleanup
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void RUN_CLEANUP_ONCE()
     {
         if (Volatile.Read(ref _disposed) != 0)
@@ -782,8 +772,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         }
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool SHOULD_REMOVE_ENTRY(ConnectionLimitEntry entry, DateTime cutoff)
     {
         long bannedUntil = Interlocked.Read(ref entry.BannedUntilTicks);
@@ -801,8 +790,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     /// Safely increments a counter with overflow protection.
     /// </summary>
     /// <param name="counter"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static long SAFE_INCREMENT(ref long counter)
     {
         while (true)
@@ -831,8 +819,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
 
     #region Initialization
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void INITIALIZE_METRICS()
     {
         _totalRejections = 0;
@@ -840,8 +827,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         _totalConnectionAttempts = 0;
     }
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void SCHEDULE_CLEANUP_JOB()
     {
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
