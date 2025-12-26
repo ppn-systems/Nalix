@@ -21,7 +21,7 @@ public static class NLogixExtensions
         this ILogger logger, string message, EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
-        => logger.Trace($"[{typeof(T).Name}:{member}] {message}", eventId);
+        => logger?.Trace($"[{typeof(T).Name}:{member}] {message}", eventId);
 
     /// <summary>
     /// Logs a debug message with class and member context.
@@ -31,7 +31,7 @@ public static class NLogixExtensions
         this ILogger logger, string message, EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
-        => logger.Debug($"[{typeof(T).Name}:{member}] {message}", eventId);
+        => logger?.Debug($"[{typeof(T).Name}:{member}] {message}", eventId);
 
     /// <summary>
     /// Logs an informational message with class and member context.
@@ -41,7 +41,7 @@ public static class NLogixExtensions
         this ILogger logger, string message, EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
-        => logger.Info($"[{typeof(T).Name}:{member}] {message}", eventId);
+        => logger?.Info($"[{typeof(T).Name}:{member}] {message}", eventId);
 
     /// <summary>
     /// Logs a warning message with class and member context.
@@ -51,7 +51,7 @@ public static class NLogixExtensions
         this ILogger logger, string message, EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
-        => logger.Warn($"[{typeof(T).Name}:{member}] {message}", eventId);
+        => logger?.Warn($"[{typeof(T).Name}:{member}] {message}", eventId);
 
     #region Error
 
@@ -63,7 +63,7 @@ public static class NLogixExtensions
         this ILogger logger, string message, EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
-        => logger.Error($"[{typeof(T).Name}:{member}] {message}", eventId);
+        => logger?.Error($"[{typeof(T).Name}:{member}] {message}", eventId);
 
     /// <summary>
     /// Logs an exception as an error with class and member context.
@@ -73,7 +73,7 @@ public static class NLogixExtensions
         this ILogger logger, Exception ex, EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
-        => logger.Error($"[{typeof(T).Name}:{member}] {ex.Message}", ex, eventId);
+        => logger?.Error($"[{typeof(T).Name}:{member}] {ex?.Message}", ex!, eventId);
 
     #endregion Error
 
@@ -87,7 +87,7 @@ public static class NLogixExtensions
         this ILogger logger, string message, EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
-        => logger.Fatal($"[{typeof(T).Name}:{member}] {message}", eventId);
+        => logger?.Fatal($"[{typeof(T).Name}:{member}] {message}", eventId);
 
     /// <summary>
     /// Logs an exception as a fatal error with class and member context.
@@ -97,7 +97,7 @@ public static class NLogixExtensions
         this ILogger logger, Exception ex, EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
-        => logger.Fatal($"[{typeof(T).Name}:{member}] {ex.Message}", ex, eventId);
+        => logger?.Fatal($"[{typeof(T).Name}:{member}] {ex?.Message}", ex!, eventId);
 
     #endregion Fatal
 }

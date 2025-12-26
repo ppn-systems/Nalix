@@ -50,10 +50,10 @@ public abstract partial class Protocol
     /// <param name="cancellationToken">Identifier for cancellation</param>
     /// <exception cref="ArgumentNullException">Thrown when connection is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
-    public virtual void OnAccept(
-        IConnection connection,
-        CancellationToken cancellationToken = default)
+    public virtual void OnAccept(IConnection connection, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(connection);
+
         // Check if accepting connections is enabled
         if (!this.IsAccepting)
         {
