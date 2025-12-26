@@ -1,7 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
-using Nalix.Framework.Time;
 using System;
+using Nalix.Framework.Time;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Time;
@@ -10,14 +10,14 @@ namespace Nalix.Framework.Tests.Time;
 /// Tests for input validation in Clock operations.
 /// </summary>
 [Collection("ClockTests")]
-public class Clock_ValidationTests
+public class ClockValidationTests
 {
     [Fact]
-    public void SynchronizeUnixMilliseconds_Should_Reject_Negative_ServerTime()
+    public void SynchronizeUnixMillisecondsShouldRejectNegativeServerTime()
     {
         Clock.ResetSynchronization();
 
-        var ex = Assert.Throws<ArgumentException>(() =>
+        ArgumentException ex = Assert.Throws<ArgumentException>(() =>
             Clock.SynchronizeUnixMilliseconds(-1000, 0, 1000, 10000));
 
         Assert.Contains("Server Unix timestamp cannot be negative", ex.Message);
@@ -25,13 +25,13 @@ public class Clock_ValidationTests
     }
 
     [Fact]
-    public void SynchronizeUnixMilliseconds_Should_Reject_Negative_RTT()
+    public void SynchronizeUnixMillisecondsShouldRejectNegativeRTT()
     {
         Clock.ResetSynchronization();
 
-        var currentUnixMs = (Int64)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
+        long currentUnixMs = (long)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
 
-        var ex = Assert.Throws<ArgumentException>(() =>
+        ArgumentException ex = Assert.Throws<ArgumentException>(() =>
             Clock.SynchronizeUnixMilliseconds(currentUnixMs, -10, 1000, 10000));
 
         Assert.Contains("RTT cannot be negative", ex.Message);
@@ -39,12 +39,12 @@ public class Clock_ValidationTests
     }
 
     [Fact]
-    public void SynchronizeUnixMilliseconds_Should_Reject_Zero_MaxAllowedDrift()
+    public void SynchronizeUnixMillisecondsShouldRejectZeroMaxAllowedDrift()
     {
         Clock.ResetSynchronization();
-        var currentUnixMs = (Int64)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
+        long currentUnixMs = (long)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
 
-        var ex = Assert.Throws<ArgumentException>(() =>
+        ArgumentException ex = Assert.Throws<ArgumentException>(() =>
             Clock.SynchronizeUnixMilliseconds(currentUnixMs, 0, 0, 10000));
 
         Assert.Contains("Max allowed drift must be positive", ex.Message);
@@ -52,12 +52,12 @@ public class Clock_ValidationTests
     }
 
     [Fact]
-    public void SynchronizeUnixMilliseconds_Should_Reject_Negative_MaxAllowedDrift()
+    public void SynchronizeUnixMillisecondsShouldRejectNegativeMaxAllowedDrift()
     {
         Clock.ResetSynchronization();
-        var currentUnixMs = (Int64)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
+        long currentUnixMs = (long)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
 
-        var ex = Assert.Throws<ArgumentException>(() =>
+        ArgumentException ex = Assert.Throws<ArgumentException>(() =>
             Clock.SynchronizeUnixMilliseconds(currentUnixMs, 0, -1000, 10000));
 
         Assert.Contains("Max allowed drift must be positive", ex.Message);
@@ -65,12 +65,12 @@ public class Clock_ValidationTests
     }
 
     [Fact]
-    public void SynchronizeUnixMilliseconds_Should_Reject_Zero_MaxHardAdjust()
+    public void SynchronizeUnixMillisecondsShouldRejectZeroMaxHardAdjust()
     {
         Clock.ResetSynchronization();
-        var currentUnixMs = (Int64)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
+        long currentUnixMs = (long)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
 
-        var ex = Assert.Throws<ArgumentException>(() =>
+        ArgumentException ex = Assert.Throws<ArgumentException>(() =>
             Clock.SynchronizeUnixMilliseconds(currentUnixMs, 0, 1000, 0));
 
         Assert.Contains("Max hard adjust must be positive", ex.Message);
@@ -78,12 +78,12 @@ public class Clock_ValidationTests
     }
 
     [Fact]
-    public void SynchronizeUnixMilliseconds_Should_Reject_Negative_MaxHardAdjust()
+    public void SynchronizeUnixMillisecondsShouldRejectNegativeMaxHardAdjust()
     {
         Clock.ResetSynchronization();
-        var currentUnixMs = (Int64)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
+        long currentUnixMs = (long)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
 
-        var ex = Assert.Throws<ArgumentException>(() =>
+        ArgumentException ex = Assert.Throws<ArgumentException>(() =>
             Clock.SynchronizeUnixMilliseconds(currentUnixMs, 0, 1000, -10000));
 
         Assert.Contains("Max hard adjust must be positive", ex.Message);
@@ -91,14 +91,14 @@ public class Clock_ValidationTests
     }
 
     [Fact]
-    public void SynchronizeUnixMilliseconds_Should_Reject_Timestamp_Before_Year_2000()
+    public void SynchronizeUnixMillisecondsShouldRejectTimestampBeforeYear2000()
     {
         Clock.ResetSynchronization();
 
         // Unix timestamp for Jan 1, 1999 00:00:00
-        const Int64 oldTimestamp = 915148800000L;
+        const long oldTimestamp = 915148800000L;
 
-        var ex = Assert.Throws<ArgumentException>(() =>
+        ArgumentException ex = Assert.Throws<ArgumentException>(() =>
             Clock.SynchronizeUnixMilliseconds(oldTimestamp, 0, 1000, 10000));
 
         Assert.Contains("Server Unix timestamp is outside reasonable range", ex.Message);
@@ -106,14 +106,14 @@ public class Clock_ValidationTests
     }
 
     [Fact]
-    public void SynchronizeUnixMilliseconds_Should_Reject_Timestamp_After_Year_2100()
+    public void SynchronizeUnixMillisecondsShouldRejectTimestampAfterYear2100()
     {
         Clock.ResetSynchronization();
 
         // Unix timestamp for Jan 1, 2101 00:00:00
-        const Int64 futureTimestamp = 4133980800000L;
+        const long futureTimestamp = 4133980800000L;
 
-        var ex = Assert.Throws<ArgumentException>(() =>
+        ArgumentException ex = Assert.Throws<ArgumentException>(() =>
             Clock.SynchronizeUnixMilliseconds(futureTimestamp, 0, 1000, 10000));
 
         Assert.Contains("Server Unix timestamp is outside reasonable range", ex.Message);
@@ -121,18 +121,18 @@ public class Clock_ValidationTests
     }
 
     [Fact]
-    public void SynchronizeUnixMilliseconds_Should_Accept_Valid_Current_Timestamp()
+    public void SynchronizeUnixMillisecondsShouldAcceptValidCurrentTimestamp()
     {
         Clock.ResetSynchronization();
-        
+
         // Wait a bit to ensure clean state
         System.Threading.Thread.Sleep(10);
 
         // Use a time slightly in the future to ensure drift threshold is exceeded
-        var futureUnixMs = (Int64)(DateTime.UtcNow.AddSeconds(10) - DateTime.UnixEpoch).TotalMilliseconds;
+        long futureUnixMs = (long)(DateTime.UtcNow.AddSeconds(10) - DateTime.UnixEpoch).TotalMilliseconds;
 
         // Should not throw - use thresholds that will trigger sync
-        var adjustment = Clock.SynchronizeUnixMilliseconds(futureUnixMs, 10, 1000, 50000);
+        double adjustment = Clock.SynchronizeUnixMilliseconds(futureUnixMs, 10, 1000, 50000);
 
         Assert.True(Clock.IsSynchronized);
         // The adjustment should be around 10 seconds (10000 ms)
@@ -140,44 +140,44 @@ public class Clock_ValidationTests
     }
 
     [Fact]
-    public void SynchronizeUnixMilliseconds_Should_Handle_Edge_Case_Year_2000()
+    public void SynchronizeUnixMillisecondsShouldHandleEdgeCaseYear2000()
     {
         Clock.ResetSynchronization();
 
         // Unix timestamp for Jan 1, 2000 00:00:00 (exactly at boundary)
-        const Int64 y2kTimestamp = 946684800000L;
+        const long y2kTimestamp = 946684800000L;
 
         // Should not throw
         _ = Clock.SynchronizeUnixMilliseconds(y2kTimestamp, 0, 100000, 100000);
     }
 
     [Fact]
-    public void SynchronizeUnixMilliseconds_Should_Handle_Edge_Case_Year_2100()
+    public void SynchronizeUnixMillisecondsShouldHandleEdgeCaseYear2100()
     {
         Clock.ResetSynchronization();
 
         // Unix timestamp for Jan 1, 2100 00:00:00 (exactly at boundary)
-        const Int64 y2100Timestamp = 4102444800000L;
+        const long y2100Timestamp = 4102444800000L;
 
         // Should not throw
         _ = Clock.SynchronizeUnixMilliseconds(y2100Timestamp, 0, 100000, 100000);
     }
 
     [Fact]
-    public void SynchronizeUnixMilliseconds_With_RTT_Should_Adjust_Time_Correctly()
+    public void SynchronizeUnixMillisecondsWithRTTShouldAdjustTimeCorrectly()
     {
         Clock.ResetSynchronization();
-        
+
         // Wait a bit to ensure clean state
         System.Threading.Thread.Sleep(10);
 
         // Use a time slightly in the future to ensure drift threshold is exceeded
-        var futureUnixMs = (Int64)(DateTime.UtcNow.AddSeconds(10) - DateTime.UnixEpoch).TotalMilliseconds;
+        long futureUnixMs = (long)(DateTime.UtcNow.AddSeconds(10) - DateTime.UnixEpoch).TotalMilliseconds;
         const double rttMs = 100; // 100ms round trip
 
         // The method should add half of RTT (50ms) to the server time
         // Use thresholds that will trigger sync
-        var adjustment = Clock.SynchronizeUnixMilliseconds(futureUnixMs, rttMs, 1000, 50000);
+        double adjustment = Clock.SynchronizeUnixMilliseconds(futureUnixMs, rttMs, 1000, 50000);
 
         Assert.True(Clock.IsSynchronized);
         // The adjustment should be around 10 seconds + half RTT (10050 ms)
