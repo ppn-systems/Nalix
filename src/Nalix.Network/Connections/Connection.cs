@@ -32,16 +32,16 @@ public sealed partial class Connection : IConnection
     private readonly ConnectionEventArgs _evtArgs;
     private readonly FramedSocketConnection _cstream;
 
-    private UdpTransport _udp;
+    private UdpTransport? _udp;
     private int _errorCount;
     private int _closeSignaled;
     private long _bytesSent;
 
     private volatile bool _disposed;
 
-    private EventHandler<IConnectEventArgs> _onCloseEvent;
-    private EventHandler<IConnectEventArgs> _onProcessEvent;
-    private EventHandler<IConnectEventArgs> _onPostProcessEvent;
+    private EventHandler<IConnectEventArgs>? _onCloseEvent;
+    private EventHandler<IConnectEventArgs>? _onProcessEvent;
+    private EventHandler<IConnectEventArgs>? _onPostProcessEvent;
 
     #endregion Fields
 
@@ -82,7 +82,7 @@ public sealed partial class Connection : IConnection
     public IConnection.ITcp TCP { get; }
 
     /// <inheritdoc/>
-    public IConnection.IUdp UDP => _udp;
+    public IConnection.IUdp UDP => _udp ?? throw new InvalidOperationException("UDP transport has not been created yet.");
 
     /// <inheritdoc />
     public INetworkEndpoint NetworkEndpoint { get; }
