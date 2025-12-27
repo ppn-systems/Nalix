@@ -95,8 +95,7 @@ internal sealed class FileWriter : IDisposable
     /// </summary>
     /// <param name="entries">Danh sách entries cần ghi.</param>
     /// <param name="formatter">Formatter dùng để chuyển entry thành string.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     internal void WriteBatch(
         List<LogEntry> entries,
         ILoggerFormatter formatter)
@@ -163,8 +162,7 @@ internal sealed class FileWriter : IDisposable
     }
 
     /// <summary>Flush buffer xuống disk ngay lập tức.</summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     internal void Flush()
     {
         lock (_fileLock)

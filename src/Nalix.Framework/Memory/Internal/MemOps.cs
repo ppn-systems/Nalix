@@ -34,8 +34,7 @@ internal static unsafe class MemOps
     /// <typeparam name="T">The type of the value to read. Must be unmanaged.</typeparam>
     /// <param name="source">A pointer to the source memory location.</param>
     /// <returns>The value read from the specified memory location.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static T ReadUnaligned<T>(byte* source) where T : unmanaged
         => Unsafe.ReadUnaligned<T>(source);
 
@@ -45,8 +44,7 @@ internal static unsafe class MemOps
     /// <typeparam name="T">The type of the value to read. Must be unmanaged.</typeparam>
     /// <param name="source">A <see cref="ReadOnlySpan{Byte}"/> representing the source memory.</param>
     /// <returns>The value read from the specified memory location.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static T ReadUnaligned<T>(ReadOnlySpan<byte> source) where T : unmanaged
     {
         fixed (byte* pSource = &MemoryMarshal.GetReference(source))
@@ -61,8 +59,7 @@ internal static unsafe class MemOps
     /// <typeparam name="T">The type of the value to write. Must be unmanaged.</typeparam>
     /// <param name="destination">A pointer to the destination memory location.</param>
     /// <param name="value">The value to write.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static void WriteUnaligned<T>(byte* destination, T value) where T : unmanaged
         => Unsafe.WriteUnaligned(destination, value);
 
@@ -72,8 +69,7 @@ internal static unsafe class MemOps
     /// <typeparam name="T">The type of the value to write. Must be unmanaged.</typeparam>
     /// <param name="destination">A <see cref="Span{Byte}"/> representing the destination memory.</param>
     /// <param name="value">The value to write.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static void WriteUnaligned<T>(Span<byte> destination, T value) where T : unmanaged
     {
         fixed (byte* pDest = &MemoryMarshal.GetReference(destination))
@@ -92,8 +88,7 @@ internal static unsafe class MemOps
     /// This method ensures correct handling of memory overlaps, which is crucial when dealing with operations
     /// such as LZ decompression, where memory regions may overlap.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static void Copy(
         byte* source,
         byte* destination, int length)
@@ -127,8 +122,7 @@ internal static unsafe class MemOps
     /// <param name="source">A <see cref="ReadOnlySpan{Byte}"/> representing the source memory.</param>
     /// <param name="destination">A pointer to the destination memory location.</param>
     [SkipLocalsInit]
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static void Copy(
         ReadOnlySpan<byte> source,
         byte* destination)
@@ -152,8 +146,7 @@ internal static unsafe class MemOps
     /// <param name="p2">A pointer to the second memory region.</param>
     /// <param name="maxLength">The maximum number of bytes to compare.</param>
     /// <returns>The number of matching bytes.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static int CountEqualBytes(
         byte* p1,
         byte* p2,

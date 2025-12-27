@@ -144,8 +144,7 @@ internal sealed class IniConfig : IDisposable
     /// <summary>
     /// Reloads the INI file from disk, discarding any unsaved changes.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public void Reload() => this.Load();
 
     /// <summary>

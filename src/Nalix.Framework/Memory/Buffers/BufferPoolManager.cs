@@ -581,8 +581,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     }
 
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private void TRIM_EXCESS_BUFFERS(object? _)
     {
         int cycle = Interlocked.Increment(ref _trimCycleCount);

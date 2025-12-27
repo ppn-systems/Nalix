@@ -86,8 +86,7 @@ public abstract class NLogixEngine : IDisposable
     /// An action that allows configuring the logging options.
     /// This action is used to set up logging options such as the minimum logging level and file options.
     /// </param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     protected void ConfigureOptions(Action<NLogixOptions> configureOptions)
     {
         configureOptions?.Invoke(_logOptions);
@@ -102,8 +101,7 @@ public abstract class NLogixEngine : IDisposable
     /// </summary>
     /// <param name="level">The log level to check.</param>
     /// <returns><c>true</c> if the log level is enabled for logging.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public bool IsLevelEnabled(LogLevel level) => level >= _minLevel;
 
     /// <summary>
@@ -113,8 +111,7 @@ public abstract class NLogixEngine : IDisposable
     /// <param name="eventId">The event identifier associated with the log entry.</param>
     /// <param name="message">The log message.</param>
     /// <param name="error">Optional exception information.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     [SuppressMessage(
         "Reliability", "CA2012:Use ValueTasks correctly", Justification = "<Pending>")]
     [SuppressMessage(
@@ -141,8 +138,7 @@ public abstract class NLogixEngine : IDisposable
     /// <param name="eventId">The event identifier associated with the log entry.</param>
     /// <param name="format">The message format string with placeholders.</param>
     /// <param name="args">The argument values for the format string.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     protected void Publish(LogLevel level, EventId eventId, string format, params object[] args)
     {
         // Skip expensive string formatting if the log level is disabled

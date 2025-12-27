@@ -159,8 +159,7 @@ public ref struct DataWriter
     /// <exception cref="ArgumentOutOfRangeException">Thrown if non-positive.</exception>
     /// <exception cref="InvalidOperationException">Thrown when expansion is not allowed.</exception>
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public void Expand(int minimumSize)
     {
         if (minimumSize <= 0)

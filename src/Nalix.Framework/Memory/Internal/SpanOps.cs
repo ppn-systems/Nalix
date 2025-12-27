@@ -28,8 +28,7 @@ internal static unsafe class SpanOps
     /// <param name="dest"></param>
     /// <param name="value"></param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static int WriteVarInt(byte* dest, int value)
     {
         // Negative should never happen in encoder paths; clamp-to-0 preserves protocol.
@@ -98,8 +97,7 @@ internal static unsafe class SpanOps
     /// <param name="src"></param>
     /// <param name="srcEnd"></param>
     /// <param name="value"></param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static int ReadVarInt(ref byte* src, byte* srcEnd, out int value)
     {
         value = 0;
