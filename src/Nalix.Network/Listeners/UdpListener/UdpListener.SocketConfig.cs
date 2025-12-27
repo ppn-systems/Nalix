@@ -27,13 +27,13 @@ public abstract partial class UdpListenerBase
     {
         _udpClient = new UdpClient(_port)
         {
-            Client = { ExclusiveAddressUse = !Config.ReuseAddress }
+            Client = { ExclusiveAddressUse = !s_config.ReuseAddress }
         };
 
         this.ConfigureHighPerformanceSocket(_udpClient.Client);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] init-ok port={_port} reuse={Config.ReuseAddress} buf={Config.BufferSize}");
+                                .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] init-ok port={_port} reuse={s_config.ReuseAddress} buf={s_config.BufferSize}");
     }
 
     /// <summary>
@@ -56,11 +56,11 @@ public abstract partial class UdpListenerBase
         ArgumentNullException.ThrowIfNull(socket, nameof(socket));
 
         socket.Blocking = false;
-        socket.NoDelay = Config.NoDelay;
-        socket.SendBufferSize = Config.BufferSize;
-        socket.ReceiveBufferSize = Config.BufferSize;
+        socket.NoDelay = s_config.NoDelay;
+        socket.SendBufferSize = s_config.BufferSize;
+        socket.ReceiveBufferSize = s_config.BufferSize;
 
-        if (Config.KeepAlive)
+        if (s_config.KeepAlive)
         {
             socket.SetSocketOption(SocketOptionLevel.Socket,
                                    SocketOptionName.KeepAlive, true);

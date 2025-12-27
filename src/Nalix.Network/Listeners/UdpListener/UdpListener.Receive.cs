@@ -48,8 +48,7 @@ public abstract partial class UdpListenerBase
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    protected virtual async Task ReceiveDatagramsAsync(
-        CancellationToken cancellationToken)
+    protected virtual async Task ReceiveDatagramsAsync(CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(_udpClient);
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
@@ -77,7 +76,7 @@ public abstract partial class UdpListenerBase
                         IdType = SnowflakeType.System,
                         TryAcquireSlotImmediately = true,
                         CancellationToken = cancellationToken,
-                        GroupConcurrencyLimit = Config.MaxGroupConcurrency
+                        GroupConcurrencyLimit = s_config.MaxGroupConcurrency
                     });
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
