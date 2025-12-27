@@ -149,11 +149,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <exception cref="InvalidOperationException">Thrown if the worker cannot be added.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
-    public IWorkerHandle ScheduleWorker(
-        [NotNull] string name,
-        [NotNull] string group,
-        Func<IWorkerContext, CancellationToken, ValueTask> work,
-        [MaybeNull] IWorkerOptions? options = null)
+    public IWorkerHandle ScheduleWorker(string name, string group, Func<IWorkerContext, CancellationToken, ValueTask> work, IWorkerOptions? options = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
         ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
@@ -332,12 +328,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <exception cref="InvalidOperationException">Thrown if a recurring task with the same name already exists.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
-    public IRecurringHandle ScheduleRecurring(
-        [StringSyntax("identifier")]
-        [NotNull] string name,
-        [NotNull] TimeSpan interval,
-        Func<CancellationToken, ValueTask> work,
-        [MaybeNull] IRecurringOptions? options = null)
+    public IRecurringHandle ScheduleRecurring([StringSyntax("identifier")] string name, TimeSpan interval, Func<CancellationToken, ValueTask> work, IRecurringOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(work);
         ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
@@ -383,10 +374,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <exception cref="ArgumentException">Thrown if the name is null or whitespace.</exception>
     /// <exception cref="ArgumentNullException">Thrown if the work delegate is null.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public async ValueTask RunOnceAsync(
-        [NotNull] string name,
-        Func<CancellationToken, ValueTask> work,
-        [NotNull] CancellationToken ct = default)
+    public async ValueTask RunOnceAsync(string name, Func<CancellationToken, ValueTask> work, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(work);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -434,7 +422,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
-    public bool CancelWorker([NotNull] ISnowflake id)
+    public bool CancelWorker(ISnowflake id)
     {
         if (_workers.TryGetValue(id, out WorkerState? st))
         {
@@ -458,13 +446,14 @@ public sealed partial class TaskManager : ITaskManager
                                     .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] worker-cancel id={id} name={st.Name} group={st.Group}");
             return true;
         }
+
         return false;
     }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
-    public int CancelGroup([NotNull] string group)
+    public int CancelGroup(string group)
     {
         int n = 0;
         foreach (KeyValuePair<ISnowflake, WorkerState> kv in _workers)
@@ -488,7 +477,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
-    public bool CancelRecurring([MaybeNull] string? name)
+    public bool CancelRecurring(string? name)
     {
         if (name is null)
         {
@@ -555,9 +544,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
-    public IReadOnlyCollection<IWorkerHandle> GetWorkers(
-        [NotNull] bool runningOnly = true,
-        [MaybeNull] string? group = null)
+    public IReadOnlyCollection<IWorkerHandle> GetWorkers(bool runningOnly = true, string? group = null)
     {
         List<IWorkerHandle> list = new(_workers.Count);
         foreach (KeyValuePair<ISnowflake, WorkerState> kv in _workers)

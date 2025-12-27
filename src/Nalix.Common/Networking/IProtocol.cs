@@ -29,7 +29,7 @@ public interface IProtocol : IDisposable, IReportable
     /// <exception cref="ArgumentNullException">Thrown when args is null.</exception>
     void ProcessMessage(
         [MaybeNull] object sender,
-        [NotNull] IConnectEventArgs args);
+        IConnectEventArgs args);
 
     /// <summary>
     /// Executes after a message from the connection has been processed.
@@ -39,8 +39,8 @@ public interface IProtocol : IDisposable, IReportable
     /// <param name="args">The event arguments containing connection and message data.</param>
     /// <exception cref="ArgumentNullException">Thrown when args is null.</exception>
     void PostProcessMessage(
-        [NotNull] object sender,
-        [NotNull] IConnectEventArgs args);
+        object sender,
+        IConnectEventArgs args);
 
     /// <summary>
     /// Handles a new connection when it is accepted.
@@ -50,6 +50,6 @@ public interface IProtocol : IDisposable, IReportable
     /// <param name="cancellationToken">Identifier for cancellation</param>
     /// <exception cref="ArgumentNullException">Thrown when connection is null.</exception>
     void OnAccept(
-        [NotNull] IConnection connection,
-        [NotNull] CancellationToken cancellationToken = default);
+        IConnection connection,
+        CancellationToken cancellationToken = default);
 }

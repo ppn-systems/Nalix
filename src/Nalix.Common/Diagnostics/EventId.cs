@@ -63,7 +63,7 @@ public readonly struct EventId(int id, string? name = null) : IEquatable<EventId
     /// </summary>
     /// <param name="other">An object to compare with this object.</param>
     /// <returns><see langword="true" /> if the current object is equal to <paramref name="other" />; otherwise, <see langword="false" />.</returns>
-    public bool Equals([NotNull] EventId other) => Id == other.Id;
+    public bool Equals(EventId other) => Id == other.Id;
 
     /// <inheritdoc />
     public override bool Equals([NotNullWhen(true)] object? obj) => obj is not null && obj is EventId eventId && Equals(eventId);

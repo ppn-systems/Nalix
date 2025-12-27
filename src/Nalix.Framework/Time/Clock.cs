@@ -84,8 +84,8 @@ public static partial class Clock
     [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     public static double SynchronizeTime(
-        [NotNull] DateTime externalTime,
-        [NotNull] double maxAllowedDriftMs = 1000.0)
+        DateTime externalTime,
+        double maxAllowedDriftMs = 1000.0)
     {
         if (externalTime.Kind != DateTimeKind.Utc)
         {
@@ -140,10 +140,10 @@ public static partial class Clock
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static double SynchronizeUnixMilliseconds(
-        [NotNull] long serverUnixMs,
-        [NotNull] double rttMs = 0,
-        [NotNull] double maxAllowedDriftMs = 1_000.0,
-        [NotNull] double maxHardAdjustMs = 10_000.0)
+        long serverUnixMs,
+        double rttMs = 0,
+        double maxAllowedDriftMs = 1_000.0,
+        double maxHardAdjustMs = 10_000.0)
     {
         // Validate input parameters
         if (serverUnixMs < 0)

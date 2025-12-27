@@ -37,7 +37,7 @@ public abstract partial class TcpListenerBase
     /// as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public virtual void SynchronizeTime([NotNull] long milliseconds) { }
+    public virtual void SynchronizeTime(long milliseconds) { }
 
     /// <summary>
     /// Starts listening for incoming connections and processes them using the specified protocol.
@@ -48,7 +48,7 @@ public abstract partial class TcpListenerBase
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void Activate([NotNull] CancellationToken cancellationToken = default)
+    public void Activate(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
 
@@ -160,7 +160,7 @@ public abstract partial class TcpListenerBase
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void Deactivate([NotNull] CancellationToken cancellationToken = default)
+    public void Deactivate(CancellationToken cancellationToken = default)
     {
         // Skip throwing if already disposed; just return calmly or let ListenerState check handle it.
         if (Volatile.Read(ref _isDisposed) != 0 && State == ListenerState.STOPPED)

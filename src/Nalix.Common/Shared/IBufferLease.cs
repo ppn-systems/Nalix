@@ -39,7 +39,7 @@ public interface IBufferLease : IDisposable
     /// <param name="length">
     /// The number of valid payload bytes to commit.
     /// </param>
-    void CommitLength([NotNull] int length);
+    void CommitLength(int length);
 
     /// <summary>
     /// Attempts to detach the underlying array, transferring ownership to the caller.
@@ -55,6 +55,6 @@ public interface IBufferLease : IDisposable
     /// </param>
     bool ReleaseOwnership(
         [MaybeNull] out byte[] buffer,
-        [NotNull] out int start,
-        [NotNull] out int length);
+        out int start,
+        out int length);
 }

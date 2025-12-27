@@ -30,7 +30,7 @@ public interface IPacketDispatch : IActivatable, IReportable
     /// </param>
     void HandlePacket(
         [MaybeNull] IBufferLease packet,
-        [NotNull] IConnection connection);
+        IConnection connection);
 
     /// <summary>
     /// Handles a fully deserialized packet instance.
@@ -42,6 +42,6 @@ public interface IPacketDispatch : IActivatable, IReportable
     /// The connection from which the packet was received.
     /// </param>
     void HandlePacket(
-        [NotNull] IPacket packet,
-        [NotNull] IConnection connection);
+        IPacket packet,
+        IConnection connection);
 }

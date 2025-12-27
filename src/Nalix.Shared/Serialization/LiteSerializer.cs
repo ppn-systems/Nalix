@@ -36,7 +36,7 @@ public static class LiteSerializer
             DynamicallyAccessedMemberTypes.PublicConstructors |
             DynamicallyAccessedMemberTypes.PublicProperties |
             DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
-        [NotNull] IFormatter<T> formatter) => FormatterProvider.Register(formatter);
+        IFormatter<T> formatter) => FormatterProvider.Register(formatter);
 
     /// <summary>
     /// Serializes an object into a byte array.

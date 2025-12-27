@@ -162,7 +162,7 @@ public sealed class NLogixDistributor : ILogDistributor
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    public ILogDistributor RegisterTarget([NotNull] ILoggerTarget loggerHandler)
+    public ILogDistributor RegisterTarget(ILoggerTarget loggerHandler)
     {
         ArgumentNullException.ThrowIfNull(loggerHandler);
         ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
@@ -181,7 +181,7 @@ public sealed class NLogixDistributor : ILogDistributor
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    public bool UnregisterTarget([NotNull] ILoggerTarget loggerHandler)
+    public bool UnregisterTarget(ILoggerTarget loggerHandler)
     {
         ArgumentNullException.ThrowIfNull(loggerHandler);
         ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));

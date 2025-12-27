@@ -48,7 +48,7 @@ internal static class LZ4Decoder
     public static bool Decode(
         ReadOnlySpan<byte> input,
         [NotNullWhen(true)] out byte[]? output,
-        [NotNull] out int bytesWritten)
+        out int bytesWritten)
     {
         output = null;
         bytesWritten = 0;
@@ -91,7 +91,7 @@ internal static class LZ4Decoder
     public static bool Decode(
         ReadOnlySpan<byte> input,
         out BufferLease? lease,
-        [NotNull] out int bytesWritten)
+        out int bytesWritten)
     {
         lease = null;
         bytesWritten = 0;
@@ -156,7 +156,7 @@ internal static class LZ4Decoder
     internal static unsafe bool DecodeInternal(
         ReadOnlySpan<byte> input,
         Span<byte> output,
-        [NotNull] out int bytesWritten)
+        out int bytesWritten)
     {
         bytesWritten = 0;
 

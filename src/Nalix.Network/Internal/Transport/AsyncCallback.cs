@@ -136,8 +136,8 @@ internal static class AsyncCallback
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Invoke(
         [AllowNull] EventHandler<IConnectEventArgs> callback,
-        [NotNull] object sender,
-        [NotNull] IConnectEventArgs args)
+        object sender,
+        IConnectEventArgs args)
     {
         if (callback is null)
         {
@@ -205,8 +205,8 @@ internal static class AsyncCallback
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool InvokeHighPriority(
         [AllowNull] EventHandler<IConnectEventArgs> callback,
-        [NotNull] object sender,
-        [NotNull] IConnectEventArgs args)
+        object sender,
+        IConnectEventArgs args)
     {
         if (callback is null)
         {
