@@ -28,7 +28,7 @@ public interface IProtocol : IDisposable, IReportable
     /// <param name="args">The event arguments containing connection and message data.</param>
     /// <exception cref="ArgumentNullException">Thrown when args is null.</exception>
     void ProcessMessage(
-        [MaybeNull] object sender,
+        object? sender,
         IConnectEventArgs args);
 
     /// <summary>
@@ -39,7 +39,7 @@ public interface IProtocol : IDisposable, IReportable
     /// <param name="args">The event arguments containing connection and message data.</param>
     /// <exception cref="ArgumentNullException">Thrown when args is null.</exception>
     void PostProcessMessage(
-        object sender,
+        object? sender,
         IConnectEventArgs args);
 
     /// <summary>
