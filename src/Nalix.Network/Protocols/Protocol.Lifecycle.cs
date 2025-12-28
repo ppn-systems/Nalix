@@ -46,7 +46,7 @@ public abstract partial class Protocol
     {
         Dispose(true);
 
-        s_logger.Trace($"[NW.{nameof(Protocol)}:{nameof(Dispose)}] disposed");
+        s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(Dispose)}] disposed");
 
         GC.SuppressFinalize(this);
     }
