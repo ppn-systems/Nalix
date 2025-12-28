@@ -20,8 +20,7 @@ public abstract partial class TcpListenerBase
             {
                 listener = new System.Net.Sockets.Socket(
                     System.Net.Sockets.AddressFamily.InterNetworkV6,
-                    System.Net.Sockets.SocketType.Stream,
-                    System.Net.Sockets.ProtocolType.Tcp)
+                    System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp)
                 {
                     // fast rebind combo with ReuseAddress
                     ExclusiveAddressUse = !Config.ReuseAddress,
@@ -74,8 +73,7 @@ public abstract partial class TcpListenerBase
         // Fallback: IPv4-only
         _listener = new System.Net.Sockets.Socket(
             System.Net.Sockets.AddressFamily.InterNetwork,
-            System.Net.Sockets.SocketType.Stream,
-            System.Net.Sockets.ProtocolType.Tcp)
+            System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp)
         {
             ExclusiveAddressUse = !Config.ReuseAddress,
             LingerState = new System.Net.Sockets.LingerOption(false, 0),
