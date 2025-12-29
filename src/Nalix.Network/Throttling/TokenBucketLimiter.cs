@@ -285,7 +285,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     private EndpointStateResult GET_OR_CREATE_ENDPOINT_STATE(INetworkEndpoint key, Shard shard, long now)
     {
         // Fast-path: endpoint already tracked
-        if (shard.Map.TryGetValue(key, out EndpointState existingState))
+        if (shard.Map.TryGetValue(key, out EndpointState? existingState))
         {
             return new EndpointStateResult { State = existingState, IsNew = false };
         }
