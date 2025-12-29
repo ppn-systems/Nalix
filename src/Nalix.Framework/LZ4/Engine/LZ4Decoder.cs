@@ -5,6 +5,7 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Framework.LZ4.Encoders;
@@ -27,31 +28,28 @@ internal static class LZ4Decoder
     /// </summary>
     /// <param name="input">The compressed data, including the header.</param>
     /// <param name="output">The buffer to store decompressed data. Size must match the original length in the header.</param>
-    /// <returns>
-    /// The number of bytes written to the output buffer (equal to the original length),
-    /// or -1 if decompression fails.
-    /// </returns>
+    /// <returns>The number of bytes written to the output buffer (equal to the original length).</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Decode(ReadOnlySpan<byte> input, Span<byte> output) => !DecodeInternal(input, output, out int written) ? -1 : written;
+    public static int Decode(ReadOnlySpan<byte> input, Span<byte> output)
+    {
+        ReadAndValidateHeader(input, out LZ4BlockHeader header);
+        return DecodeInternal(input, output, header);
+    }
 
     /// <summary>
     /// Decompresses the provided compressed data into a newly allocated output buffer.
     /// </summary>
     /// <param name="input">The compressed data, including the header.</param>
-    /// <param name="output">The decompressed data, or <c>null</c> if decompression fails.</param>
+    /// <param name="output">The decompressed data.</param>
     /// <param name="bytesWritten">The number of bytes written to the output buffer.</param>
-    /// <returns><c>true</c> if decompression succeeds; otherwise, <c>false</c>.</returns>
+    /// <returns><c>true</c> when decompression completes successfully.</returns>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool Decode(ReadOnlySpan<byte> input, [NotNullWhen(true)] out byte[]? output, out int bytesWritten)
     {
-        output = null;
         bytesWritten = 0;
 
-        if (!TryReadAndValidateHeader(input, out LZ4BlockHeader header))
-        {
-            return false;
-        }
+        ReadAndValidateHeader(input, out LZ4BlockHeader header);
 
         if (header.OriginalLength == 0)
         {
@@ -60,12 +58,7 @@ internal static class LZ4Decoder
         }
 
         output = new byte[header.OriginalLength];
-        if (!DecodeInternal(input, output, out bytesWritten))
-        {
-            output = null;
-            bytesWritten = 0;
-            return false;
-        }
+        bytesWritten = DecodeInternal(input, output, header);
         return true;
     }
 
@@ -77,10 +70,10 @@ internal static class LZ4Decoder
     /// <param name="lease">
     /// On success, a <see cref="BufferLease"/> whose <see cref="BufferLease.Span"/> contains
     /// exactly <c>bytesWritten</c> bytes of decompressed data. Must be disposed by the caller.
-    /// On failure, <c>null</c>.
+    /// This method throws on invalid compressed input or internal decode failure.
     /// </param>
     /// <param name="bytesWritten">The number of bytes written to the lease.</param>
-    /// <returns><c>true</c> if decompression succeeds; otherwise, <c>false</c>.</returns>
+    /// <returns><c>true</c> when decompression completes successfully.</returns>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool Decode(ReadOnlySpan<byte> input, out BufferLease? lease, out int bytesWritten)
@@ -88,28 +81,26 @@ internal static class LZ4Decoder
         lease = null;
         bytesWritten = 0;
 
-        if (!TryReadAndValidateHeader(input, out LZ4BlockHeader header))
-        {
-            return false;
-        }
+        ReadAndValidateHeader(input, out LZ4BlockHeader header);
 
-        // OriginalLength == 0: data rỗng hợp lệ — lease = null, bytesWritten = 0, return true
         if (header.OriginalLength == 0)
         {
             return true;
         }
 
         BufferLease rentedLease = BufferLease.Rent(header.OriginalLength);
-
-        if (!DecodeInternal(input, rentedLease.SpanFull, out bytesWritten))
+        try
+        {
+            bytesWritten = DecodeInternal(input, rentedLease.SpanFull, header);
+            rentedLease.CommitLength(bytesWritten);
+            lease = rentedLease;
+            return true;
+        }
+        catch
         {
             rentedLease.Dispose();
-            return false;
+            throw;
         }
-
-        rentedLease.CommitLength(bytesWritten);
-        lease = rentedLease;
-        return true;
     }
 
     #endregion APIs
@@ -123,43 +114,55 @@ internal static class LZ4Decoder
     /// <param name="input"></param>
     /// <param name="header"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool TryReadAndValidateHeader(ReadOnlySpan<byte> input, out LZ4BlockHeader header)
+    private static void ReadAndValidateHeader(ReadOnlySpan<byte> input, out LZ4BlockHeader header)
     {
-        header = default;
-
         if (input.Length < LZ4BlockHeader.Size)
         {
-            return false;
+            throw new InvalidDataException(
+                $"LZ4 input is too short to contain a valid header. Length: {input.Length}.");
         }
 
         header = MemOps.ReadUnaligned<LZ4BlockHeader>(input);
 
-        return header.OriginalLength >= 0
-            && header.CompressedLength >= LZ4BlockHeader.Size
-            && header.CompressedLength == input.Length
-            && header.OriginalLength <= LZ4CompressionConstants.MaxBlockSize;
+        if (header.OriginalLength < 0)
+        {
+            throw new InvalidDataException(
+                $"LZ4 header contains a negative original length: {header.OriginalLength}.");
+        }
+
+        if (header.CompressedLength < LZ4BlockHeader.Size)
+        {
+            throw new InvalidDataException(
+                $"LZ4 header contains an invalid compressed length: {header.CompressedLength}.");
+        }
+
+        if (header.CompressedLength != input.Length)
+        {
+            throw new InvalidDataException(
+                $"LZ4 header compressed length mismatch. Header: {header.CompressedLength}, Actual: {input.Length}.");
+        }
+
+        if (header.OriginalLength > LZ4CompressionConstants.MaxBlockSize)
+        {
+            throw new InvalidDataException(
+                $"LZ4 header original length exceeds the maximum supported block size. Length: {header.OriginalLength}, Max: {LZ4CompressionConstants.MaxBlockSize}.");
+        }
     }
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    private static unsafe bool DecodeInternal(ReadOnlySpan<byte> input, Span<byte> output, out int bytesWritten)
+    private static unsafe int DecodeInternal(ReadOnlySpan<byte> input, Span<byte> output, in LZ4BlockHeader header)
     {
-        bytesWritten = 0;
-
-        if (input.Length < LZ4BlockHeader.Size)
+        if (header.OriginalLength > output.Length)
         {
-            return false;
-        }
-
-        LZ4BlockHeader header = MemOps.ReadUnaligned<LZ4BlockHeader>(input);
-        if (header.OriginalLength > output.Length || header.OriginalLength < 0)
-        {
-            return false;
+            throw new ArgumentException(
+                $"Output buffer is too small for the decompressed payload. Required: {header.OriginalLength}, Available: {output.Length}.",
+                nameof(output));
         }
 
         if (header.OriginalLength == 0)
         {
-            return true;
+            return 0;
         }
 
         fixed (byte* inputBase = &MemoryMarshal.GetReference(input))
@@ -183,7 +186,7 @@ internal static class LZ4Decoder
                         if (bytesRead == -1 || extraLength < 0)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            return false;
+                            throw new InvalidDataException("LZ4 payload contains an invalid literal length encoding.");
                         }
 
                         literalLength += extraLength;
@@ -194,7 +197,7 @@ internal static class LZ4Decoder
                         if (inputPtr + literalLength > inputEnd || outputPtr + literalLength > outputEnd)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            return false;
+                            throw new InvalidDataException("LZ4 payload overruns the input or output buffer while copying literals.");
                         }
 
                         MemOps.Copy(inputPtr, outputPtr, literalLength);
@@ -210,7 +213,7 @@ internal static class LZ4Decoder
                     if (inputPtr + sizeof(ushort) > inputEnd)
                     {
                         MemorySecurity.ZeroMemory(output);
-                        return false;
+                        throw new InvalidDataException("LZ4 payload ended before a full match offset could be read.");
                     }
 
                     int offset = MemOps.ReadUnaligned<ushort>(inputPtr);
@@ -218,7 +221,7 @@ internal static class LZ4Decoder
                     if (offset == 0 || offset > (outputPtr - outputBase))
                     {
                         MemorySecurity.ZeroMemory(output);
-                        return false;
+                        throw new InvalidDataException("LZ4 payload contains an invalid back-reference offset.");
                     }
 
                     int matchLength = token & LZ4CompressionConstants.TokenMatchMask;
@@ -228,7 +231,7 @@ internal static class LZ4Decoder
                         if (bytesRead == -1 || extraLength < 0)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            return false;
+                            throw new InvalidDataException("LZ4 payload contains an invalid match length encoding.");
                         }
 
                         matchLength += extraLength;
@@ -239,7 +242,7 @@ internal static class LZ4Decoder
                     if (outputPtr + matchLength > outputEnd)
                     {
                         MemorySecurity.ZeroMemory(output);
-                        return false;
+                        throw new InvalidDataException("LZ4 payload overruns the output buffer while expanding a match.");
                     }
 
                     MemOps.Copy(matchSourcePtr, outputPtr, matchLength);
@@ -249,11 +252,10 @@ internal static class LZ4Decoder
                 if (outputPtr != outputEnd || inputPtr != inputEnd)
                 {
                     MemorySecurity.ZeroMemory(output);
-                    return false;
+                    throw new InvalidDataException("LZ4 payload did not decode to the exact number of bytes declared in the header.");
                 }
 
-                bytesWritten = header.OriginalLength;
-                return true;
+                return header.OriginalLength;
             }
         }
     }

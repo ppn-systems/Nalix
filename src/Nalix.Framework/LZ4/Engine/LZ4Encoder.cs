@@ -4,6 +4,7 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
 using Nalix.Framework.LZ4.Encoders;
 using Nalix.Framework.Memory.Internal;
@@ -24,11 +25,7 @@ internal static class LZ4Encoder
     /// </summary>
     /// <param name="input">The input data to compress as a <see cref="ReadOnlySpan{T}"/>.</param>
     /// <param name="output">The buffer where the compressed data will be written. Must have enough capacity.</param>
-    /// <returns>
-    /// The total number of bytes written to the output buffer (including the header),
-    /// or -1 if the output buffer is too small or compression fails.
-    /// </returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <returns>The total number of bytes written to the output buffer (including the header).</returns>
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
@@ -39,10 +36,7 @@ internal static class LZ4Encoder
             return WriteEmptyHeader(output);
         }
 
-        if (output.Length < LZ4BlockHeader.Size)
-        {
-            return -1;
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThan(output.Length, LZ4BlockHeader.Size, nameof(output));
 
 #if DEBUG
         if (output.Length < LZ4BlockEncoder.GetMaxLength(input.Length))
@@ -68,7 +62,8 @@ internal static class LZ4Encoder
 
                 if (compressedDataLength < 0)
                 {
-                    return -1;
+                    throw new InvalidOperationException(
+                        $"LZ4 compression failed because the destination buffer is too small. Input length: {input.Length}, Output length: {output.Length}.");
                 }
 
                 int totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
@@ -103,10 +98,7 @@ internal static class LZ4Encoder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int WriteEmptyHeader(Span<byte> output)
     {
-        if (output.Length < LZ4BlockHeader.Size)
-        {
-            return -1;
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThan(output.Length, LZ4BlockHeader.Size, nameof(output));
 
         LZ4BlockHeader header = new(0, LZ4BlockHeader.Size);
         MemOps.WriteUnaligned(output, header);

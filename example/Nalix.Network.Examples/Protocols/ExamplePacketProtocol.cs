@@ -39,8 +39,8 @@ public sealed class ExamplePacketProtocol : Protocol
 
         // Register the connection so other services can discover it later.
         // This is useful for shared hubs, diagnostics, or broadcasting.
-        _ = InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
-                                   .RegisterConnection(connection);
+        InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
+                       .RegisterConnection(connection);
     }
 
     /// <summary>

@@ -103,10 +103,6 @@ public class LZ4CodecBenchmarks
 
         // Pre-compute compressed payload for decode benchmarks (use span-based Encode to avoid extra alloc)
         _compressedLength = LZ4Codec.Encode(_input.AsSpan(), _compressOutputBuffer.AsSpan());
-        if (_compressedLength < 0)
-        {
-            throw new InvalidOperationException("Precompression failed in GlobalSetup.");
-        }
         _compressedPayload = new Byte[_compressedLength];
         Array.Copy(_compressOutputBuffer, 0, _compressedPayload, 0, _compressedLength);
     }
@@ -120,7 +116,7 @@ public class LZ4CodecBenchmarks
     public Int32 Encode_SpanToSpan()
     {
         Int32 written = LZ4Codec.Encode(_input.AsSpan(), _compressOutputBuffer.AsSpan());
-        return written < 0 ? throw new InvalidOperationException("Encode failed") : written;
+        return written;
     }
 
     // Byte[] -> Byte[] (caller-supplied arrays)
@@ -128,7 +124,7 @@ public class LZ4CodecBenchmarks
     public Int32 Encode_ArrayToArray()
     {
         Int32 written = LZ4Codec.Encode(_input, _compressOutputBuffer);
-        return written < 0 ? throw new InvalidOperationException("Encode failed") : written;
+        return written;
     }
 
     // One-shot Encode that returns a new byte[] (allocates exact-sized result)
@@ -151,11 +147,7 @@ public class LZ4CodecBenchmarks
     [Benchmark(Description = "Decode(ReadOnlySpan<byte>, out byte[] output, out int bytesWritten)")]
     public Int32 Decode_ToNewArray()
     {
-        Boolean ok = LZ4Codec.Decode(_compressedPayload.AsSpan(), out var outArr, out var bytesWritten);
-        if (!ok || outArr == null)
-        {
-            throw new InvalidOperationException("Decode failed");
-        }
+        LZ4Codec.Decode(_compressedPayload.AsSpan(), out var outArr, out var bytesWritten);
         // Return length to avoid JIT eliding result
         return bytesWritten;
     }
