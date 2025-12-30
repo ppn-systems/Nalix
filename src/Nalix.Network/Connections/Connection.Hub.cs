@@ -58,7 +58,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
     private readonly ConnectionHubOptions _options;
 
-    [AllowNull]
     private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
@@ -113,9 +112,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <summary>
     /// Initializes static members of the <see cref="ConnectionHub"/> class.
     /// </summary>
-    static ConnectionHub() =>
-        // Static constructor initializes the shared ArrayPool
-        s_connectionPool = System.Buffers.ArrayPool<IConnection>.Shared;
+    static ConnectionHub() => s_connectionPool = System.Buffers.ArrayPool<IConnection>.Shared;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionHub"/> class.
@@ -152,7 +149,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <returns><c>true</c> if the connection was successfully registered; otherwise, <c>false</c>.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="connection"/> is null.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public bool RegisterConnection(IConnection connection)
     {
         if (connection is null || _disposed)
@@ -205,7 +201,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <param name="connection">The connection to unregister.</param>
     /// <returns><c>true</c> if the connection was successfully unregistered; otherwise, <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public bool UnregisterConnection(IConnection connection)
     {
         if (connection is null || _disposed)
@@ -326,7 +321,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <returns>The connection associated with the identifier, or <c>null</c> if not found.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
-    [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
     public IConnection? GetConnection(ISnowflake id)
     {
         System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = GetShard(id);
@@ -340,7 +334,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <returns>The connection associated with the identifier, or <c>null</c> if not found.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: MaybeNull]
-    [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
     public IConnection? GetConnection(ReadOnlySpan<byte> id)
     {
         ISnowflake snowflake = Snowflake.FromBytes(id);
@@ -356,7 +349,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="username"/> is null or empty.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
-    [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
     public IConnection? GetConnection(string username)
     {
         if (string.IsNullOrWhiteSpace(username))
@@ -374,11 +366,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <returns>The username associated with the connection, or <c>null</c> if not found.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: MaybeNull]
-    [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
-    public string? GetUsername(ISnowflake id)
-    {
-        return _usernames.TryGetValue(id, out string? username) ? username : null;
-    }
+    public string? GetUsername(ISnowflake id) => _usernames.TryGetValue(id, out string? username) ? username : null;
 
     /// <inheritdoc />
     /// <summary>
@@ -387,7 +375,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <returns>A read-only collection of active connections.</returns>
     [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     public IReadOnlyCollection<IConnection> ListConnections()
     {
@@ -664,7 +651,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <param name="reason">The reason for closing the connections, if any.</param>
     [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
-    public void CloseAllConnections([AllowNull] string reason = null)
+    public void CloseAllConnections(string reason = null)
     {
         if (_disposed)
         {
@@ -705,7 +692,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public string GenerateReport()
     {
         const int Limit = 15;
