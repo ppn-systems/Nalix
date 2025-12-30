@@ -16,12 +16,12 @@ public abstract partial class TcpListenerBase
     /// <summary>
     /// Dedicated consumer thread — drains the channel at BelowNormal priority.
     /// </summary>
-    private Thread _processThread;
+    private Thread? _processThread;
 
     /// <summary>
     /// Bounded channel: N producers (accept-loop workers) → 1 consumer (BelowNormal thread).
     /// </summary>
-    private System.Threading.Channels.Channel<IConnection> _processChannel;
+    private System.Threading.Channels.Channel<IConnection>? _processChannel;
 
     #endregion Fields
 
@@ -81,7 +81,16 @@ public abstract partial class TcpListenerBase
     /// <param name="connection"></param>
     private void DISPATCH_CONNECTION(IConnection connection)
     {
-        if (_processChannel.Writer.TryWrite(connection))
+        System.Threading.Channels.Channel<IConnection>? processChannel = _processChannel;
+        if (processChannel is null)
+        {
+            s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] process-channel-unavailable remote={connection?.NetworkEndpoint} port={_port}");
+            ArgumentNullException.ThrowIfNull(connection);
+            connection.Close();
+            return;
+        }
+
+        if (processChannel.Writer.TryWrite(connection))
         {
             s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] queued remote={connection?.NetworkEndpoint} port={_port}");
             return;
@@ -92,6 +101,7 @@ public abstract partial class TcpListenerBase
         Metrics.RECORD_REJECTED();
         s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] channel-full remote={connection?.NetworkEndpoint} port={_port} — dropped");
 
+        ArgumentNullException.ThrowIfNull(connection);
         connection.Close();
     }
 
@@ -104,14 +114,25 @@ public abstract partial class TcpListenerBase
         s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP)}] " +
                         $"thread-started port={_port} priority={Thread.CurrentThread.Priority}");
 
-        System.Threading.Channels.ChannelReader<IConnection> reader = _processChannel.Reader;
+        System.Threading.Channels.Channel<IConnection>? processChannel = _processChannel;
+        if (processChannel is null)
+        {
+            return;
+        }
+
+        System.Threading.Channels.ChannelReader<IConnection> reader = processChannel.Reader;
 
         while (!cancellationToken.IsCancellationRequested)
         {
             // ── Fast path: drain all immediately available items ──────────────
             // Avoids async state machine overhead during bursts.
-            while (reader.TryRead(out IConnection connection))
+            while (reader.TryRead(out IConnection? connection))
             {
+                if (connection is null)
+                {
+                    continue;
+                }
+
                 INVOKE_PROCESS(connection);
             }
 
@@ -143,12 +164,17 @@ public abstract partial class TcpListenerBase
         }
 
         // Drain any remaining items that arrived before the channel was completed.
-        while (reader.TryRead(out IConnection connection))
+        while (reader.TryRead(out IConnection? connection))
         {
+            if (connection is null)
+            {
+                continue;
+            }
+
             INVOKE_PROCESS(connection);
         }
 
-        s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP)}] thread-exited port={_port}");
+        s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP)}] thread-exited port={_port}");
     }
 
     /// <summary>
@@ -167,7 +193,8 @@ public abstract partial class TcpListenerBase
         }
         catch (Exception ex)
         {
-            s_logger.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(INVOKE_PROCESS)}] error remote={connection?.NetworkEndpoint} port={_port}", ex);
+            s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(INVOKE_PROCESS)}] error remote={connection?.NetworkEndpoint} port={_port}", ex);
+            ArgumentNullException.ThrowIfNull(connection);
             connection.Close();
         }
     }
