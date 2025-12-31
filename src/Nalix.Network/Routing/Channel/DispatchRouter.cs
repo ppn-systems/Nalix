@@ -84,8 +84,8 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
             }
         }
 
-        raw = default;
-        connection = default;
+        raw = null!;
+        connection = null!;
 
         return false;
     }

@@ -25,7 +25,7 @@ internal sealed class UnsupportedReturnHandler<TPacket>(Type returnType) : IRetu
 
     /// <inheritdoc/>
     public ValueTask HandleAsync(
-        [AllowNull] object result,
+        object result,
         PacketContext<TPacket> context)
     {
         if (_loggedTypes.TryAdd(returnType, true))

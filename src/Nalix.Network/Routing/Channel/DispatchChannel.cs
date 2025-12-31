@@ -175,29 +175,29 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// <param name="raw">The lease to enqueue.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="raw"/> or <paramref name="connection"/> is null.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public bool Pull(
         [NotNullWhen(true)] out IConnection connection,
         [NotNullWhen(true)] out IBufferLease raw)
     {
-        raw = default;
-        connection = default;
+        raw = null!;
+        connection = null!;
 
         // From highest priority down to lowest, pick a ready connection.
         for (int p = HighestPriorityIndex; p >= LowestPriorityIndex; p--)
         {
-            if (_readyByPrio[p].TryDequeue(out connection))
+            if (_readyByPrio[p].TryDequeue(out IConnection? nextConnection))
             {
-                if (connection is null)
+                if (nextConnection is null)
                 {
                     // defensive: skip if somehow null (shouldn't happen if TryDequeue true, but safe)
                     continue;
                 }
 
+                connection = nextConnection;
                 _ = _inReady.TryRemove(connection, out _);
 
                 // Get the per-connection queues
-                if (!_queues.TryGetValue(connection, out ConnectionQueues cqs))
+                if (!_queues.TryGetValue(connection, out ConnectionQueues? cqs) || cqs is null)
                 {
                     continue;
                 }
@@ -378,21 +378,21 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     private static bool TRY_DEQUEUE_HIGHEST(
         ConnectionQueues cqs,
         int startPrio,
-        [AllowNull]
         [NotNullWhen(true)] out IBufferLease raw,
         out int dequeuedFromPrio)
     {
         // Try from requested priority down to lowest, to avoid a miss due to racing push/pop.
         for (int p = startPrio; p >= LowestPriorityIndex; p--)
         {
-            if (cqs.Q[p].TryDequeue(out raw))
+            if (cqs.Q[p].TryDequeue(out IBufferLease? lease) && lease is not null)
             {
+                raw = lease;
                 dequeuedFromPrio = p;
                 return true;
             }
         }
 
-        raw = default;
+        raw = null!;
         dequeuedFromPrio = -1;
         return false;
     }
@@ -408,14 +408,14 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     private static bool TRY_EVICT_OLDEST(
         ConnectionQueues cqs,
         ConnectionState cs,
-        [AllowNull]
         [NotNullWhen(true)] out IBufferLease lease)
     {
         for (int p = LowestPriorityIndex; p <= HighestPriorityIndex; p++)
         {
-            if (cqs.Q[p].TryDequeue(out lease))
+            if (cqs.Q[p].TryDequeue(out IBufferLease? evictedLease) && evictedLease is not null)
             {
                 // IMPORTANT: free pooled buffer
+                lease = evictedLease;
                 lease.Dispose();
 
                 _ = Interlocked.Decrement(ref cs.ApproxTotal);
@@ -424,7 +424,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
             }
         }
 
-        lease = default;
+        lease = null!;
         return false;
     }
 
@@ -466,17 +466,22 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         MethodImplOptions.AggressiveOptimization)]
     private void RemoveConnection(IConnection connection)
     {
-        if (_queues.TryRemove(connection, out ConnectionQueues cqs))
+        if (_queues.TryRemove(connection, out ConnectionQueues? cqs) && cqs is not null)
         {
             int drained = 0;
 
             for (int p = LowestPriorityIndex; p <= HighestPriorityIndex; p++)
             {
                 System.Collections.Concurrent.ConcurrentQueue<IBufferLease> q = cqs.Q[p];
-                while (q.TryDequeue(out IBufferLease lease))
+                while (q.TryDequeue(out IBufferLease? lease))
                 {
+                    if (lease is null)
+                    {
+                        continue;
+                    }
+
                     drained++;
-                    lease?.Dispose();
+                    lease.Dispose();
                 }
             }
 
