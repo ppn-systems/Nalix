@@ -25,6 +25,7 @@ public static partial class Clock
     /// <summary>
     /// Returns the current UTC time with high accuracy.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the computed synchronized time falls outside the valid <see cref="DateTime"/> range.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTime NowUtc()
     {
@@ -48,6 +49,7 @@ public static partial class Clock
     /// <summary>
     /// Current Unix timestamp (seconds) as long.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the computed synchronized time falls outside the valid <see cref="DateTime"/> range.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static long UnixSecondsNow() => (long)(NowUtc() - DateTime.UnixEpoch).TotalSeconds;
 
@@ -57,6 +59,7 @@ public static partial class Clock
     /// so it's OK for now but will overflow in ~50 years (around year 2106).
     /// </summary>
     /// <returns>The current Unix timestamp in seconds as uint32.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the computed synchronized time falls outside the valid <see cref="DateTime"/> range.</exception>
     /// <exception cref="OverflowException">Thrown when the Unix timestamp exceeds UInt32.MaxValue.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint UnixSecondsNowUInt32()
@@ -76,24 +79,28 @@ public static partial class Clock
     /// <summary>
     /// Current Unix timestamp (milliseconds) as long.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the computed synchronized time falls outside the valid <see cref="DateTime"/> range.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long UnixMillisecondsNow() => (long)(NowUtc() - DateTime.UnixEpoch).TotalMilliseconds;
 
     /// <summary>
     /// Current Unix timestamp (microseconds) as long.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the computed synchronized time falls outside the valid <see cref="DateTime"/> range.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static long UnixMicrosecondsNow() => (NowUtc() - DateTime.UnixEpoch).Ticks / 10;
 
     /// <summary>
     /// Current Unix timestamp (ticks) as long.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the computed synchronized time falls outside the valid <see cref="DateTime"/> range.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static long UnixTicksNow() => (NowUtc() - DateTime.UnixEpoch).Ticks;
 
     /// <summary>
     /// Returns the current Unix time as TimeSpan.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the computed synchronized time falls outside the valid <see cref="DateTime"/> range.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TimeSpan UnixTime() => NowUtc() - DateTime.UnixEpoch;
 

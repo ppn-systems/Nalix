@@ -124,6 +124,9 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <summary>
     /// Initializes a new instance of the <see cref="ConfigurationManager"/> class.
     /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when the process configuration directory is not available.</exception>
+    /// <exception cref="InternalErrorException">Thrown when the default configuration path escapes the allowed configuration directory.</exception>
+    /// <exception cref="SecurityException">Thrown when the default configuration path cannot be normalized securely.</exception>
     public ConfigurationManager()
     {
         string configDirectory = Directories.ConfigurationDirectory;

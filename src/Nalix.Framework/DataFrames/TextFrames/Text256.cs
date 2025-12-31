@@ -41,6 +41,7 @@ public sealed class Text256 : PacketBase<Text256>
     /// <summary>
     /// Initializes with content and optional protocol.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="content"/> exceeds <see cref="DynamicSize"/> UTF-8 bytes.</exception>
     public void Initialize(string content, ProtocolType protocol = ProtocolType.TCP)
     {
         if (content is null)
