@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Memory.Buffers;
@@ -34,7 +35,8 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The string array to serialize.</param>
-    /// <exception cref="SerializationException"></exception>
+    /// <exception cref="SerializationException">Thrown when <paramref name="value"/> exceeds the maximum encodable element count.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the writer cannot expand or a required nested formatter is unavailable.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, string[] value)

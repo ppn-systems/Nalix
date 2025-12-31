@@ -47,6 +47,12 @@ public static class LiteSerializer
     /// <exception cref="SerializationException">
     /// Thrown if serialization encounters an error.
     /// </exception>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when a required formatter dependency is null during registration or serialization dispatch.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when no formatter is available for a fixed-size or variable-length serializable type.
+    /// </exception>
     [Pure]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
@@ -147,6 +153,10 @@ public static class LiteSerializer
     /// <exception cref="SerializationException">
     /// Thrown if serialization fails or the buffer is too small.
     /// </exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="buffer"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when no formatter is available for a fixed-size serializable type.
+    /// </exception>
     /// <exception cref="NotSupportedException">
     /// Thrown if the type is not supported for span-based serialization.
     /// </exception>
@@ -210,6 +220,9 @@ public static class LiteSerializer
     /// <returns>The number of bytes written into the buffer.</returns>
     /// <exception cref="SerializationException">
     /// Thrown if serialization fails or the buffer is too small.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when no formatter is available for the resolved formatter-based serialization path.
     /// </exception>
     /// <exception cref="NotSupportedException">
     /// Thrown if the type is not supported for span-based serialization.
@@ -364,6 +377,9 @@ public static class LiteSerializer
     /// Thrown if deserialization encounters an error or if there is insufficient data in the buffer.
     /// </exception>
     /// <exception cref="ArgumentException">Thrown if the buffer is empty.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when no formatter is available for formatter-based deserialization.
+    /// </exception>
     [Pure]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
@@ -464,7 +480,10 @@ public static class LiteSerializer
     /// <exception cref="SerializationException">
     /// Thrown if deserialization encounters an error or if there is insufficient data in the buffer.
     /// </exception>
-    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="ArgumentException">Thrown if the buffer is empty.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when no formatter is available for formatter-based deserialization.
+    /// </exception>
     [Pure]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
