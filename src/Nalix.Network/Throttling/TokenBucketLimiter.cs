@@ -172,9 +172,14 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(TokenBucketLimiter));
 
+        if (System.String.IsNullOrEmpty(key.Address))
+        {
+            throw new System.ArgumentException("Endpoint address cannot be null or empty", nameof(key));
+        }
+
         System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
         Shard shard = GetShard(key);
-        var map = shard.Map;
+        System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, EndpointState> map = shard.Map;
 
         System.Boolean isNew = false;
 
@@ -265,121 +270,6 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
                 Credit = GetCredit(state.MicroBalance, _opt.TokenScale),
                 Reason = _opt.HardLockoutSeconds > 0 ? RateLimitReason.HardLockout : RateLimitReason.SoftThrottle
             };
-        }
-    }
-
-    #endregion Public API
-
-    #region Private Helpers
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private Shard GetShard(INetworkEndpoint key)
-    {
-        // Deterministic hashing; simple but fast. You can replace with XxHash if needed.
-        System.Int32 h = key.GetHashCode();
-        unchecked
-        {
-            System.UInt32 uh = (System.UInt32)h;
-            return _shards[(System.Int32)(uh & (System.UInt32)(_shards.Length - 1))];
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void Refill(System.Int64 now, EndpointState state)
-    {
-        var dt = now - state.LastRefillSwTicks;
-        if (dt <= 0)
-        {
-            return;
-        }
-
-        // Add (dt / sec) * refillPerSecMicro, using integer math
-        // microToAdd = (dt * refillPerSecMicro) / StopwatchFrequency
-        var microToAdd = (state.MicroBalance < _capacityMicro)
-            ? dt * _refillPerSecMicro / (System.Int64)_swFreq
-            : 0;
-
-        if (microToAdd > 0)
-        {
-            var nb = state.MicroBalance + microToAdd;
-            state.MicroBalance = nb >= _capacityMicro ? _capacityMicro : nb;
-            state.LastRefillSwTicks = now;
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Int32 ComputeRetryMsForMicro(System.Int64 microNeeded)
-    {
-        if (_refillPerSecMicro <= 0)
-        {
-            return 0; // no soft backoff possible (degenerate config)
-        }
-        // timeSeconds = microNeeded / refillPerSecMicro
-        // ms = ceil(seconds * 1000)
-        var ms = (System.Int32)System.Math.Ceiling(microNeeded * 1000.0 / _refillPerSecMicro);
-        return ms < 0 ? 0 : ms;
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Int32 ComputeMs(System.Int64 now, System.Int64 untilSw)
-    {
-        if (untilSw <= now)
-        {
-            return 0;
-        }
-
-        var dtTicks = untilSw - now;
-        var sec = dtTicks / _swFreq;
-        var fracTicks = dtTicks - ((System.Int64)sec * (System.Int64)_swFreq);
-        var ms = (System.Int32)((sec * 1000.0) + (fracTicks * 1000.0 / _swFreq) + 0.999); // ceil
-        return ms < 0 ? 0 : ms;
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Int64 ToSwTicks(System.Int32 seconds)
-        => (System.Int64)System.Math.Round(seconds * _swFreq);
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt16 GetCredit(System.Int64 microBalance, System.Int32 tokenScale)
-    {
-        var t = microBalance / tokenScale;
-        return t <= 0 ? (System.UInt16)0
-             : t >= System.UInt16.MaxValue ? System.UInt16.MaxValue
-             : (System.UInt16)t;
-    }
-
-    private static void ValidateOptions(TokenBucketOptions opt)
-    {
-        if (opt.CapacityTokens <= 0)
-        {
-            throw new InternalErrorException($"{nameof(TokenBucketOptions.CapacityTokens)} must be > 0");
-        }
-
-        if (opt.RefillTokensPerSecond <= 0)
-        {
-            throw new InternalErrorException($"{nameof(TokenBucketOptions.RefillTokensPerSecond)} must be > 0");
-        }
-
-        if (opt.TokenScale <= 0)
-        {
-            throw new InternalErrorException($"{nameof(TokenBucketOptions.TokenScale)} must be > 0");
-        }
-
-        // ShardCount must be power-of-two for bit-mask; adjust if needed.
-        if (opt.ShardCount <= 0)
-        {
-            throw new InternalErrorException($"{nameof(TokenBucketOptions.ShardCount)} must be > 0");
-        }
-
-        if ((opt.ShardCount & (opt.ShardCount - 1)) != 0)
-        {
-            throw new InternalErrorException($"{nameof(TokenBucketOptions.ShardCount)} must be a power of two (e.g., 64)");
         }
     }
 
@@ -538,6 +428,126 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         return sb.ToString();
     }
 
+    #endregion Public API
+
+    #region Private Helpers
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private Shard GetShard(INetworkEndpoint key)
+    {
+        // Deterministic hashing; simple but fast. You can replace with XxHash if needed.
+        System.Int32 h = key.GetHashCode();
+        unchecked
+        {
+            System.UInt32 uh = (System.UInt32)h;
+            return _shards[(System.Int32)(uh & (System.UInt32)(_shards.Length - 1))];
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void Refill(System.Int64 now, EndpointState state)
+    {
+        System.Int64 dt = now - state.LastRefillSwTicks;
+        if (dt <= 0)
+        {
+            return;
+        }
+
+        if (dt > System.Int64.MaxValue / _refillPerSecMicro)
+        {
+            // Cap the refill to maximum capacity
+            state.MicroBalance = _capacityMicro;
+            state.LastRefillSwTicks = now;
+            return;
+        }
+
+        // Add (dt / sec) * refillPerSecMicro, using integer math
+        // microToAdd = (dt * refillPerSecMicro) / StopwatchFrequency
+        System.Int64 microToAdd = (state.MicroBalance < _capacityMicro)
+            ? dt * _refillPerSecMicro / (System.Int64)_swFreq
+            : 0;
+
+        if (microToAdd > 0)
+        {
+            System.Int64 nb = state.MicroBalance + microToAdd;
+            state.MicroBalance = nb >= _capacityMicro ? _capacityMicro : nb;
+            state.LastRefillSwTicks = now;
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Int32 ComputeRetryMsForMicro(System.Int64 microNeeded)
+    {
+        if (_refillPerSecMicro <= 0)
+        {
+            return 0; // no soft backoff possible (degenerate config)
+        }
+        // timeSeconds = microNeeded / refillPerSecMicro
+        // ms = ceil(seconds * 1000)
+        var ms = (System.Int32)System.Math.Ceiling(microNeeded * 1000.0 / _refillPerSecMicro);
+        return ms < 0 ? 0 : ms;
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Int32 ComputeMs(System.Int64 now, System.Int64 untilSw)
+    {
+        if (untilSw <= now)
+        {
+            return 0;
+        }
+
+        var dtTicks = untilSw - now;
+        var sec = dtTicks / _swFreq;
+        var fracTicks = dtTicks - ((System.Int64)sec * (System.Int64)_swFreq);
+        var ms = (System.Int32)((sec * 1000.0) + (fracTicks * 1000.0 / _swFreq) + 0.999); // ceil
+        return ms < 0 ? 0 : ms;
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Int64 ToSwTicks(System.Int32 seconds) => (System.Int64)System.Math.Round(seconds * _swFreq);
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.UInt16 GetCredit(System.Int64 microBalance, System.Int32 tokenScale)
+    {
+        System.Int64 t = microBalance / tokenScale;
+        return t <= 0 ? (System.UInt16)0 : t >= System.UInt16.MaxValue ? System.UInt16.MaxValue : (System.UInt16)t;
+    }
+
+    private static void ValidateOptions(TokenBucketOptions opt)
+    {
+        if (opt.CapacityTokens <= 0)
+        {
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.CapacityTokens)} must be > 0");
+        }
+
+        if (opt.RefillTokensPerSecond <= 0)
+        {
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.RefillTokensPerSecond)} must be > 0");
+        }
+
+        if (opt.TokenScale <= 0)
+        {
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.TokenScale)} must be > 0");
+        }
+
+        // ShardCount must be power-of-two for bit-mask; adjust if needed.
+        if (opt.ShardCount <= 0)
+        {
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.ShardCount)} must be > 0");
+        }
+
+        if ((opt.ShardCount & (opt.ShardCount - 1)) != 0)
+        {
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.ShardCount)} must be a power of two (e.g., 64)");
+        }
+    }
+
     #endregion Private Helpers
 
     #region Cleanup
@@ -554,21 +564,28 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             return;
         }
 
+        System.Threading.CancellationToken token = new System.Threading.CancellationTokenSource(System.TimeSpan.FromSeconds(5)).Token;
+
         try
         {
-
-
-            var now = System.Diagnostics.Stopwatch.GetTimestamp();
-            var staleTicks = ToSwTicks(_opt.StaleEntrySeconds);
-
             System.Int32 removed = 0, visited = 0;
+            System.Int64 staleTicks = ToSwTicks(_opt.StaleEntrySeconds);
+            System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
 
-            foreach (var shard in _shards)
+            foreach (Shard shard in _shards)
             {
+                token.ThrowIfCancellationRequested();
+
                 foreach (var kv in shard.Map)
                 {
                     visited++;
-                    var state = kv.Value;
+
+                    if ((visited & 0xFF) == 0) // Check every 256 items
+                    {
+                        token.ThrowIfCancellationRequested();
+                    }
+
+                    EndpointState state = kv.Value;
                     if (now - state.LastSeenSw > staleTicks)
                     {
                         // Best-effort: try remove if still present
@@ -582,6 +599,10 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             {
                 _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:Internal] Cleanup visited={visited} removed={removed}");
             }
+        }
+        catch (System.OperationCanceledException)
+        {
+            _logger?.Warn("Cleanup was cancelled due to timeout");
         }
         catch (System.Exception ex) when (ex is not System.ObjectDisposedException)
         {

@@ -114,7 +114,7 @@ public abstract partial class TcpListenerBase
 
         try
         {
-            if ((ListenerState)System.Threading.Volatile.Read(ref _state) != ListenerState.Stopped)
+            if ((ListenerState)System.Threading.Volatile.Read(ref _state) != ListenerState.STOPPED)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] ignored-activate state={State}");
@@ -123,7 +123,7 @@ public abstract partial class TcpListenerBase
             }
 
             _ = System.Threading.Interlocked.Exchange(ref _stopInitiated, 0);
-            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Starting);
+            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STARTING);
 
             _cts?.Dispose();
             _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -146,7 +146,7 @@ public abstract partial class TcpListenerBase
                 Initialize();
             }
 
-            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Running);
+            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.RUNNING);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] start protocol={_protocol} port={_port}");
@@ -184,21 +184,21 @@ public abstract partial class TcpListenerBase
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] cancel port={_port}");
 
-            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Stopped);
+            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STOPPED);
         }
         catch (System.Net.Sockets.SocketException ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error($"[NW.{nameof(TcpListenerBase)}: {nameof(Activate)} ] start-failed port= {_port}", ex);
 
-            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Stopped);
+            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STOPPED);
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Fatal($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] critical-error port={_port}", ex);
 
-            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Stopped);
+            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STOPPED);
         }
         finally
         {
@@ -222,14 +222,14 @@ public abstract partial class TcpListenerBase
 
         // Try Running->Stopping; if not, try Starting->Stopping
         System.Int32 prev = System.Threading.Interlocked.CompareExchange(ref _state,
-            (System.Int32)ListenerState.Stopping, (System.Int32)ListenerState.Running);
+            (System.Int32)ListenerState.STOPPING, (System.Int32)ListenerState.RUNNING);
 
-        if (prev != (System.Int32)ListenerState.Running)
+        if (prev != (System.Int32)ListenerState.RUNNING)
         {
             prev = System.Threading.Interlocked.CompareExchange(ref _state,
-                (System.Int32)ListenerState.Stopping, (System.Int32)ListenerState.Starting);
+                (System.Int32)ListenerState.STOPPING, (System.Int32)ListenerState.STARTING);
 
-            if (prev != (System.Int32)ListenerState.Starting)
+            if (prev != (System.Int32)ListenerState.STARTING)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] ignored-deactivate state={State}");
@@ -272,7 +272,7 @@ public abstract partial class TcpListenerBase
             }
             catch { }
             _cts = null;
-            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.Stopped);
+            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STOPPED);
         }
     }
 }

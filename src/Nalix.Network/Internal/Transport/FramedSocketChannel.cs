@@ -368,7 +368,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
         if (ex is System.IO.IOException ioex && ioex.InnerException is System.Net.Sockets.SocketException ise)
         {
-            return ise.SocketErrorCode is System.Net.Sockets.SocketError.ConnectionReset
+            return ise.SocketErrorCode
+                is System.Net.Sockets.SocketError.ConnectionReset
                 or System.Net.Sockets.SocketError.ConnectionAborted
                 or System.Net.Sockets.SocketError.Shutdown
                 or System.Net.Sockets.SocketError.OperationAborted;
@@ -452,7 +453,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                                         .Meta($"[NW.{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] recv-header size(le)={size}");
 #endif
 
-                if (size < HeaderSize || size > PacketConstants.PacketSizeLimit)
+                if (size is < HeaderSize or > PacketConstants.PacketSizeLimit)
                 {
                     throw new System.Net.Sockets.SocketException(
                         (System.Int32)System.Net.Sockets.SocketError.ProtocolNotSupported);
@@ -480,7 +481,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 #if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(ReceiveLoopAsync)}] " +
-                                              $"recv-frame size={size} payload={payload} ep={_epText}");
+                                               $"recv-frame size={size} payload={payload} ep={_epText}");
 #endif
 
                 // 4) Handoff to session cache
