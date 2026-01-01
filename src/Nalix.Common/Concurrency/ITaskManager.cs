@@ -33,6 +33,11 @@ public interface ITaskManager : IDisposable, IReportable
     /// <param name="work">The delegate representing the job work.</param>
     /// <param name="options">Options for the recurring job (optional).</param>
     /// <returns>A handle to manage the recurring job.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is null, empty, or whitespace.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="work"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="interval"/> is less than or equal to zero.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when a recurring job with the same name already exists.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
     IRecurringHandle ScheduleRecurring(string name, TimeSpan interval, Func<CancellationToken, ValueTask> work, IRecurringOptions? options = null);
 
     /// <summary>
@@ -42,6 +47,11 @@ public interface ITaskManager : IDisposable, IReportable
     /// <param name="work">The delegate representing the job work.</param>
     /// <param name="ct">Cancellation token (optional).</param>
     /// <returns>A ValueTask representing the job execution.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is null, empty, or whitespace.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="work"/> is null.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is cancelled while the job is executing.</exception>
+    /// <exception cref="Exception">Propagates any exception thrown by <paramref name="work"/>.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
     ValueTask RunOnceAsync(string name, Func<CancellationToken, ValueTask> work, CancellationToken ct = default);
 
     /// <summary>
@@ -52,12 +62,17 @@ public interface ITaskManager : IDisposable, IReportable
     /// <param name="work">The delegate representing the worker's work.</param>
     /// <param name="options">Options for the worker (optional).</param>
     /// <returns>A handle to manage the worker.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is null, empty, or whitespace.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="work"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the worker cannot be registered.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
     IWorkerHandle ScheduleWorker(string name, string group, Func<IWorkerContext, CancellationToken, ValueTask> work, IWorkerOptions? options = null);
 
     /// <summary>
     /// Cancels all running workers.
     /// </summary>
     /// <returns>The number of workers cancelled.</returns>
+    /// <exception cref="ObjectDisposedException">Thrown when a matched worker's cancellation source has already been disposed.</exception>
     int CancelAllWorkers();
 
     /// <summary>
@@ -65,6 +80,7 @@ public interface ITaskManager : IDisposable, IReportable
     /// </summary>
     /// <param name="id">The worker's identifier.</param>
     /// <returns>True if the worker was cancelled; otherwise, false.</returns>
+    /// <exception cref="ObjectDisposedException">Thrown when the matched worker's cancellation source has already been disposed.</exception>
     bool CancelWorker(ISnowflake id);
 
     /// <summary>
@@ -72,6 +88,7 @@ public interface ITaskManager : IDisposable, IReportable
     /// </summary>
     /// <param name="group">The name of the group.</param>
     /// <returns>The number of workers cancelled.</returns>
+    /// <exception cref="ObjectDisposedException">Thrown when a matched worker's cancellation source has already been disposed.</exception>
     int CancelGroup(string group);
 
     /// <summary>
@@ -79,6 +96,7 @@ public interface ITaskManager : IDisposable, IReportable
     /// </summary>
     /// <param name="name">The name of the recurring job.</param>
     /// <returns>True if the job was cancelled; otherwise, false.</returns>
+    /// <exception cref="ObjectDisposedException">Thrown when the matched recurring job's cancellation source has already been disposed.</exception>
     bool CancelRecurring(string name);
 
     /// <summary>
