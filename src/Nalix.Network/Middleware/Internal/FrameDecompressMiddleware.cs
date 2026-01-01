@@ -23,9 +23,9 @@ namespace Nalix.Network.Middleware.Internal;
 internal class FrameDecompressMiddleware : INetworkBufferMiddleware
 {
     /// <inheritdoc />
-    public async Task<IBufferLease> InvokeAsync(
+    public async Task<IBufferLease?> InvokeAsync(
         IBufferLease lease, IConnection connection,
-        Func<IBufferLease, CancellationToken, Task<IBufferLease>> next,
+        Func<IBufferLease, CancellationToken, Task<IBufferLease?>> next,
         CancellationToken ct)
     {
 #if DEBUG

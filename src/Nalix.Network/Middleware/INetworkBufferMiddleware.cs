@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Networking;
@@ -54,12 +53,10 @@ public interface INetworkBufferMiddleware
     /// dropped, or deemed invalid.
     /// </para>
     /// </remarks>
-    [return: MaybeNull]
-    [SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "<Pending>")]
-    Task<IBufferLease> InvokeAsync(
+    Task<IBufferLease?> InvokeAsync(
         IBufferLease buffer,
         IConnection connection,
-        Func<IBufferLease, CancellationToken, Task<IBufferLease>> next,
+        Func<IBufferLease, CancellationToken, Task<IBufferLease?>> next,
         CancellationToken ct
     );
 }

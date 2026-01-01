@@ -124,7 +124,6 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     private readonly int _cleanupIntervalSec;
     private readonly long _initialBalanceMicro;
 
-    [AllowNull]
     private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     private int _totalEndpointCount;
@@ -150,7 +149,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     /// </summary>
     /// <param name="options">Configuration options for the limiter.</param>
     /// <exception cref="InternalErrorException">Thrown when options validation fails.</exception>
-    public TokenBucketLimiter([AllowNull] TokenBucketOptions options = null)
+    public TokenBucketLimiter(TokenBucketOptions options = null)
     {
         _options = options ?? ConfigurationManager.Instance.Get<TokenBucketOptions>();
         _options.Validate();
@@ -205,7 +204,6 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     /// <exception cref="ArgumentNullException">Thrown when key is null.</exception>
     /// <exception cref="ArgumentException">Thrown when key address is null or empty.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public RateLimitDecision Check(INetworkEndpoint key)
     {
         if (_disposed)

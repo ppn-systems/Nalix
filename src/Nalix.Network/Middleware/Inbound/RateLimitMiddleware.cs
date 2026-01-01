@@ -23,7 +23,7 @@ namespace Nalix.Network.Middleware.Inbound;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 {
-    private readonly ILogger s_logger;
+    private readonly ILogger? s_logger;
     private readonly TokenBucketLimiter s_Global;
     private readonly PolicyRateLimiter s_PolicyRateLimiter;
 
@@ -49,15 +49,16 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
         PacketContext<IPacket> context,
         Func<CancellationToken, Task> next)
     {
-        if (context.Attributes.RateLimit == null || context == null)
+        ArgumentNullException.ThrowIfNull(context);
+
+        if (context.Attributes.RateLimit is null)
         {
             await next(context.CancellationToken).ConfigureAwait(false);
             return;
         }
 
         TokenBucketLimiter.RateLimitDecision decision;
-        ArgumentNullException.ThrowIfNull(context);
-        PacketRateLimitAttribute rl = context.Attributes.RateLimit;
+        PacketRateLimitAttribute? rl = context.Attributes.RateLimit;
 
         try
         {
@@ -76,7 +77,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
         catch (ObjectDisposedException)
         {
             // If the limiter has been disposed (e.g., during shutdown), allow the packet to proceed
-            s_logger.Debug($"[NW.{nameof(RateLimitMiddleware)}:Invoke] rate-limiter-disposed request-allowed");
+            s_logger?.Debug($"[NW.{nameof(RateLimitMiddleware)}:Invoke] rate-limiter-disposed request-allowed");
 
             await next(context.CancellationToken).ConfigureAwait(false);
             return;
