@@ -20,12 +20,12 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// <summary>
     /// Constant value for True (1).
     /// </summary>
-    public const System.Int32 True = 1;
+    internal const System.Int32 True = 1;
 
     /// <summary>
     /// Constant value for False (0).
     /// </summary>
-    public const System.Int32 False = 0;
+    internal const System.Int32 False = 0;
 
     #endregion Constants
 

@@ -1,8 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Framework.Configuration.Binding;
 using Nalix.Network.Dispatch;
 using Nalix.Network.Internal.Pooled;
-using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;
 
