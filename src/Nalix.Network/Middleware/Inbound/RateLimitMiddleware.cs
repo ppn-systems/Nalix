@@ -65,12 +65,12 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
             if (rl is not null)
             {
                 // Attribute-driven policy: use centralized policy-based limiter
-                decision = _policy.Check(context.Packet.OpCode, context);
+                decision = _policy.Evaluate(context.Packet.OpCode, context);
             }
             else
             {
                 // No attribute: fallback to a global per-endpoint limiter
-                decision = _global.Check(context.Connection.NetworkEndpoint);
+                decision = _global.Evaluate(context.Connection.NetworkEndpoint);
             }
         }
         catch (ObjectDisposedException)
