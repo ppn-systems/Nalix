@@ -12,8 +12,8 @@ using Nalix.Common.Networking;
 using Nalix.Common.Security;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal.Transport;
-using Nalix.Shared.Memory.Objects;
 
 namespace Nalix.Network.Connections;
 

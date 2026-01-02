@@ -8,10 +8,10 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Extensions;
+using Nalix.Framework.Frames;
+using Nalix.Framework.Memory.Buffers;
 using Nalix.SDK.Configuration;
-using Nalix.Shared.Extensions;
-using Nalix.Shared.Frames;
-using Nalix.Shared.Memory.Buffers;
 
 namespace Nalix.SDK.Transport.Internal;
 

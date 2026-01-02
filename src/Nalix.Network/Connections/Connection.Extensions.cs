@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Protocols;
+using Nalix.Framework.Frames.Controls;
 using Nalix.Framework.Injection;
-using Nalix.Shared.Frames.Controls;
-using Nalix.Shared.Memory.Buffers;
-using Nalix.Shared.Memory.Objects;
+using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
 
 namespace Nalix.Network.Connections;
 

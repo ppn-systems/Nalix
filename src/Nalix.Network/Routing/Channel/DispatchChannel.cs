@@ -14,10 +14,10 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Security;
 using Nalix.Common.Shared;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
 using Nalix.Network.Connections;
-using Nalix.Shared.Extensions;
 
 namespace Nalix.Network.Routing.Channel;
 

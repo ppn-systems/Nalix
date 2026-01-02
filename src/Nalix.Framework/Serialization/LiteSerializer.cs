@@ -1,0 +1,577 @@
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Nalix.Common.Exceptions;
+using Nalix.Common.Serialization;
+using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Serialization.Internal.Types;
+using Nalix.Shared.Serialization.Internal.Types;
+
+namespace Nalix.Framework.Serialization;
+
+/// <summary>
+/// Provides serialization and deserialization methods for objects.
+/// </summary>
+[DebuggerStepThrough]
+public static class LiteSerializer
+{
+    #region APIs
+
+    /// <summary>
+    /// Registers a formatter for the specified type.
+    /// </summary>
+    /// <typeparam name="T">The type for which the formatter is being registered.</typeparam>
+    /// <param name="formatter">The formatter to register.</param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown if the provided formatter is null.
+    /// </exception>
+    public static void Register<
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
+        IFormatter<T> formatter) => FormatterProvider.Register(formatter);
+
+    /// <summary>
+    /// Serializes an object into a byte array.
+    /// </summary>
+    /// <typeparam name="T">The type of object to serialize.</typeparam>
+    /// <param name="value">The object to serialize.</param>
+    /// <returns>A byte array representing the serialized object.</returns>
+    /// <exception cref="SerializationException">
+    /// Thrown if serialization encounters an error.
+    /// </exception>
+    [Pure]
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
+    public static byte[] Serialize<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value)
+    {
+        if (!TypeMetadata.IsReferenceOrNullable<T>())
+        {
+            byte[] array = GC.AllocateUninitializedArray<byte>(TypeMetadata.SizeOf<T>());
+            Unsafe.WriteUnaligned(
+                ref MemoryMarshal.GetArrayDataReference(array), value);
+
+            return array;
+        }
+
+        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
+
+        if (kind is TypeKind.UnmanagedSZArray)
+        {
+            if (value is null)
+            {
+                return SerializerBounds.NullArrayMarker.ToArray();
+            }
+
+            Array array = (Array)(object)value;
+            int length = array.Length;
+            if (length is 0)
+            {
+                return SerializerBounds.EmptyArrayMarker.ToArray();
+            }
+
+            int dataSize = size * length;
+            byte[] buffer = GC.AllocateUninitializedArray<byte>(dataSize + 4);
+            ref byte ptr = ref MemoryMarshal.GetArrayDataReference(buffer);
+
+            Unsafe.WriteUnaligned(ref ptr, length);
+            Unsafe.CopyBlockUnaligned(
+                ref Unsafe.Add(ref ptr, 4),
+                ref MemoryMarshal.GetArrayDataReference(array), (uint)dataSize);
+
+            return buffer;
+        }
+        else if (kind is TypeKind.FixedSizeSerializable)
+        {
+            Debug.WriteLine(
+                $"Serializing fixed-size type {typeof(T).FullName} with size {size} bytes.");
+
+            IFormatter<T> formatter = FormatterProvider.Get<T>();
+            DataWriter writer = (size > 512) ? new(size) : new(512);
+
+            try
+            {
+                formatter.Serialize(ref writer, value);
+
+                Debug.WriteLine(
+                    $"Serialized fixed-size type {typeof(T).FullName} into {writer.WrittenCount} bytes.");
+
+                return writer.WrittenCount == 0 ? Array.Empty<byte>() : writer.ToArray();
+            }
+            finally
+            {
+                writer.Dispose();
+            }
+        }
+        else if (kind is TypeKind.None)
+        {
+            IFormatter<T> formatter = FormatterProvider.Get<T>();
+            DataWriter writer = (size > 512) ? new(size) : new(512);
+
+            try
+            {
+                formatter.Serialize(ref writer, value);
+
+                Debug.WriteLine(
+                    $"Serialized fixed-size type {typeof(T).FullName} into {writer.WrittenCount} bytes.");
+
+                return writer.ToArray();
+            }
+            finally
+            {
+                writer.Dispose();
+            }
+        }
+        else
+        {
+            throw new SerializationException($"TYPE {typeof(T).FullName} is not serializable.");
+        }
+    }
+
+    /// <summary>
+    /// Serializes an object into the provided span.
+    /// </summary>
+    /// <typeparam name="T">The type of object to serialize.</typeparam>
+    /// <param name="value">The object to serialize.</param>
+    /// <param name="buffer">The target span to write the serialized data into.</param>
+    /// <returns>The number of bytes written into the buffer.</returns>
+    /// <exception cref="SerializationException">
+    /// Thrown if serialization fails or the buffer is too small.
+    /// </exception>
+    /// <exception cref="NotSupportedException">
+    /// Thrown if the type is not supported for span-based serialization.
+    /// </exception>
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int Serialize<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value, byte[] buffer)
+    {
+        ArgumentNullException.ThrowIfNull(buffer);
+
+        // Primitive or unmanaged struct
+        if (!TypeMetadata.IsReferenceOrNullable<T>())
+        {
+            int size = TypeMetadata.SizeOf<T>();
+            if (buffer.Length < size)
+            {
+                throw new SerializationException($"Buffer too small. Required: {size}, Actual: {buffer.Length}");
+            }
+
+            Unsafe.WriteUnaligned(
+                ref MemoryMarshal.GetArrayDataReference(buffer), value);
+
+            return size;
+        }
+
+        // Reference or Nullable/Complex types
+        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int fixedSize);
+
+        if (kind is TypeKind.FixedSizeSerializable)
+        {
+            if (buffer.Length < fixedSize)
+            {
+                throw new SerializationException($"Buffer too small. Required: {fixedSize}, Actual: {buffer.Length}");
+            }
+
+            IFormatter<T> formatter = FormatterProvider.Get<T>();
+            DataWriter writer = new(buffer);
+            try
+            {
+                formatter.Serialize(ref writer, value);
+
+                return writer.WrittenCount;
+            }
+            finally
+            {
+                writer.Dispose();
+            }
+        }
+
+        throw new NotSupportedException(
+            $"Array-based serialization is not supported for type {typeof(T)}. Use Serialize<T>(in T) to get byte[] instead.");
+    }
+
+    /// <summary>
+    /// Serializes an object into the provided span.
+    /// </summary>
+    /// <typeparam name="T">The type of object to serialize.</typeparam>
+    /// <param name="value">The object to serialize.</param>
+    /// <param name="buffer">The target span to write the serialized data into.</param>
+    /// <returns>The number of bytes written into the buffer.</returns>
+    /// <exception cref="SerializationException">
+    /// Thrown if serialization fails or the buffer is too small.
+    /// </exception>
+    /// <exception cref="NotSupportedException">
+    /// Thrown if the type is not supported for span-based serialization.
+    /// </exception>
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int Serialize<
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.All)] T>(in T value, Span<byte> buffer)
+    {
+        // ── Case 1: Primitive / unmanaged struct ──────────────────────────────────
+        // T is a plain value type with no references (e.g. int, float, custom struct).
+        // Write the value directly into the span using unaligned write for performance.
+        if (!TypeMetadata.IsReferenceOrNullable<T>())
+        {
+            int size = TypeMetadata.SizeOf<T>();
+
+            if (buffer.Length < size)
+            {
+                throw new SerializationException(
+                    $"Buffer too small for unmanaged type '{typeof(T)}'. " +
+                    $"Required: {size}, Actual: {buffer.Length}.");
+            }
+
+            Unsafe.WriteUnaligned(
+                ref MemoryMarshal.GetReference(buffer), value);
+
+            return size;
+        }
+
+        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int fixedSize);
+
+        // ── Case 2: Unmanaged single-dimensional array ────────────────────────────
+        // T is something like int[], byte[], float[].
+        // Layout: [4-byte length prefix][element data...]
+        // Special cases: null  → NullArrayMarker  [255,255,255,255]
+        //                empty → EmptyArrayMarker [0,0,0,0]
+        if (kind is TypeKind.UnmanagedSZArray)
+        {
+            if (value is null)
+            {
+                // Write null-array marker (4 bytes: 0xFF 0xFF 0xFF 0xFF)
+                if (buffer.Length < 4)
+                {
+                    throw new SerializationException(
+                        $"Buffer too small to write null-array marker for type '{typeof(T)}'. " +
+                        $"Required: 4, Actual: {buffer.Length}.");
+                }
+
+                SerializerBounds.NullArrayMarker.CopyTo(buffer);
+                return 4;
+            }
+
+            Array array = (Array)(object)value;
+            int length = array.Length;
+
+            if (length == 0)
+            {
+                // Write empty-array marker (4 bytes: 0x00 0x00 0x00 0x00)
+                if (buffer.Length < 4)
+                {
+                    throw new SerializationException(
+                        $"Buffer too small to write empty-array marker for type '{typeof(T)}'. " +
+                        $"Required: 4, Actual: {buffer.Length}.");
+                }
+
+                SerializerBounds.EmptyArrayMarker.CopyTo(buffer);
+                return 4;
+            }
+
+            int dataSize = fixedSize * length;
+            int totalSize = dataSize + 4; // 4-byte length prefix
+
+            if (buffer.Length < totalSize)
+            {
+                throw new SerializationException(
+                    $"Buffer too small for array of type '{typeof(T)}'. " +
+                    $"Required: {totalSize} (4-byte prefix + {dataSize} data), Actual: {buffer.Length}.");
+            }
+
+            // Write the element count as a 4-byte little-endian prefix
+            Unsafe.WriteUnaligned(
+                ref MemoryMarshal.GetReference(buffer), length);
+
+            // Bulk-copy all element bytes directly into the span (after the prefix)
+            Unsafe.CopyBlockUnaligned(
+                ref Unsafe.Add(
+                    ref MemoryMarshal.GetReference(buffer), 4),
+                ref MemoryMarshal.GetArrayDataReference(array),
+                (uint)dataSize);
+
+            return totalSize;
+        }
+
+        // ── Case 3: Fixed-size serializable (implements IFixedSizeSerializable) ───
+        // T declares a compile-time-known byte size via IFixedSizeSerializable.Size.
+        // We can safely wrap the caller's span in a DataWriter without the risk of Expand().
+        if (kind is TypeKind.FixedSizeSerializable)
+        {
+            if (buffer.Length < fixedSize)
+            {
+                throw new SerializationException(
+                    $"Buffer too small for fixed-size type '{typeof(T)}'. " +
+                    $"Required: {fixedSize}, Actual: {buffer.Length}.");
+            }
+
+            // DataWriter(Span<byte>) wraps the span directly — zero allocation, no pool renting.
+            // The formatter must not write more than fixedSize bytes, so Expand() is never called.
+
+            DataWriter writer = new(buffer);
+            FormatterProvider.Get<T>().Serialize(ref writer, value);
+            return writer.WrittenCount;
+        }
+
+        // ── Case 4: TypeKind.None — variable-length / composite types ────────────
+        // Cannot determine required buffer size at compile time.
+        // Wrap the caller's span directly in DataWriter — zero allocation, no intermediate copy.
+        // If the formatter writes more than buffer.Length, DataWriter will throw InvalidOperationException
+        // (because Span-based DataWriter cannot Expand()).
+        if (kind is TypeKind.None)
+        {
+            IFormatter<T> formatter = FormatterProvider.Get<T>();
+
+            // DataWriter(Span<byte>) wraps the span directly — no renting, no pool.
+            // Expand() is disabled: if formatter overflows, it throws InvalidOperationException.
+            DataWriter writer = new(buffer);
+
+            try
+            {
+                formatter.Serialize(ref writer, value);
+                return writer.WrittenCount;
+            }
+            finally
+            {
+                writer.Dispose();
+            }
+        }
+
+        throw new NotSupportedException(
+            $"Span<byte> serialization is not supported for variable-length type '{typeof(T).FullName}'. Use Serialize<T>(in T value) to obtain a byte[] instead.");
+    }
+
+    /// <summary>
+    /// Deserializes an object from a byte array.
+    /// </summary>
+    /// <typeparam name="T">The type of object to deserialize.</typeparam>
+    /// <param name="buffer">The byte array containing serialized data.</param>
+    /// <param name="value">The reference to the object where deserialized data will be stored.</param>
+    /// <returns>The number of bytes read during deserialization.</returns>
+    /// <exception cref="SerializationException">
+    /// Thrown if deserialization encounters an error or if there is insufficient data in the buffer.
+    /// </exception>
+    /// <exception cref="ArgumentException">Thrown if the buffer is empty.</exception>
+    [Pure]
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public static int Deserialize<[
+        DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(
+        ReadOnlySpan<byte> buffer, ref T value)
+    {
+        if (buffer.IsEmpty)
+        {
+            throw new ArgumentException(
+                $"Cannot deserialize type '{typeof(T)}' from an empty buffer.",
+                nameof(buffer)
+            );
+        }
+
+        if (!TypeMetadata.IsReferenceOrNullable<T>())
+        {
+            if (buffer.Length < TypeMetadata.SizeOf<T>())
+            {
+                throw new SerializationException(
+                    $"Insufficient buffer size for unmanaged type '{typeof(T)}'. " +
+                    $"Expected {TypeMetadata.SizeOf<T>()} bytes but got {buffer.Length} bytes."
+                );
+            }
+            value = Unsafe.ReadUnaligned<T>(
+                ref MemoryMarshal.GetReference(buffer));
+
+            return Unsafe.SizeOf<T>();
+        }
+
+        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
+
+        if (kind is TypeKind.UnmanagedSZArray)
+        {
+            if (IsNullArrayMarker(buffer))
+            {
+                value = (T)(object)null!;
+                return 4;
+            }
+
+            Type elementType = typeof(T).GetElementType()
+                ?? throw new SerializationException(
+                    $"TYPE '{typeof(T)}' is expected to be an array, but element type could not be resolved."
+                );
+
+            if (IsEmptyArrayMarker(buffer))
+            {
+                value = (T)(object)Array.CreateInstance(elementType, 0);
+                return 4;
+            }
+
+            if (buffer.Length < 4)
+            {
+                throw new SerializationException(
+                    $"Buffer too small to contain array length prefix for type '{typeof(T)}'."
+                );
+            }
+
+            int length = Unsafe.ReadUnaligned<int>(
+                ref MemoryMarshal.GetReference(buffer));
+
+            int dataSize = size * length;
+            if (buffer.Length < dataSize + 4)
+            {
+                throw new SerializationException(
+                    $"Insufficient buffer size for array data. Expected {dataSize + 4} bytes " +
+                    $"(including length prefix), but got {buffer.Length} bytes."
+                );
+            }
+
+            Array arr = Array.CreateInstance(elementType, length);
+            ref byte dest = ref MemoryMarshal.GetArrayDataReference(arr);
+
+            Unsafe.CopyBlockUnaligned(
+                ref dest,
+                ref Unsafe.Add(
+                ref MemoryMarshal.GetReference(buffer), 4), (uint)dataSize);
+
+            value = (T)(object)arr;
+            return dataSize + 4;
+        }
+
+        IFormatter<T> formatter = FormatterProvider.Get<T>();
+        DataReader reader = new(buffer);
+        value = formatter.Deserialize(ref reader);
+        return EqualityComparer<T?>.Default.Equals(value, default)
+            ? throw new SerializationException($"Deserialization of type '{typeof(T)}' resulted in null value.")
+            : reader.BytesRead;
+    }
+
+    /// <summary>
+    /// Deserializes an object from a byte array.
+    /// </summary>
+    /// <typeparam name="T">The type of object to deserialize.</typeparam>
+    /// <param name="buffer">The byte array containing serialized data.</param>
+    /// <param name="value">The reference to the object where deserialized data will be stored.</param>
+    /// <returns>The number of bytes read during deserialization.</returns>
+    /// <exception cref="SerializationException">
+    /// Thrown if deserialization encounters an error or if there is insufficient data in the buffer.
+    /// </exception>
+    /// <exception cref="ArgumentException"></exception>
+    [Pure]
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
+    public static T Deserialize<[
+        DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(
+        ReadOnlySpan<byte> buffer, out int value)
+    {
+        if (buffer.IsEmpty)
+        {
+            throw new ArgumentException($"Cannot deserialize type '{typeof(T)}' from an empty buffer.", nameof(buffer));
+        }
+
+        if (!TypeMetadata.IsReferenceOrNullable<T>())
+        {
+            if (buffer.Length < TypeMetadata.SizeOf<T>())
+            {
+                throw new SerializationException(
+                    $"Insufficient buffer size for unmanaged type '{typeof(T)}'. " +
+                    $"Expected {TypeMetadata.SizeOf<T>()} bytes but got {buffer.Length} bytes."
+                );
+            }
+            value = Unsafe.SizeOf<T>();
+
+            return Unsafe.ReadUnaligned<T>(
+                ref MemoryMarshal.GetReference(buffer));
+        }
+
+        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
+
+        if (kind is TypeKind.UnmanagedSZArray)
+        {
+            if (IsNullArrayMarker(buffer))
+            {
+                value = 4;
+                return default;
+            }
+
+            Type elementType = typeof(T).GetElementType()
+                ?? throw new SerializationException(
+                    $"TYPE '{typeof(T)}' is expected to be an array, but element type could not be resolved."
+                );
+
+            if (IsEmptyArrayMarker(buffer))
+            {
+                value = 4;
+                return (T)(object)Array.CreateInstance(elementType, 0);
+            }
+
+            if (buffer.Length < 4)
+            {
+                throw new SerializationException(
+                    $"Buffer too small to contain array length prefix for type '{typeof(T)}'."
+                );
+            }
+
+            int length = Unsafe.ReadUnaligned<int>(
+                ref MemoryMarshal.GetReference(buffer));
+
+            int dataSize = size * length;
+            if (buffer.Length < dataSize + 4)
+            {
+                throw new SerializationException(
+                    $"Insufficient buffer size for array data. Expected {dataSize + 4} bytes " +
+                    $"(including length prefix), but got {buffer.Length} bytes."
+                );
+            }
+
+            Array arr = Array.CreateInstance(elementType, length);
+            ref byte dest = ref MemoryMarshal.GetArrayDataReference(arr);
+
+            Unsafe.CopyBlockUnaligned(
+                ref dest,
+                ref Unsafe.Add(
+                ref MemoryMarshal.GetReference(buffer), 4), (uint)dataSize);
+
+            value = dataSize + 4;
+            return (T)(object)arr;
+        }
+
+        IFormatter<T> formatter = FormatterProvider.Get<T>();
+        DataReader reader = new(buffer);
+
+        T result = formatter.Deserialize(ref reader);
+        value = reader.BytesRead;
+        return result;
+    }
+
+    #endregion APIs
+
+    #region Private Methods
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsNullArrayMarker(ReadOnlySpan<byte> buffer) =>
+        buffer.Length >= 4 &&
+        Unsafe.ReadUnaligned<int>(
+            ref MemoryMarshal.GetReference(buffer)) == -1;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsEmptyArrayMarker(ReadOnlySpan<byte> buffer) =>
+        buffer.Length >= 4 &&
+        Unsafe.ReadUnaligned<int>(
+            ref MemoryMarshal.GetReference(buffer)) == 0;
+
+    #endregion Private Methods
+}

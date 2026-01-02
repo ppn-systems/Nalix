@@ -15,11 +15,11 @@ using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Shared;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Time;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Routing.Results.Primitives;
-using Nalix.Shared.Memory.Buffers;
-using Nalix.Shared.Memory.Objects;
 
 namespace Nalix.Network.Connections;
 
