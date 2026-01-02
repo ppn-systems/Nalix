@@ -287,7 +287,6 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public TClass Get<TClass>() where TClass : ConfigurationLoader, new()
     {
         Lazy<IniConfig> iniSnapshot;
@@ -355,7 +354,6 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public TClass Get<TClass>(string configFilePath, bool autoReload = true)
         where TClass : ConfigurationLoader, new()
     {

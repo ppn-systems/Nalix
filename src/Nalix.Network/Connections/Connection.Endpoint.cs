@@ -50,7 +50,7 @@ public sealed partial class Connection
         [MethodImpl(MethodImplOptions.AggressiveInlining |
             MethodImplOptions.AggressiveOptimization)]
         public static Endpoint FromEndPoint(
-            EndPoint endpoint)
+            EndPoint? endpoint)
         {
             if (endpoint is not IPEndPoint ipEndPoint)
             {
@@ -183,7 +183,7 @@ public sealed partial class Connection
         /// <inheritdoc />
         [Pure]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(INetworkEndpoint other)
+        public bool Equals(INetworkEndpoint? other)
         {
             if (other is null)
             {
@@ -202,7 +202,7 @@ public sealed partial class Connection
         /// <inheritdoc />
         [Pure]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is Endpoint k && Equals(k);
 
         /// <inheritdoc />

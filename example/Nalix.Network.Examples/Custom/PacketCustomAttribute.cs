@@ -11,10 +11,10 @@ namespace Nalix.Network.Examples.Custom;
 /// </remarks>
 /// <param name="tag">Custom tag to attach to the handler.</param>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-public sealed class PacketCustomAttribute(String tag) : Attribute
+public sealed class PacketCustomAttribute(string tag) : Attribute
 {
     /// <summary>
     /// Gets the custom tag value.
     /// </summary>
-    public String Tag { get; } = tag;
+    public string Tag { get; } = tag;
 }

@@ -190,7 +190,6 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <param name="minimumLength"></param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     public byte[] Rent(int minimumLength = 256)
     {
         if (IS_FAST_COMMON_SIZE(minimumLength))
@@ -321,7 +320,6 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <param name="size"></param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     public double GetAllocationForSize(int size)
     {
         if (size > MaxBufferSize)
@@ -367,7 +365,6 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <returns>A string containing the report.</returns>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     public string GenerateReport()
     {
         StringBuilder sb = new();

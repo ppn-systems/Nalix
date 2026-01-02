@@ -58,7 +58,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
     private readonly ConnectionHubOptions _options;
 
-    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>()!;
 
     /// <summary>
     /// Connections statistics for monitoring
@@ -651,7 +651,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <param name="reason">The reason for closing the connections, if any.</param>
     [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
-    public void CloseAllConnections(string reason = null)
+    public void CloseAllConnections(string? reason = null)
     {
         if (_disposed)
         {

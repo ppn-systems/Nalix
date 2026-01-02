@@ -21,7 +21,6 @@ public partial class ConfigurationLoader
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     private static ConfigurationMetadata CreateConfigurationMetadata(Type type)
     {
         List<PropertyMetadata> bindableProperties = [];
@@ -71,6 +70,5 @@ public partial class ConfigurationLoader
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     private static ConfigurationMetadata GetOrCreateMetadata(Type type) => _metadataCache.GetOrAdd(type, CreateConfigurationMetadata);
 }
