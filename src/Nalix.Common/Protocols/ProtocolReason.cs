@@ -164,6 +164,12 @@ public enum ProtocolReason : System.UInt16
     /// </summary>
     OPERATION_UNSUPPORTED = 160,
 
+
+    /// <summary>
+    /// Packet is malformed or does not conform to protocol framing.
+    /// </summary>
+    MALFORMED_PACKET = 161,
+
     #endregion
 
     #region 200–259: Security / AuthN / AuthZ

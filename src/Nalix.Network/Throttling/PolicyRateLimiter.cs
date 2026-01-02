@@ -29,9 +29,9 @@ public static class PolicyRateLimiter
 
     #endregion Const
 
-    private static readonly System.Int32[] RpsTiers;
-    private static readonly System.Int32[] BurstTiers;
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Policy, Entry> s_limiters;
+    private static readonly System.Int32[] BurstTiers = [1, 2, 4, 8, 16, 32, 64];
+    private static readonly System.Int32[] RpsTiers = [1, 2, 4, 8, 16, 32, 64, 128];
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Policy, Entry> s_limiters = new();
     private static readonly TokenBucketOptions s_defaults = ConfigurationManager.Instance.Get<TokenBucketOptions>();
 
     private static System.Int32 s_checkCounter;
@@ -40,27 +40,29 @@ public static class PolicyRateLimiter
 
     private sealed class Entry
     {
+        #region Fields
+
         private System.Int64 _lastUsedUtcTicks;
+
+        #endregion Fields
+
+        #region Properties
+
         public TokenBucketLimiter Limiter { get; }
+
+        public System.Int64 LastUsedUtcTicks => System.Threading.Interlocked.Read(ref _lastUsedUtcTicks);
+
+        #endregion Properties
 
         public Entry(TokenBucketLimiter limiter)
         {
             Limiter = limiter ?? throw new System.ArgumentNullException(nameof(limiter));
-            Touch();
+            this.Touch();
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void Touch() => System.Threading.Interlocked.Exchange(ref _lastUsedUtcTicks, System.DateTime.UtcNow.Ticks);
-
-        public System.Int64 LastUsedUtcTicks => System.Threading.Interlocked.Read(ref _lastUsedUtcTicks);
-    }
-
-    static PolicyRateLimiter()
-    {
-        s_limiters = new();
-        BurstTiers = [1, 2, 4, 8, 16, 32, 64];
-        RpsTiers = [1, 2, 4, 8, 16, 32, 64, 128];
     }
 
     /// <summary>
@@ -155,7 +157,6 @@ public static class PolicyRateLimiter
             }
         }
     }
-
 
     #region Private Methods
 
