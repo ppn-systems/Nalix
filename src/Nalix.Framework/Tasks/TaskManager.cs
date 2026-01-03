@@ -19,8 +19,7 @@ public sealed partial class TaskManager : ITaskManager
 {
     #region Fields
 
-    private static readonly System.TimeSpan CleanupInterval = System.TimeSpan.FromSeconds(30);
-
+    private readonly TaskManagerOptions _options;
     private readonly System.Threading.Timer _cleanupTimer;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, Gate> _groupGates;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, WorkerState> _workers;
@@ -35,8 +34,12 @@ public sealed partial class TaskManager : ITaskManager
     /// <summary>
     /// Initializes a new instance of the <see cref="TaskManager"/> class.
     /// </summary>
-    public TaskManager()
+    /// <param name="options">Optional configuration options for the TaskManager.</param>
+    public TaskManager(TaskManagerOptions? options = null)
     {
+        _options = options ?? new TaskManagerOptions();
+        _options.Validate();
+
         _workers = new();
         _recurring = new();
         _groupGates = new(System.StringComparer.Ordinal);
@@ -45,10 +48,10 @@ public sealed partial class TaskManager : ITaskManager
         {
             var self = (TaskManager)s!;
             self.CLEANUP_WORKERS();
-        }, this, CleanupInterval, CleanupInterval);
+        }, this, _options.CleanupInterval, _options.CleanupInterval);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Meta($"[FW.{nameof(TaskManager)}] init");
+                                .Meta($"[FW.{nameof(TaskManager)}] init cleanupInterval={_options.CleanupInterval.TotalSeconds:F0}s");
     }
 
     #endregion Ctors
@@ -215,7 +218,11 @@ public sealed partial class TaskManager : ITaskManager
                             {
                                 cts.Dispose();
                             }
-                            catch { }
+                            catch (System.Exception ex)
+                            {
+                                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                        .Warn($"[FW.{nameof(TaskManager)}] cts-dispose-error-reject id={id} msg={ex.Message}");
+                            }
 
                             return;
                         }
@@ -280,7 +287,11 @@ public sealed partial class TaskManager : ITaskManager
                     {
                         _ = gate.SemaphoreSlim.Release();
                     }
-                    catch { }
+                    catch (System.Exception ex)
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Warn($"[FW.{nameof(TaskManager)}] gate-release-error id={id} msg={ex.Message}");
+                    }
                 }
 
                 this.RETAIN_OR_REMOVE(st);
@@ -317,8 +328,18 @@ public sealed partial class TaskManager : ITaskManager
             {
                 _ = t.ContinueWith(_ =>
                     {
-                        try { st.CancellationTokenSource.Dispose(); } catch { }
-                        try { st.Gate.Dispose(); } catch { }
+                        try { st.CancellationTokenSource.Dispose(); }
+                        catch (System.Exception ex)
+                        {
+                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error name={name} msg={ex.Message}");
+                        }
+                        try { st.Gate.Dispose(); }
+                        catch (System.Exception ex)
+                        {
+                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error name={name} msg={ex.Message}");
+                        }
                     },
                     System.Threading.CancellationToken.None,
                     System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously,
@@ -331,12 +352,20 @@ public sealed partial class TaskManager : ITaskManager
                 {
                     st.CancellationTokenSource.Dispose();
                 }
-                catch { }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error-sync name={name} msg={ex.Message}");
+                }
                 try
                 {
                     st.Gate.Dispose();
                 }
-                catch { }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error-sync name={name} msg={ex.Message}");
+                }
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -368,7 +397,11 @@ public sealed partial class TaskManager : ITaskManager
                 {
                     st.Cts.Dispose();
                 }
-                catch { }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] cts-dispose-error id={id} msg={ex.Message}");
+                }
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -639,7 +672,15 @@ public sealed partial class TaskManager : ITaskManager
 
         _disposed = true;
 
-        try { _cleanupTimer?.Dispose(); } catch { }
+        try
+        {
+            _cleanupTimer?.Dispose();
+        }
+        catch (System.Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] cleanup-timer-dispose-error msg={ex.Message}");
+        }
 
         foreach (System.Collections.Generic.KeyValuePair<System.String, RecurringState> kv in _recurring)
         {
@@ -651,8 +692,18 @@ public sealed partial class TaskManager : ITaskManager
             {
                 _ = t.ContinueWith(_ =>
                     {
-                        try { st.CancellationTokenSource.Dispose(); } catch { }
-                        try { st.Gate.Dispose(); } catch { }
+                        try { st.CancellationTokenSource.Dispose(); }
+                        catch (System.Exception ex)
+                        {
+                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] recurring-cts-dispose-error name={st.Name} msg={ex.Message}");
+                        }
+                        try { st.Gate.Dispose(); }
+                        catch (System.Exception ex)
+                        {
+                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] recurring-gate-dispose-error name={st.Name} msg={ex.Message}");
+                        }
                     },
                     System.Threading.CancellationToken.None,
                     System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously,
@@ -665,12 +716,20 @@ public sealed partial class TaskManager : ITaskManager
                 {
                     st.CancellationTokenSource.Dispose();
                 }
-                catch { }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] recurring-cts-dispose-error-sync name={st.Name} msg={ex.Message}");
+                }
                 try
                 {
                     st.Gate.Dispose();
                 }
-                catch { }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] recurring-gate-dispose-error-sync name={st.Name} msg={ex.Message}");
+                }
             }
         }
 
@@ -686,7 +745,11 @@ public sealed partial class TaskManager : ITaskManager
                 {
                     st.Cts.Dispose();
                 }
-                catch { }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-cts-dispose-error id={st.Id} msg={ex.Message}");
+                }
             }
             else if (t is not null)
             {
@@ -696,7 +759,11 @@ public sealed partial class TaskManager : ITaskManager
                     {
                         st.Cts.Dispose();
                     }
-                    catch { }
+                    catch (System.Exception ex)
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-cts-dispose-error-async id={st.Id} msg={ex.Message}");
+                    }
                 }, System.Threading.CancellationToken.None,
                 System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously,
                 System.Threading.Tasks.TaskScheduler.Default);
@@ -707,7 +774,11 @@ public sealed partial class TaskManager : ITaskManager
                 {
                     st.Cts.Dispose();
                 }
-                catch { }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-cts-dispose-error-notask id={st.Id} msg={ex.Message}");
+                }
             }
         }
 
@@ -719,7 +790,11 @@ public sealed partial class TaskManager : ITaskManager
             {
                 g.Value.SemaphoreSlim.Dispose();
             }
-            catch { }
+            catch (System.Exception ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] gate-dispose-error group={g.Key} msg={ex.Message}");
+            }
         }
 
         _groupGates.Clear();

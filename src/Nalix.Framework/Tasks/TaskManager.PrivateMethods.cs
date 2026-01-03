@@ -58,7 +58,15 @@ public partial class TaskManager
 
                 if (_workers.TryRemove(st.Id, out _))
                 {
-                    try { st.Cts.Dispose(); } catch { }
+                    try
+                    {
+                        st.Cts.Dispose();
+                    }
+                    catch (System.Exception ex)
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Warn($"[FW.{nameof(TaskManager)}] cleanup-cts-dispose-error id={st.Id} msg={ex.Message}");
+                    }
                 }
             }
         }
@@ -193,7 +201,15 @@ public partial class TaskManager
                 {
                     if (s.Options.NonReentrant)
                     {
-                        try { _ = s.Gate.Release(); } catch { /* ignore during shutdown */ }
+                        try
+                        {
+                            _ = s.Gate.Release();
+                        }
+                        catch (System.Exception ex)
+                        {
+                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                    .Warn($"[FW.{nameof(TaskManager)}:Internal] gate-release-error name={s.Name} msg={ex.Message}");
+                        }
                     }
                     next += step;
                 }
@@ -270,7 +286,11 @@ public partial class TaskManager
             {
                 st.Cts.Dispose();
             }
-            catch { }
+            catch (System.Exception ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[FW.{nameof(TaskManager)}] retain-cts-dispose-error id={st.Id} msg={ex.Message}");
+            }
 
             System.Boolean hasSameGroup = false;
             foreach (WorkerState other in _workers.Values)
@@ -284,7 +304,15 @@ public partial class TaskManager
 
             if (!hasSameGroup && _groupGates.TryRemove(st.Group, out Gate? g))
             {
-                try { g.SemaphoreSlim.Dispose(); } catch { }
+                try
+                {
+                    g.SemaphoreSlim.Dispose();
+                }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[FW.{nameof(TaskManager)}] gate-dispose-error-retain group={st.Group} msg={ex.Message}");
+                }
             }
 
             return;
