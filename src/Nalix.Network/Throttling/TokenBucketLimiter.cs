@@ -74,6 +74,8 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         public System.Int64 MicroBalance;         // fixed-point: tokens * TokenScale
         public System.Int64 HardBlockedUntilSw;   // 0 if not hard-blocked
         public System.Int64 LastSeenSw;           // for cleanup
+        public System.Int32 SoftViolations;
+        public System.Int64 LastViolationSw;
     }
 
     /// <summary>A shard contains a dictionary of endpoint states and a shard-level lock for map mutation.</summary>
@@ -236,6 +238,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             // If enough for 1 token (TokenScale micro), consume and allow
             if (state.MicroBalance >= _opt.TokenScale)
             {
+                state.SoftViolations = 0;
                 state.MicroBalance -= _opt.TokenScale;
                 System.UInt16 credit = GetCredit(state.MicroBalance, _opt.TokenScale);
 
@@ -256,19 +259,41 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             // Not enough: compute soft retry-after
             System.Int64 needed = _opt.TokenScale - state.MicroBalance;
             System.Int32 retryMs = ComputeRetryMsForMicro(needed);
+            System.Int64 windowTicks = ToSwTicks(_opt.SoftViolationWindowSeconds);
 
-            // Optional: set hard block window
-            if (_opt.HardLockoutSeconds > 0)
+            if (now - state.LastViolationSw <= windowTicks)
+            {
+                state.SoftViolations++;
+            }
+            else
+            {
+                state.SoftViolations = 1;
+            }
+
+            state.LastViolationSw = now;
+
+            // Escalate to hard lock
+            if (state.SoftViolations >= _opt.MaxSoftViolations)
             {
                 state.HardBlockedUntilSw = now + ToSwTicks(_opt.HardLockoutSeconds);
+                state.SoftViolations = 0;
+
+                return new LimitDecision
+                {
+                    Allowed = false,
+                    RetryAfterMs = ComputeMs(now, state.HardBlockedUntilSw),
+                    Credit = GetCredit(state.MicroBalance, _opt.TokenScale),
+                    Reason = RateLimitReason.HardLockout
+                };
             }
+
 
             return new LimitDecision
             {
                 Allowed = false,
-                RetryAfterMs = retryMs,
+                RetryAfterMs = ComputeRetryMsForMicro(needed),
                 Credit = GetCredit(state.MicroBalance, _opt.TokenScale),
-                Reason = _opt.HardLockoutSeconds > 0 ? RateLimitReason.HardLockout : RateLimitReason.SoftThrottle
+                Reason = RateLimitReason.SoftThrottle
             };
         }
     }

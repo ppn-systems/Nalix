@@ -42,7 +42,7 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// Use this to enforce stricter penalties on abusive clients.
     /// Default is 0 (disabled).
     /// </remarks>
-    public System.Int32 HardLockoutSeconds { get; set; } = 0;
+    public System.Int32 HardLockoutSeconds { get; set; } = 30;
 
     /// <summary>
     /// Gets or sets the duration in seconds after which an idle endpoint entry
@@ -81,4 +81,32 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// Default is 32.
     /// </remarks>
     public System.Int32 ShardCount { get; set; } = 32;
+
+    /// <summary>
+    /// Gets or sets the time window in seconds for tracking soft rate limit violations.
+    /// </summary>
+    /// <remarks>
+    /// Determines the period during which soft violations are counted before escalation.
+    /// Default is 5 seconds.
+    /// </remarks>
+    public System.Int32 SoftViolationWindowSeconds { get; set; } = 5;
+
+    /// <summary>
+    /// Gets or sets the maximum number of soft violations allowed within the soft violation window before escalation.
+    /// </summary>
+    /// <remarks>
+    /// If the number of soft violations within <see cref="SoftViolationWindowSeconds"/> exceeds this value,
+    /// stricter rate limiting or penalties may be applied.
+    /// Default is 3.
+    /// </remarks>
+    public System.Int32 MaxSoftViolations { get; set; } = 3;
+
+    /// <summary>
+    /// Gets or sets the cooldown reset duration in seconds.
+    /// </summary>
+    /// <remarks>
+    /// After a hard or soft violation, this value determines how long before the violation count or lockout state is reset.
+    /// Default is 10 seconds.
+    /// </remarks>
+    public System.Int32 CooldownResetSec { get; set; } = 10;
 }

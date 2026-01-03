@@ -29,14 +29,18 @@ public static class PolicyRateLimiter
 
     #endregion Const
 
-    private static readonly System.Int32[] BurstTiers = [1, 2, 4, 8, 16, 32, 64];
-    private static readonly System.Int32[] RpsTiers = [1, 2, 4, 8, 16, 32, 64, 128];
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Policy, Entry> s_limiters = new();
-    private static readonly TokenBucketOptions s_defaults = ConfigurationManager.Instance.Get<TokenBucketOptions>();
+    #region Fields
 
     private static System.Int32 s_checkCounter;
 
-    private readonly record struct Policy(System.Int32 Rps, System.Int32 Burst);
+    private static readonly System.Int32[] s_burstTiers = [1, 2, 4, 8, 16, 32, 64];
+    private static readonly System.Int32[] s_rpsTiers = [1, 2, 4, 8, 16, 32, 64, 128];
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Policy, Entry> s_limiters = new();
+    private static readonly TokenBucketOptions s_defaults = ConfigurationManager.Instance.Get<TokenBucketOptions>();
+
+    #endregion Fields
+
+    #region Private Types
 
     private sealed class Entry
     {
@@ -65,6 +69,12 @@ public static class PolicyRateLimiter
         public void Touch() => System.Threading.Interlocked.Exchange(ref _lastUsedUtcTicks, System.DateTime.UtcNow.Ticks);
     }
 
+    private readonly record struct Policy(System.Int32 Rps, System.Int32 Burst);
+
+    #endregion Private Types
+
+    #region Public API
+
     /// <summary>
     /// Try consuming a token for a given opcode and endpoint, under the supplied attribute policy.
     /// </summary>
@@ -90,18 +100,18 @@ public static class PolicyRateLimiter
         }
 
         // 1) Quantize policy
-        System.Int32 rps = Quantize(rl.RequestsPerSecond, RpsTiers);
-        System.Int32 burst = Quantize(rl.Burst, BurstTiers);
+        System.Int32 rps = Quantize(rl.RequestsPerSecond, s_rpsTiers);
+        System.Int32 burst = Quantize(rl.Burst, s_burstTiers);
         Policy policy = new(rps, burst);
 
         // 2) Get or add limiter with hard cap
         TokenBucketLimiter limiter = GetOrAddLimiter(policy);
-        TokenBucketLimiter.LimitDecision decision = limiter.Check(new CompositeEndpointKey(opCode, context.Connection.EndPoint));
+        TokenBucketLimiter.LimitDecision decision = limiter.Check(new RateLimitSubject(opCode, context.Connection.EndPoint));
 
         // 4) Opportunistic sweeping
         if ((System.Threading.Interlocked.Increment(ref s_checkCounter) & (SweepEveryNChecks - 1)) == 0)
         {
-            SweepStale();
+            EvictStalePolicies();
         }
 
         return decision;
@@ -142,9 +152,9 @@ public static class PolicyRateLimiter
     /// </summary>
     public static void Shutdown()
     {
-        foreach (var (policy, _) in s_limiters)
+        foreach ((Policy policy, Entry _) in s_limiters)
         {
-            if (s_limiters.TryRemove(policy, out var removed))
+            if (s_limiters.TryRemove(policy, out Entry removed))
             {
                 try
                 {
@@ -158,9 +168,11 @@ public static class PolicyRateLimiter
         }
     }
 
+    #endregion Public API
+
     #region Private Methods
 
-    private readonly struct CompositeEndpointKey(System.UInt16 op, INetworkEndpoint inner) : INetworkEndpoint, System.IEquatable<CompositeEndpointKey>
+    private readonly struct RateLimitSubject(System.UInt16 op, INetworkEndpoint inner) : INetworkEndpoint, System.IEquatable<RateLimitSubject>
     {
         private readonly System.UInt16 _op = op;
         private readonly INetworkEndpoint _inner = inner;
@@ -169,9 +181,9 @@ public static class PolicyRateLimiter
 
         public override System.Int32 GetHashCode() => System.HashCode.Combine(_op, _inner);
 
-        public System.Boolean Equals(CompositeEndpointKey obj) => _op == obj._op && Equals(_inner, obj._inner);
+        public System.Boolean Equals(RateLimitSubject obj) => _op == obj._op && Equals(_inner, obj._inner);
 
-        public override System.Boolean Equals(System.Object obj) => obj is CompositeEndpointKey other && Equals(other);
+        public override System.Boolean Equals(System.Object obj) => obj is RateLimitSubject other && Equals(other);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -188,7 +200,7 @@ public static class PolicyRateLimiter
         // If over cap, map-nearest instead of creating a new one
         if (s_limiters.Count is >= MaxPolicies and > 0)
         {
-            Policy nearest = FindNearestPolicy(policy);
+            Policy nearest = SelectClosestPolicy(policy);
             if (s_limiters.TryGetValue(nearest, out var reused))
             {
                 reused.Touch();
@@ -197,7 +209,7 @@ public static class PolicyRateLimiter
         }
 
         // Create new limiter
-        TokenBucketOptions opt = BuildOptions(policy);
+        TokenBucketOptions opt = CreateOptionsForPolicy(policy);
         Entry created = new(new TokenBucketLimiter(opt));
         Entry actual = s_limiters.GetOrAdd(policy, created);
         if (!ReferenceEquals(actual, created))
@@ -217,7 +229,7 @@ public static class PolicyRateLimiter
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static Policy FindNearestPolicy(Policy wanted)
+    private static Policy SelectClosestPolicy(Policy wanted)
     {
         Policy nearest = default;
         System.Int32 best = System.Int32.MaxValue;
@@ -235,7 +247,7 @@ public static class PolicyRateLimiter
         return nearest;
     }
 
-    private static TokenBucketOptions BuildOptions(Policy p)
+    private static TokenBucketOptions CreateOptionsForPolicy(Policy p)
     {
         // Reuse your s_defaults but apply p.Rps/p.Burst
         TokenBucketOptions d = s_defaults;
@@ -254,7 +266,7 @@ public static class PolicyRateLimiter
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void SweepStale()
+    private static void EvictStalePolicies()
     {
         System.Int64 now = System.DateTime.UtcNow.Ticks;
         foreach (var (policy, entry) in s_limiters)
