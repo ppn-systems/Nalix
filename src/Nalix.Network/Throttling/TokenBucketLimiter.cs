@@ -9,6 +9,11 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Configurations;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+#endif
+
 namespace Nalix.Network.Throttling;
 
 /// <summary>
@@ -88,6 +93,25 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
     #endregion Private Types
 
+    #region Constants
+
+    /// <summary>
+    /// Check frequency for cancellation token during cleanup operations (every N items).
+    /// </summary>
+    private const System.Int32 CancellationCheckFrequency = 256;
+
+    /// <summary>
+    /// Minimum initial capacity for report snapshot list.
+    /// </summary>
+    private const System.Int32 MinReportCapacity = 256;
+
+    /// <summary>
+    /// Maximum initial capacity for eviction candidate list to prevent excessive allocation.
+    /// </summary>
+    private const System.Int32 MaxEvictionCapacity = 4096;
+
+    #endregion Constants
+
     #region Fields
 
     private readonly System.Int32 _cleanupIntervalSec;
@@ -103,6 +127,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     private readonly ILogger _logger;
 
     private System.Boolean _disposed;
+    private System.Int32 _totalEndpointCount; // Track total endpoints across all shards
 
     #endregion Fields
 
@@ -128,6 +153,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         }
 
         _cleanupIntervalSec = _opt.CleanupIntervalSeconds;
+        _totalEndpointCount = 0;
         _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
@@ -151,7 +177,8 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}] init cap={_opt.CapacityTokens} " +
                        $"refill={_opt.RefillTokensPerSecond}/s scale={_opt.TokenScale} " +
                        $"shards={_opt.ShardCount} stale_s={_opt.StaleEntrySeconds} " +
-                       $"cleanup_s={_opt.CleanupIntervalSeconds} hardlock_s={_opt.HardLockoutSeconds}");
+                       $"cleanup_s={_opt.CleanupIntervalSeconds} hardlock_s={_opt.HardLockoutSeconds} " +
+                       $"max_endpoints={_opt.MaxTrackedEndpoints}");
 
     }
 
@@ -174,6 +201,11 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     {
         System.ObjectDisposedException.ThrowIf(_disposed, nameof(TokenBucketLimiter));
 
+        if (key is null)
+        {
+            throw new System.ArgumentNullException(nameof(key), "Endpoint cannot be null");
+        }
+
         if (System.String.IsNullOrEmpty(key.Address))
         {
             throw new System.ArgumentException("Endpoint address cannot be null or empty", nameof(key));
@@ -188,6 +220,25 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         // Fast-path: endpoint already tracked
         if (!map.TryGetValue(key, out EndpointState state))
         {
+            // Check if we've reached the endpoint limit before creating new state
+            if (_opt.MaxTrackedEndpoints > 0)
+            {
+                System.Int32 currentCount = System.Threading.Interlocked.CompareExchange(ref _totalEndpointCount, 0, 0);
+                if (currentCount >= _opt.MaxTrackedEndpoints)
+                {
+                    _logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] endpoint-limit-reached count={currentCount} limit={_opt.MaxTrackedEndpoints}");
+                    
+                    // Return a hard lockout decision for new endpoints when limit reached
+                    return new LimitDecision
+                    {
+                        Allowed = false,
+                        RetryAfterMs = _opt.HardLockoutSeconds * 1000,
+                        Credit = 0,
+                        Reason = RateLimitReason.HardLockout
+                    };
+                }
+            }
+
             // Slow-path: create new state
             state = new EndpointState
             {
@@ -205,12 +256,13 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             else
             {
                 isNew = true;
+                _ = System.Threading.Interlocked.Increment(ref _totalEndpointCount);
             }
         }
 
         if (isNew)
         {
-            _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:Internal] new-endpoint ep={key.Address}");
+            _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:Internal] new-endpoint total={_totalEndpointCount}");
         }
 
         lock (state.Gate)
@@ -221,7 +273,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             if (state.HardBlockedUntilSw > now)
             {
                 System.Int32 retryMsHard = ComputeMs(now, state.HardBlockedUntilSw);
-                _logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] hard-blocked ep={key.Address} retry_ms={retryMsHard}");
+                _logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] hard-blocked retry_ms={retryMsHard}");
 
                 return new LimitDecision
                 {
@@ -244,7 +296,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
                 if (credit <= 1)
                 {
-                    _logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] allow ep={key.Address} credit={credit}");
+                    _logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] allow credit={credit}");
                 }
 
                 return new LimitDecision
@@ -307,17 +359,25 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public System.String GenerateReport()
     {
-        // Snapshot all endpoints into a single list (allocation-bounded by map sizes).
-        var snapshot = new System.Collections.Generic.List<
-            System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>>(1024);
-
         System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
         System.Int32 shardCount = _shards.Length;
         System.Int32 totalEndpoints = 0;
         System.Int32 hardBlockedCount = 0;
 
-        // Collect a consistent snapshot
-        for (System.Int32 i = 0; i < shardCount; i++)
+        // Use ListPool to reduce allocations - rent a list for snapshot
+        // Dynamic capacity based on current endpoint count or shard-based estimation
+        System.Int32 currentCount = System.Threading.Interlocked.CompareExchange(ref _totalEndpointCount, 0, 0);
+        System.Int32 estimatedCapacity = currentCount > 0 ? currentCount : (shardCount * 8);
+        System.Int32 initialCapacity = System.Math.Max(MinReportCapacity, estimatedCapacity);
+
+        var pool = Nalix.Shared.Memory.Pools.ListPool<
+            System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>>.Instance;
+        var snapshot = pool.Rent(minimumCapacity: initialCapacity);
+
+        try
+        {
+            // Collect a consistent snapshot
+            for (System.Int32 i = 0; i < shardCount; i++)
         {
             var map = _shards[i].Map;
             totalEndpoints += map.Count;
@@ -389,6 +449,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         _ = sb.AppendLine($"HardLockoutSeconds  : {this._opt.HardLockoutSeconds}");
         _ = sb.AppendLine($"StaleEntrySeconds   : {this._opt.StaleEntrySeconds}");
         _ = sb.AppendLine($"CleanupIntervalSecs : {this._opt.CleanupIntervalSeconds}");
+        _ = sb.AppendLine($"MaxTrackedEndpoints : {this._opt.MaxTrackedEndpoints}");
         _ = sb.AppendLine($"TrackedEndpoints    : {totalEndpoints}");
         _ = sb.AppendLine($"HardBlockedCount    : {hardBlockedCount}");
         _ = sb.AppendLine();
@@ -451,6 +512,12 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         _ = sb.AppendLine("-------------------------------------------------------------------------------");
         return sb.ToString();
+        }
+        finally
+        {
+            // Return the list to the pool to reduce allocations
+            pool.Return(snapshot, clearItems: true);
+        }
     }
 
     #endregion Public API
@@ -548,28 +615,58 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     {
         if (opt.CapacityTokens <= 0)
         {
-            throw new InternalErrorException($"{nameof(TokenBucketOptions.CapacityTokens)} must be > 0");
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.CapacityTokens)} must be > 0, got {opt.CapacityTokens}");
         }
 
         if (opt.RefillTokensPerSecond <= 0)
         {
-            throw new InternalErrorException($"{nameof(TokenBucketOptions.RefillTokensPerSecond)} must be > 0");
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.RefillTokensPerSecond)} must be > 0, got {opt.RefillTokensPerSecond}");
         }
 
         if (opt.TokenScale <= 0)
         {
-            throw new InternalErrorException($"{nameof(TokenBucketOptions.TokenScale)} must be > 0");
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.TokenScale)} must be > 0, got {opt.TokenScale}");
         }
 
         // ShardCount must be power-of-two for bit-mask; adjust if needed.
         if (opt.ShardCount <= 0)
         {
-            throw new InternalErrorException($"{nameof(TokenBucketOptions.ShardCount)} must be > 0");
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.ShardCount)} must be > 0, got {opt.ShardCount}");
         }
 
         if ((opt.ShardCount & (opt.ShardCount - 1)) != 0)
         {
-            throw new InternalErrorException($"{nameof(TokenBucketOptions.ShardCount)} must be a power of two (e.g., 64)");
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.ShardCount)} must be a power of two (e.g., 32, 64), got {opt.ShardCount}");
+        }
+
+        if (opt.StaleEntrySeconds <= 0)
+        {
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.StaleEntrySeconds)} must be > 0, got {opt.StaleEntrySeconds}");
+        }
+
+        if (opt.CleanupIntervalSeconds <= 0)
+        {
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.CleanupIntervalSeconds)} must be > 0, got {opt.CleanupIntervalSeconds}");
+        }
+
+        if (opt.MaxTrackedEndpoints < 0)
+        {
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.MaxTrackedEndpoints)} must be >= 0, got {opt.MaxTrackedEndpoints}");
+        }
+
+        if (opt.HardLockoutSeconds < 0)
+        {
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.HardLockoutSeconds)} must be >= 0, got {opt.HardLockoutSeconds}");
+        }
+
+        if (opt.SoftViolationWindowSeconds <= 0)
+        {
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.SoftViolationWindowSeconds)} must be > 0, got {opt.SoftViolationWindowSeconds}");
+        }
+
+        if (opt.MaxSoftViolations <= 0)
+        {
+            throw new InternalErrorException($"{nameof(TokenBucketOptions.MaxSoftViolations)} must be > 0, got {opt.MaxSoftViolations}");
         }
     }
 
@@ -579,6 +676,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
     /// <summary>
     /// Periodic cleanup of stale endpoints to bound memory use.
+    /// Also enforces MaxTrackedEndpoints limit via LRU eviction if needed.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -597,6 +695,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             System.Int64 staleTicks = ToSwTicks(_opt.StaleEntrySeconds);
             System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
 
+            // First pass: remove stale endpoints
             foreach (Shard shard in _shards)
             {
                 token.ThrowIfCancellationRequested();
@@ -605,7 +704,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
                 {
                     visited++;
 
-                    if ((visited & 0xFF) == 0) // Check every 256 items
+                    if ((visited & (CancellationCheckFrequency - 1)) == 0)
                     {
                         token.ThrowIfCancellationRequested();
                     }
@@ -614,8 +713,28 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
                     if (now - state.LastSeenSw > staleTicks)
                     {
                         // Best-effort: try remove if still present
-                        _ = shard.Map.TryRemove(kv.Key, out _);
-                        removed++;
+                        if (shard.Map.TryRemove(kv.Key, out _))
+                        {
+                            removed++;
+                            _ = System.Threading.Interlocked.Decrement(ref _totalEndpointCount);
+                        }
+                    }
+                }
+            }
+
+            // Second pass: enforce MaxTrackedEndpoints limit if needed
+            if (_opt.MaxTrackedEndpoints > 0)
+            {
+                System.Int32 currentCount = System.Threading.Interlocked.CompareExchange(ref _totalEndpointCount, 0, 0);
+                if (currentCount > _opt.MaxTrackedEndpoints)
+                {
+                    System.Int32 toRemove = currentCount - _opt.MaxTrackedEndpoints;
+                    System.Int32 limitRemoved = EvictOldestEndpoints(toRemove, token);
+                    removed += limitRemoved;
+                    
+                    if (limitRemoved > 0)
+                    {
+                        _logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] Evicted {limitRemoved} endpoints to enforce MaxTrackedEndpoints limit");
                     }
                 }
             }
@@ -632,6 +751,80 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         catch (System.Exception ex) when (ex is not System.ObjectDisposedException)
         {
             _logger?.Error($"[NW.{nameof(TokenBucketLimiter)}:Internal] cleanup-error msg={ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Evicts the oldest (least recently seen) endpoints across all shards.
+    /// Used to enforce MaxTrackedEndpoints limit.
+    /// </summary>
+    /// <param name="count">Number of endpoints to evict.</param>
+    /// <param name="cancellationToken">Cancellation token for cooperative cancellation.</param>
+    /// <returns>Number of endpoints actually removed.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private System.Int32 EvictOldestEndpoints(System.Int32 count, System.Threading.CancellationToken cancellationToken)
+    {
+        if (count <= 0)
+        {
+            return 0;
+        }
+
+        // Use ListPool for temporary collection with capped capacity
+        System.Int32 estimatedCapacity = System.Math.Min(count * 2, MaxEvictionCapacity);
+        var pool = Nalix.Shared.Memory.Pools.ListPool<
+            (INetworkEndpoint Key, System.Int64 LastSeen)>.Instance;
+        var candidates = pool.Rent(minimumCapacity: estimatedCapacity);
+
+        try
+        {
+            System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
+
+            // Collect all endpoints with their last seen time
+            foreach (Shard shard in _shards)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                foreach (var kv in shard.Map)
+                {
+                    System.Int64 lastSeen;
+                    lock (kv.Value.Gate)
+                    {
+                        lastSeen = kv.Value.LastSeenSw;
+                    }
+                    candidates.Add((kv.Key, lastSeen));
+                }
+            }
+
+            // Sort by LastSeen (oldest first)
+            candidates.Sort((a, b) => a.LastSeen.CompareTo(b.LastSeen));
+
+            // Remove the oldest ones up to count
+            System.Int32 removed = 0;
+            System.Int32 toRemove = System.Math.Min(count, candidates.Count);
+
+            for (System.Int32 i = 0; i < toRemove; i++)
+            {
+                if ((i & (CancellationCheckFrequency - 1)) == 0)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+
+                var endpoint = candidates[i].Key;
+                Shard shard = GetShard(endpoint);
+
+                if (shard.Map.TryRemove(endpoint, out _))
+                {
+                    removed++;
+                    _ = System.Threading.Interlocked.Decrement(ref _totalEndpointCount);
+                }
+            }
+
+            return removed;
+        }
+        finally
+        {
+            pool.Return(candidates, clearItems: true);
         }
     }
 
