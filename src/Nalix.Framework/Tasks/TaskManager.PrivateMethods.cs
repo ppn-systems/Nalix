@@ -239,13 +239,14 @@ public partial class TaskManager
             return;
         }
 
-        System.Int32 pow = System.Math.Min(5, s.ConsecutiveFailures - n); // cap 32s
-        System.Int32 baseMs = 1000 << pow; // base delay: 1s * 2^pow
+        System.Int32 pow = System.Math.Min(5, s.ConsecutiveFailures - n); // cap at 2^5 = 32s
+        System.Int32 baseMs = 1000 << pow; // base delay: 1000ms * 2^pow
         System.Int32 cap = (System.Int32)System.Math.Max(1, s.Options.BackoffCap.TotalMilliseconds);
         System.Int32 maxDelay = System.Math.Min(baseMs, cap);
 
-        // Full jitter: random(0, min(base * 2^attempt, cap))
-        // Where baseMs = 1000ms * 2^pow, maxDelay = min(baseMs, cap)
+        // Full jitter: random(0, min(base * 2^pow, cap))
+        // pow = min(5, ConsecutiveFailures - FailuresBeforeBackoff)
+        // baseMs = 1000ms * 2^pow, maxDelay = min(baseMs, cap)
         // Prevents thundering herd while maintaining exponential backoff
         System.Int32 delayMs = Csprng.GetInt32(0, maxDelay + 1);
 
