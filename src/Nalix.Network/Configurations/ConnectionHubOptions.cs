@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Security;
-using Nalix.Common.Shared;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Network.Connections;
 

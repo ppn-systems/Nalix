@@ -55,7 +55,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     private readonly TimeSpan _inactivityThreshold;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitEntry> _map;
 
-    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>()!;
+    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     private int _disposed;
 
@@ -141,8 +141,8 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
             _ = Interlocked.Increment(ref _totalRejections);
 
             // Throttled reject log — chỉ log 1 lần mỗi suppress window per IP
-        if (_map.TryGetValue(key, out ConnectionLimitEntry? entry) && entry is not null)
-        {
+            if (_map.TryGetValue(key, out ConnectionLimitEntry? entry) && entry is not null)
+            {
                 long nowTicks = Clock.NowUtc().Ticks;
                 long windowTicks = _config.DDoSLogSuppressWindow.Ticks;
 

@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -36,10 +35,10 @@ public abstract partial class TcpListenerBase : IListener
     #region Fields
 
     private readonly ushort _port;
-    private readonly IProtocol _protocol = default!;
-    private readonly ConnectionLimiter _limiter = default!;
-    private readonly SemaphoreSlim _lock = default!;
-    private readonly List<ISnowflake> _acceptWorkerIds = default!;
+    private readonly IProtocol? _protocol;
+    private readonly ConnectionLimiter? _limiter;
+    private readonly SemaphoreSlim? _lock;
+    private readonly List<ISnowflake>? _acceptWorkerIds;
 
     private int _state;
     private int _isDisposed;
@@ -49,7 +48,7 @@ public abstract partial class TcpListenerBase : IListener
     private CancellationToken _cancellationToken;
     private CancellationTokenRegistration _cancelReg;
 
-    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>()!;
+    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly NetworkSocketOptions s_config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
