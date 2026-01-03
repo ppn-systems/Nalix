@@ -88,6 +88,25 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
     #endregion Private Types
 
+    #region Constants
+
+    /// <summary>
+    /// Check frequency for cancellation token during cleanup operations (every N items).
+    /// </summary>
+    private const System.Int32 CancellationCheckFrequency = 256;
+
+    /// <summary>
+    /// Minimum initial capacity for report snapshot list.
+    /// </summary>
+    private const System.Int32 MinReportCapacity = 256;
+
+    /// <summary>
+    /// Maximum initial capacity for eviction candidate list to prevent excessive allocation.
+    /// </summary>
+    private const System.Int32 MaxEvictionCapacity = 4096;
+
+    #endregion Constants
+
     #region Fields
 
     private readonly System.Int32 _cleanupIntervalSec;
@@ -341,9 +360,14 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         System.Int32 hardBlockedCount = 0;
 
         // Use ListPool to reduce allocations - rent a list for snapshot
+        // Dynamic capacity based on current endpoint count or shard-based estimation
+        System.Int32 currentCount = System.Threading.Interlocked.CompareExchange(ref _totalEndpointCount, 0, 0);
+        System.Int32 estimatedCapacity = currentCount > 0 ? currentCount : (shardCount * 8);
+        System.Int32 initialCapacity = System.Math.Max(MinReportCapacity, estimatedCapacity);
+
         var pool = Nalix.Shared.Memory.Pools.ListPool<
             System.Collections.Generic.KeyValuePair<INetworkEndpoint, EndpointState>>.Instance;
-        var snapshot = pool.Rent(minimumCapacity: 256);
+        var snapshot = pool.Rent(minimumCapacity: initialCapacity);
 
         try
         {
@@ -675,7 +699,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
                 {
                     visited++;
 
-                    if ((visited & 0xFF) == 0) // Check every 256 items
+                    if ((visited & (CancellationCheckFrequency - 1)) == 0)
                     {
                         token.ThrowIfCancellationRequested();
                     }
@@ -741,10 +765,11 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             return 0;
         }
 
-        // Use ListPool for temporary collection
+        // Use ListPool for temporary collection with capped capacity
+        System.Int32 estimatedCapacity = System.Math.Min(count * 2, MaxEvictionCapacity);
         var pool = Nalix.Shared.Memory.Pools.ListPool<
             (INetworkEndpoint Key, System.Int64 LastSeen)>.Instance;
-        var candidates = pool.Rent(minimumCapacity: count * 2);
+        var candidates = pool.Rent(minimumCapacity: estimatedCapacity);
 
         try
         {
@@ -775,7 +800,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
             for (System.Int32 i = 0; i < toRemove; i++)
             {
-                if ((i & 0xFF) == 0)
+                if ((i & (CancellationCheckFrequency - 1)) == 0)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                 }
