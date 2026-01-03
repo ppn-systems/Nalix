@@ -26,7 +26,7 @@ public static partial class NLogixFx
     /// <summary>
     /// The global logging publisher used for distributing log messages to various targets.
     /// </summary>
-    public static readonly ILogDistributor Publisher;
+    public static readonly NLogixDistributor Publisher;
 
     #endregion Properties
 
