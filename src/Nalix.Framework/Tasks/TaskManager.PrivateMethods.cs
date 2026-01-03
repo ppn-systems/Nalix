@@ -247,11 +247,12 @@ public partial class TaskManager
             ms = cap;
         }
 
-        System.Int32 jitter = Csprng.GetInt32(0, (ms / 4) + 1);
+        // Use full jitter (0-100% of base delay) for better distribution and avoiding thundering herd
+        System.Int32 jitter = Csprng.GetInt32(0, ms + 1);
 
         try
         {
-            await System.Threading.Tasks.Task.Delay(ms + jitter, ct).ConfigureAwait(false);
+            await System.Threading.Tasks.Task.Delay(jitter, ct).ConfigureAwait(false);
         }
         catch (System.OperationCanceledException) { }
     }

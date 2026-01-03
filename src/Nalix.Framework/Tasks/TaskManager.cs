@@ -98,9 +98,7 @@ public sealed partial class TaskManager : ITaskManager
         st.Task = System.Threading.Tasks.Task.Run(() => RECURRING_LOOP_ASYNC(st, work), cts.Token);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(TaskManager)}:{nameof(ScheduleRecurring)}] start-recurring name={name} " +
-                                       $"iv={interval.TotalMilliseconds:F0}ms " +
-                                       $"nonReentrant={options.NonReentrant} tag={options.Tag ?? "-"}");
+                                .Debug($"[FW.{nameof(TaskManager)}:{nameof(ScheduleRecurring)}] start-recurring name={name} iv={interval.TotalMilliseconds:F0}ms nonReentrant={options.NonReentrant} tag={options.Tag ?? "-"}");
         return st;
     }
 
