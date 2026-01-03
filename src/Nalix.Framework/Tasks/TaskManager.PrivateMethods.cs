@@ -240,19 +240,17 @@ public partial class TaskManager
         }
 
         System.Int32 pow = System.Math.Min(5, s.ConsecutiveFailures - n); // cap 32s
-        System.Int32 ms = 1000 << pow;
+        System.Int32 baseMs = 1000 << pow;
         System.Int32 cap = (System.Int32)System.Math.Max(1, s.Options.BackoffCap.TotalMilliseconds);
-        if (ms > cap)
-        {
-            ms = cap;
-        }
+        System.Int32 maxDelay = System.Math.Min(baseMs, cap);
 
-        // Use full jitter (0-100% of base delay) for better distribution and avoiding thundering herd
-        System.Int32 jitter = Csprng.GetInt32(0, ms + 1);
+        // Use full jitter: random(0, min(base * 2^attempt, cap)) for better distribution
+        // This prevents thundering herd while maintaining exponential backoff
+        System.Int32 delayMs = Csprng.GetInt32(0, maxDelay + 1);
 
         try
         {
-            await System.Threading.Tasks.Task.Delay(jitter, ct).ConfigureAwait(false);
+            await System.Threading.Tasks.Task.Delay(delayMs, ct).ConfigureAwait(false);
         }
         catch (System.OperationCanceledException) { }
     }
