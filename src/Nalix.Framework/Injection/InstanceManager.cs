@@ -11,9 +11,9 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
-using Nalix.Common.Shared;
 using Nalix.Framework.Injection.DI;
 
 namespace Nalix.Framework.Injection;

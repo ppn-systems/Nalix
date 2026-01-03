@@ -3,7 +3,7 @@
 
 using System;
 
-namespace Nalix.Common.Shared;
+namespace Nalix.Common.Abstractions;
 
 /// <summary>
 /// An attribute that indicates that a property should be ignored during configuration container initialization.

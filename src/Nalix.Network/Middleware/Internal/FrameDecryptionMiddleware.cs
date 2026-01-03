@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Shared;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Frames;
 using Nalix.Framework.Memory.Buffers;
@@ -15,6 +14,8 @@ using Nalix.Framework.Memory.Buffers;
 #if DEBUG
 using Nalix.Common.Diagnostics;
 using Nalix.Framework.Injection;
+using Nalix.Common.Abstractions;
+
 #endif
 
 #if DEBUG
