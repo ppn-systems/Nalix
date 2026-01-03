@@ -109,4 +109,15 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// Default is 10 seconds.
     /// </remarks>
     public System.Int32 CooldownResetSec { get; set; } = 10;
+
+    /// <summary>
+    /// Gets or sets the maximum number of endpoints that can be tracked simultaneously.
+    /// </summary>
+    /// <remarks>
+    /// This limit prevents unbounded memory growth and DoS attacks via endpoint exhaustion.
+    /// When the limit is reached, the oldest stale entries are evicted.
+    /// A value of 0 means no limit (not recommended for production).
+    /// Default is 10,000 endpoints.
+    /// </remarks>
+    public System.Int32 MaxTrackedEndpoints { get; set; } = 10_000;
 }
