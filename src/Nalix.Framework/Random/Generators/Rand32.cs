@@ -178,12 +178,9 @@ public sealed class Rand32
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Single NextFloat(System.Single max)
     {
-        if (System.Single.IsNaN(max) || System.Single.IsInfinity(max))
-        {
-            throw new System.ArgumentException("Max must be a finite number", nameof(max));
-        }
-
-        return this.NextFloat() * max;
+        return System.Single.IsNaN(max) || System.Single.IsInfinity(max)
+            ? throw new System.ArgumentException("Max must be a finite number", nameof(max))
+            : this.NextFloat() * max;
     }
 
     /// <summary>
@@ -198,22 +195,13 @@ public sealed class Rand32
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Single NextFloat(System.Single min, System.Single max)
     {
-        if (System.Single.IsNaN(min) || System.Single.IsInfinity(min))
-        {
-            throw new System.ArgumentException("Min must be a finite number", nameof(min));
-        }
-
-        if (System.Single.IsNaN(max) || System.Single.IsInfinity(max))
-        {
-            throw new System.ArgumentException("Max must be a finite number", nameof(max));
-        }
-
-        if (min >= max)
-        {
-            throw new System.ArgumentException($"Min ({min}) must be less than max ({max}).");
-        }
-
-        return min + (this.NextFloat() * (max - min));
+        return System.Single.IsNaN(min) || System.Single.IsInfinity(min)
+            ? throw new System.ArgumentException("Min must be a finite number", nameof(min))
+            : System.Single.IsNaN(max) || System.Single.IsInfinity(max)
+            ? throw new System.ArgumentException("Max must be a finite number", nameof(max))
+            : min >= max
+            ? throw new System.ArgumentException($"Min ({min}) must be less than max ({max}).")
+            : min + (this.NextFloat() * (max - min));
     }
 
     /// <summary>
@@ -236,12 +224,9 @@ public sealed class Rand32
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Double NextDouble(System.Double max)
     {
-        if (System.Double.IsNaN(max) || System.Double.IsInfinity(max))
-        {
-            throw new System.ArgumentException("Max must be a finite number", nameof(max));
-        }
-
-        return this.NextDouble() * max;
+        return System.Double.IsNaN(max) || System.Double.IsInfinity(max)
+            ? throw new System.ArgumentException("Max must be a finite number", nameof(max))
+            : this.NextDouble() * max;
     }
 
     /// <summary>
@@ -256,22 +241,13 @@ public sealed class Rand32
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Double NextDouble(System.Double min, System.Double max)
     {
-        if (System.Double.IsNaN(min) || System.Double.IsInfinity(min))
-        {
-            throw new System.ArgumentException("Min must be a finite number", nameof(min));
-        }
-
-        if (System.Double.IsNaN(max) || System.Double.IsInfinity(max))
-        {
-            throw new System.ArgumentException("Max must be a finite number", nameof(max));
-        }
-
-        if (min >= max)
-        {
-            throw new System.ArgumentException($"Min ({min}) must be less than max ({max}).");
-        }
-
-        return min + (this.NextDouble() * (max - min));
+        return System.Double.IsNaN(min) || System.Double.IsInfinity(min)
+            ? throw new System.ArgumentException("Min must be a finite number", nameof(min))
+            : System.Double.IsNaN(max) || System.Double.IsInfinity(max)
+            ? throw new System.ArgumentException("Max must be a finite number", nameof(max))
+            : min >= max
+            ? throw new System.ArgumentException($"Min ({min}) must be less than max ({max}).")
+            : min + (this.NextDouble() * (max - min));
     }
 
     /// <summary>
@@ -295,12 +271,9 @@ public sealed class Rand32
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean NextProbability(System.Double probability)
     {
-        if (System.Double.IsNaN(probability) || System.Double.IsInfinity(probability))
-        {
-            throw new System.ArgumentException("Probability must be a finite number", nameof(probability));
-        }
-
-        return probability > 0.0 && (probability >= 1.0 || this.NextDouble() < probability);
+        return System.Double.IsNaN(probability) || System.Double.IsInfinity(probability)
+            ? throw new System.ArgumentException("Probability must be a finite number", nameof(probability))
+            : probability > 0.0 && (probability >= 1.0 || this.NextDouble() < probability);
     }
 
     /// <summary>
