@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Serialization;
 
-namespace Nalix.Framework.Frames.Internal;
+namespace Nalix.Framework.DataFrames.Internal;
 
 /// <summary>
 /// Immutable cache of reflection metadata for a single serializable property on a packet type.

@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Extensions;
 
-namespace Nalix.Framework.Frames;
+namespace Nalix.Framework.DataFrames;
 
 /// <summary>
 /// Provides an immutable, thread-safe catalog of packet deserializers and transformers.

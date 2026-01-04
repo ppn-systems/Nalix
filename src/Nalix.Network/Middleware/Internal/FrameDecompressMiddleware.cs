@@ -8,9 +8,10 @@ using Nalix.Common.Middleware;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Extensions;
-using Nalix.Framework.Frames;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Common.Abstractions;
+using Nalix.Framework.DataFrames;
+
 
 
 #if DEBUG
