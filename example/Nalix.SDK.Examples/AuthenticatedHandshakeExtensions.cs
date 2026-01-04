@@ -68,10 +68,10 @@ public static class AuthenticatedHandshakeExtensions
         // Build the handshake packet that the server will verify.
         HandshakePacket request = new(opCode, ephemeralKeyPair.PublicKey, ProtocolType.TCP)
         {
-            Ed25519PublicKey = PublicKey,
-            Ed25519Signature = signature,
             Identity = identity
         };
+        request.Auth.PublicKey = PublicKey;
+        request.Auth.Signature = signature;
 
         // Subscribe first so the response cannot be missed if the server answers quickly.
         using IDisposable subscription = client.SubscribeTemp<HandshakePacket>(
