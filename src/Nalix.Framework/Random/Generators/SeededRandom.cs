@@ -8,7 +8,7 @@ namespace Nalix.Framework.Random.Generators;
 /// <remarks>
 /// Initializes a new instance of the <see cref="SeededRandom"/> class with a specified seed.
 /// </remarks>
-/// <param name="seed">The seed value to initialize the random ProtocolType generator.</param>
+/// <param name="seed">The seed value to initialize the random number generator.</param>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Diagnostics.DebuggerDisplay("SeededRandom(Seed={_seed})")]
@@ -236,10 +236,10 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     }
 
     /// <summary>
-    /// Returns a random floating-point ProtocolType in the range [0, max).
+    /// Returns a random floating-point value in the range [0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random floating-point ProtocolType in the range [0, max).</returns>
+    /// <returns>A random floating-point value in the range [0, max).</returns>
     /// <exception cref="System.ArgumentException">Thrown when max is NaN or Infinity.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
@@ -255,10 +255,10 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     }
 
     /// <summary>
-    /// Returns a random double-precision floating-point ProtocolType in the range [0, max).
+    /// Returns a random double-precision floating-point value in the range [0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random double-precision floating-point ProtocolType in the range [0, max).</returns>
+    /// <returns>A random double-precision floating-point value in the range [0, max).</returns>
     /// <exception cref="System.ArgumentException">Thrown when max is NaN or Infinity.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
@@ -274,11 +274,11 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     }
 
     /// <summary>
-    /// Returns a random floating-point ProtocolType in the range [min, max).
+    /// Returns a random floating-point value in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random floating-point ProtocolType in the range [min, max).</returns>
+    /// <returns>A random floating-point value in the range [min, max).</returns>
     /// <exception cref="System.ArgumentException">Thrown when min or max is NaN or Infinity.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
@@ -299,11 +299,11 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     }
 
     /// <summary>
-    /// Returns a random double-precision floating-point ProtocolType in the range [min, max).
+    /// Returns a random double-precision floating-point value in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random double-precision floating-point ProtocolType in the range [min, max).</returns>
+    /// <returns>A random double-precision floating-point value in the range [min, max).</returns>
     /// <exception cref="System.ArgumentException">Thrown when min or max is NaN or Infinity.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
@@ -343,7 +343,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     }
 
     /// <summary>
-    /// Returns a random floating-point ProtocolType in the range [0.0, 1.0).
+    /// Returns a random floating-point value in the range [0.0, 1.0).
     /// </summary>
     /// <remarks>
     /// This implementation ensures uniform distribution across the entire range
@@ -357,7 +357,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     public new System.Single GetFloat() => (this.Get() >> 8) * (1.0f / 16777216.0f);
 
     /// <summary>
-    /// Returns a random double-precision floating-point ProtocolType in the range [0.0, 1.0).
+    /// Returns a random double-precision floating-point value in the range [0.0, 1.0).
     /// </summary>
     /// <remarks>
     /// This implementation ensures uniform distribution across the entire range

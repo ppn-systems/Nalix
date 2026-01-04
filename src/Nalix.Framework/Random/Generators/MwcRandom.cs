@@ -3,7 +3,7 @@
 namespace Nalix.Framework.Random.Generators;
 
 /// <summary>
-/// A high-performance implementation of the Multiply-with-carry (MWC) random ProtocolType generator algorithm.
+/// A high-performance implementation of the Multiply-with-carry (MWC) random number generator algorithm.
 /// </summary>
 /// <remarks>
 /// This implementation uses a 64-bit state value to produce 32-bit random numbers.
@@ -42,7 +42,7 @@ public abstract class MwcRandom
     /// <summary>
     /// Initializes a MwcRandom instance with a given seed value.
     /// </summary>
-    /// <param name="seed">The seed value to initialize the random ProtocolType generator. If 0, uses the current time.</param>
+    /// <param name="seed">The seed value to initialize the random number generator. If 0, uses the current time.</param>
     /// <remarks>
     /// Using seed value 0 will generate a time-based seed, which provides better randomness for different instances
     /// created at different times. For reproducible sequences, provide a non-zero seed value.
@@ -64,7 +64,7 @@ public abstract class MwcRandom
     }
 
     /// <summary>
-    /// Sets the seed value for the random ProtocolType generator.
+    /// Sets the seed value for the random number generator.
     /// </summary>
     /// <param name="seed">The new seed value.</param>
     /// <remarks>
@@ -95,9 +95,9 @@ public abstract class MwcRandom
     public System.UInt32 GetSeed() => (System.UInt32)_state;
 
     /// <summary>
-    /// Returns a random ProtocolType in the range [0, RandMax].
+    /// Returns a random value in the range [0, RandMax].
     /// </summary>
-    /// <returns>A random ProtocolType as a uint.</returns>
+    /// <returns>A random value as a uint.</returns>
     /// <remarks>
     /// Uses the Multiply-with-carry (MWC) algorithm for high-quality pseudo-random number generation.
     /// This method is not thread-safe - use separate instances per thread for concurrent access.
@@ -113,10 +113,10 @@ public abstract class MwcRandom
     }
 
     /// <summary>
-    /// Returns a random ProtocolType in the range [0, max).
+    /// Returns a random value in the range [0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random ProtocolType in the range [0, max).</returns>
+    /// <returns>A random value in the range [0, max).</returns>
     /// <remarks>
     /// Returns 0 if max is 0 or 1. Optimized fast path for power-of-2 values.
     /// Uses rejection sampling to avoid modulo bias for uniform distribution.
@@ -149,11 +149,11 @@ public abstract class MwcRandom
     }
 
     /// <summary>
-    /// Returns a random ProtocolType in the range [min, max).
+    /// Returns a random value in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random ProtocolType in the range [min, max).</returns>
+    /// <returns>A random value in the range [min, max).</returns>
     /// <remarks>
     /// Returns min if min ≥ max. Delegates to Get(max - min) for uniform distribution.
     /// </remarks>
@@ -163,9 +163,9 @@ public abstract class MwcRandom
     public System.UInt32 Get(System.UInt32 min, System.UInt32 max) => min >= max ? min : min + Get(max - min);
 
     /// <summary>
-    /// Returns a 64-bit random ProtocolType.
+    /// Returns a 64-bit random value.
     /// </summary>
-    /// <returns>A random ProtocolType as a ulong.</returns>
+    /// <returns>A random value as a ulong.</returns>
     /// <remarks>
     /// Generates two 32-bit values and combines them to produce a 64-bit result.
     /// This approach provides better statistical properties than simple concatenation.

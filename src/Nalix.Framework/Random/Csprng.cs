@@ -7,7 +7,7 @@ using Nalix.Framework.Random.Core;
 namespace Nalix.Framework.Random;
 
 /// <summary>
-/// High-performance cryptographically strong random ProtocolType generator
+/// High-performance cryptographically strong random number generator
 /// based on the Xoshiro256++ algorithm with additional entropy sources.
 /// </summary>
 [System.Diagnostics.StackTraceHidden]

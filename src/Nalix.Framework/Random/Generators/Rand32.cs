@@ -31,12 +31,12 @@ public sealed class Rand32
     #region Fields
 
     /// <summary>
-    /// Current seed value for the random ProtocolType generator.
+    /// Current seed value for the random number generator.
     /// </summary>
     private System.Int32 _seed;
 
     /// <summary>
-    /// Random ProtocolType generator instance.
+    /// Random number generator instance.
     /// </summary>
     private readonly SeededRandom _rand;
 
@@ -68,7 +68,7 @@ public sealed class Rand32
     #region APIs
 
     /// <summary>
-    /// Resets the seed for the random ProtocolType generator.
+    /// Resets the seed for the random number generator.
     /// </summary>
     /// <param name="seed">The new seed value.</param>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -159,7 +159,7 @@ public sealed class Rand32
     }
 
     /// <summary>
-    /// Generates a random floating-point ProtocolType in the range [0.0f, 1.0f].
+    /// Generates a random floating-point value in the range [0.0f, 1.0f].
     /// </summary>
     /// <returns>A random float.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -168,7 +168,7 @@ public sealed class Rand32
     public System.Single NextFloat() => _rand.GetFloat();
 
     /// <summary>
-    /// Generates a random floating-point ProtocolType in the range [0.0f, max).
+    /// Generates a random floating-point value in the range [0.0f, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random float.</returns>
@@ -187,7 +187,7 @@ public sealed class Rand32
     }
 
     /// <summary>
-    /// Generates a random floating-point ProtocolType in the range [min, max).
+    /// Generates a random floating-point value in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
@@ -217,7 +217,7 @@ public sealed class Rand32
     }
 
     /// <summary>
-    /// Generates a random double-precision floating-point ProtocolType in the range [0.0, 1.0].
+    /// Generates a random double-precision floating-point value in the range [0.0, 1.0].
     /// </summary>
     /// <returns>A random double.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -226,7 +226,7 @@ public sealed class Rand32
     public System.Double NextDouble() => _rand.GetDouble();
 
     /// <summary>
-    /// Generates a random double-precision floating-point ProtocolType in the range [0.0, max).
+    /// Generates a random double-precision floating-point value in the range [0.0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random double.</returns>
@@ -245,7 +245,7 @@ public sealed class Rand32
     }
 
     /// <summary>
-    /// Generates a random double-precision floating-point ProtocolType in the range [min, max).
+    /// Generates a random double-precision floating-point value in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
@@ -372,7 +372,7 @@ public sealed class Rand32
     public void NextBytes(System.Span<System.Byte> buffer) => _rand.NextBytes(buffer);
 
     /// <summary>
-    /// Returns a string representation of the random ProtocolType generator state.
+    /// Returns a string representation of the random number generator state.
     /// </summary>
     /// <returns>A string representation of the RNG.</returns>
     public override System.String ToString() => $"Rand32[Seed={_seed}]";
