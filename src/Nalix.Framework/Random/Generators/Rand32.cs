@@ -172,10 +172,19 @@ public sealed class Rand32
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random float.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when max is NaN or Infinity.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Single NextFloat(System.Single max) => this.NextFloat() * max;
+    public System.Single NextFloat(System.Single max)
+    {
+        if (System.Single.IsNaN(max) || System.Single.IsInfinity(max))
+        {
+            throw new System.ArgumentException("Max must be a finite number", nameof(max));
+        }
+
+        return this.NextFloat() * max;
+    }
 
     /// <summary>
     /// Generates a random floating-point ProtocolType in the range [min, max).
@@ -183,10 +192,29 @@ public sealed class Rand32
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random float.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when min or max is NaN or Infinity, or when min is greater than or equal to max.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Single NextFloat(System.Single min, System.Single max) => min + (this.NextFloat() * (max - min));
+    public System.Single NextFloat(System.Single min, System.Single max)
+    {
+        if (System.Single.IsNaN(min) || System.Single.IsInfinity(min))
+        {
+            throw new System.ArgumentException("Min must be a finite number", nameof(min));
+        }
+
+        if (System.Single.IsNaN(max) || System.Single.IsInfinity(max))
+        {
+            throw new System.ArgumentException("Max must be a finite number", nameof(max));
+        }
+
+        if (min >= max)
+        {
+            throw new System.ArgumentException("Min must be less than max");
+        }
+
+        return min + (this.NextFloat() * (max - min));
+    }
 
     /// <summary>
     /// Generates a random double-precision floating-point ProtocolType in the range [0.0, 1.0].
@@ -202,10 +230,19 @@ public sealed class Rand32
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random double.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when max is NaN or Infinity.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Double NextDouble(System.Double max) => this.NextDouble() * max;
+    public System.Double NextDouble(System.Double max)
+    {
+        if (System.Double.IsNaN(max) || System.Double.IsInfinity(max))
+        {
+            throw new System.ArgumentException("Max must be a finite number", nameof(max));
+        }
+
+        return this.NextDouble() * max;
+    }
 
     /// <summary>
     /// Generates a random double-precision floating-point ProtocolType in the range [min, max).
@@ -213,10 +250,29 @@ public sealed class Rand32
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random double.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when min or max is NaN or Infinity, or when min is greater than or equal to max.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Double NextDouble(System.Double min, System.Double max) => min + (this.NextDouble() * (max - min));
+    public System.Double NextDouble(System.Double min, System.Double max)
+    {
+        if (System.Double.IsNaN(min) || System.Double.IsInfinity(min))
+        {
+            throw new System.ArgumentException("Min must be a finite number", nameof(min));
+        }
+
+        if (System.Double.IsNaN(max) || System.Double.IsInfinity(max))
+        {
+            throw new System.ArgumentException("Max must be a finite number", nameof(max));
+        }
+
+        if (min >= max)
+        {
+            throw new System.ArgumentException("Min must be less than max");
+        }
+
+        return min + (this.NextDouble() * (max - min));
+    }
 
     /// <summary>
     /// Performs a random check with a given percentage probability.
@@ -233,11 +289,19 @@ public sealed class Rand32
     /// </summary>
     /// <param name="probability">The probability (0.0-1.0).</param>
     /// <returns>True if the random check passed based on the specified probability.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when probability is NaN or Infinity.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean NextProbability(System.Double probability)
-        => probability > 0.0 && (probability >= 1.0 || this.NextDouble() < probability);
+    {
+        if (System.Double.IsNaN(probability) || System.Double.IsInfinity(probability))
+        {
+            throw new System.ArgumentException("Probability must be a finite number", nameof(probability));
+        }
+
+        return probability > 0.0 && (probability >= 1.0 || this.NextDouble() < probability);
+    }
 
     /// <summary>
     /// Randomly shuffles a list using the Fisher-Yates algorithm.

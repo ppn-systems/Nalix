@@ -67,6 +67,15 @@ internal static partial class OsCsprng
     /// Fills the specified buffer with cryptographically secure random bytes using the operating system's CSPRNG facilities.
     /// </summary>
     /// <param name="buffer">The buffer to fill with random bytes.</param>
+    /// <remarks>
+    /// Thread-safe. Uses platform-specific implementations:
+    /// - Windows: BCryptGenRandom (CNG)
+    /// - Linux: getrandom() syscall with /dev/urandom fallback
+    /// - macOS/iOS/tvOS/watchOS: SecRandomCopyBytes
+    /// - Other platforms: /dev/urandom
+    /// Falls back to OsRandom (non-cryptographic) if OS CSPRNG is unavailable.
+    /// </remarks>
+    /// <exception cref="System.InvalidOperationException">Thrown when OS CSPRNG is unavailable and fallback fails.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Fill([System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> buffer)
@@ -85,12 +94,18 @@ internal static partial class OsCsprng
 
     // -------------------- Windows (CNG) --------------------
 
+    /// <summary>
+    /// P/Invoke declaration for Windows BCryptGenRandom function.
+    /// </summary>
     [System.Runtime.InteropServices.LibraryImport("Bcrypt.dll")]
     private static partial System.Int32 BCryptGenRandom(
         System.IntPtr hAlgorithm,
         System.Span<System.Byte> pbBuffer,
         System.Int32 cbBuffer, System.UInt32 dwFlags);
 
+    /// <summary>
+    /// Windows-specific CSPRNG implementation using BCryptGenRandom (CNG).
+    /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
@@ -99,15 +114,22 @@ internal static partial class OsCsprng
         System.Int32 s = BCryptGenRandom(System.IntPtr.Zero, b, b.Length, C);
         if (s != 0)
         {
-            throw new System.InvalidOperationException("OS CSPRNG unavailable.");
+            throw new System.InvalidOperationException($"OS CSPRNG unavailable (BCryptGenRandom failed with code 0x{s:X}).");
         }
     }
 
     // -------------------- Linux: getrandom --------------------
 
+    /// <summary>
+    /// P/Invoke declaration for Linux getrandom syscall.
+    /// </summary>
     [System.Runtime.InteropServices.LibraryImport("libc", SetLastError = true)]
     private static partial System.IntPtr getrandom(System.IntPtr buf, System.IntPtr buflen, System.UInt32 flags);
 
+    /// <summary>
+    /// Linux-specific CSPRNG implementation using getrandom() syscall.
+    /// Falls back to /dev/urandom if getrandom is not supported (ENOSYS).
+    /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
@@ -147,13 +169,13 @@ internal static partial class OsCsprng
                         return;
                     }
 
-                    throw new System.InvalidOperationException($"OS CSPRNG unavailable (getrandom errno={errno}).");
+                    throw new System.InvalidOperationException($"OS CSPRNG unavailable (getrandom failed with errno={errno}).");
                 }
 
                 if (r == 0)
                 {
                     // Defensive: zero progress from getrandom should not loop forever
-                    throw new System.InvalidOperationException("OS CSPRNG unavailable (getrandom returned 0).");
+                    throw new System.InvalidOperationException("OS CSPRNG unavailable (getrandom returned 0 bytes).");
                 }
 
                 t += (System.UIntPtr)r;
@@ -163,10 +185,17 @@ internal static partial class OsCsprng
 
     // -------------------- Apple: SecRandomCopyBytes --------------------
 
+    /// <summary>
+    /// P/Invoke declaration for Apple SecRandomCopyBytes function.
+    /// </summary>
     [System.Runtime.InteropServices.LibraryImport(
         "/SYSTEM/Library/Frameworks/Security.framework/Security", EntryPoint = "SecRandomCopyBytes")]
     private static partial System.Int32 SecRandomCopyBytes(System.IntPtr rnd, System.IntPtr count, System.IntPtr bytes);
 
+    /// <summary>
+    /// Apple platform CSPRNG implementation using SecRandomCopyBytes.
+    /// Falls back to /dev/urandom if SecRandomCopyBytes fails.
+    /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [System.Runtime.Versioning.SupportedOSPlatform("ios")]
@@ -188,6 +217,10 @@ internal static partial class OsCsprng
 
     // -------------------- Fallback: /dev/urandom --------------------
 
+    /// <summary>
+    /// Fallback CSPRNG implementation using /dev/urandom.
+    /// Used on platforms without native CSPRNG support or when native APIs fail.
+    /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void D(System.Span<System.Byte> b)
@@ -203,7 +236,7 @@ internal static partial class OsCsprng
                 System.Int32 r = fs.Read(b[total..]);
                 if (r <= 0)
                 {
-                    throw new System.InvalidOperationException("OS CSPRNG unavailable (/dev/urandom short read).");
+                    throw new System.InvalidOperationException("OS CSPRNG unavailable (/dev/urandom returned 0 bytes).");
                 }
 
                 total += r;
@@ -213,6 +246,7 @@ internal static partial class OsCsprng
 
     /// <summary>
     /// Gets a cached FileStream for /dev/urandom (created lazily).
+    /// Thread-safe double-checked locking pattern.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
