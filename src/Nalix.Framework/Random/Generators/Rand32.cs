@@ -210,7 +210,7 @@ public sealed class Rand32
 
         if (min >= max)
         {
-            throw new System.ArgumentException("Min must be less than max");
+            throw new System.ArgumentException($"Min ({min}) must be less than max ({max}).");
         }
 
         return min + (this.NextFloat() * (max - min));
@@ -268,7 +268,7 @@ public sealed class Rand32
 
         if (min >= max)
         {
-            throw new System.ArgumentException("Min must be less than max");
+            throw new System.ArgumentException($"Min ({min}) must be less than max ({max}).");
         }
 
         return min + (this.NextDouble() * (max - min));
