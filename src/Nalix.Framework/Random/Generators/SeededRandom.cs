@@ -8,7 +8,7 @@ namespace Nalix.Framework.Random.Generators;
 /// <remarks>
 /// Initializes a new instance of the <see cref="SeededRandom"/> class with a specified seed.
 /// </remarks>
-/// <param name="seed">The seed value to initialize the random ProtocolType generator.</param>
+/// <param name="seed">The seed value to initialize the random number generator.</param>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Diagnostics.DebuggerDisplay("SeededRandom(Seed={_seed})")]
@@ -19,6 +19,10 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random integer in the range [0, max).</returns>
+    /// <remarks>
+    /// Returns 0 if max is less than or equal to 0.
+    /// Uses rejection sampling to avoid modulo bias for non-power-of-2 ranges.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -48,6 +52,10 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random unsigned integer in the range [0, max).</returns>
+    /// <remarks>
+    /// Returns 0 if max is 0. Optimized fast path for power-of-2 values.
+    /// Uses rejection sampling to ensure uniform distribution without modulo bias.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -80,6 +88,10 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random unsigned long integer in the range [0, max).</returns>
+    /// <remarks>
+    /// Returns 0 if max is 0. Optimized for small values (≤ uint.MaxValue) and power-of-2 values.
+    /// Uses 64-bit rejection sampling to avoid bias for large ranges.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -118,6 +130,10 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random signed long integer in the range [0, max).</returns>
+    /// <remarks>
+    /// Returns 0 if max is less than or equal to 0.
+    /// Converts to unsigned range internally for efficient generation.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -139,6 +155,9 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random integer in the range [min, max).</returns>
+    /// <remarks>
+    /// Returns min if min ≥ max. Handles potential overflow when calculating the range.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -217,62 +236,114 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     }
 
     /// <summary>
-    /// Returns a random floating-point ProtocolType in the range [0, max).
+    /// Returns a random floating-point value in the range [0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random floating-point ProtocolType in the range [0, max).</returns>
+    /// <returns>A random floating-point value in the range [0, max).</returns>
+    /// <exception cref="System.ArgumentException">Thrown when max is NaN or Infinity.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Single Get(System.Single max) => max <= 0 ? 0 : this.GetFloat() * max;
+    public System.Single Get(System.Single max)
+    {
+        if (System.Single.IsNaN(max) || System.Single.IsInfinity(max))
+        {
+            throw new System.ArgumentException("Max must be a finite number", nameof(max));
+        }
+
+        return max <= 0 ? 0 : this.GetFloat() * max;
+    }
 
     /// <summary>
-    /// Returns a random double-precision floating-point ProtocolType in the range [0, max).
+    /// Returns a random double-precision floating-point value in the range [0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random double-precision floating-point ProtocolType in the range [0, max).</returns>
+    /// <returns>A random double-precision floating-point value in the range [0, max).</returns>
+    /// <exception cref="System.ArgumentException">Thrown when max is NaN or Infinity.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Double Get(System.Double max) => max <= 0 ? 0 : this.GetDouble() * max;
+    public System.Double Get(System.Double max)
+    {
+        if (System.Double.IsNaN(max) || System.Double.IsInfinity(max))
+        {
+            throw new System.ArgumentException("Max must be a finite number", nameof(max));
+        }
+
+        return max <= 0 ? 0 : this.GetDouble() * max;
+    }
 
     /// <summary>
-    /// Returns a random floating-point ProtocolType in the range [min, max).
+    /// Returns a random floating-point value in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random floating-point ProtocolType in the range [min, max).</returns>
+    /// <returns>A random floating-point value in the range [min, max).</returns>
+    /// <exception cref="System.ArgumentException">Thrown when min or max is NaN or Infinity.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Single Get(System.Single min, System.Single max)
-        => min >= max ? min : min + (this.GetFloat() * (max - min));
+    {
+        if (System.Single.IsNaN(min) || System.Single.IsInfinity(min))
+        {
+            throw new System.ArgumentException("Min must be a finite number", nameof(min));
+        }
+
+        if (System.Single.IsNaN(max) || System.Single.IsInfinity(max))
+        {
+            throw new System.ArgumentException("Max must be a finite number", nameof(max));
+        }
+
+        return min >= max ? min : min + (this.GetFloat() * (max - min));
+    }
 
     /// <summary>
-    /// Returns a random double-precision floating-point ProtocolType in the range [min, max).
+    /// Returns a random double-precision floating-point value in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random double-precision floating-point ProtocolType in the range [min, max).</returns>
+    /// <returns>A random double-precision floating-point value in the range [min, max).</returns>
+    /// <exception cref="System.ArgumentException">Thrown when min or max is NaN or Infinity.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Double Get(System.Double min, System.Double max)
-        => min >= max ? min : min + (this.GetDouble() * (max - min));
+    {
+        if (System.Double.IsNaN(min) || System.Double.IsInfinity(min))
+        {
+            throw new System.ArgumentException("Min must be a finite number", nameof(min));
+        }
+
+        if (System.Double.IsNaN(max) || System.Double.IsInfinity(max))
+        {
+            throw new System.ArgumentException("Max must be a finite number", nameof(max));
+        }
+
+        return min >= max ? min : min + (this.GetDouble() * (max - min));
+    }
 
     /// <summary>
     /// Returns a random boolean with the specified probability of being true.
     /// </summary>
     /// <param name="probability">The probability of returning true (0.0 to 1.0).</param>
     /// <returns>A random boolean.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when probability is NaN or Infinity.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean GetBool(System.Double probability = 0.5)
-        => probability > 0.0 && (probability >= 1.0 || this.GetDouble() < probability);
+    {
+        if (System.Double.IsNaN(probability) || System.Double.IsInfinity(probability))
+        {
+            throw new System.ArgumentException("Probability must be a finite number", nameof(probability));
+        }
+
+        return probability > 0.0 && (probability >= 1.0 || this.GetDouble() < probability);
+    }
 
     /// <summary>
-    /// Returns a random floating-point ProtocolType in the range [0.0, 1.0).
+    /// Returns a random floating-point value in the range [0.0, 1.0).
     /// </summary>
     /// <remarks>
     /// This implementation ensures uniform distribution across the entire range
@@ -286,7 +357,7 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     public new System.Single GetFloat() => (this.Get() >> 8) * (1.0f / 16777216.0f);
 
     /// <summary>
-    /// Returns a random double-precision floating-point ProtocolType in the range [0.0, 1.0).
+    /// Returns a random double-precision floating-point value in the range [0.0, 1.0).
     /// </summary>
     /// <remarks>
     /// This implementation ensures uniform distribution across the entire range
