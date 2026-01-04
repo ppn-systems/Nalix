@@ -80,7 +80,11 @@ internal static class OsRandom
     /// Attach a TaskManager to auto-reseed the global state at the specified interval.
     /// Safe to call multiple times; will cancel the previous recurring reseed if any.
     /// </summary>
-    /// <remarks>Recommended interval: 1-5 minutes for long-running servers.</remarks>
+    /// <remarks>
+    /// Recommended interval: 1-5 minutes for long-running servers.
+    /// This improves randomness quality by periodically refreshing the internal state
+    /// with fresh entropy from system sources. Thread-safe.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static void Attach()
@@ -110,6 +114,10 @@ internal static class OsRandom
     /// <summary>
     /// Detach from TaskManager (stop periodic reseeding).
     /// </summary>
+    /// <remarks>
+    /// Safe to call even if Attach() was never called or has already been detached.
+    /// Thread-safe.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static void Detach()
@@ -121,6 +129,12 @@ internal static class OsRandom
     /// <summary>
     /// Fills the span with pseudo-random bytes (NOT cryptographic).
     /// </summary>
+    /// <param name="dst">The span to fill with random bytes.</param>
+    /// <remarks>
+    /// Thread-safe. Each thread maintains its own local state for lock-free performance.
+    /// Automatically reseeds thread-local state when the global state is updated.
+    /// WARNING: This is NOT cryptographically secure - use OsCsprng for security-sensitive operations.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]

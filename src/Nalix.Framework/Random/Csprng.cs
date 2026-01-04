@@ -7,7 +7,7 @@ using Nalix.Framework.Random.Core;
 namespace Nalix.Framework.Random;
 
 /// <summary>
-/// High-performance cryptographically strong random ProtocolType generator
+/// High-performance cryptographically strong random number generator
 /// based on the Xoshiro256++ algorithm with additional entropy sources.
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
@@ -46,6 +46,11 @@ public static class Csprng
     /// Fills the provided span with cryptographically strong random bytes.
     /// </summary>
     /// <param name="data">The span to fill with random bytes.</param>
+    /// <remarks>
+    /// Thread-safe. Uses OS-level CSPRNG (e.g., BCryptGenRandom on Windows, getrandom on Linux).
+    /// Falls back to high-quality pseudo-random generator if OS CSPRNG is unavailable.
+    /// Suitable for cryptographic purposes including key generation, nonces, and IVs.
+    /// </remarks>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
@@ -63,14 +68,20 @@ public static class Csprng
     /// <summary>
     /// Generates a secure 12-byte nonce (96 bits) suitable for most authenticated encryption schemes.
     /// </summary>
+    /// <param name="length">The length of the nonce in bytes. Default is 12 bytes (96 bits).</param>
     /// <returns>A cryptographically secure nonce.</returns>
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown when length is less than or equal to zero.</exception>
+    /// <remarks>
+    /// 96-bit (12-byte) nonces are recommended for most AEAD schemes like AES-GCM and ChaCha20-Poly1305.
+    /// Never reuse a nonce with the same key in authenticated encryption.
+    /// </remarks>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] CreateNonce([System.Diagnostics.CodeAnalysis.NotNull] System.Int32 length = 12)
     {
         if (length <= 0)
         {
             throw new System.ArgumentOutOfRangeException(
-                nameof(length), "Nonce length must be a positive integer.");
+                nameof(length), length, "Nonce length must be a positive integer.");
         }
 
         System.Byte[] nonce = new System.Byte[length];
@@ -81,9 +92,13 @@ public static class Csprng
     /// <summary>
     /// Generates a random byte array of the specified length.
     /// </summary>
-    /// <param name="length">The ProtocolType of random bytes to generate.</param>
-    /// <returns>A byte array filled with random data.</returns>
-    /// <exception cref="System.ArgumentException">Thrown if length is negative.</exception>
+    /// <param name="length">The number of random bytes to generate.</param>
+    /// <returns>A byte array filled with cryptographically secure random data.</returns>
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown when length is negative.</exception>
+    /// <remarks>
+    /// Thread-safe. Returns an empty array if length is 0.
+    /// Use this for generating cryptographic keys, tokens, and other security-sensitive data.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -92,7 +107,7 @@ public static class Csprng
     {
         if (length < 0)
         {
-            throw new System.ArgumentException("Length cannot be negative.", nameof(length));
+            throw new System.ArgumentOutOfRangeException(nameof(length), length, "Length cannot be negative.");
         }
 
         if (length == 0)
@@ -106,11 +121,16 @@ public static class Csprng
     }
 
     /// <summary>
-    /// Gets a random _v5 in the range [min, max).
+    /// Gets a random integer in the range [min, max).
     /// </summary>
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random integer in the specified range.</returns>
+    /// <returns>A cryptographically secure random integer in the specified range.</returns>
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown when min is greater than or equal to max.</exception>
+    /// <remarks>
+    /// Uses rejection sampling to ensure unbiased distribution across the entire range.
+    /// Thread-safe. Suitable for security-sensitive applications requiring unpredictable integers.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -120,7 +140,7 @@ public static class Csprng
     {
         if (min >= max)
         {
-            throw new System.ArgumentException("Max must be greater than min");
+            throw new System.ArgumentOutOfRangeException(nameof(max), max, "Max must be greater than min.");
         }
 
         System.UInt64 range = (System.UInt64)((System.Int64)max - min);
@@ -139,10 +159,14 @@ public static class Csprng
     }
 
     /// <summary>
-    /// Gets a random _v5 in the range [0, max).
+    /// Gets a random integer in the range [0, max).
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
-    /// <returns>A random integer in the specified range.</returns>
+    /// <returns>A cryptographically secure random integer in the specified range.</returns>
+    /// <exception cref="System.ArgumentOutOfRangeException">Thrown when max is less than or equal to 0.</exception>
+    /// <remarks>
+    /// Thread-safe. Uses unbiased rejection sampling for uniform distribution.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -154,6 +178,10 @@ public static class Csprng
     /// Fills the given byte array with cryptographically strong random values.
     /// </summary>
     /// <param name="buffer">The buffer to fill with random bytes.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown when buffer is null.</exception>
+    /// <remarks>
+    /// Thread-safe. Equivalent to Fill(buffer.AsSpan()).
+    /// </remarks>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
@@ -169,6 +197,9 @@ public static class Csprng
     /// Fills the given span with cryptographically strong random values.
     /// </summary>
     /// <param name="buffer">The span to fill with random bytes.</param>
+    /// <remarks>
+    /// Thread-safe. Preferred over the array overload for performance-critical code.
+    /// </remarks>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
@@ -180,6 +211,9 @@ public static class Csprng
     /// Generates a cryptographically strong 32-bit random integer.
     /// </summary>
     /// <returns>A random 32-bit unsigned integer.</returns>
+    /// <remarks>
+    /// Thread-safe. Suitable for generating unpredictable identifiers and tokens.
+    /// </remarks>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
@@ -196,6 +230,9 @@ public static class Csprng
     /// Generates a cryptographically strong 64-bit random integer.
     /// </summary>
     /// <returns>A random 64-bit unsigned integer.</returns>
+    /// <remarks>
+    /// Thread-safe. Useful for generating high-entropy identifiers and session tokens.
+    /// </remarks>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
@@ -212,6 +249,10 @@ public static class Csprng
     /// Generates a random double in the range [0.0, 1.0).
     /// </summary>
     /// <returns>A random double with uniform distribution.</returns>
+    /// <remarks>
+    /// Thread-safe. Uses 53 bits of precision (full mantissa of double).
+    /// Suitable for Monte Carlo simulations and statistical sampling.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
