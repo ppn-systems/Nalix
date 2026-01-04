@@ -1008,6 +1008,8 @@ internal sealed class IniConfig
     /// <summary>
     /// Loads the data from the INI file into memory with optimized parsing.
     /// </summary>
+    /// <exception cref="System.IO.IOException">Thrown when file reading fails.</exception>
+    /// <exception cref="System.UnauthorizedAccessException">Thrown when file access is denied.</exception>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -1025,7 +1027,7 @@ internal sealed class IniConfig
 
         try
         {
-            // Dispose existing data
+            // Clear existing data
             _iniData.Clear();
             _valueCache.Clear();
 
@@ -1036,9 +1038,12 @@ internal sealed class IniConfig
             using var reader = new System.IO.StreamReader(
                 _path, System.Text.Encoding.UTF8, true, DefaultBufferSize);
 
+            System.Int32 lineNumber = 0;
             System.String? line;
+
             while ((line = reader.ReadLine()) != null)
             {
+                lineNumber++;
                 System.String trimmedLine = line.Trim();
 
                 // Skip empty lines or comments
@@ -1050,12 +1055,18 @@ internal sealed class IniConfig
                 // Process section
                 if (trimmedLine[0] == SectionStart && trimmedLine[^1] == SectionEnd)
                 {
-                    currentSection = trimmedLine[1..^1].Trim();
+                    currentSection = trimmedLine.Substring(1, trimmedLine.Length - 2).Trim();
+
+                    // Validate section name
+                    if (System.String.IsNullOrWhiteSpace(currentSection))
+                    {
+                        // Skip invalid section but continue parsing
+                        continue;
+                    }
 
                     if (!_iniData.TryGetValue(currentSection, out currentSectionData!))
                     {
                         currentSectionData = new(System.StringComparer.OrdinalIgnoreCase);
-
                         _iniData[currentSection] = currentSectionData;
                     }
                 }
@@ -1063,10 +1074,16 @@ internal sealed class IniConfig
                 {
                     // Handle key-value pairs with optimized parsing
                     System.Int32 separatorIndex = trimmedLine.IndexOf(KeyValueSeparator);
-                    if (separatorIndex > 0)
+                    if (separatorIndex > 0 && separatorIndex < trimmedLine.Length - 1)
                     {
-                        System.String key = trimmedLine[..separatorIndex].Trim();
-                        System.String value = trimmedLine[(separatorIndex + 1)..].Trim();
+                        System.String key = trimmedLine.Substring(0, separatorIndex).Trim();
+                        System.String value = trimmedLine.Substring(separatorIndex + 1).Trim();
+
+                        // Skip if key is empty
+                        if (System.String.IsNullOrWhiteSpace(key))
+                        {
+                            continue;
+                        }
 
                         // Store the key-value pair in the current section
                         currentSectionData[key] = value;
@@ -1077,6 +1094,23 @@ internal sealed class IniConfig
             // Store the last read time for file change detection
             _lastFileReadTime = System.IO.File.GetLastWriteTimeUtc(_path);
             _isDirty = false;
+        }
+        catch (System.IO.FileNotFoundException ex)
+        {
+            throw new System.IO.IOException($"Configuration file not found: {_path}", ex);
+        }
+        catch (System.UnauthorizedAccessException ex)
+        {
+            throw new System.UnauthorizedAccessException($"Access denied to configuration file: {_path}", ex);
+        }
+        catch (System.IO.IOException)
+        {
+            // Re-throw IO exceptions as-is
+            throw;
+        }
+        catch (System.Exception ex)
+        {
+            throw new System.IO.IOException($"Error reading configuration file: {_path}", ex);
         }
         finally
         {
@@ -1112,8 +1146,11 @@ internal sealed class IniConfig
     }
 
     /// <summary>
-    /// Writes the INI data to the file with optimized IEndpointKey /O and error handling.
+    /// Writes the INI data to the file with optimized I/O and error handling.
+    /// Uses atomic file replacement to prevent data corruption.
     /// </summary>
+    /// <exception cref="System.IO.IOException">Thrown when file writing fails.</exception>
+    /// <exception cref="System.UnauthorizedAccessException">Thrown when file access is denied.</exception>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -1125,17 +1162,47 @@ internal sealed class IniConfig
         }
 
         _fileLock.EnterWriteLock();
+        System.String? tempFileName = null;
+
         try
         {
-            // Ensure directory exists
+            // Ensure directory exists with validation
             System.String? directory = System.IO.Path.GetDirectoryName(_path);
-            if (!System.String.IsNullOrEmpty(directory) && !System.IO.Directory.Exists(directory))
+            if (System.String.IsNullOrWhiteSpace(directory))
             {
-                _ = System.IO.Directory.CreateDirectory(directory);
+                throw new System.InvalidOperationException(
+                    "Cannot write configuration file: invalid directory path.");
             }
 
-            // WriteInt16 to a temporary file first to prevent corruption
-            System.String tempFileName = _path + ".tmp";
+            if (!System.IO.Directory.Exists(directory))
+            {
+                try
+                {
+                    _ = System.IO.Directory.CreateDirectory(directory);
+                }
+                catch (System.UnauthorizedAccessException ex)
+                {
+                    throw new System.UnauthorizedAccessException(
+                        $"Access denied when creating directory: {directory}", ex);
+                }
+            }
+
+            // Write to a temporary file first to prevent corruption
+            tempFileName = _path + ".tmp";
+
+            // Delete temp file if it exists from a previous failed operation
+            if (System.IO.File.Exists(tempFileName))
+            {
+                try
+                {
+                    System.IO.File.Delete(tempFileName);
+                }
+                catch (System.IO.IOException)
+                {
+                    // If we can't delete the temp file, try with a different name
+                    tempFileName = $"{_path}.{System.Guid.NewGuid():N}.tmp";
+                }
+            }
 
             using (System.IO.StreamWriter writer = new(
                 tempFileName, false, System.Text.Encoding.UTF8, DefaultBufferSize))
@@ -1144,16 +1211,23 @@ internal sealed class IniConfig
                 {
                     if (section.Key != System.String.Empty)
                     {
-                        writer.WriteLine($"[{section.Key}]");
+                        writer.Write(SectionStart);
+                        writer.Write(section.Key);
+                        writer.WriteLine(SectionEnd);
                     }
 
                     foreach (var keyValue in section.Value)
                     {
-                        writer.WriteLine($"{keyValue.Key}={keyValue.Value}");
+                        writer.Write(keyValue.Key);
+                        writer.Write(KeyValueSeparator);
+                        writer.WriteLine(keyValue.Value);
                     }
 
                     writer.WriteLine(); // Empty line between sections
                 }
+
+                // Ensure all data is written to disk
+                writer.Flush();
             }
 
             // Atomic file replacement
@@ -1169,13 +1243,43 @@ internal sealed class IniConfig
             // Update last write time after our own modification
             _lastFileReadTime = System.IO.File.GetLastWriteTimeUtc(_path);
             _isDirty = false;
+            tempFileName = null; // Mark as successfully processed
+        }
+        catch (System.UnauthorizedAccessException ex)
+        {
+            throw new System.UnauthorizedAccessException(
+                $"Access denied when writing configuration file: {_path}", ex);
+        }
+        catch (System.IO.PathTooLongException ex)
+        {
+            throw new System.IO.IOException(
+                $"Configuration file path is too long: {_path}", ex);
+        }
+        catch (System.IO.IOException ex)
+        {
+            throw new System.IO.IOException(
+                $"I/O error writing configuration file: {_path}", ex);
         }
         catch (System.Exception ex)
         {
-            throw new System.IO.IOException($"Failed to write INI file: {_path}", ex);
+            throw new System.IO.IOException(
+                $"Unexpected error writing configuration file: {_path}", ex);
         }
         finally
         {
+            // Clean up temp file if write failed
+            if (tempFileName != null && System.IO.File.Exists(tempFileName))
+            {
+                try
+                {
+                    System.IO.File.Delete(tempFileName);
+                }
+                catch
+                {
+                    // Ignore cleanup errors
+                }
+            }
+
             _fileLock.ExitWriteLock();
         }
     }

@@ -121,12 +121,18 @@ public abstract partial class ConfigurationLoader
     /// using optimized reflection with caching to set property values based on the configuration file.
     /// </summary>
     /// <param name="configFile">The INI configuration file to load values from.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown when configFile is null.</exception>
     [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_isInitialized), nameof(LastInitializationTime))]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     internal void Initialize(IniConfig configFile)
     {
-        System.ArgumentNullException.ThrowIfNull(configFile);
+        if (configFile == null)
+        {
+            throw new System.ArgumentNullException(
+                nameof(configFile), 
+                "Configuration file cannot be null during initialization.");
+        }
 
         System.Type type = GetType();
 
@@ -161,10 +167,20 @@ public abstract partial class ConfigurationLoader
                 // Assign the value to the property using the cached setter
                 propertyInfo.SetValue(this, value);
             }
+            catch (System.ArgumentException ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[FW.{nameof(ConfigurationLoader)}:Internal] invalid-argument section={section} key={propertyInfo.Name} error={ex.Message}", ex);
+            }
+            catch (System.InvalidOperationException ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[FW.{nameof(ConfigurationLoader)}:Internal] invalid-operation section={section} key={propertyInfo.Name} error={ex.Message}", ex);
+            }
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[FW.{nameof(ConfigurationLoader)}:Internal] set-error section={section} key={propertyInfo.Name}", ex);
+                                        .Warn($"[FW.{nameof(ConfigurationLoader)}:Internal] set-error section={section} key={propertyInfo.Name} type={ex.GetType().Name}", ex);
             }
         }
 
