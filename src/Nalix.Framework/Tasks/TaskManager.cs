@@ -3,6 +3,7 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Logging;
 using Nalix.Common.Tasks;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
@@ -52,6 +53,13 @@ public sealed partial class TaskManager : ITaskManager
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Meta($"[FW.{nameof(TaskManager)}] init cleanupInterval={_options.CleanupInterval.TotalSeconds:F0}s");
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TaskManager"/> class.
+    /// </summary>
+    public TaskManager() : this(ConfigurationManager.Instance.Get<TaskManagerOptions>())
+    {
     }
 
     #endregion Ctors

@@ -1,5 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Framework.Configuration.Binding;
+
 namespace Nalix.Framework.Options;
 
 /// <summary>
@@ -20,7 +22,7 @@ namespace Nalix.Framework.Options;
 /// </code>
 /// </example>
 /// </remarks>
-public sealed class TaskManagerOptions
+public sealed class TaskManagerOptions : ConfigurationLoader
 {
     /// <summary>
     /// Gets or sets the interval at which completed workers are cleaned up.
