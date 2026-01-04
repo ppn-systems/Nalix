@@ -111,7 +111,7 @@ public sealed class Rand32
     {
         if (max <= 0)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(max), "Max must be positive");
+            throw new System.ArgumentOutOfRangeException(nameof(max), max, "Max must be positive.");
         }
 
         // Fast path for power of 2
@@ -145,7 +145,7 @@ public sealed class Rand32
     {
         if (min >= max)
         {
-            return min == max ? min : throw new System.ArgumentOutOfRangeException(nameof(min), "Min must be less than max");
+            return min == max ? min : throw new System.ArgumentOutOfRangeException(nameof(min), min, $"Min ({min}) must be less than max ({max}).");
         }
 
         System.Int64 range = (System.Int64)max - min;

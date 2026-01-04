@@ -117,6 +117,10 @@ public abstract class MwcRandom
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random ProtocolType in the range [0, max).</returns>
+    /// <remarks>
+    /// Returns 0 if max is 0 or 1. Optimized fast path for power-of-2 values.
+    /// Uses rejection sampling to avoid modulo bias for uniform distribution.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -150,6 +154,9 @@ public abstract class MwcRandom
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random ProtocolType in the range [min, max).</returns>
+    /// <remarks>
+    /// Returns min if min ≥ max. Delegates to Get(max - min) for uniform distribution.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]

@@ -19,6 +19,10 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random integer in the range [0, max).</returns>
+    /// <remarks>
+    /// Returns 0 if max is less than or equal to 0.
+    /// Uses rejection sampling to avoid modulo bias for non-power-of-2 ranges.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -48,6 +52,10 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random unsigned integer in the range [0, max).</returns>
+    /// <remarks>
+    /// Returns 0 if max is 0. Optimized fast path for power-of-2 values.
+    /// Uses rejection sampling to ensure uniform distribution without modulo bias.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -80,6 +88,10 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random unsigned long integer in the range [0, max).</returns>
+    /// <remarks>
+    /// Returns 0 if max is 0. Optimized for small values (≤ uint.MaxValue) and power-of-2 values.
+    /// Uses 64-bit rejection sampling to avoid bias for large ranges.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -118,6 +130,10 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random signed long integer in the range [0, max).</returns>
+    /// <remarks>
+    /// Returns 0 if max is less than or equal to 0.
+    /// Converts to unsigned range internally for efficient generation.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -139,6 +155,9 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A random integer in the range [min, max).</returns>
+    /// <remarks>
+    /// Returns min if min ≥ max. Handles potential overflow when calculating the range.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
