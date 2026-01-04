@@ -25,6 +25,7 @@ internal sealed class IniConfig
     private const System.Char SectionEnd = ']';
     private const System.Char KeyValueSeparator = '=';
     private const System.Char CommentChar = ';';
+    private const System.Char CacheKeySeparator = ':';
 
     // Standard buffer sizes
     private const System.Int32 DefaultBufferSize = 4096;
@@ -66,9 +67,45 @@ internal sealed class IniConfig
     /// Initializes a new instance of the <see cref="IniConfig"/> class for the specified path.
     /// </summary>
     /// <param name="path">The path to the INI file.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown when path is null.</exception>
+    /// <exception cref="System.ArgumentException">Thrown when path is invalid.</exception>
+    /// <exception cref="System.Security.SecurityException">Thrown when path contains path traversal attempts.</exception>
     public IniConfig(System.String path)
     {
-        _path = path ?? throw new System.ArgumentNullException(nameof(path));
+        if (path == null)
+        {
+            throw new System.ArgumentNullException(nameof(path), "Configuration file path cannot be null.");
+        }
+
+        if (System.String.IsNullOrWhiteSpace(path))
+        {
+            throw new System.ArgumentException("Configuration file path cannot be empty or whitespace.", nameof(path));
+        }
+
+        // Validate path for security - prevent path traversal
+        try
+        {
+            _path = System.IO.Path.GetFullPath(path);
+        }
+        catch (System.ArgumentException ex)
+        {
+            throw new System.ArgumentException($"Invalid configuration file path: {path}", nameof(path), ex);
+        }
+        catch (System.Security.SecurityException ex)
+        {
+            throw new System.Security.SecurityException($"Security error accessing path: {path}", ex);
+        }
+        catch (System.NotSupportedException ex)
+        {
+            throw new System.ArgumentException($"Unsupported path format: {path}", nameof(path), ex);
+        }
+
+        // Additional validation - ensure path doesn't contain invalid characters
+        if (_path.IndexOfAny(System.IO.Path.GetInvalidPathChars()) >= 0)
+        {
+            throw new System.ArgumentException(
+                $"Configuration file path contains invalid characters: {path}", nameof(path));
+        }
 
         // Use case-insensitive keys for sections and keys
         _iniData = new(System.StringComparer.OrdinalIgnoreCase);
@@ -100,6 +137,8 @@ internal sealed class IniConfig
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <param name="value">The value to write.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown when section, key, or value is null.</exception>
+    /// <exception cref="System.ArgumentException">Thrown when section or key contains invalid characters.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void WriteValue(
@@ -107,8 +146,33 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Object value)
     {
-        System.ArgumentNullException.ThrowIfNull(key);
-        System.ArgumentNullException.ThrowIfNull(section);
+        if (key == null)
+        {
+            throw new System.ArgumentNullException(nameof(key), "Configuration key cannot be null.");
+        }
+
+        if (section == null)
+        {
+            throw new System.ArgumentNullException(nameof(section), "Configuration section cannot be null.");
+        }
+
+        if (value == null)
+        {
+            throw new System.ArgumentNullException(nameof(value), "Configuration value cannot be null.");
+        }
+
+        // Validate section and key don't contain special characters that would break INI format
+        if (section.IndexOfAny(['\r', '\n', '[', ']']) >= 0)
+        {
+            throw new System.ArgumentException(
+                "Section name cannot contain newline, '[', or ']' characters.", nameof(section));
+        }
+
+        if (key.IndexOfAny(['\r', '\n', '=']) >= 0)
+        {
+            throw new System.ArgumentException(
+                "Key name cannot contain newline or '=' characters.", nameof(key));
+        }
 
         _fileLock.EnterUpgradeableReadLock();
         try
@@ -144,7 +208,7 @@ internal sealed class IniConfig
                     sectionData[key] = stringValue;
 
                     // Dispose any cached value for this key
-                    System.String cacheKey = $"{section}:{key}";
+                    System.String cacheKey = CreateCacheKey(section, key);
                     _ = _valueCache.Remove(cacheKey);
 
                     _isDirty = true;
@@ -170,6 +234,8 @@ internal sealed class IniConfig
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The string value, or an empty string if not found.</returns>
+    /// <exception cref="System.ArgumentNullException">Thrown when section or key is null.</exception>
+    /// <exception cref="System.ArgumentException">Thrown when section or key is empty.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -177,8 +243,25 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
-        System.ArgumentNullException.ThrowIfNull(key);
-        System.ArgumentNullException.ThrowIfNull(section);
+        if (key == null)
+        {
+            throw new System.ArgumentNullException(nameof(key), "Configuration key cannot be null.");
+        }
+
+        if (section == null)
+        {
+            throw new System.ArgumentNullException(nameof(section), "Configuration section cannot be null.");
+        }
+
+        if (System.String.IsNullOrWhiteSpace(key))
+        {
+            throw new System.ArgumentException("Configuration key cannot be empty or whitespace.", nameof(key));
+        }
+
+        if (System.String.IsNullOrWhiteSpace(section))
+        {
+            throw new System.ArgumentException("Configuration section cannot be empty or whitespace.", nameof(section));
+        }
 
         // Check for file changes before reading
         CheckFileChanges();
@@ -226,6 +309,9 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a boolean.
     /// </summary>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The boolean value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
@@ -233,7 +319,7 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
-        System.String cacheKey = $"{section}:{key}:bool";
+        System.String cacheKey = CreateCacheKey(section, key, "bool");
 
         if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
         {
@@ -278,6 +364,9 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a decimal.
     /// </summary>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The decimal value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
@@ -285,7 +374,7 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
-        System.String cacheKey = $"{section}:{key}:decimal";
+        System.String cacheKey = CreateCacheKey(section, key, "decimal");
 
         if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
         {
@@ -312,6 +401,9 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a byte.
     /// </summary>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The byte value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
@@ -319,7 +411,7 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
-        System.String cacheKey = $"{section}:{key}:byte";
+        System.String cacheKey = CreateCacheKey(section, key, "byte");
 
         if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
         {
@@ -344,6 +436,9 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as an sbyte.
     /// </summary>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The sbyte value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
@@ -351,7 +446,7 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
-        System.String cacheKey = $"{section}:{key}:sbyte";
+        System.String cacheKey = CreateCacheKey(section, key, "sbyte");
 
         if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
         {
@@ -376,6 +471,9 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a short.
     /// </summary>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The short value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
@@ -383,7 +481,7 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
-        System.String cacheKey = $"{section}:{key}:int16";
+        System.String cacheKey = CreateCacheKey(section, key, "int16");
 
         if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
         {
@@ -408,6 +506,9 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as an unsigned short.
     /// </summary>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The unsigned short value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
@@ -415,7 +516,7 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
-        System.String cacheKey = $"{section}:{key}:uint16";
+        System.String cacheKey = CreateCacheKey(section, key, "uint16");
 
         if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
         {
@@ -440,6 +541,9 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as an integer.
     /// </summary>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The integer value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
@@ -447,7 +551,7 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
-        System.String cacheKey = $"{section}:{key}:int32";
+        System.String cacheKey = CreateCacheKey(section, key, "int32");
 
         if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
         {
@@ -472,6 +576,9 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as an unsigned integer.
     /// </summary>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The unsigned integer value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
@@ -479,7 +586,7 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
-        System.String cacheKey = $"{section}:{key}:uint32";
+        System.String cacheKey = CreateCacheKey(section, key, "uint32");
 
         if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
         {
@@ -504,12 +611,15 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a long.
     /// </summary>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The long value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public System.Int64? GetInt64(System.String section, System.String key)
     {
-        System.String cacheKey = $"{section}:{key}:int64";
+        System.String cacheKey = CreateCacheKey(section, key, "int64");
 
         if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
         {
@@ -534,6 +644,9 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as an unsigned long.
     /// </summary>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The unsigned long value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
@@ -541,7 +654,7 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
-        System.String cacheKey = $"{section}:{key}:uint64";
+        System.String cacheKey = CreateCacheKey(section, key, "uint64");
 
         if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
         {
@@ -566,6 +679,9 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a float.
     /// </summary>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The float value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
@@ -573,7 +689,7 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
-        System.String cacheKey = $"{section}:{key}:single";
+        System.String cacheKey = CreateCacheKey(section, key, "single");
 
         if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
         {
@@ -600,12 +716,15 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a double.
     /// </summary>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The double value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public System.Double? GetDouble(System.String section, System.String key)
     {
-        System.String cacheKey = $"{section}:{key}:double";
+        System.String cacheKey = CreateCacheKey(section, key, "double");
 
         if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
         {
@@ -632,6 +751,9 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a DateTime.
     /// </summary>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The DateTime value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
@@ -639,7 +761,7 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
-        System.String cacheKey = $"{section}:{key}:datetime";
+        System.String cacheKey = CreateCacheKey(section, key, "datetime");
 
         if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
         {
@@ -666,6 +788,9 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a TimeSpan.
     /// </summary>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The TimeSpan value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
@@ -673,7 +798,7 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
-        System.String cacheKey = $"{section}:{key}:timespan";
+        System.String cacheKey = CreateCacheKey(section, key, "timespan");
 
         if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
         {
@@ -700,6 +825,9 @@ internal sealed class IniConfig
     /// <summary>
     /// Gets the value for the specified key in the specified section as a Guid.
     /// </summary>
+    /// <param name="section">The section name in the INI file.</param>
+    /// <param name="key">The key name in the section.</param>
+    /// <returns>The Guid value if parsed successfully, otherwise null.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
@@ -707,7 +835,7 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
-        System.String cacheKey = $"{section}:{key}:guid";
+        System.String cacheKey = CreateCacheKey(section, key, "guid");
 
         if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
         {
@@ -743,7 +871,7 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key) where TEnum : struct, System.Enum
     {
-        System.String cacheKey = $"{section}:{key}:enum:{typeof(TEnum).FullName}";
+        System.String cacheKey = CreateCacheKey(section, key, $"enum:{typeof(TEnum).FullName}");
 
         if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
         {
@@ -800,6 +928,26 @@ internal sealed class IniConfig
     #endregion Public API
 
     #region Private Methods
+
+    /// <summary>
+    /// Creates a cache key from section, key, and optional type suffix.
+    /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    private static System.String CreateCacheKey(
+        System.String section, 
+        System.String key, 
+        System.String? typeSuffix = null)
+    {
+        if (typeSuffix == null)
+        {
+            return string.Concat(section, CacheKeySeparator.ToString(), key);
+        }
+
+        return string.Concat(section, CacheKeySeparator.ToString(), key, CacheKeySeparator.ToString(), typeSuffix);
+    }
 
     /// <summary>
     /// Formats a value for storage in the INI file.
