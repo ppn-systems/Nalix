@@ -127,12 +127,7 @@ public abstract partial class ConfigurationLoader
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     internal void Initialize(IniConfig configFile)
     {
-        if (configFile == null)
-        {
-            throw new System.ArgumentNullException(
-                nameof(configFile), 
-                "Configuration file cannot be null during initialization.");
-        }
+        System.ArgumentNullException.ThrowIfNull(configFile, nameof(configFile));
 
         System.Type type = GetType();
 

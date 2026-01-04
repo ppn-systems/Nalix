@@ -146,20 +146,9 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Object value)
     {
-        if (key == null)
-        {
-            throw new System.ArgumentNullException(nameof(key), "Configuration key cannot be null.");
-        }
-
-        if (section == null)
-        {
-            throw new System.ArgumentNullException(nameof(section), "Configuration section cannot be null.");
-        }
-
-        if (value == null)
-        {
-            throw new System.ArgumentNullException(nameof(value), "Configuration value cannot be null.");
-        }
+        System.ArgumentNullException.ThrowIfNull(key, nameof(key));
+        System.ArgumentNullException.ThrowIfNull(section, nameof(section));
+        System.ArgumentNullException.ThrowIfNull(value, nameof(value));
 
         // Validate section and key don't contain special characters that would break INI format
         if (section.IndexOfAny(['\r', '\n', '[', ']']) >= 0)
@@ -243,15 +232,8 @@ internal sealed class IniConfig
         [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
     {
-        if (key == null)
-        {
-            throw new System.ArgumentNullException(nameof(key), "Configuration key cannot be null.");
-        }
-
-        if (section == null)
-        {
-            throw new System.ArgumentNullException(nameof(section), "Configuration section cannot be null.");
-        }
+        System.ArgumentNullException.ThrowIfNull(key, nameof(key));
+        System.ArgumentNullException.ThrowIfNull(section, nameof(section));
 
         if (System.String.IsNullOrWhiteSpace(key))
         {
@@ -943,10 +925,10 @@ internal sealed class IniConfig
     {
         if (typeSuffix == null)
         {
-            return string.Concat(section, CacheKeySeparator.ToString(), key);
+            return string.Concat(section, ":", key);
         }
 
-        return string.Concat(section, CacheKeySeparator.ToString(), key, CacheKeySeparator.ToString(), typeSuffix);
+        return string.Concat(section, ":", key, ":", typeSuffix);
     }
 
     /// <summary>
