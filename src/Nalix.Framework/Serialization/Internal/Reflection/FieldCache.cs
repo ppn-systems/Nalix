@@ -9,14 +9,13 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Serialization;
-using Nalix.Framework.Serialization.Internal.Reflection;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
-namespace Nalix.Shared.Serialization.Internal.Reflection;
+namespace Nalix.Framework.Serialization.Internal.Reflection;
 
 internal static partial class FieldCache<
     [DynamicallyAccessedMembers(
