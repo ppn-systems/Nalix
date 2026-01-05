@@ -251,3 +251,28 @@ dotnet_diagnostic.CS0168.severity = warning
 dotnet_diagnostic.CS0219.severity = warning
 dotnet_analyzer_diagnostic.severity = warning
 
+# ----- Naming rules for C# -----
+
+# Private instance fields: prefix is _
+dotnet_naming_rule.private_instance_fields.symbols = private_instance_field
+dotnet_naming_rule.private_instance_fields.style = instance_field_style
+dotnet_naming_rule.private_instance_fields.severity = error
+
+dotnet_naming_symbols.private_instance_field.applicable_kinds = field
+dotnet_naming_symbols.private_instance_field.applicable_accessibilities = private
+dotnet_naming_symbols.private_instance_field.required_modifiers = 
+
+dotnet_naming_style.instance_field_style.required_prefix = _
+dotnet_naming_style.instance_field_style.capitalization = camel_case
+
+# Private static fields: prefix is s_
+dotnet_naming_rule.private_static_fields.symbols = private_static_field
+dotnet_naming_rule.private_static_fields.style = static_field_style
+dotnet_naming_rule.private_static_fields.severity = error
+
+dotnet_naming_symbols.private_static_field.applicable_kinds = field
+dotnet_naming_symbols.private_static_field.applicable_accessibilities = private
+dotnet_naming_symbols.private_static_field.required_modifiers = static
+
+dotnet_naming_style.static_field_style.required_prefix = s_
+dotnet_naming_style.static_field_style.capitalization = camel_case
