@@ -1,0 +1,42 @@
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Threading;
+
+namespace Nalix.Framework.DataFrames.Pooling;
+
+/// <summary>
+/// Represents exclusive ownership of a pooled packet instance.
+/// Disposing the lease returns the packet to its originating pool.
+/// </summary>
+/// <typeparam name="TPacket">The packet type.</typeparam>
+public sealed class PacketLease<TPacket> : IDisposable where TPacket : PacketBase<TPacket>, new()
+{
+    private readonly Action<TPacket> _return;
+    private int _disposed;
+
+    internal PacketLease(TPacket value, Action<TPacket> @return)
+    {
+        this.Value = value ?? throw new ArgumentNullException(nameof(value));
+        _return = @return ?? throw new ArgumentNullException(nameof(@return));
+    }
+
+    /// <summary>
+    /// Gets the rented packet instance.
+    /// </summary>
+    public TPacket Value { get; }
+
+    /// <summary>
+    /// Returns the packet to its pool. Double-dispose is ignored.
+    /// </summary>
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
+        _return(this.Value);
+    }
+}
