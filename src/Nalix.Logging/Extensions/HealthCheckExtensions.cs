@@ -11,25 +11,6 @@ namespace Nalix.Logging.Extensions;
 public static class HealthCheckExtensions
 {
     /// <summary>
-    /// Adds health check monitoring to the logging options.
-    /// </summary>
-    /// <param name="options">The logging options.</param>
-    /// <param name="healthCheckOptions">Health check configuration options.</param>
-    /// <returns>An instance of <see cref="ILoggingHealthCheck"/> for monitoring.</returns>
-    public static ILoggingHealthCheck AddHealthCheck(
-        this NLogixOptions options,
-        HealthCheckOptions? healthCheckOptions = null)
-    {
-        System.ArgumentNullException.ThrowIfNull(options);
-
-        // This would need access to the distributor
-        // For now, return a basic implementation
-        throw new System.NotImplementedException(
-            "Health check integration requires access to the distributor. " +
-            "Use LoggingHealthCheck constructor directly with the distributor instance.");
-    }
-
-    /// <summary>
     /// Creates a health check for a distributor.
     /// </summary>
     /// <param name="distributor">The distributor to monitor.</param>

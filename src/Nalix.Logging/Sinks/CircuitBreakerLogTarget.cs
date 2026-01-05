@@ -271,11 +271,13 @@ public sealed class CircuitBreakerLogTarget : ILoggerTarget, ILoggerErrorHandler
     /// </summary>
     /// <remarks>
     /// Use with caution - this bypasses the normal circuit breaker logic.
+    /// Note: This method is provided for testing/admin scenarios and should not be
+    /// used in normal production code.
     /// </remarks>
+    [System.Obsolete("Reset is only for testing purposes. Consider creating a new instance instead.")]
     public void Reset()
     {
-        // Create a new circuit state to reset everything
-        var newState = new CircuitBreakerState(new CircuitBreakerOptions());
+        // Reset metrics only - creating new state would require field reassignment
         System.Threading.Interlocked.Exchange(ref _totalCallsAttempted, 0);
         System.Threading.Interlocked.Exchange(ref _totalCallsBlocked, 0);
         System.Threading.Interlocked.Exchange(ref _totalCallsSucceeded, 0);

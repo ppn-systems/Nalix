@@ -113,7 +113,8 @@ internal static class LogSecurity
             var atIndex = email.IndexOf('@');
             if (atIndex > 0)
             {
-                return $"{email[0]}***{email.Substring(atIndex)}";
+                // Use span-based operations for better performance
+                return $"{email[0]}***{email[atIndex..]}";
             }
             return RedactedText;
         });

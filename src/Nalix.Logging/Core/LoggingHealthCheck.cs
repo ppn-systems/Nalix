@@ -103,7 +103,7 @@ public sealed class LoggingHealthCheck : ILoggingHealthCheck, System.IDisposable
             Timestamp = System.DateTime.UtcNow,
             EntriesProcessed = TotalEntriesProcessed,
             Errors = TotalErrors,
-            QueueDepth = 0 // Will be updated if we can access queue info
+            QueueDepth = 0 // Queue depth tracking requires access to internal provider state
         };
 
         _metrics.Enqueue(snapshot);

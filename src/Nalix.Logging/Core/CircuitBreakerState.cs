@@ -294,10 +294,27 @@ internal sealed class CircuitBreakerState
             return _options.OpenDuration;
         }
 
-        // Calculate exponential backoff duration
+        // Calculate exponential backoff duration with overflow protection
         var openCount = System.Threading.Interlocked.Read(ref _consecutiveOpenCount);
+        
+        // Limit openCount to prevent overflow (2^20 is large enough for practical purposes)
+        if (openCount > 20)
+        {
+            return _options.MaxOpenDuration;
+        }
+
         var multiplier = System.Math.Pow(2, openCount - 1);
-        var duration = System.TimeSpan.FromTicks((System.Int64)(_options.OpenDuration.Ticks * multiplier));
+        
+        // Check for potential overflow before multiplication
+        var maxTicks = _options.MaxOpenDuration.Ticks;
+        var baseTicks = _options.OpenDuration.Ticks;
+        
+        if (multiplier > maxTicks / (System.Double)baseTicks)
+        {
+            return _options.MaxOpenDuration;
+        }
+
+        var duration = System.TimeSpan.FromTicks((System.Int64)(baseTicks * multiplier));
 
         return duration > _options.MaxOpenDuration ? _options.MaxOpenDuration : duration;
     }

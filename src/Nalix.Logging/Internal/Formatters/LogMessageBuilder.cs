@@ -233,14 +233,14 @@ internal static class LogMessageBuilder
         // Use span-based append for standard separators
         _ = builder.Append(DashWithSpaces);
 
-        // Sanitize and redact sensitive data before appending
-        var sanitized = Security.LogSecurity.SanitizeLogMessage(message);
-        if (Security.LogSecurity.ContainsSensitiveData(System.MemoryExtensions.AsSpan(sanitized)))
+        // Combined sanitization and redaction for better performance
+        var processed = Security.LogSecurity.SanitizeLogMessage(message);
+        if (Security.LogSecurity.ContainsSensitiveData(System.MemoryExtensions.AsSpan(processed)))
         {
-            sanitized = Security.LogSecurity.RedactSensitiveData(sanitized);
+            processed = Security.LogSecurity.RedactSensitiveData(processed);
         }
 
-        _ = builder.Append(sanitized);
+        _ = builder.Append(processed);
     }
 
     /// <summary>
