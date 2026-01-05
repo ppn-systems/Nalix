@@ -20,9 +20,11 @@ public static partial class Clock
             return new System.DateTime(ticks, System.DateTimeKind.Utc);
         }
 
-        System.Double dc = _driftCorrection;
-        System.Int64 offset = _timeOffset;
+        // Use Volatile.Read to ensure thread-safe reads of synchronized values
+        System.Double dc = System.Threading.Volatile.Read(ref _driftCorrection);
+        System.Int64 offset = System.Threading.Volatile.Read(ref _timeOffset);
 
+        // Apply drift correction to the entire elapsed time, then add offset
         System.Int64 corrected = (System.Int64)(swTicks * _swToDateTimeTicks * dc) + offset;
         return new System.DateTime(UtcBaseTicks + corrected, System.DateTimeKind.Utc);
     }
@@ -38,12 +40,32 @@ public static partial class Clock
     /// <summary>
     /// Current Unix timestamp (seconds) as uint32.
     /// Note: uint32 max is ~4.2 billion, Unix seconds is currently ~1.7 billion (since 1970),
-    /// so it's OK for now but will overflow in ~50 years.
+    /// so it's OK for now but will overflow in ~50 years (around year 2106).
     /// </summary>
+    /// <returns>The current Unix timestamp in seconds as uint32.</returns>
+    /// <exception cref="System.OverflowException">Thrown when the Unix timestamp exceeds UInt32.MaxValue.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.UInt32 UnixSecondsNowUInt32() => (System.UInt32)(NowUtc() - System.DateTime.UnixEpoch).TotalSeconds;
+    public static System.UInt32 UnixSecondsNowUInt32()
+    {
+        System.Int64 seconds = (System.Int64)(NowUtc() - System.DateTime.UnixEpoch).TotalSeconds;
+        
+        // Check for overflow before casting
+        if (seconds > System.UInt32.MaxValue)
+        {
+            throw new System.OverflowException(
+                $"Unix timestamp {seconds} seconds exceeds UInt32.MaxValue. This typically occurs after year 2106.");
+        }
+        
+        if (seconds < 0)
+        {
+            throw new System.OverflowException(
+                "Unix timestamp is negative, indicating time before Unix epoch.");
+        }
+
+        return (System.UInt32)seconds;
+    }
 
     /// <summary>
     /// Current Unix timestamp (milliseconds) as long.
