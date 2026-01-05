@@ -123,12 +123,15 @@ public class Clock_ValidationTests
         // Wait a bit to ensure clean state
         System.Threading.Thread.Sleep(10);
 
-        var currentUnixMs = (Int64)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
+        // Use a time slightly in the future to ensure drift threshold is exceeded
+        var futureUnixMs = (Int64)(DateTime.UtcNow.AddSeconds(10) - DateTime.UnixEpoch).TotalMilliseconds;
 
-        // Should not throw - use larger thresholds to ensure sync happens
-        var adjustment = Clock.SynchronizeUnixMilliseconds(currentUnixMs, 10, 5000, 50000);
+        // Should not throw - use thresholds that will trigger sync
+        var adjustment = Clock.SynchronizeUnixMilliseconds(futureUnixMs, 10, 1000, 50000);
 
         Assert.True(Clock.IsSynchronized);
+        // The adjustment should be around 10 seconds (10000 ms)
+        Assert.InRange(Math.Abs(adjustment), 9000, 11000);
     }
 
     [Fact]
@@ -163,13 +166,16 @@ public class Clock_ValidationTests
         // Wait a bit to ensure clean state
         System.Threading.Thread.Sleep(10);
 
-        var serverUnixMs = (Int64)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
+        // Use a time slightly in the future to ensure drift threshold is exceeded
+        var futureUnixMs = (Int64)(DateTime.UtcNow.AddSeconds(10) - DateTime.UnixEpoch).TotalMilliseconds;
         const double rttMs = 100; // 100ms round trip
 
         // The method should add half of RTT (50ms) to the server time
-        // Use larger thresholds to ensure sync happens
-        var adjustment = Clock.SynchronizeUnixMilliseconds(serverUnixMs, rttMs, 5000, 50000);
+        // Use thresholds that will trigger sync
+        var adjustment = Clock.SynchronizeUnixMilliseconds(futureUnixMs, rttMs, 1000, 50000);
 
         Assert.True(Clock.IsSynchronized);
+        // The adjustment should be around 10 seconds + half RTT (10050 ms)
+        Assert.InRange(Math.Abs(adjustment), 9000, 11000);
     }
 }
