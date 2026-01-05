@@ -7,6 +7,7 @@ namespace Nalix.Framework.Tests.Time;
 /// <summary>
 /// Tests for input validation in Clock operations.
 /// </summary>
+[Collection("ClockTests")]
 public class Clock_ValidationTests
 {
     [Fact]
@@ -26,8 +27,10 @@ public class Clock_ValidationTests
     {
         Clock.ResetSynchronization();
 
+        var currentUnixMs = (Int64)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMilliseconds;
+
         var ex = Assert.Throws<ArgumentException>(() =>
-            Clock.SynchronizeUnixMilliseconds(DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond, -10, 1000, 10000));
+            Clock.SynchronizeUnixMilliseconds(currentUnixMs, -10, 1000, 10000));
 
         Assert.Contains("RTT cannot be negative", ex.Message);
         Assert.Equal("rttMs", ex.ParamName);

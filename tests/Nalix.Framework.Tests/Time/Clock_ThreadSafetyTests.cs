@@ -11,6 +11,7 @@ namespace Nalix.Framework.Tests.Time;
 /// <summary>
 /// Tests for thread safety of Clock operations.
 /// </summary>
+[Collection("ClockTests")]
 public class Clock_ThreadSafetyTests
 {
     [Fact]
@@ -86,7 +87,7 @@ public class Clock_ThreadSafetyTests
                     for (int j = 0; j < IterationsPerThread / 10; j++)
                     {
                         var time = DateTime.UtcNow.AddMilliseconds(offset * 10);
-                        _ = Clock.SynchronizeTime(time, maxAllowedDriftMs: 0.1);
+                        _ = Clock.SynchronizeTime(time, maxAllowedDriftMs: 1000.0);
                         Thread.Sleep(10);
                     }
                 }

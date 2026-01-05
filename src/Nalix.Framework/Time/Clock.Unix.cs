@@ -55,7 +55,7 @@ public static partial class Clock
         if (seconds > System.UInt32.MaxValue)
         {
             throw new System.OverflowException(
-                $"Unix timestamp {seconds} seconds exceeds UInt32.MaxValue. This typically occurs after year 2106.");
+                "Unix timestamp exceeds UInt32.MaxValue. This typically occurs after year 2106.");
         }
         
         if (seconds < 0)
