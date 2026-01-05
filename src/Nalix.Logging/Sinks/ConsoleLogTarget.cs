@@ -2,7 +2,6 @@
 
 using Nalix.Common.Logging;
 using Nalix.Logging.Core;
-using Nalix.Logging.Interop;
 
 namespace Nalix.Logging.Sinks;
 
@@ -56,11 +55,7 @@ public sealed class ConsoleLogTarget : ILoggerTarget
     public void Publish(LogEntry logMessage)
     {
         System.String formatted = _loggerFormatter.Format(logMessage);
-
-        using (TransientConsoleScope.Shared())
-        {
-            System.Console.WriteLine(formatted);
-        }
+        System.Console.WriteLine(formatted);
     }
 
     #endregion Public Methods
