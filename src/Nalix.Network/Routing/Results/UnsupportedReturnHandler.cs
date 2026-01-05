@@ -23,9 +23,7 @@ internal sealed class UnsupportedReturnHandler<TPacket>(Type returnType) : IRetu
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, bool> _loggedTypes = new();
 
     /// <inheritdoc/>
-    public ValueTask HandleAsync(
-        object? result,
-        PacketContext<TPacket> context)
+    public ValueTask HandleAsync(object? result, PacketContext<TPacket> context)
     {
         if (_loggedTypes.TryAdd(returnType, true))
         {

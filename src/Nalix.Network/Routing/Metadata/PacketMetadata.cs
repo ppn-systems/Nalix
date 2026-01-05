@@ -26,10 +26,8 @@ namespace Nalix.Network.Routing.Metadata;
 /// This struct uses sequential layout and is optimized for performance in network dispatch systems.
 /// All attributes are immutable for safe usage in high-throughput scenarios.
 /// </remarks>
-[StructLayout(
-    LayoutKind.Sequential, Pack = 1)]
-[method: MethodImpl(
-    MethodImplOptions.AggressiveInlining)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
 [EditorBrowsable(EditorBrowsableState.Never)]
 public readonly struct PacketMetadata(
     PacketOpcodeAttribute opCode,

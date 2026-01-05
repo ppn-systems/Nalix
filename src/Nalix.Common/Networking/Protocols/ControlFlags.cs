@@ -9,6 +9,7 @@ namespace Nalix.Common.Networking.Protocols;
 /// CONTROL flags providing additional context for control messages.
 /// </summary>
 [System.Flags]
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1707:Identifiers should not contain underscores", Justification = "<Pending>")]
 public enum ControlFlags : byte
 {
     /// <summary>
@@ -19,20 +20,20 @@ public enum ControlFlags : byte
     /// <summary>
     /// Indicates the condition is transient (safe to retry/backoff).
     /// </summary>
-    IsTransient = 1 << 0,
+    IS_TRANSIENT = 1 << 0,
 
     /// <summary>
     /// Indicates the error is related to authentication/authorization.
     /// </summary>
-    IsAuthrelated = 1 << 1,
+    IS_AUTHRELATED = 1 << 1,
 
     /// <summary>
     /// Indicates redirect fields are present in Arg0/Arg2.
     /// </summary>
-    HasRedirect = 1 << 2,
+    HAS_REDIRECT = 1 << 2,
 
     /// <summary>
     /// Indicates the client should reduce its sending rate.
     /// </summary>
-    SlowDown = 1 << 3
+    SLOW_DOWN = 1 << 3
 }
