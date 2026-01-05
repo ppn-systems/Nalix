@@ -117,10 +117,7 @@ public readonly partial struct Snowflake : ISnowflake
     [System.Diagnostics.DebuggerHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private Snowflake(System.UInt32 value, System.UInt16 machineId, SnowflakeType type)
-    {
-        __combined = UInt56.FromParts((System.Byte)type, machineId, value);
-    }
+    private Snowflake(System.UInt32 value, System.UInt16 machineId, SnowflakeType type) => __combined = new UInt56((System.Byte)type, machineId, value);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Snowflake"/> struct from a <see cref="UInt56"/> value.
@@ -132,10 +129,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Snowflake(UInt56 uInt56)
-    {
-        __combined = uInt56;
-    }
+    public Snowflake(UInt56 uInt56) => __combined = uInt56;
 
     #endregion Constructors
 
