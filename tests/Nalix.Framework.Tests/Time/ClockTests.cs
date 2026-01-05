@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Nalix.Framework.Tests.Time;
 
+[Collection("ClockTests")]
 public class ClockTests
 {
     [Fact]
