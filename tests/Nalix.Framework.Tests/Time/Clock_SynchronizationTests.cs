@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Nalix.Framework.Tests.Time;
 
+[Collection("ClockTests")]
 public class Clock_SynchronizationTests
 {
     [Fact]
@@ -17,6 +18,8 @@ public class Clock_SynchronizationTests
     public void GetCurrentErrorEstimateMs_NoSync_Zero()
     {
         Clock.ResetSynchronization();
+        // Small delay to ensure reset propagates in concurrent test environment
+        System.Threading.Thread.Sleep(50);
         Assert.Equal(0, Clock.CurrentErrorEstimateMs(), 6);
     }
 
