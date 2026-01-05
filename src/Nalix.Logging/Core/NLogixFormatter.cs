@@ -49,11 +49,16 @@ public class NLogixFormatter(System.Boolean colors = false) : ILoggerFormatter
         System.DateTime timeStamp, LogLevel logLevel,
         EventId eventId, System.String message, System.Exception? exception)
     {
-        const int DefaultCapacity = 256;
-        System.Text.StringBuilder logBuilder = new(DefaultCapacity);
-
-        LogMessageBuilder.AppendFormatted(logBuilder, timeStamp, logLevel, eventId, message, exception, _colors);
-
-        return logBuilder.ToString();
+        // Use pooled StringBuilder to eliminate allocations
+        var logBuilder = Internal.Pooling.StringBuilderPool.Rent();
+        try
+        {
+            LogMessageBuilder.AppendFormatted(logBuilder, timeStamp, logLevel, eventId, message, exception, _colors);
+            return logBuilder.ToString();
+        }
+        finally
+        {
+            Internal.Pooling.StringBuilderPool.Return(logBuilder);
+        }
     }
 }

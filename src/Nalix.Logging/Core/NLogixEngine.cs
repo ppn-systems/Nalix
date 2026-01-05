@@ -81,8 +81,10 @@ public abstract class NLogixEngine : System.IDisposable
     {
         configureOptions?.Invoke(_logOptions);
 
-        System.Threading.Volatile.Write(ref System.Runtime.CompilerServices.Unsafe
-                                 .As<LogLevel, System.Int32>(ref _minLevel), (System.Int32)_logOptions.MinLevel);
+        // Update cached min level - Volatile write for thread safety
+        // Cast to int for Volatile.Write since LogLevel is an enum
+        var newLevel = _logOptions.MinLevel;
+        System.Threading.Interlocked.Exchange(ref System.Runtime.CompilerServices.Unsafe.As<LogLevel, System.Int32>(ref _minLevel), (System.Int32)newLevel);
     }
 
     /// <summary>
@@ -95,8 +97,9 @@ public abstract class NLogixEngine : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean IsLevelEnabled(LogLevel level)
     {
-        return level >= (LogLevel)System.Threading.Volatile.Read(ref System.Runtime.CompilerServices.Unsafe
-                                                           .As<LogLevel, System.Int32>(ref _minLevel));
+        // Direct comparison is faster than Volatile.Read for simple int comparison
+        // The cached _minLevel is updated atomically via ConfigureOptions
+        return level >= _minLevel;
     }
 
     /// <summary>
@@ -124,8 +127,10 @@ public abstract class NLogixEngine : System.IDisposable
             return;
         }
 
-        // Create and publish the log entry
-        _ = _distributor.PublishAsync(new LogEntry(level, eventId, message, error));
+        // Create log entry directly and publish synchronously to avoid ValueTask overhead
+        // in the common case where there's only one target
+        var entry = new LogEntry(level, eventId, message, error);
+        _distributor.Publish(entry);
     }
 
     /// <summary>
