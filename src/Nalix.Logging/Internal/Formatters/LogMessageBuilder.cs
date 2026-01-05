@@ -223,7 +223,7 @@ internal static class LogMessageBuilder
     }
 
     /// <summary>
-    /// Appends a formatted message to the string builder.
+    /// Appends a formatted message to the string builder with security sanitization.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
@@ -232,7 +232,15 @@ internal static class LogMessageBuilder
     {
         // Use span-based append for standard separators
         _ = builder.Append(DashWithSpaces);
-        _ = builder.Append(message);
+
+        // Sanitize and redact sensitive data before appending
+        var sanitized = Security.LogSecurity.SanitizeLogMessage(message);
+        if (Security.LogSecurity.ContainsSensitiveData(System.MemoryExtensions.AsSpan(sanitized)))
+        {
+            sanitized = Security.LogSecurity.RedactSensitiveData(sanitized);
+        }
+
+        _ = builder.Append(sanitized);
     }
 
     /// <summary>
