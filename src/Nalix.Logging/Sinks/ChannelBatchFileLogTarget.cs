@@ -249,7 +249,11 @@ public sealed class ChannelBatchFileLogTarget : ILoggerTarget, System.IDisposabl
         // Wait for processing to complete with timeout
         try
         {
-            _ = _processingTask.Wait(System.TimeSpan.FromSeconds(5));
+            System.Boolean completed = _processingTask.Wait(System.TimeSpan.FromSeconds(5));
+            if (!completed)
+            {
+                System.Diagnostics.Debug.WriteLine("ChannelBatchFileLogTarget: Processing task did not complete within timeout");
+            }
         }
         catch (System.OperationCanceledException)
         {
