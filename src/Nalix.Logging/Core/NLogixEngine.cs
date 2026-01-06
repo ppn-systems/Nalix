@@ -26,10 +26,7 @@ public abstract class NLogixEngine : System.IDisposable
 
     #region Constructors
 
-    static NLogixEngine()
-    {
-        s_formatCache = new(System.StringComparer.Ordinal);
-    }
+    static NLogixEngine() => s_formatCache = new(System.StringComparer.Ordinal);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NLogixEngine"/> class.
@@ -81,8 +78,9 @@ public abstract class NLogixEngine : System.IDisposable
     {
         configureOptions?.Invoke(_logOptions);
 
-        System.Threading.Volatile.Write(ref System.Runtime.CompilerServices.Unsafe
-                                 .As<LogLevel, System.Int32>(ref _minLevel), (System.Int32)_logOptions.MinLevel);
+        LogLevel newLevel = _logOptions.MinLevel;
+        System.Threading.Interlocked.Exchange(ref System.Runtime.CompilerServices.Unsafe
+                                    .As<LogLevel, System.Int32>(ref _minLevel), (System.Int32)newLevel);
     }
 
     /// <summary>
@@ -93,11 +91,7 @@ public abstract class NLogixEngine : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean IsLevelEnabled(LogLevel level)
-    {
-        return level >= (LogLevel)System.Threading.Volatile.Read(ref System.Runtime.CompilerServices.Unsafe
-                                                           .As<LogLevel, System.Int32>(ref _minLevel));
-    }
+    public System.Boolean IsLevelEnabled(LogLevel level) => level >= _minLevel;
 
     /// <summary>
     /// Creates and publishes a log entry if the log level is enabled.
@@ -124,8 +118,8 @@ public abstract class NLogixEngine : System.IDisposable
             return;
         }
 
-        // Create and publish the log entry
-        _ = _distributor.PublishAsync(new LogEntry(level, eventId, message, error));
+        LogEntry entry = new(level, eventId, message, error);
+        _distributor.Publish(entry);
     }
 
     /// <summary>
