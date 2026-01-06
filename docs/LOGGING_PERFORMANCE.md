@@ -4,6 +4,8 @@
 
 This document describes the high-performance optimizations implemented in Nalix.Logging to achieve maximum throughput and minimal latency for server environments.
 
+**⚠️ NON-BLOCKING GUARANTEE**: All logging targets are now fully non-blocking by default, making them ideal for high-throughput TCP servers and applications with many concurrent connections.
+
 ## Performance Goals & Results
 
 ### Target Improvements
@@ -11,6 +13,48 @@ This document describes the high-performance optimizations implemented in Nalix.
 - **Throughput**: 300-500% increase in messages/second capacity
 - **Memory**: 60-70% reduction in GC pressure and allocations
 - **CPU**: 40-50% reduction in CPU usage for logging operations
+- **Blocking**: 100% non-blocking operations in all default configurations
+
+## Non-Blocking Architecture
+
+### All Targets Are Non-Blocking
+
+**ConsoleLogTarget** (Channel-based):
+- Uses `System.Threading.Channels` with unbounded capacity
+- `TryWrite()` never blocks - lock-free operation
+- Background task processes console I/O asynchronously
+- Perfect for TCP servers with many connections
+
+**FileLogTarget** (Background thread by default):
+- `UseBackgroundThread=true` (default)
+- `BlockWhenQueueFull=false` (default) - drops logs instead of blocking
+- Uses `BlockingCollection.TryAdd()` - non-blocking
+- Background worker handles file I/O
+
+**ChannelBatchFileLogTarget** (Maximum performance):
+- Unbounded channels with single-reader optimization
+- Completely lock-free writes
+- Intelligent batching with size and time triggers
+- Best choice for extreme throughput requirements
+
+### TCP Server Configuration
+
+For TCP servers with many concurrent connections, the default configuration is already optimal:
+
+```csharp
+// Default configuration - already non-blocking!
+var logger = NLogix.Host.Instance;
+logger.Info("Non-blocking log from TCP handler");
+
+// Or explicitly use channel-based targets for maximum performance
+var engine = new NLogixEngine(options => {
+    options.ConfigureDefaults(cfg => {
+        cfg.RegisterTarget(new ConsoleLogTarget());  // Non-blocking channel-based
+        cfg.RegisterTarget(new ChannelBatchFileLogTarget());  // Maximum throughput
+        return cfg;
+    });
+});
+```
 
 ## Key Optimizations
 
@@ -165,7 +209,48 @@ var target = new ChannelBatchFileLogTarget(options =>
 - Async processing doesn't block producers
 - Better CPU cache utilization
 
-### 5. Performance Monitoring
+### 5. Non-Blocking Console Target
+
+#### ConsoleLogTarget (Channel-based)
+**Location**: `Sinks/ConsoleLogTarget.cs`
+
+Completely non-blocking console output using System.Threading.Channels:
+
+**Architecture**:
+```
+Producer Thread        Channel         Consumer Thread
+---------------       --------        ----------------
+Log Entry 1   --->               --->  Format & Write
+Log Entry 2   --->   Unbounded   --->  to Console
+Log Entry 3   --->    Channel    --->  (Background)
+Never Blocks  --->               --->  
+```
+
+**Key Features**:
+- `TryWrite()` is lock-free and never blocks
+- Unbounded channel prevents backpressure
+- Background task handles slow console I/O
+- Graceful shutdown flushes pending logs
+- Perfect for TCP servers and high-concurrency scenarios
+
+**Implementation**:
+```csharp
+public void Publish(LogEntry logMessage)
+{
+    if (_disposed) return;
+    
+    // Non-blocking write - returns immediately
+    _ = _channel.Writer.TryWrite(logMessage);
+}
+```
+
+**Benefits**:
+- Zero blocking on console I/O
+- Maintains logging throughput even with slow console
+- Thread-safe without locks
+- Ideal for server applications with many connections
+
+### 6. Performance Monitoring
 
 #### LoggingMetrics
 **Location**: `Internal/Performance/LoggingMetrics.cs`
@@ -200,7 +285,7 @@ var snapshot = metrics.GetSnapshot();
 - No synchronization overhead
 - Minimal performance impact
 
-### 6. Benchmarking
+### 7. Benchmarking
 
 #### Benchmark Suite
 **Location**: `benchmark/Nalix.Logging.Benchmark/`
@@ -228,7 +313,49 @@ dotnet run -c Release
 
 ## Performance Best Practices
 
-### 1. Use Appropriate Targets
+### 1. TCP Server Configuration (Non-Blocking)
+
+**Recommended Setup for High-Concurrency Servers**:
+```csharp
+var engine = new NLogixEngine(options =>
+{
+    options.MinLevel = LogLevel.Information;
+    options.ConfigureDefaults(cfg =>
+    {
+        // Console: Channel-based, non-blocking
+        cfg.RegisterTarget(new ConsoleLogTarget());
+        
+        // File: Channel-based batching, highest throughput
+        cfg.RegisterTarget(new ChannelBatchFileLogTarget(opt =>
+        {
+            opt.MaxBufferSize = 1000;
+            opt.FlushInterval = TimeSpan.FromMilliseconds(100);
+        }));
+        
+        return cfg;
+    });
+});
+
+// In your TCP connection handler
+async Task HandleClientAsync(TcpClient client)
+{
+    // Logging never blocks - safe for async operations
+    engine.Info("Client connected: {0}", client.Client.RemoteEndPoint);
+    
+    // Handle client...
+    
+    engine.Info("Client disconnected");
+}
+```
+
+**Why This Configuration?**:
+- ✅ Zero blocking on log calls
+- ✅ High throughput (300-500% improvement)
+- ✅ Low latency (70-80% reduction)
+- ✅ Thread-safe without locks
+- ✅ Handles thousands of concurrent connections
+
+### 2. Use Appropriate Targets
 
 **For High Throughput**:
 ```csharp
@@ -247,7 +374,7 @@ var target = new FileLogTarget(options =>
 });
 ```
 
-### 2. Level Filtering
+### 3. Level Filtering
 
 Always use appropriate log levels:
 ```csharp
@@ -258,7 +385,7 @@ if (logger.IsLevelEnabled(LogLevel.Debug))
 }
 ```
 
-### 3. Structured Logging
+### 4. Structured Logging
 
 Use format strings instead of string concatenation:
 ```csharp
@@ -269,7 +396,7 @@ logger.Info("User {0} logged in from {1}", userId, ipAddress);
 logger.Info("User " + userId + " logged in from " + ipAddress);
 ```
 
-### 4. Exception Handling
+### 5. Exception Handling
 
 Exceptions in logging are handled gracefully:
 - Targets that fail don't affect other targets
