@@ -176,9 +176,11 @@ public sealed class ChannelBatchFileLogTarget : ILoggerTarget, System.IDisposabl
                 }
             }
         }
-        catch (System.Exception)
+        catch (System.Exception ex)
         {
             // Swallow exceptions to prevent task from faulting
+            // In production, this could be logged to a fallback mechanism
+            System.Diagnostics.Debug.WriteLine($"Log processing error: {ex.GetType().Name}: {ex.Message}");
         }
         finally
         {
@@ -208,9 +210,11 @@ public sealed class ChannelBatchFileLogTarget : ILoggerTarget, System.IDisposabl
             {
                 _fileLoggingTarget.Publish(entry);
             }
-            catch
+            catch (System.Exception ex)
             {
                 // Swallow to prevent logging failures from crashing the app
+                // In production, this could be logged to a fallback mechanism
+                System.Diagnostics.Debug.WriteLine($"Failed to publish log entry: {ex.GetType().Name}: {ex.Message}");
             }
         }
     }
@@ -247,9 +251,18 @@ public sealed class ChannelBatchFileLogTarget : ILoggerTarget, System.IDisposabl
         {
             _ = _processingTask.Wait(System.TimeSpan.FromSeconds(5));
         }
-        catch
+        catch (System.OperationCanceledException)
         {
             // Ignore timeout or cancellation
+        }
+        catch (System.TimeoutException)
+        {
+            // Ignore timeout
+        }
+        catch (System.Exception ex)
+        {
+            // Log unexpected exceptions
+            System.Diagnostics.Debug.WriteLine($"Error during disposal: {ex.GetType().Name}: {ex.Message}");
         }
 
         _cts.Dispose();
