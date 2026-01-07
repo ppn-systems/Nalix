@@ -13,14 +13,25 @@ namespace Nalix.Framework.DataFrames.Pooling;
 /// <typeparam name="TPacket">The packet type.</typeparam>
 public sealed class PacketLease<TPacket> : IDisposable where TPacket : PacketBase<TPacket>, new()
 {
-    private readonly Action<TPacket> _return;
+    #region Fields
+
     private int _disposed;
+    private readonly Action<TPacket> _return;
+
+    #endregion Fields
+
+
+    #region Constructors
 
     internal PacketLease(TPacket value, Action<TPacket> @return)
     {
         this.Value = value ?? throw new ArgumentNullException(nameof(value));
         _return = @return ?? throw new ArgumentNullException(nameof(@return));
     }
+
+    #endregion Constructors
+
+    #region APIs
 
     /// <summary>
     /// Gets the rented packet instance.
@@ -39,4 +50,6 @@ public sealed class PacketLease<TPacket> : IDisposable where TPacket : PacketBas
 
         _return(this.Value);
     }
+
+    #endregion APIs
 }
