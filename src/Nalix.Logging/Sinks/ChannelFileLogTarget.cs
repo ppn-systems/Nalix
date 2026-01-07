@@ -20,22 +20,20 @@ namespace Nalix.Logging.Sinks;
 [System.Diagnostics.DebuggerDisplay("ChannelFileLogTarget")]
 public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
 {
-    private readonly ILoggerFormatter _formatter;
     private readonly ChannelFileLoggerProvider _provider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ChannelFileLogTarget"/> class with the specified formatter and options.
     /// </summary>
-    /// <param name="formatter">The log formatter used to convert log entries into string format.</param>
     /// <param name="options">The file log options to configure file paths, size limits, and rolling behavior.</param>
+    /// <param name="formatter">The log formatter used to convert log entries into string format.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="formatter"/> or <paramref name="options"/> is null.</exception>
-    public ChannelFileLogTarget(ILoggerFormatter formatter, FileLogOptions options)
+    public ChannelFileLogTarget(FileLogOptions options, ILoggerFormatter formatter)
     {
-        System.ArgumentNullException.ThrowIfNull(formatter);
         System.ArgumentNullException.ThrowIfNull(options);
+        System.ArgumentNullException.ThrowIfNull(formatter);
 
-        _formatter = formatter;
-        _provider = new ChannelFileLoggerProvider(options);
+        _provider = new ChannelFileLoggerProvider(options, formatter);
     }
 
     /// <summary>
@@ -44,7 +42,7 @@ public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
     /// <remarks>
     /// Uses the default <see cref="NLogixFormatter"/> and <see cref="FileLogOptions"/>.
     /// </remarks>
-    public ChannelFileLogTarget() : this(new NLogixFormatter(false), new FileLogOptions())
+    public ChannelFileLogTarget() : this(new FileLogOptions(), new NLogixFormatter(false))
     {
     }
 
@@ -52,7 +50,7 @@ public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
     /// Initializes a new instance of the <see cref="ChannelFileLogTarget"/> class with the specified options.
     /// </summary>
     /// <param name="options">The file log options to configure file paths, size limits, and rolling behavior.</param>
-    public ChannelFileLogTarget(FileLogOptions options) : this(new NLogixFormatter(false), options)
+    public ChannelFileLogTarget(FileLogOptions options) : this(options, new NLogixFormatter(false))
     {
     }
 
@@ -61,19 +59,18 @@ public sealed class ChannelFileLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     /// <param name="configureOptions">An action that configures the <see cref="FileLogOptions"/> before use.</param>
     public ChannelFileLogTarget(System.Action<FileLogOptions> configureOptions)
-        : this(new NLogixFormatter(false), Configure(configureOptions))
+        : this(Configure(configureOptions), new NLogixFormatter(false))
     {
     }
 
     /// <summary>
     /// Publishes a log entry to the file logging channel.
     /// </summary>
-    /// <param name="logMessage">The log entry to be written.</param>
+    /// <param name="entry">The log entry to be written.</param>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Publish(LogEntry logMessage)
-        => _provider.Enqueue(_formatter.Format(logMessage));
+    public void Publish(LogEntry entry) => _provider.Enqueue(entry);
 
     /// <summary>
     /// Releases all resources used by the <see cref="ChannelFileLogTarget"/>.
