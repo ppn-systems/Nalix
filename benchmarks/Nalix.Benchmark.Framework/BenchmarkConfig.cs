@@ -17,9 +17,8 @@ public sealed class BenchmarkConfig : ManualConfig
             DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture));
 
         this.Add(DefaultConfig.Instance);
-        this.AddJob(
-            Job
-                .ShortRun
+        _ = this.AddJob(
+             Job.ShortRun
                 .WithLaunchCount(1)
                 .WithWarmupCount(3)
                 .WithIterationCount(8)
