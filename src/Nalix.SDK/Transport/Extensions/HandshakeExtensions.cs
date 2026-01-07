@@ -9,7 +9,7 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Transport;
-using Nalix.Framework.DataFrames.Controls;
+using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Security.Asymmetric;
