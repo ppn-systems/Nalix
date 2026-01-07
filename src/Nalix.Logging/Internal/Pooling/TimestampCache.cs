@@ -1,7 +1,5 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using System.Runtime.CompilerServices;
-
 namespace Nalix.Logging.Internal.Pooling;
 
 /// <summary>
@@ -19,10 +17,10 @@ internal static class TimestampCache
     private static System.Int64 t_lastTicks;
 
     [System.ThreadStatic]
-    private static System.String? t_cachedTimestamp;
+    private static System.String? t_cachedFormat;
 
     [System.ThreadStatic]
-    private static System.String? t_cachedFormat;
+    private static System.String? t_cachedTimestamp;
 
     #endregion Fields
 
@@ -34,7 +32,8 @@ internal static class TimestampCache
     /// <param name="timestamp">The DateTime to format.</param>
     /// <param name="format">The format string to use.</param>
     /// <returns>A formatted timestamp string.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.String GetFormattedTimestamp(System.DateTime timestamp, System.String format)
     {
         // Truncate to millisecond precision for caching
@@ -50,36 +49,11 @@ internal static class TimestampCache
         System.String formatted = timestamp.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
 
         // Update cache
+        t_cachedFormat = format;
         t_lastTicks = currentTicks;
         t_cachedTimestamp = formatted;
-        t_cachedFormat = format;
 
         return formatted;
-    }
-
-    /// <summary>
-    /// Tries to format a timestamp into a span, using cached value when possible.
-    /// </summary>
-    /// <param name="timestamp">The DateTime to format.</param>
-    /// <param name="format">The format string to use.</param>
-    /// <param name="destination">The destination span to write to.</param>
-    /// <param name="charsWritten">The number of characters written.</param>
-    /// <returns>True if formatting succeeded, false otherwise.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean TryFormatTimestamp(
-        System.DateTime timestamp,
-        System.ReadOnlySpan<System.Char> format,
-        System.Span<System.Char> destination,
-        out System.Int32 charsWritten)
-    {
-        // Try direct formatting first (most efficient)
-        if (timestamp.TryFormat(destination, out charsWritten, format, System.Globalization.CultureInfo.InvariantCulture))
-        {
-            return true;
-        }
-
-        charsWritten = 0;
-        return false;
     }
 
     #endregion Public Methods
