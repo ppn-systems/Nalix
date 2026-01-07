@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Private>true</Private>
+		<OutputType>Exe</OutputType>
+		<SpecificVersion>false</SpecificVersion>
+		<TargetFramework>net10.0</TargetFramework>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<OptimizationLevel>Release</OptimizationLevel>
+		<RootNamespace>Nalix.Logging.Benchmarks</RootNamespace>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\Nalix.Common\Nalix.Common.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Logging\Nalix.Logging.csproj" />
+	</ItemGroup>
+
+</Project>

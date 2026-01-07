@@ -2,6 +2,7 @@
 
 using Nalix.Common.Logging;
 using Nalix.Logging.Internal.Formatters;
+using Nalix.Logging.Internal.Pooling;
 
 namespace Nalix.Logging.Core;
 
@@ -49,11 +50,17 @@ public class NLogixFormatter(System.Boolean colors = false) : ILoggerFormatter
         System.DateTime timeStamp, LogLevel logLevel,
         EventId eventId, System.String message, System.Exception? exception)
     {
-        const int DefaultCapacity = 256;
-        System.Text.StringBuilder logBuilder = new(DefaultCapacity);
+        // Use pooled StringBuilder for optimal memory usage
+        System.Text.StringBuilder logBuilder = StringBuilderPool.Rent(capacity: 256);
 
-        LogMessageBuilder.AppendFormatted(logBuilder, timeStamp, logLevel, eventId, message, exception, _colors);
-
-        return logBuilder.ToString();
+        try
+        {
+            LogMessageBuilder.AppendFormatted(logBuilder, timeStamp, logLevel, eventId, message, exception, _colors);
+            return logBuilder.ToString();
+        }
+        finally
+        {
+            StringBuilderPool.Return(logBuilder);
+        }
     }
 }
