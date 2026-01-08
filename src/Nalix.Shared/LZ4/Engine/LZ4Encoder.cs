@@ -44,7 +44,8 @@ internal static class LZ4Encoder
         try
         {
             // Clear using vectorized Span.Clear() (fast in CoreCLR)
-            System.MemoryExtensions.AsSpan(table, 0, MatchFinder.HashTableSize).Clear();
+            System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref table[0], MatchFinder.HashTableSize)
+                                                        .Clear();
 
             // Pin to obtain a stable pointer for the duration of EncodeBlock
             fixed (System.Int32* hashTable = table)
@@ -59,8 +60,10 @@ internal static class LZ4Encoder
                 }
 
                 System.Int32 totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
-                System.Diagnostics.Debug.Assert(totalCompressedLength <= output.Length);
-
+#if DEBUG
+                System.Boolean isValid = totalCompressedLength <= output.Length;
+                System.Diagnostics.Debug.Assert(isValid);
+#endif
                 WriteHeader(output, input.Length, totalCompressedLength);
                 return totalCompressedLength;
             }
