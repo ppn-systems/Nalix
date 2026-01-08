@@ -48,39 +48,10 @@ public sealed class PacketCatalogFactory
 {
     #region Static: Defaults & Utilities
 
-    /// <summary>
-    /// Default namespaces to skip when scanning assemblies (built-in packet types).
-    /// </summary>
-    private static readonly System.Collections.Generic.HashSet<System.String> Namespaces = new(
-        System.Linq.Enumerable.Where(
-        [
-            typeof(Text256).Namespace!,
-            typeof(Control).Namespace!
-        ], ns => ns is not null),
-        System.StringComparer.Ordinal);
+    private const System.Reflection.BindingFlags BindingFlags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
 
-    /// <summary>
-    /// Safely iterates types of an assembly, even if some fail to load.
-    /// </summary>
-    private static System.Collections.Generic.IEnumerable<System.Type> SafeGetTypes(System.Reflection.Assembly asm)
-    {
-        try
-        {
-            return asm.GetTypes();
-        }
-        catch (System.Reflection.ReflectionTypeLoadException ex)
-        {
-            return System.Linq.Enumerable.OfType<System.Type>(ex.Types);
-        }
-        catch
-        {
-            return [];
-        }
-    }
-
-    private static readonly System.Reflection.MethodInfo BindAllPtrsMi = typeof(PacketCatalogFactory).GetMethod(
-        nameof(BindPtrs),
-        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+    private static readonly System.Reflection.MethodInfo BindAllPtrsMi;
+    private static readonly System.Collections.Generic.HashSet<System.String> Namespaces;
 
     #endregion Static: Defaults & Utilities
 
@@ -91,7 +62,18 @@ public sealed class PacketCatalogFactory
 
     #endregion Fields
 
-    #region Ctor & Registration
+    #region Constructors
+
+    static PacketCatalogFactory()
+    {
+        Namespaces = new(System.StringComparer.Ordinal)
+        {
+            typeof(Text256).Namespace!,
+            typeof(Control).Namespace!
+        };
+
+        BindAllPtrsMi = typeof(PacketCatalogFactory).GetMethod(nameof(BindPtrs), BindingFlags)!;
+    }
 
     /// <summary>
     /// Initializes a new instance of <see cref="PacketCatalogFactory"/> and registers
@@ -110,56 +92,9 @@ public sealed class PacketCatalogFactory
                 .RegisterPacket<Directive>();
     }
 
-    /// <summary>
-    /// Adds an assembly to be scanned for packet types.
-    /// </summary>
-    public PacketCatalogFactory IncludeAssembly(System.Reflection.Assembly? asm)
-    {
-        if (asm is null)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[SH.{nameof(PacketCatalogFactory)}] include-asm-null");
-            return this;
-        }
+    #endregion Constructors
 
-        if (_assemblies.Add(asm))
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[SH.{nameof(PacketCatalogFactory)}] include-asm name={asm.FullName}");
-        }
-        else
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[SH.{nameof(PacketCatalogFactory)}] include-asm-skip name={asm.FullName}");
-        }
-
-        return this;
-    }
-
-    /// <summary>
-    /// Registers a concrete packet type explicitly (skipped from scanning).
-    /// </summary>
-    public PacketCatalogFactory RegisterPacket<TPacket>() where TPacket : IPacket
-    {
-        System.Type t = typeof(TPacket);
-
-        if (_explicitPacketTypes.Add(typeof(TPacket)))
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[SH.{nameof(PacketCatalogFactory)}] reg-type type={t.Name}");
-        }
-        else
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[SH.{nameof(PacketCatalogFactory)}] reg-type-skip type={t.Name}");
-        }
-
-        return this;
-    }
-
-    #endregion Ctor & Registration
-
-    #region Unsafe Trampoline & Binders
+    #region Private Methods
 
     /// <summary>
     /// Generic trampoline that stores function pointers for a specific <typeparamref name="TPacket"/>.
@@ -212,6 +147,25 @@ public sealed class PacketCatalogFactory
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static IPacket Decrypt(IPacket p, System.Byte[] key, CipherSuiteType alg) => DecryptFunc((TPacket)p, key, alg);
+    }
+
+    /// <summary>
+    /// Safely iterates types of an assembly, even if some fail to load.
+    /// </summary>
+    private static System.Collections.Generic.IEnumerable<System.Type> SafeGetTypes(System.Reflection.Assembly asm)
+    {
+        try
+        {
+            return asm.GetTypes();
+        }
+        catch (System.Reflection.ReflectionTypeLoadException ex)
+        {
+            return System.Linq.Enumerable.OfType<System.Type>(ex.Types);
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -285,9 +239,9 @@ public sealed class PacketCatalogFactory
             $"enc={(miEncrypt is not null ? "+" : "-")} dec={(miDecrypt is not null ? "+" : "-")}");
     }
 
-    #endregion Unsafe Trampoline & Binders
+    #endregion Private Methods
 
-    #region Build
+    #region API
 
     /// <summary>
     /// Builds an immutable catalog of packet deserializers and transformers.
@@ -491,5 +445,52 @@ public sealed class PacketCatalogFactory
             System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(deserializers));
     }
 
-    #endregion Build
+    /// <summary>
+    /// Registers a concrete packet type explicitly (skipped from scanning).
+    /// </summary>
+    public PacketCatalogFactory RegisterPacket<TPacket>() where TPacket : IPacket
+    {
+        System.Type t = typeof(TPacket);
+
+        if (_explicitPacketTypes.Add(typeof(TPacket)))
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[SH.{nameof(PacketCatalogFactory)}] reg-type type={t.Name}");
+        }
+        else
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[SH.{nameof(PacketCatalogFactory)}] reg-type-skip type={t.Name}");
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an assembly to be scanned for packet types.
+    /// </summary>
+    public PacketCatalogFactory IncludeAssembly(System.Reflection.Assembly? asm)
+    {
+        if (asm is null)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug($"[SH.{nameof(PacketCatalogFactory)}] include-asm-null");
+            return this;
+        }
+
+        if (_assemblies.Add(asm))
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug($"[SH.{nameof(PacketCatalogFactory)}] include-asm name={asm.FullName}");
+        }
+        else
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug($"[SH.{nameof(PacketCatalogFactory)}] include-asm-skip name={asm.FullName}");
+        }
+
+        return this;
+    }
+
+    #endregion API
 }
