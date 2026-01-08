@@ -88,9 +88,11 @@ internal sealed class BufferPoolShared : System.IDisposable
         }
 
         _ = System.Threading.Interlocked.Increment(ref _misses);
+
+        System.Byte[] newBuffer = _arrayPool.Rent(_bufferSize);
         _ = System.Threading.Interlocked.Increment(ref _totalBuffers);
 
-        return _arrayPool.Rent(_bufferSize);
+        return newBuffer;
     }
 
     /// <summary>

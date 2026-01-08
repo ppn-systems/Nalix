@@ -21,6 +21,13 @@ public static class EnumExtensions
     public static TEnum AddFlag<TEnum>(this TEnum @this, TEnum mask)
         where TEnum : unmanaged, System.Enum
     {
+#if DEBUG
+        if (!typeof(TEnum).IsDefined(typeof(System.FlagsAttribute), false))
+        {
+            throw new System.ArgumentException(
+                $"{typeof(TEnum).Name} must have [Flags] attribute to use AddFlag/RemoveFlag.");
+        }
+#endif
         System.Int32 size = System.Runtime.CompilerServices.Unsafe.SizeOf<TEnum>();
 
         if (size == sizeof(System.Byte))
@@ -73,6 +80,13 @@ public static class EnumExtensions
     public static TEnum RemoveFlag<TEnum>(this TEnum @this, TEnum mask)
         where TEnum : unmanaged, System.Enum
     {
+#if DEBUG
+        if (!typeof(TEnum).IsDefined(typeof(System.FlagsAttribute), false))
+        {
+            throw new System.ArgumentException(
+                $"{typeof(TEnum).Name} must have [Flags] attribute to use AddFlag/RemoveFlag.");
+        }
+#endif
         System.Int32 size = System.Runtime.CompilerServices.Unsafe.SizeOf<TEnum>();
 
         if (size == sizeof(System.Byte))
