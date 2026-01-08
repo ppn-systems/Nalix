@@ -20,7 +20,7 @@ internal static class LZ4Decoder
     /// <returns>
     /// The number of bytes written to the output buffer (equal to the original length),
     /// or -1 if decompression fails.
-    /// </returns>26
+    /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Decode(
@@ -51,7 +51,9 @@ internal static class LZ4Decoder
         }
 
         LZ4BlockHeader header = MemOps.ReadUnaligned<LZ4BlockHeader>(input);
-        if (header.OriginalLength < 0 || header.CompressedLength != input.Length)
+        if (header.OriginalLength < 0
+            || header.CompressedLength < LZ4BlockHeader.Size
+            || header.CompressedLength != input.Length)
         {
             return false;
         }
