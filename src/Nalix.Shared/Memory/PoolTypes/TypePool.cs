@@ -17,7 +17,7 @@ internal class TypePool(System.Int32 maxCapacity)
 {
     #region Fields
 
-    private System.Int32 _maxCapacity;
+    private System.Int32 _maxCapacity = maxCapacity;
     private readonly System.Collections.Concurrent.ConcurrentStack<IPoolable> _objects = new();
 
     #endregion Fields

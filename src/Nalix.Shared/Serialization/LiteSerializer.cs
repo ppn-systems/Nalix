@@ -75,14 +75,14 @@ public static class LiteSerializer
         {
             if (value is null)
             {
-                return SerializerBounds.NullArrayMarker;
+                return SerializerBounds.NullArrayMarker.ToArray();
             }
 
             System.Array array = (System.Array)(System.Object)value;
             System.Int32 length = array.Length;
             if (length is 0)
             {
-                return SerializerBounds.EmptyArrayMarker;
+                return SerializerBounds.EmptyArrayMarker.ToArray();
             }
 
             System.Int32 dataSize = size * length;
