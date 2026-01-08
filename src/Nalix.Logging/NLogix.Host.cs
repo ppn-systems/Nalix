@@ -24,7 +24,7 @@ public sealed partial class NLogix
             new NLogix(cfg =>
             {
                 // Configure default logging outputs
-                _ = cfg.RegisterTarget(new ChannelFileLogTarget())
+                _ = cfg.RegisterTarget(new BatchFileLogTarget())
                        .RegisterTarget(new BatchConsoleLogTarget());
             })
         );

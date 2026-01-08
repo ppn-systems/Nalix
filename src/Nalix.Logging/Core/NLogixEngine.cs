@@ -50,8 +50,8 @@ public abstract class NLogixEngine : System.IDisposable
             // Apply default configuration
             _ = _logOptions.ConfigureDefaults(cfg =>
             {
-                _ = cfg.RegisterTarget(new ConsoleLogTarget());
-                _ = cfg.RegisterTarget(new FileLogTarget(_logOptions.FileOptions));
+                _ = cfg.RegisterTarget(new BatchFileLogTarget());
+                _ = cfg.RegisterTarget(new BatchConsoleLogTarget());
                 return cfg;
             });
         }

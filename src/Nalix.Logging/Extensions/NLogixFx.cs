@@ -46,7 +46,7 @@ public static partial class NLogixFx
             }
         };
 
-        _ = Publisher.RegisterTarget(new ConsoleLogTarget());
+        _ = Publisher.RegisterTarget(new BatchConsoleLogTarget());
     }
 
     #endregion Constructors

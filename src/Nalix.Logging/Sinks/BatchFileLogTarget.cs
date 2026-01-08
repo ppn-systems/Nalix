@@ -1,171 +1,106 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
+using Nalix.Logging.Core;
+using Nalix.Logging.Internal.File;
 using Nalix.Logging.Options;
 
 namespace Nalix.Logging.Sinks;
 
 /// <summary>
-/// A logging target that buffers log messages and periodically writes them to a file.
-/// This approach improves performance by reducing IEndpointKey /O operations when logging frequently.
+/// Provides a channel-based file logging target, optimized for non-blocking log producers
+/// with a batched background consumer.
 /// </summary>
+/// <remarks>
+/// This class is plug-compatible with <see cref="ILoggerTarget"/> implementations such as
+/// <see cref="BatchFileLogTarget"/>, but it uses <see cref="ChannelFileLoggerProvider"/> internally
+/// to buffer and asynchronously write logs to the file system.
+/// </remarks>
 [System.Diagnostics.DebuggerNonUserCode]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Buffered={_count}, Max={_maxBufferSize}, Disposed={_disposed}")]
+[System.Diagnostics.DebuggerDisplay("ChannelFileLogTarget")]
 public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
 {
-    #region Fields
-
-    private readonly System.Collections.Concurrent.ConcurrentQueue<LogEntry> _queue = new();
-    private readonly FileLogTarget _fileLoggingTarget;
-    private readonly System.Threading.Timer _flushTimer;
-    private readonly System.Int32 _maxBufferSize;
-    private readonly System.Boolean _autoFlush;
-
-    private System.Int32 _count;
-    private volatile System.Boolean _disposed;
-
-    #endregion Fields
-
-    #region Constructors
+    private readonly ChannelFileLoggerProvider _provider;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with custom file logging target.
+    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with the specified formatter and options.
     /// </summary>
-    /// <param name="fileLoggingTarget">An externally created <see cref="FileLogTarget"/> to use for writing logs.</param>
-    /// <param name="flushInterval">The time interval between automatic buffer flushes.</param>
-    /// <param name="maxBufferSize">The maximum number of log entries before triggering a flush.</param>
-    /// <param name="autoFlush">Determines whether to automatically flush when the buffer is full.</param>
-    public BatchFileLogTarget(
-        FileLogTarget fileLoggingTarget, System.TimeSpan flushInterval,
-        System.Int32 maxBufferSize = 100, System.Boolean autoFlush = true)
+    /// <param name="options">The file log options to configure file paths, size limits, and rolling behavior.</param>
+    /// <param name="formatter">The log formatter used to convert log entries into string format.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="formatter"/> or <paramref name="options"/> is null.</exception>
+    public BatchFileLogTarget(FileLogOptions options, ILoggerFormatter formatter)
     {
-        System.ArgumentNullException.ThrowIfNull(fileLoggingTarget);
-        System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBufferSize);
-        System.ArgumentOutOfRangeException.ThrowIfNegative(flushInterval.Ticks);
+        System.ArgumentNullException.ThrowIfNull(options);
+        System.ArgumentNullException.ThrowIfNull(formatter);
 
-        _autoFlush = autoFlush;
-        _maxBufferSize = maxBufferSize;
-        _fileLoggingTarget = fileLoggingTarget;
-
-        _flushTimer = new System.Threading.Timer(_ => Flush(), null, flushInterval, flushInterval);
+        _provider = new ChannelFileLoggerProvider(options, formatter);
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class using a configured <see cref="BatchFileLogOptions"/>.
+    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with default options.
     /// </summary>
-    /// <param name="options">The configuration options for the <see cref="BatchFileLogOptions"/>.</param>
-    public BatchFileLogTarget(BatchFileLogOptions options)
-        : this(new FileLogTarget(options.FileLoggerOptions),
-               options.FlushInterval, options.MaxBufferSize, true)
+    /// <remarks>
+    /// Uses the default <see cref="NLogixFormatter"/> and <see cref="FileLogOptions"/>.
+    /// </remarks>
+    public BatchFileLogTarget() : this(new FileLogOptions(), new NLogixFormatter(false))
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class using a configured <see cref="BatchFileLogOptions"/>.
+    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with the specified options.
     /// </summary>
-    /// <param name="options">The configuration options for the <see cref="BatchFileLogOptions"/>.</param>
-    public BatchFileLogTarget(System.Action<BatchFileLogOptions> options)
-        : this(ConfigureOptions(options))
+    /// <param name="options">The file log options to configure file paths, size limits, and rolling behavior.</param>
+    public BatchFileLogTarget(FileLogOptions options) : this(options, new NLogixFormatter(false))
     {
     }
 
-    #endregion Constructors
-
-    #region Public Methods
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with custom configuration logic.
+    /// </summary>
+    /// <param name="options">An action that configures the <see cref="FileLogOptions"/> before use.</param>
+    public BatchFileLogTarget(System.Action<FileLogOptions> options)
+        : this(Configure(options), new NLogixFormatter(false))
+    {
+    }
 
     /// <summary>
-    /// Publishes a log entry to the buffer. If <see cref="_autoFlush"/> is enabled
-    /// and the buffer exceeds <see cref="_maxBufferSize"/>, the buffer is flushed immediately.
+    /// Publishes a log entry to the file logging channel.
     /// </summary>
-    /// <param name="logMessage">The log entry to publish.</param>
+    /// <param name="entry">The log entry to be written.</param>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Publish(LogEntry logMessage)
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _queue.Enqueue(logMessage);
-        System.Int32 currentCount = System.Threading.Interlocked.Increment(ref _count);
-
-        if (_autoFlush && currentCount >= _maxBufferSize)
-        {
-            _ = System.Threading.ThreadPool.UnsafeQueueUserWorkItem(_ => Flush(), null);
-        }
-    }
+    public void Publish(LogEntry entry) => _provider.Enqueue(entry);
 
     /// <summary>
-    /// Flushes the current log buffer to the underlying file logging target.
-    /// This method is thread-safe and can be called manually or triggered automatically.
+    /// Releases all resources used by the <see cref="BatchFileLogTarget"/>.
     /// </summary>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public void Flush()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        while (_queue.TryDequeue(out LogEntry log))
-        {
-            _fileLoggingTarget.Publish(log);
-        }
-
-        _ = System.Threading.Interlocked.Exchange(ref _count, 0);
-    }
-
-    #endregion Public Methods
-
-    #region Private Methods
-
-    /// <summary>
-    /// Configures the <see cref="BatchFileLogOptions"/> by invoking the provided action.
-    /// </summary>
-    /// <param name="configureOptions">The action used to configure the options.</param>
-    /// <returns>The configured <see cref="BatchFileLogOptions"/>.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static BatchFileLogOptions ConfigureOptions(System.Action<BatchFileLogOptions> configureOptions)
-    {
-        BatchFileLogOptions options = new();
-        configureOptions(options);
-        return options;
-    }
-
-    #endregion Private Methods
-
-    #region IDisposable
-
-    /// <summary>
-    /// Releases resources used by the <see cref="BatchFileLogTarget"/> instance.
-    /// Flushes any remaining logs in the buffer before shutting down.
-    /// </summary>
+    /// <remarks>
+    /// Ensures the log queue is flushed before disposal.
+    /// </remarks>
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Dispose()
     {
-        if (_disposed)
-        {
-            return;
-        }
-
-        this.Flush();
-
-        _flushTimer.Dispose();
-        _fileLoggingTarget.Dispose();
-
-        _disposed = true;
+        _provider.Flush();
+        _provider.Dispose();
+        System.GC.SuppressFinalize(this);
     }
 
-    #endregion IDisposable
+    /// <summary>
+    /// Applies configuration to <see cref="FileLogOptions"/> using the provided delegate.
+    /// </summary>
+    /// <param name="configure">The action that configures the file log options.</param>
+    /// <returns>A configured <see cref="FileLogOptions"/> instance.</returns>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static FileLogOptions Configure(System.Action<FileLogOptions> configure)
+    {
+        FileLogOptions opts = new();
+        configure?.Invoke(opts);
+        return opts;
+    }
 }
