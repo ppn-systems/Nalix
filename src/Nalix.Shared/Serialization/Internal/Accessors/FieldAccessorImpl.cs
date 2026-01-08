@@ -12,11 +12,9 @@ using Nalix.Shared.Serialization.Internal.Reflection;
 namespace Nalix.Shared.Serialization.Internal.Accessors;
 
 /// <summary>
-/// Strongly-typed field accessor implementation eliminates boxing
-/// và leverage FieldCache cho optimal performance.
+/// Strongly-typed field accessor implementation that eliminates boxing
+/// and leverages FieldCache for optimal performance.
 /// </summary>
-/// <typeparam name="T">Object type chứa field.</typeparam>
-/// <typeparam name="TField">Field type.</typeparam>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class FieldAccessorImpl<
