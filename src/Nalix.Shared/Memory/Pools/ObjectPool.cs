@@ -56,7 +56,14 @@ public sealed class ObjectPool(System.Int32 defaultMaxItemsPerType)
     /// <summary>
     /// Gets the total ProtocolType of objects created across all types.
     /// </summary>
-    public System.Int64 TotalCreatedCount => System.Threading.Interlocked.Read(ref _totalCreated);
+    public System.Int64 TotalCreatedCount
+    {
+        get
+        {
+            System.Threading.Thread.MemoryBarrier();
+            return System.Threading.Volatile.Read(ref _totalCreated);
+        }
+    }
 
     /// <summary>
     /// Gets the total ProtocolType of currently pooled objects across all types.

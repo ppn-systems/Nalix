@@ -41,9 +41,10 @@ public ref struct DataWriter
             throw new System.ArgumentOutOfRangeException(nameof(size), "SIZE must be greater than zero.");
         }
 
-        _owner = BufferLease.Pool.Rent(size);
-        _span = System.MemoryExtensions.AsSpan(_owner);
         _rent = true;
+        _owner = BufferLease.Pool.Rent(size);
+        System.Diagnostics.Debug.Assert(_owner.Length >= size, "ArrayPool returned insufficient buffer");
+        _span = System.MemoryExtensions.AsSpan(_owner);
 
         this.WrittenCount = 0;
     }
@@ -60,9 +61,9 @@ public ref struct DataWriter
             throw new System.ArgumentOutOfRangeException(nameof(buffer), "SIZE must be greater than zero.");
         }
 
+        _rent = false;
         _owner = buffer;                 // owns an external array (but not rented) → cannot expand by rent policy
         _span = System.MemoryExtensions.AsSpan(buffer);
-        _rent = false;
 
         this.WrittenCount = 0;
     }
@@ -79,10 +80,10 @@ public ref struct DataWriter
             throw new System.ArgumentOutOfRangeException(nameof(span), "SIZE must be greater than zero.");
         }
 
-        _owner = null;      // no backing array ownership
         _span = span;       // direct span view (stackalloc, sliced array, etc.)
+        _owner = null;      // no backing array ownership
         _rent = false;      // not rented → cannot Expand()
-
+        s
         this.WrittenCount = 0;
     }
 
