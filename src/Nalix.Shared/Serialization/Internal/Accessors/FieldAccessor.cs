@@ -46,7 +46,11 @@ internal abstract class FieldAccessor<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static FieldAccessor<T> Create(FieldSchema schema, System.Int32 index)
     {
-        System.ArgumentNullException.ThrowIfNull(schema.FieldInfo, "schema.FieldInfo");
+        if (schema.Equals(default))
+        {
+            throw new System.ArgumentNullException(nameof(schema));
+        }
+        System.ArgumentNullException.ThrowIfNull(schema.FieldInfo, nameof(schema.FieldInfo));
 
         // Normalize and validate target field type
         System.Type fieldType = schema.FieldType ?? throw new System.ArgumentException("schema.FieldType is null", nameof(schema));

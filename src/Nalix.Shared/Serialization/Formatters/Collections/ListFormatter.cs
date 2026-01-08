@@ -49,6 +49,7 @@ internal sealed class ListFormatter<
         {
             formatter.Serialize(ref writer, value[i]);
         }
+
     }
 
     /// <summary>
