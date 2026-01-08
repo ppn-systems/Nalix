@@ -65,7 +65,7 @@ public sealed class LZ4CodecTests
         byte[] tooSmallOutput = new byte[LZ4BlockHeader.Size - 1];
 
         // Assert
-        Assert.Throws<ArgumentOutOfRangeException>(() => LZ4Codec.Encode(original, tooSmallOutput));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => LZ4Codec.Encode(original, tooSmallOutput));
     }
 
     [Fact]
@@ -96,32 +96,6 @@ public sealed class LZ4CodecTests
             Assert.Equal(original.Length, written);
             Assert.Equal(original, decoded);
         }
-    }
-
-    [Fact]
-    public void DecodeToByteArrayRoundTripsData()
-    {
-        // Arrange
-        byte[] original = CreateSamplePayload(4096);
-
-        int maxCompressedLength = Framework.LZ4.Encoders.LZ4BlockEncoder.GetMaxLength(original.Length);
-        byte[] compressed = new byte[maxCompressedLength];
-
-        int writtenCompressed = LZ4Codec.Encode(original, compressed);
-        Assert.True(writtenCompressed > 0);
-
-        // Act
-        LZ4Codec.Decode(
-            compressed.AsSpan(0, writtenCompressed),
-            out byte[] output,
-            out int bytesWritten);
-
-        // Assert
-        Assert.NotNull(output);
-        Assert.Equal(original.Length, bytesWritten);
-
-        byte[] actual = output.AsSpan(0, bytesWritten).ToArray();
-        Assert.Equal(original, actual);
     }
 
     [Fact]

@@ -231,8 +231,7 @@ public static class LiteSerializer
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Serialize<
-        [DynamicallyAccessedMembers(
-            DynamicallyAccessedMemberTypes.All)] T>(in T value, Span<byte> buffer)
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value, Span<byte> buffer)
     {
         // ── Case 1: Primitive / unmanaged struct ──────────────────────────────────
         // T is a plain value type with no references (e.g. int, float, custom struct).
@@ -384,8 +383,7 @@ public static class LiteSerializer
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public static int Deserialize<[
-        DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(
-        ReadOnlySpan<byte> buffer, ref T value)
+        DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> buffer, ref T value)
     {
         if (buffer.IsEmpty)
         {
@@ -489,8 +487,7 @@ public static class LiteSerializer
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public static T Deserialize<[
-        DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(
-        ReadOnlySpan<byte> buffer, out int value)
+        DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> buffer, out int value)
     {
         if (buffer.IsEmpty)
         {
@@ -578,15 +575,11 @@ public static class LiteSerializer
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsNullArrayMarker(ReadOnlySpan<byte> buffer) =>
-        buffer.Length >= 4 &&
-        Unsafe.ReadUnaligned<int>(
-            ref MemoryMarshal.GetReference(buffer)) == -1;
+        buffer.Length >= 4 && Unsafe.ReadUnaligned<int>(ref MemoryMarshal.GetReference(buffer)) == -1;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsEmptyArrayMarker(ReadOnlySpan<byte> buffer) =>
-        buffer.Length >= 4 &&
-        Unsafe.ReadUnaligned<int>(
-            ref MemoryMarshal.GetReference(buffer)) == 0;
+        buffer.Length >= 4 && Unsafe.ReadUnaligned<int>(ref MemoryMarshal.GetReference(buffer)) == 0;
 
     #endregion Private Methods
 }
