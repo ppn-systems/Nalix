@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Shared.Memory.Internal;
+using System;
 
 namespace Nalix.Shared.Memory.Pools;
 
@@ -174,9 +175,9 @@ public readonly struct MemoryPool<T> : System.IDisposable
     {
         // We use the dispose tracker to handle the actual disposal
         // This allows us to maintain a readonly struct while still supporting proper disposal
-        if (_disposeTracker is DisposableTracker<T> tracker)
+        if (_disposeTracker is IDisposable disposable)
         {
-            tracker.Dispose();
+            disposable.Dispose();
         }
     }
 

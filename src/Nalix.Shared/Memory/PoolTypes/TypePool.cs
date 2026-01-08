@@ -1,7 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Caching;
-using Nalix.Shared.Memory.Pools;
 
 namespace Nalix.Shared.Memory.PoolTypes;
 
@@ -18,6 +17,7 @@ internal class TypePool(System.Int32 maxCapacity)
 {
     #region Fields
 
+    private System.Int32 _maxCapacity;
     private readonly System.Collections.Concurrent.ConcurrentStack<IPoolable> _objects = new();
 
     #endregion Fields
@@ -32,7 +32,7 @@ internal class TypePool(System.Int32 maxCapacity)
     /// <summary>
     /// Gets the maximum capacity of this pool.
     /// </summary>
-    public System.Int32 MaxCapacity { get; private set; } = maxCapacity > 0 ? maxCapacity : ObjectPool.DefaultMaxSize;
+    public System.Int32 MaxCapacity => System.Threading.Volatile.Read(ref _maxCapacity);
 
     #endregion Properties
 
@@ -51,8 +51,7 @@ internal class TypePool(System.Int32 maxCapacity)
             return;
         }
 
-        System.Int32 oldCapacity = MaxCapacity;
-        MaxCapacity = maxCapacity;
+        System.Int32 oldCapacity = System.Threading.Interlocked.Exchange(ref _maxCapacity, maxCapacity);
 
         // If the new capacity is less than the old one, trim the pool
         if (maxCapacity < oldCapacity)

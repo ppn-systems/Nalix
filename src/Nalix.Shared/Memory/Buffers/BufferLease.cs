@@ -166,6 +166,10 @@ public sealed class BufferLease : IBufferLease
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
+        if (EnablePoisonOnDispose && _buffer != null)
+        {
+            System.MemoryExtensions.AsSpan(_buffer).Fill(PoisonByte);
+        }
         System.Int32 newValue = System.Threading.Interlocked.Decrement(ref _refCount);
 
         if (newValue < 0)

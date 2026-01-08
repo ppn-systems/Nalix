@@ -20,6 +20,7 @@ public unsafe struct DataReader : System.IDisposable
     private System.Byte* _ptr;
     private System.Int32 _length;
     private System.Boolean _pinned;
+    private System.Byte[]? _tempArray;
     private System.Runtime.InteropServices.GCHandle _pin; // Used only when the source is a byte array
 
     #endregion Fields
@@ -80,11 +81,11 @@ public unsafe struct DataReader : System.IDisposable
     /// <param name="span">The read-only span of bytes to read from.</param>
     public DataReader(System.ReadOnlySpan<System.Byte> span)
     {
-        System.Byte[] temp = span.ToArray();
-        _pin = System.Runtime.InteropServices.GCHandle.Alloc(temp, System.Runtime.InteropServices.GCHandleType.Pinned);
-        _ptr = (System.Byte*)_pin.AddrOfPinnedObject();
-        _length = temp.Length;
-        _pinned = true;
+        _tempArray = span.ToArray();
+        _ptr = (System.Byte*)System.Runtime.CompilerServices.Unsafe.AsPointer(
+            ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_tempArray));
+        _length = _tempArray.Length;
+        _pinned = false;  // No GCHandle needed
 
         this.BytesRead = 0;
     }
