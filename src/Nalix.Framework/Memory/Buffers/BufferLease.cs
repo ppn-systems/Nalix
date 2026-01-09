@@ -31,8 +31,8 @@ public sealed class BufferLease : IBufferLease
     /// </remarks>
     public static class ByteArrayPool
     {
-        private static readonly Func<int, byte[]> RentFunc;
-        private static readonly Action<byte[], bool> ReturnFunc;
+        private static readonly Func<int, byte[]> s_rentFunc;
+        private static readonly Action<byte[], bool> s_returnFunc;
 
         static ByteArrayPool()
         {
@@ -40,14 +40,14 @@ public sealed class BufferLease : IBufferLease
 
             if (pool != null)
             {
-                RentFunc = pool.Rent;
-                ReturnFunc = pool.Return;
+                s_rentFunc = pool.Rent;
+                s_returnFunc = pool.Return;
             }
             else
             {
                 System.Buffers.ArrayPool<byte> shared = System.Buffers.ArrayPool<byte>.Shared;
-                RentFunc = shared.Rent;
-                ReturnFunc = shared.Return;
+                s_rentFunc = shared.Rent;
+                s_returnFunc = shared.Return;
             }
         }
 
@@ -64,7 +64,7 @@ public sealed class BufferLease : IBufferLease
         /// The returned buffer may be larger than requested. The content of the buffer is undefined.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static byte[] Rent(int capacity = 256) => RentFunc(capacity);
+        public static byte[] Rent(int capacity = 256) => s_rentFunc(capacity);
 
         /// <summary>
         /// Returns a previously rented buffer to the pool.
@@ -77,7 +77,7 @@ public sealed class BufferLease : IBufferLease
         /// After calling this method, the buffer should not be used again.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Return(byte[] array) => ReturnFunc(array, false);
+        public static void Return(byte[] array) => s_returnFunc(array, false);
     }
 
     /// <summary>

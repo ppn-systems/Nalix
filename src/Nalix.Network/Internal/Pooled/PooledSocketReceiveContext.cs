@@ -345,5 +345,5 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
         }
     }
 
-    public void Dispose() => throw new NotImplementedException();
+    public void Dispose() => ResetForPool();
 }

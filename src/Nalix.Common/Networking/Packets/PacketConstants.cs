@@ -23,11 +23,12 @@ public static class PacketConstants
     /// </list>
     /// </summary>
     public const byte HeaderSize =
-        sizeof(uint) +  // MagicNumber = 4  (offset 0)
+        sizeof(uint) +    // MagicNumber = 4  (offset 0)
         sizeof(ushort) +  // OpCode      = 2  (offset 4)
         sizeof(byte) +    // Flags       = 1  (offset 6)
         sizeof(byte) +    // Priority    = 1  (offset 7)
-        sizeof(byte);     // Protocol    = 1  (offset 8)
+        sizeof(byte) +    // Protocol    = 1  (offset 8)
+        sizeof(uint);     // SequenceId  = 4  (offset 9)
 
     /// <summary>
     /// The default operation code value for packets.
@@ -52,7 +53,7 @@ public static class PacketConstants
 
     /// <summary>
     /// The maximum allowed total packet size, in bytes.
-    /// This limit is 65,535 bytes (0xFFFF), corresponding to the maximum value of an unsigned 16-bit integer.
+    /// This limit is 65,5xx bytes (0xFFFF - HeaderSize), corresponding to the maximum value of an unsigned 16-bit integer.
     /// </summary>
-    public const ushort PacketSizeLimit = 0xFFFF;
+    public const ushort PacketSizeLimit = 0xFFFF - HeaderSize;
 }
