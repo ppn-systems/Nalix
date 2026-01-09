@@ -16,20 +16,19 @@ public sealed partial class PacketDispatchOptions<TPacket>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private async System.Threading.Tasks.ValueTask ExecuteHandlerAsync(PacketHandler<TPacket> descriptor, PacketContext<TPacket> context)
     {
-        context.SkipOutbound = IsVoidLike(descriptor.ReturnType);
+        context.SkipOutbound = HasNoOutboundResult(descriptor.ReturnType);
 
         if (!_pipeline.IsEmpty)
         {
-            await this._pipeline.ExecuteAsync(context, Terminal, context.CancellationToken)
+            await this._pipeline.ExecuteAsync(context, InvokeHandlerAsync, context.CancellationToken)
                                 .ConfigureAwait(false);
         }
         else
         {
-            await Terminal(context.CancellationToken).ConfigureAwait(false);
+            await InvokeHandlerAsync(context.CancellationToken).ConfigureAwait(false);
         }
 
-        async System.Threading.Tasks.Task Terminal(
-              System.Threading.CancellationToken ct = default)
+        async System.Threading.Tasks.Task InvokeHandlerAsync(System.Threading.CancellationToken ct = default)
         {
             try
             {
@@ -57,7 +56,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 // Handle the result
                 if (!context.SkipOutbound)
                 {
-                    IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.GetHandler(descriptor.ReturnType);
+                    IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.ResolveHandler(descriptor.ReturnType);
                     await returnHandler.HandleAsync(result, context)
                                        .AsTask()
                                        .WaitAsync(ct)
@@ -69,7 +68,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             }
             catch (System.Exception ex)
             {
-                await this.HandleExecutionExceptionAsync(descriptor, context, ex)
+                await this.HandleDispatchExceptionAsync(descriptor, context, ex)
                           .ConfigureAwait(false);
             }
         }
@@ -79,16 +78,16 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private async System.Threading.Tasks.ValueTask HandleExecutionExceptionAsync(
+    private async System.Threading.Tasks.ValueTask HandleDispatchExceptionAsync(
         PacketHandler<TPacket> descriptor,
         PacketContext<TPacket> context, System.Exception exception)
     {
-        this.Logger?.Error($"[{nameof(PacketDispatchOptions<>)}:{HandleExecutionExceptionAsync}] " +
+        this.Logger?.Error($"[{nameof(PacketDispatchOptions<>)}:{HandleDispatchExceptionAsync}] " +
                            $"handler-failed opcode={descriptor.OpCode}", exception);
 
         _errorHandler?.Invoke(exception, descriptor.OpCode);
 
-        (ProtocolReason reason, ProtocolAdvice action, ControlFlags flags) = ClassifyException(exception);
+        (ProtocolReason reason, ProtocolAdvice action, ControlFlags flags) = MapExceptionToProtocol(exception);
 
         await context.Connection.SendAsync(
               controlType: ControlType.FAIL,
@@ -103,7 +102,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Boolean IsVoidLike(System.Type returnType)
+    private static System.Boolean HasNoOutboundResult(System.Type returnType)
         => returnType == typeof(void)
         || returnType == typeof(System.Threading.Tasks.Task)
         || returnType == typeof(System.Threading.Tasks.ValueTask);
@@ -112,8 +111,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static T EnsureNotNull<T>(T value, System.String param)
-        where T : class => value ?? throw new System.ArgumentNullException(param);
+    private static T ThrowIfNull<T>(T value, System.String param) where T : class => value ?? throw new System.ArgumentNullException(param);
 
     /// <summary>
     /// Map exception types to ProtocolCode/ProtocolAction/ControlFlags.
@@ -123,7 +121,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static (ProtocolReason reason, ProtocolAdvice action, ControlFlags flags) ClassifyException(System.Exception ex)
+    private static (ProtocolReason reason, ProtocolAdvice action, ControlFlags flags) MapExceptionToProtocol(System.Exception ex)
     {
         // 1) Cancellation/Timeout => transient
         if (ex is System.OperationCanceledException or System.TimeoutException)
@@ -153,12 +151,12 @@ public sealed partial class PacketDispatchOptions<TPacket>
         // 5) IEndpointKey /O / socket => phần lớn transient
         if (ex is System.IO.IOException ioEx && ioEx.InnerException is System.Net.Sockets.SocketException se1)
         {
-            return ClassifySocket(se1);
+            return MapSocketExceptionToProtocol(se1);
         }
 
         if (ex is System.Net.Sockets.SocketException se)
         {
-            return ClassifySocket(se);
+            return MapSocketExceptionToProtocol(se);
         }
 
         // 6) ObjectDisposed trong giai đoạn teardown/shutdown: coi như transient nhẹ
@@ -170,7 +168,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         // 7) Default: internal error
         return (ProtocolReason.INTERNAL_ERROR, ProtocolAdvice.NONE, ControlFlags.NONE);
 
-        static (ProtocolReason, ProtocolAdvice, ControlFlags) ClassifySocket(System.Net.Sockets.SocketException se)
+        static (ProtocolReason, ProtocolAdvice, ControlFlags) MapSocketExceptionToProtocol(System.Net.Sockets.SocketException se)
         {
             return se.SocketErrorCode switch
             {
