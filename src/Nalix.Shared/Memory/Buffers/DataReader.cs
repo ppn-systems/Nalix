@@ -82,10 +82,10 @@ public unsafe struct DataReader : System.IDisposable
     public DataReader(System.ReadOnlySpan<System.Byte> span)
     {
         _tempArray = span.ToArray();
-        _ptr = (System.Byte*)System.Runtime.CompilerServices.Unsafe.AsPointer(
-            ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_tempArray));
+        _pin = System.Runtime.InteropServices.GCHandle.Alloc(_tempArray, System.Runtime.InteropServices.GCHandleType.Pinned);
+        _ptr = (System.Byte*)_pin.AddrOfPinnedObject();
         _length = _tempArray.Length;
-        _pinned = false;  // No GCHandle needed
+        _pinned = true; // Fixed! 
 
         this.BytesRead = 0;
     }

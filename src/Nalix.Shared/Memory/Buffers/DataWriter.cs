@@ -205,13 +205,15 @@ public ref struct DataWriter
             }
         }
 
-        if (_owner is not null)
-        {
-            BufferLease.Pool.Return(_owner);
-        }
+        System.Byte[]? oldOwner = _owner;
 
         _owner = newOwner;
         _span = System.MemoryExtensions.AsSpan(_owner);
+
+        if (oldOwner is not null)
+        {
+            BufferLease.Pool.Return(oldOwner);
+        }
     }
 
     /// <summary>
