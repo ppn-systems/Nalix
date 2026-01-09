@@ -69,7 +69,7 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
 
     // Use stable per-connection id / endpoint hash
     [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private DispatchChannel<TPacket> GET_SHARD(IConnection connection) => _shards[connection.ID.GetHashCode() & _mask];
 }
 

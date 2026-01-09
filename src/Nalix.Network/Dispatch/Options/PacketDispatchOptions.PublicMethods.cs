@@ -180,7 +180,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TController>(
         [System.Diagnostics.CodeAnalysis.NotNull] TController instance)
-        where TController : class => this.WithHandler(() => EnsureNotNull(instance, nameof(instance)));
+        where TController : class => this.WithHandler(() => ThrowIfNull(instance, nameof(instance)));
 
     /// <summary>
     /// Registers a handler by creating an instance of the specified controller type
@@ -206,16 +206,14 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithHandler<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController>(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Func<TController> factory)
-        where TController : class
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Func<TController> factory) where TController : class
     {
         System.Type controllerType = typeof(TController);
 
         PacketControllerAttribute controllerAttr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketControllerAttribute>(controllerType)
             ?? throw new System.InvalidOperationException($"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
-        PacketHandler<TPacket>[] handlerDescriptors =
-            HandlerCompiler<TController, TPacket>.CompileHandlers(factory);
+        PacketHandler<TPacket>[] handlerDescriptors = HandlerCompiler<TController, TPacket>.CompileHandlers(factory);
 
         foreach (PacketHandler<TPacket> descriptor in handlerDescriptors)
         {

@@ -35,10 +35,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         // Per-priority approximate counts.
         public readonly System.Int32[] ApproxByPriority;
 
-        public ConnectionState()
-        {
-            ApproxByPriority = new System.Int32[GetPriorityLevels];
-        }
+        public ConnectionState() => ApproxByPriority = new System.Int32[GetPriorityLevels];
     }
 
     private sealed class ConnectionQueues
@@ -55,7 +52,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         }
     }
 
-    #endregion
+    #endregion Nested types
 
     #region Fields
 
@@ -80,7 +77,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     // Metrics (global).
     private System.Int32 _totalPackets;
 
-    #endregion
+    #endregion Fields
 
     #region Properties
 
@@ -109,7 +106,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                        .ConnectionUnregistered += this.OnUnregistered;
     }
 
-    #endregion
+    #endregion Constructors
 
     #region Public APIs
 

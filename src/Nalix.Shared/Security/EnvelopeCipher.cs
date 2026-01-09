@@ -160,12 +160,7 @@ public static class EnvelopeCipher
         plaintext = null;
 
         // Quick parse to determine which engine to route to
-        if (!EnvelopeFormat.TryParseEnvelope(envelope, out EnvelopeFormat.ParsedEnvelope env))
-        {
-            return false;
-        }
-
-        return env.AeadType switch
+        return EnvelopeFormat.TryParseEnvelope(envelope, out EnvelopeFormat.ParsedEnvelope env) && env.AeadType switch
         {
             CipherSuiteType.XTEA or
             CipherSuiteType.SPECK or
