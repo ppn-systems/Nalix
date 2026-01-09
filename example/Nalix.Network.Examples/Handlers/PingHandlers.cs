@@ -4,14 +4,10 @@
 
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Security;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Time;
-using Nalix.Network.Connections;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Routing;
-using Nalix.Shared.Frames.Controls;
-using Nalix.Shared.Memory.Objects;
 
 namespace Nalix.Network.Examples.Handlers;
 
@@ -27,82 +23,10 @@ public sealed class PingHandlers
     [PacketOpcode(0)]
     [PacketEncryption(true)]
     [PacketPermission(PermissionLevel.GUEST)]
-    public static async Task Ping(PacketContext<IPacket> context)
-    {
-        Handshake packet = (Handshake)context.Packet;
-        uint fallbackSeq = context.Packet.SequenceId;
-        Console.WriteLine("Received PING from " + context.Connection.NetworkEndpoint.Address);
-
-        try
-        {
-            // Gửi Control PONG về client
-            _ = await context.Sender.SendAsync(packet).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            s_logger?.Error($"[APP.{nameof(PingHandlers)}] failed ep={context.Connection.NetworkEndpoint.Address} ex={ex.Message}\nStackTrace: {ex.StackTrace}");
-
-            await context.Connection.SendAsync(
-                ControlType.ERROR,
-                ProtocolReason.INTERNAL_ERROR,
-                ProtocolAdvice.BACKOFF_RETRY,
-                sequenceId: packet.SequenceId,
-                flags: ControlFlags.IsTransient).ConfigureAwait(false);
-        }
-    }
+    public static async Task Ping(PacketContext<IPacket> p) => _ = await p.Connection.TCP.SendAsync(p.Packet).ConfigureAwait(false); // or PacketContext<Control>
 
     [PacketOpcode(1)]
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.GUEST)]
-    public static async Task Pong(PacketContext<IPacket> p) // or PacketContext<Control>
-    {
-        // Chỉ nhận gói Control có type = PING
-        if (p.Packet is not Control pong || pong.Type != ControlType.PING)
-        {
-            uint fallbackSeq = p.Packet is IPacketSequenced ps ? ps.SequenceId : 0;
-
-            // Not auto enc, compress
-            await p.Connection.SendAsync(
-                ControlType.ERROR,
-                ProtocolReason.MALFORMED_PACKET,
-                ProtocolAdvice.DO_NOT_RETRY, fallbackSeq).ConfigureAwait(false);
-
-            return;
-        }
-
-        // Tạo PONG response frame (echo lại SequenceId, MonoTicks mới, timestamp mới)
-        Control ping = s_pool.Get<Control>();
-
-        try
-        {
-            ping.Initialize(
-                opCode: pong.OpCode,      // Echo lại OpCode giống client gửi lên
-                type: ControlType.PONG,
-                sequenceId: pong.SequenceId,
-                reasonCode: ProtocolReason.NONE,    // Không lỗi
-                transport: pong.Protocol);
-
-            ping.MonoTicks = pong.MonoTicks; // Option: echo lại MonoTicks client gửi lên (để RTT tốt nhất)
-            ping.Timestamp = Clock.UnixMillisecondsNow();
-
-            // Gửi Control PONG về client
-            // Auto encrypt, compress theo thiết lập attribute [PacketEncryption], [PacketCompression] trên handler
-            _ = await p.Sender.SendAsync(ping).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            s_logger?.Error($"[APP.{nameof(PingHandlers)}] failed ep={p.Connection.NetworkEndpoint.Address} ex={ex.Message}");
-
-            await p.Connection.SendAsync(
-                ControlType.ERROR,
-                ProtocolReason.INTERNAL_ERROR,
-                ProtocolAdvice.BACKOFF_RETRY,
-                sequenceId: pong.SequenceId,
-                flags: ControlFlags.IsTransient).ConfigureAwait(false);
-        }
-        finally
-        {
-            s_pool.Return(pong);
-        }
-    }
+    public static async Task Pong(PacketContext<IPacket> p) => _ = await p.Connection.TCP.SendAsync(p.Packet).ConfigureAwait(false); // or PacketContext<Control>
 }

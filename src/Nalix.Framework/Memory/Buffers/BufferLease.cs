@@ -86,12 +86,9 @@ public sealed class BufferLease : IBufferLease
     public static readonly int StackAllocThreshold = 512; // 1KB threshold for stackalloc in CopyFrom
 
 #if DEBUG
-    private const bool EnablePoisonOnDispose = true;
-#else
-    private const System.Boolean EnablePoisonOnDispose = false;
-#endif
-
     private const byte PoisonByte = 0xCD;
+    private const bool EnablePoisonOnDispose = true;
+#endif
 
     // ====== Fields ======
 
@@ -240,14 +237,16 @@ public sealed class BufferLease : IBufferLease
     {
         int newValue = Interlocked.Decrement(ref _refCount);
 
-        if (newValue < 0)
+        if (newValue > 0)
         {
-            throw new InvalidOperationException(
-                $"[{nameof(BufferLease)}] Ref-count underflow. Dispose called too many times.");
+            return;
         }
 
-        if (newValue != 0)
+        if (newValue < 0)
         {
+#if DEBUG
+            Debug.Fail($"BufferLease double dispose detected. RefCount went to {newValue}");
+#endif
             return;
         }
 

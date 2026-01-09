@@ -2,11 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
+using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
 
@@ -25,7 +27,7 @@ internal sealed partial class SocketConnection
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public bool Send(ReadOnlySpan<byte> data)
     {
-        THROW_IF_NOT_CONFIGURED();
+        this.THROW_IF_NOT_CONFIGURED();
 
         if (Volatile.Read(ref _disposed) != 0)
         {
@@ -37,10 +39,9 @@ internal sealed partial class SocketConnection
             return false;
         }
 
-        if (data.Length > PacketConstants.PacketSizeLimit - HeaderSize)
+        if (data.Length >= s_fragmentOptions.ChunkThreshold)
         {
-            throw new ArgumentOutOfRangeException(nameof(data),
-                $"Packet size {data.Length} exceeds limit {PacketConstants.PacketSizeLimit - HeaderSize}");
+            return this.SEND_FRAGMENTED(data);
         }
 
         ushort totalLength = (ushort)(data.Length + HeaderSize);
@@ -76,8 +77,8 @@ internal sealed partial class SocketConnection
                         s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                                         $"stackalloc peer-closed ep={_socket.RemoteEndPoint}");
 #endif
-                        CANCEL_RECEIVE_ONCE();
-                        INVOKE_CLOSE_ONCE();
+                        this.CANCEL_RECEIVE_ONCE();
+                        this.INVOKE_CLOSE_ONCE();
                         return false;
                     }
                     sent += n;
@@ -105,8 +106,7 @@ internal sealed partial class SocketConnection
             s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                             $"pooled len={data.Length} ep={_socket.RemoteEndPoint}");
 #endif
-            System.Buffers.Binary.BinaryPrimitives
-                .WriteUInt16LittleEndian(MemoryExtensions.AsSpan(heapBuf), totalLength);
+            BinaryPrimitives.WriteUInt16LittleEndian(MemoryExtensions.AsSpan(heapBuf), totalLength);
             data.CopyTo(MemoryExtensions.AsSpan(heapBuf, HeaderSize));
 
 #if DEBUG
@@ -130,17 +130,14 @@ internal sealed partial class SocketConnection
                     s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                                     $"pooled peer-closed ep={_socket.RemoteEndPoint}");
 #endif
-                    CANCEL_RECEIVE_ONCE();
-                    INVOKE_CLOSE_ONCE();
+                    this.CANCEL_RECEIVE_ONCE();
+                    this.INVOKE_CLOSE_ONCE();
                     return false;
                 }
                 sent += n;
             }
 
-            ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
-            args.Initialize(_cachedArgs.Connection);
-
-            AsyncCallback.Invoke(_callbackPost, _sender, args);
+            this.InvokePostCallback();
             return true;
         }
         catch (Exception ex)
@@ -164,7 +161,7 @@ internal sealed partial class SocketConnection
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     public async Task<bool> SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
     {
-        THROW_IF_NOT_CONFIGURED();
+        this.THROW_IF_NOT_CONFIGURED();
 
         if (Volatile.Read(ref _disposed) != 0)
         {
@@ -176,9 +173,9 @@ internal sealed partial class SocketConnection
             return false;
         }
 
-        if (data.Length > PacketConstants.PacketSizeLimit - HeaderSize)
+        if (data.Length >= s_fragmentOptions.ChunkThreshold)
         {
-            throw new ArgumentOutOfRangeException(nameof(data), "Packet too large");
+            this.SEND_FRAGMENTED(data.Span);
         }
 
         ushort totalLength = (ushort)(data.Length + HeaderSize);
@@ -206,8 +203,8 @@ internal sealed partial class SocketConnection
             while (sent < totalLength)
             {
                 int n = await _socket.SendAsync(MemoryExtensions
-                                              .AsMemory(heapBuf, sent, totalLength - sent), SocketFlags.None, cancellationToken)
-                                              .ConfigureAwait(false);
+                                     .AsMemory(heapBuf, sent, totalLength - sent), SocketFlags.None, cancellationToken)
+                                     .ConfigureAwait(false);
 
                 if (n == 0)
                 {
@@ -215,17 +212,14 @@ internal sealed partial class SocketConnection
                     s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
                                     $"peer-closed ep={_socket.RemoteEndPoint}");
 #endif
-                    CANCEL_RECEIVE_ONCE();
-                    INVOKE_CLOSE_ONCE();
+                    this.CANCEL_RECEIVE_ONCE();
+                    this.INVOKE_CLOSE_ONCE();
                     return false;
                 }
                 sent += n;
             }
 
-            ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
-            args.Initialize(_cachedArgs.Connection);
-
-            AsyncCallback.Invoke(_callbackPost, _sender, args);
+            this.InvokePostCallback();
             return true;
         }
         catch (Exception ex)
@@ -239,4 +233,201 @@ internal sealed partial class SocketConnection
             BufferLease.ByteArrayPool.Return(heapBuf);
         }
     }
+
+    #region Fragmented Send Helpers
+
+    /// <summary>
+    /// Gửi payload lớn bằng cách tự động fragment.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2014:Do not use stackalloc in loops", Justification = "<Pending>")]
+    private bool SEND_FRAGMENTED(ReadOnlySpan<byte> payload)
+    {
+        if (payload.Length > s_fragmentOptions.MaxPayloadSize)
+        {
+            throw new ArgumentOutOfRangeException(nameof(payload),
+                $"Payload exceeds maximum allowed size {s_fragmentOptions.MaxPayloadSize}");
+        }
+
+        ushort streamId = FragmentStreamId.Next();
+        int chunkBodySize = s_fragmentOptions.ChunkBodySize;
+        int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
+
+        Span<byte> headerBuffer = stackalloc byte[FragmentHeader.WireSize];
+
+        for (int i = 0; i < totalChunks; i++)
+        {
+            int offset = i * chunkBodySize;
+            int remaining = payload.Length - offset;
+            int thisChunkSize = Math.Min(remaining, chunkBodySize);
+
+            bool isLast = i == totalChunks - 1;
+
+            FragmentHeader fragHeader = new(
+                streamId: streamId,
+                chunkIndex: (ushort)i,
+                totalChunks: (ushort)totalChunks,
+                isLast: isLast);
+
+            fragHeader.WriteTo(headerBuffer);
+
+            // Calculate the total frame size for this segment
+            int framePayloadSize = FragmentHeader.WireSize + thisChunkSize;
+
+            // + 2 byte length
+            int totalFrameSize = HeaderSize + framePayloadSize;
+
+            if (totalFrameSize > PacketConstants.PacketSizeLimit)
+            {
+                throw new InvalidOperationException("Chunk size too large");
+            }
+
+            // Fast path: stackalloc if small
+            if (totalFrameSize <= PacketConstants.StackAllocLimit)
+            {
+                Span<byte> frame = stackalloc byte[totalFrameSize];
+
+                // Write outer frame length
+                BinaryPrimitives.WriteUInt16LittleEndian(frame, (ushort)totalFrameSize);
+
+                // Write FragmentHeader + Magic + body
+                headerBuffer.CopyTo(frame[HeaderSize..]);
+                payload.Slice(offset, thisChunkSize).CopyTo(frame[(HeaderSize + FragmentHeader.WireSize)..]);
+
+                if (!SEND_RAW_FRAME(frame))
+                {
+                    throw new SocketException((int)SocketError.ConnectionReset);
+                }
+            }
+            else
+            {
+                // Slow path: pooled buffer
+                byte[] rented = BufferLease.ByteArrayPool.Rent(totalFrameSize);
+                try
+                {
+                    BinaryPrimitives.WriteUInt16LittleEndian(MemoryExtensions.AsSpan(rented), (ushort)totalFrameSize);
+                    headerBuffer.CopyTo(MemoryExtensions.AsSpan(rented, HeaderSize));
+                    payload.Slice(offset, thisChunkSize).CopyTo(MemoryExtensions.AsSpan(rented, HeaderSize + FragmentHeader.WireSize));
+
+                    if (!SEND_RAW_FRAME(rented.AsSpan(0, totalFrameSize)))
+                    {
+                        throw new SocketException((int)SocketError.ConnectionReset);
+                    }
+                }
+                finally
+                {
+                    BufferLease.ByteArrayPool.Return(rented);
+                }
+            }
+        }
+
+        this.InvokePostCallback();
+        return true;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        bool SEND_RAW_FRAME(ReadOnlySpan<byte> frame)
+        {
+            int sent = 0;
+            while (sent < frame.Length)
+            {
+                int n = _socket.Send(frame[sent..]);
+                if (n == 0)
+                {
+                    this.CANCEL_RECEIVE_ONCE();
+                    this.INVOKE_CLOSE_ONCE();
+                    return false;
+                }
+                sent += n;
+            }
+            return true;
+        }
+    }
+
+    private async Task<bool> SEND_FRAGMENTED_ASYNC(ReadOnlyMemory<byte> payload, CancellationToken token)
+    {
+        if (payload.Length > s_fragmentOptions.MaxPayloadSize)
+        {
+            throw new ArgumentOutOfRangeException(nameof(payload),
+                $"Payload exceeds maximum allowed size {s_fragmentOptions.MaxPayloadSize}");
+        }
+
+        ushort streamId = FragmentStreamId.Next();
+        int chunkBodySize = s_fragmentOptions.ChunkBodySize;
+        int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
+
+        byte[] headerSpan = new byte[FragmentHeader.WireSize];
+
+        for (int i = 0; i < totalChunks; i++)
+        {
+            int offset = i * chunkBodySize;
+            int chunkLen = Math.Min(chunkBodySize, payload.Length - offset);
+            bool isLast = i == totalChunks - 1;
+
+            FragmentHeader fragHeader = new(streamId, (ushort)i, (ushort)totalChunks, isLast);
+            fragHeader.WriteTo(headerSpan);
+
+            int framePayloadLen = FragmentHeader.WireSize + chunkLen;
+            int totalFrameLen = HeaderSize + framePayloadLen;
+
+            byte[] rented = BufferLease.ByteArrayPool.Rent(totalFrameLen);
+
+            try
+            {
+                BUILD_FRAGMENT_FRAME(rented.AsSpan(0, totalFrameLen), headerSpan, payload.Slice(offset, chunkLen).Span);
+
+                if (!await SEND_RAW_FRAME_ASYNC(rented.AsMemory(0, totalFrameLen), token).ConfigureAwait(false))
+                {
+                    throw new SocketException((int)SocketError.ConnectionReset);
+                }
+            }
+            finally
+            {
+                BufferLease.ByteArrayPool.Return(rented);
+            }
+        }
+
+        this.InvokePostCallback();
+        return true;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void BUILD_FRAGMENT_FRAME(Span<byte> frame, ReadOnlySpan<byte> fragHeader, ReadOnlySpan<byte> chunkBody)
+        {
+            // Write outer frame length (2 bytes LE)
+            BinaryPrimitives.WriteUInt16LittleEndian(frame, (ushort)frame.Length);
+
+            // Copy FragmentHeader (có Magic)
+            fragHeader.CopyTo(frame[HeaderSize..]);
+
+            // Copy chunk body
+            chunkBody.CopyTo(frame[(HeaderSize + FragmentHeader.WireSize)..]);
+        }
+
+        async Task<bool> SEND_RAW_FRAME_ASYNC(ReadOnlyMemory<byte> frame, CancellationToken token)
+        {
+            int sent = 0;
+            while (sent < frame.Length)
+            {
+                int n = await _socket.SendAsync(frame[sent..], SocketFlags.None, token)
+                                     .ConfigureAwait(false);
+
+                if (n == 0)
+                {
+                    this.CANCEL_RECEIVE_ONCE();
+                    this.INVOKE_CLOSE_ONCE();
+                    return false;
+                }
+                sent += n;
+            }
+            return true;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void InvokePostCallback()
+    {
+        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+        args.Initialize(_cachedArgs.Connection);
+        _ = AsyncCallback.Invoke(_callbackPost, _sender, args);
+    }
+
+    #endregion
 }

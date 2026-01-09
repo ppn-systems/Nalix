@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Framework.Memory.Buffers;
@@ -133,16 +134,16 @@ public sealed class FragmentAssembler : IDisposable
         if (!_streams.TryGetValue(header.StreamId, out StreamState? state))
         {
             // Estimate buffer size: firstChunk * totalChunks, capped at MaxStreamBytes
-            int estimate = (int)Math.Min((long)chunkBody.Length * header.TotalChunks, MaxStreamBytes);
+            int estimate = (int)Math.Min((long)chunkBody.Length * header.TotalChunks, this.MaxStreamBytes);
 
             state = new StreamState(header.TotalChunks, Math.Max(estimate, 256));
             _streams[header.StreamId] = state;
         }
 
         // ── Check timeout ────────────────────────────────────────────────
-        if (now - state.LastActivityMs > StreamTimeoutMs)
+        if (now - state.LastActivityMs > this.StreamTimeoutMs)
         {
-            EVICT(header.StreamId, state);
+            this.EVICT(header.StreamId, state);
             return false;
         }
 
@@ -152,7 +153,7 @@ public sealed class FragmentAssembler : IDisposable
         // Prevent forgery: TotalChunks must be the same across all chunks of a stream
         if (state.TotalChunks != header.TotalChunks)
         {
-            EVICT(header.StreamId, state);
+            this.EVICT(header.StreamId, state);
             return false;
         }
 
@@ -162,9 +163,9 @@ public sealed class FragmentAssembler : IDisposable
             return false; // Duplicate or stale
         }
 
-        if (state.WrittenBytes + chunkBody.Length > MaxStreamBytes)
+        if (state.WrittenBytes + chunkBody.Length > this.MaxStreamBytes)
         {
-            EVICT(header.StreamId, state);
+            this.EVICT(header.StreamId, state);
             return false;
         }
 
@@ -230,7 +231,48 @@ public sealed class FragmentAssembler : IDisposable
         }
 
         _disposed = true;
-        Clear();
+        this.Clear();
+    }
+
+    /// <summary>
+    /// Quick check to determine if the payload is a fragmented chunk using the magic byte.
+    /// </summary>
+    public static bool IsFragmentedFrame(ReadOnlySpan<byte> payload, [NotNullWhen(true)] out FragmentHeader header)
+    {
+        header = default;
+        if (payload.Length < FragmentHeader.WireSize)
+        {
+            return false;
+        }
+
+        if (payload[0] != FragmentHeader.Magic)
+        {
+            return false;
+        }
+
+        // Second validation: try to read header and check logical consistency
+        try
+        {
+            header = FragmentHeader.ReadFrom(payload);
+
+            // Additional safety checks
+            if (header.StreamId == 0)
+            {
+                return false;
+            }
+
+            if (header.TotalChunks == 0 || header.ChunkIndex >= header.TotalChunks)
+            {
+                return false;
+            }
+
+            return true;
+        }
+        catch
+        {
+            // If parsing fails → treat as normal packet
+            return false;
+        }
     }
 
     #endregion APIs

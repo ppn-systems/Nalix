@@ -2,25 +2,28 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Nalix.Framework.DataFrames.Chunks;
 
-// ┌───────────────────────────────────────────────────────────────────────────┐
-// │  Wire format for each chunk (= 1 normal framed packet)                    │
-// │                                                                           │
-// │  [2 B LE]  FramedSocket outer frame length                                │
-// │  payload:                                                                 │
-// │    [2 B LE]  StreamId     — distinguishes parallel streams                │
-// │    [2 B LE]  ChunkIndex   — 0-based index                                 │
-// │    [2 B LE]  TotalChunks  — known in advance                              │
-// │    [1 B]     Flags        — bit0 = IsLastChunk                            │
-// │    [N B]     Chunk body   (split automatically)                           │
-// │                                                                           │
-// │  Overhead / chunk = 2 B (frame) + 7 B (ChunkHeader) = 9 B                 │
-// │  PacketFlags.FRAGMENTED is set so the receiver can detect it              │
-// └───────────────────────────────────────────────────────────────────────────┘
+//┌───────────────────────────────────────────────────────────────────────────┐
+//│  Wire format for each chunk(= 1 normal framed packet)                     │
+//│                                                                           │
+//│  [2 B LE] FramedSocket outer frame length                                 │
+//│  payload:                                                                 │
+//│    [1 B] Magic        — 0xF0 (validate fragment)                          │
+//│    [2 B LE] StreamId     — distinguishes parallel streams                 │
+//│    [2 B LE] ChunkIndex   — 0-based index                                  │
+//│    [2 B LE] TotalChunks  — known in advance                               │
+//│    [1 B] Flags        — bit0 = IsLastChunk                                │
+//│    [N B] Chunk body(split automatically)                                  │
+//│                                                                           │
+//│  Overhead / chunk = 2 B (frame) + 8 B (FragmentHeader) = 10 B             │
+//│  PacketFlags.FRAGMENTED is set so the receiver can detect it              │
+//└───────────────────────────────────────────────────────────────────────────┘
 
 /// <summary>
 /// Fixed-size <b>7-byte</b> header located at the start of the payload for each chunk.
@@ -36,12 +39,14 @@ public readonly struct FragmentHeader(ushort streamId, ushort chunkIndex, ushort
 {
     #region Constants
 
-    /// <summary>
-    /// Number of bytes the header occupies on the wire (7 bytes).
-    /// </summary>
-    public const int WireSize = sizeof(ushort) + sizeof(ushort) + sizeof(ushort) + sizeof(byte);
-
+    /// <inheritdoc/>
+    public const byte Magic = 0xF0;
     private const byte FlagIsLast = 0b0000_0001;
+
+    /// <summary>
+    /// Number of bytes the header occupies on the wire (8 bytes).
+    /// </summary>
+    public const int WireSize = (sizeof(ushort) * 3) + (sizeof(byte) * 2);
 
     #endregion Constants
 
@@ -74,6 +79,19 @@ public readonly struct FragmentHeader(ushort streamId, ushort chunkIndex, ushort
 
     #endregion Properties
 
+    #region Constructors
+
+    static FragmentHeader()
+    {
+        if (Unsafe.SizeOf<FragmentHeader>() != WireSize - 1)
+        {
+            throw new InvalidOperationException(
+                $"FragmentHeader size mismatch. Expected {WireSize} bytes, got {Unsafe.SizeOf<FragmentHeader>()} bytes.");
+        }
+    }
+
+    #endregion Constructors
+
     #region APIs
 
     /// <summary>
@@ -83,10 +101,11 @@ public readonly struct FragmentHeader(ushort streamId, ushort chunkIndex, ushort
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteTo(Span<byte> dest)
     {
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(dest, StreamId);
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(dest[2..], ChunkIndex);
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(dest[4..], TotalChunks);
-        dest[6] = Flags;
+        dest[0] = Magic;
+        BinaryPrimitives.WriteUInt16LittleEndian(dest[1..], StreamId);
+        BinaryPrimitives.WriteUInt16LittleEndian(dest[3..], ChunkIndex);
+        BinaryPrimitives.WriteUInt16LittleEndian(dest[5..], TotalChunks);
+        dest[7] = Flags;
     }
 
     /// <summary>
@@ -95,11 +114,18 @@ public readonly struct FragmentHeader(ushort streamId, ushort chunkIndex, ushort
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FragmentHeader ReadFrom(ReadOnlySpan<byte> src)
-        => new(
-            streamId: System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(src),
-            chunkIndex: System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(src[2..]),
-            totalChunks: System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(src[4..]),
-            isLast: (src[6] & FlagIsLast) != 0);
+    {
+        if (src[0] != Magic)
+        {
+            throw new InvalidDataException("Invalid fragment magic");
+        }
+
+        return new(
+            streamId: BinaryPrimitives.ReadUInt16LittleEndian(src[1..]),
+            chunkIndex: BinaryPrimitives.ReadUInt16LittleEndian(src[3..]),
+            totalChunks: BinaryPrimitives.ReadUInt16LittleEndian(src[5..]),
+            isLast: (src[7] & FlagIsLast) != 0);
+    }
 
     // ── Equality ─────────────────────────────────────────────────────────────
 
@@ -109,13 +135,13 @@ public readonly struct FragmentHeader(ushort streamId, ushort chunkIndex, ushort
         && TotalChunks == other.TotalChunks && Flags == other.Flags;
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is FragmentHeader h && Equals(h);
+    public override bool Equals(object? obj) => obj is FragmentHeader h && this.Equals(h);
 
     /// <inheritdoc/>
     public override int GetHashCode() => HashCode.Combine(StreamId, ChunkIndex, TotalChunks, Flags);
 
     /// <inheritdoc/>
-    public override string ToString() => $"Chunk(stream={StreamId}, {ChunkIndex}/{TotalChunks - 1}, last={IsLast})";
+    public override string ToString() => $"Chunk(stream={StreamId}, {ChunkIndex}/{TotalChunks - 1}, last={this.IsLast})";
 
     /// <inheritdoc/>
     public static bool operator ==(FragmentHeader left, FragmentHeader right) => left.Equals(right);
