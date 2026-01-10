@@ -45,7 +45,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        TokenBucketLimiter.LimitDecision d = PolicyRateLimiter.Check(context.Packet.OpCode, context);
+        TokenBucketLimiter.RateLimitDecision d = PolicyRateLimiter.Check(context.Packet.OpCode, context);
 
         if (!d.Allowed)
         {
