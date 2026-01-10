@@ -13,7 +13,13 @@ namespace Nalix.Logging.Core;
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public class NLogixFormatter(System.Boolean colors = false) : ILoggerFormatter
 {
+    #region Fields
+
     private readonly System.Boolean _colors = colors;
+
+    #endregion Fields
+
+    #region APIs
 
     /// <summary>
     /// Format a log message with timestamp, log level, event ProtocolType, message and exception.
@@ -63,4 +69,6 @@ public class NLogixFormatter(System.Boolean colors = false) : ILoggerFormatter
             StringBuilderPool.Return(logBuilder);
         }
     }
+
+    #endregion APIs
 }

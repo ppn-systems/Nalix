@@ -20,7 +20,13 @@ namespace Nalix.Logging.Sinks;
 [System.Diagnostics.DebuggerDisplay("ChannelFileLogTarget")]
 public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
 {
+    #region Fields
+
     private readonly ChannelFileLoggerProvider _provider;
+
+    #endregion Fields
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with the specified formatter and options.
@@ -63,6 +69,10 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     {
     }
 
+    #endregion Constructors
+
+    #region APIs
+
     /// <summary>
     /// Publishes a log entry to the file logging channel.
     /// </summary>
@@ -89,6 +99,10 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
         System.GC.SuppressFinalize(this);
     }
 
+    #endregion APIs
+
+    #region Private Methods
+
     /// <summary>
     /// Applies configuration to <see cref="FileLogOptions"/> using the provided delegate.
     /// </summary>
@@ -103,4 +117,6 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
         configure?.Invoke(opts);
         return opts;
     }
+
+    #endregion Private Methods
 }

@@ -14,6 +14,8 @@ namespace Nalix.Logging.Internal.Formatters;
 /// </summary>
 internal static class AnsiColors
 {
+    #region Constants
+
     // Basic colors
     public const System.String Reset = "\u001b[0m";       // Reset all styling
 
@@ -38,8 +40,16 @@ internal static class AnsiColors
     public const System.String LightCyan = "\u001b[38;5;51m";    // Light cyan text
     public const System.String LightMagenta = "\u001b[38;5;213m"; // Light magenta text
 
+    #endregion Constants
+
+    #region Fields
+
     // Cache of color codes by log level to avoid repeated switch statements
     private static readonly System.String[] _levelColorCache = new System.String[(System.Int32)LogLevel.Critical + 1];
+
+    #endregion Fields
+
+    #region Constructor
 
     /// <summary>
     /// Static constructor to initialize the color cache
@@ -57,12 +67,16 @@ internal static class AnsiColors
         _levelColorCache[(System.Int32)LogLevel.Critical] = Red;
     }
 
+    #endregion Constructor
+
+    #region APIs
+
     /// <summary>
     /// Gets the ANSI color code corresponding to the specified logging level.
     /// </summary>
     /// <param name="level">The logging level to get a color for.</param>
     /// <returns>An ANSI color code string.</returns>
-    internal static System.String GetForLevel(LogLevel level)
+    public static System.String GetForLevel(LogLevel level)
     {
         // Use the cached color if level is within range
         if ((System.Int32)level >= 0 && (System.Int32)level < _levelColorCache.Length)
@@ -72,4 +86,6 @@ internal static class AnsiColors
 
         return White; // Default color for unknown levels
     }
+
+    #endregion APIs
 }
