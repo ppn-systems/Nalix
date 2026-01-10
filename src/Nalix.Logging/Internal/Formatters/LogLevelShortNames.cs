@@ -26,6 +26,8 @@ internal static class LogLevelShortNames
 
     #endregion Constants
 
+    #region Fields
+
     // Character buffer is organized as fixed-length segments with null terminators
     // This enables fast slicing without calculating offsets each time
     private static System.ReadOnlySpan<System.Char> LogLevelChars =>
@@ -40,10 +42,14 @@ internal static class LogLevelShortNames
         'C', 'R', 'I', 'T', '\0'  // LogLevel.Critical    (7)
     ];
 
+    #endregion Fields
+
+    #region APIs
+
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    internal static System.ReadOnlySpan<System.Char> GetShortName(LogLevel logLevel)
+    public static System.ReadOnlySpan<System.Char> GetShortName(LogLevel logLevel)
     {
         // Bounds checking with bitwise operation for performance
         if ((System.Byte)logLevel >= MaxLogLevels)
@@ -55,4 +61,6 @@ internal static class LogLevelShortNames
         // Get the pre-computed span for this log level
         return LogLevelChars.Slice((System.Byte)logLevel * LogLevelPaddedLength, LogLevelLength);
     }
+
+    #endregion APIs
 }

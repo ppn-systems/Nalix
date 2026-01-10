@@ -18,7 +18,13 @@ namespace Nalix.Logging.Internal.File;
 [System.Diagnostics.DebuggerDisplay("File={_currentPath,nq}, Size={_writtenBytesForCurrentFile}")]
 internal sealed class ChannelFileWriter : System.IDisposable
 {
+    #region Constants
+
     private const System.Int32 WriteBufferSize = 64 * 1024;
+
+    #endregion Constants
+
+    #region Fields
 
     private readonly ChannelFileLoggerProvider _provider;
     private readonly System.Threading.Lock _fileLock = new();
@@ -31,6 +37,10 @@ internal sealed class ChannelFileWriter : System.IDisposable
     private System.DateTime _currentDayLocal;
     private System.Int64 _writtenBytesForCurrentFile;
 
+    #endregion Fields
+
+    #region Constructors
+
     public ChannelFileWriter(ChannelFileLoggerProvider provider)
     {
         _currentIndex = 0;
@@ -42,14 +52,18 @@ internal sealed class ChannelFileWriter : System.IDisposable
         {
             _currentDayLocal = System.DateTime.Now.Date;
             _currentIndex = 0; // CreateOrAdvanceStream will start at 1
-            OpenOrAdvanceStreamLocked();
+            OpenNextLogFileLocked();
         }
     }
+
+    #endregion Constructors
+
+    #region APIs
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    internal void AppendBatch(System.Collections.Generic.List<System.String> messages)
+    internal void WriteBatch(System.Collections.Generic.List<System.String> messages)
     {
         if (messages.Count == 0)
         {
@@ -60,7 +74,7 @@ internal sealed class ChannelFileWriter : System.IDisposable
         {
             try
             {
-                EnsureStreamReadyLocked();
+                EnsureLogFileIsReadyLocked();
 
                 if (_writer is null || _stream is null)
                 {
@@ -83,9 +97,9 @@ internal sealed class ChannelFileWriter : System.IDisposable
                     // roll if will exceed size
                     if (_writtenBytesForCurrentFile + bytes > _provider.Options.MaxFileSizeBytes)
                     {
-                        CloseStreamLocked();
+                        CloseLogFileLocked();
                         _currentIndex++;
-                        OpenOrAdvanceStreamLocked();
+                        OpenNextLogFileLocked();
                         if (_writer is null || _stream is null)
                         {
                             return; // drop rest silently
@@ -105,7 +119,7 @@ internal sealed class ChannelFileWriter : System.IDisposable
                 // try to recover next batch
                 try
                 {
-                    CloseStreamLocked();
+                    CloseLogFileLocked();
                 }
                 catch { /* ignore */ }
             }
@@ -137,45 +151,40 @@ internal sealed class ChannelFileWriter : System.IDisposable
         _disposed = true;
         lock (_fileLock)
         {
-            CloseStreamLocked();
+            CloseLogFileLocked();
         }
     }
 
-    #region Private helpers
+    #endregion APIs
 
-    // Ensure stream is open for the correct day and size; do not throw.
-    private void EnsureStreamReadyLocked()
+    #region Private methods
+
+    private void CloseLogFileLocked()
     {
-        System.DateTime now = System.DateTime.Now;
-        System.DateTime day = now.Date;
-
-        if (day != _currentDayLocal)
+        try
         {
-            // new day: reset and start at _1
-            CloseStreamLocked();
-            _currentDayLocal = day;
-            _currentIndex = 0;
-            _writtenBytesForCurrentFile = 0;
-            OpenOrAdvanceStreamLocked();
-            return;
+            _writer?.Flush();
         }
-
-        if (_stream is null || _writer is null)
+        catch { /* ignore */ }
+        try
         {
-            OpenOrAdvanceStreamLocked();
-            return;
+            _writer?.Dispose();
         }
-
-        if (_writtenBytesForCurrentFile >= _provider.Options.MaxFileSizeBytes)
+        catch { /* ignore */ }
+        try
         {
-            CloseStreamLocked();
-            _currentIndex++;
-            OpenOrAdvanceStreamLocked();
+            _stream?.Dispose();
         }
+        catch { /* ignore */ }
+
+        _writer = null;
+        _stream = null;
+        _currentPath = null;
+        _writtenBytesForCurrentFile = 0;
     }
 
     // Pick or create a file for the current day, probing indices, never throwing.
-    private void OpenOrAdvanceStreamLocked()
+    private void OpenNextLogFileLocked()
     {
         const System.Int32 MaxProbe = 10000;
 
@@ -186,7 +195,7 @@ internal sealed class ChannelFileWriter : System.IDisposable
         catch (System.Exception ex)
         {
             _provider.Options.HandleFileError?.Invoke(new FileError(ex, Directories.LogsDirectory));
-            CloseStreamLocked();
+            CloseLogFileLocked();
             return;
         }
 
@@ -230,7 +239,7 @@ internal sealed class ChannelFileWriter : System.IDisposable
                 // Write header only if new file (length == 0)
                 if (!info.Exists || info.Length == 0)
                 {
-                    WriteFileHeaderLocked();
+                    WriteLogFileHeaderLocked();
                 }
 
                 return; // success
@@ -238,7 +247,7 @@ internal sealed class ChannelFileWriter : System.IDisposable
             catch (System.Exception ex)
             {
                 _provider.Options.HandleFileError?.Invoke(new FileError(ex, fullPath));
-                CloseStreamLocked();
+                CloseLogFileLocked();
                 _currentIndex++;
                 continue;
             }
@@ -246,10 +255,10 @@ internal sealed class ChannelFileWriter : System.IDisposable
 
         // Give up for now; drop logs until next attempt
         _provider.Options.HandleFileError?.Invoke(new FileError(new System.IO.IOException("Exceeded max probes while selecting log file index."), Directories.LogsDirectory));
-        CloseStreamLocked();
+        CloseLogFileLocked();
     }
 
-    private void WriteFileHeaderLocked()
+    private void WriteLogFileHeaderLocked()
     {
         try
         {
@@ -280,29 +289,36 @@ internal sealed class ChannelFileWriter : System.IDisposable
         }
     }
 
-    private void CloseStreamLocked()
+    // Ensure stream is open for the correct day and size; do not throw.
+    private void EnsureLogFileIsReadyLocked()
     {
-        try
-        {
-            _writer?.Flush();
-        }
-        catch { /* ignore */ }
-        try
-        {
-            _writer?.Dispose();
-        }
-        catch { /* ignore */ }
-        try
-        {
-            _stream?.Dispose();
-        }
-        catch { /* ignore */ }
+        System.DateTime now = System.DateTime.Now;
+        System.DateTime day = now.Date;
 
-        _writer = null;
-        _stream = null;
-        _currentPath = null;
-        _writtenBytesForCurrentFile = 0;
+        if (day != _currentDayLocal)
+        {
+            // new day: reset and start at _1
+            CloseLogFileLocked();
+            _currentDayLocal = day;
+            _currentIndex = 0;
+            _writtenBytesForCurrentFile = 0;
+            OpenNextLogFileLocked();
+            return;
+        }
+
+        if (_stream is null || _writer is null)
+        {
+            OpenNextLogFileLocked();
+            return;
+        }
+
+        if (_writtenBytesForCurrentFile >= _provider.Options.MaxFileSizeBytes)
+        {
+            CloseLogFileLocked();
+            _currentIndex++;
+            OpenNextLogFileLocked();
+        }
     }
 
-    #endregion
+    #endregion Private methods
 }

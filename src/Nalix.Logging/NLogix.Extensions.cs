@@ -65,6 +65,8 @@ public static class NLogixExtensions
         where T : class
         => logger.Warn($"[{typeof(T).Name}:{member}] {message}", eventId);
 
+    #region Error
+
     /// <summary>
     /// Logs an error message with class and member context.
     /// </summary>
@@ -87,6 +89,10 @@ public static class NLogixExtensions
         where T : class
         => logger.Error($"[{typeof(T).Name}:{member}] {ex.Message}", ex, eventId);
 
+    #endregion Error
+
+    #region Fatal
+
     /// <summary>
     /// Logs a fatal error message with class and member context.
     /// </summary>
@@ -108,4 +114,6 @@ public static class NLogixExtensions
         [System.Runtime.CompilerServices.CallerMemberName] System.String member = "")
         where T : class
         => logger.Fatal($"[{typeof(T).Name}:{member}] {ex.Message}", ex, eventId);
+
+    #endregion Fatal
 }

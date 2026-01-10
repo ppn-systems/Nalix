@@ -73,7 +73,7 @@ internal static class LogMessageBuilder
 
     #endregion Public Methods
 
-    #region Utility Methods
+    #region Private Methods
 
     /// <summary>
     /// Appends a formatted timestamp to the string builder.
@@ -81,9 +81,7 @@ internal static class LogMessageBuilder
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void AppendTimestamp(
-        System.Text.StringBuilder builder,
-        in System.DateTime timeStamp, System.String? format, System.Boolean colors)
+    private static void AppendTimestamp(System.Text.StringBuilder builder, in System.DateTime timeStamp, System.String? format, System.Boolean colors)
     {
         System.String timestampFormat = format ?? "HH:mm:ss.fff";
 
@@ -112,9 +110,7 @@ internal static class LogMessageBuilder
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void AppendLogLevel(
-        System.Text.StringBuilder builder,
-        LogLevel logLevel, System.Boolean colors)
+    private static void AppendLogLevel(System.Text.StringBuilder builder, LogLevel logLevel, System.Boolean colors)
     {
         _ = builder.Append(InternCache.Space)
                    .Append(InternCache.BracketOpen);
@@ -141,9 +137,7 @@ internal static class LogMessageBuilder
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void AppendEventId(
-        System.Text.StringBuilder builder,
-        in EventId eventId, System.Boolean colors)
+    private static void AppendEventId(System.Text.StringBuilder builder, in EventId eventId, System.Boolean colors)
     {
         if (eventId.Id == 0)
         {
@@ -262,10 +256,8 @@ internal static class LogMessageBuilder
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void FormatExceptionDetails(
-        System.Text.StringBuilder builder,
-        System.Exception exception,
-        System.Int32 level = 0,
-        System.Boolean includeHeader = true)
+        System.Text.StringBuilder builder, System.Exception exception,
+        System.Int32 level = 0, System.Boolean includeHeader = true)
     {
         // Indent for inner exceptions
         if (level > 0)
@@ -378,9 +370,7 @@ internal static class LogMessageBuilder
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void EnsureCapacity(
-        System.Text.StringBuilder builder,
-        System.Int32 requiredCapacity)
+    private static void EnsureCapacity(System.Text.StringBuilder builder, System.Int32 requiredCapacity)
     {
         if (builder.Capacity < requiredCapacity)
         {
@@ -393,5 +383,5 @@ internal static class LogMessageBuilder
         }
     }
 
-    #endregion Utility Methods
+    #endregion Private Methods
 }

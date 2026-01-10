@@ -38,18 +38,18 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
     private readonly System.Boolean _blockWhenFull;
 
     private readonly System.Int32 _batchSize;
+    private readonly ILoggerFormatter _formatter;
     private readonly System.Boolean _adaptiveFlush;
     private readonly System.TimeSpan _maxBatchDelay;
 
     private System.Int32 _queued;
     private System.Boolean _disposed;
-    private ILoggerFormatter _formatter;
     private System.Int64 _totalEntriesWritten;
     private System.Int64 _entriesDroppedCount;
 
-    #endregion
+    #endregion Fields
 
-    #region Ctor & Options
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ChannelFileLoggerProvider"/>.
@@ -102,9 +102,9 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
                 System.Threading.Tasks.TaskScheduler.Default));
     }
 
-    #endregion
+    #endregion Constructors
 
-    #region Public API & Stats
+    #region Properties
 
     /// <summary>
     /// Gets the options used by this provider.
@@ -125,6 +125,10 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
     /// Entries dropped due to capacity (when non-blocking).
     /// </summary>
     public System.Int64 EntriesDroppedCount => System.Threading.Interlocked.Read(ref _entriesDroppedCount);
+
+    #endregion Properties
+
+    #region APIs
 
     /// <summary>
     /// Enqueue a formatted log message.
@@ -180,9 +184,9 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
              + System.Environment.NewLine + $"- Queue: ~{QueuedEntryCount:N0}/{_maxQueueSize}";
     }
 
-    #endregion
+    #endregion APIs
 
-    #region Consumer Loop
+    #region Private Methods
 
     private async System.Threading.Tasks.Task ConsumeLoopAsync()
     {
@@ -230,7 +234,7 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
                 }
 
                 // Write batch
-                _fileWriter.AppendBatch(batch);
+                _fileWriter.WriteBatch(batch);
                 _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, batch.Count);
                 batch.Clear();
 
@@ -263,21 +267,21 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
                 batch.Add(msg);
                 if (batch.Count >= _batchSize)
                 {
-                    _fileWriter.AppendBatch(batch);
+                    _fileWriter.WriteBatch(batch);
                     _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, batch.Count);
                     batch.Clear();
                 }
             }
             if (batch.Count > 0)
             {
-                _fileWriter.AppendBatch(batch);
+                _fileWriter.WriteBatch(batch);
                 _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, batch.Count);
                 batch.Clear();
             }
         }
     }
 
-    #endregion
+    #endregion Private Methods
 
     #region Dispose
 
@@ -315,5 +319,5 @@ internal sealed class ChannelFileLoggerProvider : System.IDisposable
         System.GC.SuppressFinalize(this);
     }
 
-    #endregion
+    #endregion Dispose
 }
