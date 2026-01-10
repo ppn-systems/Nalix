@@ -44,7 +44,7 @@ jobs:
 
       - name: Restore dependencies
         run: |
-          echo "${{ inputs.project }}" | while read proj; do
+          echo "${{ inputs.project }}" | tr -d '\r' | while IFS= read -r proj; do
             if [ -n "$proj" ]; then
               echo "🔧 Restoring $proj"
               dotnet restore "$proj"
@@ -54,7 +54,7 @@ jobs:
 
       - name: Restore test dependencies
         run: |
-          echo "${{ inputs.test }}" | while read testproj; do
+          echo "${{ inputs.test }}" | tr -d '\r' | while IFS= read -r testproj; do
             if [ -n "$testproj" ]; then
               echo "🧪 Restoring $testproj"
               dotnet restore "$testproj"
@@ -64,7 +64,7 @@ jobs:
 
       - name: Build all projects
         run: |
-          echo "${{ inputs.project }}" | while read proj; do
+          echo "${{ inputs.project }}" | tr -d '\r' | while IFS= read -r proj; do
             if [ -n "$proj" ]; then
               echo "📦 Building $proj"
               dotnet build "$proj" --configuration Debug --no-restore
@@ -81,7 +81,7 @@ jobs:
       - name: Publish build output
         if: ${{ inputs.deploy }}
         run: |
-          echo "${{ inputs.project }}" | while read proj; do
+          echo "${{ inputs.project }}" | tr -d '\r' | while IFS= read -r proj; do
             if [ -n "$proj" ]; then
               name=$(basename "$proj" .csproj)
               echo "🚀 Publishing $proj to ./publish/$name"
