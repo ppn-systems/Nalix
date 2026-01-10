@@ -148,7 +148,7 @@ public sealed class FileLogOptions : ConfigurationLoader
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public string GetFullLogFilePath()
-        => Path.Combine(Directories.LogsDirectory, LogFileName);
+        => Path.Combine(Directories.LogsDirectory, this.LogFileName);
 
     /// <summary>
     /// Builds the exact log file name for a given day and index.
@@ -158,11 +158,11 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// <returns>The constructed log file name.</returns>
     public string BuildCustomFileName(DateTime date, int index)
     {
-        string baseName = LogFileName;
+        string baseName = this.LogFileName;
 
-        if (FormatLogFileName != null)
+        if (this.FormatLogFileName != null)
         {
-            baseName = FormatLogFileName(baseName);
+            baseName = this.FormatLogFileName(baseName);
         }
 
         string ext = Path.GetExtension(baseName);
@@ -170,7 +170,7 @@ public sealed class FileLogOptions : ConfigurationLoader
         string datePart = date.ToString("yy_MM_dd", CultureInfo.InvariantCulture);
         string newName = $"{stem}_{datePart}_{index}{ext}";
 
-        if (UsePerProcessSuffix)
+        if (this.UsePerProcessSuffix)
         {
             using Process p = Process.GetCurrentProcess();
             string processSuffix = $"_{p.ProcessName}_{p.Id}";

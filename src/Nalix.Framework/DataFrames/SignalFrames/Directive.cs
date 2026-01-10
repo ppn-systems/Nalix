@@ -62,9 +62,9 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketS
     /// </summary>
     public Directive()
     {
-        Protocol = ProtocolType.TCP;
-        Priority = PacketPriority.URGENT;
-        OpCode = PacketConstants.OpcodeDefault;
+        this.Protocol = ProtocolType.TCP;
+        this.Priority = PacketPriority.URGENT;
+        this.OpCode = PacketConstants.OpcodeDefault;
     }
 
     /// <summary>
@@ -83,17 +83,17 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketS
         uint sequenceId, ControlFlags flags = ControlFlags.NONE,
         uint arg0 = 0, uint arg1 = 0, ushort arg2 = 0)
     {
-        Arg0 = arg0;
-        Arg1 = arg1;
-        Arg2 = arg2;
-        Type = type;
-        Reason = reason;
-        Action = action;
-        Control = flags;
-        SequenceId = sequenceId;
+        this.Arg0 = arg0;
+        this.Arg1 = arg1;
+        this.Arg2 = arg2;
+        this.Type = type;
+        this.Reason = reason;
+        this.Action = action;
+        this.Control = flags;
+        this.SequenceId = sequenceId;
 
-        Protocol = ProtocolType.TCP;
-        Priority = PacketPriority.URGENT;
+        this.Protocol = ProtocolType.TCP;
+        this.Priority = PacketPriority.URGENT;
     }
 
     /// <summary>
@@ -114,18 +114,18 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketS
         uint sequenceId, ControlFlags flags = ControlFlags.NONE,
         uint arg0 = 0, uint arg1 = 0, ushort arg2 = 0)
     {
-        Arg0 = arg0;
-        Arg1 = arg1;
-        Arg2 = arg2;
-        Type = type;
-        Reason = reason;
-        Action = action;
-        Control = flags;
-        OpCode = opCode;
-        SequenceId = sequenceId;
+        this.Arg0 = arg0;
+        this.Arg1 = arg1;
+        this.Arg2 = arg2;
+        this.Type = type;
+        this.Reason = reason;
+        this.Action = action;
+        this.Control = flags;
+        this.OpCode = opCode;
+        this.SequenceId = sequenceId;
 
-        Protocol = ProtocolType.TCP;
-        Priority = PacketPriority.URGENT;
+        this.Protocol = ProtocolType.TCP;
+        this.Priority = PacketPriority.URGENT;
     }
 
     /// <summary>
@@ -133,5 +133,5 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketS
     /// </summary>
     /// <returns>String describing the Directive packet.</returns>
     public override string ToString()
-        => $"Directive [SequenceId={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}, Control={Control}, Arg0={Arg0}, Arg1={Arg1}, Arg2={Arg2}, OpCode={OpCode}, Priority={Priority}, Protocol={Protocol}]";
+        => $"Directive [SequenceId={this.SequenceId}, Type={this.Type}, Reason={this.Reason}, Action={this.Action}, Control={this.Control}, Arg0={this.Arg0}, Arg1={this.Arg1}, Arg2={this.Arg2}, OpCode={this.OpCode}, Priority={this.Priority}, Protocol={this.Protocol}]";
 }

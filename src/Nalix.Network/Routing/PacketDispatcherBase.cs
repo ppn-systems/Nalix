@@ -24,7 +24,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// <summary>
     /// Gets the logger instance associated with this dispatcher, if configured.
     /// </summary>
-    protected ILogger? Logging => Options.Logging;
+    protected ILogger? Logging => this.Options.Logging;
 
     /// <summary>
     /// Gets the configuration options for this dispatcher instance.
@@ -53,7 +53,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
         {
             throw new ArgumentNullException(nameof(options));
         }
-        Options = options;
+        this.Options = options;
     }
 
     /// <summary>
@@ -70,7 +70,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     {
         if (configure != null)
         {
-            configure(Options);
+            configure(this.Options);
         }
     }
 
@@ -122,25 +122,25 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
         TPacket packet,
         IConnection connection)
     {
-        if (Options.TryResolveHandler(
+        if (this.Options.TryResolveHandler(
             packet.OpCode,
             out Func<TPacket, IConnection, Task> handler))
         {
-            Logging?.Trace($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecuteHandlerAsync)}] handle opcode={packet.OpCode}");
+            this.Logging?.Trace($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecuteHandlerAsync)}] handle opcode={packet.OpCode}");
             try
             {
-                await ExecuteHandlerAsync(packet, connection, handler)
+                await this.ExecuteHandlerAsync(packet, connection, handler)
                           .ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                Logging?.Error($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecuteHandlerAsync)}] handler-error opcode={packet.OpCode}", ex);
+                this.Logging?.Error($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecuteHandlerAsync)}] handler-error opcode={packet.OpCode}", ex);
             }
 
             return;
         }
 
-        Logging?.Warn($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecuteHandlerAsync)}] no-handler opcode={packet.OpCode}");
+        this.Logging?.Warn($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecuteHandlerAsync)}] no-handler opcode={packet.OpCode}");
     }
 
     #endregion Protected Methods

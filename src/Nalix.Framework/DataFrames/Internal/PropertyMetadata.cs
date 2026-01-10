@@ -109,16 +109,16 @@ internal sealed class PropertyMetadata
                 $"Property '{prop.Name}' has no declaring type.", nameof(prop));
         }
 
-        Property = prop;
-        IsWritable = prop.CanWrite;
-        IsReadable = prop.CanRead;
-        IsString = prop.PropertyType == typeof(string);
-        IsByteArray = prop.PropertyType == typeof(byte[]);
-        IsDynamic = CustomAttributeExtensions
+        this.Property = prop;
+        this.IsWritable = prop.CanWrite;
+        this.IsReadable = prop.CanRead;
+        this.IsString = prop.PropertyType == typeof(string);
+        this.IsByteArray = prop.PropertyType == typeof(byte[]);
+        this.IsDynamic = CustomAttributeExtensions
                            .GetCustomAttribute<SerializeDynamicSizeAttribute>(prop) is not null;
 
-        DefaultValue = ComputeDefaultValue(prop.PropertyType);
-        FixedSize = IsDynamic ? (ushort)0 : ComputeFixedSize(prop.PropertyType);
+        this.DefaultValue = ComputeDefaultValue(prop.PropertyType);
+        this.FixedSize = this.IsDynamic ? (ushort)0 : ComputeFixedSize(prop.PropertyType);
 
         // ── Getter delegate ──────────────────────────────────────────────────────
         // (T instance) => (object)instance.Prop
@@ -198,9 +198,9 @@ internal sealed class PropertyMetadata
     /// Returns a human-readable description for debugging purposes.
     /// </summary>
     public override string ToString() =>
-        $"{Property.DeclaringType?.Name}.{Property.Name} " +
-        $"[{Property.PropertyType.Name}] " +
-        $"FixedSize={FixedSize} IsDynamic={IsDynamic} IsWritable={IsWritable}";
+        $"{this.Property.DeclaringType?.Name}.{this.Property.Name} " +
+        $"[{this.Property.PropertyType.Name}] " +
+        $"FixedSize={this.FixedSize} IsDynamic={this.IsDynamic} IsWritable={this.IsWritable}";
 
     #endregion Public Methods
 

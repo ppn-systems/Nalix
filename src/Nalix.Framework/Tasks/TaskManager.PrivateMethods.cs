@@ -354,13 +354,13 @@ public partial class TaskManager
         double threshLow = options.ThresholdLowCpu * coreCount;
 
         // Khởi tạo baseline CPU trước khi vòng lặp bắt đầu
-        INITIALIZE_CPU_MEASUREMENT();
+        this.INITIALIZE_CPU_MEASUREMENT();
 
         while (!ct.IsCancellationRequested && options.DynamicAdjustmentEnabled)
         {
             try
             {
-                double cpuUsage = MEASURE_CPU_USAGE_PERCENT();
+                double cpuUsage = this.MEASURE_CPU_USAGE_PERCENT();
 
                 if (cpuUsage > threshHigh)
                 {
@@ -378,7 +378,7 @@ public partial class TaskManager
                     {
                         _highCpuStreak = 0; // reset sau khi hành động
                         int newLimit = Math.Max(1, _currentConcurrencyLimit - 1);
-                        ADJUST_CONCURRENCY(newLimit);
+                        this.ADJUST_CONCURRENCY(newLimit);
                     }
                 }
                 else if (cpuUsage < threshLow && _currentConcurrencyLimit < options.MaxWorkers)
@@ -390,7 +390,7 @@ public partial class TaskManager
                     {
                         _lowCpuStreak = 0; // reset sau khi hành động
                         int newLimit = Math.Min(options.MaxWorkers, _currentConcurrencyLimit + 1);
-                        ADJUST_CONCURRENCY(newLimit);
+                        this.ADJUST_CONCURRENCY(newLimit);
                     }
                 }
                 else

@@ -81,7 +81,7 @@ internal sealed class FileWriter : IDisposable
         {
             _currentDayLocal = DateTime.Now.Date;
             _currentIndex = 0;
-            OPEN_NEXT_LOG_FILE_LOCKED();
+            this.OPEN_NEXT_LOG_FILE_LOCKED();
         }
     }
 
@@ -110,7 +110,7 @@ internal sealed class FileWriter : IDisposable
         {
             try
             {
-                ENSURE_LOG_FILE_IS_READY_LOCKED();
+                this.ENSURE_LOG_FILE_IS_READY_LOCKED();
 
                 if (_writer is null || _stream is null)
                 {
@@ -134,9 +134,9 @@ internal sealed class FileWriter : IDisposable
                     // Roll file nếu sẽ vượt quá giới hạn kích thước
                     if (_writtenBytesForCurrentFile + totalBytes > _provider.Options.MaxFileSizeBytes)
                     {
-                        CLOSE_LOG_FILE_LOCKED();
+                        this.CLOSE_LOG_FILE_LOCKED();
                         _currentIndex++;
-                        OPEN_NEXT_LOG_FILE_LOCKED();
+                        this.OPEN_NEXT_LOG_FILE_LOCKED();
 
                         if (_writer is null || _stream is null)
                         {
@@ -157,7 +157,7 @@ internal sealed class FileWriter : IDisposable
                     new FileError(ex, _currentPath ?? "<unknown>"));
 
                 // Cố gắng recovery cho batch tiếp theo
-                try { CLOSE_LOG_FILE_LOCKED(); } catch { /* ignore */ }
+                try { this.CLOSE_LOG_FILE_LOCKED(); } catch { /* ignore */ }
             }
         }
     }
@@ -185,7 +185,7 @@ internal sealed class FileWriter : IDisposable
 
         lock (_fileLock)
         {
-            CLOSE_LOG_FILE_LOCKED();
+            this.CLOSE_LOG_FILE_LOCKED();
         }
     }
 
@@ -220,7 +220,7 @@ internal sealed class FileWriter : IDisposable
         catch (Exception ex)
         {
             _provider.Options.HandleFileError?.Invoke(new FileError(ex, Directories.LogsDirectory));
-            CLOSE_LOG_FILE_LOCKED();
+            this.CLOSE_LOG_FILE_LOCKED();
             return;
         }
 
@@ -266,7 +266,7 @@ internal sealed class FileWriter : IDisposable
                 // Ghi header chỉ khi file mới tạo
                 if (!info.Exists || info.Length == 0)
                 {
-                    WRITE_LOG_FILE_HEADER_LOCKED();
+                    this.WRITE_LOG_FILE_HEADER_LOCKED();
                 }
 
                 return; // Thành công
@@ -274,7 +274,7 @@ internal sealed class FileWriter : IDisposable
             catch (Exception ex)
             {
                 _provider.Options.HandleFileError?.Invoke(new FileError(ex, filename));
-                CLOSE_LOG_FILE_LOCKED();
+                this.CLOSE_LOG_FILE_LOCKED();
                 _currentIndex++;
             }
         }
@@ -284,7 +284,7 @@ internal sealed class FileWriter : IDisposable
             new IOException("Exceeded max probes while selecting log file index."),
             Directories.LogsDirectory));
 
-        CLOSE_LOG_FILE_LOCKED();
+        this.CLOSE_LOG_FILE_LOCKED();
     }
 
     private void WRITE_LOG_FILE_HEADER_LOCKED()
@@ -330,27 +330,27 @@ internal sealed class FileWriter : IDisposable
         // Sang ngày mới → reset và mở file mới
         if (day != _currentDayLocal)
         {
-            CLOSE_LOG_FILE_LOCKED();
+            this.CLOSE_LOG_FILE_LOCKED();
             _currentDayLocal = day;
             _currentIndex = 0;
             _writtenBytesForCurrentFile = 0;
-            OPEN_NEXT_LOG_FILE_LOCKED();
+            this.OPEN_NEXT_LOG_FILE_LOCKED();
             return;
         }
 
         // Stream bị đóng (lỗi trước đó) → thử mở lại
         if (_stream is null || _writer is null)
         {
-            OPEN_NEXT_LOG_FILE_LOCKED();
+            this.OPEN_NEXT_LOG_FILE_LOCKED();
             return;
         }
 
         // Đã vượt size limit → roll sang file tiếp theo
         if (_writtenBytesForCurrentFile >= _provider.Options.MaxFileSizeBytes)
         {
-            CLOSE_LOG_FILE_LOCKED();
+            this.CLOSE_LOG_FILE_LOCKED();
             _currentIndex++;
-            OPEN_NEXT_LOG_FILE_LOCKED();
+            this.OPEN_NEXT_LOG_FILE_LOCKED();
         }
     }
 

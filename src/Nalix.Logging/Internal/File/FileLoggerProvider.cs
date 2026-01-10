@@ -71,14 +71,14 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
         TimeSpan? maxBatchDelay = null,
         bool adaptiveFlush = true)
     {
-        Options = options ?? ConfigurationManager.Instance.Get<FileLogOptions>();
+        this.Options = options ?? ConfigurationManager.Instance.Get<FileLogOptions>();
         _cts = new CancellationTokenSource();
         _formatter = formatter;
         _adaptiveFlush = adaptiveFlush;
         _batchSize = Math.Max(1, batchSize);
-        _blockWhenFull = Options.BlockWhenQueueFull;
-        _maxBatchDelay = maxBatchDelay ?? Options.FlushInterval;
-        _maxQueueSize = Math.Max(1, Options.MaxQueueSize);
+        _blockWhenFull = this.Options.BlockWhenQueueFull;
+        _maxBatchDelay = maxBatchDelay ?? this.Options.FlushInterval;
+        _maxQueueSize = Math.Max(1, this.Options.MaxQueueSize);
 
         if (_maxBatchDelay <= TimeSpan.Zero)
         {
@@ -107,7 +107,7 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
                 {
                     using CancellationTokenSource linkedCts =
                         CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
-                    await CONSUME_LOOP_ASYNC(ctx, linkedCts.Token).ConfigureAwait(false);
+                    await this.CONSUME_LOOP_ASYNC(ctx, linkedCts.Token).ConfigureAwait(false);
                 },
                 options: new WorkerOptions
                 {
@@ -185,10 +185,10 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
     public string GenerateReport()
         => $"FileLoggerProvider [UTC: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]"
          + Environment.NewLine + $"- USER: {Environment.UserName}"
-         + Environment.NewLine + $"- Log File: {Path.Combine(Directories.LogsDirectory, Options.LogFileName)}"
-         + Environment.NewLine + $"- Written:  {TotalEntriesWritten:N0}"
-         + Environment.NewLine + $"- Dropped:  {EntriesDroppedCount:N0}"
-         + Environment.NewLine + $"- Queue:    ~{QueuedEntryCount:N0}/{_maxQueueSize}";
+         + Environment.NewLine + $"- Log File: {Path.Combine(Directories.LogsDirectory, this.Options.LogFileName)}"
+         + Environment.NewLine + $"- Written:  {this.TotalEntriesWritten:N0}"
+         + Environment.NewLine + $"- Dropped:  {this.EntriesDroppedCount:N0}"
+         + Environment.NewLine + $"- Queue:    ~{this.QueuedEntryCount:N0}/{_maxQueueSize}";
 
     /// <summary>
     /// Generates a dictionary containing diagnostic information about the provider state.
@@ -199,10 +199,10 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
         {
             ["UtcNow"] = DateTime.UtcNow,
             ["User"] = Environment.UserName,
-            ["LogFile"] = Path.Combine(Directories.LogsDirectory, Options.LogFileName),
-            ["Written"] = TotalEntriesWritten,
-            ["Dropped"] = EntriesDroppedCount,
-            ["Queue"] = QueuedEntryCount,
+            ["LogFile"] = Path.Combine(Directories.LogsDirectory, this.Options.LogFileName),
+            ["Written"] = this.TotalEntriesWritten,
+            ["Dropped"] = this.EntriesDroppedCount,
+            ["Queue"] = this.QueuedEntryCount,
             ["MaxQueueSize"] = _maxQueueSize,
             ["BatchSize"] = _batchSize,
             ["AdaptiveFlush"] = _adaptiveFlush,

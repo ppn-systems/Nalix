@@ -69,11 +69,11 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         _packetTypeMap = [];
         _pipeline = new MiddlewarePipeline<TPacket>();
 
-        NetworkPipeline = new NetworkBufferMiddlewarePipeline();
+        this.NetworkPipeline = new NetworkBufferMiddlewarePipeline();
 
         // Add default network middleware for frame processing. You can customize this pipeline as needed.
-        NetworkPipeline.Use(new FrameDecryptionMiddleware());
-        NetworkPipeline.Use(new FrameDecompressMiddleware());
+        this.NetworkPipeline.Use(new FrameDecryptionMiddleware());
+        this.NetworkPipeline.Use(new FrameDecompressMiddleware());
     }
 
     #endregion Fields

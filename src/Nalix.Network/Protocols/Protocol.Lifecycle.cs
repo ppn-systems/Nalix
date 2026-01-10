@@ -44,7 +44,7 @@ public abstract partial class Protocol
     /// </summary>
     public void Dispose()
     {
-        Dispose(true);
+        this.Dispose(true);
 
         s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(Dispose)}] disposed");
 

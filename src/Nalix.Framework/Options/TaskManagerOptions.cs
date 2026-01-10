@@ -84,11 +84,11 @@ public sealed class TaskManagerOptions : ConfigurationLoader
     /// <exception cref="ArgumentOutOfRangeException">Thrown when CleanupInterval is less than 1 second.</exception>
     public void Validate()
     {
-        if (CleanupInterval < TimeSpan.FromSeconds(1))
+        if (this.CleanupInterval < TimeSpan.FromSeconds(1))
         {
             throw new ArgumentOutOfRangeException(
-                nameof(CleanupInterval),
-                CleanupInterval,
+                nameof(this.CleanupInterval),
+                this.CleanupInterval,
                 "CleanupInterval must be at least 1 second");
         }
     }

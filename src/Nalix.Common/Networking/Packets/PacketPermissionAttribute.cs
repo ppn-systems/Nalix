@@ -33,5 +33,5 @@ public sealed class PacketPermissionAttribute : Attribute
     /// </param>
     [SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    public PacketPermissionAttribute(PermissionLevel level = PermissionLevel.USER) => Level = level;
+    public PacketPermissionAttribute(PermissionLevel level = PermissionLevel.USER) => this.Level = level;
 }

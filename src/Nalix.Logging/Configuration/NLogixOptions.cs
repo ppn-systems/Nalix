@@ -91,16 +91,16 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     /// </summary>
     public NLogixOptions()
     {
-        Publisher = null;
-        MinLevel = LogLevel.Info;
-        FileOptions = new FileLogOptions();
+        this.Publisher = null;
+        this.MinLevel = LogLevel.Info;
+        this.FileOptions = new FileLogOptions();
 
-        UseUtcTimestamp = true;
-        IncludeProcessId = true;
-        IncludeTimestamp = true;
-        IncludeMachineName = true;
-        GroupConcurrencyLimit = 3;
-        TimestampFormat = "yyyy-MM-dd HH:mm:ss.fff";
+        this.UseUtcTimestamp = true;
+        this.IncludeProcessId = true;
+        this.IncludeTimestamp = true;
+        this.IncludeMachineName = true;
+        this.GroupConcurrencyLimit = 3;
+        this.TimestampFormat = "yyyy-MM-dd HH:mm:ss.fff";
     }
 
     #endregion Constructors
@@ -115,7 +115,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
         ArgumentNullException.ThrowIfNull(publisher);
         ObjectDisposedException.ThrowIf(Interlocked
                                       .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
-        Publisher = publisher;
+        this.Publisher = publisher;
         return this;
     }
 
@@ -140,7 +140,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
         ArgumentNullException.ThrowIfNull(configure);
         ObjectDisposedException.ThrowIf(Interlocked
                                       .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
-        configure(FileOptions);
+        configure(this.FileOptions);
         return this;
     }
 
@@ -154,7 +154,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
         ArgumentNullException.ThrowIfNull(target);
         ObjectDisposedException.ThrowIf(Interlocked
                                       .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
-        _ = Publisher?.RegisterTarget(target);
+        _ = this.Publisher?.RegisterTarget(target);
         return this;
     }
 
@@ -167,7 +167,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     {
         ObjectDisposedException.ThrowIf(Interlocked
                                       .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
-        MinLevel = level;
+        this.MinLevel = level;
         return this;
     }
 
@@ -187,7 +187,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
 
         try
         {
-            Publisher?.Dispose();
+            this.Publisher?.Dispose();
         }
         catch (Exception ex)
         {

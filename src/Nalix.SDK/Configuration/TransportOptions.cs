@@ -133,15 +133,15 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     /// </exception>
     public void Validate()
     {
-        if (ReconnectBaseDelayMillis > ReconnectMaxDelayMillis)
+        if (this.ReconnectBaseDelayMillis > this.ReconnectMaxDelayMillis)
         {
             throw new ValidationException("ReconnectBaseDelayMillis cannot be greater than ReconnectMaxDelayMillis.");
         }
-        if (BufferSize is < 1024 or > 1048576)
+        if (this.BufferSize is < 1024 or > 1048576)
         {
             throw new ValidationException("BufferSize must be between 1024 and 1048576 bytes.");
         }
-        if (MaxPacketSize is < 512 or > 65536)
+        if (this.MaxPacketSize is < 512 or > 65536)
         {
             throw new ValidationException("MaxPacketSize must be between 512 and 65536 bytes.");
         }

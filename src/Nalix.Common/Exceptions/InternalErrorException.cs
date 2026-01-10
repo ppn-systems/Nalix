@@ -72,5 +72,5 @@ public class InternalErrorException : BaseException
     /// Additional information about the error, which can be used for internal diagnostics.
     /// </param>
     public InternalErrorException(string message, string details)
-        : base(message) => Details = details;
+        : base(message) => this.Details = details;
 }

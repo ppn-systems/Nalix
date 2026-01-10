@@ -136,7 +136,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         _baseConfigDirectory = Path.GetFullPath(configDirectory);
         _configFilePath = Path.Combine(_baseConfigDirectory, "default.ini");
 
-        VALIDATE_CONFIG_PATH(_configFilePath);
+        this.VALIDATE_CONFIG_PATH(_configFilePath);
 
         // Initialise synchronisation primitives BEFORE the watcher.
         // If the watcher fires during construction it needs _configLock and _reloadGate to exist.
@@ -144,8 +144,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         _reloadGate = new SemaphoreSlim(1, 1);
         _configContainerDict = new();
 
-        _iniFile = CREATE_LAZY_INI_CONFIG(_configFilePath);
-        SETUP_FILE_WATCHER();
+        _iniFile = this.CREATE_LAZY_INI_CONFIG(_configFilePath);
+        this.SETUP_FILE_WATCHER();
     }
 
     #endregion Constructor
@@ -177,7 +177,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         }
 
         string normalizedPath = Path.GetFullPath(newConfigFilePath);
-        VALIDATE_CONFIG_PATH(normalizedPath);
+        this.VALIDATE_CONFIG_PATH(normalizedPath);
 
         // Wait up to 5 s for any concurrent reload/path-change to finish.
         if (!_reloadGate.Wait(TimeSpan.FromSeconds(5)))
@@ -206,7 +206,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 string oldPath = _configFilePath;
                 _configFilePath = normalizedPath;
                 _directoryChecked = false;
-                _iniFile = CREATE_LAZY_INI_CONFIG(_configFilePath);
+                _iniFile = this.CREATE_LAZY_INI_CONFIG(_configFilePath);
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                     .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
@@ -226,7 +226,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                             }
                         }
 
-                        LastReloadTime = DateTime.UtcNow;
+                        this.LastReloadTime = DateTime.UtcNow;
 
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                 .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
@@ -244,7 +244,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                         // Roll back state — do NOT call SETUP_FILE_WATCHER inside the write lock.
                         _configFilePath = oldPath;
                         _directoryChecked = false;
-                        _iniFile = CREATE_LAZY_INI_CONFIG(oldPath);
+                        _iniFile = this.CREATE_LAZY_INI_CONFIG(oldPath);
 
                         pathToWatch = oldPath; // restore watcher for the old path
                         success = false;
@@ -264,7 +264,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             // Set up the watcher AFTER releasing the write lock (both success and rollback paths).
             if (pathToWatch is not null)
             {
-                SETUP_FILE_WATCHER();
+                this.SETUP_FILE_WATCHER();
             }
 
             return success;
@@ -357,8 +357,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     public TClass Get<TClass>(string configFilePath, bool autoReload = true)
         where TClass : ConfigurationLoader, new()
     {
-        _ = SetConfigFilePath(configFilePath, autoReload);
-        return Get<TClass>();
+        _ = this.SetConfigFilePath(configFilePath, autoReload);
+        return this.Get<TClass>();
     }
 
     /// <summary>
@@ -404,7 +404,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                     }
                 }
 
-                LastReloadTime = DateTime.UtcNow;
+                this.LastReloadTime = DateTime.UtcNow;
                 reloadSuccess = true;
             }
             catch (Exception ex)
@@ -591,7 +591,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             _debounceTimer = new Timer(
                 _ =>
                 {
-                    if (!ReloadAll())
+                    if (!this.ReloadAll())
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                 .Error($"[FW.{nameof(ConfigurationManager)}:Watcher] reload-failed path={watchedPath}");
@@ -609,7 +609,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     {
         return new Lazy<IniConfig>(() =>
         {
-            ENSURE_CONFIG_DIRECTORY_EXISTS();
+            this.ENSURE_CONFIG_DIRECTORY_EXISTS();
             return new IniConfig(filePath);
         }, LazyThreadSafetyMode.ExecutionAndPublication);
     }

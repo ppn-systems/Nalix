@@ -53,7 +53,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
         TPacket packet,
         CancellationToken ct = default)
     {
-        PacketContext<TPacket> context = GET_CONTEXT_OR_THROW();
+        PacketContext<TPacket> context = this.GET_CONTEXT_OR_THROW();
         bool needEncrypt = context.Attributes.Encryption?.IsEncrypted ?? false;
         return PacketSender<TPacket>.SEND_CORE_ASYNC(context, packet, needEncrypt, ct);
     }
@@ -62,7 +62,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
     public ValueTask<bool> SendAsync(
         TPacket packet,
         bool forceEncrypt,
-        CancellationToken ct = default) => PacketSender<TPacket>.SEND_CORE_ASYNC(GET_CONTEXT_OR_THROW(), packet, forceEncrypt, ct);
+        CancellationToken ct = default) => PacketSender<TPacket>.SEND_CORE_ASYNC(this.GET_CONTEXT_OR_THROW(), packet, forceEncrypt, ct);
 
     #endregion APIs
 

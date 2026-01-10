@@ -44,7 +44,7 @@ internal class LogFormatter(bool colors = false) : ILoggerFormatter
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    public string Format(LogEntry logMsg) => Format(logMsg.TimeStamp, logMsg.LogLevel, logMsg.EventId, logMsg.Message, logMsg.Exception);
+    public string Format(LogEntry logMsg) => this.Format(logMsg.TimeStamp, logMsg.LogLevel, logMsg.EventId, logMsg.Message, logMsg.Exception);
 
     /// <summary>
     /// Formats a static log message.

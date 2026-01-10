@@ -24,7 +24,7 @@ public class SerializeOrderAttribute : Attribute
     /// <param name="order">The order in which the field or property should be serialized.</param>
     [SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    public SerializeOrderAttribute(int order) => Order = order;
+    public SerializeOrderAttribute(int order) => this.Order = order;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SerializeOrderAttribute"/> class using an enum value for serialization order.

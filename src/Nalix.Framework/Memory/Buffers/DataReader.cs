@@ -47,7 +47,7 @@ public unsafe struct DataReader : IDisposable
     /// <summary>
     /// Gets the number of bytes remaining in the buffer.
     /// </summary>
-    public int BytesRemaining { readonly get => field - BytesRead; private set; }
+    public int BytesRemaining { readonly get => field - this.BytesRead; private set; }
 
     #endregion Properties
 
@@ -64,10 +64,10 @@ public unsafe struct DataReader : IDisposable
         ArgumentNullException.ThrowIfNull(buffer);
         _pin = GCHandle.Alloc(buffer, GCHandleType.Pinned);
         _ptr = (byte*)_pin.AddrOfPinnedObject();
-        BytesRemaining = buffer.Length;
+        this.BytesRemaining = buffer.Length;
         _pinned = true;
 
-        BytesRead = 0;
+        this.BytesRead = 0;
     }
 
     /// <summary>
@@ -78,10 +78,10 @@ public unsafe struct DataReader : IDisposable
     /// <param name="length">The length of the buffer.</param>
     public DataReader(byte* ptrB, int length)
     {
-        BytesRead = 0;
+        this.BytesRead = 0;
 
         _ptr = ptrB;
-        BytesRemaining = length;
+        this.BytesRemaining = length;
         _pin = default;
         _pinned = false;
     }
@@ -96,10 +96,10 @@ public unsafe struct DataReader : IDisposable
         _tempArray = span.ToArray();
         _pin = GCHandle.Alloc(_tempArray, GCHandleType.Pinned);
         _ptr = (byte*)_pin.AddrOfPinnedObject();
-        BytesRemaining = _tempArray.Length;
+        this.BytesRemaining = _tempArray.Length;
         _pinned = true; // Fixed!
 
-        BytesRead = 0;
+        this.BytesRead = 0;
     }
 
     /// <summary>
@@ -113,7 +113,7 @@ public unsafe struct DataReader : IDisposable
         {
             _pin = GCHandle.Alloc(segment.Array, GCHandleType.Pinned);
             _ptr = (byte*)_pin.AddrOfPinnedObject() + segment.Offset;
-            BytesRemaining = segment.Count;
+            this.BytesRemaining = segment.Count;
             _pinned = true;
         }
         else
@@ -122,11 +122,11 @@ public unsafe struct DataReader : IDisposable
             byte[] temp = memory.ToArray();
             _pin = GCHandle.Alloc(temp, GCHandleType.Pinned);
             _ptr = (byte*)_pin.AddrOfPinnedObject();
-            BytesRemaining = temp.Length;
+            this.BytesRemaining = temp.Length;
             _pinned = true;
         }
 
-        BytesRead = 0;
+        this.BytesRead = 0;
     }
 
     #endregion Constructors
@@ -146,13 +146,13 @@ public unsafe struct DataReader : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ref byte GetSpanReference(int sizeHint)
     {
-        if (sizeHint > BytesRemaining)
+        if (sizeHint > this.BytesRemaining)
         {
             throw new SerializationException(
-                $"Not enough data: requested {sizeHint} bytes, only {BytesRemaining} bytes remaining.");
+                $"Not enough data: requested {sizeHint} bytes, only {this.BytesRemaining} bytes remaining.");
         }
 
-        return ref *(_ptr + BytesRead);
+        return ref *(_ptr + this.BytesRead);
     }
 
     /// <summary>
@@ -168,13 +168,13 @@ public unsafe struct DataReader : IDisposable
     public void Advance(int count)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        if (count > BytesRemaining)
+        if (count > this.BytesRemaining)
         {
             throw new SerializationException(
-                $"Cannot advance {count} bytes, only {BytesRemaining} bytes remaining.");
+                $"Cannot advance {count} bytes, only {this.BytesRemaining} bytes remaining.");
         }
 
-        BytesRead += count;
+        this.BytesRead += count;
     }
 
     /// <summary>
@@ -191,10 +191,10 @@ public unsafe struct DataReader : IDisposable
         }
 
         _ptr = null;
-        BytesRemaining = 0;
+        this.BytesRemaining = 0;
         _pinned = false;
 
-        BytesRead = 0;
+        this.BytesRead = 0;
     }
 
     #endregion APIs

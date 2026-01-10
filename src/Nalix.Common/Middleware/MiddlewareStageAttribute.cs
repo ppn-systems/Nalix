@@ -28,5 +28,5 @@ public sealed class MiddlewareStageAttribute : Attribute
     /// </summary>
     /// <param name="stage">The execution stage.</param>
     [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    public MiddlewareStageAttribute(MiddlewareStage stage) => Stage = stage;
+    public MiddlewareStageAttribute(MiddlewareStage stage) => this.Stage = stage;
 }
