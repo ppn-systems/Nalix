@@ -37,13 +37,11 @@ internal static partial class OsCsprng
             {
                 _f = W;
             }
-            else if (System.OperatingSystem.IsLinux())
-            {
-                _f = L;
-            }
             else
             {
-                _f = System.OperatingSystem.IsMacOS() ||
+                _f = System.OperatingSystem.IsLinux()
+                    ? L
+                    : System.OperatingSystem.IsMacOS() ||
                      System.OperatingSystem.IsIOS() ||
                      System.OperatingSystem.IsTvOS() ||
                      System.OperatingSystem.IsWatchOS()

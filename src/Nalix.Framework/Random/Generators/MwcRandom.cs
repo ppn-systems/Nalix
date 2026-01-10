@@ -14,6 +14,8 @@ namespace Nalix.Framework.Random.Generators;
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public abstract class MwcRandom
 {
+    #region Fields
+
     private System.String DebuggerDisplay => $"MwcRandom[state=0x{_state:X16}]";
 
     // Performance for the MWC algorithm
@@ -39,6 +41,10 @@ public abstract class MwcRandom
     /// </remarks>
     private System.UInt64 _state;
 
+    #endregion Fields
+
+    #region Constructors
+
     /// <summary>
     /// Initializes a MwcRandom instance with a given seed value.
     /// </summary>
@@ -62,6 +68,10 @@ public abstract class MwcRandom
 
         SetSeed(seed);
     }
+
+    #endregion Constructors
+
+    #region APIs
 
     /// <summary>
     /// Sets the seed value for the random number generator.
@@ -254,4 +264,6 @@ public abstract class MwcRandom
             }
         }
     }
+
+    #endregion APIs
 }
