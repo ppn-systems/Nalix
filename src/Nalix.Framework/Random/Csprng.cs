@@ -16,9 +16,15 @@ namespace Nalix.Framework.Random;
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public static class Csprng
 {
+    #region Fields
+
     private static System.String DebuggerDisplay => "Csprng(primary=OS)";
 
     private static readonly System.Action<System.Span<System.Byte>> _f;
+
+    #endregion Fields
+
+    #region Constructor
 
     static Csprng()
     {
@@ -39,6 +45,8 @@ public static class Csprng
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Info($"[FW.Csprng] init using {(_f == OsCsprng.Fill ? "OS_CSPRNG" : "FA_RANDOM")}");
     }
+
+    #endregion Constructor
 
     #region APIs
 
@@ -88,6 +96,8 @@ public static class Csprng
         _f(nonce);
         return nonce;
     }
+
+    #region Get
 
     /// <summary>
     /// Generates a random byte array of the specified length.
@@ -174,6 +184,10 @@ public static class Csprng
     public static System.Int32 GetInt32(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 max) => GetInt32(0, max);
 
+    #endregion Get
+
+    #region Next
+
     /// <summary>
     /// Fills the given byte array with cryptographically strong random values.
     /// </summary>
@@ -258,6 +272,8 @@ public static class Csprng
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Double NextDouble() => (NextUInt64() >> 11) * (1.0 / 9007199254740992.0);
+
+    #endregion Next
 
     #endregion APIs
 }

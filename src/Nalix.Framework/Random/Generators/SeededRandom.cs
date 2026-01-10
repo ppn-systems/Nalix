@@ -14,6 +14,8 @@ namespace Nalix.Framework.Random.Generators;
 [System.Diagnostics.DebuggerDisplay("SeededRandom(Seed={_seed})")]
 public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
 {
+    #region APIs
+
     /// <summary>
     /// Returns a random integer in the range [0, max).
     /// </summary>
@@ -246,12 +248,9 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Single Get(System.Single max)
     {
-        if (System.Single.IsNaN(max) || System.Single.IsInfinity(max))
-        {
-            throw new System.ArgumentException("Max must be a finite number", nameof(max));
-        }
-
-        return max <= 0 ? 0 : this.GetFloat() * max;
+        return System.Single.IsNaN(max) || System.Single.IsInfinity(max)
+            ? throw new System.ArgumentException("Max must be a finite number", nameof(max))
+            : max <= 0 ? 0 : this.GetFloat() * max;
     }
 
     /// <summary>
@@ -265,12 +264,9 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Double Get(System.Double max)
     {
-        if (System.Double.IsNaN(max) || System.Double.IsInfinity(max))
-        {
-            throw new System.ArgumentException("Max must be a finite number", nameof(max));
-        }
-
-        return max <= 0 ? 0 : this.GetDouble() * max;
+        return System.Double.IsNaN(max) || System.Double.IsInfinity(max)
+            ? throw new System.ArgumentException("Max must be a finite number", nameof(max))
+            : max <= 0 ? 0 : this.GetDouble() * max;
     }
 
     /// <summary>
@@ -285,17 +281,11 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Single Get(System.Single min, System.Single max)
     {
-        if (System.Single.IsNaN(min) || System.Single.IsInfinity(min))
-        {
-            throw new System.ArgumentException("Min must be a finite number", nameof(min));
-        }
-
-        if (System.Single.IsNaN(max) || System.Single.IsInfinity(max))
-        {
-            throw new System.ArgumentException("Max must be a finite number", nameof(max));
-        }
-
-        return min >= max ? min : min + (this.GetFloat() * (max - min));
+        return System.Single.IsNaN(min) || System.Single.IsInfinity(min)
+            ? throw new System.ArgumentException("Min must be a finite number", nameof(min))
+            : System.Single.IsNaN(max) || System.Single.IsInfinity(max)
+            ? throw new System.ArgumentException("Max must be a finite number", nameof(max))
+            : min >= max ? min : min + (this.GetFloat() * (max - min));
     }
 
     /// <summary>
@@ -310,17 +300,11 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Double Get(System.Double min, System.Double max)
     {
-        if (System.Double.IsNaN(min) || System.Double.IsInfinity(min))
-        {
-            throw new System.ArgumentException("Min must be a finite number", nameof(min));
-        }
-
-        if (System.Double.IsNaN(max) || System.Double.IsInfinity(max))
-        {
-            throw new System.ArgumentException("Max must be a finite number", nameof(max));
-        }
-
-        return min >= max ? min : min + (this.GetDouble() * (max - min));
+        return System.Double.IsNaN(min) || System.Double.IsInfinity(min)
+            ? throw new System.ArgumentException("Min must be a finite number", nameof(min))
+            : System.Double.IsNaN(max) || System.Double.IsInfinity(max)
+            ? throw new System.ArgumentException("Max must be a finite number", nameof(max))
+            : min >= max ? min : min + (this.GetDouble() * (max - min));
     }
 
     /// <summary>
@@ -334,12 +318,9 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean GetBool(System.Double probability = 0.5)
     {
-        if (System.Double.IsNaN(probability) || System.Double.IsInfinity(probability))
-        {
-            throw new System.ArgumentException("Probability must be a finite number", nameof(probability));
-        }
-
-        return probability > 0.0 && (probability >= 1.0 || this.GetDouble() < probability);
+        return System.Double.IsNaN(probability) || System.Double.IsInfinity(probability)
+            ? throw new System.ArgumentException("Probability must be a finite number", nameof(probability))
+            : probability > 0.0 && (probability >= 1.0 || this.GetDouble() < probability);
     }
 
     /// <summary>
@@ -378,4 +359,6 @@ public sealed class SeededRandom(System.UInt32 seed) : MwcRandom(seed)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public new void NextBytes(System.Span<System.Byte> buffer) => base.NextBytes(buffer);
+
+    #endregion APIs
 }
