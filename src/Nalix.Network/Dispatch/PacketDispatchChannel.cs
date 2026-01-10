@@ -193,12 +193,10 @@ public sealed class PacketDispatchChannel
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(
         [System.Diagnostics.CodeAnalysis.NotNull] IPacket packet,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
-    {
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection) =>
         // If you want typed fast-path, you can implement a separate typed channel.
         // For now, process immediately to avoid mixing typed/lease queues.
         _ = base.ExecutePacketHandlerAsync(packet, connection);
-    }
 
     #endregion Public Methods
 

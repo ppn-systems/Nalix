@@ -13,9 +13,13 @@ public sealed partial class Connection
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     internal readonly struct EndpointToken : INetworkEndpoint, System.IEquatable<EndpointToken>
     {
+        #region Fields
+
         private readonly System.UInt64 _hi;
         private readonly System.UInt64 _lo;
         private readonly System.Int32 _port;
+
+        #endregion Fields
 
         #region Factory
 
@@ -89,7 +93,7 @@ public sealed partial class Connection
 
         #endregion
 
-        #region Ctor
+        #region Constructor
 
         private EndpointToken(System.UInt64 hi, System.UInt64 lo, System.Int32 port, System.Boolean isV6, System.Boolean hasPort)
         {
@@ -101,7 +105,7 @@ public sealed partial class Connection
             this.HasPort = hasPort;
         }
 
-        #endregion
+        #endregion Constructor
 
         #region IEndpointKey implementation
 
@@ -196,12 +200,9 @@ public sealed partial class Connection
             }
 
             // Fast path for same concrete type
-            if (other is EndpointToken concrete)
-            {
-                return Equals(concrete);
-            }
-
-            return System.String.Equals(
+            return other is EndpointToken concrete
+                ? Equals(concrete)
+                : System.String.Equals(
                 Address,
                 other.Address,
                 System.StringComparison.Ordinal);
