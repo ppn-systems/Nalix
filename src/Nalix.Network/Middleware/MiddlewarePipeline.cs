@@ -56,7 +56,11 @@ public class MiddlewarePipeline<TPacket>
                 // Run 'always outbound' with the SAME downstream token (not context.CancellationToken)
                 await InvokePipelineAsync(
                     _outboundAlways, context,
-                    _ => System.Threading.Tasks.Task.CompletedTask,
+                    (ct) =>
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        return System.Threading.Tasks.Task.CompletedTask;
+                    },
                     downstreamCt
                 ).ConfigureAwait(false);
 
@@ -65,7 +69,11 @@ public class MiddlewarePipeline<TPacket>
                 {
                     await InvokePipelineAsync(
                         _outbound, context,
-                        _ => System.Threading.Tasks.Task.CompletedTask,
+                        (ct) =>
+                        {
+                            ct.ThrowIfCancellationRequested();
+                            return System.Threading.Tasks.Task.CompletedTask;
+                        },
                         downstreamCt
                     ).ConfigureAwait(false);
                 }
