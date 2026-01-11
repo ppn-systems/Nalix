@@ -41,11 +41,15 @@ public class TokenBucketMiddleware : IPacketMiddleware<IPacket>
 
         if (!decision.Allowed)
         {
+            System.UInt32 sequenceId = context.Packet is IPacketSequenced sequenced
+                ? sequenced.SequenceId
+                : 0;
+
             await context.Connection.SendAsync(
                 ControlType.THROTTLE,
                 ProtocolReason.RATE_LIMITED,
                 ProtocolAdvice.BACKOFF_RETRY,
-                sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                sequenceId: sequenceId,
                 flags: ControlFlags.SLOW_DOWN | ControlFlags.IS_TRANSIENT,
                 arg0: (System.UInt32)System.Math.Max(0, (decision.RetryAfterMs + 99) / 100), // steps of 100ms
                 arg1: 0, arg2: decision.Credit).ConfigureAwait(false);

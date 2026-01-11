@@ -29,7 +29,7 @@ public abstract partial class UdpListenerBase
     [System.Diagnostics.CodeAnalysis.AllowNull] private System.Threading.CancellationTokenSource _cts;
     private System.Threading.CancellationToken _cancellationToken;
 
-    private volatile System.Boolean _isDisposed = false;
+    private System.Int32 _isDisposed = 0;
     private volatile System.Boolean _isRunning = false;
 
     // Diagnostics fields
@@ -143,7 +143,8 @@ public abstract partial class UdpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     protected virtual void Dispose(System.Boolean disposing)
     {
-        if (this._isDisposed)
+        // Atomic check-and-set: 0 -> 1
+        if (System.Threading.Interlocked.CompareExchange(ref this._isDisposed, 1, 0) != 0)
         {
             return;
         }
@@ -165,7 +166,6 @@ public abstract partial class UdpListenerBase
             this._lock.Dispose();
         }
 
-        this._isDisposed = true;
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Info($"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] disposed");
     }

@@ -9,7 +9,7 @@ public abstract partial class Protocol
 {
     #region Fields
 
-    private System.Boolean _isDisposed;
+    private System.Int32 _isDisposed;
     private System.Int32 _keepConnectionOpen;
 
     #endregion Fields
@@ -57,12 +57,12 @@ public abstract partial class Protocol
     /// <param name="disposing">True if called from Dispose, false if called from finalizer.</param>
     protected virtual void Dispose(System.Boolean disposing)
     {
-        if (this._isDisposed)
+        // Atomic check-and-set: 0 -> 1
+        // If already 1, return immediately (already disposed)
+        if (System.Threading.Interlocked.CompareExchange(ref this._isDisposed, 1, 0) != 0)
         {
             return;
         }
-
-        this._isDisposed = true;
 
         // Optional: clean up managed resources if (disposing)
     }

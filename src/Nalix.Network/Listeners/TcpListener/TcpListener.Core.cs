@@ -34,7 +34,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     private readonly System.Collections.Generic.List<ISnowflake> _acceptWorkerIds;
 
     private System.Int32 _state;
-    private System.Boolean _isDisposed;
+    private System.Int32 _isDisposed;
     private System.Int32 _stopInitiated;
     private System.Threading.CancellationToken _cancellationToken;
     private System.Threading.CancellationTokenRegistration _cancelReg;
@@ -126,7 +126,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
         _port = port;
         _protocol = protocol;
-        _isDisposed = false;
+        _isDisposed = 0;
         _state = (System.Int32)ListenerState.STOPPED;
 
         _acceptWorkerIds = new(Config.MaxParallel);
@@ -235,7 +235,8 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     [System.Diagnostics.DebuggerStepThrough]
     protected virtual void Dispose(System.Boolean disposing)
     {
-        if (this._isDisposed)
+        // Atomic check-and-set: 0 -> 1
+        if (System.Threading.Interlocked.CompareExchange(ref this._isDisposed, 1, 0) != 0)
         {
             return;
         }
@@ -272,7 +273,6 @@ public abstract partial class TcpListenerBase : IListener, IReportable
             this._lock.Dispose();
         }
 
-        this._isDisposed = true;
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] disposed");
     }

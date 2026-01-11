@@ -27,7 +27,7 @@ public sealed partial class Connection : IConnection
 
     private System.Byte[] _secret;
     private System.Int64 _bytesSent;
-    private System.Boolean _disposed;
+    private volatile System.Boolean _disposed;
     private System.Int32 _closeSignaled;
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
