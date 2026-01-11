@@ -23,8 +23,7 @@ internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket>
         if (context?.Connection?.TCP == null)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(PacketReturnHandler<TPacket>)}:{nameof(HandleAsync)}] " +
-                                          $"connection or TCP transport is null, cannot send packet");
+                                    .Warn($"[NW.{nameof(PacketReturnHandler<TPacket>)}:{nameof(HandleAsync)}] connection or TCP transport is null, cannot send packet");
             return;
         }
 
@@ -36,15 +35,13 @@ internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket>
             if (!sent)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[NW.{nameof(PacketReturnHandler<TPacket>)}:{nameof(HandleAsync)}] " +
-                                              $"send failed");
+                                        .Warn($"[NW.{nameof(PacketReturnHandler<TPacket>)}:{nameof(HandleAsync)}] send failed");
             }
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(PacketReturnHandler<TPacket>)}:{nameof(HandleAsync)}] " +
-                                           $"error serializing or sending packet", ex);
+                                    .Error($"[NW.{nameof(PacketReturnHandler<TPacket>)}:{nameof(HandleAsync)}] error serializing or sending packet", ex);
         }
     }
 }

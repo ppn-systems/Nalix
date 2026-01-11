@@ -63,7 +63,7 @@ public abstract partial class Protocol
         cancellationToken.ThrowIfCancellationRequested();
 
         System.ArgumentNullException.ThrowIfNull(connection);
-        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked.CompareExchange(ref this._isDisposed, 0, 0) != 0, this);
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref this._isDisposed) != 0, this);
 
         try
         {
