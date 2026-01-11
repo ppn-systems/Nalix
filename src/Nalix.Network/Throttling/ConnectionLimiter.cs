@@ -57,7 +57,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     [System.Diagnostics.CodeAnalysis.AllowNull]
     private readonly ILogger _logger;
 
-    private volatile System.Boolean _disposed;
+    private System.Int32 _disposed;
 
     // Metrics for monitoring
     private System.Int64 _totalConnectionAttempts;
@@ -106,7 +106,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     public System.Boolean IsConnectionAllowed(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPEndPoint endPoint)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(ConnectionLimiter));
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) != 0, nameof(ConnectionLimiter));
         ValidateEndPoint(endPoint);
 
         _ = System.Threading.Interlocked.Increment(ref _totalConnectionAttempts);
@@ -160,7 +160,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(ConnectionLimiter));
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) != 0, nameof(ConnectionLimiter));
         ValidateConnectionEventArgs(args);
 
         System.DateTime now = System.DateTime.UtcNow;
@@ -666,7 +666,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void RunCleanupOnce()
     {
-        if (_disposed)
+        if (System.Threading.Volatile.Read(ref _disposed) != 0)
         {
             return;
         }
@@ -826,12 +826,11 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     /// <inheritdoc />
     public void Dispose()
     {
-        if (_disposed)
+        // Atomic check-and-set: 0 -> 1
+        if (System.Threading.Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
         {
             return;
         }
-
-        _disposed = true;
 
         try
         {
