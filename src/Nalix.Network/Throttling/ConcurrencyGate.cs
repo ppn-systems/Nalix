@@ -91,7 +91,7 @@ public static class ConcurrencyGate
         private System.Int32 _queueCount;
         private System.Int32 _activeUsers; // Reference count
         private System.Int64 _lastUsedUtcTicks;
-        private volatile System.Boolean _disposed;
+        private System.Int32 _disposed;
 
         /// <summary>
         /// Gets a value indicating whether FIFO queuing is enabled for this entry.
@@ -123,7 +123,7 @@ public static class ConcurrencyGate
 
             _activeUsers = 0;
             _queueCount = 0;
-            _disposed = false;
+            _disposed = 0;
 
             Touch();
         }
@@ -163,7 +163,7 @@ public static class ConcurrencyGate
         {
             get
             {
-                if (_activeUsers > 0 || _disposed)
+                if (_activeUsers > 0 || System.Threading.Volatile.Read(ref _disposed) != 0)
                 {
                     return false;
                 }
@@ -183,7 +183,7 @@ public static class ConcurrencyGate
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public System.Boolean TryAcquire()
         {
-            if (_disposed)
+            if (System.Threading.Volatile.Read(ref _disposed) != 0)
             {
                 return false;
             }
@@ -191,7 +191,7 @@ public static class ConcurrencyGate
             _ = System.Threading.Interlocked.Increment(ref _activeUsers);
 
             // Double-check after increment
-            if (_disposed)
+            if (System.Threading.Volatile.Read(ref _disposed) != 0)
             {
                 _ = System.Threading.Interlocked.Decrement(ref _activeUsers);
                 return false;
@@ -255,12 +255,11 @@ public static class ConcurrencyGate
         /// </summary>
         public void Dispose()
         {
-            if (_disposed)
+            // Atomic check-and-set: 0 -> 1
+            if (System.Threading.Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
             {
                 return;
             }
-
-            _disposed = true;
 
             // Wait briefly for active users
             System.Int32 waited = 0;

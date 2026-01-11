@@ -35,11 +35,15 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 
         if (System.String.IsNullOrEmpty(ip))
         {
+            System.UInt32 sequenceId1 = context.Packet is IPacketSequenced sequenced1
+                ? sequenced1.SequenceId
+                : 0;
+
             await context.Connection.SendAsync(
                 controlType: ControlType.FAIL,
                 reason: ProtocolReason.RATE_LIMITED,
                 action: ProtocolAdvice.RETRY,
-                sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                sequenceId: sequenceId1,
                 flags: ControlFlags.IS_TRANSIENT).ConfigureAwait(false);
 
             return;
@@ -49,11 +53,15 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 
         if (!d.Allowed)
         {
+            System.UInt32 sequenceId2 = context.Packet is IPacketSequenced sequenced2
+                ? sequenced2.SequenceId
+                : 0;
+
             await context.Connection.SendAsync(
                 controlType: ControlType.FAIL,
                 reason: ProtocolReason.RATE_LIMITED,
                 action: ProtocolAdvice.RETRY,
-                sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                sequenceId: sequenceId2,
                 flags: ControlFlags.IS_TRANSIENT,
                 arg0: context.Attributes.OpCode.OpCode,
                 arg1: (System.UInt32)d.RetryAfterMs, arg2: d.Credit).ConfigureAwait(false);

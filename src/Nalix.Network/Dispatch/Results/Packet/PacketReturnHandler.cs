@@ -1,6 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Logging;
 using Nalix.Common.Packets.Abstractions;
+using Nalix.Framework.Injection;
 
 namespace Nalix.Network.Dispatch.Results.Packet;
 
@@ -18,8 +20,28 @@ internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket>
             return;
         }
 
-        _ = await context.Connection.TCP.SendAsync(packet
-                                        .Serialize())
-                                        .ConfigureAwait(false);
+        if (context?.Connection?.TCP == null)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[NW.{nameof(PacketReturnHandler<TPacket>)}:{nameof(HandleAsync)}] connection or TCP transport is null, cannot send packet");
+            return;
+        }
+
+        try
+        {
+            System.ReadOnlyMemory<System.Byte> bytes = packet.Serialize();
+            System.Boolean sent = await context.Connection.TCP.SendAsync(bytes).ConfigureAwait(false);
+
+            if (!sent)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[NW.{nameof(PacketReturnHandler<TPacket>)}:{nameof(HandleAsync)}] send failed");
+            }
+        }
+        catch (System.Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"[NW.{nameof(PacketReturnHandler<TPacket>)}:{nameof(HandleAsync)}] error serializing or sending packet", ex);
+        }
     }
 }

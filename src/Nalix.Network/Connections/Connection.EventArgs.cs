@@ -19,7 +19,10 @@ public sealed class ConnectionEventArgs : System.EventArgs, IConnectEventArgs
     /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="connection"/> is null.</exception>
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    public ConnectionEventArgs(IConnection connection) => Connection = connection ?? throw new System.ArgumentNullException(nameof(connection));
+    public ConnectionEventArgs(IConnection connection) => 
+        Connection = connection ?? throw new System.ArgumentNullException(
+            nameof(connection), 
+            "Connection cannot be null when creating ConnectionEventArgs");
 
     /// <inheritdoc />
     public IConnection Connection { get; }

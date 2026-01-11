@@ -36,11 +36,15 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
                 if (!descriptor.CanExecute(context))
                 {
+                    System.UInt32 sequenceId1 = context.Packet is IPacketSequenced sequenced1
+                        ? sequenced1.SequenceId
+                        : 0;
+
                     await context.Connection.SendAsync(
                         controlType: ControlType.FAIL,
                         reason: ProtocolReason.RATE_LIMITED,
                         action: ProtocolAdvice.RETRY,
-                        sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                        sequenceId: sequenceId1,
                         flags: ControlFlags.IS_TRANSIENT,
                         arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
 
@@ -89,11 +93,15 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         (ProtocolReason reason, ProtocolAdvice action, ControlFlags flags) = MapExceptionToProtocol(exception);
 
+        System.UInt32 sequenceId2 = context.Packet is IPacketSequenced sequenced2
+            ? sequenced2.SequenceId
+            : 0;
+
         await context.Connection.SendAsync(
               controlType: ControlType.FAIL,
               reason: reason,
               action: action,
-              sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+              sequenceId: sequenceId2,
               flags: flags,
               arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
     }

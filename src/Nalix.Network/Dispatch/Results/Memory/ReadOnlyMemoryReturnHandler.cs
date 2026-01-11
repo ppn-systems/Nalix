@@ -1,5 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Logging;
+using Nalix.Framework.Injection;
+
 namespace Nalix.Network.Dispatch.Results.Memory;
 
 /// <inheritdoc/>
@@ -15,7 +18,26 @@ internal sealed class ReadOnlyMemoryReturnHandler<TPacket> : IReturnHandler<TPac
             return;
         }
 
-        _ = await context.Connection.TCP.SendAsync(memory)
-                                        .ConfigureAwait(false);
+        if (context?.Connection?.TCP == null)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[NW.{nameof(ReadOnlyMemoryReturnHandler<TPacket>)}:{nameof(HandleAsync)}] connection or TCP transport is null");
+            return;
+        }
+
+        try
+        {
+            System.Boolean sent = await context.Connection.TCP.SendAsync(memory).ConfigureAwait(false);
+            if (!sent)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[NW.{nameof(ReadOnlyMemoryReturnHandler<TPacket>)}:{nameof(HandleAsync)}] send failed");
+            }
+        }
+        catch (System.Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"[NW.{nameof(ReadOnlyMemoryReturnHandler<TPacket>)}:{nameof(HandleAsync)}] error sending memory", ex);
+        }
     }
 }
