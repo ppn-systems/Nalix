@@ -40,11 +40,15 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Fatal($"[NW.{nameof(UnwrapPacketMiddleware)}] missing-catalog");
 
+                System.UInt32 sequenceId1 = context.Packet is IPacketSequenced sequenced1
+                    ? sequenced1.SequenceId
+                    : 0;
+
                 await context.Connection.SendAsync(
                     ControlType.FAIL,
                     ProtocolReason.INTERNAL_ERROR,
                     ProtocolAdvice.NONE,
-                    sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                    sequenceId: sequenceId1,
                     flags: ControlFlags.NONE,
                     arg0: context.Attributes.OpCode.OpCode,
                     arg1: (System.UInt32)current.Flags, arg2: 0).ConfigureAwait(false);
@@ -57,11 +61,15 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"[NW.{nameof(UnwrapPacketMiddleware)}] no-transformer type={current.GetType().Name}");
 
+                System.UInt32 sequenceId2 = context.Packet is IPacketSequenced sequenced2
+                    ? sequenced2.SequenceId
+                    : 0;
+
                 await context.Connection.SendAsync(
                     ControlType.FAIL,
                     ProtocolReason.UNSUPPORTED_PACKET,
                     ProtocolAdvice.NONE,
-                    sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                    sequenceId: sequenceId2,
                     flags: ControlFlags.NONE,
                     arg0: context.Attributes.OpCode.OpCode,
                     arg1: (System.UInt32)current.Flags, arg2: 0).ConfigureAwait(false);
@@ -76,11 +84,15 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
                         $"[NW.{nameof(UnwrapPacketMiddleware)}] no-decrypt type={current.GetType().Name}");
 
+                    System.UInt32 sequenceId3 = context.Packet is IPacketSequenced sequenced3
+                        ? sequenced3.SequenceId
+                        : 0;
+
                     await context.Connection.SendAsync(
                         ControlType.FAIL,
                         ProtocolReason.CRYPTO_UNSUPPORTED,
                         ProtocolAdvice.NONE,
-                        sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                        sequenceId: sequenceId3,
                         flags: ControlFlags.NONE,
                         arg0: context.Attributes.OpCode.OpCode,
                         arg1: (System.UInt32)current.Flags, arg2: 0).ConfigureAwait(false);
@@ -97,11 +109,15 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?.Warn(
                         $"[NW.{nameof(UnwrapPacketMiddleware)}] no-decompress type={current.GetType().Name}");
 
+                    System.UInt32 sequenceId4 = context.Packet is IPacketSequenced sequenced4
+                        ? sequenced4.SequenceId
+                        : 0;
+
                     await context.Connection.SendAsync(
                         ControlType.FAIL,
                         ProtocolReason.COMPRESSION_UNSUPPORTED,
                         ProtocolAdvice.NONE,
-                        sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                        sequenceId: sequenceId4,
                         flags: ControlFlags.NONE,
                         arg0: context.Attributes.OpCode.OpCode,
                         arg1: (System.UInt32)current.Flags, arg2: 0).ConfigureAwait(false);
@@ -130,11 +146,15 @@ public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[NW.{nameof(UnwrapPacketMiddleware)}] transform-failed type={current.GetType().Name}", ex);
 
+            System.UInt32 sequenceId5 = context.Packet is IPacketSequenced sequenced5
+                ? sequenced5.SequenceId
+                : 0;
+
             await context.Connection.SendAsync(
                 ControlType.FAIL,
                 ProtocolReason.TRANSFORM_FAILED,
                 ProtocolAdvice.RETRY,
-                sequenceId: (context.Packet as IPacketSequenced)?.SequenceId ?? 0,
+                sequenceId: sequenceId5,
                 flags: ControlFlags.IS_TRANSIENT,
                 arg0: context.Attributes.OpCode.OpCode,
                 arg1: (System.Byte)current.Flags, arg2: 0).ConfigureAwait(false);

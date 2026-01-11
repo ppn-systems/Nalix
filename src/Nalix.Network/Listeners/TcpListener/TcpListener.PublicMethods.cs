@@ -98,7 +98,7 @@ public abstract partial class TcpListenerBase
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Activate([System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(_isDisposed, this);
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _isDisposed) != 0, this);
 
         if (Config.MaxParallel < 1)
         {
@@ -215,7 +215,7 @@ public abstract partial class TcpListenerBase
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Deactivate([System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref this._isDisposed) != 0, this);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] deactivate-request port={_port}");
