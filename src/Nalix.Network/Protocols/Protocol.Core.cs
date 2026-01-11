@@ -13,7 +13,7 @@ namespace Nalix.Network.Protocols;
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.DebuggerDisplay("Disposed={_isDisposed}, KeepConnectionOpen={KeepConnectionOpen}")]
+[System.Diagnostics.DebuggerDisplay("Disposed={_isDisposed != 0}, KeepConnectionOpen={KeepConnectionOpen}")]
 public abstract partial class Protocol : IProtocol
 {
     /// <summary>
@@ -42,7 +42,7 @@ public abstract partial class Protocol : IProtocol
         [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
     {
         System.ArgumentNullException.ThrowIfNull(args);
-        System.ObjectDisposedException.ThrowIf(this._isDisposed, this);
+        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked.CompareExchange(ref this._isDisposed, 0, 0) != 0, this);
 
         _ = System.Threading.Interlocked.Increment(ref this._totalMessages);
 
