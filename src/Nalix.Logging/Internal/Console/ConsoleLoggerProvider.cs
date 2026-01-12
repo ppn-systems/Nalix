@@ -40,7 +40,7 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
 
     #region Constructors
 
-    public ConsoleLoggerProvider(BatchConsoleLogOptions options)
+    public ConsoleLoggerProvider(ConsoleLogOptions options)
     {
         _formatter = new LogFormatter(_enableColors);
         _batchSize = System.Math.Max(1, options.BatchSize);
