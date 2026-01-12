@@ -14,7 +14,7 @@ namespace Nalix.Framework.DataFrames.TextFrames;
 /// Supports dynamic-size strings up to 256 bytes.
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
-public sealed class TextFrame : PacketBase<TextFrame>
+public sealed class Text256 : PacketBase<Text256>
 {
     /// <summary>
     /// Maximum UTF-8 byte length of Content.
@@ -31,7 +31,7 @@ public sealed class TextFrame : PacketBase<TextFrame>
     /// <summary>
     /// Initializes a new empty text frame.
     /// </summary>
-    public TextFrame() : base()
+    public Text256() : base()
     {
         this.Content = string.Empty;
         this.Protocol = ProtocolType.NONE;
