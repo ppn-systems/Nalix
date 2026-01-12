@@ -46,7 +46,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
                         if (context?.Connection?.TCP == null)
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[{nameof(StringReturnHandler<>)}] connection or TCP transport is null");
+                                                    .Warn($"[{nameof(StringReturnHandler<>)}] send-failed transport=null");
                             return;
                         }
 
@@ -56,13 +56,13 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
                             if (!sent)
                             {
                                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                        .Warn($"[{nameof(StringReturnHandler<>)}] send failed for single packet");
+                                                        .Warn($"[{nameof(StringReturnHandler<>)}] send-failed");
                             }
                         }
                         catch (System.Exception ex)
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Error($"[{nameof(StringReturnHandler<>)}] error sending single packet", ex);
+                                                    .Error($"[{nameof(StringReturnHandler<>)}] error-serializing", ex);
                         }
 
                         return;
@@ -78,7 +78,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
             if (context?.Connection?.TCP == null)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[{nameof(StringReturnHandler<>)}] connection or TCP transport is null for chunked send");
+                                        .Warn($"[{nameof(StringReturnHandler<>)}] send-failed transport=null");
                 return;
             }
 
@@ -97,13 +97,13 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
                         if (!sent)
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[{nameof(StringReturnHandler<>)}] send failed for chunk");
+                                                    .Warn($"[{nameof(StringReturnHandler<>)}] send-failed msg=chunk");
                         }
                     }
                     catch (System.Exception ex)
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Error($"[{nameof(StringReturnHandler<>)}] error sending chunk", ex);
+                                                .Error($"[{nameof(StringReturnHandler<>)}] error-serializing msg=chunk", ex);
                     }
                 }
                 finally
