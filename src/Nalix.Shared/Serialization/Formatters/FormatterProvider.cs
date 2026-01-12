@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Logging;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Primitives;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Injection;
