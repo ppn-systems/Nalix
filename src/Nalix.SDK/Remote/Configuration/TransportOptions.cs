@@ -1,8 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
-using Nalix.Common.Client;
-using Nalix.Common.Enums;
+using Nalix.Common.Core.Enums;
+using Nalix.Common.Infrastructure.Client;
 using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.SDK.Remote.Configuration;
