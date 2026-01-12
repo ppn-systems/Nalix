@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Nalix.Framework.Injection;
 using Xunit;
 
-namespace Nalix.Framework.Tests;
+namespace Nalix.Framework.Tests.Injection;
 
 /// <summary>
 /// Unit tests for public InstanceManager API.
