@@ -37,6 +37,11 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
     public LogLevel MinimumLevel => _options.MinimumLevel;
 
     /// <summary>
+    /// Gets the total number of failed webhook calls after all retry attempts.
+    /// </summary>
+    public System.Int64 FailedCount => System.Threading.Interlocked.Read(ref _failedCount);
+
+    /// <summary>
     /// Gets the total number of log entries successfully sent to Discord.
     /// </summary>
     public System.Int64 WrittenCount => System.Threading.Interlocked.Read(ref _writtenCount);
@@ -45,11 +50,6 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
     /// Gets the total number of log entries that were dropped due to queue full.
     /// </summary>
     public System.Int64 DroppedCount => System.Threading.Interlocked.Read(ref _droppedCount);
-
-    /// <summary>
-    /// Gets the total number of failed webhook calls after all retry attempts.
-    /// </summary>
-    public System.Int64 FailedCount => System.Threading.Interlocked.Read(ref _failedCount);
 
     #endregion Properties
 

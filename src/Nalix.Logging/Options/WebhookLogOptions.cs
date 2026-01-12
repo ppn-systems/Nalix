@@ -1,5 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation.  All rights reserved.
 
+using Nalix.Common.Enums;
+
 namespace Nalix.Logging.Options;
 
 /// <summary>
@@ -24,10 +26,10 @@ public sealed class WebhookLogOptions
     private static readonly System.TimeSpan DefaultBatchDelay = System.TimeSpan.FromSeconds(2);
     private static readonly System.TimeSpan DefaultHttpTimeout = System.TimeSpan.FromSeconds(30);
 
-    private System.String? _webhookUrl;
     private System.Int32 _batchSize = DefaultBatchSize;
     private System.Int32 _retryCount = DefaultRetryCount;
     private System.Int32 _maxQueueSize = DefaultMaxQueueSize;
+    private System.Collections.Generic.List<System.String> _webhookUrls = [];
 
     #endregion Fields
 
@@ -41,26 +43,40 @@ public sealed class WebhookLogOptions
     /// Format: https://discord.com/api/webhooks/{webhook. id}/{webhook.token}
     /// </remarks>
     /// <exception cref="System.ArgumentException">Thrown when value is null, empty, or not a valid URL.</exception>
-    public System.String WebhookUrl
+    public System.Collections.Generic.List<System.String> WebhookUrls
     {
-        get => _webhookUrl ?? throw new System.InvalidOperationException("WebhookUrl must be set before use.");
+        get => _webhookUrls;
         set
         {
-            if (System.String.IsNullOrWhiteSpace(value))
+            if (value is null || value.Count is 0)
             {
-                throw new System.ArgumentException("WebhookUrl cannot be null or empty.", nameof(value));
+                throw new System.ArgumentException("WebhookUrls must contain at least one URL.", nameof(value));
             }
 
-            if (!System.Uri.TryCreate(value, System.UriKind.Absolute, out var uri) ||
-                (!uri.Scheme.Equals("http", System.StringComparison.OrdinalIgnoreCase) &&
-                 !uri.Scheme.Equals("https", System.StringComparison.OrdinalIgnoreCase)))
+            // Validate all URLs
+            foreach (var url in value)
             {
-                throw new System.ArgumentException("WebhookUrl must be a valid HTTP or HTTPS URL.", nameof(value));
+                if (System.String.IsNullOrWhiteSpace(url))
+                {
+                    throw new System.ArgumentException("WebhookUrl cannot be null or empty.", nameof(value));
+                }
+
+                if (!System.Uri.TryCreate(url, System.UriKind.Absolute, out var uri) ||
+                    (!uri.Scheme.Equals("http", System.StringComparison.OrdinalIgnoreCase) &&
+                     !uri.Scheme.Equals("https", System.StringComparison.OrdinalIgnoreCase)))
+                {
+                    throw new System.ArgumentException($"Invalid webhook URL: {url}", nameof(value));
+                }
             }
 
-            _webhookUrl = value;
+            _webhookUrls = value;
         }
     }
+
+    /// <summary>
+    /// Gets or sets the load balancing strategy for multiple webhooks.
+    /// </summary>
+    public WebhookDispatchMode DispatchMode { get; set; } = WebhookDispatchMode.RoundRobin;
 
     /// <summary>
     /// Gets or sets the username displayed for log messages in Discord.
