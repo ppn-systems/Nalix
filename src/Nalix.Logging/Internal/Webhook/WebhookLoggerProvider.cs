@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Logging;
+using Nalix.Common.Diagnostics;
 using Nalix.Logging.Options;
 
 namespace Nalix.Logging.Internal.Webhook;
@@ -103,7 +103,7 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
     /// Attempts to enqueue a log entry to the channel.
     /// </summary>
     /// <param name="entry">The log entry to enqueue.</param>
-    /// <returns>True if the entry was enqueued; otherwise, false.</returns>
+    /// <returns>True if the entry was enqueued; otherwi..se, false.</returns>
     public System.Boolean TryEnqueue(LogEntry entry)
     {
         if (_disposed)
