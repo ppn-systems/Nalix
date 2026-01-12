@@ -1,7 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Packets;
-using Nalix.Common.Protocols;
+using Nalix.Common.Messaging.Packets;
+using Nalix.Common.Messaging.Protocols;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.SDK.Remote;
