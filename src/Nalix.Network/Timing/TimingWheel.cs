@@ -163,12 +163,12 @@ public sealed class TimingWheel : IActivatable
             return;
         }
 
-        var linkedCts = cancellationToken.CanBeCanceled
+        System.Threading.CancellationTokenSource linkedCts = cancellationToken.CanBeCanceled
                     ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
                     : new System.Threading.CancellationTokenSource();
 
         _cts = linkedCts;
-        var linkedToken = linkedCts.Token;
+        System.Threading.CancellationToken linkedToken = linkedCts.Token;
 
         // Prefer a dedicated thread to reduce pool jitter.
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
