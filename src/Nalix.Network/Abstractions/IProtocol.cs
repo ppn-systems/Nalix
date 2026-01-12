@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
+using Nalix.Common.Infrastructure.Connection;
 
 namespace Nalix.Network.Abstractions;
 

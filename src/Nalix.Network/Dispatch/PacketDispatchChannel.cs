@@ -1,10 +1,10 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Abstractions;
-using Nalix.Common.Caching;
+using Nalix.Common.Concurrency;
 using Nalix.Common.Connection;
-using Nalix.Common.Packets.Abstractions;
-using Nalix.Common.Tasks;
+using Nalix.Common.Core.Abstractions;
+using Nalix.Common.Infrastructure.Caching;
+using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;

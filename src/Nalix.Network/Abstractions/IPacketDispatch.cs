@@ -1,8 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Caching;
 using Nalix.Common.Connection;
-using Nalix.Common.Packets.Abstractions;
+using Nalix.Common.Infrastructure.Caching;
+using Nalix.Common.Messaging.Packets.Abstractions;
 
 namespace Nalix.Network.Abstractions;
 

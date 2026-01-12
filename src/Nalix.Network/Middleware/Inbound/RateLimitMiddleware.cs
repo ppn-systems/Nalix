@@ -1,6 +1,6 @@
-﻿using Nalix.Common.Packets.Abstractions;
-using Nalix.Common.Packets.Attributes;
-using Nalix.Common.Protocols;
+﻿using Nalix.Common.Messaging.Packets.Abstractions;
+using Nalix.Common.Messaging.Packets.Attributes;
+using Nalix.Common.Messaging.Protocols;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Connections;
 using Nalix.Network.Dispatch;
