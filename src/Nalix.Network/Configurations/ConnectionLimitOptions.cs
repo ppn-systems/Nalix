@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Attributes;
+using Nalix.Common.Core.Attributes;
 using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;
