@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Diagnostics;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Diagnostics;
 using Nalix.Logging.Internal.Webhook.Models;
 using Nalix.Logging.Options;
 
