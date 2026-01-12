@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Environment;
-using Nalix.Logging.Internal.Exceptions;
+using Nalix.Common.Logging;
 using Nalix.Logging.Options;
 
 #if DEBUG
@@ -12,433 +12,312 @@ using Nalix.Logging.Options;
 namespace Nalix.Logging.Internal.File;
 
 /// <summary>
-/// A high-performance provider for file-based logging with support for file rotation and error handling.
+/// High-throughput file logger provider using <see cref="System.Threading.Channels.Channel{T}"/> + batching.
+/// Drop-in alternative to <c>FileLoggerProvider</c> optimized for low contention and fewer syscalls.
 /// </summary>
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+/// <remarks>
+/// - Single consumer background task reads from a bounded channel.
+/// - Producers use TryWrite (drop) or WriteAsync (block) based on <see cref="FileLogOptions.BlockWhenQueueFull"/>.
+/// - Batching: flush by item count or elapsed time, whichever comes first.
+/// - Adaptive flush interval can be toggled via constructor parameters.
+/// </remarks>
 [System.Diagnostics.DebuggerDisplay("Queued={QueuedEntryCount}, Written={TotalEntriesWritten}, Dropped={EntriesDroppedCount}")]
 internal sealed class FileLoggerProvider : System.IDisposable
 {
     #region Fields
 
+    private readonly System.Threading.Channels.Channel<System.String> _channel;
+    private readonly System.Threading.Channels.ChannelWriter<System.String> _writer;
+    private readonly System.Threading.Channels.ChannelReader<System.String> _reader;
+
     private readonly FileWriter _fileWriter;
+    private readonly System.Threading.Tasks.Task _consumerTask;
+    private readonly System.Threading.CancellationTokenSource _cts = new();
+
     private readonly System.Int32 _maxQueueSize;
-    private readonly System.Boolean _blockWhenQueueFull;
-    private readonly System.Threading.Tasks.Task? _processQueueTask;
-    private readonly System.DateTime _startTime = System.DateTime.UtcNow;
-    private readonly System.Threading.CancellationTokenSource _cancellationTokenSource = new();
-    private readonly System.Collections.Concurrent.BlockingCollection<System.String> _entryQueue;
+    private readonly System.Boolean _blockWhenFull;
 
-    private System.Boolean _isDisposed;
+    private readonly System.Int32 _batchSize;
+    private readonly ILoggerFormatter _formatter;
+    private readonly System.Boolean _adaptiveFlush;
+    private readonly System.TimeSpan _maxBatchDelay;
 
-    // Stats for monitoring
+    private System.Int32 _queued;
+    private System.Boolean _disposed;
     private System.Int64 _totalEntriesWritten;
-
     private System.Int64 _entriesDroppedCount;
 
     #endregion Fields
 
+    #region Constructors
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FileLoggerProvider"/>.
+    /// </summary>
+    /// <param name="options">File logger options (reuses existing <see cref="FileLogOptions"/>).</param>
+    /// <param name="formatter">The formatter used to format log messages.</param>
+    /// <param name="batchSize">Max entries per batch before a flush (default: 256).</param>
+    /// <param name="maxBatchDelay">Max time to wait before flushing a partial batch (default: options.FlushInterval or 1s).</param>
+    /// <param name="adaptiveFlush">Enable adaptive flush based on incoming rate (default: true).</param>
+    public FileLoggerProvider(
+        FileLogOptions options,
+        ILoggerFormatter formatter,
+        System.Int32 batchSize = 256,
+        System.TimeSpan? maxBatchDelay = null,
+        System.Boolean adaptiveFlush = true)
+    {
+        Options = options ?? throw new System.ArgumentNullException(nameof(options));
+
+        _cts = new();
+        _formatter = formatter;
+        _adaptiveFlush = adaptiveFlush;
+        _batchSize = System.Math.Max(1, batchSize);
+        _blockWhenFull = options.BlockWhenQueueFull;
+        _maxBatchDelay = maxBatchDelay ?? options.FlushInterval;
+        _maxQueueSize = System.Math.Max(1, options.MaxQueueSize);
+
+        if (_maxBatchDelay <= System.TimeSpan.Zero)
+        {
+            _maxBatchDelay = System.TimeSpan.FromSeconds(1);
+        }
+
+        // Bounded channel, single consumer, many producers
+        System.Threading.Channels.BoundedChannelOptions channelOptions = new(_maxQueueSize)
+        {
+            SingleReader = true,
+            SingleWriter = false,
+            FullMode = _blockWhenFull ? System.Threading.Channels.BoundedChannelFullMode.Wait : System.Threading.Channels.BoundedChannelFullMode.DropNewest
+        };
+
+        _channel = System.Threading.Channels.Channel.CreateBounded<System.String>(channelOptions);
+        _writer = _channel.Writer;
+        _reader = _channel.Reader;
+
+        _fileWriter = new FileWriter(this);
+        _consumerTask = System.Threading.Tasks.TaskExtensions.Unwrap(
+            System.Threading.Tasks.Task.Factory.StartNew(
+                ConsumeLoopAsync,
+                System.Threading.CancellationToken.None,
+                System.Threading.Tasks.TaskCreationOptions.LongRunning,
+                System.Threading.Tasks.TaskScheduler.Default));
+    }
+
+    #endregion Constructors
+
     #region Properties
 
     /// <summary>
-    /// Gets the configuration options used by this logger provider.
+    /// Gets the options used by this provider.
     /// </summary>
     public FileLogOptions Options { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the log file will be appended to (true) or overwritten (false).
+    /// Approximate number of entries waiting to be written.
     /// </summary>
-    public System.Boolean Append => Options.Append;
+    public System.Int32 QueuedEntryCount => System.Math.Max(0, System.Threading.Volatile.Read(ref _queued));
 
     /// <summary>
-    /// Gets the maximum size of the log file in bytes before it rolls over.
-    /// </summary>
-    public System.Int32 MaxFileSize => Options.MaxFileSizeBytes;
-
-    /// <summary>
-    /// Custom formatter for log file names.
-    /// </summary>
-    public System.Func<System.String, System.String>? FormatLogFileName
-    {
-        get => Options.FormatLogFileName;
-        set => Options.FormatLogFileName = value;
-    }
-
-    /// <summary>
-    /// Custom handler for file errors.
-    /// </summary>
-    public System.Action<FileError>? HandleFileError
-    {
-        get => Options.HandleFileError;
-        set => Options.HandleFileError = value;
-    }
-
-    /// <summary>
-    /// Gets the ProtocolType of entries currently in the queue waiting to be written.
-    /// </summary>
-    public System.Int32 QueuedEntryCount => _entryQueue.Count;
-
-    /// <summary>
-    /// Gets the total ProtocolType of log entries written since this provider was created.
+    /// Total entries written (since start).
     /// </summary>
     public System.Int64 TotalEntriesWritten => System.Threading.Interlocked.Read(ref _totalEntriesWritten);
 
     /// <summary>
-    /// Gets the ProtocolType of entries that were dropped due to queue capacity constraints.
+    /// Entries dropped due to capacity (when non-blocking).
     /// </summary>
     public System.Int64 EntriesDroppedCount => System.Threading.Interlocked.Read(ref _entriesDroppedCount);
 
     #endregion Properties
 
-    #region Constructor
-
-    /// <summary>
-    /// Initializes a new instance of <see cref="FileLoggerProvider"/> with the specified configuration options.
-    /// </summary>
-    /// <param name="options">The configuration options.</param>
-    public FileLoggerProvider(FileLogOptions options)
-    {
-        Options = options ?? throw new System.ArgumentNullException(nameof(options));
-        _maxQueueSize = options.MaxQueueSize;
-        _blockWhenQueueFull = options.BlockWhenQueueFull;
-        _entryQueue = new System.Collections.Concurrent.BlockingCollection<System.String>(
-            new System.Collections.Concurrent.ConcurrentQueue<System.String>(), _maxQueueSize);
-
-        try
-        {
-            _fileWriter = new FileWriter(this);
-
-            if (options.UseBackgroundThread)
-            {
-                _processQueueTask = System.Threading.Tasks.Task.Factory.StartNew(
-                    ProcessQueueContinuously,
-                    _cancellationTokenSource.Token,
-                    System.Threading.Tasks.TaskCreationOptions.LongRunning,
-                    System.Threading.Tasks.TaskScheduler.Default);
-            }
-            else
-            {
-                // Create a completed task for non-background mode
-                _processQueueTask = System.Threading.Tasks.Task.CompletedTask;
-            }
-        }
-        catch (System.Exception ex)
-        {
-            // Handle initialization errors
-            FileError fileError = new(ex, options.GetFullLogFilePath());
-            HandleFileError?.Invoke(fileError);
-
-            if (fileError.NewLogFileName != null)
-            {
-                options.LogFileName = fileError.NewLogFileName;
-                _fileWriter = new FileWriter(this);
-            }
-            else
-            {
-                // If error handling didn't provide a fallback, use a default fallback
-                System.String fallbackFileName = $"fallback_{System.DateTime.UtcNow:yyyyMMdd_HHmmss}.log";
-                options.LogFileName = fallbackFileName;
-                _fileWriter = new FileWriter(this);
-            }
-        }
-    }
-
-    #endregion Constructor
-
     #region APIs
 
     /// <summary>
-    /// Releases all resources used by the <see cref="FileLoggerProvider"/>.
+    /// Enqueue a formatted log message.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Dispose()
+    internal void Enqueue(LogEntry entry)
     {
-        if (_isDisposed)
+        System.String message = _formatter.Format(entry);
+
+        if (_disposed || System.String.IsNullOrEmpty(message))
         {
             return;
         }
 
-        _isDisposed = true;
-
-        try
-        {
-            // Signal the queue to stop accepting new items
-            _entryQueue.CompleteAdding();
-
-            // Signal the background task to stop
-            _cancellationTokenSource.Cancel();
-
-            // Flush any remaining entries if possible
-            if (!_entryQueue.IsCompleted && _entryQueue.Count > 0)
-            {
-                FlushQueue();
-            }
-
-            // Wait for the background task to complete with timeout
-            if (_processQueueTask != System.Threading.Tasks.Task.CompletedTask)
-            {
-                try
-                {
-                    // Use a reasonable timeout
-                    if (_processQueueTask != null && !_processQueueTask.Wait(System.TimeSpan.FromSeconds(3)))
-                    {
-                        System.Diagnostics.Debug.WriteLine(
-                            "FileLoggerProvider: Timed out waiting for queue processing to complete");
-                    }
-                }
-                catch (System.Exception ex) when (ex is System.Threading.Tasks.TaskCanceledException ||
-                                                 ex is System.AggregateException aex &&
-                                                  aex.InnerExceptions.Count == 1 &&
-                                                  aex.InnerExceptions[0] is System.Threading.Tasks.TaskCanceledException)
-                {
-                    // Expected exception when task is canceled
-                }
-            }
-
-            // Release resources
-            _fileWriter.Dispose();
-            _cancellationTokenSource.Dispose();
-            _entryQueue.Dispose();
-        }
-        catch (System.Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine(
-                $"ERROR during FileLoggerProvider disposal: {ex.Message}");
-        }
-
-        System.GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Writes a log entry to the queue or directly to file based on configuration.
-    /// </summary>
-    /// <param name="message">The log message.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    internal void WriteEntry(System.String message)
-    {
-        if (_isDisposed || System.String.IsNullOrEmpty(message))
-        {
-            return;
-        }
-
-        if (Options.UseBackgroundThread)
+        if (_blockWhenFull)
         {
             try
             {
-                if (_blockWhenQueueFull)
-                {
-                    _entryQueue.Add(message);
-                }
-                else if (!_entryQueue.TryAdd(message))
-                {
-                    _ = System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
-                }
+                _ = _writer.WriteAsync(message, _cts.Token).AsTask().ConfigureAwait(false);
+                _ = System.Threading.Interlocked.Increment(ref _queued);
             }
             catch
             {
-                // queue closed or canceled: swallow
+                // swallow: don't throw from logger
                 _ = System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
             }
         }
         else
         {
-            try
-            {
-                _fileWriter.WriteMessage(message, true);
-                _ = System.Threading.Interlocked.Increment(ref _totalEntriesWritten);
-            }
-            catch (System.Exception ex)
-            {
-                _ = HandleWriteError(ex, message);
-            }
+            _ = _writer.TryWrite(message) ? System.Threading.Interlocked.Increment(ref _queued)
+                                          : System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
         }
     }
 
-    /// <summary>
-    /// Flushes all pending log entries to disk immediately.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void FlushQueue()
-    {
-        if (_isDisposed)
-        {
-            return;
-        }
-
-        try
-        {
-            if (Options.UseBackgroundThread)
-            {
-                // Process all remaining entries in the queue
-                while (_entryQueue.Count > 0 && !_entryQueue.IsCompleted)
-                {
-                    if (_entryQueue.TryTake(out System.String? message))
-                    {
-                        try
-                        {
-                            _fileWriter.WriteMessage(message, true);
-                            _ = System.Threading.Interlocked.Increment(ref _totalEntriesWritten);
-                        }
-                        catch (System.Exception ex)
-                        {
-                            _ = HandleWriteError(ex, message);
-                        }
-                    }
-                }
-            }
-
-            // Force a final flush
-            _fileWriter.Flush();
-        }
-        catch (System.Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine(
-                $"ERROR flushing file logger queue: {ex}");
-        }
-    }
 
     /// <summary>
-    /// Returns diagnostic information about this logger provider.
+    /// Force a flush of current buffers to disk.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    public System.String GetDiagnosticInfo()
-    {
-        var uptime = System.DateTime.UtcNow - _startTime;
+    public void Flush() => _fileWriter.Flush();
 
-        return $"FileLoggerProvider Status [UTC: {System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" +
-                System.Environment.NewLine +
-               $"- Current USER: {System.Environment.UserName}" +
-                System.Environment.NewLine +
-               $"- Log Files: {System.IO.Path.GetFullPath(System.IO.Path.Combine(Directories.LogsDirectory, Options.LogFileName))}" +
-                System.Environment.NewLine +
-               $"- Entries Written: {TotalEntriesWritten:N0}" +
-                System.Environment.NewLine +
-               $"- Entries Dropped: {EntriesDroppedCount:N0}" +
-                System.Environment.NewLine +
-               $"- Queue Size: {QueuedEntryCount:N0}/{Options.MaxQueueSize}" +
-                System.Environment.NewLine +
-               $"- Uptime: {uptime.TotalHours:N1} hours";
+    /// <summary>
+    /// Diagnostic snapshot.
+    /// </summary>
+    public System.String GetDiagnostics()
+    {
+        return $"ChannelFileLoggerProvider [UTC: {System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]"
+             + System.Environment.NewLine + $"- USER: {System.Environment.UserName}"
+             + System.Environment.NewLine + $"- Log File: {System.IO.Path.Combine(Directories.LogsDirectory, Options.LogFileName)}"
+             + System.Environment.NewLine + $"- Written: {TotalEntriesWritten:N0}"
+             + System.Environment.NewLine + $"- Dropped: {EntriesDroppedCount:N0}"
+             + System.Environment.NewLine + $"- Queue: ~{QueuedEntryCount:N0}/{_maxQueueSize}";
     }
 
     #endregion APIs
 
     #region Private Methods
 
-    /// <summary>
-    /// Processes the queue continuously in a background thread.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void ProcessQueueContinuously()
+    private async System.Threading.Tasks.Task ConsumeLoopAsync()
     {
-        System.Threading.CancellationToken token = _cancellationTokenSource.Token;
-        System.Boolean writeMessageFailed = false;
-        System.DateTime lastFlushTime = System.DateTime.UtcNow;
-        System.TimeSpan flushInterval = Options.FlushInterval;
+        System.Collections.Generic.List<System.String> batch = new(_batchSize);
+        System.Diagnostics.Stopwatch sw = new();
+        sw.Start();
+        System.TimeSpan currentDelay = _maxBatchDelay;
 
         try
         {
-            while (!token.IsCancellationRequested)
+            while (await _reader.WaitToReadAsync(_cts.Token).ConfigureAwait(false))
             {
-                System.String? message = null;
-                System.Boolean shouldFlush = false;
-
-                // Process entries from queue with timeout
-                try
+                // Read at least one item (to start a batch window)
+                if (_reader.TryRead(out var first))
                 {
-                    if (_entryQueue.TryTake(out message, 100, token))
+                    batch.Add(first);
+                    _ = System.Threading.Interlocked.Decrement(ref _queued);
+                }
+                else
+                {
+                    continue;
+                }
+
+                var batchStartTicks = sw.ElapsedTicks;
+                // Accumulate until batch size or time window exceeded
+                while (batch.Count < _batchSize)
+                {
+                    // Break if time window exceeded
+                    if (sw.Elapsed - System.TimeSpan.FromTicks(batchStartTicks) >= currentDelay)
                     {
-                        // Check if we should flush based on time interval
-                        System.DateTime now = System.DateTime.UtcNow;
-                        shouldFlush = now - lastFlushTime >= flushInterval || _entryQueue.Count == 0;
-
-                        if (shouldFlush)
-                        {
-                            lastFlushTime = now;
-                        }
-
-                        // Write the message if we haven't encountered a fatal error
-                        if (!writeMessageFailed)
-                        {
-                            try
-                            {
-                                _fileWriter.WriteMessage(message, shouldFlush);
-                                _ = System.Threading.Interlocked.Increment(ref _totalEntriesWritten);
-                            }
-                            catch (System.Exception ex)
-                            {
-                                writeMessageFailed = !HandleWriteError(ex, message);
-                            }
-                        }
+                        break;
                     }
-                    else if (_entryQueue.IsCompleted)
+
+                    if (_reader.TryRead(out var item))
                     {
-                        // Queue is completed, exit the loop
+                        batch.Add(item);
+                        _ = System.Threading.Interlocked.Decrement(ref _queued);
+                    }
+                    else
+                    {
+                        // No data right now, small delay to yield
+                        await System.Threading.Tasks.Task.Yield();
                         break;
                     }
                 }
-                catch (System.OperationCanceledException)
+
+                // Write batch
+                _fileWriter.WriteBatch(batch);
+                _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, batch.Count);
+                batch.Clear();
+
+                // Adaptive delay: if we consistently fill the batch, shrink delay to reduce latency;
+                // if batches are tiny, increase delay a bit to improve throughput.
+                if (_adaptiveFlush)
                 {
-                    // Expected when token is canceled
-                    break;
+                    currentDelay = batch.Count >= _batchSize - 1
+                        ? System.TimeSpan.FromMilliseconds(System.Math
+                                                      .Max(1, currentDelay.TotalMilliseconds * 0.75))
+                        : System.TimeSpan.FromMilliseconds(System.Math
+                                                      .Min(5000, System.Math
+                                                      .Max(1, currentDelay.TotalMilliseconds * 1.25)));
                 }
             }
         }
+        catch (System.OperationCanceledException)
+        {
+            // draining below
+        }
         catch (System.Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine(
-                $"Unexpected error in FileLoggerProvider queue processing: {ex}");
+            System.Diagnostics.Debug.WriteLine($"Channel consumer error: {ex}");
         }
-    }
-
-    /// <summary>
-    /// Handles a write error by invoking the error handler if available.
-    /// </summary>
-    /// <param name="ex">The exception that occurred.</param>
-    /// <param name="message">The message that failed to write.</param>
-    /// <returns>True if the error was handled and writing can continue, false otherwise.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private System.Boolean HandleWriteError(System.Exception ex, System.String message)
-    {
-        // If no error handler is configured, we can't recover
-        if (HandleFileError == null)
+        finally
         {
-            return false;
-        }
-
-        try
-        {
-            var fileError = new FileError(ex, Options.GetFullLogFilePath());
-            HandleFileError(fileError);
-
-            if (fileError.NewLogFileName != null)
+            // Drain remaining messages after cancellation
+            while (_reader.TryRead(out var msg))
             {
-                // Use the new file name provided by the error handler
-                _fileWriter.UseNewLogFile(fileError.NewLogFileName);
-
-                // Try writing the failed message to the new file
-                _fileWriter.WriteMessage(message, true);
-                _ = System.Threading.Interlocked.Increment(ref _totalEntriesWritten);
-
-                return true;
+                batch.Add(msg);
+                if (batch.Count >= _batchSize)
+                {
+                    _fileWriter.WriteBatch(batch);
+                    _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, batch.Count);
+                    batch.Clear();
+                }
+            }
+            if (batch.Count > 0)
+            {
+                _fileWriter.WriteBatch(batch);
+                _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, batch.Count);
+                batch.Clear();
             }
         }
-        catch (System.Exception handlerEx)
-        {
-            System.Diagnostics.Debug.WriteLine(
-                $"ERROR in FileLoggerProvider error handler: {handlerEx}");
-        }
-
-        return false;
     }
 
     #endregion Private Methods
+
+    #region Dispose
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
+        try
+        {
+            _writer.Complete();
+            _cts.Cancel();
+
+            try
+            {
+                _ = _consumerTask.Wait(System.TimeSpan.FromSeconds(3));
+            }
+            catch
+            {
+                // ignore
+            }
+
+            _fileWriter.Flush();
+            _fileWriter.Dispose();
+            _cts.Dispose();
+        }
+        catch (System.Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Dispose error: {ex}");
+        }
+        System.GC.SuppressFinalize(this);
+    }
+
+    #endregion Dispose
 }

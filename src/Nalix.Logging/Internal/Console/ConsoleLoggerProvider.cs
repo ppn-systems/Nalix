@@ -1,7 +1,7 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
-using Nalix.Logging.Core;
+using Nalix.Logging.Internal.Formatters;
 using Nalix.Logging.Options;
 
 namespace Nalix.Logging.Internal.Console;
@@ -9,7 +9,7 @@ namespace Nalix.Logging.Internal.Console;
 /// <summary>
 /// High-throughput channel console logger backend.
 /// </summary>
-internal sealed class ChannelConsoleLoggerProvider : System.IDisposable
+internal sealed class ConsoleLoggerProvider : System.IDisposable
 {
     #region Fields
 
@@ -19,7 +19,7 @@ internal sealed class ChannelConsoleLoggerProvider : System.IDisposable
 
     private readonly System.Threading.Tasks.Task _consumerTask;
     private readonly System.Threading.CancellationTokenSource _cts;
-    private readonly NLogixFormatter _formatter;
+    private readonly LogFormatter _formatter;
     private readonly System.Boolean _enableColors;
     private readonly System.Int32 _batchSize;
     private readonly System.Boolean _adaptiveFlush;
@@ -40,9 +40,9 @@ internal sealed class ChannelConsoleLoggerProvider : System.IDisposable
 
     #region Constructors
 
-    public ChannelConsoleLoggerProvider(BatchConsoleLogOptions options)
+    public ConsoleLoggerProvider(BatchConsoleLogOptions options)
     {
-        _formatter = new NLogixFormatter(_enableColors);
+        _formatter = new LogFormatter(_enableColors);
         _batchSize = System.Math.Max(1, options.BatchSize);
         _enableColors = options.EnableColors;
         _adaptiveFlush = options.AdaptiveFlush;
