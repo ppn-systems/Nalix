@@ -1,10 +1,11 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Caching;
 using Nalix.Common.Connection;
-using Nalix.Common.Enums;
-using Nalix.Common.Packets;
-using Nalix.Common.Packets.Abstractions;
+using Nalix.Common.Core.Enums;
+using Nalix.Common.Infrastructure.Caching;
+using Nalix.Common.Infrastructure.Connection;
+using Nalix.Common.Messaging.Packets;
+using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;

@@ -1,9 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved. 
 
-using Nalix.Common.Abstractions;
-using Nalix.Common.Logging;
-using Nalix.Common.Packets.Abstractions;
-using Nalix.Common.Packets.Attributes;
+using Nalix.Common.Core.Abstractions;
+using Nalix.Common.Diagnostics;
+using Nalix.Common.Messaging.Packets.Abstractions;
+using Nalix.Common.Messaging.Packets.Attributes;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;

@@ -1,8 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
-using Nalix.Common.Logging;
-using Nalix.Common.Packets;
+using Nalix.Common.Diagnostics;
+using Nalix.Common.Infrastructure.Connection;
+using Nalix.Common.Messaging.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.Shared.Memory.Buffers;
