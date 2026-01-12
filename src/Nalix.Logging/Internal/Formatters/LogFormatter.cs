@@ -1,17 +1,16 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
-using Nalix.Logging.Internal.Formatters;
 using Nalix.Logging.Internal.Pooling;
 
-namespace Nalix.Logging.Core;
+namespace Nalix.Logging.Internal.Formatters;
 
 /// <summary>
 /// The Logging Formatter class provides methods for formatting log output.
 /// </summary>
 [System.Diagnostics.DebuggerDisplay("Colors={_colors}")]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-public class NLogixFormatter(System.Boolean colors = false) : ILoggerFormatter
+internal class LogFormatter(System.Boolean colors = false) : ILoggerFormatter
 {
     #region Fields
 

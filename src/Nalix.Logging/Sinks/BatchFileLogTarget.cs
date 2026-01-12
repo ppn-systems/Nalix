@@ -1,8 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Logging;
-using Nalix.Logging.Core;
 using Nalix.Logging.Internal.File;
+using Nalix.Logging.Internal.Formatters;
 using Nalix.Logging.Options;
 
 namespace Nalix.Logging.Sinks;
@@ -13,7 +13,7 @@ namespace Nalix.Logging.Sinks;
 /// </summary>
 /// <remarks>
 /// This class is plug-compatible with <see cref="ILoggerTarget"/> implementations such as
-/// <see cref="BatchFileLogTarget"/>, but it uses <see cref="ChannelFileLoggerProvider"/> internally
+/// <see cref="BatchFileLogTarget"/>, but it uses <see cref="FileLoggerProvider"/> internally
 /// to buffer and asynchronously write logs to the file system.
 /// </remarks>
 [System.Diagnostics.DebuggerNonUserCode]
@@ -22,7 +22,7 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
 {
     #region Fields
 
-    private readonly ChannelFileLoggerProvider _provider;
+    private readonly FileLoggerProvider _provider;
 
     #endregion Fields
 
@@ -39,16 +39,16 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
         System.ArgumentNullException.ThrowIfNull(options);
         System.ArgumentNullException.ThrowIfNull(formatter);
 
-        _provider = new ChannelFileLoggerProvider(options, formatter);
+        _provider = new FileLoggerProvider(options, formatter);
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with default options.
     /// </summary>
     /// <remarks>
-    /// Uses the default <see cref="NLogixFormatter"/> and <see cref="FileLogOptions"/>.
+    /// Uses the default <see cref="LogFormatter"/> and <see cref="FileLogOptions"/>.
     /// </remarks>
-    public BatchFileLogTarget() : this(new FileLogOptions(), new NLogixFormatter(false))
+    public BatchFileLogTarget() : this(new FileLogOptions(), new LogFormatter(false))
     {
     }
 
@@ -56,7 +56,7 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with the specified options.
     /// </summary>
     /// <param name="options">The file log options to configure file paths, size limits, and rolling behavior.</param>
-    public BatchFileLogTarget(FileLogOptions options) : this(options, new NLogixFormatter(false))
+    public BatchFileLogTarget(FileLogOptions options) : this(options, new LogFormatter(false))
     {
     }
 
@@ -65,7 +65,7 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     /// <param name="options">An action that configures the <see cref="FileLogOptions"/> before use.</param>
     public BatchFileLogTarget(System.Action<FileLogOptions> options)
-        : this(Configure(options), new NLogixFormatter(false))
+        : this(Configure(options), new LogFormatter(false))
     {
     }
 

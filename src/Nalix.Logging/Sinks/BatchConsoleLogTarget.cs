@@ -17,7 +17,7 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
 {
     #region Fields
 
-    private readonly ChannelConsoleLoggerProvider _provider;
+    private readonly ConsoleLoggerProvider _provider;
 
     #endregion Fields
 
@@ -49,7 +49,7 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
         System.ArgumentNullException.ThrowIfNull(options);
 
         System.Console.Title = "Nx";
-        _provider = new ChannelConsoleLoggerProvider(options);
+        _provider = new ConsoleLoggerProvider(options);
     }
 
     /// <summary>
