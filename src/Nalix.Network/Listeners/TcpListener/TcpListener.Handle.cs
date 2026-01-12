@@ -144,7 +144,7 @@ public abstract partial class TcpListenerBase
                     IConnection connection = this.InitializeConnection(socket, context);
 
                     // Process the connection
-                    _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+                    _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                         name: NetTaskNames.TcpProcessWorker(_port, connection.ID.ToString()),
                         group: NetTaskNames.TcpProcessGroup(_port),
                         work: async (_, _) =>
@@ -340,7 +340,7 @@ public abstract partial class TcpListenerBase
                 IConnection connection = await this.CreateConnectionAsync(cancellationToken)
                                                    .ConfigureAwait(false);
 
-                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                     name: NetTaskNames.TcpProcessWorker(_port, connection.ID.ToString()),
                     group: NetTaskNames.TcpProcessGroup(_port),
                     work: async (_, _) =>

@@ -171,7 +171,7 @@ public sealed class TimingWheel : IActivatable
         System.Threading.CancellationToken linkedToken = linkedCts.Token;
 
         // Prefer a dedicated thread to reduce pool jitter.
-        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
             name: NetTaskNames.TimingWheelWorker(TickMs, WheelSize),
             group: NetTaskNames.TimingWheelGroup,
             work: async (ctx, ct) => await RunLoop(ctx, ct).ConfigureAwait(false),

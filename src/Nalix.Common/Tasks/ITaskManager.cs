@@ -56,7 +56,7 @@ public interface ITaskManager : System.IDisposable, IReportable
     /// <param name="work">The delegate representing the worker's work.</param>
     /// <param name="options">Options for the worker (optional).</param>
     /// <returns>A handle to manage the worker.</returns>
-    IWorkerHandle StartWorker(
+    IWorkerHandle ScheduleWorker(
         [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
         [System.Diagnostics.CodeAnalysis.NotNull] System.String group,
         [System.Diagnostics.CodeAnalysis.NotNull]
@@ -89,7 +89,7 @@ public interface ITaskManager : System.IDisposable, IReportable
     /// <param name="runningOnly">Whether to list only running workers.</param>
     /// <param name="group">The group to filter by (optional).</param>
     /// <returns>A read-only collection of worker handles.</returns>
-    System.Collections.Generic.IReadOnlyCollection<IWorkerHandle> ListWorkers(
+    System.Collections.Generic.IReadOnlyCollection<IWorkerHandle> GetWorkers(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean runningOnly = true,
         [System.Diagnostics.CodeAnalysis.MaybeNull] System.String group = null);
 
@@ -107,7 +107,7 @@ public interface ITaskManager : System.IDisposable, IReportable
     /// Lists all recurring jobs.
     /// </summary>
     /// <returns>A read-only collection of recurring job handles.</returns>
-    System.Collections.Generic.IReadOnlyCollection<IRecurringHandle> ListRecurring();
+    System.Collections.Generic.IReadOnlyCollection<IRecurringHandle> GetRecurring();
 
     /// <summary>
     /// Tries to get a recurring job by name.
