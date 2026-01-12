@@ -21,7 +21,7 @@ internal sealed class MemoryReturnHandler<TPacket> : IReturnHandler<TPacket>
         if (context?.Connection?.TCP == null)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(MemoryReturnHandler<TPacket>)}:{nameof(HandleAsync)}] connection or TCP transport is null");
+                                    .Warn($"[NW.{nameof(MemoryReturnHandler<>)}:{nameof(HandleAsync)}] send-failed null");
             return;
         }
 
@@ -31,13 +31,13 @@ internal sealed class MemoryReturnHandler<TPacket> : IReturnHandler<TPacket>
             if (!sent)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[NW.{nameof(MemoryReturnHandler<TPacket>)}:{nameof(HandleAsync)}] send failed");
+                                        .Warn($"[NW.{nameof(MemoryReturnHandler<>)}:{nameof(HandleAsync)}] send-failed");
             }
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(MemoryReturnHandler<TPacket>)}:{nameof(HandleAsync)}] error sending memory", ex);
+                                    .Error($"[NW.{nameof(MemoryReturnHandler<>)}:{nameof(HandleAsync)}] error-serializing", ex);
         }
     }
 }

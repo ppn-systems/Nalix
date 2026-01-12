@@ -26,7 +26,7 @@ internal sealed class ByteArrayReturnHandler<TPacket> : IReturnHandler<TPacket>
         if (context?.Connection?.TCP == null)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(ByteArrayReturnHandler<TPacket>)}:{nameof(HandleAsync)}] connection or TCP transport is null");
+                                    .Warn($"[NW.{nameof(ByteArrayReturnHandler<>)}:{nameof(HandleAsync)}] send-failed transport=null");
             return;
         }
 
@@ -36,13 +36,13 @@ internal sealed class ByteArrayReturnHandler<TPacket> : IReturnHandler<TPacket>
             if (!sent)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[NW.{nameof(ByteArrayReturnHandler<TPacket>)}:{nameof(HandleAsync)}] send failed");
+                                        .Warn($"[NW.{nameof(ByteArrayReturnHandler<>)}:{nameof(HandleAsync)}] send-failed");
             }
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(ByteArrayReturnHandler<TPacket>)}:{nameof(HandleAsync)}] error sending byte array", ex);
+                                    .Error($"[NW.{nameof(ByteArrayReturnHandler<>)}:{nameof(HandleAsync)}] error-serializing", ex);
         }
     }
 }
