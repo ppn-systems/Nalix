@@ -5,7 +5,7 @@ namespace Nalix.Logging.Options;
 /// <summary>
 /// Configuration options for the console logger.
 /// </summary>
-public sealed class BatchConsoleLogOptions
+public sealed class ConsoleLogOptions
 {
     /// <summary>
     /// Gets or sets the maximum number of log entries to batch before flushing to the console.
