@@ -1,4 +1,6 @@
-﻿using Nalix.Framework.Configuration.Binding;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Framework.Options;
 
