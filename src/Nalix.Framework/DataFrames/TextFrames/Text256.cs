@@ -19,12 +19,12 @@ public sealed class Text256 : PacketBase<Text256>
     /// <summary>
     /// Maximum UTF-8 byte length of Content.
     /// </summary>
-    public const int MaxSize = 256;
+    public const int DynamicSize = 256;
 
     /// <summary>
     /// UTF-8 string content.
     /// </summary>
-    [SerializeDynamicSize(MaxSize)]
+    [SerializeDynamicSize(DynamicSize)]
     [SerializeOrder(PacketHeaderOffset.Region)]
     public string Content { get; set; } = string.Empty;
 
@@ -50,10 +50,10 @@ public sealed class Text256 : PacketBase<Text256>
             return;
         }
 
-        if (Encoding.UTF8.GetByteCount(content) > MaxSize)
+        if (Encoding.UTF8.GetByteCount(content) > DynamicSize)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(content), $"TextFrame supports at most {MaxSize} UTF-8 bytes.");
+                nameof(content), $"TextFrame supports at most {DynamicSize} UTF-8 bytes.");
         }
 
         this.Content = content;
