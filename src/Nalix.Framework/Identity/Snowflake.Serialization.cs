@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Enums;
+using Nalix.Common.Core.Enums;
 using Nalix.Common.Primitives;
 
 namespace Nalix.Framework.Identity;
@@ -70,7 +70,7 @@ public readonly partial struct Snowflake
     /// Thrown when <paramref name="bytes"/> is not exactly <see cref="Size"/> (7) bytes.
     /// </exception>
     /// <remarks>
-    /// This overload accepts a byte array and delegates to the span-based <see cref="FromBytes(System.ReadOnlySpan{byte})"/> method.
+    /// This overload accepts a byte array and delegates to the span-based <see cref="FromBytes(System.ReadOnlySpan{System.Byte})"/> method.
     /// Prefer using the span-based overload when possible to avoid unnecessary array allocations.
     /// </remarks>
     [System.Diagnostics.Contracts.Pure]
@@ -78,12 +78,9 @@ public readonly partial struct Snowflake
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static Snowflake FromBytes(System.Byte[] bytes)
     {
-        if (bytes is null)
-        {
-            throw new System.ArgumentNullException(nameof(bytes), "Byte array cannot be null.");
-        }
-
-        return FromBytes(System.MemoryExtensions.AsSpan(bytes));
+        return bytes is null
+            ? throw new System.ArgumentNullException(nameof(bytes), "Byte array cannot be null.")
+            : FromBytes(System.MemoryExtensions.AsSpan(bytes));
     }
 
     #endregion Deserialize
@@ -101,10 +98,7 @@ public readonly partial struct Snowflake
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public UInt56 ToUInt56()
-    {
-        return __combined;
-    }
+    public UInt56 ToUInt56() => __combined;
 
     /// <summary>
     /// Converts this <see cref="Snowflake"/> to a 7-byte array.
@@ -113,7 +107,7 @@ public readonly partial struct Snowflake
     /// <remarks>
     /// This method allocates a new 7-byte array and writes the identifier in little-endian format.
     /// The layout is: [0-3]=Value, [4-5]=MachineId, [6]=Type.
-    /// For better performance, use <see cref="TryWriteBytes(System.Span{byte})"/> with a pre-allocated buffer.
+    /// For better performance, use <see cref="TryWriteBytes(System.Span{System.Byte})"/> with a pre-allocated buffer.
     /// </remarks>
     [System.ComponentModel.EditorBrowsable(
         System.ComponentModel.EditorBrowsableState.Never)]
@@ -147,8 +141,8 @@ public readonly partial struct Snowflake
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean TryWriteBytes(
-        System.Span<System.Byte> destination,
-        out System.Int32 bytesWritten)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> destination,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 bytesWritten)
     {
         // Buffer overflow protection - validate size before writing
         if (destination.Length < Size)
@@ -175,7 +169,7 @@ public readonly partial struct Snowflake
     /// is too small (less than <see cref="Size"/> bytes).
     /// </returns>
     /// <remarks>
-    /// This overload is identical to <see cref="TryWriteBytes(System.Span{byte}, out int)"/> but does not
+    /// This overload is identical to <see cref="TryWriteBytes(System.Span{System.Byte}, out System.Int32)"/> but does not
     /// return the number of bytes written. Use this when you don't need the byte count.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(

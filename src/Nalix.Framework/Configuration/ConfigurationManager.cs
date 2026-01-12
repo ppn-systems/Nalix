@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Environment;
-using Nalix.Common.Logging;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Framework.Configuration.Internal;
 using Nalix.Framework.Injection;
