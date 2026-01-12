@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Attributes;
+using Nalix.Common.Core.Attributes;
 using Nalix.Common.Infrastructure.Caching;
 using Nalix.Common.Messaging.Packets;
 using Nalix.Common.Messaging.Packets.Abstractions;
