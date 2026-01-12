@@ -42,7 +42,7 @@ public abstract partial class TcpListenerBase
 
         _ = sb.AppendLine("Configuration:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"EnableTimeout    : {Config.EnableTimeout}");
+        _ = sb.AppendLine($"EnableTimeout       : {Config.EnableTimeout}");
         _ = sb.AppendLine($"MaxParallelAccepts  : {Config.MaxParallel}");
         _ = sb.AppendLine($"BufferSize          : {Config.BufferSize}");
         _ = sb.AppendLine($"KeepAlive           : {Config.KeepAlive}");
