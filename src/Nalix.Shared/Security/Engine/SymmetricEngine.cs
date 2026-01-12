@@ -6,7 +6,7 @@
 //
 // Now includes envelope helpers using SymmetricFormat (header || nonce || ciphertext).
 
-using Nalix.Common.Enums;
+using Nalix.Common.Core.Enums;
 using Nalix.Framework.Random;
 using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Symmetric;

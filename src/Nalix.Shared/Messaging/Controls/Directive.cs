@@ -1,10 +1,10 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
-using Nalix.Common.Caching;
-using Nalix.Common.Packets;
-using Nalix.Common.Packets.Abstractions;
-using Nalix.Common.Protocols;
+using Nalix.Common.Infrastructure.Caching;
+using Nalix.Common.Messaging.Packets;
+using Nalix.Common.Messaging.Packets.Abstractions;
+using Nalix.Common.Messaging.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pooling;

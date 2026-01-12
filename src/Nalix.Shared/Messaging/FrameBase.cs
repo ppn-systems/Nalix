@@ -1,9 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
-using Nalix.Common.Packets;
-using Nalix.Common.Packets.Abstractions;
-using Nalix.Common.Protocols;
+using Nalix.Common.Messaging.Packets;
+using Nalix.Common.Messaging.Packets.Abstractions;
+using Nalix.Common.Messaging.Protocols;
 using Nalix.Common.Serialization;
 
 namespace Nalix.Shared.Messaging;
