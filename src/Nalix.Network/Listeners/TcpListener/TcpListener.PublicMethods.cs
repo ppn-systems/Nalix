@@ -161,7 +161,7 @@ public abstract partial class TcpListenerBase
 
             for (System.Int32 i = 0; i < Config.MaxParallel; i++)
             {
-                IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+                IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                     name: NetTaskNames.TcpAcceptWorker(_port, i),
                     group: NetTaskNames.TcpGroup(_port),
                     work: async (_, ct) => await AcceptConnectionsAsync(ct).ConfigureAwait(false),

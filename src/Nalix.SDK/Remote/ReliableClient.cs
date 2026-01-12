@@ -196,7 +196,7 @@ public sealed class ReliableClient : IReliableClient
             SAFE_INVOKE(Connected, InstanceManager.Instance.GetExistingInstance<ILogger>());
 
             // Start background receive network worker through TaskManager (same as before but enqueue to _recvChannel)
-            IWorkerHandle recvNetWorker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+            IWorkerHandle recvNetWorker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                 name: $"tcp-recv-net-{Options.Address}:{Options.Port}",
                 group: "network",
                 async (ctx, ct) =>
@@ -256,7 +256,7 @@ public sealed class ReliableClient : IReliableClient
             _workerId[0] = recvNetWorker.Id;
 
             // Start receive consumer worker: read from channel and invoke PacketReceived + dispatcher
-            IWorkerHandle recvConsumer = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+            IWorkerHandle recvConsumer = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                 name: $"tcp-recv-consumer-{Options.Address}:{Options.Port}",
                 group: "network",
                 async (ctx, ct) =>
@@ -306,7 +306,7 @@ public sealed class ReliableClient : IReliableClient
             _workerId[1] = recvConsumer.Id;
 
             // Start sender worker that batches outgoing packets
-            IWorkerHandle senderWorker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().StartWorker(
+            IWorkerHandle senderWorker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                 name: $"tcp-send-batch-{Options.Address}:{Options.Port}",
                 group: "network",
                 async (ctx, ct) =>

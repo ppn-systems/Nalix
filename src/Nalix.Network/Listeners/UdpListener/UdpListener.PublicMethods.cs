@@ -66,7 +66,7 @@ public abstract partial class UdpListenerBase : IListener
                 System.Threading.Tasks.Task receiveTask = this.ReceiveDatagramsAsync(this._cancellationToken);
                 _ = receiveTask.ConfigureAwait(false);
 
-                _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.StartWorker(
+                _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.ScheduleWorker(
                    name: NetTaskNames.UdpProcessWorker(_port),             // "udp.proc.{port}"
                    group: NetTaskNames.UdpGroup(_port),                    // "net/udp/{port}"
                    work: async (_, ct) => await ReceiveDatagramsAsync(ct),

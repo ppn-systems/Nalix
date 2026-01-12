@@ -34,7 +34,7 @@ public abstract partial class UdpListenerBase
                 System.Int32 next = System.Threading.Interlocked.Increment(ref _procSeq);
                 System.Int32 idx = next & System.Int32.MaxValue;
 
-                _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.StartWorker(
+                _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.ScheduleWorker(
                     name: NetTaskNames.UdpProcessWorker(_port, idx),
                     group: NetTaskNames.UdpProcessGroup(_port),
                     work: (_, __) => { ProcessDatagram(result); return new System.Threading.Tasks.ValueTask(); },
