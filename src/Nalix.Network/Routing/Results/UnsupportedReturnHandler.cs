@@ -20,12 +20,12 @@ namespace Nalix.Network.Routing.Results;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class UnsupportedReturnHandler<TPacket>(Type returnType) : IReturnHandler<TPacket> where TPacket : IPacket
 {
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, bool> _loggedTypes = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, bool> s_loggedTypes = new();
 
     /// <inheritdoc/>
     public ValueTask HandleAsync(object? result, PacketContext<TPacket> context)
     {
-        if (_loggedTypes.TryAdd(returnType, true))
+        if (s_loggedTypes.TryAdd(returnType, true))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[NW.{nameof(UnsupportedReturnHandler<>)}:{nameof(HandleAsync)}] unsupported-return type={returnType.Name}");
