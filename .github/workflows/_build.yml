@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       os:
-        description: 'Target OS to run build (ubuntu-latest, windows-latest, macos-latest)'
+        description: 'Target OS to run build (ubuntu-latest, windows-latest)'
         required: true
         type: string
       project:
