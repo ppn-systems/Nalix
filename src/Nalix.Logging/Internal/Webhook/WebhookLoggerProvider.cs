@@ -197,7 +197,7 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
                 }
 
                 // Send batch to Discord
-                await SendBatchAsync(batch).ConfigureAwait(false);
+                await DispatchLogBatchAsync(batch).ConfigureAwait(false);
                 batch.Clear();
 
                 // Respect batch delay to avoid rate limiting
@@ -221,14 +221,14 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
 
                 if (batch.Count >= _options.BatchSize)
                 {
-                    await SendBatchAsync(batch).ConfigureAwait(false);
+                    await DispatchLogBatchAsync(batch).ConfigureAwait(false);
                     batch.Clear();
                 }
             }
 
             if (batch.Count > 0)
             {
-                await SendBatchAsync(batch).ConfigureAwait(false);
+                await DispatchLogBatchAsync(batch).ConfigureAwait(false);
             }
         }
     }
@@ -237,7 +237,7 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
     /// Sends a batch of log entries to Discord webhook.
     /// </summary>
     /// <param name="batch">The batch of log entries to send. </param>
-    private async System.Threading.Tasks.Task SendBatchAsync(System.Collections.Generic.List<LogEntry> batch)
+    private async System.Threading.Tasks.Task DispatchLogBatchAsync(System.Collections.Generic.List<LogEntry> batch)
     {
         if (batch.Count is 0)
         {
