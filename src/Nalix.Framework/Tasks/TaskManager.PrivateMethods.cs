@@ -129,19 +129,18 @@ public partial class TaskManager
             {
                 System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
                 System.Int64 delayTicks = next - now;
+
                 if (delayTicks > 0)
                 {
-                    // convert to seconds once
-                    if (((System.Double)delayTicks / freq) <= BusyWaitMaxSeconds)
+                    System.Double delaySeconds = (System.Double)delayTicks / freq;
+
+                    if (delaySeconds <= BusyWaitMaxSeconds)
                     {
-                        // sub-200µs: spin to avoid scheduling jitter/context switch
                         BusyWait(next, ct);
                     }
                     else
                     {
-                        // precise delay: prefer Delay(TimeSpan) but avoid negative/zero
-                        System.Int64 delayTicksClamped = delayTicks <= 0 ? 1 : delayTicks;
-                        System.TimeSpan ts = System.TimeSpan.FromSeconds(delayTicksClamped * System.TimeSpan.TicksPerSecond / freq);
+                        System.TimeSpan ts = System.TimeSpan.FromSeconds(delaySeconds);
                         await System.Threading.Tasks.Task.Delay(ts, ct).ConfigureAwait(false);
                     }
                 }
