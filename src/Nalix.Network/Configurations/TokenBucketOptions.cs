@@ -133,6 +133,13 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     public System.Int32 MaxTrackedEndpoints { get; set; } = 10_000;
 
     /// <summary>
+    /// Gets or sets the initial number of tokens for new endpoints.
+    /// Default is -1 (start with full capacity).
+    /// Set to 0 to start empty (cold-start mode for aggressive rate limiting).
+    /// </summary>
+    public System.Int32 InitialTokens { get; set; } = -1;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
