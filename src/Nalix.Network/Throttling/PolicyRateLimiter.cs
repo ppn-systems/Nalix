@@ -72,6 +72,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         private long _lastUsedUtcTicks;
         private int _activeUsers;
         private int _disposed;
+        private readonly ManualResetEventSlim _idleSignal = new(true);
 
         public TokenBucketLimiter Limiter { get; }
 
@@ -103,10 +104,15 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
             }
 
             int newCount = Interlocked.Increment(ref _activeUsers);
+            _idleSignal.Reset();
 
             if (Volatile.Read(ref _disposed) != 0)
             {
                 _ = Interlocked.Decrement(ref _activeUsers);
+                if (Volatile.Read(ref _activeUsers) == 0)
+                {
+                    _idleSignal.Set();
+                }
                 return false;
             }
 
@@ -129,6 +135,13 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
             {
                 s_logger?.Error($"[NW.{nameof(PolicyRateLimiter)}:Entry] active-users-overflow");
                 _ = Interlocked.Exchange(ref _activeUsers, 0);
+                _idleSignal.Set();
+                return;
+            }
+
+            if (remaining == 0)
+            {
+                _idleSignal.Set();
             }
         }
 
@@ -153,17 +166,8 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
                 return;
             }
 
-            int waitedMs = 0;
-            int backoffMs = 1;
             const int maxWaitMs = 500;
-            const int maxBackoffMs = 50;
-
-            while (Volatile.Read(ref _activeUsers) > 0 && waitedMs < maxWaitMs)
-            {
-                Thread.Sleep(backoffMs);
-                waitedMs += backoffMs;
-                backoffMs = Math.Min(backoffMs * 2, maxBackoffMs);
-            }
+            _idleSignal.Wait(maxWaitMs);
 
             int remainingUsers = Volatile.Read(ref _activeUsers);
 
@@ -175,6 +179,8 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
             {
                 s_logger?.Error($"[NW.{nameof(PolicyRateLimiter)}:Entry] disposal-error", ex);
             }
+
+            _idleSignal.Dispose();
         }
     }
 
@@ -391,6 +397,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
         int disposedCount = 0;
         int totalCount = _limiters.Count;
+        using ManualResetEventSlim drainSignal = new(true);
 
         const int maxAttempts = 10;
         int attempt = 0;
@@ -417,7 +424,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
             if (!_limiters.IsEmpty)
             {
-                Thread.Sleep(50);
+                drainSignal.Wait(50);
             }
         }
 
@@ -726,7 +733,10 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
         if ((count & (SweepEveryNChecks - 1)) == 0)
         {
-            _ = Task.Run(this.EVICT_STALE_POLICIES);
+            _ = ThreadPool.UnsafeQueueUserWorkItem(
+                static state => ((PolicyRateLimiter)state!).EVICT_STALE_POLICIES(),
+                this,
+                preferLocal: false);
         }
     }
 
