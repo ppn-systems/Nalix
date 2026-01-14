@@ -1,7 +1,6 @@
 using Nalix.Framework.Time;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -20,15 +19,15 @@ public class Clock_ThreadSafetyTests
         // Reset to clean state
         Clock.ResetSynchronization();
 
-        const int ThreadCount = 10;
-        const int IterationsPerThread = 1000;
+        const Int32 ThreadCount = 10;
+        const Int32 IterationsPerThread = 1000;
         var tasks = new List<Task>();
 
-        for (int i = 0; i < ThreadCount; i++)
+        for (Int32 i = 0; i < ThreadCount; i++)
         {
             tasks.Add(Task.Run(() =>
             {
-                for (int j = 0; j < IterationsPerThread; j++)
+                for (Int32 j = 0; j < IterationsPerThread; j++)
                 {
                     _ = Clock.NowUtc();
                 }
@@ -45,20 +44,20 @@ public class Clock_ThreadSafetyTests
         // Reset to clean state
         Clock.ResetSynchronization();
 
-        const int ThreadCount = 4;
-        const int IterationsPerThread = 100;
+        const Int32 ThreadCount = 4;
+        const Int32 IterationsPerThread = 100;
         var tasks = new List<Task>();
         var exceptions = new List<Exception>();
-        var lockObj = new object();
+        var lockObj = new Object();
 
         // Readers
-        for (int i = 0; i < ThreadCount; i++)
+        for (Int32 i = 0; i < ThreadCount; i++)
         {
             tasks.Add(Task.Run(() =>
             {
                 try
                 {
-                    for (int j = 0; j < IterationsPerThread; j++)
+                    for (Int32 j = 0; j < IterationsPerThread; j++)
                     {
                         _ = Clock.NowUtc();
                         _ = Clock.UnixMillisecondsNow();
@@ -77,14 +76,14 @@ public class Clock_ThreadSafetyTests
         }
 
         // Writers (synchronized time updates)
-        for (int i = 0; i < ThreadCount; i++)
+        for (Int32 i = 0; i < ThreadCount; i++)
         {
-            int offset = i;
+            Int32 offset = i;
             tasks.Add(Task.Run(() =>
             {
                 try
                 {
-                    for (int j = 0; j < IterationsPerThread / 10; j++)
+                    for (Int32 j = 0; j < IterationsPerThread / 10; j++)
                     {
                         var time = DateTime.UtcNow.AddMilliseconds(offset * 10);
                         _ = Clock.SynchronizeTime(time, maxAllowedDriftMs: 1000.0);
@@ -101,7 +100,7 @@ public class Clock_ThreadSafetyTests
             }));
         }
 
-        Task.WaitAll(tasks.ToArray());
+        Task.WaitAll([.. tasks]);
 
         // No exceptions should occur
         Assert.Empty(exceptions);
@@ -118,16 +117,16 @@ public class Clock_ThreadSafetyTests
         _ = Clock.SynchronizeTime(syncTime, maxAllowedDriftMs: 0.1);
 
         // Multiple threads reading should get consistent, monotonic values
-        const int ThreadCount = 5;
-        const int IterationsPerThread = 100;
-        var tasks = new List<Task<bool>>();
+        const Int32 ThreadCount = 5;
+        const Int32 IterationsPerThread = 100;
+        var tasks = new List<Task<Boolean>>();
 
-        for (int i = 0; i < ThreadCount; i++)
+        for (Int32 i = 0; i < ThreadCount; i++)
         {
             tasks.Add(Task.Run(() =>
             {
                 DateTime prev = Clock.NowUtc();
-                for (int j = 0; j < IterationsPerThread; j++)
+                for (Int32 j = 0; j < IterationsPerThread; j++)
                 {
                     DateTime current = Clock.NowUtc();
                     if (current < prev)
@@ -153,16 +152,16 @@ public class Clock_ThreadSafetyTests
         // Reset to clean state
         Clock.ResetSynchronization();
 
-        const int ThreadCount = 10;
-        const int IterationsPerThread = 1000;
-        var tasks = new List<Task<double>>();
+        const Int32 ThreadCount = 10;
+        const Int32 IterationsPerThread = 1000;
+        var tasks = new List<Task<Double>>();
 
-        for (int i = 0; i < ThreadCount; i++)
+        for (Int32 i = 0; i < ThreadCount; i++)
         {
             tasks.Add(Task.Run(() =>
             {
-                double sum = 0;
-                for (int j = 0; j < IterationsPerThread; j++)
+                Double sum = 0;
+                for (Int32 j = 0; j < IterationsPerThread; j++)
                 {
                     sum += Clock.DriftRate();
                 }
@@ -175,8 +174,8 @@ public class Clock_ThreadSafetyTests
         // All results should be valid numbers (not NaN or Infinity)
         Assert.All(tasks, task =>
         {
-            Assert.False(double.IsNaN(task.Result));
-            Assert.False(double.IsInfinity(task.Result));
+            Assert.False(Double.IsNaN(task.Result));
+            Assert.False(Double.IsInfinity(task.Result));
         });
     }
 }
