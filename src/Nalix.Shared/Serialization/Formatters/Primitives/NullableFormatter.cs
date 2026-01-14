@@ -21,6 +21,8 @@ internal sealed class NullableFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T?> where T : struct
 {
+    #region Constants
+
     /// <summary>
     /// Flag indicating that the value is null.
     /// </summary>
@@ -31,7 +33,13 @@ internal sealed class NullableFormatter<
     /// </summary>
     private const System.Byte HasValueFlag = 1;
 
+    #endregion Constants
+
+    #region Fields
+
     private static System.String DebuggerDisplay => $"NullableFormatter<{typeof(T).FullName}>";
+
+    #endregion Fields
 
     /// <summary>
     /// Serializes a nullable value into the provided writer.
@@ -69,12 +77,9 @@ internal sealed class NullableFormatter<
             .Get<System.Byte>()
             .Deserialize(ref reader);
 
-        if (hasValue == NoValueFlag)
-        {
-            return null;
-        }
-
-        return hasValue != HasValueFlag
+        return hasValue == NoValueFlag
+            ? null
+            : hasValue != HasValueFlag
             ? throw new SerializationException("Invalid nullable data!")
             : (T?)FormatterProvider.Get<T>().Deserialize(ref reader);
     }

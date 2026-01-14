@@ -114,6 +114,7 @@ internal sealed partial class UnmanagedFormatter<
     /// <returns>The unmanaged value read from the buffer.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public T Deserialize(ref DataReader reader)
     {
         System.Int32 size = System.Runtime.CompilerServices.Unsafe.SizeOf<T>();

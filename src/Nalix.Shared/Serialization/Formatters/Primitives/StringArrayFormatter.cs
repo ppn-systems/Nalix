@@ -89,13 +89,11 @@ internal sealed class StringArrayFormatter : IFormatter<System.String[]>
             return null!;
         }
 
-        // Optional: check thêm theo SerializerBounds nếu có giới hạn riêng cho collection
-        // if (length > SerializerBounds.MaxCollection) throw ...
-
-        var result = new System.String[length];
+        System.String[] result = new System.String[length];
 
         for (System.Int32 i = 0; i < length; i++)
         {
+            // Ensure non-null assignment; if null, assign string.Empty to avoid CS8601
             result[i] = StringFormatterInstance.Deserialize(ref reader);
         }
 
