@@ -95,25 +95,24 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
     #region Constants
 
-    private const System.Int32 CancellationCheckFrequency = 256;
     private const System.Int32 MinReportCapacity = 256;
     private const System.Int32 MaxEvictionCapacity = 4096;
+    private const System.Int32 CancellationCheckFrequency = 256;
     private const System.Double MaxDelayMs = System.Int32.MaxValue - 1000.0;
 
     #endregion Constants
 
     #region Fields
 
-    private readonly System.Int32 _cleanupIntervalSec;
+    private readonly Shard[] _shards;
+    private readonly System.Double _swFreq;
     private readonly TokenBucketOptions _opt;
     private readonly System.Int64 _capacityMicro;
     private readonly System.Int64 _refillPerSecMicro;
-    private readonly System.Double _swFreq;
-    private readonly Shard[] _shards;
+    private readonly System.Int32 _cleanupIntervalSec;
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
     private readonly ILogger _logger;
-
     private System.Int32 _totalEndpointCount;
     private volatile System.Boolean _disposed;
 
@@ -131,19 +130,18 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         _opt = options ?? ConfigurationManager.Instance.Get<TokenBucketOptions>();
         ValidateOptions(_opt);
 
+        _totalEndpointCount = 0;
+        _shards = new Shard[_opt.ShardCount];
         _swFreq = System.Diagnostics.Stopwatch.Frequency;
+        _cleanupIntervalSec = _opt.CleanupIntervalSeconds;
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
         _capacityMicro = (System.Int64)_opt.CapacityTokens * _opt.TokenScale;
         _refillPerSecMicro = (System.Int64)System.Math.Round(_opt.RefillTokensPerSecond * _opt.TokenScale);
 
-        _shards = new Shard[_opt.ShardCount];
-        for (var i = 0; i < _shards.Length; i++)
+        for (System.Int32 i = 0; i < _shards.Length; i++)
         {
             _shards[i] = new Shard();
         }
-
-        _cleanupIntervalSec = _opt.CleanupIntervalSeconds;
-        _totalEndpointCount = 0;
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         ScheduleCleanupJob();
         LogInitialization();
