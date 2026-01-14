@@ -58,6 +58,8 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
     private const byte HeaderSize = sizeof(ushort);
 
+    private const int EvictInterval = 64;
+
     /// <summary>
     /// Maximum number of packets that may be queued-but-not-yet-processed
     /// for a single connection at any moment.
@@ -69,6 +71,11 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
     /// </para>
     /// </summary>
     private const int MaxPerConnectionPendingPackets = 8;
+
+    /// <summary>
+    /// Maximum number of concurrently open fragmented streams per connection.
+    /// </summary>
+    private const int MaxPerConnectionOpenFragmentStreams = 4;
 
     #endregion Const
 
@@ -89,6 +96,8 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
     private EventHandler<IConnectEventArgs>? _callbackClose;
     private EventHandler<IConnectEventArgs>? _callbackProcess;
 
+    private int _packetCount;
+    private int _openFragmentStreams;
     private int _pendingProcessCallbacks;
 
     /// <summary>
@@ -258,7 +267,8 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
         => $"FramedSocketConnection (Client={_socket.RemoteEndPoint}, " +
            $"Disposed={Volatile.Read(ref _disposed) != 0}, " +
            $"UpTime={this.Uptime}ms, LastPing={this.LastPingTime}ms, " +
-           $"PendingPackets={this.PendingPackets}.";
+           $"PendingPackets={this.PendingPackets}, " +
+           $"OpenFragmentStreams={Volatile.Read(ref _openFragmentStreams)}.";
 
     #endregion Dispose Pattern
 
@@ -383,6 +393,19 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                     $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                     $"recv-frame size={size} payload={payload} ep={_sender?.NetworkEndpoint.Address}");
 #endif
+                // ── Step 3.5: periodic eviction of stale fragment streams ───────
+                if ((++_packetCount & (EvictInterval - 1)) == 0)
+                {
+                    int evicted = _fragmentAssembler.EvictExpired();
+                    if (evicted > 0)
+                    {
+                        Interlocked.Add(ref _openFragmentStreams, -evicted);
+                        s_logger?.Warn(
+                            $"[NW.{nameof(SocketConnection)}] " +
+                            $"evicted {evicted} stale fragment stream(s) " +
+                            $"ep={_sender?.NetworkEndpoint.Address}");
+                    }
+                }
 
                 // ── Step 4: Layer 1 per-connection throttle ───────────────
                 // Try to reserve a pending slot. If the connection already has
@@ -426,6 +449,25 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                     {
                         ReadOnlySpan<byte> chunkBody = payloadSpan[FragmentHeader.WireSize..];
 
+                        if (header.ChunkIndex == 0)
+                        {
+                            int openStreams = Interlocked.Increment(ref _openFragmentStreams);
+
+                            if (openStreams > MaxPerConnectionOpenFragmentStreams)
+                            {
+                                Interlocked.Decrement(ref _openFragmentStreams);
+
+                                s_logger?.Trace($"[[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                                                $"fragment-stream-limit open={openStreams} — stream dropped");
+
+                                Interlocked.Decrement(ref _pendingProcessCallbacks);
+                                lease.Dispose();
+                                args.Dispose();
+                                _buffer = BufferLease.ByteArrayPool.Rent();
+                                continue;
+                            }
+                        }
+
 #if DEBUG
                         s_logger?.Debug(
                             $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
@@ -433,7 +475,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                             $"isLast={header.IsLast} bodyLen={chunkBody.Length} ep={_sender?.NetworkEndpoint.Address}");
 #endif
 
-                        if (_fragmentAssembler.TryAdd(header, chunkBody, out BufferLease? assembled) && assembled != null)
+                        if (_fragmentAssembler.TryAdd(header, chunkBody, out BufferLease? assembled, out bool streamEvicted) && assembled != null)
                         {
                             assembled.Retain();
                             args.Initialize(assembled, _cachedArgs.Connection);
@@ -444,11 +486,18 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                                 $"fragment-assembled stream={header.StreamId} totalLen={assembled.Length} " +
                                 $"ep={_sender?.NetworkEndpoint.Address}");
 #endif
+                            // If this was the last chunk, the assembler has no more use for the stream and can release it.
+                            Interlocked.Decrement(ref _openFragmentStreams);
                         }
                         else
                         {
                             args.Dispose();
                             Interlocked.Decrement(ref _pendingProcessCallbacks);
+
+                            if (streamEvicted)
+                            {
+                                Interlocked.Decrement(ref _openFragmentStreams);
+                            }
                         }
 
                         lease.Dispose();
