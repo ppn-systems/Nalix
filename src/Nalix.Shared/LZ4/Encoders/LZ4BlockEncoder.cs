@@ -23,6 +23,12 @@ public static class LZ4BlockEncoder
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 GetMaxLength(System.Int32 input) => input + (input / 255) + 16 + LZ4BlockHeader.Size;
 
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    private static System.Int32 GetMinOutputBufferSize(System.Int32 inputLength) => inputLength + (inputLength / 255) + 16;
+
     /// <summary>
     /// Compresses a block of input data into the output buffer using the LZ4 greedy algorithm.
     /// </summary>
@@ -73,11 +79,40 @@ public static class LZ4BlockEncoder
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private unsafe static System.Int32 EncodeInternal(
+    private static unsafe System.Int32 EncodeInternal(
         System.Byte* inputBase, System.Int32 inputLength,
         System.Byte* outputBase, System.Int32 outputLength,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Int32* hashTable)
     {
+#if DEBUG
+        System.Diagnostics.Debug.Assert(hashTable is not null, "Hash table cannot be null");
+#endif
+
+        if (inputBase == null)
+        {
+            throw new System.ArgumentNullException(nameof(inputBase));
+        }
+
+        if (outputBase == null)
+        {
+            throw new System.ArgumentNullException(nameof(outputBase));
+        }
+
+        if (hashTable == null)
+        {
+            throw new System.ArgumentNullException(nameof(hashTable));
+        }
+
+        if (inputLength <= 0)
+        {
+            return 0;
+        }
+
+        if (outputLength < GetMinOutputBufferSize(inputLength))
+        {
+            return -1;
+        }
+
         System.Byte* inputPtr = inputBase;
         System.Byte* inputEnd = inputBase + inputLength;
 
@@ -121,9 +156,9 @@ public static class LZ4BlockEncoder
         System.Byte* matchFindInputLimit = inputEnd - LZ4CompressionConstants.LastLiteralSize - LZ4CompressionConstants.MinMatchLength;
 
         // Validate output capacity baseline
-        if (outputLength < 1)
+        if (matchFindInputLimit < inputBase)
         {
-            return -1;
+            matchFindInputLimit = inputBase;
         }
 
         while (inputPtr < matchFindInputLimit)
@@ -131,13 +166,10 @@ public static class LZ4BlockEncoder
             System.Int32 currentInputOffset = (System.Int32)(inputPtr - inputBase);
             System.Byte* windowStartPtr = inputBase + System.Math.Max(0, currentInputOffset - LZ4CompressionConstants.MaxOffset);
 
-            var match = MatchFinder.FindLongestMatch(
-                hashTable,
-                inputBase,
-                inputPtr,
+            MatchFinder.Match match = MatchFinder.FindLongestMatch(
+                hashTable, inputBase, inputPtr,
                 inputEnd - LZ4CompressionConstants.LastLiteralSize,
-                windowStartPtr,
-                currentInputOffset);
+                windowStartPtr, currentInputOffset);
 
             if (!match.Found)
             {
@@ -158,12 +190,7 @@ public static class LZ4BlockEncoder
             literalStartPtr = inputPtr;
         }
 
-        if (!WriteFinalLiterals(ref outputPtr, outputEnd, literalStartPtr, (System.Int32)(inputEnd - literalStartPtr)))
-        {
-            return -1;
-        }
-
-        return (System.Int32)(outputPtr - outputBase);
+        return !WriteFinalLiterals(ref outputPtr, outputEnd, literalStartPtr, (System.Int32)(inputEnd - literalStartPtr)) ? -1 : (System.Int32)(outputPtr - outputBase);
     }
 
     /// <summary>
@@ -173,7 +200,7 @@ public static class LZ4BlockEncoder
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private unsafe static System.Boolean WriteSequence(
+    private static unsafe System.Boolean WriteSequence(
         ref System.Byte* outputPtr,
         System.Byte* outputEnd, System.Byte* literalStartPtr,
         System.Int32 literalLength, System.Int32 matchLength, System.Int32 offset)
@@ -235,7 +262,7 @@ public static class LZ4BlockEncoder
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private unsafe static System.Boolean WriteFinalLiterals(
+    private static unsafe System.Boolean WriteFinalLiterals(
         ref System.Byte* outputPtr, System.Byte* outputEnd, System.Byte* literalStartPtr, System.Int32 literalLength)
     {
         const System.Int32 tokenLen = 1;

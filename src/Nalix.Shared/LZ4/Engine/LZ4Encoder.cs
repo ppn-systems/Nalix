@@ -1,5 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Shared.LZ4.Encoders;
 using Nalix.Shared.Memory.Internal;
 
 namespace Nalix.Shared.LZ4.Engine;
@@ -38,6 +39,12 @@ internal static class LZ4Encoder
             return -1;
         }
 
+        if (output.Length < LZ4BlockEncoder.GetMaxLength(input.Length))
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"Warning: Output buffer may be too small. Required: {LZ4BlockEncoder.GetMaxLength(input.Length)}, Available: {output.Length}");
+        }
+
         // Rent hash table once per call, reuse across the whole encode.
         // Table size equals MatchFinder.HashTableSize.
         System.Int32[] table = System.Buffers.ArrayPool<System.Int32>.Shared.Rent(MatchFinder.HashTableSize);
@@ -50,6 +57,14 @@ internal static class LZ4Encoder
             // Pin to obtain a stable pointer for the duration of EncodeBlock
             fixed (System.Int32* hashTable = table)
             {
+#if DEBUG
+                System.Diagnostics.Debug.Assert(hashTable is not null, "Hash table pinning failed");
+#endif
+                if (hashTable == null)
+                {
+                    throw new System.InvalidOperationException("Failed to pin hash table");
+                }
+
                 System.Span<System.Byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
                 System.Int32 compressedDataLength =
                     Encoders.LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable);
@@ -64,6 +79,13 @@ internal static class LZ4Encoder
                 System.Boolean isValid = totalCompressedLength <= output.Length;
                 System.Diagnostics.Debug.Assert(isValid);
 #endif
+
+                if (totalCompressedLength > output.Length)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Compressed data ({totalCompressedLength} bytes) exceeds output buffer ({output.Length} bytes)");
+                }
+
                 WriteHeader(output, input.Length, totalCompressedLength);
                 return totalCompressedLength;
             }

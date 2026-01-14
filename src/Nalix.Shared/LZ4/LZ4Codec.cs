@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Shared.LZ4.Encoders;
 using Nalix.Shared.LZ4.Engine;
@@ -25,7 +25,23 @@ public static class LZ4Codec
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 Encode(
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> input,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Span<System.Byte> output) => LZ4Encoder.Encode(input, output);
+        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Span<System.Byte> output)
+    {
+        if (output.Length < LZ4BlockHeader.Size)
+        {
+            return -1;
+        }
+
+        try
+        {
+            return LZ4Encoder.Encode(input, output);
+        }
+        catch (System.AccessViolationException ex)
+        {
+            throw new System.InvalidOperationException(
+                $"Memory access violation during LZ4 encoding. Input length: {input.Length}, Output length: {output.Length}", ex);
+        }
+    }
 
     /// <summary>
     /// Compresses the input byte array into the specified output byte array.
