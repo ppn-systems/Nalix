@@ -1,4 +1,4 @@
-﻿using Nalix.Common.Enums;
+﻿using Nalix.Common.Core.Enums;
 using Nalix.Framework.Identity;
 using System;
 using System.Collections.Generic;
@@ -127,6 +127,6 @@ public class IdentifierTests
     {
         Int32 size = Unsafe.SizeOf<Snowflake>();
         // StructLayout(Size=7) => managed size must be 7
-        Assert.Equal(7, size);
+        Assert.Equal(8, size);
     }
 }

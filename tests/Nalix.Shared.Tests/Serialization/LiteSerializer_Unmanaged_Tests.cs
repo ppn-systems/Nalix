@@ -1,9 +1,10 @@
-﻿using Nalix.Common.Exceptions;
+﻿using Nalix.Common.Core.Exceptions;
 using Nalix.Shared.Serialization;
 using System;
 using Xunit;
 
 namespace Nalix.Shared.Tests.Serialization;
+
 public class LiteSerializer_Unmanaged_Tests
 {
     [Fact]
