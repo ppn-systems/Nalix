@@ -12,6 +12,8 @@ namespace Nalix.Shared.LZ4.Engine;
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal static class LZ4Encoder
 {
+    #region APIs
+
     /// <summary>
     /// Compresses the provided input data into the specified output buffer.
     /// </summary>
@@ -96,6 +98,10 @@ internal static class LZ4Encoder
         }
     }
 
+    #endregion APIs
+
+    #region Private Methods
+
     /// <summary>
     /// Writes a header for an empty input to the output buffer.
     /// </summary>
@@ -130,4 +136,6 @@ internal static class LZ4Encoder
         LZ4BlockHeader header = new(originalLength, compressedLength);
         MemOps.WriteUnaligned(output, header);
     }
+
+    #endregion Private Methods
 }

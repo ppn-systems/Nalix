@@ -11,6 +11,8 @@ namespace Nalix.Shared.LZ4.Encoders;
 [System.Diagnostics.DebuggerNonUserCode]
 public static class LZ4BlockEncoder
 {
+    #region APIs
+
     /// <summary>
     /// Calculates the maximum compressed length for a given input size.
     /// This is an estimate based on the input size and compression algorithm overheads.
@@ -61,6 +63,10 @@ public static class LZ4BlockEncoder
             }
         }
     }
+
+    #endregion APIs
+
+    #region Private Methods
 
     /// <summary>
     /// Core encoding logic. Processes input data and writes compressed output.
@@ -293,4 +299,6 @@ public static class LZ4BlockEncoder
         LiteralWriter.Write(ref outputPtr, literalStartPtr, literalLength);
         return true;
     }
+
+    #endregion Private Methods
 }

@@ -9,12 +9,18 @@ namespace Nalix.Shared.LZ4.Engine;
 /// </summary>
 public static class LZ4HashTablePool
 {
+    #region Fields
+
     [System.ThreadStatic]
     private static System.Int32[]? t_hashTable;
 
+    #endregion Fields
+
+    #region APIs
+
     /// <summary>
     /// Gets a thread-local hash table for compression operations.
-    /// The hash table is automatically cleared before returning. 
+    /// The hash table is automatically cleared before returning.
     /// </summary>
     /// <returns>A cleared hash table ready for use.</returns>
     public static System.Int32[] Rent()
@@ -44,4 +50,6 @@ public static class LZ4HashTablePool
     /// Clears the thread-local hash table cache (useful for testing or memory cleanup).
     /// </summary>
     public static void Clear() => t_hashTable = null;
+
+    #endregion APIs
 }
