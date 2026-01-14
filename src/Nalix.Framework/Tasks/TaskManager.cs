@@ -98,6 +98,7 @@ public sealed partial class TaskManager : ITaskManager
         System.ArgumentNullException.ThrowIfNull(work);
 
         options ??= new WorkerOptions();
+
         ISnowflake id = Snowflake.NewId(options.IdType, options.MachineId);
         System.Threading.CancellationTokenSource cts = options.CancellationToken.CanBeCanceled
             ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(options.CancellationToken)

@@ -2,7 +2,7 @@
 
 using Nalix.Common.Core.Abstractions;
 using Nalix.Common.Core.Enums;
-using Nalix.Common.Primitives;
+using Nalix.Common.Core.Primitives;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Options;
 using Nalix.Framework.Time;
@@ -29,6 +29,11 @@ public readonly partial struct Snowflake : ISnowflake
 
     private readonly UInt56 __combined;
     private static readonly System.UInt16 __machineId = ConfigurationManager.Instance.Get<SnowflakeOptions>().MachineId;
+
+    private static System.UInt16 _sequence = 0;
+    private static System.Int64 _lastTimestampMs = 0;
+    private const System.UInt16 MaxSequence = 0xFFFF; // 16-bit max = 65535
+    private static readonly System.Threading.Lock _generatorLock = new();
 
     #endregion Const
 
@@ -174,28 +179,6 @@ public readonly partial struct Snowflake : ISnowflake
     public static Snowflake NewId(System.UInt32 value, System.UInt16 machineId, SnowflakeType type) => new(value, machineId, type);
 
     /// <summary>
-    /// Creates a new <see cref="Snowflake"/> with the specified type and machine identifier.
-    /// </summary>
-    /// <param name="type">The identifier type.</param>
-    /// <param name="machineId">The machine identifier. Defaults to 1 if not specified.</param>
-    /// <returns>A new <see cref="Snowflake"/> instance with a timestamp-based value.</returns>
-    /// <remarks>
-    /// This method generates a unique identifier by combining the current Unix timestamp (in seconds)
-    /// with the provided type and machine ID. The timestamp ensures temporal uniqueness.
-    /// </remarks>
-    /// <example>
-    /// <code>
-    /// var id = Snowflake.NewId(SnowflakeType.SYSTEM, 42);
-    /// Console.WriteLine(id.ToString());
-    /// </code>
-    /// </example>
-    [System.Diagnostics.DebuggerHidden]
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Snowflake NewId(SnowflakeType type, System.UInt16 machineId = 1) => new(Clock.UnixSecondsNowUInt32(), machineId, type);
-
-    /// <summary>
     /// Creates a new <see cref="Snowflake"/> with the specified type using the configured machine identifier.
     /// </summary>
     /// <param name="type">The identifier type.</param>
@@ -217,7 +200,78 @@ public readonly partial struct Snowflake : ISnowflake
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Snowflake NewId(SnowflakeType type) => new(Clock.UnixSecondsNowUInt32(), __machineId, type);
+    public static Snowflake NewId(SnowflakeType type) => NewId(type, __machineId);
+
+    /// <summary>
+    /// Creates a new <see cref="Snowflake"/> with the specified type and machine identifier.
+    /// </summary>
+    /// <param name="type">The identifier type.</param>
+    /// <param name="machineId">The machine identifier. Defaults to 1 if not specified.</param>
+    /// <returns>A new <see cref="Snowflake"/> instance with a timestamp-based value.</returns>
+    /// <remarks>
+    /// This method generates a unique identifier by combining the current Unix timestamp (in seconds)
+    /// with the provided type and machine ID. The timestamp ensures temporal uniqueness.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// var id = Snowflake.NewId(SnowflakeType.SYSTEM, 42);
+    /// Console.WriteLine(id.ToString());
+    /// </code>
+    /// </example>
+    [System.Diagnostics.DebuggerHidden]
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static Snowflake NewId(SnowflakeType type, System.UInt16 machineId = 1)
+    {
+        lock (_generatorLock)
+        {
+            // Use milliseconds for better resolution (1000x better than seconds)
+            System.Int64 timestampMs = Clock.UnixMillisecondsNow();
+
+            if (timestampMs == _lastTimestampMs)
+            {
+                // Same millisecond - increment sequence
+                _sequence++;
+
+                // Sequence overflow check
+                if (_sequence > MaxSequence)
+                {
+                    // Exceeded max IDs per millisecond - wait for next ms
+                    System.Threading.SpinWait sw = new();
+                    do
+                    {
+                        sw.SpinOnce();
+                        timestampMs = Clock.UnixMillisecondsNow();
+                    }
+                    while (timestampMs == _lastTimestampMs);
+
+                    _lastTimestampMs = timestampMs;
+                    _sequence = 0;
+                }
+            }
+            else if (timestampMs > _lastTimestampMs)
+            {
+                // New millisecond - reset sequence
+                _lastTimestampMs = timestampMs;
+                _sequence = 0;
+            }
+            else
+            {
+                // Clock moved backwards - this is a serious error
+                throw new System.InvalidOperationException(
+                    $"Clock moved backwards! Last={_lastTimestampMs}ms, Current={timestampMs}ms.  " +
+                    "This typically indicates system clock adjustment or NTP sync issues.");
+            }
+
+            // Combine timestamp (lower 32 bits) with sequence in upper bits
+            // Since timestamp is in ms and grows slowly, we can safely use lower 32 bits
+            // and mix sequence into it for uniqueness
+            System.UInt32 value = (System.UInt32)(timestampMs & 0xFFFF0000) | _sequence;
+
+            return new Snowflake(value, machineId, type);
+        }
+    }
 
     #endregion Factory Methods
 
