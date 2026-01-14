@@ -25,7 +25,7 @@ namespace Nalix.Network.Timing;
 /// <para>
 /// The timer periodically inspects registered <see cref="IConnection"/> instances and closes those
 /// that have been idle longer than the configured threshold
-/// (<see cref="TimingWheelOptions.TcpIdleTimeoutMs"/>).
+/// (<see cref="TimingWheelOptions.TcpIdleTimeout"/>).
 /// </para>
 /// <para>
 /// It uses a hashed timing wheel:
@@ -127,9 +127,9 @@ public sealed class TimingWheel : IActivatable
     /// </remarks>
     public TimingWheel()
     {
-        WheelSize = IdleTimeoutOptions.WheelSize;
-        TickMs = IdleTimeoutOptions.TickDurationMs;
-        IdleTimeoutMs = IdleTimeoutOptions.TcpIdleTimeoutMs;
+        WheelSize = IdleTimeoutOptions.BucketCount;
+        TickMs = IdleTimeoutOptions.TickDuration;
+        IdleTimeoutMs = IdleTimeoutOptions.TcpIdleTimeout;
 
         // Prefer mask if power-of-two wheel size.
         _useMask = (WheelSize & (WheelSize - 1)) == 0 && WheelSize > 0;
