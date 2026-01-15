@@ -11,7 +11,7 @@ using Nalix.Framework.Memory.Objects;
 using Nalix.Logging;
 using Xunit;
 
-namespace Nalix.Framework.Tests.Registry;
+namespace Nalix.Framework.Tests.DataFrames;
 
 /// <summary>
 /// <para>
@@ -26,14 +26,14 @@ namespace Nalix.Framework.Tests.Registry;
 ///   so that <see cref="PacketBase{TSelf}.Deserialize"/> can pull pooled instances.
 /// </para>
 /// </summary>
-public sealed class PacketCatalogTests : System.IDisposable
+public sealed class PacketRegistryTests : System.IDisposable
 {
     #region Setup
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "<Pending>")]
     private readonly IPacketRegistry _catalog;
 
-    public PacketCatalogTests()
+    public PacketRegistryTests()
     {
         // Register ObjectPoolManager so PacketBase<TSelf>.Deserialize can use the pool.
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
