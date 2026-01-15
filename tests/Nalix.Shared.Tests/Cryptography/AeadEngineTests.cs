@@ -38,32 +38,32 @@ public class AeadEngineTests
     [Fact]
     public void ConvertKeyToXtea_OutTooSmall_ThrowsArgumentException()
     {
-        var key32 = new Byte[32];
-        var outTooSmall = new Byte[8];
+        Byte[] key32 = new Byte[32];
+        Byte[] outTooSmall = new Byte[8];
 
         var ex = Assert.Throws<ArgumentException>(() => AeadEngine.U32ToU16(key32, outTooSmall));
-        Assert.Equal("out16", ex.ParamName);
+        Assert.Equal("bytes16", ex.ParamName);
     }
 
     [Fact]
     public void EncryptDecrypt_ChaCha20Poly1305_Roundtrip_Succeeds()
     {
-        var key = new Byte[32];
+        Byte[] key = new Byte[32];
         for (Int32 i = 0; i < key.Length; i++)
         {
             key[i] = (Byte)(i + 1);
         }
 
-        var plaintext = System.Text.Encoding.UTF8.GetBytes("Test plaintext for AEAD engine");
-        var aad = System.Text.Encoding.UTF8.GetBytes("header-aad");
+        Byte[] plaintext = System.Text.Encoding.UTF8.GetBytes("Test plaintext for AEAD engine");
+        Byte[] aad = System.Text.Encoding.UTF8.GetBytes("header-aad");
 
         // Use fixed seq to make test deterministic
-        var envelope = AeadEngine.Encrypt(key, plaintext, CipherSuiteType.CHACHA20_POLY1305, aad, seq: 0x12345678u);
+        Byte[] envelope = AeadEngine.Encrypt(key, plaintext, CipherSuiteType.CHACHA20_POLY1305, aad, seq: 0x12345678u);
 
         Assert.NotNull(envelope);
         Assert.True(envelope.Length > plaintext.Length);
 
-        var ok = AeadEngine.Decrypt(key, envelope, out var decrypted, aad);
+        Boolean ok = AeadEngine.Decrypt(key, envelope, out var decrypted, aad);
         Assert.True(ok);
         Assert.NotNull(decrypted);
         Assert.Equal(plaintext, decrypted);

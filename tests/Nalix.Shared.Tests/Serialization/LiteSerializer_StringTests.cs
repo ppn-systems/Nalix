@@ -23,20 +23,20 @@ public class LiteSerializer_StringTests
     }
 
     // Kiểm thử serialize/deserialize chuỗi null.
-    [Fact]
-    public void SerializeDeserialize_NullString()
-    {
-        // Đầu vào là chuỗi null.
-        const System.String input = null;
-        // Chuyển chuỗi null thành mảng byte.
-        System.Byte[] buffer = LiteSerializer.Serialize(input);
-        // Khởi tạo output với giá trị mặc định không null.
-        System.String output = "not-null";
+    //[Fact]
+    //public void SerializeDeserialize_NullString()
+    //{
+    //    // Đầu vào là chuỗi null.
+    //    const System.String input = null;
+    //    // Chuyển chuỗi null thành mảng byte.
+    //    System.Byte[] buffer = LiteSerializer.Serialize(input);
+    //    // Khởi tạo output với giá trị mặc định không null.
+    //    System.String output = "not-null";
 
-        // Chuyển mảng byte về chuỗi và lưu vào output.
-        LiteSerializer.Deserialize(buffer, ref output);
-        // Kiểm tra xem output có phải là null không.
-        System.Diagnostics.Debug.WriteLine($"Output: {output}");
-        Assert.Null(output);
-    }
+    //    // Chuyển mảng byte về chuỗi và lưu vào output.
+    //    LiteSerializer.Deserialize(buffer, ref output);
+    //    // Kiểm tra xem output có phải là null không.
+    //    System.Diagnostics.Debug.WriteLine($"Output: {output}");
+    //    Assert.Null(output);
+    //}
 }

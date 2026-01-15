@@ -94,7 +94,7 @@ public static class AeadEngine
 
         // Generate nonce
         System.Span<System.Byte> nonceStack = stackalloc System.Byte[System.Math.Max(16, nonceLen)];
-        var nonce = nonceStack[..nonceLen];
+        System.Span<System.Byte> nonce = nonceStack[..nonceLen];
         Csprng.Fill(nonce);
 
         // Sequence
@@ -312,28 +312,28 @@ public static class AeadEngine
     /// <c>out[i] = bytes32[i] XOR bytes32[i + 16]</c>.
     /// </summary>
     /// <param name="bytes32">Source 32-byte key.</param>
-    /// <param name="bytes16">Destination span (must be at least 16 bytes).</param>
-    /// <exception cref="System.ArgumentException">Thrown if <paramref name="bytes32"/> is not 32 bytes or <paramref name="bytes16"/> is too small.</exception>
+    /// <param name="out16">Destination span (must be at least 16 bytes).</param>
+    /// <exception cref="System.ArgumentException">Thrown if <paramref name="bytes32"/> is not 32 bytes or <paramref name="out16"/> is too small.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static void U32ToU16(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> bytes32,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> bytes16)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> out16)
     {
         if (bytes32.Length != 32)
         {
             ThrowHelper.BadKeyLen32();
         }
 
-        if (bytes16.Length < 16)
+        if (out16.Length < 16)
         {
-            throw new System.ArgumentException("bytes16 must be at least 16 bytes", nameof(bytes16));
+            throw new System.ArgumentException("bytes16 must be at least 16 bytes", nameof(out16));
         }
 
         for (System.Int32 i = 0; i < 16; i++)
         {
-            bytes16[i] = (System.Byte)(bytes32[i] ^ bytes32[i + 16]);
+            out16[i] = (System.Byte)(bytes32[i] ^ bytes32[i + 16]);
         }
     }
 
