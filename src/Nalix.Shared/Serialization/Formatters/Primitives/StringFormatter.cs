@@ -15,8 +15,8 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed class StringFormatter : IFormatter<System.String>
 {
-    private static System.String DebuggerDisplay => $"StringFormatter<SYSTEM.String>";
     private static readonly System.Text.Encoding Utf8 = System.Text.Encoding.UTF8;
+    private static System.String DebuggerDisplay => "StringFormatter<System.String>";
 
     /// <summary>
     /// Serializes a string value into the provided writer.
@@ -106,9 +106,9 @@ public sealed class StringFormatter : IFormatter<System.String>
             throw new SerializationException("String length out of range");
         }
 
+        System.String result;
         ref System.Byte start = ref reader.GetSpanReference(length);
 
-        System.String result;
         fixed (System.Byte* ptr = &start)
         {
             result = Utf8.GetString(ptr, length);
