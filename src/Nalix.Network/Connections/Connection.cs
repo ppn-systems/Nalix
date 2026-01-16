@@ -62,7 +62,7 @@ public sealed partial class Connection : IConnection
         _cstream.SetCallback(OnCloseEventBridge, OnPostProcessEventBridge, this, _evtArgs);
 
         this.ID = Snowflake.NewId(SnowflakeType.Session);
-        this.EndPoint = EndpointToken.FromEndPoint(socket.RemoteEndPoint);
+        this.EndPoint = NetworkEndpoint.FromEndPoint(socket.RemoteEndPoint);
         this.UDP = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                            .Get<UdpTransport>();
         this.UDP.Initialize(this);

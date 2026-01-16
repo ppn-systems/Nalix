@@ -1,0 +1,5 @@
+# FUNDING.yml for the Nalix project
+# Add funding methods to help support your repository on GitHub
+
+github: ["ppn-systems"]      # GitHub username or organization to receive sponsorship
+patreon: ppn-systems         # Patreon username (if available), omit if not used
