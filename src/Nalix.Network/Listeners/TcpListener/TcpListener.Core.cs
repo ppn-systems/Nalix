@@ -15,8 +15,8 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Configurations;
-using Nalix.Network.Internal;
-using Nalix.Network.Internal.Pooled;
+using Nalix.Network.Internal.Constants;
+using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Throttling;
 using Nalix.Network.Timekeeping;
 
@@ -136,7 +136,7 @@ public abstract partial class TcpListenerBase : IListener
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .SetMaxCapacity<PooledAcceptContext>(options.AcceptContextCapacity);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PooledListenerProcessContext>(options.ListenerContextCapacity);
+                                    .SetMaxCapacity<PooledTcpListenerContext>(options.TcpListenerContextCapacity);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .SetMaxCapacity<PooledSocketAsyncEventArgs>(options.SocketArgsCapacity);
 
@@ -144,7 +144,7 @@ public abstract partial class TcpListenerBase : IListener
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<PooledAcceptContext>(options.AcceptContextPreallocate);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PooledListenerProcessContext>(options.ListenerContextPreallocate);
+                                    .Prealloc<PooledTcpListenerContext>(options.TcpListenerContextPreallocate);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<PooledSocketAsyncEventArgs>(options.SocketArgsPreallocate);
 
@@ -202,7 +202,7 @@ public abstract partial class TcpListenerBase : IListener
                 try
                 {
                     _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                                .CancelGroup($"{NetTaskNames.Net}/{NetTaskNames.Tcp}/{self._port}");
+                                                .CancelGroup($"{NetworkTags.Net}/{NetworkTags.Tcp}/{self._port}");
                 }
                 catch { }
 

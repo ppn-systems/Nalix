@@ -25,7 +25,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
 using Nalix.Network.Connections;
-using Nalix.Network.Internal;
+using Nalix.Network.Internal.Constants;
 using Nalix.Network.Internal.Transport;
 
 namespace Nalix.Network.Throttling;
@@ -344,7 +344,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
                     },
                     options: new WorkerOptions
                     {
-                        Tag = NetTaskNames.Net,
+                        Tag = NetworkTags.Net,
                         IdType = SnowflakeType.System,
                         RetainFor = TimeSpan.Zero,
                     }

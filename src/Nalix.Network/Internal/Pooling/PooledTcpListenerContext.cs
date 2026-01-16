@@ -6,7 +6,7 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Network.Listeners.Tcp;
 
-namespace Nalix.Network.Internal.Pooled;
+namespace Nalix.Network.Internal.Pooling;
 
 /// <summary>
 /// Represents a pooled context used during TCP listener processing.
@@ -16,7 +16,7 @@ namespace Nalix.Network.Internal.Pooled;
 /// when handling incoming TCP connections.
 /// </remarks>
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal sealed class PooledListenerProcessContext : IPoolable
+internal sealed class PooledTcpListenerContext : IPoolable
 {
     /// <summary>
     /// Gets or sets the active connection associated with the current processing context.

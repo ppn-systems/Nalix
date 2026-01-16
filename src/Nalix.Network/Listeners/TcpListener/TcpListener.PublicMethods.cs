@@ -17,7 +17,7 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.Network.Connections;
-using Nalix.Network.Internal;
+using Nalix.Network.Internal.Constants;
 using Nalix.Network.Timekeeping;
 
 namespace Nalix.Network.Listeners.Tcp;
@@ -119,12 +119,12 @@ public abstract partial class TcpListenerBase
             for (int i = 0; i < s_config.MaxParallel; i++)
             {
                 IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                    name: $"{NetTaskNames.Tcp}.{TaskNaming.Tags.Accept}.{i}",
-                    group: $"{NetTaskNames.Net}/{NetTaskNames.Tcp}/{_port}",
+                    name: $"{NetworkTags.Tcp}.{TaskNaming.Tags.Accept}.{i}",
+                    group: $"{NetworkTags.Net}/{NetworkTags.Tcp}/{_port}",
                     work: async (ctx, ct) => await this.AcceptConnectionsAsync(ctx, ct).ConfigureAwait(false),
                     options: new WorkerOptions
                     {
-                        Tag = NetTaskNames.Net,
+                        Tag = NetworkTags.Net,
                         IdType = SnowflakeType.System,
                         CancellationToken = linkedToken,
                         RetainFor = TimeSpan.FromSeconds(30),
@@ -206,7 +206,7 @@ public abstract partial class TcpListenerBase
             this.STOP_PROCESS_CHANNEL();
 
             _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                         .CancelGroup($"{NetTaskNames.Net}/{NetTaskNames.Tcp}/{_port}"));
+                                         .CancelGroup($"{NetworkTags.Net}/{NetworkTags.Tcp}/{_port}"));
 
             InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
                                     .CloseAllConnections();
