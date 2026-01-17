@@ -13,9 +13,17 @@ namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
 {
+    /// <summary>
+    /// Initializes the underlying <see cref="UdpClient"/> and applies the listener socket configuration.
+    /// </summary>
+    /// <remarks>
+    /// Derived types can override this method to customize how the UDP socket is created or bound,
+    /// but should preserve the contract that <see cref="_udpClient"/> is ready for receive operations
+    /// when the method returns.
+    /// </remarks>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void Initialize()
+    protected virtual void Initialize()
     {
         _udpClient = new UdpClient(_port)
         {
@@ -28,13 +36,22 @@ public abstract partial class UdpListenerBase
                                 .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] init-ok port={_port} reuse={Config.ReuseAddress} buf={Config.BufferSize}");
     }
 
+    /// <summary>
+    /// Applies the listener's socket-level performance tuning.
+    /// </summary>
+    /// <param name="socket">The socket to configure.</param>
+    /// <remarks>
+    /// Override this method when a derived listener needs a different tuning profile, such as
+    /// platform-specific socket options or custom buffer sizing. Implementations should be careful
+    /// to preserve the non-blocking and buffer configuration expectations of the base receive loop.
+    /// </remarks>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
     [SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [SuppressMessage(
         "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
-    private static void ConfigureHighPerformanceSocket(Socket socket)
+    protected virtual void ConfigureHighPerformanceSocket(Socket socket)
     {
         socket.Blocking = false;
         socket.NoDelay = Config.NoDelay;
