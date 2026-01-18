@@ -26,6 +26,11 @@ jobs:
     runs-on: ${{ inputs.os }}
 
     steps:
+      - name: Prepare variables
+        shell: bash
+        run: |
+          echo "TEST_RESULTS_DIR=${{ github.workspace }}/artifacts/test-results/${{ runner.os }}" >> "$GITHUB_ENV"
+
       - name: Checkout source code
         uses: actions/checkout@v4
 
@@ -72,6 +77,34 @@ jobs:
           done
         shell: bash
 
+      - name: Create test results directory
+        shell: bash
+        run: mkdir -p "$TEST_RESULTS_DIR"
+
+      - name: Run tests
+        run: |
+          echo "${{ inputs.test }}" | tr -d '\r' | while IFS= read -r testproj; do
+            if [ -n "$testproj" ]; then
+              name=$(basename "$testproj")
+              name="${name%.*}"
+              echo "🧪 Testing $testproj"
+              dotnet test "$testproj" \
+                --configuration Debug \
+                --no-restore \
+                --logger "trx;LogFileName=${name}-${{ runner.os }}.trx" \
+                --results-directory "$TEST_RESULTS_DIR"
+            fi
+          done
+        shell: bash
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ runner.os }}
+          path: ${{ env.TEST_RESULTS_DIR }}
+          if-no-files-found: warn
+
       - name: Publish build output
         if: ${{ inputs.deploy }}
         run: |
@@ -88,5 +121,5 @@ jobs:
         if: ${{ inputs.deploy }}
         uses: actions/upload-artifact@v4
         with:
-          name: publish
+          name: publish-${{ runner.os }}
           path: ./publish
