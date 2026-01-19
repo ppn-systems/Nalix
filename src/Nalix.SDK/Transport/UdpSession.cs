@@ -54,15 +54,10 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
     #endregion Constants
 
-    #region Static Fields
-
-    private static readonly ILogger? Logging = InstanceManager.Instance.GetExistingInstance<ILogger>();
-    private static readonly IThreadDispatcher Dispatcher = InstanceManager.Instance.GetExistingInstance<IThreadDispatcher>() ?? new InlineDispatcher();
-
-    #endregion Static Fields
-
     #region Fields
 
+    private readonly ILogger? _logger;
+    private readonly IThreadDispatcher _dispatcher;
     private readonly Lock _sync = new();
 
     private Socket? _socket;
@@ -94,9 +89,31 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     /// </exception>
     public UdpSession()
     {
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        _dispatcher = InstanceManager.Instance.GetExistingInstance<IThreadDispatcher>() ?? new InlineDispatcher();
         this.Catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
             ?? throw new InvalidOperationException("IPacketRegistry instance not found.");
 
+        this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
+        this.Options.Validate();
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UdpSession"/> class with an explicit packet registry
+    /// and optional common services.
+    /// </summary>
+    /// <param name="registry">The packet registry used for packet serialization and deserialization.</param>
+    /// <param name="logger">Optional logger override. When null, the logger is resolved from <see cref="InstanceManager"/>.</param>
+    /// <param name="dispatcher">Optional dispatcher override. When null, the dispatcher is resolved from <see cref="InstanceManager"/>.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="registry"/> is null.</exception>
+    public UdpSession(
+        IPacketRegistry registry,
+        ILogger? logger = null,
+        IThreadDispatcher? dispatcher = null)
+    {
+        _logger = logger ?? InstanceManager.Instance.GetExistingInstance<ILogger>();
+        _dispatcher = dispatcher ?? InstanceManager.Instance.GetExistingInstance<IThreadDispatcher>() ?? new InlineDispatcher();
+        this.Catalog = registry ?? throw new ArgumentNullException(nameof(registry));
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
         this.Options.Validate();
     }
@@ -107,7 +124,27 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     /// <param name="options">The transport options used by this session.</param>
     /// <param name="registry">The packet registry used for packet serialization and deserialization.</param>
     public UdpSession(TransportOptions options, IPacketRegistry registry)
+        : this(options, registry, logger: null, dispatcher: null)
     {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UdpSession"/> class with explicit transport options,
+    /// packet registry, and optional common services.
+    /// </summary>
+    /// <param name="options">The transport options used by this session.</param>
+    /// <param name="registry">The packet registry used for packet serialization and deserialization.</param>
+    /// <param name="logger">Optional logger override. When null, the logger is resolved from <see cref="InstanceManager"/>.</param>
+    /// <param name="dispatcher">Optional dispatcher override. When null, the dispatcher is resolved from <see cref="InstanceManager"/>.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> or <paramref name="registry"/> is null.</exception>
+    public UdpSession(
+        TransportOptions options,
+        IPacketRegistry registry,
+        ILogger? logger = null,
+        IThreadDispatcher? dispatcher = null)
+    {
+        _logger = logger ?? InstanceManager.Instance.GetExistingInstance<ILogger>();
+        _dispatcher = dispatcher ?? InstanceManager.Instance.GetExistingInstance<IThreadDispatcher>() ?? new InlineDispatcher();
         this.Options = options ?? throw new ArgumentNullException(nameof(options));
         this.Catalog = registry ?? throw new ArgumentNullException(nameof(registry));
     }
@@ -244,7 +281,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
             this.Options.Port = source.Options.Port;
         }
 
-        Logging?.Info(
+        _logger?.Info(
             $"[SDK.{nameof(UdpSession)}] Bound UDP auth context from {source.GetType().Name} " +
             $"to {this.Options.Address}:{this.Options.Port} with session={sessionId}.");
     }
@@ -344,7 +381,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
             {
                 lastEx = ex;
                 try { socket.Dispose(); } catch { }
-                Logging?.Warn($"[SDK.{nameof(UdpSession)}] Failed to connect to {address}:{effectivePort}: {ex.Message}", ex);
+                _logger?.Warn($"[SDK.{nameof(UdpSession)}] Failed to connect to {address}:{effectivePort}: {ex.Message}", ex);
             }
         }
 
@@ -722,7 +759,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
                     BufferLease copy = BufferLease.CopyFrom(lease.Span);
                     EventHandler<IBufferLease> handler = (EventHandler<IBufferLease>)handlerDelegate;
 
-                    Dispatcher.Post(() =>
+                    _dispatcher.Post(() =>
                     {
                         try
                         {
@@ -730,7 +767,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
                         }
                         catch (Exception ex)
                         {
-                            Logging?.Error($"[SDK.{nameof(UdpSession)}] Sync handler faulted: {ex.Message}", ex);
+                            _logger?.Error($"[SDK.{nameof(UdpSession)}] Sync handler faulted: {ex.Message}", ex);
                         }
                         finally
                         {
@@ -747,7 +784,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
         if (asyncHandler is not null)
         {
-            Dispatcher.Post(() => _ = this.InvokeAsyncHandler(asyncHandler, asyncData));
+            _dispatcher.Post(() => _ = this.InvokeAsyncHandler(asyncHandler, asyncData));
         }
     }
 
@@ -761,7 +798,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Logging?.Error($"[SDK.{nameof(UdpSession)}] Async handler faulted: {ex.Message}", ex);
+            _logger?.Error($"[SDK.{nameof(UdpSession)}] Async handler faulted: {ex.Message}", ex);
         }
     }
 
@@ -881,7 +918,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
     private async Task ReconnectLoopAsync(Exception cause)
     {
-        Logging?.Warn($"[SDK.{nameof(UdpSession)}] Triggering reconnect after: {cause.Message}", cause);
+        _logger?.Warn($"[SDK.{nameof(UdpSession)}] Triggering reconnect after: {cause.Message}", cause);
         this.TearDownConnection();
 
         if (Volatile.Read(ref _disposed) == 1 || string.IsNullOrWhiteSpace(_host) || _port is null)
@@ -916,7 +953,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
             }
             catch (Exception ex)
             {
-                Logging?.Warn($"[SDK.{nameof(UdpSession)}] Reconnect attempt {attempt} failed: {ex.Message}", ex);
+                _logger?.Warn($"[SDK.{nameof(UdpSession)}] Reconnect attempt {attempt} failed: {ex.Message}", ex);
                 delay = Math.Min(max, delay * 2);
             }
         }
