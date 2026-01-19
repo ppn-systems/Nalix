@@ -66,9 +66,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 controlType: ControlType.FAIL,
                 reason: ProtocolReason.REQUEST_INVALID,
                 action: ProtocolAdvice.FIX_AND_RETRY,
-                sequenceId: packet.SequenceId,
-                flags: ControlFlags.NONE,
-                arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
+                options: new ConnectionExtensions.ControlDirectiveOptions(
+                    SequenceId: packet.SequenceId,
+                    Arg0: descriptor.OpCode)).ConfigureAwait(false);
 
             return;
         }
@@ -97,9 +97,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
                         controlType: ControlType.FAIL,
                         reason: ProtocolReason.RATE_LIMITED,
                         action: ProtocolAdvice.RETRY,
-                        sequenceId: context.Packet.SequenceId,
-                        flags: ControlFlags.IS_TRANSIENT,
-                        arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
+                        options: new ConnectionExtensions.ControlDirectiveOptions(
+                            Flags: ControlFlags.IS_TRANSIENT,
+                            SequenceId: context.Packet.SequenceId,
+                            Arg0: descriptor.OpCode)).ConfigureAwait(false);
 
                     return;
                 }
@@ -148,9 +149,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
               controlType: ControlType.FAIL,
               reason: reason,
               action: action,
-              sequenceId: context.Packet.SequenceId,
-              flags: flags,
-              arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
+              options: new ConnectionExtensions.ControlDirectiveOptions(
+                  Flags: flags,
+                  SequenceId: context.Packet.SequenceId,
+                  Arg0: descriptor.OpCode)).ConfigureAwait(false);
     }
 
     [Pure]
