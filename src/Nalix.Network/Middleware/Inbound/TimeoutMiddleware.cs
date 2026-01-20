@@ -40,12 +40,12 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
         {
             using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, timeoutCts.Token);
             tokenToUse = linkedCts.Token;
-            await ExecuteHandlerAsync(timeout, context, next, tokenToUse);
+            await ExecuteHandlerAsync(timeout, context, next, tokenToUse).ConfigureAwait(false);
         }
         else
         {
             tokenToUse = timeoutCts.Token;
-            await ExecuteHandlerAsync(timeout, context, next, tokenToUse);
+            await ExecuteHandlerAsync(timeout, context, next, tokenToUse).ConfigureAwait(false);
         }
     }
 
