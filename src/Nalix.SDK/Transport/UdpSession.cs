@@ -1,6 +1,15 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
@@ -16,15 +25,6 @@ using Nalix.Framework.Random;
 using Nalix.Framework.Security.Hashing;
 using Nalix.Framework.Time;
 using Nalix.SDK.Configuration;
-using System;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Net;
-using System.Net.Sockets;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Nalix.SDK.Transport;
 
@@ -66,8 +66,6 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
     private string? _host;
     private ushort? _port;
-    private EndPoint? _remoteEndPoint;
-
     private int _disposed;
     private int _connected;
     private int _reconnecting;
@@ -176,7 +174,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     /// <summary>
     /// Gets the remote endpoint currently associated with this UDP session.
     /// </summary>
-    public EndPoint? RemoteEndPoint => _remoteEndPoint;
+    public EndPoint? RemoteEndPoint { get; private set; }
 
     /// <summary>
     /// Gets the total number of bytes sent.
@@ -333,7 +331,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
         foreach (IPAddress address in addresses)
         {
-            Socket socket = new(address.AddressFamily, SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
+            Socket socket = new(address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 
             try
             {
@@ -353,7 +351,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
                 lock (_sync)
                 {
                     _socket = socket;
-                    _remoteEndPoint = remote;
+                    RemoteEndPoint = remote;
                     _host = effectiveHost;
                     _port = effectivePort;
                     _loopCts = new CancellationTokenSource();
@@ -820,8 +818,8 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
             return payload.ToArray();
         }
 
-        IPEndPoint remote = (IPEndPoint)(_remoteEndPoint ?? throw new InvalidOperationException("Remote endpoint not available."));
-        ISnowflake sessionId = SessionId ?? throw new InvalidOperationException("SessionId is required for authenticated UDP datagrams.");
+        IPEndPoint remote = (IPEndPoint)(RemoteEndPoint ?? throw new InvalidOperationException("Remote endpoint not available."));
+        ISnowflake sessionId = this.SessionId ?? throw new InvalidOperationException("SessionId is required for authenticated UDP datagrams.");
         byte[] secret = this.Options.Secret;
 
         byte[] datagram = new byte[payload.Length + AuthenticationMetadataSize];
@@ -867,9 +865,9 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     /// </summary>
     private bool ShouldAppendAuthenticationMetadata()
         => this.UseAuthenticationMetadata
-        && SessionId is not null
+        && this.SessionId is not null
         && this.Options.Secret is { Length: >= Poly1305.KeySize }
-        && _remoteEndPoint is IPEndPoint;
+        && RemoteEndPoint is IPEndPoint;
 
     #endregion Datagram Construction
 
@@ -887,7 +885,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
             try { _socket?.Dispose(); } catch { }
 
             _socket = null;
-            _remoteEndPoint = null;
+            RemoteEndPoint = null;
         }
 
         _receiveTask = null;
