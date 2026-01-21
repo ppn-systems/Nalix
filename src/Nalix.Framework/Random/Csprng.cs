@@ -40,7 +40,7 @@ public static class Csprng
             f(probe);
             s_f = f;
         }
-        catch
+        catch (InvalidOperationException)
         {
             OsRandom.Attach();
             s_f = OsRandom.Fill;

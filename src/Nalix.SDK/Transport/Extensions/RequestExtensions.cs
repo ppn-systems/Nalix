@@ -232,18 +232,7 @@ public static class RequestExtensions
                     timeoutMs: options.TimeoutMs,
                     sendAsync: token => options.Encrypt
                         ? ((TcpSessionBase)client).SendAsync(request, encrypt: true, token)
-                        : client.SendAsync(request, token).ContinueWith(
-                            t =>
-                            {
-                                if (!t.Result)
-                                {
-                                    throw new InvalidOperationException(
-                                        $"[SDK.RequestAsync<{typeof(TResponse).Name}>] SendAsync returned false; packet was not transmitted.");
-                                }
-                            },
-                            token,
-                            TaskContinuationOptions.OnlyOnRanToCompletion,
-                            TaskScheduler.Default),
+                        : client.SendAsync(request, token),
                     ct).ConfigureAwait(false);
 
                 if (attempt > 1)

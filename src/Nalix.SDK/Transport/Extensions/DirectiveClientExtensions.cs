@@ -265,7 +265,7 @@ public static class DirectiveClientExtensions
             await Task.Delay(wait, ct).ConfigureAwait(false);
         }
 
-        _ = await client.SendAsync(packet, ct).ConfigureAwait(false);
+        await client.SendAsync(packet, ct).ConfigureAwait(false);
     }
 
     /// <summary>

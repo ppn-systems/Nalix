@@ -2,14 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
-
-#if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
 
 namespace Nalix.Network.Routing.Results;
 
