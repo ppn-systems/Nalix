@@ -1,5 +1,11 @@
 #nullable enable
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Security;
@@ -9,12 +15,6 @@ using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.DataFrames.TextFrames;
 using Nalix.Framework.Memory.Buffers;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
 using Xunit;
 
 namespace Nalix.Framework.Tests.DataFrames
@@ -421,10 +421,10 @@ namespace Nalix.Framework.Tests.DataFrames
         public void GetMaxCiphertextSize_ValidSuite_ReturnsExpectedEnvelopeCapacity(CipherSuiteType suite, int plaintextSize)
         {
             // Arrange
-            int expected = Nalix.Framework.Security.EnvelopeCipher.HeaderSize
-                + Nalix.Framework.Security.EnvelopeCipher.GetNonceLength(suite)
+            int expected = Security.EnvelopeCipher.HeaderSize
+                + Security.EnvelopeCipher.GetNonceLength(suite)
                 + plaintextSize
-                + Nalix.Framework.Security.EnvelopeCipher.GetTagLength(suite);
+                + Security.EnvelopeCipher.GetTagLength(suite);
 
             // Act
             int actual = FrameTransformer.GetMaxCiphertextSize(suite, plaintextSize);
@@ -448,14 +448,12 @@ namespace Nalix.Framework.Tests.DataFrames
             using BufferLease decompressed = BufferLease.Rent(packetBytes.Length);
 
             // Act
-            bool compressedOk = FrameTransformer.Compress(source, compressed);
+            FrameTransformer.Compress(source, compressed);
             int decompressedLength = FrameTransformer.GetDecompressedLength(compressed.Span[FrameTransformer.Offset..]);
-            bool decompressedOk = FrameTransformer.Decompress(compressed, decompressed);
+            FrameTransformer.Decompress(compressed, decompressed);
 
             // Assert
-            Assert.True(compressedOk);
             Assert.Equal(source.Length - FrameTransformer.Offset, decompressedLength);
-            Assert.True(decompressedOk);
             Assert.Equal(packetBytes, decompressed.Memory.ToArray());
         }
 
@@ -469,20 +467,18 @@ namespace Nalix.Framework.Tests.DataFrames
         {
             // Arrange
             byte[] packetBytes = CreatePacketBytes("encrypted payload");
-            byte[] key = Enumerable.Range(1, 32).Select(static x => (byte)x).ToArray();
+            byte[] key = [.. Enumerable.Range(1, 32).Select(static x => (byte)x)];
             using BufferLease source = BufferLease.CopyFrom(packetBytes);
             using BufferLease encrypted = BufferLease.Rent(FrameTransformer.Offset + FrameTransformer.GetMaxCiphertextSize(suite, source.Length - FrameTransformer.Offset));
             using BufferLease decrypted = BufferLease.Rent(packetBytes.Length);
 
             // Act
-            bool encryptedOk = FrameTransformer.Encrypt(source, encrypted, key, suite);
+            FrameTransformer.Encrypt(source, encrypted, key, suite);
             int plaintextLength = FrameTransformer.GetPlaintextLength(encrypted.Span);
-            bool decryptedOk = FrameTransformer.Decrypt(encrypted, decrypted, key);
+            FrameTransformer.Decrypt(encrypted, decrypted, key);
 
             // Assert
-            Assert.True(encryptedOk);
             Assert.Equal(source.Length - FrameTransformer.Offset, plaintextLength);
-            Assert.True(decryptedOk);
             Assert.Equal(packetBytes, decrypted.Memory.ToArray());
         }
 
@@ -492,11 +488,11 @@ namespace Nalix.Framework.Tests.DataFrames
         [Theory]
         [InlineData(true, false)]
         [InlineData(false, true)]
-        public void TryEncrypt_InvalidInput_ReturnsFalse(bool useEmptyKey, bool useShortSource)
+        public void TryEncrypt_InvalidInput_ThrowsArgumentException(bool useEmptyKey, bool useShortSource)
         {
             // Arrange
             byte[] packetBytes = CreatePacketBytes("abc");
-            byte[] key = useEmptyKey ? [] : Enumerable.Repeat((byte)7, 32).ToArray();
+            byte[] key = useEmptyKey ? [] : [.. Enumerable.Repeat((byte)7, 32)];
             using BufferLease source = useShortSource
                 ? BufferLease.Rent(FrameTransformer.Offset)
                 : BufferLease.CopyFrom(packetBytes);
@@ -508,11 +504,15 @@ namespace Nalix.Framework.Tests.DataFrames
                 source.CommitLength(FrameTransformer.Offset);
             }
 
-            // Act
-            bool result = FrameTransformer.TryEncrypt(source, destination, key, CipherSuiteType.Chacha20);
-
-            // Assert
-            Assert.False(result);
+            // Act + Assert
+            if (useEmptyKey)
+            {
+                Assert.Throws<ArgumentNullException>(() => FrameTransformer.Encrypt(source, destination, key, CipherSuiteType.Chacha20));
+            }
+            else
+            {
+                Assert.Throws<ArgumentException>(() => FrameTransformer.Encrypt(source, destination, key, CipherSuiteType.Chacha20));
+            }
         }
 
         /// <summary>
@@ -587,7 +587,7 @@ namespace Nalix.Framework.Tests.DataFrames
             }
             else
             {
-                Assert.IsType<InvalidOperationException>(exception);
+                _ = Assert.IsType<InvalidOperationException>(exception);
             }
         }
 
