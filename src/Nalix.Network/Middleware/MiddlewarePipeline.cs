@@ -12,14 +12,24 @@ namespace Nalix.Network.Middleware;
 /// <typeparam name="TPacket">The type of packet being processed in the pipeline.</typeparam>
 public class MiddlewarePipeline<TPacket>
 {
+    #region Fields
+
     private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _inbound = [];
     private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _outbound = [];
     private readonly System.Collections.Generic.List<IPacketMiddleware<TPacket>> _outboundAlways = [];
+
+    #endregion Fields
+
+    #region Properties
 
     /// <summary>
     /// Gets a value indicating whether the middleware pipeline contains no middleware components.
     /// </summary>
     public System.Boolean IsEmpty => _inbound.Count == 0 && _outbound.Count == 0 && _outboundAlways.Count == 0;
+
+    #endregion Properties
+
+    #region Public Methods
 
     /// <summary>
     /// Adds a middleware component to be executed before the main handler.
@@ -84,6 +94,10 @@ public class MiddlewarePipeline<TPacket>
         );
     }
 
+    #endregion Public Methods
+
+    #region Private Methods
+
     // -------------------- Core chain builder (token-aware) --------------------
 
     /// <summary>
@@ -124,4 +138,6 @@ public class MiddlewarePipeline<TPacket>
         // Kick off the chain with the provided starting token
         return next(startToken);
     }
+
+    #endregion Private Methods
 }
