@@ -5,7 +5,6 @@ using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
@@ -16,7 +15,6 @@ namespace Nalix.Framework.DataFrames.SignalFrames;
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
 [ExcludeFromCodeCoverage]
-[PipelineManagedTransform]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("HANDSHAKE OPCODE={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class Handshake : PacketBase<Handshake>
