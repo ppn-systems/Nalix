@@ -8,12 +8,11 @@ using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames;
-using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Random;
 using Nalix.Logging;
 using Nalix.Logging.Configuration;
 using Nalix.Logging.Sinks;
+using Nalix.SDK.Examples;
 using Nalix.SDK.Transport;
 
 internal class Program
@@ -28,24 +27,16 @@ internal class Program
         PacketRegistry packetRegistry = new PacketRegistryFactory().CreateCatalog();
         InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
 
-        //TcpSession client = InstanceManager.Instance.GetOrCreateInstance<TcpSession>();
-
-        Handshake handshake = new(0, Csprng.GetBytes(3000002));
-
         TcpSession client = new();
-        await client.ConnectAsync("127.0.0.1", 12345);
-        Console.WriteLine(handshake.GenerateReport());
-        Console.WriteLine($"Handshake Magic: {handshake.MagicNumber:X8}");
-        byte[] data = handshake.Serialize();
-        _ = await client.SendAsync(data);
-        Console.WriteLine($"Handshake Length: {data.Length}");
+        await client.ConnectAsync("127.0.0.1", 12345).ConfigureAwait(true);
 
-        //for (Int32 i = 0; i < 100000; i++)
-        //{
-        //    System.Console.Write($"Sending handshake packet {i + 1}/100000...");
-        //    await client.SendAsync(data);
-        //}
+        _ = await client.PerformAuthenticatedHandshakeAsync(
+            clientIdentityProvider: () => "demo-client",
+            ed25519KeyProvider: () => (
+                PrivateKey: new byte[32],
+                PublicKey: new byte[32]),
+            validateServerPublicKey: serverKey => serverKey.Length == AuthenticatedHandshakeExtensions.X25519PublicKeyLength).ConfigureAwait(true);
 
-        await Task.Delay(10000000); // Wait for response (for demonstration purposes)
+        await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
     }
 }

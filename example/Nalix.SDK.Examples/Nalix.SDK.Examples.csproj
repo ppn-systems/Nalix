@@ -8,6 +8,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\Nalix.Examples\Nalix.Examples.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Reference Include="Nalix.Framework">
 			<HintPath>..\..\build\bin\Debug\net10.0\Nalix.Framework.dll</HintPath>
 		</Reference>
