@@ -20,6 +20,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Time;
+using Nalix.Network.Configurations;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooled;
 
@@ -57,25 +58,6 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
     #region Const
 
     private const byte HeaderSize = sizeof(ushort);
-
-    private const int EvictInterval = 64;
-
-    /// <summary>
-    /// Maximum number of packets that may be queued-but-not-yet-processed
-    /// for a single connection at any moment.
-    /// <para>
-    /// When a connection sends packets faster than <see cref="AsyncCallback"/>
-    /// can dispatch them, excess packets are dropped and a warning is logged.
-    /// Legitimate clients rarely queue more than 1–2 packets simultaneously;
-    /// a value of 8 gives generous headroom while blocking flood attacks.
-    /// </para>
-    /// </summary>
-    private const int MaxPerConnectionPendingPackets = 8;
-
-    /// <summary>
-    /// Maximum number of concurrently open fragmented streams per connection.
-    /// </summary>
-    private const int MaxPerConnectionOpenFragmentStreams = 4;
 
     #endregion Const
 
@@ -125,6 +107,16 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
     private byte[] _buffer = BufferLease.ByteArrayPool.Rent();
 
     #endregion Fields
+
+    #region Options
+
+    /// <summary>
+    /// Loaded once at startup from NetworkCallbackOptions via ConfigurationManager.
+    /// All throttle values are read from config so they can be tuned without recompile.
+    /// </summary>
+    private static readonly NetworkCallbackOptions s_opts = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
+
+    #endregion Options
 
     #region Properties
 
@@ -320,7 +312,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
     ///
     /// <para><b>Layer 1 throttle:</b> before handing a packet off to the cache, this loop
     /// checks <c>_pendingProcessCallbacks</c>. If the connection has
-    /// <see cref="MaxPerConnectionPendingPackets"/> packets already queued in
+    /// <see cref="NetworkCallbackOptions.MaxPerConnectionPendingPackets"/> packets already queued in
     /// <see cref="AsyncCallback"/> awaiting a ThreadPool thread, the current packet is
     /// dropped and a warning is emitted. The buffer is returned to the pool immediately and
     /// a fresh one is rented so the loop can continue receiving (and discarding) the flood
@@ -394,7 +386,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                     $"recv-frame size={size} payload={payload} ep={_sender?.NetworkEndpoint.Address}");
 #endif
                 // ── Step 3.5: periodic eviction of stale fragment streams ───────
-                if ((++_packetCount & (EvictInterval - 1)) == 0)
+                if ((++_packetCount & (FragmentAssembler.EvictInterval - 1)) == 0)
                 {
                     int evicted = _fragmentAssembler.EvictExpired();
                     if (evicted > 0)
@@ -414,13 +406,13 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                 // AsyncCallback or the ThreadPool.
                 int pending = Interlocked.Increment(ref _pendingProcessCallbacks);
 
-                if (pending > MaxPerConnectionPendingPackets)
+                if (pending > s_opts.MaxPerConnectionPendingPackets)
                 {
                     Interlocked.Decrement(ref _pendingProcessCallbacks);
 
                     s_logger?.Warn(
                         $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                        $"per-conn-throttle pending={pending} max={MaxPerConnectionPendingPackets} " +
+                        $"per-conn-throttle pending={pending} max={s_opts.MaxPerConnectionPendingPackets} " +
                         $"ep={_sender?.NetworkEndpoint.Address} — packet dropped");
 
                     // Return buffer to pool — rent a fresh one for next receive.
@@ -453,7 +445,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                         {
                             int openStreams = Interlocked.Increment(ref _openFragmentStreams);
 
-                            if (openStreams > MaxPerConnectionOpenFragmentStreams)
+                            if (openStreams > s_opts.MaxPerConnectionOpenFragmentStreams)
                             {
                                 Interlocked.Decrement(ref _openFragmentStreams);
 
