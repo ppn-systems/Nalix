@@ -32,6 +32,24 @@ public sealed class Handshake : PacketBase<Handshake>
     public byte[] Data { get; set; } = [];
 
     /// <summary>
+    /// Gets or sets the Ed25519 public key used for signature verification.
+    /// </summary>
+    [SerializeOrder(PacketHeaderOffset.Region + 2)]
+    public byte[] Ed25519PublicKey { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the Ed25519 signature of the handshake data for authentication.
+    /// </summary>
+    [SerializeOrder(PacketHeaderOffset.Region + 3)]
+    public byte[] Ed25519Signature { get; set; } = [];
+
+    /// <summary>
+    /// Identity string for this handshake.
+    /// </summary>
+    [SerializeOrder(PacketHeaderOffset.Region + 4)]
+    public string Identity { get; set; } = string.Empty;
+
+    /// <summary>
     /// Initializes a new <see cref="Handshake"/> with empty content.
     /// </summary>
     public Handshake() => this.ResetForPool();
@@ -52,12 +70,18 @@ public sealed class Handshake : PacketBase<Handshake>
     /// <summary>
     /// Initializes the packet with binary data and an optional transport protocol.
     /// </summary>
+    /// <param name="opCode"></param>
     /// <param name="data"></param>
+    /// <param name="PublicKey"></param>
+    /// <param name="Signature"></param>
     /// <param name="transport"></param>
-    public void Initialize(byte[] data, ProtocolType transport = ProtocolType.TCP)
+    public void Initialize(ushort opCode, byte[] data, byte[] PublicKey, byte[] Signature, ProtocolType transport = ProtocolType.TCP)
     {
+        this.OpCode = opCode;
         this.Data = data ?? [];
         this.Protocol = transport;
+        this.Ed25519PublicKey = PublicKey ?? [];
+        this.Ed25519Signature = Signature ?? [];
     }
 
     /// <summary>
@@ -73,5 +97,8 @@ public sealed class Handshake : PacketBase<Handshake>
         base.ResetForPool(); // always call for consistency!
 
         this.Data = [];
+        this.Ed25519PublicKey = [];
+        this.Ed25519Signature = [];
+        this.Identity = string.Empty;
     }
 }
