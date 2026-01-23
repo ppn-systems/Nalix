@@ -62,8 +62,6 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested && !context.CancellationToken.IsCancellationRequested)
         {
-            uint sequenceId = context.Packet is IPacketSequenced sequenced ? sequenced.SequenceId : 0;
-
             try
             {
                 await context.Connection.SendAsync(
@@ -72,7 +70,7 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
                     ProtocolAdvice.RETRY,
                     new ConnectionExtensions.ControlDirectiveOptions(
                         Flags: ControlFlags.IS_TRANSIENT,
-                        SequenceId: sequenceId,
+                        SequenceId: context.Packet.SequenceId,
                         Arg0: (uint)(timeout / 100))
                 ).ConfigureAwait(false);
             }

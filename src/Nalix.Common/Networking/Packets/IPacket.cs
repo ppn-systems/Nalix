@@ -17,7 +17,7 @@ namespace Nalix.Common.Networking.Packets;
 /// for transmission or storage and later deserialized for processing.
 /// </remarks>
 [SerializePackable(SerializeLayout.Explicit)]
-public interface IPacket : IPacketSequenced
+public interface IPacket
 {
     #region Metadata
 
@@ -56,6 +56,13 @@ public interface IPacket : IPacketSequenced
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.Transport)]
     ProtocolType Protocol { get; set; }
+
+    /// <summary>
+    /// Gets the sequence identifier of the packet.
+    /// This is used to correlate requests with their responses.
+    /// </summary>
+    [SerializeOrder(PacketHeaderOffset.SequenceId)]
+    uint SequenceId { get; }
 
     #endregion Metadata
 
