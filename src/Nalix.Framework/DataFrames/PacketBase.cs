@@ -115,7 +115,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
     /// <inheritdoc/>
     [SerializeIgnore]
-    public override ushort Length
+    public override int Length
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
@@ -179,12 +179,8 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int Serialize(Span<byte> buffer)
     {
-        ushort required = this.Length;
-        return buffer.Length < required
-            ? throw new ArgumentException(
-                $"Buffer too small for {typeof(TSelf).Name}. " +
-                $"Required: {required}, Actual: {buffer.Length}.",
-                nameof(buffer))
+        return buffer.Length < this.Length
+            ? throw new ArgumentException($"Buffer too small for {typeof(TSelf).Name}. Required: {this.Length}, Actual: {buffer.Length}.", nameof(buffer))
             : LiteSerializer.Serialize((TSelf)this, buffer);
     }
 

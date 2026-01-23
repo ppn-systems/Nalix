@@ -285,8 +285,17 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
         {
             token.ThrowIfCancellationRequested();
 
-            int n = await _recvCtx.ReceiveAsync(_socket, _buffer, offset + read, count - read)
-                                           .ConfigureAwait(false);
+            int n;
+            ValueTask<int> vt = _recvCtx.ReceiveAsync(_socket, _buffer, offset + read, count - read);
+
+            if (vt.IsCompletedSuccessfully)  // synchronous path (hot path)
+            {
+                n = vt.Result;
+            }
+            else
+            {
+                n = await vt.ConfigureAwait(false);
+            }
 
             if (n == 0)
             {
@@ -620,7 +629,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
         payload.CopyTo(buffer[HeaderSize..]);
     }
 
-    private static bool IS_VALID_PACKET_SIZE(ushort size)
+    private static bool IS_VALID_PACKET_SIZE(uint size)
         => size is >= HeaderSize and <= PacketConstants.PacketSizeLimit;
 
     [DebuggerStepThrough]

@@ -20,6 +20,7 @@ public static class PacketConstants
     /// <item><see cref="uint"/> MagicNumber</item>
     /// <item><see cref="PacketPriority"/>Priority (Byte)</item>
     /// <item><see cref="ProtocolType"/>Protocol (Byte)</item>
+    /// <item><see cref="uint"/> SequenceId (UInt32)</item>
     /// </list>
     /// </summary>
     public const byte HeaderSize =
@@ -53,7 +54,7 @@ public static class PacketConstants
 
     /// <summary>
     /// The maximum allowed total packet size, in bytes.
-    /// This limit is 65,5xx bytes (0xFFFF - HeaderSize), corresponding to the maximum value of an unsigned 16-bit integer.
+    /// This limit is 2,147,483,6xx bytes (0xFFFFFFF - HeaderSize), corresponding to the maximum value of an 32-bit integer.
     /// </summary>
-    public const ushort PacketSizeLimit = 0xFFFF - HeaderSize;
+    public const int PacketSizeLimit = int.MaxValue - HeaderSize;
 }
