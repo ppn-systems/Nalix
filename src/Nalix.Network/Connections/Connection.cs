@@ -28,10 +28,7 @@ public sealed partial class Connection : IConnection
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     private readonly Lock _lock;
-    private readonly SocketConnection _socket;
     private readonly ConnectionEventArgs _args;
-
-    private UdpTransport? _udp;
     private int _errorCount;
     private int _closeSignaled;
     private long _bytesSent;
@@ -61,11 +58,11 @@ public sealed partial class Connection : IConnection
         this.NetworkEndpoint = Endpoint.FromEndPoint(socket.RemoteEndPoint ?? throw new InvalidOperationException("Socket does not expose a remote endpoint."));
 
         _args = new ConnectionEventArgs(this);
-        _socket = new SocketConnection(socket);
+        this.Socket = new SocketConnection(socket);
 
-        _socket.SetCallback(this, _args, this.OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
+        this.Socket.SetCallback(this, _args, this.OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
 
-        this.TCP = new TcpTransport(this);
+        this.TCP = new SocketTcpTransport(this);
         this.Attributes = ObjectMap<string, object>.Rent();
 
         s_logger.Debug($"[NW.{nameof(Connection)}] created remote={this.NetworkEndpoint} id={this.ID}");
@@ -82,7 +79,7 @@ public sealed partial class Connection : IConnection
     public IConnection.ITcp TCP { get; }
 
     /// <inheritdoc/>
-    public IConnection.IUdp UDP => _udp ?? throw new InvalidOperationException("UDP transport has not been created yet.");
+    public IConnection.IUdp UDP => this.UdpTransport ?? throw new InvalidOperationException("UDP transport has not been created yet.");
 
     /// <inheritdoc />
     public INetworkEndpoint NetworkEndpoint { get; }
@@ -94,10 +91,10 @@ public sealed partial class Connection : IConnection
     public int ErrorCount => _errorCount;
 
     /// <inheritdoc />
-    public long UpTime => _socket.Uptime;
+    public long UpTime => this.Socket.Uptime;
 
     /// <inheritdoc />
-    public long LastPingTime => _socket.LastPingTime;
+    public long LastPingTime => this.Socket.LastPingTime;
 
     /// <inheritdoc />
     public PermissionLevel Level { get; set; } = PermissionLevel.NONE;
@@ -123,6 +120,17 @@ public sealed partial class Connection : IConnection
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Interlocked.Read(ref _bytesSent);
     }
+
+    /// <inheritdoc />
+    public void IncrementErrorCount() => Interlocked.Increment(ref _errorCount);
+
+    internal SocketConnection Socket { get; }
+
+    internal bool IsDisposed => _disposed;
+
+    internal SocketUdpTransport? UdpTransport { get; private set; }
+
+    internal void SetUdpTransport(SocketUdpTransport transport) => this.UdpTransport = transport;
 
     #endregion Properties
 
@@ -175,9 +183,6 @@ public sealed partial class Connection : IConnection
         MethodImplOptions.AggressiveOptimization)]
     public void Disconnect(string? reason = null) => this.Close(force: true);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void AddBytesSent(int count) => _ = Interlocked.Add(ref _bytesSent, count);
-
     #endregion Methods
 
     #region Dispose Pattern
@@ -202,12 +207,12 @@ public sealed partial class Connection : IConnection
 
             this.Disconnect();
 
-            _socket.Dispose();
+            this.Socket.Dispose();
 
-            if (_udp != null)
+            if (this.UdpTransport != null)
             {
                 InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                        .Return(_udp);
+                                        .Return(this.UdpTransport);
             }
         }
         catch (Exception ex)
