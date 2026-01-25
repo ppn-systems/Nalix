@@ -15,7 +15,5 @@
 		<None Include="..\..\LICENSE" Pack="true" PackagePath="" Condition="Exists('..\..\LICENSE') AND '$(Configuration)' != 'Debug'" />
 		<None Include="..\..\README.md" Pack="true" PackagePath="" Condition="Exists('..\..\README.md') AND '$(Configuration)' != 'Debug'" />
 		<None Include="..\..\assets\Nalix.png" Pack="true" PackagePath="assets/" Condition="Exists('..\..\assets\Nalix.png') AND '$(Configuration)' != 'Debug'" />
-		<None Include="..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll') AND '$(Configuration)' != 'Debug' AND '$(MSBuildProjectName)' != 'Nalix.Analyzers'" />
-		<None Include="..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll') AND '$(Configuration)' != 'Debug' AND '$(MSBuildProjectName)' != 'Nalix.Analyzers' AND '$(MSBuildProjectName)' != 'Nalix.Analyzers.CodeFixes'" />
 	</ItemGroup>
 </Project>
