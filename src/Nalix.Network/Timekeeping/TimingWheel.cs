@@ -431,11 +431,9 @@ public sealed class TimingWheel : IActivatable
                         {
                             task.Conn.Close(force: true);
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
-                            s_logger?.Warn(
-                                $"[NW.{nameof(TimingWheel)}] close-error " +
-                                $"remote={task.Conn.NetworkEndpoint?.Address} ex={ex.Message}");
+                            throw;
                         }
 
                         // Close() fires OnCloseEvent → Unregister() → _active entry removed.
