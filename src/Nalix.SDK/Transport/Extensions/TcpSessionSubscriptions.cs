@@ -52,9 +52,12 @@ public static class TcpSessionSubscriptions
             // Wrapper is the sole owner of the lease; always dispose in finally.
             try
             {
-                if (!client.Catalog.TryDeserialize(buffer.Span, out IPacket? p) || p is not TPacket t)
+                client.Catalog.Deserialize(buffer.Span, out IPacket? p);
+
+                if (p is not TPacket t)
                 {
-                    return;
+                    throw new InvalidOperationException(
+                        $"Received packet of type {p?.GetType().Name ?? "null"}, expected {typeof(TPacket).Name}");
                 }
 
                 handler(t);
@@ -99,10 +102,7 @@ public static class TcpSessionSubscriptions
         {
             try
             {
-                if (!client.Catalog.TryDeserialize(buffer.Span, out IPacket? p))
-                {
-                    return;
-                }
+                client.Catalog.Deserialize(buffer.Span, out IPacket? p);
 
                 if (p is null || !predicate(p))
                 {
@@ -154,10 +154,7 @@ public static class TcpSessionSubscriptions
             try
             {
                 // Deserialize — if it fails, we still fall through to finally and dispose.
-                if (!client.Catalog.TryDeserialize(buffer.Span, out IPacket? p))
-                {
-                    return;
-                }
+                client.Catalog.Deserialize(buffer.Span, out IPacket? p);
 
                 if (p is not TPacket t)
                 {

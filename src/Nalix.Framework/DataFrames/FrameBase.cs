@@ -13,8 +13,8 @@ namespace Nalix.Framework.DataFrames;
 /// Represents the base class for all packet frames in the messaging system.
 /// Provides common header fields and serialization logic for derived packet types.
 /// </summary>
-[SerializePackable(SerializeLayout.Explicit)]
 [ExcludeFromCodeCoverage]
+[SerializePackable(SerializeLayout.Explicit)]
 public abstract class FrameBase : IPacket
 {
     /// <summary>

@@ -150,11 +150,7 @@ public static class AeadEngine
         out int written)
     {
         written = 0;
-
-        if (!EnvelopeFormat.TryParseEnvelope(envelope, out EnvelopeFormat.ParsedEnvelope env))
-        {
-            throw new System.ArgumentException("The envelope is invalid or malformed.", nameof(envelope));
-        }
+        EnvelopeFormat.Envelope env = EnvelopeFormat.ParseEnvelope(envelope);
 
         int ctLen = env.Ciphertext.Length;
 
