@@ -706,9 +706,7 @@ public struct Poly1305
     /// returning them as a little-endian <see cref="uint"/>.
     /// Out-of-range bytes are treated as zero.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining | System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static uint ReadPartialUInt32(
         System.ReadOnlySpan<byte> data,
         int offset)

@@ -64,8 +64,7 @@ internal sealed class HandlerCompiler<
     /// <param name="factory">A factory method that creates a controller instance.</param>
     /// <returns>An array of compiled packet handler delegates.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public static PacketHandler<TPacket>[] CompileHandlers(Func<TController> factory)
     {
         Type controllerType = typeof(TController);
@@ -132,8 +131,7 @@ internal sealed class HandlerCompiler<
     }
 
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private static System.Collections.Frozen.FrozenDictionary<ushort, CompiledHandler<TPacket>> CompileControllerHandlers(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type x03)
     {
@@ -203,8 +201,7 @@ internal sealed class HandlerCompiler<
     }
 
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private static CompiledHandler<TPacket> CompileHandlerMethod(MethodInfo x22)
     {
         // -------------------------------------------------------------------
@@ -611,8 +608,7 @@ internal sealed class HandlerCompiler<
     }
 
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private static Func<object, PacketContext<TPacket>, ValueTask<object>> WrapReturnType(
         Func<object, PacketContext<TPacket>, object> x00,
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type x01)
@@ -690,8 +686,7 @@ internal sealed class HandlerCompiler<
     }
 
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static PacketMetadata GetPacketMetadata(MethodInfo method)
     {
         return _attributeCache.GetOrAdd(method, static m =>
@@ -718,8 +713,7 @@ internal sealed class HandlerCompiler<
     }
 
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static string FormatHandlerInfo(string x00, ushort x01, MethodInfo? x02 = null, Type? x03 = null)
     {
         string op = $"opcode=0x{x01:X4}";

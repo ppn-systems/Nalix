@@ -49,8 +49,7 @@ internal static class MemorySecurity
     /// <param name="buffer">
     /// The span representing sensitive byte data that should be cleared.
     /// </param>
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public static void ZeroMemory(Span<byte> buffer)
     {
         if (buffer.Length == 0)

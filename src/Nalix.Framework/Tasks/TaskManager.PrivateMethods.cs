@@ -50,8 +50,7 @@ public partial class TaskManager
 
     #region Internal Cleanup
 
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private void CLEANUP_WORKERS()
     {
         if (_disposed)
@@ -292,8 +291,7 @@ public partial class TaskManager
         return n;
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private void RETAIN_OR_REMOVE(WorkerState st)
     {
         TimeSpan? keep = st.Options.RetainFor;
@@ -425,8 +423,7 @@ public partial class TaskManager
     }
 
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private double MEASURE_CPU_USAGE_PERCENT()
     {
         long currentWallMs = _cpuMeasureStopwatch.ElapsedMilliseconds;

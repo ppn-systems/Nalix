@@ -254,9 +254,7 @@ public static class Salsa20
     /// <param name="b"></param>
     /// <param name="c"></param>
     /// <param name="d"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining | System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void QuarterRound(
         ref uint a, ref uint b,
         ref uint c, ref uint d)

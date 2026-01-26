@@ -58,8 +58,7 @@ internal static class LogLevelShortNames
 
     #region APIs
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static ReadOnlySpan<char> GetShortName(LogLevel logLevel)
     {
         // Bounds checking with bitwise operation for performance

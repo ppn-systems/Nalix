@@ -146,8 +146,7 @@ internal static class OsRandom
     /// Automatically reseeds thread-local state when the global state is updated.
     /// WARNING: This is NOT cryptographically secure - use OsCsprng for security-sensitive operations.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static void Fill(Span<byte> dst)
     {
         if (dst.Length == 0)
@@ -221,8 +220,7 @@ internal static class OsRandom
         return local;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static ulong NEXT_U64(ulong[] st)
     {
         // xoshiro256++ core
@@ -236,8 +234,7 @@ internal static class OsRandom
         return r;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static ulong XOSHIRO_NEXT(ulong[] s)
     {
         ulong result = System.Numerics.BitOperations.RotateLeft(s[0] + s[3], 23) + s[0];
@@ -320,8 +317,7 @@ internal static class OsRandom
         unchecked { s_version++; }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static ulong SPLIT_MIX_64(ulong z)
     {
         z += 0x9E3779B97F4A7C15UL;
@@ -332,8 +328,7 @@ internal static class OsRandom
         return x;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static ulong READ_U64(ReadOnlySpan<byte> s, int offset)
         => System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(s.Slice(offset, 8));
 
