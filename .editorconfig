@@ -350,3 +350,7 @@ max_line_length = 150
 dotnet_diagnostic.CA1850.severity = warning   # Prefer HashData
 dotnet_diagnostic.CA1860.severity = warning   # Avoid Enumerable.Any() when Count available
 dotnet_diagnostic.CA1864.severity = warning   # Prefer Dictionary.TryAdd
+
+dotnet_diagnostic.CA1062.severity = warning   # Validate arguments of public methods
+dotnet_diagnostic.CA1303.severity = warning   # Do not pass literals as localized parameters
+dotnet_diagnostic.CA1310.severity = warning   # Specify StringComparison

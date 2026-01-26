@@ -23,7 +23,7 @@ namespace Nalix.Network.Middleware.Inbound;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class PermissionMiddleware : IPacketMiddleware<IPacket>
 {
-    private readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private readonly ILogger? _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
     /// Invokes the concurrency middleware, enforcing concurrency limits on incoming packets.
@@ -31,10 +31,11 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
     /// <param name="context">The packet context containing the packet and connection information.</param>
     /// <param name="next">The next middleware delegate in the pipeline.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async Task InvokeAsync(
-        PacketContext<IPacket> context,
-        Func<CancellationToken, Task> next)
+    public async Task InvokeAsync(PacketContext<IPacket> context, Func<CancellationToken, Task> next)
     {
+        ArgumentNullException.ThrowIfNull(next);
+        ArgumentNullException.ThrowIfNull(context);
+
         if (context.Attributes.Permission is null ||
             context.Attributes.Permission.Level <= context.Connection.Level)
         {
@@ -42,7 +43,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        s_logger?.Trace(
+        _logger?.Trace(
             $"[NW.{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.PacketOpcode.OpCode:X4} " +
             $"need={context.Attributes.Permission.Level} have={context.Connection.Level}");
 
@@ -62,7 +63,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(PermissionMiddleware)}] send-error-failed", ex);
+            _logger?.Error($"[NW.{nameof(PermissionMiddleware)}] send-error-failed", ex);
         }
     }
 }

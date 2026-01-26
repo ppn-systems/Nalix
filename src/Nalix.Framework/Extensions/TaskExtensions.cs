@@ -90,10 +90,10 @@ public static class TaskExtensions
     /// </returns>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public static async Task<T?> WithTimeout<T>(
-        this Task<T> @this,
-        int msTimeout)
+    public static async Task<T?> WithTimeout<T>(this Task<T> @this, int msTimeout)
     {
+        ArgumentNullException.ThrowIfNull(@this);
+
         Task timeout = Task.Delay(msTimeout);
         Task completed = await Task.WhenAny(@this, timeout).ConfigureAwait(false);
 
@@ -113,8 +113,8 @@ public static class TaskExtensions
     /// <param name="tcs">The TaskCompletionSource instance.</param>
     /// <param name="token">Cancellation token.</param>
     /// <returns>IDisposable registration handle.</returns>
-    public static IDisposable LinkCancellation<T>(
-        this TaskCompletionSource<T> tcs, CancellationToken token) => !token.CanBeCanceled ? DummyDisposable.Instance : token.Register(() => tcs.TrySetCanceled(token));
+    public static IDisposable LinkCancellation<T>(this TaskCompletionSource<T> tcs, CancellationToken token)
+        => !token.CanBeCanceled ? DummyDisposable.Instance : token.Register(() => tcs.TrySetCanceled(token));
 
     private sealed class DummyDisposable : IDisposable
     {

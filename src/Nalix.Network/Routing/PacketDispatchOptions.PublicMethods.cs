@@ -216,11 +216,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <exception cref="InvalidOperationException"></exception>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public PacketDispatchOptions<TPacket> WithHandler<
-        [DynamicallyAccessedMembers(
-            DynamicallyAccessedMemberTypes.PublicMethods)] TController>(
-        Func<TController> factory) where TController : class
+    public PacketDispatchOptions<TPacket> WithHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TController>(Func<TController> factory)
+        where TController : class
     {
+        ArgumentNullException.ThrowIfNull(factory);
+
         Type controllerType = typeof(TController);
 
         PacketControllerAttribute controllerAttr = CustomAttributeExtensions.GetCustomAttribute<PacketControllerAttribute>(controllerType)

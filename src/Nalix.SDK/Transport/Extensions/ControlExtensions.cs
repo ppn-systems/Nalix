@@ -268,12 +268,7 @@ public static class ControlExtensions
     /// </code>
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Task SendControlAsync(
-        this IClientConnection client,
-        ushort opCode,
-        ControlType type,
-        Action<Control>? configure = null,
-        CancellationToken ct = default)
+    public static Task SendControlAsync(this IClientConnection client, ushort opCode, ControlType type, Action<Control>? configure = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(client);
 
