@@ -52,11 +52,11 @@ namespace Nalix.Network.Internal.Pooled;
 /// </list>
 /// </para>
 /// </remarks>
+[SkipLocalsInit]
 [DebuggerStepThrough]
 [DebuggerNonUserCode]
-[SkipLocalsInit]
-[DebuggerDisplay("Args={Args}, ActiveOps={_activeOps}")]
 [EditorBrowsable(EditorBrowsableState.Never)]
+[DebuggerDisplay("Args={Args}, ActiveOps={_activeOps}")]
 internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
 {
     // -------------------------------------------------------------------------

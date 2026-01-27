@@ -28,7 +28,7 @@ public abstract partial class UdpListenerBase
 
     #region Fields
 
-    private static readonly NetworkSocketOptions Config;
+    private static readonly NetworkSocketOptions s_config;
 
     private readonly ushort _port;
     private readonly IProtocol _protocol;
@@ -104,8 +104,8 @@ public abstract partial class UdpListenerBase
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static UdpListenerBase()
     {
-        Config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-        Config.Validate();
+        s_config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+        s_config.Validate();
     }
 
 
@@ -138,7 +138,7 @@ public abstract partial class UdpListenerBase
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
     [DebuggerStepThrough]
     protected UdpListenerBase(IProtocol protocol)
-        : this(Config.Port, protocol)
+        : this(s_config.Port, protocol)
     {
     }
 

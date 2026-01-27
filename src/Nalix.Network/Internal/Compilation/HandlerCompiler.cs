@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -36,27 +38,24 @@ namespace Nalix.Network.Internal.Compilation;
 [DebuggerNonUserCode]
 [SkipLocalsInit]
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal sealed class HandlerCompiler<
-    [DynamicallyAccessedMembers(
-        DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>()
+internal sealed class HandlerCompiler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>()
     where TController : class where TPacket : IPacket
 {
     #region Fields
 
     /// <summary>
-    /// Caches compiled method delegates for each controller type to eliminate reflection.
-    /// </summary>
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        Type, System.Collections.Frozen.FrozenDictionary<
-            ushort, CompiledHandler<TPacket>>> _compiledMethodCache = new();
-
-    /// <summary>
     /// Caches attribute lookups per method for performance.
     /// </summary>
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        MethodInfo, PacketMetadata> _attributeCache = new();
+    private static readonly ConcurrentDictionary<MethodInfo, PacketMetadata> s_attributeCache = new();
+
+    /// <summary>
+    /// Caches compiled method delegates for each controller type to eliminate reflection.
+    /// </summary>
+    private static readonly ConcurrentDictionary<Type, FrozenDictionary<ushort, CompiledHandler<TPacket>>> s_compiledMethodCache = new();
 
     #endregion Fields
+
+    #region APIs
 
     /// <summary>
     /// Scans the controller and returns an array of packet handler delegates.
@@ -77,7 +76,7 @@ internal sealed class HandlerCompiler<
                                 .Debug($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(CompileHandlers)}] scan controller={controllerType.Name}");
 
         // Get or compile all handler methods
-        System.Collections.Frozen.FrozenDictionary<ushort, CompiledHandler<TPacket>> compiledMethods = CompileControllerHandlers(controllerType);
+        FrozenDictionary<ushort, CompiledHandler<TPacket>> compiledMethods = CompileControllerHandlers(controllerType);
 
         // Create the controller instance
         TController controllerInstance = factory();
@@ -110,6 +109,8 @@ internal sealed class HandlerCompiler<
         return descriptors;
     }
 
+    #endregion APIs
+
     #region Private Methods
 
     /// <summary>
@@ -132,8 +133,7 @@ internal sealed class HandlerCompiler<
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    private static System.Collections.Frozen.FrozenDictionary<ushort, CompiledHandler<TPacket>> CompileControllerHandlers(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type x03)
+    private static FrozenDictionary<ushort, CompiledHandler<TPacket>> CompileControllerHandlers([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type x03)
     {
         // Get methods with [PacketOpcode] attribute
         MethodInfo[] methodInfos = Enumerable.ToArray(
@@ -154,7 +154,7 @@ internal sealed class HandlerCompiler<
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[NW.{nameof(HandlerCompiler<,>)}:Internal] compile count={methodInfos.Length} controller={x03.Name}");
 
-        return _compiledMethodCache.GetOrAdd(x03, static (_, methods) =>
+        return s_compiledMethodCache.GetOrAdd(x03, static (_, methods) =>
         {
             Dictionary<ushort, CompiledHandler<TPacket>> compiled = new(methods.Length);
 
@@ -196,7 +196,7 @@ internal sealed class HandlerCompiler<
                 }
             }
 
-            return System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(compiled);
+            return FrozenDictionary.ToFrozenDictionary(compiled);
         }, methodInfos);
     }
 
@@ -307,9 +307,7 @@ internal sealed class HandlerCompiler<
     /// <exception cref="InvalidOperationException"></exception>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static SignatureKind ResolveSignatureKind(
-        MethodInfo method,
-        ParameterInfo[] parms)
+    private static SignatureKind ResolveSignatureKind(MethodInfo method, ParameterInfo[] parms)
     {
         // ---- new-style: first param is PacketContext<T> for any T : IPacket ----
         // Use generic-definition comparison instead of exact-type equality so that
@@ -506,10 +504,7 @@ internal sealed class HandlerCompiler<
     [Pure]
     [MethodImpl(MethodImplOptions.NoInlining)]
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
-    private static Func<object, PacketContext<TPacket>, object> BuildContextBridgeInvoker(
-        MethodInfo method,
-        ParameterInfo[] parms,
-        SignatureKind kind)
+    private static Func<object, PacketContext<TPacket>, object> BuildContextBridgeInvoker(MethodInfo method, ParameterInfo[] parms, SignatureKind kind)
     {
         // Capture once at compile time — zero allocation on the hot path.
         bool isStatic = method.IsStatic;
@@ -551,10 +546,7 @@ internal sealed class HandlerCompiler<
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     [Pure]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Func<object, PacketContext<TPacket>, object> BuildAotInvoker(
-    MethodInfo method,
-    ParameterInfo[] parms,
-    SignatureKind kind)
+    private static Func<object, PacketContext<TPacket>, object> BuildAotInvoker(MethodInfo method, ParameterInfo[] parms, SignatureKind kind)
     {
         return kind switch
         {
@@ -689,7 +681,7 @@ internal sealed class HandlerCompiler<
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static PacketMetadata GetPacketMetadata(MethodInfo method)
     {
-        return _attributeCache.GetOrAdd(method, static m =>
+        return s_attributeCache.GetOrAdd(method, static m =>
         {
             PacketMetadataBuilder builder = new()
             {
@@ -720,8 +712,8 @@ internal sealed class HandlerCompiler<
         string ctrl = $"controller={x00}";
         string m = x02 is null ? "" : $" method={x02.Name}";
         string sig = x02 is null ? "" : $" sig=({string.Join(",", Enumerable
-                                                                     .Select(x02
-                                                                     .GetParameters(), p => p.ParameterType.Name))})->{x03?.Name ?? "void"}";
+                                                       .Select(x02
+                                                       .GetParameters(), p => p.ParameterType.Name))})->{x03?.Name ?? "void"}";
 
         return $"{op} {ctrl}{m}{sig}";
     }

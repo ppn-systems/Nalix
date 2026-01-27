@@ -85,7 +85,7 @@ public abstract partial class UdpListenerBase : IListener
                         Tag = NetTaskNames.Udp,
                         IdType = SnowflakeType.System,
                         CancellationToken = _cancellationToken,
-                        GroupConcurrencyLimit = Config.MaxGroupConcurrency
+                        GroupConcurrencyLimit = s_config.MaxGroupConcurrency
                     });
             }
             finally
@@ -231,10 +231,10 @@ public abstract partial class UdpListenerBase : IListener
         // Socket configuration (static Config):contentReference[oaicite:11]{index=11}
         _ = sb.AppendLine("Socket s_config:");
         _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"NoDelay: {Config.NoDelay}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReuseAddress: {Config.ReuseAddress}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"KeepAlive: {Config.KeepAlive}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"BufferSize: {Config.BufferSize}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"NoDelay: {s_config.NoDelay}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReuseAddress: {s_config.ReuseAddress}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"KeepAlive: {s_config.KeepAlive}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"BufferSize: {s_config.BufferSize}");
         _ = sb.AppendLine();
 
         // Worker info: spawn/group + concurrency = 8 in ReceiveDatagramsAsync:contentReference[oaicite:12]{index=12}
@@ -303,10 +303,10 @@ public abstract partial class UdpListenerBase : IListener
 
             ["Config"] = new Dictionary<string, object>
             {
-                ["NoDelay"] = Config.NoDelay,
-                ["ReuseAddress"] = Config.ReuseAddress,
-                ["KeepAlive"] = Config.KeepAlive,
-                ["BufferSize"] = Config.BufferSize
+                ["NoDelay"] = s_config.NoDelay,
+                ["ReuseAddress"] = s_config.ReuseAddress,
+                ["KeepAlive"] = s_config.KeepAlive,
+                ["BufferSize"] = s_config.BufferSize
             },
 
             ["Worker"] = new Dictionary<string, object>
