@@ -30,8 +30,8 @@ public static class FormatterProvider
 {
     #region Fields
 
-    private static int _cntTotal, _cntPrimitives, _cntNullables, _cntArrays, _cntNullableArrays, _cntLists, _cntEnums, _cntStrings;
-    private static readonly Stopwatch _sw = Stopwatch.StartNew();
+    private static int s_cntTotal, s_cntPrimitives, s_cntNullables, s_cntArrays, s_cntNullableArrays, s_cntLists, s_cntEnums, s_cntStrings;
+    private static readonly Stopwatch s_sw = Stopwatch.StartNew();
 
     private static readonly HashSet<Type> s_valueTupleDefinitions =
     [
@@ -52,7 +52,7 @@ public static class FormatterProvider
     /// <summary>
     /// Factory cache (type -> factory delegate)
     /// </summary>
-    private static readonly ConcurrentDictionary<Type, Func<object>> _formatterFactories = new();
+    private static readonly ConcurrentDictionary<Type, Func<object>> s_formatterFactories = new();
 
     #endregion Fields
 
@@ -166,15 +166,15 @@ public static class FormatterProvider
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info(
             "[SH.FormatterProvider] init-ok in {0} ms. total={1}, primitives={2}, nullables={3}, arrays={4}, nullableArrays={5}, lists={6}, enums={7}, strings={8}",
-            _sw.ElapsedMilliseconds,
-            _cntTotal,
-            _cntPrimitives,
-            _cntNullables,
-            _cntArrays,
-            _cntNullableArrays,
-            _cntLists,
-            _cntEnums,
-            _cntStrings
+            s_sw.ElapsedMilliseconds,
+            s_cntTotal,
+            s_cntPrimitives,
+            s_cntNullables,
+            s_cntArrays,
+            s_cntNullableArrays,
+            s_cntLists,
+            s_cntEnums,
+            s_cntStrings
         );
     }
 
@@ -208,29 +208,29 @@ public static class FormatterProvider
         bool isArray = ut.IsArray;
         bool isNullable = ut.IsGenericType && ut.GetGenericTypeDefinition() == typeof(Nullable<>);
 
-        _ = Interlocked.Increment(ref _cntTotal);
+        _ = Interlocked.Increment(ref s_cntTotal);
         if (t == typeof(string))
         {
-            _ = Interlocked.Increment(ref _cntStrings); return;
+            _ = Interlocked.Increment(ref s_cntStrings); return;
         }
 
         if (isArray)
         {
             Type elem = ut.GetElementType()!;
             _ = elem.IsGenericType && elem.GetGenericTypeDefinition() == typeof(Nullable<>)
-                ? Interlocked.Increment(ref _cntNullableArrays)
-                : Interlocked.Increment(ref _cntArrays);
+                ? Interlocked.Increment(ref s_cntNullableArrays)
+                : Interlocked.Increment(ref s_cntArrays);
 
             return;
         }
 
         if (isNullable)
         {
-            _ = Interlocked.Increment(ref _cntNullables); return;
+            _ = Interlocked.Increment(ref s_cntNullables); return;
         }
         if (ut.IsEnum)
         {
-            _ = Interlocked.Increment(ref _cntEnums); return;
+            _ = Interlocked.Increment(ref s_cntEnums); return;
         }
 
         if (ut.IsPrimitive ||
@@ -241,13 +241,13 @@ public static class FormatterProvider
             ut == typeof(TimeSpan) ||
             ut == typeof(DateTimeOffset))
         {
-            _ = Interlocked.Increment(ref _cntPrimitives);
+            _ = Interlocked.Increment(ref s_cntPrimitives);
             return;
         }
 
         if (ut.IsGenericType && ut.GetGenericTypeDefinition() == typeof(List<>))
         {
-            _ = Interlocked.Increment(ref _cntLists);
+            _ = Interlocked.Increment(ref s_cntLists);
         }
     }
 
@@ -482,7 +482,7 @@ public static class FormatterProvider
     /// <param name="genericFormatterType">Generic definition, e.g. typeof(StructFormatter&lt;&gt;)</param>
     private static Func<object> GetFormatterFactory(Type type, Type genericFormatterType)
     {
-        return _formatterFactories.GetOrAdd(type, t =>
+        return s_formatterFactories.GetOrAdd(type, t =>
         {
             Type constructed = genericFormatterType.MakeGenericType(t);
             ConstructorInfo ctor = constructed.GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException($"No parameterless constructor for {constructed}");
