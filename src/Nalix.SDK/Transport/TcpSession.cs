@@ -403,7 +403,7 @@ public sealed class TcpSession : TcpSessionBase
             {
                 try
                 {
-                    _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                    InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                             .CancelWorker(_receiveHandle.Id);
 
                     _receiveHandle = null;
@@ -582,9 +582,8 @@ public sealed class TcpSession : TcpSessionBase
                 return;
             }
 
-            try { _ = (taskManager?.CancelWorker(handle.Id)); }
-            catch { }
-            finally { handle = null; }
+            taskManager?.CancelWorker(handle.Id);
+            handle = null;
         }
 
         // ── Rate sampler ─────────────────────────────────────────────────────

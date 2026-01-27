@@ -81,7 +81,7 @@ public interface ITaskManager : IDisposable, IReportable
     /// <param name="id">The worker's identifier.</param>
     /// <returns>True if the worker was cancelled; otherwise, false.</returns>
     /// <exception cref="ObjectDisposedException">Thrown when the matched worker's cancellation source has already been disposed.</exception>
-    bool CancelWorker(ISnowflake id);
+    void CancelWorker(ISnowflake id);
 
     /// <summary>
     /// Cancels all workers in a group.
@@ -97,7 +97,7 @@ public interface ITaskManager : IDisposable, IReportable
     /// <param name="name">The name of the recurring job.</param>
     /// <returns>True if the job was cancelled; otherwise, false.</returns>
     /// <exception cref="ObjectDisposedException">Thrown when the matched recurring job's cancellation source has already been disposed.</exception>
-    bool CancelRecurring(string name);
+    void CancelRecurring(string name);
 
     /// <summary>
     /// Lists all workers, optionally filtered by running status and/or group.
