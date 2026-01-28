@@ -76,8 +76,10 @@ public unsafe struct DataReader : IDisposable
     /// </summary>
     /// <param name="ptrB">The unmanaged memory pointer.</param>
     /// <param name="length">The length of the buffer.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="length"/> is negative.</exception>
     public DataReader(byte* ptrB, int length)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
         this.BytesRead = 0;
 
         _ptr = ptrB;
@@ -91,6 +93,7 @@ public unsafe struct DataReader : IDisposable
     /// This constructor creates a pinned copy of the span to ensure safe access to its data.
     /// </summary>
     /// <param name="span">The read-only span of bytes to read from.</param>
+    /// <exception cref="OutOfMemoryException">Thrown when the span copy cannot be allocated.</exception>
     public DataReader(ReadOnlySpan<byte> span)
     {
         _tempArray = span.ToArray();
@@ -107,6 +110,7 @@ public unsafe struct DataReader : IDisposable
     /// This constructor creates a pinned copy of the span to ensure safe access to its data.
     /// </summary>
     /// <param name="memory">The read-only memory of bytes to read from.</param>
+    /// <exception cref="OutOfMemoryException">Thrown when the fallback copy cannot be allocated.</exception>
     public DataReader(ReadOnlyMemory<byte> memory)
     {
         if (MemoryMarshal.TryGetArray(memory, out ArraySegment<byte> segment))

@@ -98,6 +98,8 @@ public sealed partial class TaskManager : ITaskManager
     /// Initializes a new instance of the <see cref="TaskManager"/> class.
     /// </summary>
     /// <param name="options">Optional configuration options for the TaskManager.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="options"/> contains invalid scheduling limits.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when startup monitoring workers cannot be scheduled.</exception>
     public TaskManager(TaskManagerOptions? options = null)
     {
         _options = options ?? new TaskManagerOptions();
@@ -147,6 +149,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <exception cref="ArgumentException">Thrown if the name is null or whitespace.</exception>
     /// <exception cref="ArgumentNullException">Thrown if the work delegate is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the worker cannot be added.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the manager has already been disposed.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public IWorkerHandle ScheduleWorker(string name, string group, Func<IWorkerContext, CancellationToken, ValueTask> work, IWorkerOptions? options = null)
     {
@@ -325,6 +328,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <exception cref="ArgumentOutOfRangeException">Thrown if the interval is less than or equal to zero.</exception>
     /// <exception cref="ArgumentNullException">Thrown if the work delegate is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown if a recurring task with the same name already exists.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the manager has already been disposed.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public IRecurringHandle ScheduleRecurring([StringSyntax("identifier")] string name, TimeSpan interval, Func<CancellationToken, ValueTask> work, IRecurringOptions? options = null)
     {
@@ -371,6 +375,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <inheritdoc/>
     /// <exception cref="ArgumentException">Thrown if the name is null or whitespace.</exception>
     /// <exception cref="ArgumentNullException">Thrown if the work delegate is null.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the manager has already been disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public async ValueTask RunOnceAsync(string name, Func<CancellationToken, ValueTask> work, CancellationToken ct = default)
     {

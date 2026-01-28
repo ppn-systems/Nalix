@@ -165,7 +165,9 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <see langword="true"/> on success; <see langword="false"/> if the path was unchanged,
     /// the gate timed out, or an auto-reload failed (path is rolled back in that case).
     /// </returns>
-    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="newConfigFilePath"/> is null, empty, or whitespace.</exception>
+    /// <exception cref="InternalErrorException">Thrown when <paramref name="newConfigFilePath"/> resolves outside the allowed configuration directory.</exception>
+    /// <exception cref="SecurityException">Thrown when the normalized path cannot be accessed securely.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public bool SetConfigFilePath(string newConfigFilePath, bool autoReload = true)
     {
@@ -285,6 +287,11 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// Subsequent calls will return the cached instance. Initialization happens outside of locks to prevent
     /// potential deadlocks if the container initialization requires additional resources.
     /// </remarks>
+    /// <exception cref="InvalidOperationException">Thrown when the configuration directory or container initialization state is invalid.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the configuration file or directory cannot be accessed.</exception>
+    /// <exception cref="PathTooLongException">Thrown when the configured file path exceeds platform limits.</exception>
+    /// <exception cref="IOException">Thrown when the configuration file or directory cannot be read or created.</exception>
+    /// <exception cref="InternalErrorException">Thrown when the configuration file path escapes the allowed base directory.</exception>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public TClass Get<TClass>() where TClass : ConfigurationLoader, new()
@@ -335,9 +342,13 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="configFilePath"/> is null or whitespace.
     /// </exception>
-    /// <exception cref="SecurityException">
+    /// <exception cref="InternalErrorException">
     /// Thrown when <paramref name="configFilePath"/> is outside the allowed configuration directory.
     /// </exception>
+    /// <exception cref="InvalidOperationException">Thrown when the configuration directory or container initialization state is invalid.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the configuration file or directory cannot be accessed.</exception>
+    /// <exception cref="PathTooLongException">Thrown when the configured file path exceeds platform limits.</exception>
+    /// <exception cref="IOException">Thrown when the configuration file or directory cannot be read or created.</exception>
     /// <remarks>
     /// <para>
     /// This method is thread-safe and will block all configuration access during the path change.
@@ -497,6 +508,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <remarks>
     /// This method is thread-safe and will flush pending changes to the INI file.
     /// </remarks>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the configuration file cannot be written.</exception>
+    /// <exception cref="IOException">Thrown when flushing pending configuration changes fails.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void Flush()
     {

@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
@@ -172,10 +173,15 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     #region APIs
 
     /// <inheritdoc/>
+    /// <exception cref="SerializationException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when no formatter is available for the packet type.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override byte[] Serialize() => LiteSerializer.Serialize((TSelf)this);
 
     /// <inheritdoc/>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> is too small for the serialized packet.</exception>
+    /// <exception cref="SerializationException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when no formatter is available for the packet type.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int Serialize(Span<byte> buffer)
     {
@@ -194,7 +200,10 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// Thrown when <paramref name="buffer"/> is empty.
     /// </exception>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when deserialization reads zero bytes (corrupt or truncated frame).
+    /// Thrown when deserialization reads zero bytes or no formatter is available for the packet type.
+    /// </exception>
+    /// <exception cref="SerializationException">
+    /// Thrown when the payload is malformed or does not contain enough data to deserialize the packet.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
@@ -251,6 +260,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// Returns a debug-friendly description of this packet's metadata.
     /// Not intended for production logging — allocates strings.
     /// </summary>
+    /// <exception cref="FormatException">Thrown when diagnostic formatting of packet metadata fails.</exception>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public string GenerateReport()
     {
@@ -268,6 +278,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// <summary>
     /// Returns a debug-friendly key-value summary of this packet's metadata (for diagnostics, not for production use).
     /// </summary>
+    /// <exception cref="FormatException">Thrown when diagnostic formatting of packet metadata fails.</exception>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public IDictionary<string, object> GenerateReportData()
     {

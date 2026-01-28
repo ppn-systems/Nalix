@@ -213,7 +213,9 @@ internal sealed class PropertyMetadata
     /// Missing from previous version: SByte, Char, DateTime, Guid, TimeSpan, DateTimeOffset.
     /// </summary>
     /// <param name="type"></param>
-    /// <exception cref="NotImplementedException"></exception>
+    /// <remarks>
+    /// Unsupported or variable-sized types resolve to <c>0</c> and are handled by higher-level dynamic-size logic.
+    /// </remarks>
     private static ushort ComputeFixedSize(Type type) =>
         Type.GetTypeCode(type) switch
         {
