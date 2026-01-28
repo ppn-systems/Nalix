@@ -178,8 +178,8 @@ internal sealed class FRAME_READER(
         {
             ReadOnlySpan<byte> chunkBody = chunkLease.Span[FragmentHeader.WireSize..];
 
-            // Try to add chunk. If complete, assembled lease contains the full original payload.
-            bool isComplete = _fragmentAssembler.TryAdd(header, chunkBody, out BufferLease? assembled, out bool streamEvicted);
+            // Add chunk. If complete, assembled lease contains the full original payload.
+            BufferLease? assembled = _fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);
 
             // Always dispose the chunk lease immediately (data has been copied by assembler)
             chunkLease.Dispose();
@@ -191,7 +191,7 @@ internal sealed class FRAME_READER(
                     $"stream={header.StreamId} — timeout or overflow");
             }
 
-            if (isComplete && assembled != null)
+            if (assembled is not null)
             {
                 this.PROCESS_NORMAL_FRAME(assembled);   // Now decrypt and decompress the full payload
             }

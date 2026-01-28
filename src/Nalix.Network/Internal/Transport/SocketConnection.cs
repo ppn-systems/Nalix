@@ -331,8 +331,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
     /// <exception cref="SocketException"></exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private async Task SAEA_RECEIVE_LOOP_ASYNC(
-        CancellationToken token)
+    private async Task SAEA_RECEIVE_LOOP_ASYNC(CancellationToken token)
     {
         try
         {
@@ -457,7 +456,6 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                             if (openStreams > s_opts.MaxPerConnectionOpenFragmentStreams)
                             {
                                 Interlocked.Decrement(ref _openFragmentStreams);
-
                                 s_logger?.Trace($"[[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                                                 $"fragment-stream-limit open={openStreams} — stream dropped");
 
@@ -465,6 +463,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                                 lease.Dispose();
                                 args.Dispose();
                                 _buffer = BufferLease.ByteArrayPool.Rent();
+
                                 continue;
                             }
                         }
@@ -476,7 +475,9 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                             $"isLast={header.IsLast} bodyLen={chunkBody.Length} ep={_sender?.NetworkEndpoint.Address}");
 #endif
 
-                        if (_fragmentAssembler.TryAdd(header, chunkBody, out BufferLease? assembled, out bool streamEvicted) && assembled != null)
+                        BufferLease? assembled = _fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);
+
+                        if (assembled is not null)
                         {
                             assembled.Retain();
                             args.Initialize(assembled, _cachedArgs.Connection);
