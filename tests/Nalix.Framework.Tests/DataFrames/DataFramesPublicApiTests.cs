@@ -647,7 +647,7 @@ namespace Nalix.Framework.Tests.DataFrames
             FragmentHeader header = new(streamId, chunkIndex, totalChunks, false);
 
             // Assert
-            Assert.Throws<InvalidDataException>(() => assembler.Add(header, [1, 2, 3], out _));
+            _ = Assert.Throws<InvalidDataException>(() => assembler.Add(header, [1, 2, 3], out _));
         }
 
         /// <summary>
@@ -681,7 +681,7 @@ namespace Nalix.Framework.Tests.DataFrames
             // Arrange
             using FragmentAssembler assembler = new() { StreamTimeoutMs = 1 };
             _ = assembler.Add(new FragmentHeader(21, 0, 2, false), [1, 2], out _);
-            Thread.Sleep(10);
+            Thread.Sleep(100);
 
             // Act
             int evicted = assembler.EvictExpired();

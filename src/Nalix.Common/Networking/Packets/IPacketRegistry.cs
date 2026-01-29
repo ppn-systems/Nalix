@@ -56,6 +56,7 @@ public interface IPacketRegistry
     /// <see langword="true"/> on success; <see langword="false"/> when the buffer is
     /// too short or no deserializer is registered for the magic number found.
     /// </returns>
+    /// <exception cref="ArgumentException">Thrown when a registered deserializer rejects a malformed packet buffer.</exception>
     bool TryDeserialize(ReadOnlySpan<byte> raw, out IPacket? packet);
 
     /// <summary>
