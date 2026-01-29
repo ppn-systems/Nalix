@@ -32,6 +32,10 @@ public static class ReportExtensions
     /// <param name="this">The reportable manager.</param>
     /// <param name="prefix">Optional filename prefix, e.g. "buffer" or "object".</param>
     /// <returns>The full path of the saved report file.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="this"/> is null.</exception>
+    /// <remarks>
+    /// File-system errors are logged internally; the method still returns the intended output path.
+    /// </remarks>
     public static string SaveReportToFile(this IReportable @this, string prefix = "null")
     {
         ArgumentNullException.ThrowIfNull(@this, nameof(@this));

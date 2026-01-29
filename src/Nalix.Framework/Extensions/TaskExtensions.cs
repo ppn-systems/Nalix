@@ -22,6 +22,7 @@ public static class TaskExtensions
     /// </summary>
     /// <param name="this">The <see cref="Task"/> on which this method is called.</param>
     /// <exception cref="ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
+    /// <exception cref="Exception">Rethrows the original task failure when the awaited task completes faulted.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static void Await(this Task @this)
@@ -41,6 +42,7 @@ public static class TaskExtensions
     /// <param name="this">The <see cref="Task{TResult}"/> on which this method is called.</param>
     /// <returns>The result of <paramref name="this"/>.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
+    /// <exception cref="Exception">Rethrows the original task failure when the awaited task completes faulted.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static TResult Await<TResult>(this Task<TResult> @this)
@@ -61,6 +63,7 @@ public static class TaskExtensions
     /// This parameter has the same effect as calling the <see cref="Task.ConfigureAwait(bool)"/>
     /// method.</param>
     /// <exception cref="ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
+    /// <exception cref="Exception">Rethrows the original task failure when the awaited task completes faulted.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static void Await(
@@ -88,6 +91,9 @@ public static class TaskExtensions
     /// <returns>
     /// The result of the task if it completes within the timeout; otherwise, <c>default</c>.
     /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="msTimeout"/> is less than -1.</exception>
+    /// <exception cref="Exception">Rethrows the original task failure when the source task completes faulted before timeout.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static async Task<T?> WithTimeout<T>(this Task<T> @this, int msTimeout)
@@ -113,8 +119,12 @@ public static class TaskExtensions
     /// <param name="tcs">The TaskCompletionSource instance.</param>
     /// <param name="token">Cancellation token.</param>
     /// <returns>IDisposable registration handle.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="tcs"/> is null.</exception>
     public static IDisposable LinkCancellation<T>(this TaskCompletionSource<T> tcs, CancellationToken token)
-        => !token.CanBeCanceled ? DummyDisposable.Instance : token.Register(() => tcs.TrySetCanceled(token));
+    {
+        ArgumentNullException.ThrowIfNull(tcs);
+        return !token.CanBeCanceled ? DummyDisposable.Instance : token.Register(() => tcs.TrySetCanceled(token));
+    }
 
     private sealed class DummyDisposable : IDisposable
     {

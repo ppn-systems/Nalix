@@ -375,6 +375,8 @@ public sealed partial class TaskManager : ITaskManager
     /// <inheritdoc/>
     /// <exception cref="ArgumentException">Thrown if the name is null or whitespace.</exception>
     /// <exception cref="ArgumentNullException">Thrown if the work delegate is null.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the supplied <paramref name="ct"/> is cancelled while <paramref name="work"/> is running.</exception>
+    /// <exception cref="Exception">Propagates any exception thrown by <paramref name="work"/> after it is logged.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the manager has already been disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public async ValueTask RunOnceAsync(string name, Func<CancellationToken, ValueTask> work, CancellationToken ct = default)
@@ -400,6 +402,7 @@ public sealed partial class TaskManager : ITaskManager
     }
 
     /// <inheritdoc/>
+    /// <exception cref="ObjectDisposedException">Thrown when a matched worker's cancellation source has already been disposed.</exception>
     [Pure]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public int CancelAllWorkers()
@@ -422,6 +425,7 @@ public sealed partial class TaskManager : ITaskManager
     }
 
     /// <inheritdoc/>
+    /// <exception cref="ObjectDisposedException">Thrown when the matched worker's cancellation source has already been disposed.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public bool CancelWorker(ISnowflake id)
     {
@@ -452,6 +456,7 @@ public sealed partial class TaskManager : ITaskManager
     }
 
     /// <inheritdoc/>
+    /// <exception cref="ObjectDisposedException">Thrown when a matched worker's cancellation source has already been disposed.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public int CancelGroup(string group)
     {
@@ -475,6 +480,7 @@ public sealed partial class TaskManager : ITaskManager
     }
 
     /// <inheritdoc/>
+    /// <exception cref="ObjectDisposedException">Thrown when the matched recurring task's cancellation source has already been disposed.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public bool CancelRecurring(string? name)
     {

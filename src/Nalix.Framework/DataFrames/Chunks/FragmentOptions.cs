@@ -59,6 +59,7 @@ public class FragmentOptions : ConfigurationLoader
     /// <summary>
     /// Validates the chunking configuration to ensure it meets the necessary constraints for proper operation.
     /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when any fragmentation limit is non-positive, inconsistent, or exceeds wire-format limits.</exception>
     public void Validate()
     {
         // ChunkBodySize + 2B (frame header) + 7B (ChunkHeader) ≤ PacketSizeLimit
