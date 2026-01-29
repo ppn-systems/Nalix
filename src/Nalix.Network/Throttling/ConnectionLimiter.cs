@@ -118,23 +118,17 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     /// <param name="endPoint">The IP endpoint requesting connection.</param>
     /// <returns>True if connection is allowed; false if limit exceeded.</returns>
     /// <exception cref="ObjectDisposedException">Thrown if limiter is disposed.</exception>
-    /// <exception cref="InternalErrorException">Thrown if endPoint is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if IPEndPoint is null.</exception>"
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool IsConnectionAllowed(
-        IPEndPoint endPoint)
+    public bool TryAccept(IPEndPoint endPoint)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, nameof(ConnectionLimiter));
-
-        if (endPoint is null)
-        {
-            throw new InternalErrorException("NetworkEndpoint cannot be null", nameof(endPoint));
-        }
+        ArgumentNullException.ThrowIfNull(endPoint);
 
         _ = SAFE_INCREMENT(ref _totalConnectionAttempts);
 
         DateTime now = Clock.NowUtc();
         INetworkEndpoint key = CONVERT_TO_NETWORK_ENDPOINT(endPoint);
-
         ConnectionAllowResult result = this.TRY_ACQUIRE_CONNECTION_SLOT(key, now);
 
         if (!result.Allowed)
@@ -170,40 +164,13 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     }
 
     /// <summary>
-    /// Attempts to acquire a connection slot for the given endpoint.
-    /// </summary>
-    /// <param name="endPoint">The endpoint requesting connection.</param>
-    /// <returns>True if connection is allowed; false if limit exceeded.</returns>
-    /// <exception cref="ObjectDisposedException">Thrown if limiter is disposed.</exception>
-    /// <exception cref="InternalErrorException">Thrown if endPoint is null.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsConnectionAllowed(
-        EndPoint endPoint)
-    {
-        if (endPoint is null)
-        {
-            throw new InternalErrorException("NetworkEndpoint cannot be null", nameof(endPoint));
-        }
-
-        if (endPoint is not IPEndPoint ipEndPoint)
-        {
-            s_logger?.Warn($"[NW.{nameof(ConnectionLimiter)}] received non-IPEndPoint ({endPoint.GetType().Name}) - rejecting");
-            return false;
-        }
-
-        return this.IsConnectionAllowed(ipEndPoint);
-    }
-
-    /// <summary>
     /// Handles connection closure event and decrements the connection counter.
     /// </summary>
     /// <param name="sender">Event sender (unused).</param>
     /// <param name="args">Connection event arguments.</param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Event handler signature")]
-    public void OnConnectionClosed(
-        object? sender,
-        IConnectEventArgs args)
+    public void OnConnectionClosed(object? sender, IConnectEventArgs args)
     {
         if (Volatile.Read(ref _disposed) != 0)
         {
@@ -319,7 +286,6 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     #region Connection Slot Management
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [SuppressMessage("Performance", "CA1859", Justification = "Interface required")]
     private static INetworkEndpoint CONVERT_TO_NETWORK_ENDPOINT(IPEndPoint endPoint)
         => Connection.Endpoint.FromIpAddress(endPoint.Address);
 
