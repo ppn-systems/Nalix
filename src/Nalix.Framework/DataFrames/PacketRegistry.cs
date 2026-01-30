@@ -96,7 +96,7 @@ public sealed class PacketRegistry : IPacketRegistry
 
     /// <inheritdoc/>
     /// <exception cref="ArgumentException">Thrown when a registered deserializer attempts to read a malformed packet header.</exception>
-    public void Deserialize(ReadOnlySpan<byte> raw, out IPacket packet)
+    public IPacket Deserialize(ReadOnlySpan<byte> raw)
     {
         if (raw.Length < PacketConstants.HeaderSize)
         {
@@ -114,7 +114,7 @@ public sealed class PacketRegistry : IPacketRegistry
                 $"Check your PacketRegistryFactory configuration.");
         }
 
-        packet = deserializer(raw);
+        return deserializer(raw);
     }
 
     #endregion Public API
