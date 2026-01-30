@@ -178,7 +178,7 @@ public static class ControlExtensions
     /// </code>
     /// </example>
     public static async Task<(double rttMs, Control pong)> PingAsync(
-        this IClientConnection client,
+        this TcpSessionBase client,
         ushort opCode,
         uint? sequenceId = null,
         int timeoutMs = 3000,
@@ -237,7 +237,7 @@ public static class ControlExtensions
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Task<Control> AwaitControlAsync(
-        this IClientConnection client,
+        this TcpSessionBase client,
         Func<Control, bool> predicate,
         int timeoutMs,
         CancellationToken ct = default)
@@ -268,7 +268,7 @@ public static class ControlExtensions
     /// </code>
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Task SendControlAsync(this IClientConnection client, ushort opCode, ControlType type, Action<Control>? configure = null, CancellationToken ct = default)
+    public static Task SendControlAsync(this TcpSessionBase client, ushort opCode, ControlType type, Action<Control>? configure = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(client);
 
