@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Primitives;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Injection;
@@ -290,7 +291,7 @@ public static class FormatterProvider
             return;
         }
 
-        throw new InvalidOperationException($"Unsupported type: {type.FullName}");
+        throw new SerializationFailureException($"Unsupported type: {type.FullName}");
     }
 
     /// <summary>
@@ -298,7 +299,7 @@ public static class FormatterProvider
     /// </summary>
     /// <typeparam name="T">The type for which to retrieve the formatter.</typeparam>
     /// <returns>The registered formatter for the specified type.</returns>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if no formatter is registered for the given type.
     /// </exception>
     [DebuggerStepThrough]
@@ -415,7 +416,7 @@ public static class FormatterProvider
     /// </summary>
     /// <typeparam name="T">The type for which to retrieve a formatter.</typeparam>
     /// <returns>The registered formatter for the given type.</returns>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if no formatter is registered for the specified type.
     /// </exception>
     [DebuggerStepThrough]
@@ -431,7 +432,7 @@ public static class FormatterProvider
 
         if (Nullable.GetUnderlyingType(type) is not null)
         {
-            throw new InvalidOperationException($"Cannot call GetComplex<T>() on Nullable<T>: {type}");
+            throw new SerializationFailureException($"Cannot call GetComplex<T>() on Nullable<T>: {type}");
         }
 
         if (TypeMetadata.IsUnmanaged<T>() && !type.IsEnum)
@@ -444,7 +445,7 @@ public static class FormatterProvider
 
             // Use cached factory delegate instead of reflection
             Func<object> factory = GetFormatterFactory(type, typeof(StructFormatter<>));
-            object? @struct = factory() ?? throw new InvalidOperationException($"Failed to create instance of StructFormatter<{type.Name}>.");
+            object? @struct = factory() ?? throw new SerializationFailureException($"Failed to create instance of StructFormatter<{type.Name}>.");
             RegisterComplex((IFormatter<T>)@struct);
             return ComplexTypeCache<T>.Struct;
         }
@@ -457,12 +458,12 @@ public static class FormatterProvider
             }
 
             Func<object> factory = GetFormatterFactory(type, typeof(ObjectFormatter<>));
-            object? @object = factory() ?? throw new InvalidOperationException($"Failed to create instance of ObjectFormatter<{type.Name}>.");
+            object? @object = factory() ?? throw new SerializationFailureException($"Failed to create instance of ObjectFormatter<{type.Name}>.");
             RegisterComplex((IFormatter<T>)@object);
             return ComplexTypeCache<T>.Class;
         }
 
-        throw new InvalidOperationException($"No formatter registered for type {type}.");
+        throw new SerializationFailureException($"No formatter registered for type {type}.");
     }
 
     #endregion APIs
@@ -481,13 +482,13 @@ public static class FormatterProvider
     /// </summary>
     /// <param name="type">Target type</param>
     /// <param name="genericFormatterType">Generic definition, e.g. typeof(StructFormatter&lt;&gt;)</param>
-    /// <exception cref="InvalidOperationException">Thrown when the formatter type does not expose a parameterless constructor.</exception>
+    /// <exception cref="SerializationFailureException">Thrown when the formatter type does not expose a parameterless constructor.</exception>
     private static Func<object> GetFormatterFactory(Type type, Type genericFormatterType)
     {
         return s_formatterFactories.GetOrAdd(type, t =>
         {
             Type constructed = genericFormatterType.MakeGenericType(t);
-            ConstructorInfo ctor = constructed.GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException($"No parameterless constructor for {constructed}");
+            ConstructorInfo ctor = constructed.GetConstructor(Type.EmptyTypes) ?? throw new SerializationFailureException($"No parameterless constructor for {constructed}");
             System.Linq.Expressions.NewExpression newExpr = System.Linq.Expressions.Expression.New(ctor);
             System.Linq.Expressions.Expression<Func<object>> lambda = System.Linq.Expressions.Expression.Lambda<Func<object>>(newExpr);
 
@@ -701,7 +702,7 @@ public static class FormatterProvider
 
         if (!TypeMetadata.IsUnmanaged(elem))
         {
-            throw new NotSupportedException($"MemoryFormatter only supports unmanaged element types. T='{elem.Name}' is not unmanaged. For strings, use IFormatter<string> directly.");
+            throw new SerializationFailureException($"MemoryFormatter only supports unmanaged element types. T='{elem.Name}' is not unmanaged. For strings, use IFormatter<string> directly.");
         }
         else if (def == typeof(Memory<>))
         {
@@ -740,7 +741,7 @@ public static class FormatterProvider
 
         if (!s_valueTupleFormatterDefs.TryGetValue(formatterArity, out Type? formatterDef))
         {
-            throw new NotSupportedException($"ValueTupleFormatter: arity {arity} is not supported.");
+            throw new SerializationFailureException($"ValueTupleFormatter: arity {arity} is not supported.");
         }
 
         Type formatterType = formatterDef.MakeGenericType(typeArgs[..formatterArity]);

@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
@@ -85,7 +86,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     /// Initializes a new instance of the <see cref="UdpSession"/> class using
     /// services resolved from <see cref="ConfigurationManager"/> and <see cref="InstanceManager"/>.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="InternalErrorException">
     /// Thrown when an <see cref="IPacketRegistry"/> instance is not available.
     /// </exception>
     public UdpSession()
@@ -93,7 +94,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
         _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
         _dispatcher = InstanceManager.Instance.GetExistingInstance<IThreadDispatcher>() ?? new InlineDispatcher();
         this.Catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
-            ?? throw new InvalidOperationException("IPacketRegistry instance not found.");
+            ?? throw new InternalErrorException("IPacketRegistry instance not found.");
 
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
         this.Options.Validate();
@@ -290,7 +291,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     /// <exception cref="ObjectDisposedException">The session has already been disposed.</exception>
     /// <exception cref="ArgumentException">The resolved host is null, empty, or whitespace.</exception>
-    /// <exception cref="SocketException">No endpoint could be connected successfully.</exception>
+    /// <exception cref="NetworkException">No endpoint could be connected successfully.</exception>
     public async Task ConnectAsync(string? host = null, ushort? port = null, CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(UdpSession));
@@ -387,7 +388,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
         }
 
         _ = Interlocked.Exchange(ref _connected, 0);
-        throw lastEx ?? new SocketException((int)SocketError.HostNotFound);
+        throw new NetworkException($"[SDK.{nameof(UdpSession)}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx ?? new SocketException((int)SocketError.HostNotFound));
     }
 
     /// <summary>
@@ -437,7 +438,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
         if (!this.IsConnected)
         {
-            throw new InvalidOperationException("Client not connected.");
+            throw new NetworkException("Client not connected.");
         }
 
         if (packet.Length == 0)
@@ -563,7 +564,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
             if (sent != datagram.Length)
             {
-                throw new InvalidOperationException("UDP datagram send completed partially.");
+                throw new NetworkException($"[SDK.{nameof(UdpSession)}] UDP datagram send completed partially.");
             }
 
             this.ReportBytesSent(sent);
@@ -806,8 +807,8 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
             return payload.ToArray();
         }
 
-        IPEndPoint remote = (IPEndPoint)(this.RemoteEndPoint ?? throw new InvalidOperationException("Remote endpoint not available."));
-        ISnowflake sessionId = this.SessionId ?? throw new InvalidOperationException("SessionId is required for authenticated UDP datagrams.");
+        IPEndPoint remote = (IPEndPoint)(this.RemoteEndPoint ?? throw new NetworkException("Remote endpoint not available."));
+        ISnowflake sessionId = this.SessionId ?? throw new InternalErrorException("SessionId is required for authenticated UDP datagrams.");
         byte[] secret = this.Options.Secret;
 
         byte[] datagram = new byte[payload.Length + AuthenticationMetadataSize];
@@ -884,7 +885,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
         Socket? socket = _socket;
         return socket is not null && this.IsConnected
             ? socket
-            : throw new InvalidOperationException("Client not connected.");
+            : throw new NetworkException("Client not connected.");
     }
 
     private void HandleTransportError(Exception ex)

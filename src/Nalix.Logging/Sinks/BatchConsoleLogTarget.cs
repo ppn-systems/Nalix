@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Logging.Configuration;
+using Nalix.Logging.Formatters;
 using Nalix.Logging.Internal.Console;
 
 namespace Nalix.Logging.Sinks;
@@ -51,18 +52,18 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, IDisposable
     /// <param name="options">
     /// An optional delegate to configure <see cref="ConsoleLogOptions"/> for this log target.
     /// </param>
-    public BatchConsoleLogTarget(ConsoleLogOptions? options = null)
-    {
-        Console.Title = "Nx";
-        _provider = new ConsoleLoggerProvider(options);
-    }
+    /// <param name="formatter"></param>
+    [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
+    public BatchConsoleLogTarget(ConsoleLogOptions? options = null, ILoggerFormatter? formatter = null)
+        => _provider = new ConsoleLoggerProvider(formatter ?? new AnsiColorFormatter(), options);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with custom configuration logic.
     /// </summary>
     /// <param name="options">An action that configures the <see cref="FileLogOptions"/> before use.</param>
-    public BatchConsoleLogTarget(Action<ConsoleLogOptions> options)
-        : this(Configure(options))
+    /// <param name="formatter"></param>
+    public BatchConsoleLogTarget(Action<ConsoleLogOptions> options, ILoggerFormatter? formatter = null)
+        : this(Configure(options), formatter)
     {
     }
 

@@ -166,7 +166,8 @@ public ref struct DataWriter
     {
         if (minimumSize <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(minimumSize), "SIZE must be greater than zero.");
+            throw new ArgumentOutOfRangeException(
+                $"Invalid minimumSize: value={minimumSize}, required>0.");
         }
 
         if (_span.Length - this.WrittenCount >= minimumSize)
@@ -176,7 +177,8 @@ public ref struct DataWriter
 
         if (!_rent) // external array (or external span if we ever add such ctor) cannot expand by policy
         {
-            throw new InvalidOperationException("Cannot expand a fixed buffer.");
+            throw new InvalidOperationException(
+                $"Cannot expand fixed buffer: available={_span.Length}, required={minimumSize}.");
         }
 
         // Rent a larger buffer and copy committed bytes

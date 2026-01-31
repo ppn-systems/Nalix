@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
@@ -126,13 +127,13 @@ internal sealed class SocketUdpTransport : IConnection.IUdp, IPoolable, IDisposa
     {
         if (message.IsEmpty || _endPoint is null)
         {
-            throw new InvalidOperationException("Connection endpoint is not available.");
+            throw new NetworkException("Connection endpoint is not available.");
         }
 
         int sent = _socket.SendTo(message, SocketFlags.None, _endPoint);
         if (sent != message.Length)
         {
-            throw new InvalidOperationException("The socket did not send the full payload.");
+            throw new NetworkException("The socket did not send the full payload.");
         }
     }
 
@@ -165,13 +166,13 @@ internal sealed class SocketUdpTransport : IConnection.IUdp, IPoolable, IDisposa
 
         if (_endPoint is null)
         {
-            throw new InvalidOperationException("Connection endpoint is not available.");
+            throw new NetworkException("Connection endpoint is not available.");
         }
 
         int sentBytes = await _socket.SendToAsync(message, _endPoint, cancellationToken).ConfigureAwait(false);
         if (sentBytes != message.Length)
         {
-            throw new InvalidOperationException("The socket did not send the full payload.");
+            throw new NetworkException("The socket did not send the full payload.");
         }
     }
 

@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames;
@@ -167,7 +168,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSessionBase));
         FRAME_SENDER? sender = Volatile.Read(ref Sender);
-        return sender is null ? throw new InvalidOperationException("Client not connected.") : sender.SendAsync(payload, ct);
+        return sender is null ? throw new NetworkException("Client not connected.") : sender.SendAsync(payload, ct);
     }
 
     /// <inheritdoc/>
@@ -176,7 +177,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(packet);
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSessionBase));
         FRAME_SENDER? sender = Volatile.Read(ref Sender);
-        return sender is null ? throw new InvalidOperationException("Client not connected.") : sender.SendAsync(packet, ct);
+        return sender is null ? throw new NetworkException("Client not connected.") : sender.SendAsync(packet, ct);
     }
 
     /// <summary>
@@ -332,9 +333,8 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
             this.Logger?.Info($"[SDK.{this.GetType().Name}] SendAsync: Operation canceled");
             throw;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            this.Logger?.Error($"[SDK.{this.GetType().Name}:{nameof(SendAsync)}] send-failed", ex);
             throw;
         }
         finally
@@ -545,7 +545,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
         Socket? s = Socket;
         return s?.Connected == true
             ? s
-            : throw new InvalidOperationException("Client not connected.");
+            : throw new NetworkException("Client not connected.");
     }
 
     /// <summary>

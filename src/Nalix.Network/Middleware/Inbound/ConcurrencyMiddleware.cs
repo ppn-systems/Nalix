@@ -71,7 +71,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
 
             await next(context.CancellationToken).ConfigureAwait(false);
         }
-        catch (ConcurrencyConflictException)
+        catch (ConcurrencyFailureException)
         {
             await context.Connection.SendAsync(
                 controlType: ControlType.FAIL,

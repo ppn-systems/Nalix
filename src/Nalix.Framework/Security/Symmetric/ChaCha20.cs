@@ -86,7 +86,7 @@ public struct ChaCha20
     /// <param name="nonce"></param>
     /// <param name="counter"></param>
     /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="key"/> or <paramref name="nonce"/> is null.</exception>
-    /// <exception cref="Common.Exceptions.CryptographyException">Thrown when the key or nonce length is invalid.</exception>
+    /// <exception cref="Common.Exceptions.CipherException">Thrown when the key or nonce length is invalid.</exception>
     public ChaCha20(byte[] key, byte[] nonce, uint counter)
     {
         System.ArgumentNullException.ThrowIfNull(key);
@@ -103,7 +103,7 @@ public struct ChaCha20
     /// <param name="key"></param>
     /// <param name="nonce"></param>
     /// <param name="counter"></param>
-    /// <exception cref="Common.Exceptions.CryptographyException">Thrown when the key or nonce length is invalid.</exception>
+    /// <exception cref="Common.Exceptions.CipherException">Thrown when the key or nonce length is invalid.</exception>
     public ChaCha20(
         System.ReadOnlySpan<byte> key,
         System.ReadOnlySpan<byte> nonce,
@@ -150,7 +150,7 @@ public struct ChaCha20
     /// <param name="src"></param>
     /// <param name="dst"></param>
     /// <exception cref="System.ObjectDisposedException">Thrown when this instance has been cleared.</exception>
-    /// <exception cref="Common.Exceptions.CryptographyException">Thrown when the destination length does not match the source length.</exception>
+    /// <exception cref="Common.Exceptions.CipherException">Thrown when the destination length does not match the source length.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public int Encrypt(
@@ -179,7 +179,7 @@ public struct ChaCha20
     /// <param name="src"></param>
     /// <param name="dst"></param>
     /// <exception cref="System.ObjectDisposedException">Thrown when this instance has been cleared.</exception>
-    /// <exception cref="Common.Exceptions.CryptographyException">Thrown when the destination length does not match the source length.</exception>
+    /// <exception cref="Common.Exceptions.CipherException">Thrown when the destination length does not match the source length.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public int Decrypt(System.ReadOnlySpan<byte> src, System.Span<byte> dst) => this.Encrypt(src, dst);

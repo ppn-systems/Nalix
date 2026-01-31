@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Framework.Identifiers;
 using Xunit;
@@ -74,9 +75,9 @@ public class IdentifierTests
     [Fact]
     public void DeserializeFromByteArrayInvalidLengthThrows()
     {
-        _ = Assert.Throws<ArgumentException>(() => Snowflake.FromBytes([]));
-        _ = Assert.Throws<ArgumentException>(() => Snowflake.FromBytes(new byte[6]));
-        _ = Assert.Throws<ArgumentException>(() => Snowflake.FromBytes(new byte[8]));
+        _ = Assert.Throws<SerializationFailureException>(() => Snowflake.FromBytes([]));
+        _ = Assert.Throws<SerializationFailureException>(() => Snowflake.FromBytes(new byte[6]));
+        _ = Assert.Throws<SerializationFailureException>(() => Snowflake.FromBytes(new byte[8]));
     }
 
     [Fact]

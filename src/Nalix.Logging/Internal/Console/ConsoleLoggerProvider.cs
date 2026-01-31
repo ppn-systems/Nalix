@@ -16,7 +16,6 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Logging.Configuration;
-using Nalix.Logging.Internal.Formatters;
 using Nalix.Logging.Internal.Pooling;
 
 #if DEBUG
@@ -34,13 +33,13 @@ internal sealed class ConsoleLoggerProvider : IDisposable
     #region Fields
 
     private readonly Channel<LogEntry> _channel;
+    private readonly ILoggerFormatter _formatter;
     private readonly ChannelWriter<LogEntry> _writer;
     private readonly ChannelReader<LogEntry> _reader;
 
     private readonly int _batchSize;
     private readonly bool _enableFlush;
     private readonly IWorkerHandle? _workerHandle;
-    private readonly bool _enableColors;
     private readonly bool _adaptiveFlush;
     private readonly CancellationTokenSource _cts;
 
@@ -61,12 +60,12 @@ internal sealed class ConsoleLoggerProvider : IDisposable
 
     #region Constructors
 
-    public ConsoleLoggerProvider(ConsoleLogOptions? options = null)
+    public ConsoleLoggerProvider(ILoggerFormatter formatter, ConsoleLogOptions? options = null)
     {
         options ??= ConfigurationManager.Instance.Get<ConsoleLogOptions>();
 
+        _formatter = formatter;
         _enableFlush = options.EnableFlush;
-        _enableColors = options.EnableColors;
         _adaptiveFlush = options.AdaptiveFlush;
         _batchSize = Math.Max(1, options.BatchSize);
         _batchDelay = options.BatchDelay > TimeSpan.Zero ? options.BatchDelay : TimeSpan.FromMilliseconds(100);
@@ -268,9 +267,7 @@ internal sealed class ConsoleLoggerProvider : IDisposable
         {
             foreach (LogEntry entry in batch)
             {
-                LogMessageBuilder.AppendFormatted(
-                    sb, entry.TimeStamp, entry.LogLevel,
-                    entry.EventId, entry.Message, entry.Exception, _enableColors);
+                _formatter.Format(entry, sb);
                 _ = sb.AppendLine();
             }
 

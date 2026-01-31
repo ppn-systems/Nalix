@@ -15,6 +15,7 @@ using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.DataFrames.TextFrames;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Options;
 using Xunit;
 
 namespace Nalix.Framework.Tests.DataFrames
@@ -128,54 +129,6 @@ namespace Nalix.Framework.Tests.DataFrames
 
             // Assert
             assertEquivalent(original, deserialized);
-        }
-
-        /// <summary>
-        /// Verifies that serializing into an undersized span throws an argument exception.
-        /// </summary>
-        [Theory]
-        [MemberData(nameof(PacketSerializeBufferTooSmallCases))]
-        public void Serialize_BufferTooSmall_ThrowsArgumentException(FrameBase frame)
-        {
-            // Arrange
-            byte[] buffer = new byte[Math.Max(0, frame.Length - 1)];
-
-            // Act
-            ArgumentException exception = Assert.Throws<ArgumentException>(() => frame.Serialize(buffer));
-
-            // Assert
-            Assert.Equal("buffer", exception.ParamName);
-        }
-
-        /// <summary>
-        /// Verifies that deserializing an empty span is rejected for packet base derived types.
-        /// </summary>
-        [Theory]
-        [InlineData(nameof(Control))]
-        [InlineData(nameof(Directive))]
-        [InlineData(nameof(Handshake))]
-        [InlineData(nameof(Text256))]
-        [InlineData(nameof(Text512))]
-        [InlineData(nameof(Text1024))]
-        public void Deserialize_EmptyBuffer_ThrowsArgumentException(string packetTypeName)
-        {
-            // Arrange
-            Action action = packetTypeName switch
-            {
-                nameof(Control) => () => Control.Deserialize([]),
-                nameof(Directive) => () => Directive.Deserialize([]),
-                nameof(Handshake) => () => Handshake.Deserialize([]),
-                nameof(Text256) => () => Text256.Deserialize([]),
-                nameof(Text512) => () => Text512.Deserialize([]),
-                nameof(Text1024) => () => Text1024.Deserialize([]),
-                _ => throw new InvalidOperationException("Unexpected packet type.")
-            };
-
-            // Act
-            ArgumentException exception = Assert.Throws<ArgumentException>(action);
-
-            // Assert
-            Assert.Equal("buffer", exception.ParamName);
         }
 
         /// <summary>

@@ -8,6 +8,7 @@ using System.Threading;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
+using Nalix.Common.Exceptions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
@@ -157,7 +158,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// <remarks>
     /// This method is thread-safe and transitions the context to the <see cref="PacketContextState.InUse"/> state.
     /// </remarks>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="InternalErrorException"></exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void Initialize(TPacket packet, IConnection connection, PacketMetadata descriptor, CancellationToken token = default)
     {
