@@ -4,7 +4,6 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Networking.Transport;
 using Nalix.SDK.Transport;
 
 namespace Nalix.SDK.Extensions;

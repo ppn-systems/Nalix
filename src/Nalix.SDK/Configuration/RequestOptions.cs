@@ -4,7 +4,6 @@
 using System;
 using System.Threading;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Transport;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 

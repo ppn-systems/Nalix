@@ -5,12 +5,13 @@
 		<IsPackable>true</IsPackable>
 		<IsTrimmable>false</IsTrimmable>
 		<OutputType>Library</OutputType>
-		<Deterministic>true</Deterministic>
 
 		<!-- NativeAOT: export UnmanagedCallersOnly symbols as a real DLL/.so/.dylib -->
 		<Optimize>true</Optimize>
 		<PublishAot>true</PublishAot>
 		<StripSymbols>true</StripSymbols>
+		<Deterministic>true</Deterministic>
+		<IsAotCompatible>true</IsAotCompatible>
 		<InvariantGlobalization>true</InvariantGlobalization>
 
 		<!-- Reduce reflection metadata; keep it small & fast for interop -->

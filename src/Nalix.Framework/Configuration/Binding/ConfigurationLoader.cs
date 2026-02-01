@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
@@ -30,13 +31,10 @@ public abstract partial class ConfigurationLoader
 {
     #region Fields
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        Type, string> _sectionNameCache;
+    private static readonly ConcurrentDictionary<Type, string> s_sectionNameCache;
+    private static readonly ConcurrentDictionary<Type, ConfigurationMetadata> s_metadataCache;
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        Type, ConfigurationMetadata> _metadataCache;
-
-    private static readonly string[] _suffixesToTrim =
+    private static readonly string[] s_suffixesToTrim =
     [
         "Config",
         "Option",
@@ -56,8 +54,8 @@ public abstract partial class ConfigurationLoader
 
     static ConfigurationLoader()
     {
-        _metadataCache = new();
-        _sectionNameCache = new();
+        s_metadataCache = new();
+        s_sectionNameCache = new();
     }
 
     #endregion Contructor
