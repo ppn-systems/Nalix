@@ -1,0 +1,97 @@
+/* .md-grid {
+  max-width: 1220px;
+} */
+
+.md-grid {
+  max-width: 95%;
+}
+
+.md-nav__link {
+  white-space: normal !important;
+  word-break: break-word;
+}
+
+/* bo góc toàn site */
+.md-typeset {
+  border-radius: 12px;
+}
+
+/* code block đẹp hơn */
+.highlight pre {
+  border-radius: 10px;
+}
+
+.highlight {
+  position: relative;
+}
+
+.highlight.language-csharp::before {
+  content: "C#";
+  position: absolute;
+  top: 0.65rem;
+  right: 3.25rem;
+  z-index: 1;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--md-default-fg-color--light);
+  background: color-mix(in srgb, var(--md-accent-fg-color) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--md-accent-fg-color) 35%, transparent);
+}
+
+/* tăng font */
+:root {
+  --md-text-font-size: 16px;
+}
+
+/* Search input */
+.md-search__input {
+  background-color: #0f172a !important; /* nền */
+  color: #e6edf3 !important;            /* chữ */
+  border-radius: 8px;
+}
+
+/* Dropdown search */
+.md-search__output {
+  background: #0f172a;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.md-search-result__item {
+  border-radius: 8px;
+}
+
+.md-search-result__item:hover {
+  background: rgba(0, 210, 255, 0.1);
+}
+
+.md-search-result__teaser mark {
+  background: rgba(0, 210, 255, 0.3);
+  color: #fff;
+  border-radius: 4px;
+}
+
+/* Keep the mobile drawer scroll area clear of the footer/meta block. */
+@media screen and (max-width: 76.234375em) {
+  .md-sidebar--primary .md-sidebar__scrollwrap,
+  .md-sidebar--primary .md-sidebar__inner,
+  .md-nav--primary .md-nav__title ~ .md-nav__list {
+    padding-bottom: 4.5rem;
+  }
+
+  .md-sidebar--primary .md-sidebar__scrollwrap {
+    overscroll-behavior: contain;
+  }
+}
+
+/* Keep API groups collapsed by default without affecting other sectioned nav trees. */
+.md-sidebar--primary .api-nav-collapsible > .md-nav > .md-nav__list > .md-nav__item > .md-nav {
+  display: none;
+}
+
+.md-sidebar--primary .api-nav-collapsible > .md-nav > .md-nav__list > .md-nav__item > .md-nav__toggle:checked ~ .md-nav {
+  display: block;
+}
