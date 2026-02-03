@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Common.Diagnostics;
 using Nalix.Logging.Sinks;
 
 namespace Nalix.Logging;
@@ -22,12 +23,13 @@ public sealed partial class NLogix
         /// The lazy-loaded singleton instance of the <see cref="NLogix"/> logger.
         /// The logger is configured during initialization with default targets.
         /// </summary>
-        private static readonly Lazy<NLogix> _instance = new(static () =>
+        private static readonly Lazy<NLogix> s_instance = new(static () =>
             new NLogix(cfg =>
             {
                 // Configure default logging outputs
-                _ = cfg.RegisterTarget(new BatchFileLogTarget())
-                       .RegisterTarget(new BatchConsoleLogTarget());
+                _ = cfg.SetMinimumLevel(LogLevel.Trace)
+                       .RegisterTarget(new BatchFileLogTarget());
+                //.RegisterTarget(new BatchConsoleLogTarget());
             })
         );
 
@@ -35,6 +37,6 @@ public sealed partial class NLogix
         /// Gets the global singleton instance of the <see cref="NLogix"/> logger.
         /// Use this property to log messages application-wide.
         /// </summary>
-        public static NLogix Instance => _instance.Value;
+        public static NLogix Instance => s_instance.Value;
     }
 }
