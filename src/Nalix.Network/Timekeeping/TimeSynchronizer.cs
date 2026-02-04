@@ -20,8 +20,8 @@ namespace Nalix.Network.Timekeeping;
 /// Emits periodic time synchronization ticks at a target cadence (~16 ms, ~60 Hz).
 /// Designed as a lightweight singleton-style service with explicit enable/disable control.
 /// </summary>
-[DebuggerNonUserCode]
 [SkipLocalsInit]
+[DebuggerNonUserCode]
 public sealed class TimeSynchronizer : IDisposable, IActivatable
 {
     #region Constants
