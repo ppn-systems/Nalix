@@ -174,13 +174,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
         ObjectDisposedException.ThrowIf(_disposed, nameof(ConnectionHub));
 
-        // Wait for OnCloseEvent to complete if configured
-        if (_options.UnregisterDrainMillis > 0)
-        {
-            _ = Task.Delay(_options.UnregisterDrainMillis)
-                                           .ConfigureAwait(false);
-        }
-
         TimingScope scope = default;
 
         if (_options.IsEnableLatency)
