@@ -131,6 +131,30 @@ public sealed class PoolingOptions : ConfigurationLoader
 
     #endregion Timeout Task — one per active connection registered with TimingWheel
 
+    #region Connect Event Context — one per queued connection callback
+
+    /// <summary>
+    /// Maximum number of <see cref="PooledConnectEventContext"/> instances retained in the pool.
+    /// <para>
+    /// These wrappers are used by the connection callback dispatcher to avoid per-invocation allocations.
+    /// Set this to the expected peak number of queued connection callbacks.
+    /// </para>
+    /// </summary>
+    [IniComment("Max pooled ConnectEventContext instances — set to peak queued connection callbacks (default 256)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
+        ErrorMessage = "ConnectEventContext.Capacity must be between 1 and 1,000,000.")]
+    public int ConnectEventContextCapacity { get; set; } = 256;
+
+    /// <summary>
+    /// Number of <see cref="PooledConnectEventContext"/> instances to create at startup.
+    /// </summary>
+    [IniComment("ConnectEventContext instances to warm up at startup (default 32)")]
+    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
+        ErrorMessage = "ConnectEventContext.Preallocate must be between 0 and 1,000,000.")]
+    public int ConnectEventContextPreallocate { get; set; } = 32;
+
+    #endregion Connect Event Context — one per queued connection callback
+
     #region Packet Context — reusable packet processing contexts
 
     /// <summary>
@@ -200,6 +224,10 @@ public sealed class PoolingOptions : ConfigurationLoader
         ASSERT_PREALLOCATE_LE_CAPACITY(
             nameof(this.TimeoutTaskPreallocate), this.TimeoutTaskPreallocate,
             nameof(this.TimeoutTaskCapacity), this.TimeoutTaskCapacity);
+
+        ASSERT_PREALLOCATE_LE_CAPACITY(
+            nameof(this.ConnectEventContextPreallocate), this.ConnectEventContextPreallocate,
+            nameof(this.ConnectEventContextCapacity), this.ConnectEventContextCapacity);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
             nameof(this.PacketContextPreallocate), this.PacketContextPreallocate,
