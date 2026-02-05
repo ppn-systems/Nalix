@@ -1,8 +1,8 @@
-name: release-please
+name: "Release: Bump versions"
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: ["master"]
     types: [opened, synchronize, reopened, edited, labeled]
   workflow_dispatch: {}
 
@@ -12,10 +12,10 @@ permissions:
 
 jobs:
   bump:
-    if: >
-      contains( join(fromJson(toJson(github.event.pull_request.labels)).*.name, ','), 'autorelease: pending' )
-      || startsWith(github.event.pull_request.title, 'chore: release')
-
+    name: "Patch .csproj versions from manifest"
+    if: |
+      contains(join(fromJson(toJson(github.event.pull_request.labels)).*.name, ','), 'autorelease: pending') ||
+      startsWith(github.event.pull_request.title, 'chore: release')
     runs-on: ubuntu-latest
 
     steps:
@@ -27,7 +27,9 @@ jobs:
 
       - name: Show manifest (debug)
         run: |
-          test -f .release-please-manifest.json && cat .release-please-manifest.json || echo "manifest missing"
+          test -f .release-please-manifest.json \
+            && cat .release-please-manifest.json \
+            || echo "manifest missing"
 
       - name: Patch .csproj versions from manifest
         shell: pwsh
@@ -36,7 +38,7 @@ jobs:
 
           $manifestPath = ".release-please-manifest.json"
           if (-not (Test-Path $manifestPath)) {
-            Write-Host "No .release-please-manifest.json found. Nothing to do."
+            Write-Host "No manifest found. Nothing to do."
             exit 0
           }
 
@@ -47,22 +49,21 @@ jobs:
           }
 
           function Get-NumericFileVersion([string]$semver) {
-            # semver: MAJOR.MINOR.PATCH[-pre]
-            $core = $semver.Split('-',2)[0]
+            $core  = $semver.Split('-', 2)[0]
             $parts = $core.Split('.')
             while ($parts.Count -lt 3) { $parts += '0' }
-            return "{0}.{1}.{2}.0" -f $parts[0],$parts[1],$parts[2]
+            return "{0}.{1}.{2}.0" -f $parts[0], $parts[1], $parts[2]
           }
 
-          function Set-XmlValue([xml]$xml, [string]$elementName, [string]$value) {
+          function Set-XmlValue([xml]$xml, [string]$element, [string]$value) {
             $pg = $xml.Project.PropertyGroup | Select-Object -First 1
             if (-not $pg) {
               $pg = $xml.CreateElement('PropertyGroup')
               $null = $xml.Project.AppendChild($pg)
             }
-            $node = $pg.ChildNodes | Where-Object { $_.Name -eq $elementName } | Select-Object -First 1
+            $node = $pg.ChildNodes | Where-Object { $_.Name -eq $element } | Select-Object -First 1
             if (-not $node) {
-              $node = $xml.CreateElement($elementName)
+              $node = $xml.CreateElement($element)
               $null = $pg.AppendChild($node)
             }
             $node.InnerText = $value
@@ -70,32 +71,28 @@ jobs:
 
           $changed = $false
           foreach ($prop in $manifest.PSObject.Properties) {
-            $componentPath = $prop.Name.TrimEnd('/','\')
+            $path    = $prop.Name.TrimEnd('/', '\')
             $version = [string]$prop.Value
 
-            if (-not (Test-Path $componentPath)) {
-              Write-Host "::warning::Path not found in repo: $componentPath"
+            if (-not (Test-Path $path)) {
+              Write-Warning "Path not found: $path"
               continue
             }
 
-            $csprojs = Get-ChildItem -Path $componentPath -Recurse -Filter *.csproj
+            $csprojs = Get-ChildItem -Path $path -Recurse -Filter *.csproj
             if ($csprojs.Count -eq 0) {
-              Write-Host "::warning::No .csproj in $componentPath"
+              Write-Warning "No .csproj in $path"
               continue
             }
 
             foreach ($proj in $csprojs) {
-              Write-Host "Patching $($proj.FullName) -> $version"
+              Write-Host "Patching $($proj.FullName) → $version"
               [xml]$xml = Get-Content $proj.FullName
 
-              Set-XmlValue -xml $xml -elementName 'Version' -value $version
-              Set-XmlValue -xml $xml -elementName 'PackageVersion' -value $version
-
-              $fileVer = Get-NumericFileVersion $version
-              Set-XmlValue -xml $xml -elementName 'FileVersion' -value $fileVer
-
-              # InformationalVersion: giữ pattern +$(SourceRevisionId) cho CI
-              Set-XmlValue -xml $xml -elementName 'InformationalVersion' -value ("{0}+$(SourceRevisionId)" -f $version)
+              Set-XmlValue -xml $xml -element 'Version'              -value $version
+              Set-XmlValue -xml $xml -element 'PackageVersion'       -value $version
+              Set-XmlValue -xml $xml -element 'FileVersion'          -value (Get-NumericFileVersion $version)
+              Set-XmlValue -xml $xml -element 'InformationalVersion' -value ("{0}+$(SourceRevisionId)" -f $version)
 
               $xml.Save($proj.FullName)
               $changed = $true
@@ -103,11 +100,11 @@ jobs:
           }
 
           if ($changed) {
-            git config user.name "github-actions[bot]"
+            git config user.name  "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add .
-            if ($(git status --porcelain).Length -gt 0) {
-              git commit -m "chore: bump csproj versions from release-please manifest"
+            if ((git status --porcelain).Length -gt 0) {
+              git commit -m "chore: bump .csproj versions from release-please manifest"
               git push
             } else {
               Write-Host "No changes to commit."
@@ -116,7 +113,12 @@ jobs:
             Write-Host "Nothing changed."
           }
 
-      - name: Validate build (optional)
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Validate build after version bump
         run: |
-          dotnet --info
-          dotnet build -c Release
+          dotnet restore src/Nalix.sln
+          dotnet build src/Nalix.sln --configuration Release --no-restore
