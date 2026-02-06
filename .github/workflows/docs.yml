@@ -3,8 +3,14 @@ name: "Docs: Build & Deploy"
 on:
   push:
     branches: ["master"]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
   pull_request:
-    branches: ["master"]
+    branches: ["master"]    
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
   workflow_dispatch:
 
 concurrency:
