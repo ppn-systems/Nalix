@@ -24,6 +24,5 @@ public interface IPacketMiddleware<TPacket> where TPacket : IPacket
     /// <param name="next">Delegate to call the next middleware in the sequence.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     [SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "<Pending>")]
-    Task InvokeAsync(PacketContext<TPacket> context,
-        Func<CancellationToken, Task> next);
+    Task InvokeAsync(PacketContext<TPacket> context, Func<CancellationToken, Task> next);
 }

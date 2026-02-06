@@ -226,7 +226,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         PacketControllerAttribute controllerAttr = CustomAttributeExtensions.GetCustomAttribute<PacketControllerAttribute>(controllerType)
             ?? throw new InvalidOperationException($"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
-        PacketHandler<TPacket>[] handlerDescriptors = HandlerCompiler<TController, TPacket>.CompileHandlers(factory);
+        PacketHandler<TPacket>[] handlerDescriptors = PacketHandlerCompiler<TController, TPacket>.CompileHandlers(factory);
 
         Type contextType = typeof(PacketContext<TPacket>);
 
