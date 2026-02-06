@@ -3,7 +3,7 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Framework.Configuration.Binding;
-using Nalix.Network.Internal.Pooled;
+using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Routing;
 using Nalix.Network.Timekeeping;
 
@@ -184,7 +184,7 @@ public sealed class PoolingOptions : ConfigurationLoader
     [IniComment("Max pooled ProcessContext instances — reserved for future use (default 256)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "ProcessContext.Capacity must be between 1 and 1,000,000.")]
-    public int ListenerContextCapacity { get; set; } = 256;
+    public int TcpListenerContextCapacity { get; set; } = 256;
 
     /// <summary>
     /// Number of process context instances to create at startup.
@@ -193,7 +193,7 @@ public sealed class PoolingOptions : ConfigurationLoader
     [IniComment("ProcessContext instances to warm up at startup — reserved for future use (default 16)")]
     [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
         ErrorMessage = "ProcessContext.Preallocate must be between 0 and 1,000,000.")]
-    public int ListenerContextPreallocate { get; set; } = 16;
+    public int TcpListenerContextPreallocate { get; set; } = 16;
 
     #endregion Process Context — reserved, currently unused
 
@@ -234,8 +234,8 @@ public sealed class PoolingOptions : ConfigurationLoader
             nameof(this.PacketContextCapacity), this.PacketContextCapacity);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
-            nameof(this.ListenerContextPreallocate), this.ListenerContextPreallocate,
-            nameof(this.ListenerContextCapacity), this.ListenerContextCapacity);
+            nameof(this.TcpListenerContextPreallocate), this.TcpListenerContextPreallocate,
+            nameof(this.TcpListenerContextCapacity), this.TcpListenerContextCapacity);
     }
 
     private static void ASSERT_PREALLOCATE_LE_CAPACITY(

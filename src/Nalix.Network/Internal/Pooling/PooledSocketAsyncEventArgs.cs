@@ -12,7 +12,7 @@ using Nalix.Common.Abstractions;
 [assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
 
-namespace Nalix.Network.Internal.Pooled;
+namespace Nalix.Network.Internal.Pooling;
 
 /// <summary>
 /// A pooled wrapper around <see cref="SocketAsyncEventArgs"/> that resets state before returning to the pool.

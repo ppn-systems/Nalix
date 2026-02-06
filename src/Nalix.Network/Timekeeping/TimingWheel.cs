@@ -19,7 +19,7 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
-using Nalix.Network.Internal;
+using Nalix.Network.Internal.Constants;
 
 namespace Nalix.Network.Timekeeping;
 
@@ -213,12 +213,12 @@ public sealed class TimingWheel : IActivatable
         _cts = linkedCts;
 
         _worker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-            name: $"{NetTaskNames.Time}.{NetTaskNames.Wheel}",
-            group: NetTaskNames.Time,
+            name: $"{NetworkTags.Time}.{NetworkTags.Wheel}",
+            group: NetworkTags.Time,
             work: async (ctx, ct) => await this.RUN_LOOP(ctx, ct).ConfigureAwait(false),
             options: new WorkerOptions
             {
-                Tag = NetTaskNames.Wheel,
+                Tag = NetworkTags.Wheel,
                 IdType = SnowflakeType.System,
                 CancellationToken = linkedCts.Token,
                 RetainFor = TimeSpan.Zero
