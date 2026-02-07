@@ -8,6 +8,7 @@
 
 		<!-- NativeAOT: export UnmanagedCallersOnly symbols as a real DLL/.so/.dylib -->
 		<Optimize>true</Optimize>
+		<TrimMode>partial</TrimMode>
 		<PublishAot>true</PublishAot>
 		<StripSymbols>true</StripSymbols>
 		<Deterministic>true</Deterministic>
