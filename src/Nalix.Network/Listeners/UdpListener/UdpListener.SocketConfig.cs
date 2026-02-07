@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Framework.Injection;
 
 namespace Nalix.Network.Listeners.Udp;

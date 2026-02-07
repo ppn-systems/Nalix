@@ -4,11 +4,12 @@
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Diagnostics;
+using System.Threading;
+using Microsoft.Extensions.Logging;
+using Nalix.Framework.Configuration;
 using Nalix.Logging.Configuration;
-using Nalix.Logging.Engine;
+using Nalix.Logging.Sinks;
 
 namespace Nalix.Logging;
 
@@ -29,57 +30,142 @@ namespace Nalix.Logging;
 [DebuggerNonUserCode]
 [ExcludeFromCodeCoverage]
 [DebuggerDisplay("Logger=NLogix, {GetType().Name,nq}")]
-public sealed partial class NLogix : NLogixEngine, ILogger
+public sealed partial class NLogix : ILogger, IDisposable
 {
+    #region Fields
+
+    private readonly NLogixOptions _logOptions;
+    private readonly NLogixDistributor _distributor;
+
+    private LogLevel _minLevel;
+    private int _isDisposed;
+
+    #endregion Fields
+
     #region Constructors
 
     /// <summary>
-    /// Initializes the logging system with optional configuration.
+    /// Initializes a new instance of the <see cref="NLogix"/> class.
     /// </summary>
-    /// <param name="configure">An optional action to configure the logging system.</param>
-    [SuppressMessage(
-        "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    public NLogix(Action<NLogixOptions>? configure = null)
-        : base(configure)
+    /// <param name="configureOptions">
+    /// An action that allows configuring the logging options.
+    /// This action is used to set up logging options such as the minimum logging level and file options.
+    /// </param>
+    public NLogix(Action<NLogixOptions>? configureOptions = null)
     {
+        _distributor = new NLogixDistributor();
+        _logOptions = ConfigurationManager.Instance.Get<NLogixOptions>();
+
+        _ = _logOptions.SetPublisher(_distributor);
+
+        // Apply configuration if provided
+        if (configureOptions != null)
+        {
+            configureOptions.Invoke(_logOptions);
+        }
+        else
+        {
+            // Apply default configuration
+            _ = _logOptions.ConfigureDefaults(cfg =>
+            {
+                _ = cfg.RegisterTarget(new BatchFileLogTarget());
+                _ = cfg.RegisterTarget(new BatchConsoleLogTarget());
+                return cfg;
+            });
+        }
+
+        // Cache min level for faster checks
+        _minLevel = _logOptions.MinLevel;
     }
 
     #endregion Constructors
 
-    #region Private Methods
+    #region Logging Methods
 
     /// <summary>
-    /// Sanitize log message to prevent log forging
-    /// Removes potentially dangerous characters (e.g., newlines or control characters)
+    /// Reconfigure logging options after initialization.
     /// </summary>
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string SanitizeLogMessage(string? message)
+    /// <param name="configureOptions">
+    /// An action that allows configuring the logging options.
+    /// This action is used to set up logging options such as the minimum logging level and file options.
+    /// </param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public void ConfigureOptions(Action<NLogixOptions> configureOptions)
     {
-        if (string.IsNullOrEmpty(message))
-        {
-            return string.Empty;
-        }
+        configureOptions?.Invoke(_logOptions);
 
-        // Chỉ allocate nếu thực sự có ký tự cần xóa
-        if (MemoryExtensions.IndexOfAny(MemoryExtensions.AsSpan(message), '\n', '\r') < 0)
-        {
-            return message; // fast path: không cần sanitize
-        }
-
-        return message.Replace("\r\n", " ").Replace("\n", " ").Replace("\r", " ");
+        LogLevel newLevel = _logOptions.MinLevel;
+        _ = Interlocked.Exchange(ref Unsafe.As<LogLevel, int>(ref _minLevel), (int)newLevel);
     }
 
     /// <summary>
-    /// Writes a log entry with the specified level, event ProtocolType, message, and optional exception.
+    /// Checks if the log level meets the minimum required level for logging.
     /// </summary>
-    [Pure]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void WriteLog(
-        LogLevel level,
-        EventId eventId,
-        string message,
-        Exception? exception = null) => this.Publish(level, eventId, message, exception);
+    /// <param name="logLevel">The log level to check.</param>
+    /// <returns><c>true</c> if the log level is enabled for logging.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public bool IsEnabled(LogLevel logLevel) => logLevel >= _minLevel;
 
-    #endregion Private Methods
+    /// <inheritdoc/>
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
+
+    /// <inheritdoc/>
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+    {
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+
+        ArgumentNullException.ThrowIfNull(formatter);
+
+        string message = formatter(state, exception);
+        if (string.IsNullOrEmpty(message) && exception == null)
+        {
+            return;
+        }
+
+        this.Publish(logLevel, eventId, message, exception);
+    }
+
+    private sealed class NullScope : IDisposable
+    {
+        public static readonly NullScope Instance = new();
+        private NullScope() { }
+        public void Dispose() { }
+    }
+
+    /// <summary>
+    /// Creates and publishes a log entry if the log level is enabled.
+    /// </summary>
+    /// <param name="level">The severity level of the log entry.</param>
+    /// <param name="eventId">The event identifier associated with the log entry.</param>
+    /// <param name="message">The log message.</param>
+    /// <param name="error">Optional exception information.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public void Publish(LogLevel level, EventId? eventId, string message, Exception? error = null)
+    {
+        if (_isDisposed != 0)
+        {
+            return;
+        }
+
+        _distributor.Publish(DateTime.UtcNow, level, eventId ?? default, message, error);
+    }
+
+    /// <summary>
+    /// Releases managed and unmanaged resources used by the logging engine.
+    /// </summary>
+    public void Dispose()
+    {
+        // Thread-safe disposal check using Interlocked
+        if (Interlocked.Exchange(ref _isDisposed, 1) != 0)
+        {
+            return;
+        }
+
+        _logOptions.Dispose();
+    }
+
+    #endregion Logging Methods
 }

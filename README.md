@@ -18,9 +18,9 @@ Nalix is a real-time server solution designed for efficient communication and da
 ## 🛠️ Latest Builds
 
 | Environment | Status |
-|------------|--------|
-|![linux](https://badgen.net/badge/icon/Ubuntu%20Linux%2022.04%20x64?icon=terminal&label&color=orange)|[![Nalix](https://github.com/ppn-systems/Nalix/actions/workflows/Linux.yml/badge.svg?event=push)](https://github.com/ppn-systems/Nalix/actions/workflows/Linux.yml)|
-|![win](https://badgen.net/badge/icon/Windows,.NET%2010?icon=windows&label&list=1)|[![Nalix](https://github.com/ppn-systems/Nalix/actions/workflows/Windows.yml/badge.svg?event=push)](https://github.com/ppn-systems/Nalix/actions/workflows/Windows.yml)|
+|-------------|--------|
+|![linux](https://badgen.net/badge/icon/Ubuntu%20Linux%2022.04%20x64?icon=terminal&label&color=orange)|[![Nalix](https://github.com/ppn-systems/Nalix/actions/workflows/ci-linux.yml/badge.svg?event=push)](https://github.com/ppn-systems/Nalix/actions/workflows/ci-linux.yml)|
+|![win](https://badgen.net/badge/icon/Windows,.NET%2010?icon=windows&label&list=1)|[![Nalix](https://github.com/ppn-systems/Nalix/actions/workflows/ci-windows.yml/badge.svg?event=push)](https://github.com/ppn-systems/Nalix/actions/workflows/ci-windows.yml)|
 
 ## ✨ Features
 

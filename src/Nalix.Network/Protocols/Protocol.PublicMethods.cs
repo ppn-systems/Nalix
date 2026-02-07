@@ -3,7 +3,7 @@
 
 using System;
 using System.Threading;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
 

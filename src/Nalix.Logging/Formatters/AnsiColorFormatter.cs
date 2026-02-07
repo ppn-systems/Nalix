@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Logging.Internal.Formatters;
 using Nalix.Logging.Internal.Pooling;
 
@@ -17,126 +17,124 @@ namespace Nalix.Logging.Formatters;
 /// </summary>
 [DebuggerDisplay("AnsiColorFormatter")]
 [ExcludeFromCodeCoverage]
-internal class AnsiColorFormatter : ILoggerFormatter
+internal class AnsiColorFormatter : INLogixFormatter
 {
     private const string TimestampFormat = "HH:mm:ss.fff";
 
     /// <inheritdoc/>
-    public string Format(LogEntry message)
+    public string Format(
+        DateTime timestampUtc,
+        LogLevel logLevel,
+        EventId eventId,
+        string message,
+        Exception? exception)
     {
-        string timestamp = TimestampCache.GetFormattedTimestamp(message.Timestamp, TimestampFormat);
-        string levelColor = AnsiColors.GetForLevel(message.LogLevel);
+        string timestamp = TimestampCache.GetFormattedTimestamp(timestampUtc, TimestampFormat);
+        string levelColor = AnsiColors.GetForLevel(logLevel);
 
-        Exception? ex = message.Exception;
-        bool hasException = message.Exception is not null;
-        bool hasEventId = message.EventId != EventId.Empty;
+        int exceptionLen = exception is null
+            ? 0
+            : AnsiColors.Red.Length + 13 + (exception.ToString()?.Length ?? 0) + AnsiColors.White.Length;
 
-        int exceptionLen = 0;
-        if (ex != null)
-        {
-            // Lấy tên loại exception & nội dung message an toàn
-            exceptionLen = (AnsiColors.Red.Length
-                         + 13 // " - Exception: "
-                         + ex.GetType().Name.Length
-                         + ex.Message?.Length) ?? (0
-                         + (ex.ToString()?.Length ?? 0)
-                         + AnsiColors.White.Length);
-        }
-
-        // Tính toán độ dài tối thiểu
+        bool hasEventId = eventId != default;
         int len =
-            AnsiColors.White.Length + 1 + timestamp.Length + 1 + // [timestamp] với màu
-            AnsiColors.White.Length + 1 + 4 + 1 +                 // [LVL] với màu
-            (hasEventId ? AnsiColors.Cyan.Length + 1 + 5 + 1 + (message.EventId.Name?.Length ?? 0) + 1 + AnsiColors.DarkGray.Length : 0) + // [EventId]
-            message.Message.Length + 3 +                        // Message + " - "
-            exceptionLen
-            + 32; // buffer dư
+            AnsiColors.White.Length + 1 + timestamp.Length + 1 +
+            AnsiColors.White.Length + 1 + 4 + 1 +
+            (hasEventId ? AnsiColors.Cyan.Length + 1 + 5 + 1 + (eventId.Name?.Length ?? 0) + 1 + AnsiColors.DarkGray.Length : 0) +
+            message.Length + 3 +
+            exceptionLen +
+            32;
 
-        return string.Create(len, (message, timestamp, levelColor, hasEventId, hasException), (span, state) =>
-        {
-            (LogEntry entry, string? ts, string? color, bool evt, bool ex) = state;
-            int pos = 0;
-
-            // [timestamp]
-            AnsiColors.White.AsSpan().CopyTo(span[pos..]); pos += AnsiColors.White.Length;
-            span[pos++] = '[';
-            ts.AsSpan().CopyTo(span[pos..]); pos += ts.Length;
-            span[pos++] = ']';
-
-            // Log Level
-            span[pos++] = ' ';
-            color.AsSpan().CopyTo(span[pos..]); pos += color.Length;
-            span[pos++] = '[';
-            ReadOnlySpan<char> shortLvl = LogLevelShortNames.GetShortName(entry.LogLevel);
-            shortLvl.CopyTo(span[pos..]); pos += shortLvl.Length;
-            span[pos++] = ']';
-            AnsiColors.White.AsSpan().CopyTo(span[pos..]); pos += AnsiColors.White.Length;
-
-            // EventId
-            if (evt)
+        return string.Create(
+            len,
+            (timestamp, levelColor, hasEventId, logLevel, eventId, message, exception),
+            (span, state) =>
             {
-                span[pos++] = ' ';
+                (string ts, string color, bool hasEvt, LogLevel level, EventId evt, string msg, Exception? ex) = state;
+                int pos = 0;
 
-                AnsiColors.Cyan.AsSpan().CopyTo(span[pos..]); pos += AnsiColors.Cyan.Length;
+                AnsiColors.White.AsSpan().CopyTo(span[pos..]); pos += AnsiColors.White.Length;
                 span[pos++] = '[';
-                entry.EventId.Id.TryFormat(span[pos..], out int written, provider: CultureInfo.InvariantCulture);
-                pos += written;
+                ts.AsSpan().CopyTo(span[pos..]); pos += ts.Length;
+                span[pos++] = ']';
 
-                if (!string.IsNullOrEmpty(entry.EventId.Name))
-                {
-                    span[pos++] = ':';
-                    AnsiColors.DarkGray.AsSpan().CopyTo(span[pos..]); pos += AnsiColors.DarkGray.Length;
-                    entry.EventId.Name.AsSpan().CopyTo(span[pos..]); pos += entry.EventId.Name.Length;
-                }
+                span[pos++] = ' ';
+                color.AsSpan().CopyTo(span[pos..]); pos += color.Length;
+                span[pos++] = '[';
+                ReadOnlySpan<char> shortLvl = LogLevelShortNames.GetShortName(level);
+                shortLvl.CopyTo(span[pos..]); pos += shortLvl.Length;
                 span[pos++] = ']';
                 AnsiColors.White.AsSpan().CopyTo(span[pos..]); pos += AnsiColors.White.Length;
-            }
 
-            // Message
-            span[pos++] = ' ';
-            span[pos++] = '-';
-            span[pos++] = ' ';
-            entry.Message.AsSpan().CopyTo(span[pos..]); pos += entry.Message.Length;
+                if (hasEvt)
+                {
+                    span[pos++] = ' ';
+                    AnsiColors.Cyan.AsSpan().CopyTo(span[pos..]); pos += AnsiColors.Cyan.Length;
+                    span[pos++] = '[';
+                    _ = evt.Id.TryFormat(span[pos..], out int written, provider: CultureInfo.InvariantCulture);
+                    pos += written;
 
-            // Exception
-            if (ex && entry.Exception is not null)
-            {
-                AnsiColors.Red.AsSpan().CopyTo(span[pos..]); pos += AnsiColors.Red.Length;
-                const string excPrefix = " - Exception: ";
-                excPrefix.AsSpan().CopyTo(span[pos..]); pos += excPrefix.Length;
-                string exStr = entry.Exception.ToString() ?? "";
-                exStr.AsSpan().CopyTo(span[pos..]); pos += exStr.Length;
-                AnsiColors.White.AsSpan().CopyTo(span[pos..]);
-            }
-        });
+                    if (!string.IsNullOrEmpty(evt.Name))
+                    {
+                        span[pos++] = ':';
+                        AnsiColors.DarkGray.AsSpan().CopyTo(span[pos..]); pos += AnsiColors.DarkGray.Length;
+                        evt.Name.AsSpan().CopyTo(span[pos..]); pos += evt.Name.Length;
+                    }
+
+                    span[pos++] = ']';
+                    AnsiColors.White.AsSpan().CopyTo(span[pos..]); pos += AnsiColors.White.Length;
+                }
+
+                span[pos++] = ' ';
+                span[pos++] = '-';
+                span[pos++] = ' ';
+                msg.AsSpan().CopyTo(span[pos..]); pos += msg.Length;
+
+                if (ex is not null)
+                {
+                    AnsiColors.Red.AsSpan().CopyTo(span[pos..]); pos += AnsiColors.Red.Length;
+                    const string excPrefix = " - Exception: ";
+                    excPrefix.AsSpan().CopyTo(span[pos..]); pos += excPrefix.Length;
+                    string exStr = ex.ToString() ?? "";
+                    exStr.AsSpan().CopyTo(span[pos..]); pos += exStr.Length;
+                    AnsiColors.White.AsSpan().CopyTo(span[pos..]);
+                }
+            });
     }
 
     /// <inheritdoc/>
-    public void Format(LogEntry message, StringBuilder sb)
+    public void Format(
+        DateTime timestampUtc,
+        LogLevel logLevel,
+        EventId eventId,
+        string message,
+        Exception? exception,
+        StringBuilder sb)
     {
         ArgumentNullException.ThrowIfNull(sb);
 
         _ = sb.Append(AnsiColors.White)
               .Append('[')
               .Append(AnsiColors.Blue)
-              .Append(TimestampCache.GetFormattedTimestamp(message.Timestamp, TimestampFormat))
+              .Append(TimestampCache.GetFormattedTimestamp(timestampUtc, TimestampFormat))
               .Append(AnsiColors.White)
               .Append(']')
               .Append(' ')
-              .Append(AnsiColors.GetForLevel(message.LogLevel))
-              .Append('[').Append(LogLevelShortNames.GetShortName(message.LogLevel)).Append(']')
+              .Append(AnsiColors.GetForLevel(logLevel))
+              .Append('[').Append(LogLevelShortNames.GetShortName(logLevel)).Append(']')
               .Append(AnsiColors.White);
 
-        if (message.EventId != EventId.Empty)
+        if (eventId != default)
         {
             _ = sb.Append(' ')
-                  .Append(AnsiColors.Cyan).Append('[').Append(message.EventId.Id);
+                  .Append(AnsiColors.Cyan).Append('[').Append(eventId.Id);
 
-            if (!string.IsNullOrEmpty(message.EventId.Name))
+            if (!string.IsNullOrEmpty(eventId.Name))
             {
                 _ = sb.Append(':')
-                      .Append(AnsiColors.DarkGray).Append(message.EventId.Name);
+                      .Append(AnsiColors.DarkGray).Append(eventId.Name);
             }
+
             _ = sb.Append(']')
                   .Append(AnsiColors.White);
         }
@@ -144,13 +142,13 @@ internal class AnsiColorFormatter : ILoggerFormatter
         _ = sb.Append(AnsiColors.DarkGray)
               .Append(" - ")
               .Append(AnsiColors.White)
-              .Append(message.Message);
+              .Append(message);
 
-        if (message.Exception is not null)
+        if (exception is not null)
         {
             _ = sb.Append(AnsiColors.Red)
                   .Append(" - Exception: ")
-                  .Append(message.Exception)
+                  .Append(exception)
                   .Append(AnsiColors.White);
         }
     }

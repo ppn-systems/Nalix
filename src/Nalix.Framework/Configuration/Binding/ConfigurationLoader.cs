@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Framework.Configuration.Internal;
 using Nalix.Framework.Injection;
 

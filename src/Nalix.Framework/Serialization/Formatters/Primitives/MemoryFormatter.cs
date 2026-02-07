@@ -1,8 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Extensions;
+using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Serialization.Formatters.Primitives;
 

@@ -121,7 +121,7 @@ internal static partial class FieldCache<
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static Dictionary<Type, Dictionary<string, int>> BUILD_EXPLICIT_ORDER_MAPS(Type type)
     {
-        Dictionary<Type, Dictionary<string, int>> result = new();
+        Dictionary<Type, Dictionary<string, int>> result = [];
 
         for (Type? current = type; current != null && current != typeof(object); current = current.BaseType)
         {
