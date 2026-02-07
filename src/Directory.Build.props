@@ -24,6 +24,11 @@
 
 		<OutputPath>..\..\build\bin\Release\</OutputPath>
 		<IntermediateOutputPath>..\..\build\obj\Release\</IntermediateOutputPath>
+		
+		<Version>$(Version)</Version>
+		<PackageVersion>$(Version)</PackageVersion>
+		<FileVersion>$(Version).0</FileVersion>
+		<InformationalVersion>$(Version)+$(SourceRevisionId)</InformationalVersion>
 	</PropertyGroup>
 
 </Project>

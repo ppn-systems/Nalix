@@ -19,12 +19,6 @@
 		<IlcOptimizationPreference>Speed</IlcOptimizationPreference>
 		<IlcGenerateCompleteTypeMetadata>false</IlcGenerateCompleteTypeMetadata>
 
-		<!-- Versions -->
-		<Version>12.0.1</Version>
-		<FileVersion>12.0.1.0</FileVersion>
-		<PackageVersion>12.0.1</PackageVersion>
-		<InformationalVersion>12.0.1+$(SourceRevisionId)</InformationalVersion>
-
 		<Description><![CDATA[
 Nalix.SDK provides the client-side development kit for the Nalix ecosystem, offering high-level APIs, controller abstractions, time synchronization helpers, and localization (L10N) utilities for building distributed applications.
 
