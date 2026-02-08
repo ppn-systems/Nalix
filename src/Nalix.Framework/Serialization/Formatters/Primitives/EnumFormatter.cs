@@ -29,13 +29,9 @@ public sealed class EnumFormatter<
 
     static EnumFormatter()
     {
-        if (!typeof(T).IsEnum)
-        {
-            throw new InvalidOperationException($"TYPE {typeof(T)} is not an enum.");
-        }
 
         s_underlyingTypeCode = Type.GetTypeCode(Enum
-                                        .GetUnderlyingType(typeof(T)));
+                                   .GetUnderlyingType(typeof(T)));
 
         (s_serialize, s_deserialize) = CreateEnumFormatterDelegates();
     }
