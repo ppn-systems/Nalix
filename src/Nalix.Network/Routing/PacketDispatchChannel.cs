@@ -97,8 +97,7 @@ public sealed class PacketDispatchChannel
     /// <param name="cancellationToken"></param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    public void Activate(
-        CancellationToken cancellationToken = default)
+    public void Activate(CancellationToken cancellationToken = default)
     {
         if (Interlocked.CompareExchange(ref _running, 1, 0) != 0)
         {
@@ -159,8 +158,7 @@ public sealed class PacketDispatchChannel
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
-    public void Deactivate(
-        CancellationToken cancellationToken = default)
+    public void Deactivate(CancellationToken cancellationToken = default)
     {
         if (Interlocked.Exchange(ref _running, 0) == 0)
         {
