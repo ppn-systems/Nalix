@@ -84,10 +84,6 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 
         if (!decision.Allowed)
         {
-            uint sequenceId = context.Packet is IPacketSequenced sequenced
-                ? sequenced.SequenceId
-                : 0;
-
             // Unified response format: FAIL + RETRY (consistent with RateLimitMiddleware)
             await context.Connection.SendAsync(
                 controlType: ControlType.FAIL,
@@ -95,7 +91,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
                 action: ProtocolAdvice.RETRY,
                 options: new ConnectionExtensions.ControlDirectiveOptions(
                     Flags: ControlFlags.IS_TRANSIENT,
-                    SequenceId: sequenceId,
+                    SequenceId: context.Packet.SequenceId,
                     Arg0: context.Attributes.PacketOpcode?.OpCode ?? 0u,
                     Arg1: (uint)decision.RetryAfterMs,
                     Arg2: decision.Credit)

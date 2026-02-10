@@ -47,8 +47,6 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
             $"[NW.{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.PacketOpcode.OpCode:X4} " +
             $"need={context.Attributes.Permission.Level} have={context.Connection.Level}");
 
-        uint sequenceId = context.Packet is IPacketSequenced sequenced ? sequenced.SequenceId : 0;
-
         try
         {
             await context.Connection.SendAsync(
@@ -56,7 +54,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
                 reason: ProtocolReason.UNAUTHENTICATED,
                 action: ProtocolAdvice.NONE,
                 options: new ConnectionExtensions.ControlDirectiveOptions(
-                    SequenceId: sequenceId,
+                    SequenceId: context.Packet.SequenceId,
                     Arg0: (byte)context.Attributes.Permission.Level,
                     Arg1: (byte)context.Connection.Level,
                     Arg2: context.Attributes.PacketOpcode.OpCode)).ConfigureAwait(false);

@@ -18,23 +18,6 @@ namespace Nalix.Network.Connections;
 /// </summary>
 public static class ConnectionExtensions
 {
-    /// <summary>
-    /// Optional metadata and payload arguments for a control directive.
-    /// </summary>
-    /// <param name="Flags">Optional control flags to include with the message.</param>
-    /// <param name="SequenceId">
-    /// Correlation id to map this directive to a prior request (0 = server-initiated / no correlation).
-    /// </param>
-    /// <param name="Arg0">Optional argument 0 for the directive.</param>
-    /// <param name="Arg1">Optional argument 1 for the directive.</param>
-    /// <param name="Arg2">Optional argument 2 for the directive.</param>
-    public readonly record struct ControlDirectiveOptions(
-        ControlFlags Flags = ControlFlags.NONE,
-        uint SequenceId = 0,
-        uint Arg0 = 0,
-        uint Arg1 = 0,
-        ushort Arg2 = 0);
-
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     /// <summary>
@@ -78,3 +61,16 @@ public static class ConnectionExtensions
         }
     }
 }
+
+
+/// <summary>
+/// Optional metadata and payload arguments for a control directive.
+/// </summary>
+/// <param name="Flags">Optional control flags to include with the message.</param>
+/// <param name="SequenceId">
+/// Correlation id to map this directive to a prior request (0 = server-initiated / no correlation).
+/// </param>
+/// <param name="Arg0">Optional argument 0 for the directive.</param>
+/// <param name="Arg1">Optional argument 1 for the directive.</param>
+/// <param name="Arg2">Optional argument 2 for the directive.</param>
+public readonly record struct ControlDirectiveOptions(ControlFlags Flags = ControlFlags.NONE, uint SequenceId = 0, uint Arg0 = 0, uint Arg1 = 0, ushort Arg2 = 0);

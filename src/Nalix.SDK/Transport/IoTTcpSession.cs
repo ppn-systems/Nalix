@@ -70,8 +70,7 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
     /// Thrown when <see cref="IPacketRegistry"/> is not registered
     /// or <see cref="TransportOptions"/> fails validation.
     /// </exception>
-    public IoTTcpSession()
-        : base()
+    public IoTTcpSession() : base()
     {
         this.Catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
             ?? throw new InvalidOperationException(

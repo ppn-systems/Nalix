@@ -13,7 +13,7 @@ namespace Nalix.Framework.DataFrames.SignalFrames;
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("Directive Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
-public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketSequenced
+public sealed class Directive : PacketBase<Directive>, IPacketReasoned
 {
     /// <summary>
     /// DIRECTIVE type (shared ControlType).
