@@ -68,11 +68,10 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
                     ControlType.TIMEOUT,
                     ProtocolReason.TIMEOUT,
                     ProtocolAdvice.RETRY,
-                    new ConnectionExtensions.ControlDirectiveOptions(
+                    new ControlDirectiveOptions(
                         Flags: ControlFlags.IS_TRANSIENT,
                         SequenceId: context.Packet.SequenceId,
-                        Arg0: (uint)(timeout / 100))
-                ).ConfigureAwait(false);
+                        Arg0: (uint)(timeout / 100))).ConfigureAwait(false);
             }
             catch
             {
