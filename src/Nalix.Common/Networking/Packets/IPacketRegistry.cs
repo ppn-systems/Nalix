@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Nalix.Common.Networking.Packets;
 
@@ -54,4 +55,12 @@ public interface IPacketRegistry
     /// </returns>
     /// <exception cref="ArgumentException">Thrown when a registered deserializer rejects a malformed packet buffer.</exception>
     IPacket Deserialize(ReadOnlySpan<byte> raw);
+
+    /// <summary>
+    /// Attempts to deserialize a packet without throwing for unknown magic or short input.
+    /// </summary>
+    /// <param name="raw">Raw incoming packet bytes.</param>
+    /// <param name="packet">The resolved packet when successful.</param>
+    /// <returns><see langword="true"/> when deserialization succeeds.</returns>
+    bool TryDeserialize(ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet);
 }

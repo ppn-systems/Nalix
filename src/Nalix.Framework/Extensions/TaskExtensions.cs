@@ -33,6 +33,25 @@ public static class TaskExtensions
     }
 
     /// <summary>
+    /// Blocks the current thread until the specified <see cref="ValueTask"/> completes.
+    /// </summary>
+    /// <param name="this">The value task to wait for.</param>
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public static void Await(this ValueTask @this) => @this.GetAwaiter().GetResult();
+
+    /// <summary>
+    /// Blocks the current thread until the specified <see cref="ValueTask{TResult}"/> completes
+    /// and returns its result.
+    /// </summary>
+    /// <typeparam name="TResult">The result type.</typeparam>
+    /// <param name="this">The value task to wait for.</param>
+    /// <returns>The completed result.</returns>
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public static TResult Await<TResult>(this ValueTask<TResult> @this) => @this.GetAwaiter().GetResult();
+
+    /// <summary>
     /// <para>Suspends execution until the specified <see cref="Task"/> is completed
     /// and returns its result.</para>
     /// <para>This method operates similarly to the <see langword="await"/> C# operator,

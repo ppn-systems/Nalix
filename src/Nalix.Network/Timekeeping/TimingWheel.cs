@@ -282,36 +282,51 @@ public sealed class TimingWheel : IActivatable
             return;
         }
 
-        // Fast-path: already registered.
-        if (_active.ContainsKey(connection))
+        // Fast-path: already registered or raced with another register call.
+        if (!_active.TryAdd(connection, 0))
         {
             return;
         }
 
-        TimeoutTask task = s_poolManager.Get<TimeoutTask>();
-        task.Conn = connection;
-        task.Version = 0; // ResetForPool guarantees this, but be explicit.
+        TimeoutTask? task = null;
+        bool subscribed = false;
+        bool queued = false;
 
-        long baseTick = Interlocked.Read(ref _tick);
-        long ticks = Math.Max(1, _idleTimeoutMs / (long)_tickMs);
-
-        int bucket = _useMask
-            ? (int)((baseTick + ticks) & _mask)
-            : (int)((baseTick + ticks) % _wheelSize);
-
-        task.Rounds = (int)(ticks / _wheelSize);
-
-        // _active stores the *expected* version (0) for this connection.
-        // TryAdd is atomic — if two threads race here, only one wins and the
-        // loser returns its freshly allocated task to the pool.
-        if (_active.TryAdd(connection, 0))
+        try
         {
+            task = s_poolManager.Get<TimeoutTask>();
+            task.Conn = connection;
+            task.Version = 0; // ResetForPool guarantees this, but be explicit.
+
+            long baseTick = Volatile.Read(ref _tick);
+            long ticks = Math.Max(1, _idleTimeoutMs / (long)_tickMs);
+
+            int bucket = _useMask
+                ? (int)((baseTick + ticks) & _mask)
+                : (int)((baseTick + ticks) % _wheelSize);
+
+            task.Rounds = (int)(ticks / _wheelSize);
+
             connection.OnCloseEvent += this.OnConnectionClosed;
+            subscribed = true;
+
             _wheel[bucket].Enqueue(task);
+            queued = true;
         }
-        else
+        catch
         {
-            s_poolManager.Return(task);
+            if (task is not null && !queued)
+            {
+                s_poolManager.Return(task);
+            }
+
+            if (subscribed)
+            {
+                connection.OnCloseEvent -= this.OnConnectionClosed;
+            }
+
+            _ = _active.TryRemove(connection, out _);
+            throw;
         }
     }
 
@@ -431,10 +446,14 @@ public sealed class TimingWheel : IActivatable
                         {
                             task.Conn.Close(force: true);
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
-                            throw;
+                            s_logger?.Error(
+                                $"[NW.{nameof(TimingWheel)}] close-error " +
+                                $"remote={task.Conn.NetworkEndpoint?.Address}", ex);
                         }
+
+                        _ = _active.TryRemove(task.Conn, out _);
 
                         // Close() fires OnCloseEvent → Unregister() → _active entry removed.
                         // The task is now fully done; safe to return to pool.

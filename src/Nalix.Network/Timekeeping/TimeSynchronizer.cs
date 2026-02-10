@@ -285,12 +285,15 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                             }
                         }
 
-                        long elapsed = Clock.UnixMillisecondsNow() - timestamp;
-                        if (elapsed > this.Period.TotalMilliseconds * 1.5)
+                        if (s_logger?.IsEnabled(LogLevel.Warning) == true)
                         {
-                            s_logger?.Warn(
-                                $"[NW.{nameof(TimeSynchronizer)}] tick overrun " +
-                                $"elapsed={elapsed}ms period={this.Period.TotalMilliseconds:0.#}ms");
+                            long elapsed = Clock.UnixMillisecondsNow() - timestamp;
+                            if (elapsed > this.Period.TotalMilliseconds * 1.5)
+                            {
+                                s_logger.Warn(
+                                    $"[NW.{nameof(TimeSynchronizer)}] tick overrun " +
+                                    $"elapsed={elapsed}ms period={this.Period.TotalMilliseconds:0.#}ms");
+                            }
                         }
 
                         ctx?.Beat();

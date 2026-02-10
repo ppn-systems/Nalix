@@ -4,22 +4,22 @@
 using System.ComponentModel;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
+using Nalix.Network.Routing;
 
-namespace Nalix.Network.Routing.Results.Task;
+namespace Nalix.Network.Internal.Results.Task;
 
 /// <inheritdoc/>
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal sealed class TaskReturnHandler<TPacket, TResult>(IReturnHandler<TPacket> innerHandler) : IReturnHandler<TPacket> where TPacket : IPacket
+internal sealed class ValueTaskVoidReturnHandler<TPacket> : IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <inheritdoc/>
     public async ValueTask HandleAsync(object? result, PacketContext<TPacket> context)
     {
-        if (result is not Task<TResult> task)
+        if (result is not ValueTask valueTask)
         {
             return;
         }
 
-        TResult taskResult = await task.ConfigureAwait(false);
-        await innerHandler.HandleAsync(taskResult, context).ConfigureAwait(false);
+        await valueTask.ConfigureAwait(false);
     }
 }

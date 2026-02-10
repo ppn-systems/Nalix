@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
@@ -29,34 +28,24 @@ public interface INetworkBufferMiddleware
     /// Processes the specified buffer within the current connection context.
     /// </summary>
     /// <param name="buffer">
-    /// The buffer being processed. Implementations may read, modify, or replace it.
+    /// The current buffer lease. Implementations may return this instance, a replacement instance, or
+    /// <see langword="null"/> to drop the packet.
     /// </param>
     /// <param name="connection">
     /// The connection associated with the current buffer.
-    /// </param>
-    /// <param name="nextHandler">
-    /// The delegate representing the next middleware in the pipeline.
     /// </param>
     /// <param name="ct">
     /// A token used to observe cancellation requests.
     /// </param>
     /// <returns>
-    /// A task that resolves to the processed <see cref="IBufferLease"/>, or
+    /// A value task that resolves to the processed <see cref="IBufferLease"/>, or
     /// <see langword="null"/> if processing is intentionally short-circuited.
     /// </returns>
     /// <remarks>
-    /// <para>
-    /// If <paramref name="nextHandler"/> is not invoked, the pipeline will stop executing.
-    /// </para>
     /// <para>
     /// Returning <see langword="null"/> indicates that the buffer has been fully handled,
     /// dropped, or deemed invalid.
     /// </para>
     /// </remarks>
-    Task<IBufferLease?> InvokeAsync(
-        IBufferLease buffer,
-        IConnection connection,
-        Func<IBufferLease, CancellationToken, Task<IBufferLease?>> nextHandler,
-        CancellationToken ct
-    );
+    ValueTask<IBufferLease?> InvokeAsync(IBufferLease buffer, IConnection connection, CancellationToken ct);
 }

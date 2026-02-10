@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Network.Connections;
@@ -71,15 +70,7 @@ public sealed class ExamplePacketProtocol : Protocol
     /// <summary>
     /// Validates a connection before it is fully accepted.
     /// </summary>
-    protected override bool ValidateConnection(IConnection connection)
-    {
-        // In a real app this is where IP allow-listing, authentication checks,
-        // or connection quotas would live.
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[ExamplePacketProtocol] Validating connection {connection.ID}.");
-
-        return true;
-    }
+    protected override bool ValidateConnection(IConnection connection) => true;
 
     /// <summary>
     /// Hook for post-processing after a packet has been handled.
@@ -92,11 +83,5 @@ public sealed class ExamplePacketProtocol : Protocol
     /// <summary>
     /// Handles protocol-level errors.
     /// </summary>
-    protected override void OnConnectionError(IConnection connection, Exception exception)
-    {
-        base.OnConnectionError(connection, exception);
-
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Error($"[ExamplePacketProtocol] Connection {connection.ID} failed.", exception);
-    }
+    protected override void OnConnectionError(IConnection connection, Exception exception) => base.OnConnectionError(connection, exception);
 }
