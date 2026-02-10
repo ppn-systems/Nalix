@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Security;
 
 namespace Nalix.Common.Networking.Packets;
@@ -31,7 +30,5 @@ public sealed class PacketPermissionAttribute : Attribute
     /// The minimum authority level required to execute the command.
     /// Defaults to <see cref="PermissionLevel.USER"/>.
     /// </param>
-    [SuppressMessage(
-        "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public PacketPermissionAttribute(PermissionLevel level = PermissionLevel.USER) => this.Level = level;
 }

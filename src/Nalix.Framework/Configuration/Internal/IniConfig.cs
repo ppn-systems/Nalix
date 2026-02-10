@@ -1075,7 +1075,7 @@ internal sealed class IniConfig : IDisposable
 
                 if (string.IsNullOrEmpty(trimmedLine))
                 {
-                    _ = pendingComments.Clear(); // blank line → reset comment buffer
+                    _ = pendingComments.Clear(); // blank line -> reset comment buffer
                     continue;
                 }
 
@@ -1183,7 +1183,7 @@ internal sealed class IniConfig : IDisposable
         }
 
         // Extract key name from "Section:Key" so we can prefix the first comment line.
-        // Section-level comments have no ':' → keyPrefix stays empty.
+        // Section-level comments have no ':' -> keyPrefix stays empty.
         string keyPrefix = string.Empty;
         int colonIdx = commentKey.IndexOf(':');
         if (colonIdx >= 0 && colonIdx < commentKey.Length - 1)

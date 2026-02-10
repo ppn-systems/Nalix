@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Nalix.Common.Abstractions;
 
@@ -26,8 +25,6 @@ public sealed class DataTypeAttribute : Attribute
     /// </summary>
     /// <param name="dataType">The <see cref="Type"/> to associate with the field.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="dataType"/> is null.</exception>
-    [SuppressMessage(
-        "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public DataTypeAttribute(Type dataType)
         => this.DataType = dataType ?? throw new ArgumentNullException(nameof(dataType));
 }

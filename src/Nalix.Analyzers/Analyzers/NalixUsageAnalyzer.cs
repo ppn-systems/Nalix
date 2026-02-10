@@ -306,6 +306,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             }
 
             bool hasIgnore = HasAttribute(member, symbols.SerializeIgnoreAttribute);
+            int? headerOrder = GetSerializeOrder(member, symbols.SerializeHeaderAttribute);
             int? order = GetSerializeOrder(member, symbols.SerializeOrderAttribute);
             bool hasDynamic = HasAttribute(member, symbols.SerializeDynamicSizeAttribute);
             ITypeSymbol memberType = member is IPropertySymbol property ? property.Type : ((IFieldSymbol)member).Type;
@@ -315,23 +316,34 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
                 Report(context, DiagnosticDescriptors.SerializeIgnoreConflictsWithOrder, member, member.Name);
             }
 
-            if (order.HasValue)
+            if (headerOrder.HasValue && order.HasValue)
             {
-                orderedMembers.Add((member, order.Value));
+                Report(
+                    context,
+                    DiagnosticDescriptors.SerializeIgnoreConflictsWithOrder, // wait, should be a new conflict descriptor
+                    member,
+                    member.Name); 
+            }
 
-                if (order.Value < 0)
+            int? finalOrder = headerOrder ?? order;
+
+            if (finalOrder.HasValue)
+            {
+                orderedMembers.Add((member, finalOrder.Value));
+
+                if (finalOrder.Value < 0)
                 {
-                    Report(context, DiagnosticDescriptors.NegativeSerializeOrder, member, member.Name, order.Value);
+                    Report(context, DiagnosticDescriptors.NegativeSerializeOrder, member, member.Name, finalOrder.Value);
                 }
 
-                if (InheritsPacketBase(typeSymbol, symbols) && order.Value < symbols.PacketHeaderRegionOffset)
+                if (InheritsPacketBase(typeSymbol, symbols) && finalOrder.Value < symbols.PacketHeaderRegionOffset)
                 {
                     Report(
                         context,
                         DiagnosticDescriptors.PacketMemberOverlapsHeaderRegion,
                         member,
                         member.Name,
-                        order.Value,
+                        finalOrder.Value,
                         symbols.PacketHeaderRegionOffset);
                 }
             }
@@ -1344,6 +1356,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             INamedTypeSymbol packetInterface,
             INamedTypeSymbol packetBaseType,
             INamedTypeSymbol serializePackableAttribute,
+            INamedTypeSymbol serializeHeaderAttribute,
             INamedTypeSymbol serializeOrderAttribute,
             INamedTypeSymbol serializeIgnoreAttribute,
             INamedTypeSymbol serializeDynamicSizeAttribute,
@@ -1378,6 +1391,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             this.PacketInterface = packetInterface;
             this.PacketBaseType = packetBaseType;
             this.SerializePackableAttribute = serializePackableAttribute;
+            this.SerializeHeaderAttribute = serializeHeaderAttribute;
             this.SerializeOrderAttribute = serializeOrderAttribute;
             this.SerializeIgnoreAttribute = serializeIgnoreAttribute;
             this.SerializeDynamicSizeAttribute = serializeDynamicSizeAttribute;
@@ -1413,6 +1427,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         public INamedTypeSymbol PacketInterface { get; }
         public INamedTypeSymbol PacketBaseType { get; }
         public INamedTypeSymbol SerializePackableAttribute { get; }
+        public INamedTypeSymbol SerializeHeaderAttribute { get; }
         public INamedTypeSymbol SerializeOrderAttribute { get; }
         public INamedTypeSymbol SerializeIgnoreAttribute { get; }
         public INamedTypeSymbol SerializeDynamicSizeAttribute { get; }
@@ -1449,6 +1464,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             INamedTypeSymbol? packetInterface = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.IPacket");
             INamedTypeSymbol? packetBaseType = compilation.GetTypeByMetadataName("Nalix.Framework.DataFrames.PacketBase`1");
             INamedTypeSymbol? serializePackableAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializePackableAttribute");
+            INamedTypeSymbol? serializeHeaderAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeHeaderAttribute");
             INamedTypeSymbol? serializeOrderAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeOrderAttribute");
             INamedTypeSymbol? serializeIgnoreAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeIgnoreAttribute");
             INamedTypeSymbol? serializeDynamicSizeAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeDynamicSizeAttribute");
@@ -1488,6 +1504,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
                 || packetInterface is null
                 || packetBaseType is null
                 || serializePackableAttribute is null
+                || serializeHeaderAttribute is null
                 || serializeOrderAttribute is null
                 || serializeIgnoreAttribute is null
                 || serializeDynamicSizeAttribute is null
@@ -1523,6 +1540,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
                     packetInterface,
                     packetBaseType,
                     serializePackableAttribute,
+                    serializeHeaderAttribute,
                     serializeOrderAttribute,
                     serializeIgnoreAttribute,
                     serializeDynamicSizeAttribute,

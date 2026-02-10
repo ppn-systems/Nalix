@@ -15,7 +15,7 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Network.Connections;
-using Nalix.Network.Internal.Routing;
+using Nalix.Network.Internal.Compilation;
 
 namespace Nalix.Network.Routing;
 

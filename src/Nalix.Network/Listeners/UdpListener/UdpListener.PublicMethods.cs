@@ -16,9 +16,6 @@ using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Framework.Time;
-using Nalix.Network.Internal.Constants;
-using Nalix.Network.Timekeeping;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -78,12 +75,12 @@ public abstract partial class UdpListenerBase : IListener
                                         .Info($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] listening port={_port}");
 
                 _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.ScheduleWorker(
-                    name: $"{NetworkTags.Udp}.{TaskNaming.Tags.Process}",              // "udp.proc"
-                    group: $"{NetworkTags.Net}/{NetworkTags.Udp}/{_port}",            // "net/udp/port"
+                    name: $"{TaskNaming.Tags.Udp}.{TaskNaming.Tags.Process}",              // "udp.proc"
+                    group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}",            // "net/udp/port"
                     work: async (_, ct) => await this.ReceiveDatagramsAsync(ct).ConfigureAwait(false),
                     options: new WorkerOptions
                     {
-                        Tag = NetworkTags.Udp,
+                        Tag = TaskNaming.Tags.Udp,
                         IdType = SnowflakeType.System,
                         CancellationToken = _cancellationToken,
                         GroupConcurrencyLimit = s_config.MaxGroupConcurrency
@@ -171,36 +168,6 @@ public abstract partial class UdpListenerBase : IListener
     }
 
     /// <summary>
-    /// Updates the listener with the current server time, provided as a Unix timestamp.
-    /// </summary>
-    /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public virtual void SynchronizeTime(long milliseconds)
-    {
-        // Record last sync and drift vs local clock
-        long now = Clock.UnixMillisecondsNow();
-        _lastSyncUnixMs = milliseconds;
-        _lastDriftMs = now - milliseconds;
-
-        // Hook for derived listeners (optional override)
-        this.OnTimeSynchronized(milliseconds, now, _lastDriftMs);
-    }
-
-    /// <summary>
-    /// Called when the listener synchronizes its time with the server.
-    /// </summary>
-    /// <param name="serverMs">The current server time in milliseconds since the Unix epoch.</param>
-    /// <param name="localMs">The local time in milliseconds since the Unix epoch.</param>
-    /// <param name="driftMs">The calculated drift in milliseconds between server and local time.</param>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected virtual void OnTimeSynchronized(long serverMs, long localMs, long driftMs)
-    {
-        // No-op by default
-    }
-
-    /// <summary>
     /// Determines whether the incoming packet is authenticated.
     /// Default returns true (i.e., trusted). Override in derived class.
     /// </summary>
@@ -243,17 +210,6 @@ public abstract partial class UdpListenerBase : IListener
         _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Group: udp.port.{_port}");
         _ = sb.AppendLine("Configured GroupConcurrencyLimit: 8");
-        _ = sb.AppendLine();
-
-        // Time sync
-        // property getter used by base:contentReference[oaicite:13]{index=13}
-        bool timeSyncEnabled = InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
-                                                        .IsTimeSyncEnabled;
-        _ = sb.AppendLine("Time Sync:");
-        _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Enabled: {timeSyncEnabled}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"LastSyncUnixMs: {_lastSyncUnixMs}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"LastDriftMs(local-now - server): {_lastDriftMs}");
         _ = sb.AppendLine();
 
         // Traffic stats
@@ -314,13 +270,6 @@ public abstract partial class UdpListenerBase : IListener
             {
                 ["Group"] = $"udp.port.{_port}",
                 ["ConfiguredGroupConcurrencyLimit"] = 8
-            },
-
-            ["TimeSync"] = new Dictionary<string, object>
-            {
-                ["Enabled"] = InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled,
-                ["LastSyncUnixMs"] = _lastSyncUnixMs,
-                ["LastDriftMs"] = _lastDriftMs
             },
 
             ["Traffic"] = new Dictionary<string, object>

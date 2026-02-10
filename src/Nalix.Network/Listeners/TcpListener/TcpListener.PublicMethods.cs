@@ -17,10 +17,8 @@ using Nalix.Common.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Framework.Time;
 using Nalix.Network.Connections;
-using Nalix.Network.Internal.Constants;
-using Nalix.Network.Timekeeping;
+using Nalix.Network.Internal.Time;
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -32,15 +30,6 @@ namespace Nalix.Network.Listeners.Tcp;
 [DebuggerDisplay("Port={_port}, StateWrapper={StateWrapper}")]
 public abstract partial class TcpListenerBase
 {
-    /// <summary>
-    /// Updates the listener with the current server time, provided as a Unix timestamp.
-    /// </summary>
-    /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC),
-    /// as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public virtual void SynchronizeTime(long milliseconds) { }
-
     /// <summary>
     /// Starts listening for incoming connections and processes them using the specified protocol.
     /// The listening process can be cancelled using the provided <see cref="CancellationToken"/>.
@@ -61,12 +50,16 @@ public abstract partial class TcpListenerBase
 
         s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] activate-request port={_port}");
 
+        // Acquire mutex — SemaphoreSlim.Wait() with CancellationToken.None:
+        // WHY None (not cancel): Activate() must complete even if the external token is cancelled.
+        // If you use cancellationToken here → cancel before lock acquire → inconsistent state.
         _lock.Wait(CancellationToken.None);
 
         CancellationToken linkedToken = default;
 
         try
         {
+            // State check inside lock → avoid race condition "double Activate".
             if ((ListenerState)Volatile.Read(ref _state) != ListenerState.STOPPED)
             {
                 s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] ignored-activate state={this.State}");
@@ -77,6 +70,9 @@ public abstract partial class TcpListenerBase
             _ = Interlocked.Exchange(ref _stopInitiated, 0);
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STARTING);
 
+            // Create a new linked CTS with an external token.
+            // WHY linked: When caller cancel → _cts also cancel → all workers stop.
+            // WHY dispose old CTS first: Avoid leaks if Activate is called again after Deactivate.
             _cts?.Dispose();
             _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _cancellationToken = _cts.Token;
@@ -118,15 +114,18 @@ public abstract partial class TcpListenerBase
 
             _acceptWorkerIds.Clear();
 
+            // Spawn N accept-worker async tasks (N = MaxParallel).
+            // WHY N workers instead of 1: On multi-core, N workers run in parallel → increment throughput accept.
+            // Each independent worker await CreateConnectionAsync → N connections can be accepted concurrently.
             for (int i = 0; i < s_config.MaxParallel; i++)
             {
                 IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                    name: $"{NetworkTags.Tcp}.{TaskNaming.Tags.Accept}.{i}",
-                    group: $"{NetworkTags.Net}/{NetworkTags.Tcp}/{_port}",
+                    name: $"{TaskNaming.Tags.Tcp}.{TaskNaming.Tags.Accept}.{i}",
+                    group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{_port}",
                     work: async (ctx, ct) => await this.AcceptConnectionsAsync(ctx, ct).ConfigureAwait(false),
                     options: new WorkerOptions
                     {
-                        Tag = NetworkTags.Net,
+                        Tag = TaskNaming.Tags.Net,
                         IdType = SnowflakeType.System,
                         CancellationToken = linkedToken,
                         RetainFor = TimeSpan.FromSeconds(30),
@@ -208,7 +207,7 @@ public abstract partial class TcpListenerBase
             this.STOP_PROCESS_CHANNEL();
 
             _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                         .CancelGroup($"{NetworkTags.Net}/{NetworkTags.Tcp}/{_port}"));
+                                         .CancelGroup($"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{_port}"));
 
             InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
                                     .CloseAllConnections();
@@ -244,7 +243,7 @@ public abstract partial class TcpListenerBase
     [MethodImpl(MethodImplOptions.NoInlining)]
     public virtual string GenerateReport()
     {
-        StringBuilder sb = new(1024);
+        StringBuilder sb = new(2048);
         ThreadPool.GetMinThreads(out int minWorker, out int minIocp);
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TcpListenerBase Status:");
@@ -286,11 +285,6 @@ public abstract partial class TcpListenerBase
         _ = sb.AppendLine("--------------------------------------------");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ThreadPool MinWorker: {minWorker}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ThreadPool MinIOCP  : {minIocp}");
-        _ = sb.AppendLine();
-
-        _ = sb.AppendLine("TimeSync:");
-        _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"IsTimeSyncEnabled   : {this.IsTimeSyncEnabled}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("--------------------------------------------");
@@ -340,10 +334,6 @@ public abstract partial class TcpListenerBase
             {
                 ["ThreadPoolMinWorker"] = minWorker,
                 ["ThreadPoolMinIOCP"] = minIocp
-            },
-            ["TimeSync"] = new Dictionary<string, object>
-            {
-                ["IsTimeSyncEnabled"] = this.IsTimeSyncEnabled
             }
         };
 

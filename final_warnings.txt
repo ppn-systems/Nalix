@@ -1,0 +1,13 @@
+  Determining projects to restore...
+  Restored E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj (in 243 ms).
+  Restored E:\Cs\Nalix\src\Nalix.Framework\Nalix.Framework.csproj (in 243 ms).
+  Restored E:\Cs\Nalix\src\Nalix.Common\Nalix.Common.csproj (in 243 ms).
+  Nalix.Common -> E:\Cs\Nalix\src\Nalix.Common\bin\Debug\net10.0\Nalix.Common.dll
+  Nalix.Framework -> E:\Cs\Nalix\src\Nalix.Framework\bin\Debug\net10.0\Nalix.Framework.dll
+  Nalix.SDK -> E:\Cs\Nalix\src\Nalix.SDK\bin\Debug\net10.0\Nalix.SDK.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.38
