@@ -112,22 +112,15 @@ internal static class PACKET_AWAITER
             try
             {
                 // Try deserialize — protect from codec exceptions.
-                bool ok;
-                IPacket? p = null;
+                IPacket p;
                 try
                 {
-                    ok = client.Catalog.TryDeserialize(buffer.Span, out p);
+                    client.Catalog.Deserialize(buffer.Span, out p);
                 }
                 catch (Exception dex)
                 {
                     s_logger?.Error($"[SDK.{nameof(PACKET_AWAITER)}] Deserialization error while awaiting {typeof(TPkt).Name}: {dex.Message}", dex);
                     // If deserialization fails repeatedly, we do not cancel the whole await — just ignore this buffer.
-                    return;
-                }
-
-                if (!ok || p is null)
-                {
-                    // Not a recognizable packet — ignore.
                     return;
                 }
 

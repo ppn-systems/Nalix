@@ -57,18 +57,5 @@ public interface IPacketRegistry
     /// too short or no deserializer is registered for the magic number found.
     /// </returns>
     /// <exception cref="ArgumentException">Thrown when a registered deserializer rejects a malformed packet buffer.</exception>
-    bool TryDeserialize(ReadOnlySpan<byte> raw, out IPacket? packet);
-
-    /// <summary>
-    /// Attempts to get the <see cref="PacketDeserializer"/> associated with the specified magic number.
-    /// </summary>
-    /// <param name="magic">The 32-bit magic number.</param>
-    /// <param name="deserializer">
-    /// When this method returns <see langword="true"/>, the matching delegate;
-    /// otherwise <see langword="null"/>.
-    /// </param>
-    /// <returns>
-    /// <see langword="true"/> if a deserializer is registered; otherwise <see langword="false"/>.
-    /// </returns>
-    bool TryGetDeserializer(uint magic, out PacketDeserializer? deserializer);
+    void Deserialize(ReadOnlySpan<byte> raw, out IPacket packet);
 }
