@@ -37,8 +37,7 @@ public abstract partial class Protocol : IReportable
     #region Public Methods
 
     /// <summary>
-    /// Generates a diagnostic report on the current state of the protocol.
-    /// Includes metrics like connection status, message count, and error count.
+    /// Generates a human-readable report describing the current protocol state.
     /// </summary>
     /// <returns>A formatted string containing the protocol status report.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -59,7 +58,7 @@ public abstract partial class Protocol : IReportable
     }
 
     /// <summary>
-    /// Generates protocol report data as key-value pairs describing the current protocol state and metrics.
+    /// Generates protocol report data as key-value pairs for machine consumption.
     /// </summary>
     /// <returns>A dictionary containing the protocol report data.</returns>
     public virtual IDictionary<string, object> GenerateReportData()

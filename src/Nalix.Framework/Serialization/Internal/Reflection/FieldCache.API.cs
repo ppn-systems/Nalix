@@ -13,15 +13,17 @@ using System.Runtime.CompilerServices;
 namespace Nalix.Framework.Serialization.Internal.Reflection;
 
 /// <summary>
-/// Provides caching mechanisms for retrieving field metadata efficiently.
+/// Exposes the cached field layout for a specific serialized type.
+/// The generic cache is built once per closed <typeparamref name="T"/> and then
+/// reused by the serializer without repeating reflection work.
 /// </summary>
 /// <typeparam name="T">The type whose fields are being cached.</typeparam>
 internal static partial class FieldCache<T>
 {
     /// <summary>
-    /// Retrieves all cached field metadata as a span.
+    /// Retrieves the cached field metadata array for the current type.
     /// </summary>
-    /// <returns>A <see cref="ReadOnlySpan{T}"/> containing metadata for all fields.</returns>
+    /// <returns>The cached <see cref="FieldSchema"/> array for <typeparamref name="T"/>.</returns>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FieldSchema[] GetFields() => s_metadata;

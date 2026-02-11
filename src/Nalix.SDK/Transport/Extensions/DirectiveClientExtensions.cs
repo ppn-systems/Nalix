@@ -60,9 +60,10 @@ public static class DirectiveClientExtensions
     /// Resolves a redirect endpoint from Arg0/Arg1/Arg2.
     /// Return <c>(host, port)</c>, or <c>null</c> if not resolvable.
     /// </summary>
-    /// <param name="arg0"></param>
-    /// <param name="arg1"></param>
-    /// <param name="arg2"></param>
+    /// <param name="arg0">The first redirect argument.</param>
+    /// <param name="arg1">The second redirect argument.</param>
+    /// <param name="arg2">The third redirect argument.</param>
+    /// <returns>The resolved host and port, or <see langword="null"/> if the endpoint cannot be resolved.</returns>
     public delegate (string host, ushort port)? RedirectResolver(
         uint arg0, uint arg1, ushort arg2);
 
@@ -79,10 +80,10 @@ public static class DirectiveClientExtensions
     /// <summary>
     /// Attempts to handle a <see cref="Directive"/> packet and apply the relevant behavior.
     /// </summary>
-    /// <param name="client">The connected reliable client.</param>
+    /// <param name="client">The connected client.</param>
     /// <param name="packet">The packet to inspect.</param>
     /// <param name="callbacks">Optional directive-specific callbacks.</param>
-    /// <param name="resolveRedirect">Optional resolver to convert <c>Arg0/Arg1/Arg2</c> into a concrete endpoint.</param>
+    /// <param name="resolveRedirect">Optional resolver that converts directive arguments into a concrete endpoint.</param>
     /// <param name="ct">A token to cancel asynchronous operations (e.g., reconnect).</param>
     /// <returns>
     /// <c>true</c> if <paramref name="packet"/> was a <see cref="Directive"/> and was handled;
@@ -199,7 +200,7 @@ public static class DirectiveClientExtensions
     /// <summary>
     /// Determines whether the client is currently throttled by a prior <see cref="ControlType.THROTTLE"/> directive.
     /// </summary>
-    /// <param name="client">The reliable client.</param>
+    /// <param name="client">The transport session to inspect.</param>
     /// <param name="remaining">
     /// When this method returns <c>true</c>, contains the remaining throttle duration;
     /// otherwise <see cref="TimeSpan.Zero"/>.

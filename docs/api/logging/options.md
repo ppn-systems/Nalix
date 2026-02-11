@@ -4,9 +4,9 @@ Nalix.Logging exposes a small set of public option classes for logger configurat
 
 ## Source mapping
 
-- `src/Nalix.Logging/Configuration/NLogixOptions.cs`
-- `src/Nalix.Logging/Configuration/FileLogOptions.cs`
-- `src/Nalix.Logging/Configuration/ConsoleLogOptions.cs`
+- `src/Nalix.Logging/Options/NLogixOptions.cs`
+- `src/Nalix.Logging/Options/FileLogOptions.cs`
+- `src/Nalix.Logging/Options/ConsoleLogOptions.cs`
 
 ## Main types
 

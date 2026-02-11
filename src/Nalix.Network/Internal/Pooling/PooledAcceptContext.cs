@@ -77,8 +77,9 @@ internal sealed class PooledAcceptContext : IPoolable
     }
 
     /// <summary>
-    /// Rebinds this context to a new <see cref="SocketAsyncEventArgs"/>:
-    /// detaches from old args (if any) and attaches the shared completion handler.
+    /// Rebinds this context to a new <see cref="SocketAsyncEventArgs"/>.
+    /// This detaches the shared completion handler from the old args, attaches it
+    /// to the new args, and keeps the pooled accept context reusable across accepts.
     /// </summary>
     /// <param name="newArgs"></param>
     /// <exception cref="ArgumentNullException"></exception>
@@ -92,7 +93,9 @@ internal sealed class PooledAcceptContext : IPoolable
     }
 
     /// <summary>
-    /// Binds this context to a new SAEA without attaching the async completion handler.
+    /// Binds this context to a new SAEA without wiring the async completion handler.
+    /// This is used only when the caller wants to reuse the same SAEA binding
+    /// without subscribing the shared async completion callback.
     /// </summary>
     /// <param name="newArgs"></param>
     /// <exception cref="ArgumentNullException"></exception>
@@ -121,7 +124,9 @@ internal sealed class PooledAcceptContext : IPoolable
         TaskCompletionSource<Socket> tcs = new(
             TaskCreationOptions.RunContinuationsAsynchronously);
 
-        // Register cancellation — when fired, the awaiter gets OperationCanceledException.
+        // Register cancellation separately from the SAEA completion path so the
+        // accept task can be canceled even if the socket never completes or the
+        // accept operation gets stuck in-flight for longer than expected.
         CancellationTokenRegistration reg = default;
         if (cancellationToken.CanBeCanceled)
         {
@@ -143,7 +148,8 @@ internal sealed class PooledAcceptContext : IPoolable
 
         if (!listener.AcceptAsync(args))
         {
-            // Completed synchronously — dispose registration immediately.
+            // Synchronous completion means the OS already produced a socket, so we
+            // can resolve the TCS inline and dispose the cancellation registration now.
             reg.Dispose();
 
             if (args.SocketError != SocketError.Success)
@@ -167,7 +173,9 @@ internal sealed class PooledAcceptContext : IPoolable
         }
         else
         {
-            // Completed asynchronously — dispose registration when task finishes.
+            // Asynchronous completion keeps the cancellation registration alive
+            // until the accept task settles, then disposes it on the continuation
+            // so the cancellation callback cannot outlive the accept task.
             _ = tcs.Task.ContinueWith(
                 static (_, state) =>
                 {
@@ -184,8 +192,10 @@ internal sealed class PooledAcceptContext : IPoolable
     }
 
     /// <summary>
-    /// Resets internal state before returning to the pool.
-    /// Also returns the inner <see cref="PooledSocketAsyncEventArgs"/> to its pool.
+    /// Resets internal state before returning to the pool and returns the inner
+    /// <see cref="PooledSocketAsyncEventArgs"/> to its own pool.
+    /// This prevents stale completion handlers, sockets, or user tokens from
+    /// leaking into the next accept operation.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()

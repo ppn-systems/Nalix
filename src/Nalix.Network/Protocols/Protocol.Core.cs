@@ -11,8 +11,9 @@ using Nalix.Common.Networking;
 namespace Nalix.Network.Protocols;
 
 /// <summary>
-/// Represents an abstract base class for network protocols.
-/// This class defines the common logic for handling connections and processing messages.
+/// Base class for connection-oriented protocols.
+/// It handles shared lifecycle concerns such as error accounting, post-processing,
+/// and connection acceptance, while derived types implement the actual message logic.
 /// </summary>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
@@ -21,15 +22,16 @@ public abstract partial class Protocol : IProtocol
 {
     /// <summary>
     /// Processes a message received on the connection.
-    /// This method must be implemented by derived classes to handle specific message processing.
+    /// Derived protocols decide how to interpret the event payload and route the message.
     /// </summary>
     /// <param name="sender">The sender of the message.</param>
     /// <param name="args">Event arguments containing the connection and message data.</param>
     public abstract void ProcessMessage(object? sender, IConnectEventArgs args);
 
     /// <summary>
-    /// Inbound-processes a message after it has been handled.
-    /// If the connection should not remain open, it will be disconnected.
+    /// Runs shared post-processing after a protocol handler completes.
+    /// If the protocol is configured to close connections, this method tears the
+    /// connection down after the handler finishes.
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="args">Event arguments containing the connection and additional data.</param>
@@ -60,18 +62,18 @@ public abstract partial class Protocol : IProtocol
 
             s_logger?.Error($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
 
-            // Notify protocol-level error handler
+            // Give the derived protocol a chance to observe the failure before the socket closes.
             this.OnConnectionError(args.Connection, ex);
             args.Connection.Disconnect();
         }
     }
 
     /// <summary>
-    /// Updates the protocol's state to either accept or reject new incoming connections.
-    /// Typically used for entering or exiting maintenance mode.
+    /// Enables or disables acceptance of new incoming connections.
+    /// This is typically used when the protocol enters or exits maintenance mode.
     /// </summary>
     /// <param name="isEnabled">
-    /// True to allow new connections; false to reject them.
+    /// <see langword="true"/> to allow new connections; otherwise, <see langword="false"/>.
     /// </param>
     public void SetConnectionAcceptance(bool isEnabled)
     {

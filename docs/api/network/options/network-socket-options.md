@@ -4,7 +4,7 @@
 
 ## Source mapping
 
-- `src/Nalix.Network/Configurations/NetworkSocketOptions.cs`
+- `src/Nalix.Network/Options/NetworkSocketOptions.cs`
 
 ## Important properties
 

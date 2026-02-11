@@ -6,7 +6,12 @@
 
 - `src/Nalix.Logging/NLogix.cs`
 - `src/Nalix.Logging/NLogix.Host.cs`
-- `src/Nalix.Logging/NLogix.Extensions.cs`
+- `src/Nalix.Logging/Extensions/NLogixFx.cs`
+- `src/Nalix.Logging/Extensions/NLogixFx.Internal.cs`
+- `src/Nalix.Logging/Extensions/NLogixFx.Level.cs`
+- `src/Nalix.Logging/Options/NLogixOptions.cs`
+- `src/Nalix.Logging/Options/FileLogOptions.cs`
+- `src/Nalix.Logging/Options/ConsoleLogOptions.cs`
 - `src/Nalix.Logging/Engine/NLogixDistributor.cs`
 
 ## Main types
@@ -14,9 +19,8 @@
 - `NLogix`
 - `NLogix.Host`
 - `NLogixOptions`
-- `NLogixEngine`
-- `NLogixConstants`
-- `ILoggerTarget`
+- `NLogixFx`
+- `INLogixTarget`
 
 ## What it does
 

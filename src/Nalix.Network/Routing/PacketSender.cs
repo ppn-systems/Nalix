@@ -18,10 +18,10 @@ using Nalix.Framework.Options;
 namespace Nalix.Network.Routing;
 
 /// <summary>
-/// Default implementation of <see cref="IPacketSender{TPacket}"/>.
-/// Reads encryption/compression requirements from <see cref="PacketContext{TPacket}"/>.
+/// Default packet sender that serializes a packet, optionally compresses it,
+/// optionally encrypts it, and then forwards the final buffer to the connection.
 /// </summary>
-/// <typeparam name="TPacket"></typeparam>
+/// <typeparam name="TPacket">The packet type carried by the sender.</typeparam>
 public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable where TPacket : IPacket
 {
     #region Fields
@@ -86,20 +86,22 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
         s_logger?.Debug($"[NW.PacketSender] Start SEND_CORE_ASYNC | Packet={packet.GetType().Name}, Length={packet.Length}, NeedEncrypt={needEncrypt}");
 #endif
 
-        // Serialize packet
+        // Serialize into a pooled buffer first so the subsequent compression/encryption
+        // branches can reuse the same payload without reserializing the packet.
         BufferLease rawLease = BufferLease.Rent(packet.Length);
         try
         {
             int written = packet.Serialize(rawLease.SpanFull);
             rawLease.CommitLength(written);
 
+            // Compression is only worthwhile once the payload crosses the configured threshold.
             bool enableCompress = s_options.Enabled && written >= s_options.MinSizeToCompress;
 
 #if DEBUG
             s_logger?.Debug($"[NW.PacketSender] Serialized: {written} bytes | Compress={enableCompress}");
 #endif
 
-            // Case 1: No compress, no encrypt
+            // Case 1: send the raw serialized payload as-is.
             if (!enableCompress && !needEncrypt)
             {
 #if DEBUG
@@ -109,7 +111,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
                 return;
             }
 
-            // Case 2: Compress only
+            // Case 2: compress the serialized payload and send the compressed lease.
             if (enableCompress && !needEncrypt)
             {
 #if DEBUG
@@ -133,7 +135,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
                 return;
             }
 
-            // Case 3: Encrypt only
+            // Case 3: encrypt the serialized payload without compression.
             if (!enableCompress && needEncrypt)
             {
 #if DEBUG
@@ -164,7 +166,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
                 return;
             }
 
-            // Case 4: Compress + Encrypt
+            // Case 4: compress first, then encrypt the compressed buffer.
             if (enableCompress && needEncrypt)
             {
 #if DEBUG
@@ -216,6 +218,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
         }
         finally
         {
+            // The raw serialization buffer is always returned, regardless of which branch ran.
             rawLease.Dispose();
         }
     }

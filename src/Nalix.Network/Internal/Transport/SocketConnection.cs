@@ -373,7 +373,9 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                     byte[] oldBuf = _buffer;
                     byte[] newBuf = BufferLease.ByteArrayPool.Rent(size);
 
-                    // Preserve the already-read header bytes in the new buffer.
+                    // Preserve the already-read length header in the new buffer so the
+                    // receive loop can continue reading the payload seamlessly after it
+                    // swaps to a larger rented array.
                     MemoryExtensions.AsSpan(oldBuf, 0, HeaderSize)
                                     .CopyTo(MemoryExtensions
                                     .AsSpan(newBuf));
@@ -395,7 +397,8 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                     $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                     $"recv-frame size={size} payload={payload} ep={_sender?.NetworkEndpoint.Address}");
 #endif
-                // ── Step 3.5: periodic eviction of stale fragment streams ───────
+                // Periodically evict stale fragment streams so abandoned partial
+                // messages do not keep per-connection fragment state alive forever.
                 if ((++_packetCount & (FragmentAssembler.EvictInterval - 1)) == 0)
                 {
                     int evicted = _fragmentAssembler.EvictExpired();
@@ -436,8 +439,10 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                     continue;
                 }
 
-                // ── Step 5: zero-copy handoff to session cache ────────────
-                // Interlocked.Exchange(null) prevents Dispose from double-returning.
+                // Hand the rented buffer ownership to the packet pipeline without
+                // copying. Interlocked.Exchange(null) prevents Dispose from
+                // returning the same array twice and makes the ownership transfer
+                // race-safe with the teardown path.
                 byte[]? currentBuf = Interlocked.Exchange(ref _buffer, null!);
 
                 if (currentBuf is not null)
@@ -490,7 +495,8 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                                 $"fragment-assembled stream={header.StreamId} totalLen={assembled.Length} " +
                                 $"ep={_sender?.NetworkEndpoint.Address}");
 #endif
-                            // If this was the last chunk, the assembler has no more use for the stream and can release it.
+                            // The stream is complete, so release one open-stream slot
+                            // for this connection.
                             Interlocked.Decrement(ref _openFragmentStreams);
                         }
                         else
@@ -573,11 +579,13 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
         if (disposing)
         {
-            // 1. Signal cancellation so the receive loop exits cleanly.
+            // 1. Signal cancellation so the receive loop exits cleanly and stops
+            //    scheduling any more receives.
             this.CANCEL_RECEIVE_ONCE();
 
-            // 2. Shutdown and close the socket (causes in-flight SAEA to abort,
-            //    which lets PooledReceiveContext._idle become signaled).
+            // 2. Shutdown and close the socket. This forces any in-flight SAEA
+            //    receive to complete or abort, which lets the pooled receive
+            //    context observe an idle state and become returnable.
             try
             {
                 if (_socket.Connected)
@@ -589,7 +597,8 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
             try { _socket.Close(); } catch { /* ignore */ }
 
-            // 3. Return PooledReceiveContext to ObjectPoolManager.
+            // 3. Return the pooled receive context only after the socket can no
+            //    longer use it.
             if (_recvCtx is not null)
             {
                 s_pool.Return(_recvCtx);
@@ -597,7 +606,8 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                 _recvCtx = null!;
             }
 
-            // 4. Return the receive buffer (Interlocked prevents double-return).
+            // 4. Return the receive buffer. Interlocked.Exchange prevents double-
+            //    return if Dispose races with the receive loop cleanup.
             byte[]? bufToReturn =
                 Interlocked.Exchange(ref _buffer, null!);
             if (bufToReturn is not null)
@@ -605,7 +615,8 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                 BufferLease.ByteArrayPool.Return(bufToReturn);
             }
 
-            // 6. Fire the close callback.
+            // 6. Fire the close callback after the socket and buffers are already
+            //    out of circulation.
             this.INVOKE_CLOSE_ONCE();
 
             // 7. Dispose remaining resources.

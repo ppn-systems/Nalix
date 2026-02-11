@@ -6,7 +6,7 @@ using System;
 namespace Nalix.Common.Serialization;
 
 /// <summary>
-/// Specifies that a field or property should be ignored during serialization.
+/// Marks a field or property so the serializer skips it during discovery.
 /// </summary>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, Inherited = true)]
 public sealed class SerializeIgnoreAttribute : Attribute;

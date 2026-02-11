@@ -7,12 +7,11 @@ using Nalix.Common.Security;
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
-/// Specifies that the target method requires packet-level encryption.
+/// Marks a handler as requiring packet-level encryption.
 /// </summary>
 /// <remarks>
-/// Apply this attribute to a method to indicate that its associated packet data should be
-/// encrypted before transmission and decrypted upon receipt.
-/// By default, encryption is disabled unless explicitly set.
+/// The dispatcher uses this to decide whether the packet should be encrypted on send
+/// and decrypted on receive.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
 public sealed class PacketEncryptionAttribute : Attribute
@@ -21,7 +20,7 @@ public sealed class PacketEncryptionAttribute : Attribute
     /// Initializes a new instance of the <see cref="PacketEncryptionAttribute"/> class.
     /// </summary>
     /// <param name="isEncrypted">
-    /// <c>true</c> to enable encryption for the method's packets; otherwise, <c>true</c>.
+    /// <c>true</c> to enable encryption for the method's packets; otherwise, <c>false</c>.
     /// </param>
     /// <param name="algorithmType">
     /// The symmetric encryption algorithm to apply when <paramref name="isEncrypted"/> is <c>true</c>.

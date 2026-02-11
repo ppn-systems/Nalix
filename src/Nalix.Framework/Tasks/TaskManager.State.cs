@@ -24,30 +24,34 @@ public partial class TaskManager
     {
         #region Backing fields (thread-safe)
 
+        // Monotonic progress counter updated by the worker body and reported through IWorkerHandle.
         private long _progress;
 
         /// <summary>
-        /// 0/1
+        /// Stores whether the worker is currently executing.
+        /// <para>0 means idle, 1 means running.</para>
         /// </summary>
         private int _isRunning;
 
         /// <summary>
-        /// count
+        /// Total number of completed attempts, including success, cancellation, and failure.
         /// </summary>
         private long _totalRuns;
 
         /// <summary>
-        /// DateTimeOffset.UtcNow.Ticks
+        /// Start timestamp for the most recent execution, stored as UTC ticks.
         /// </summary>
         private long _startedUtcTicks;
 
         /// <summary>
-        /// 0 == null
+        /// Last heartbeat timestamp for the current or most recent execution.
+        /// <para>0 means there is no heartbeat yet.</para>
         /// </summary>
         private long _lastHeartbeatUtcTicks;
 
         /// <summary>
-        /// 0 == null
+        /// Completion timestamp for cleanup retention.
+        /// <para>0 means the worker has not completed yet.</para>
         /// </summary>
         private long _completedUtcTicks;
 
@@ -55,6 +59,9 @@ public partial class TaskManager
 
         #region Properties
 
+        /// <summary>
+        /// Holds the actual scheduled task so the manager can observe or clean it up.
+        /// </summary>
         public Task? Task;
 
         public ISnowflake Id { get; } = id;
@@ -103,7 +110,7 @@ public partial class TaskManager
         }
 
         /// <summary>
-        /// Mark khi worker kết thúc (thành công/huỷ/lỗi) để cleanup theo RetainFor
+        /// Gets the completion time used by retention and cleanup logic.
         /// </summary>
         internal DateTimeOffset? CompletedUtc
         {
@@ -123,9 +130,14 @@ public partial class TaskManager
 
         #region Computed Methods
 
+        /// <summary>
+        /// Marks the worker as running and resets completion metadata for a new execution.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public void MarkStart()
         {
+            // Capture one UTC timestamp and reuse it for all start-related fields so the
+            // execution snapshot stays internally consistent.
             long nowTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks;
             _ = Interlocked.Exchange(ref _startedUtcTicks, nowTicks);
             _ = Interlocked.Exchange(ref _lastHeartbeatUtcTicks, nowTicks);
@@ -133,9 +145,14 @@ public partial class TaskManager
             this.IsRunning = true;
         }
 
+        /// <summary>
+        /// Marks the worker as finished after a successful execution.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public void MarkStop()
         {
+            // Stop first so observers stop counting this worker as active before the
+            // completion timestamp is published.
             this.IsRunning = false;
             _ = Interlocked.Increment(ref _totalRuns);
             long nowTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks;
@@ -143,9 +160,14 @@ public partial class TaskManager
             _ = Interlocked.Exchange(ref _lastHeartbeatUtcTicks, nowTicks);
         }
 
+        /// <summary>
+        /// Marks the worker as finished after an error path.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public void MarkError(Exception __)
         {
+            // Error completion uses the same lifecycle fields as success so cleanup
+            // and reporting do not need a separate branch.
             this.IsRunning = false;
             long ticks = DateTimeOffset.UtcNow.UtcDateTime.Ticks;
 
@@ -154,6 +176,9 @@ public partial class TaskManager
             _ = Interlocked.Exchange(ref _lastHeartbeatUtcTicks, ticks);
         }
 
+        /// <summary>
+        /// Refreshes the heartbeat timestamp to show that the worker is still alive.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public void Beat()
         {
@@ -161,8 +186,14 @@ public partial class TaskManager
             _ = Interlocked.Exchange(ref _lastHeartbeatUtcTicks, ticks);
         }
 
+        /// <summary>
+        /// Gets the total amount of progress accumulated by the worker.
+        /// </summary>
         public long Progress => Interlocked.Read(ref _progress);
 
+        /// <summary>
+        /// Adds progress and optionally stores a human-readable note for diagnostics.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public void Add(long delta, string? note)
         {
@@ -180,6 +211,9 @@ public partial class TaskManager
             _ = Interlocked.Exchange(ref _lastHeartbeatUtcTicks, nowTicks);
         }
 
+        /// <summary>
+        /// Requests cancellation of the worker token source.
+        /// </summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public void Cancel() => this.Cts.Cancel();
 
@@ -224,8 +258,11 @@ public partial class TaskManager
     {
         #region Properties / fields
 
+        // Recurring jobs use a one-per-loop gate when NonReentrant is enabled so an
+        // overrun does not overlap with the next scheduled tick.
         public readonly SemaphoreSlim Gate = new(1, 1);
 
+        // The running task reference is tracked only for diagnostics and cleanup.
         public Task? Task;
 
         public string Name { get; } = name;
@@ -236,6 +273,8 @@ public partial class TaskManager
 
         public CancellationTokenSource CancellationTokenSource { get; } = cts;
 
+        // Precompute the interval in stopwatch ticks once so the loop does not repeat
+        // the TimeSpan conversion on every iteration.
         public long IntervalTicks { get; } = (long)(iv.TotalSeconds * Stopwatch.Frequency) switch
         {
             <= 0 => 1,
@@ -243,19 +282,21 @@ public partial class TaskManager
         };
 
         /// <summary>
-        /// backing fields
+        /// Total number of times the recurring job has been attempted.
         /// </summary>
         private long _totalRuns;
 
+        // Consecutive failure counter used to decide when exponential backoff starts.
         private int _consecutiveFailures;
 
         /// <summary>
-        /// 0/1
+        /// Stores whether the recurring job is currently executing.
+        /// <para>0 means idle, 1 means running.</para>
         /// </summary>
         private int _isRunning;
 
         /// <summary>
-        /// 0 == null
+        /// Timestamp of the most recent execution start in UTC ticks.
         /// </summary>
         private long _lastRunUtcTicks;
 

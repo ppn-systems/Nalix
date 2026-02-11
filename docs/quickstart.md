@@ -18,6 +18,7 @@ dotnet add package Nalix.Common
 dotnet add package Nalix.Framework
 dotnet add package Nalix.Network
 dotnet add package Nalix.Logging
+dotnet add package Nalix.Network.Pipeline
 ```
 
 ### Client
@@ -122,10 +123,9 @@ namespace QuickStart.Server.Handlers;
 public sealed class PingHandlers
 {
     [PacketOpcode(PingRequest.OpCodeValue)]
-    public IPacket Handle(PacketContext<IPacket> request)
+    public PingResponse Handle(PacketContext<PingRequest> request)
     {
-        PingRequest packet = (PingRequest)request.Packet;
-        return new PingResponse { Message = $"pong: {packet.Message}" };
+        return new PingResponse { Message = $"pong: {request.Packet.Message}" };
     }
 }
 ```
@@ -147,10 +147,9 @@ public sealed class QuickStartProtocol : Protocol
     {
         _dispatch = dispatch;
         this.SetConnectionAcceptance(true);
-        this.KeepConnectionOpen = true;
     }
 
-    public override void ProcessMessage(object? sender, IConnectEventArgs args)
+    public override void ProcessMessage(object sender, IConnectEventArgs args)
         => _dispatch.HandlePacket(args.Lease, args.Connection);
 }
 ```
@@ -186,11 +185,11 @@ using QuickStart.Server.Protocols;
 const ushort Port = 57206;
 
 ILogger logger = NLogix.Host.Instance;
-IPacketRegistry packetRegistry = new PacketRegistry(factory =>
-{
-    factory.RegisterPacket<PingRequest>()
-           .RegisterPacket<PingResponse>();
-});
+PacketRegistryFactory factory = new();
+factory.RegisterPacket<PingRequest>()
+       .RegisterPacket<PingResponse>();
+
+IPacketRegistry packetRegistry = factory.CreateCatalog();
 
 InstanceManager.Instance.Register<ILogger>(logger);
 InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
@@ -198,7 +197,7 @@ InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
 using PacketDispatchChannel dispatch = new(options =>
 {
     options.WithLogging(logger)
-           .WithHandler<PingHandlers>();
+           .WithHandler(() => new PingHandlers());
 });
 
 using QuickStartProtocol protocol = new(dispatch);
@@ -212,7 +211,7 @@ Console.WriteLine("Press ENTER to stop.");
 Console.ReadLine();
 
 listener.Deactivate();
-dispatch.Deactivate();
+dispatch.Dispose();
 ```
 
 ## 3. Client Test
@@ -222,18 +221,19 @@ dispatch.Deactivate();
 ```csharp
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames;
-using Nalix.SDK.Configuration;
+using Nalix.Framework.Injection;
+using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 using QuickStart.Contracts.Packets;
 
 const ushort Port = 57206;
 
-IPacketRegistry packetRegistry = new PacketRegistry(factory =>
-{
-    factory.RegisterPacket<PingRequest>()
-           .RegisterPacket<PingResponse>();
-});
+PacketRegistryFactory factory = new();
+factory.RegisterPacket<PingRequest>()
+       .RegisterPacket<PingResponse>();
+
+IPacketRegistry packetRegistry = factory.CreateCatalog();
 
 TransportOptions transport = new()
 {
@@ -242,7 +242,7 @@ TransportOptions transport = new()
 };
 
 await using TcpSession client = new(transport, packetRegistry);
-await client.ConnectAsync();
+await client.ConnectAsync(transport.Address, transport.Port);
 
 PingResponse response = await client.RequestAsync<PingResponse>(
     new PingRequest { Message = "hello" },
@@ -293,7 +293,7 @@ sequenceDiagram
 - Register `IPacketRegistry` before creating `PacketDispatchChannel`.
 - Keep `QuickStart.Contracts` shared by both sides.
 - `SetConnectionAcceptance(true)` is required.
-- `KeepConnectionOpen = true` keeps the session alive after the first reply.
+- `TcpSession` can be created with the same packet registry used by the server.
 
 ## Next Steps
 
