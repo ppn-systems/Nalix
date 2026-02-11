@@ -9,10 +9,10 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<!-- Versions -->
-		<Version>12.0.0</Version>
-		<FileVersion>12.0.0.0</FileVersion>
-		<PackageVersion>12.0.0</PackageVersion>
-		<InformationalVersion>12.0.0+$(SourceRevisionId)</InformationalVersion>
+		<Version>12.0.1</Version>
+		<FileVersion>12.0.1.0</FileVersion>
+		<PackageVersion>12.0.1</PackageVersion>
+		<InformationalVersion>12.0.1+$(SourceRevisionId)</InformationalVersion>
 
 		<Description><![CDATA[
 Nalix.Framework is a high-performance foundational library that provides core building blocks for the Nalix ecosystem — including cryptography, identity, dependency injection, randomization, task orchestration, and time management.
@@ -42,4 +42,15 @@ Designed for modern .NET 9, it follows SOLID and Domain-Driven Design (DDD) prin
 		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll"
+			  Pack="true"
+			  PackagePath="analyzers/dotnet/cs"
+			  Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll')" />
+
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll"
+			  Pack="true"
+			  PackagePath="analyzers/dotnet/cs"
+			  Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
+	</ItemGroup>
 </Project>
