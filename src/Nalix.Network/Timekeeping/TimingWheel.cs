@@ -245,7 +245,7 @@ public sealed class TimingWheel : IActivatable
 
         if (_worker != null)
         {
-            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                     .CancelWorker(_worker.Id);
         }
 

@@ -868,8 +868,9 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
 
         try
         {
-            _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()
-                ?.CancelRecurring(TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode())));
+            InstanceManager.Instance.GetExistingInstance<TaskManager>()?
+                                    .CancelRecurring(TaskNaming.Recurring
+                                    .CleanupJobId(RecurringName, this.GetHashCode()));
 
             _map.Clear();
 

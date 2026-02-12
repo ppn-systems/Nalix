@@ -172,7 +172,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <exception cref="InternalErrorException">Thrown when <paramref name="newConfigFilePath"/> resolves outside the allowed configuration directory.</exception>
     /// <exception cref="SecurityException">Thrown when the normalized path cannot be accessed securely.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public bool SetConfigFilePath(string newConfigFilePath, bool autoReload = true)
+    public void SetConfigFilePath(string newConfigFilePath, bool autoReload = true)
     {
         if (string.IsNullOrWhiteSpace(newConfigFilePath))
         {
@@ -187,10 +187,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         // Wait up to 5 s for any concurrent reload/path-change to finish.
         if (!_reloadGate.Wait(TimeSpan.FromSeconds(5)))
         {
-            return false;
+            throw new TimeoutException("Timed out waiting for concurrent configuration reload or path change to complete.");
         }
-
-        bool success = false;
         string? pathToWatch = null;
 
         try
@@ -200,7 +198,9 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             {
                 if (string.Equals(_configFilePath, normalizedPath, StringComparison.OrdinalIgnoreCase))
                 {
-                    return false; // no-op
+                    throw new ArgumentException(
+                        "The new configuration file path is the same as the current path.",
+                        nameof(newConfigFilePath));
                 }
 
                 if (_iniFile.IsValueCreated)
@@ -238,7 +238,6 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                                                       $"auto-reload-ok count={_configContainerDict.Count}");
 
                         pathToWatch = normalizedPath;
-                        success = true;
                     }
                     catch (Exception ex)
                     {
@@ -252,13 +251,11 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                         _iniFile = this.CREATE_LAZY_INI_CONFIG(oldPath);
 
                         pathToWatch = oldPath; // restore watcher for the old path
-                        success = false;
                     }
                 }
                 else
                 {
                     pathToWatch = normalizedPath;
-                    success = true;
                 }
             }
             finally
@@ -271,8 +268,6 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             {
                 this.SETUP_FILE_WATCHER();
             }
-
-            return success;
         }
         finally
         {
@@ -371,7 +366,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     public TClass Get<TClass>(string configFilePath, bool autoReload = true)
         where TClass : ConfigurationLoader, new()
     {
-        _ = this.SetConfigFilePath(configFilePath, autoReload);
+        this.SetConfigFilePath(configFilePath, autoReload);
         return this.Get<TClass>();
     }
 
