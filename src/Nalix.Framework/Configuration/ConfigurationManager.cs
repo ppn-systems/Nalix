@@ -385,14 +385,13 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// cause the manual call to return <see langword="false"/> immediately.
     /// </remarks>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public bool ReloadAll()
+    public void ReloadAll()
     {
         if (!_reloadGate.Wait(TimeSpan.FromSeconds(5)))
         {
-            return false;
+            throw new TimeoutException("Timed out waiting for concurrent configuration reload or path change to complete.");
         }
 
-        bool reloadSuccess = false;
         Exception? reloadException = null;
 
         try
@@ -414,7 +413,6 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 }
 
                 this.LastReloadTime = DateTime.UtcNow;
-                reloadSuccess = true;
             }
             catch (Exception ex)
             {
@@ -427,20 +425,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 _configLock.ExitWriteLock();
             }
 
-            if (reloadSuccess)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] " +
-                          $"reload-ok count={_configContainerDict.Count}");
-            }
-            else
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] " +
-                           $"reload-fail msg={reloadException?.Message}", reloadException!);
-            }
-
-            return reloadSuccess;
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-ok count={_configContainerDict.Count}");
         }
         finally
         {
@@ -600,14 +586,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             // Debounce: reset timer on every event so only the trailing edge triggers a reload.
             _debounceTimer?.Dispose();
             _debounceTimer = new Timer(
-                _ =>
-                {
-                    if (!this.ReloadAll())
-                    {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Error($"[FW.{nameof(ConfigurationManager)}:Watcher] reload-failed path={watchedPath}");
-                    }
-                },
+                _ => this.ReloadAll(),
                 state: null,
                 dueTime: s_debounceDelay,
                 period: Timeout.InfiniteTimeSpan);
