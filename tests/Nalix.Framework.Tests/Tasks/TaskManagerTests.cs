@@ -207,9 +207,8 @@ public sealed class TaskManagerTests : IDisposable
 
         _ = await started.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
-        bool cancelledWorker = manager.CancelWorker(handle.Id);
+        manager.CancelWorker(handle.Id);
 
-        Assert.True(cancelledWorker);
         _ = await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(2));
     }
 
@@ -218,9 +217,7 @@ public sealed class TaskManagerTests : IDisposable
     {
         using TaskManager manager = this.CreateManager();
 
-        bool cancelled = manager.CancelWorker(Identifiers.Snowflake.NewId(SnowflakeType.Unknown));
-
-        Assert.False(cancelled);
+        manager.CancelWorker(Identifiers.Snowflake.NewId(SnowflakeType.Unknown));
     }
 
     [Fact]
@@ -364,21 +361,7 @@ public sealed class TaskManagerTests : IDisposable
         _ = Assert.NotNull(handle.LastRunUtc);
         _ = Assert.NotNull(handle.NextRunUtc);
 
-        bool cancelled = manager.CancelRecurring("recurring.run");
-        bool cancelledAgain = manager.CancelRecurring("recurring.run");
-
-        Assert.True(cancelled);
-        Assert.False(cancelledAgain);
-    }
-
-    [Fact]
-    public void CancelRecurringWhenNameIsNullReturnsFalse()
-    {
-        using TaskManager manager = this.CreateManager();
-
-        bool cancelled = manager.CancelRecurring(null);
-
-        Assert.False(cancelled);
+        manager.CancelRecurring("recurring.run");
     }
 
     [Fact]
@@ -421,7 +404,7 @@ public sealed class TaskManagerTests : IDisposable
         Assert.True(manager.AverageWorkerExecutionTime >= 0);
         Assert.True(manager.AverageRecurringExecutionTime >= 0);
 
-        _ = manager.CancelRecurring(recurring.Name);
+        manager.CancelRecurring(recurring.Name);
     }
 
     [Fact]
