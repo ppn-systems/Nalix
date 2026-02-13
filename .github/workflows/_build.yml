@@ -61,6 +61,7 @@ jobs:
 
     steps:
       - name: Set environment variables
+        shell: bash
         run: echo "TEST_RESULTS_DIR=artifacts/test-results/${{ runner.os }}" >> "$GITHUB_ENV"
 
       - name: Checkout repository
@@ -80,19 +81,22 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Decode signing key
+        shell: bash
         run: |
           if [ -n "${{ secrets.SIGNING_KEY }}" ]; then
-            echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./Nalix.snk
+            echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./src/Nalix.snk
           else
             echo "SIGNING_KEY is not set. Skipping signing key creation."
           fi
 
       - name: Restore all projects
+        shell: bash
         run: |
           dotnet restore src/Nalix.sln
           dotnet restore tests/Nalix.Tests.sln
 
       - name: Build all projects
+        shell: bash
         run: |
           dotnet build src/Nalix.sln \
             --configuration Release \
@@ -100,6 +104,7 @@ jobs:
             /p:UseSharedCompilation=false
 
       - name: Run all tests
+        shell: bash
         run: |
           dotnet test tests/Nalix.Tests.sln \
             --configuration Release \
@@ -118,6 +123,7 @@ jobs:
 
       - name: Publish build output
         if: inputs.deploy
+        shell: bash
         run: |
           dotnet publish src/Nalix.sln \
             --configuration Release \
