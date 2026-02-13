@@ -115,7 +115,7 @@ internal static class PACKET_AWAITER
                 IPacket p;
                 try
                 {
-                    client.Catalog.Deserialize(buffer.Span, out p);
+                    p = client.Catalog.Deserialize(buffer.Span);
                 }
                 catch (Exception dex)
                 {
