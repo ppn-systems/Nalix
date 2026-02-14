@@ -6,14 +6,16 @@ namespace Nalix.Analyzers.Tests;
 internal static class TestSources
 {
     public const string Prelude = """
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+global using System;
+global using System.Threading;
+global using System.Threading.Tasks;
+global using Nalix.Framework.DataFrames;
 
 namespace Nalix.Common.Serialization
 {
     public enum SerializeLayout : byte { Sequential = 0, Explicit = 1 }
     public sealed class SerializePackableAttribute : Attribute { public SerializePackableAttribute(SerializeLayout layout) { } }
+    public sealed class SerializeHeaderAttribute : Attribute { public SerializeHeaderAttribute(int order) { } }
     public sealed class SerializeOrderAttribute : Attribute { public SerializeOrderAttribute(int order) { } }
     public sealed class SerializeIgnoreAttribute : Attribute { }
     public sealed class SerializeDynamicSizeAttribute : Attribute { public SerializeDynamicSizeAttribute(int size = 0) { } }
@@ -105,10 +107,10 @@ namespace Nalix.Framework.DataFrames
 {
     using Nalix.Common.Networking.Packets;
 
-    public abstract class PacketBase<TSelf> : IPacket, IPacketDeserializer<TSelf> where TSelf : PacketBase<TSelf>, new()
+    public abstract class PacketBase<TSelf> : IPacket, IPacketDeserializer<TSelf> where TSelf : PacketBase<TSelf>
     {
         public virtual void ResetForPool() { }
-        public static TSelf Deserialize(ReadOnlySpan<byte> buffer) => new();
+        public static TSelf Deserialize(ReadOnlySpan<byte> buffer) => default!;
     }
 
     public sealed class PacketRegistryFactory

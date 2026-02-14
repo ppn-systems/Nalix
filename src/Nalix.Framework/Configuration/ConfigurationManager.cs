@@ -67,6 +67,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// We reset a one-shot timer on every event; only the last one fires ReloadAll().
     /// </summary>
     private Timer? _debounceTimer;
+    private volatile bool _isDisposed;
 
     private static readonly TimeSpan s_debounceDelay = TimeSpan.FromMilliseconds(300);
 
@@ -175,6 +176,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void SetConfigFilePath(string newConfigFilePath, bool autoReload = true)
     {
+        ObjectDisposedException.ThrowIf(_isDisposed, this);
+
         if (string.IsNullOrWhiteSpace(newConfigFilePath))
         {
             throw new ArgumentException(
@@ -386,6 +389,11 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void ReloadAll()
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
         if (!_reloadGate.Wait(TimeSpan.FromSeconds(5)))
         {
             throw new TimeoutException("Timed out waiting for concurrent configuration reload or path change to complete.");
@@ -427,9 +435,16 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-ok count={_configContainerDict.Count}");
         }
+        catch (ObjectDisposedException) when (_isDisposed)
+        {
+            // Shutdown won the race with a background reload callback.
+        }
         finally
         {
-            _ = _reloadGate.Release();
+            if (!_isDisposed)
+            {
+                _ = _reloadGate.Release();
+            }
         }
     }
 
@@ -526,6 +541,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <inheritdoc/>
     protected override void DisposeManaged()
     {
+        _isDisposed = true;
+
         if (_iniFile.IsValueCreated)
         {
             try { _iniFile.Value.Flush(); } catch { /* ignore */ }
@@ -536,6 +553,15 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
         _configFileWatcher?.Dispose();
         _configFileWatcher = null;
+
+        try
+        {
+            _ = _reloadGate.Wait(TimeSpan.FromSeconds(5));
+        }
+        catch (ObjectDisposedException)
+        {
+            // Another disposer already completed shutdown.
+        }
 
         _reloadGate.Dispose();
         _configLock.Dispose();
@@ -548,6 +574,11 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
     private void SETUP_FILE_WATCHER()
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
         _debounceTimer?.Dispose();
         _debounceTimer = null;
 
@@ -577,6 +608,11 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
         _configFileWatcher.Changed += (_, e) =>
         {
+            if (_isDisposed)
+            {
+                return;
+            }
+
             if (!e.FullPath.Equals(watchedPath, StringComparison.OrdinalIgnoreCase))
             {
                 return;
@@ -585,7 +621,15 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             // Debounce: reset timer on every event so only the trailing edge triggers a reload.
             _debounceTimer?.Dispose();
             _debounceTimer = new Timer(
-                _ => this.ReloadAll(),
+                _ =>
+                {
+                    if (_isDisposed)
+                    {
+                        return;
+                    }
+
+                    this.ReloadAll();
+                },
                 state: null,
                 dueTime: s_debounceDelay,
                 period: Timeout.InfiniteTimeSpan);

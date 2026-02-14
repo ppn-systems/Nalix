@@ -1,4 +1,6 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<Import Project="Version.props" Condition="Exists('$(MSBuildThisFileDirectory)Version.props') AND '$(Version)' == ''" />
+
 	<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
 		<DebugType>embedded</DebugType>
 		<IncludeSource>false</IncludeSource>
@@ -24,11 +26,10 @@
 
 		<OutputPath>..\..\build\bin\Release\</OutputPath>
 		<IntermediateOutputPath>..\..\build\obj\Release\</IntermediateOutputPath>
-		
-		<Version>$(Version)</Version>
-		<PackageVersion>$(Version)</PackageVersion>
-		<FileVersion>$(Version).0</FileVersion>
-		<InformationalVersion>$(Version)+$(SourceRevisionId)</InformationalVersion>
+
+		<PackageVersion Condition="'$(PackageVersion)' == ''">$(Version)</PackageVersion>
+		<FileVersion Condition="'$(FileVersion)' == ''">$(Version).0</FileVersion>
+		<InformationalVersion Condition="'$(InformationalVersion)' == ''">$(Version)+$(SourceRevisionId)</InformationalVersion>
 	</PropertyGroup>
 
 </Project>

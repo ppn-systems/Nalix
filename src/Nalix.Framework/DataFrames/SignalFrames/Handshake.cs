@@ -5,7 +5,6 @@ using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 
@@ -15,25 +14,30 @@ namespace Nalix.Framework.DataFrames.SignalFrames;
 /// Represents a handshake packet used during connection setup.
 /// </summary>
 [ExcludeFromCodeCoverage]
-[SerializePackable(SerializeLayout.Explicit)]
+[SerializePackable(SerializeLayout.Auto)]
 [DebuggerDisplay("HANDSHAKE OPCODE={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class Handshake : PacketBase<Handshake>
 {
-    /// <summary>Gets the default dynamic size hint for handshake payloads.</summary>
+    /// <summary>
+    /// Gets the default dynamic size hint for handshake payloads.
+    /// </summary>
     public const int DynamicSize = 32;
 
-    /// <summary>Gets or sets the handshake payload.</summary>
+    /// <summary>
+    /// Gets or sets the handshake payload.
+    /// </summary>
     [SerializeDynamicSize(DynamicSize)]
-    [SerializeOrder(PacketHeaderOffset.Region + 1)]
     public byte[] Data { get; set; } = [];
 
-    /// <summary>Gets or sets the authentication payload for the handshake.</summary>
+    /// <summary>
+    /// Gets or sets the authentication payload for the handshake.
+    /// </summary>
     [SkipClean]
-    [SerializeOrder(PacketHeaderOffset.Region + 2)]
     public HandshakeAuth Auth { get; set; } = new HandshakeAuth();
 
-    /// <summary>Gets or sets the optional identity string.</summary>
-    [SerializeOrder(PacketHeaderOffset.Region + 3)]
+    /// <summary>
+    /// Gets or sets the optional identity string.
+    /// </summary>
     public string Identity { get; set; } = string.Empty;
 
     /// <summary>
@@ -100,5 +104,6 @@ public sealed class Handshake : PacketBase<Handshake>
         /// </summary>
         [SerializeDynamicSize(DynamicSize * 2)]
         public byte[] Signature { get; set; } = Array.Empty<byte>();
+
     }
 }

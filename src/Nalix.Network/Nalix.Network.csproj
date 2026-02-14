@@ -10,20 +10,19 @@
 		<DisableImplicitMicrosoftCSharpReference>true</DisableImplicitMicrosoftCSharpReference>
 
 		<Description><![CDATA[
-Nalix.Network is the high-performance, modular networking runtime for the Nalix ecosystem. It provides TCP and UDP listener frameworks, connection hubs, middleware pipelines, protocol lifecycle management, and adaptive throttling for large-scale distributed systems.
+Nalix.Network is the high-performance networking runtime for the Nalix ecosystem. It provides TCP and UDP listeners, connection management, packet dispatch, protocol lifecycle orchestration, middleware integration, and adaptive throttling for building scalable distributed services.
 
-Built for real-time workloads, it emphasizes zero-allocation I/O, low-latency dispatch, and precise timing synchronization — delivering reliable and efficient communication between clients and servers under heavy concurrency.
+Designed for latency-sensitive workloads, it emphasizes efficient I/O, predictable concurrency, observability, and secure transport behavior so applications can process real-time traffic reliably under sustained load.
 		]]></Description>
 
 		<PackageReleaseNotes><![CDATA[
-- Added ConnectionHub telemetry and runtime hooks: configurable shard count, anonymous queue depth, and capacity events for better observability.
-- Improved PacketDispatchChannel diagnostics, reporting dispatch loop counts, semaphore health, and middleware instrumentation.
-- Hardened UDP listener authentication with timestamp validation, poly1305 MAC, and connection replay guards for secure channel injection.
-- Introduced ConnectionLimiter, TokenBucketLimiter, and PolicyRateLimiter for adaptive throttling.
-- Enhanced protocol subsystem for lifecycle, metrics, and public RPC methods.
-- Added Timing subsystem with high-resolution TimingWheel and TimeSynchronizer.
-- Implemented middleware pipeline supporting inbound/outbound interceptors.
-- Major refactors for performance, stability, and maintainability across all layers.
+- Expanded ConnectionHub observability with configurable shard telemetry, anonymous queue depth metrics, and capacity-related runtime hooks.
+- Improved packet dispatch diagnostics with clearer loop, semaphore, and middleware instrumentation reporting.
+- Hardened UDP listener authentication with timestamp validation, Poly1305-based integrity checks, and replay-guard protections.
+- Added adaptive throttling primitives including ConnectionLimiter, TokenBucketLimiter, and PolicyRateLimiter.
+- Enhanced protocol lifecycle and metrics infrastructure for more reliable service orchestration.
+- Improved timing and scheduling components with high-resolution wheel-based coordination and synchronization helpers.
+- Continued performance, stability, and maintainability refinements across the networking stack.
 		]]></PackageReleaseNotes>
 
 	</PropertyGroup>
@@ -37,8 +36,14 @@ Built for real-time workloads, it emphasizes zero-allocation I/O, low-latency di
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)' == 'Release'">
-		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll')" />
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll" 
+			  Pack="true" 
+			  PackagePath="analyzers/dotnet/cs" 
+			  Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll')" />
 
-		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll" 
+			  Pack="true" 
+			  PackagePath="analyzers/dotnet/cs"
+			  Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
 	</ItemGroup>
 </Project>

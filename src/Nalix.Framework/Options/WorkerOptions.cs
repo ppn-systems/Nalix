@@ -29,6 +29,11 @@ public sealed class WorkerOptions : IWorkerOptions
     public SnowflakeType IdType { get; init; } = SnowflakeType.System;
 
     /// <summary>
+    /// Gets the scheduler priority for this worker while it is queued.
+    /// </summary>
+    public WorkerPriority Priority { get; init; } = WorkerPriority.NORMAL;
+
+    /// <summary>
     /// Gets the optional execution timeout for the worker instance.
     /// If set, the worker will be cancelled if execution exceeds this duration.
     /// </summary>
