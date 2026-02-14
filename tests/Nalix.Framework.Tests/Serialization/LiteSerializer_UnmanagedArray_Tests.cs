@@ -83,7 +83,7 @@ public class LiteSerializerUnmanagedArrayTests
         // Ít hơn 4 byte => không đủ length prefix
         byte[] bad = new byte[3];
         SmallStruct[] dest = null;
-        _ = Assert.Throws<SerializationException>(() => LiteSerializer.Deserialize(bad, ref dest));
+        _ = Assert.Throws<SerializationFailureException>(() => LiteSerializer.Deserialize(bad, ref dest));
     }
 
     [Fact]
@@ -99,6 +99,6 @@ public class LiteSerializerUnmanagedArrayTests
         }
 
         SmallStruct[] dest = null;
-        _ = Assert.Throws<SerializationException>(() => LiteSerializer.Deserialize(buf, ref dest));
+        _ = Assert.Throws<SerializationFailureException>(() => LiteSerializer.Deserialize(buf, ref dest));
     }
 }

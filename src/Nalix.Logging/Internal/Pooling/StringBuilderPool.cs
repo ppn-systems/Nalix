@@ -29,6 +29,7 @@ internal static class StringBuilderPool
     #region Fields
 
     [ThreadStatic]
+    [SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
     private static StringBuilder? t_cachedInstance;
 
     private static readonly System.Collections.Concurrent.ConcurrentBag<StringBuilder> s_pool = [];

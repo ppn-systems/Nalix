@@ -49,5 +49,5 @@ public readonly struct LogEntry(
     /// <summary>
     /// Gets the UTC timestamp indicating when the log entry was created.
     /// </summary>
-    public readonly DateTime TimeStamp { get; } = DateTime.UtcNow;
+    public readonly DateTime Timestamp { get; } = DateTime.UtcNow;
 }

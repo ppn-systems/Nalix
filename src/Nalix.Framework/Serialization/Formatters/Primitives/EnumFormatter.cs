@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Common.Exceptions;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Serialization.Formatters.Primitives;
@@ -70,6 +71,8 @@ public sealed class EnumFormatter<
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Style", "IDE0072:Add missing cases", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0350:Use implicitly typed lambda", Justification = "<Pending>")]
     private static (SerializeDelegate serialize, DeserializeDelegate deserialize) CreateEnumFormatterDelegates()
@@ -180,18 +183,7 @@ public sealed class EnumFormatter<
                     return System.Runtime.CompilerServices.Unsafe.As<ulong, T>(ref v);
                 }
             ),
-
-            TypeCode.Empty => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            TypeCode.Object => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            TypeCode.DBNull => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            TypeCode.Boolean => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            TypeCode.Char => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            TypeCode.Single => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            TypeCode.Double => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            TypeCode.Decimal => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            TypeCode.DateTime => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            TypeCode.String => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            _ => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            _ => throw new SerializationFailureException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
         };
     }
 

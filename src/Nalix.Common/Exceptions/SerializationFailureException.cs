@@ -12,31 +12,31 @@ namespace Nalix.Common.Exceptions;
 /// This exception is typically thrown when converting objects to or from a serialized format fails,
 /// such as JSON, binary, or custom protocol formats.
 /// </remarks>
-public class SerializationException : BaseException
+public class SerializationFailureException : BaseException
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="SerializationException"/> class
+    /// Initializes a new instance of the <see cref="SerializationFailureException"/> class
     /// with a default error message.
     /// </summary>
-    public SerializationException()
+    public SerializationFailureException()
         : base("Serialization operation failed.")
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SerializationException"/> class
+    /// Initializes a new instance of the <see cref="SerializationFailureException"/> class
     /// with a specified error message.
     /// </summary>
     /// <param name="message">
     /// The error message that describes the reason for the exception.
     /// </param>
-    public SerializationException(string message)
+    public SerializationFailureException(string message)
         : base(message)
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SerializationException"/> class
+    /// Initializes a new instance of the <see cref="SerializationFailureException"/> class
     /// with a specified error message and a reference to the inner exception that is
     /// the cause of this exception.
     /// </summary>
@@ -46,7 +46,7 @@ public class SerializationException : BaseException
     /// <param name="innerException">
     /// The exception that is the cause of the current exception.
     /// </param>
-    public SerializationException(string message, Exception innerException)
+    public SerializationFailureException(string message, Exception innerException)
         : base(message, innerException)
     {
     }

@@ -30,7 +30,7 @@ internal sealed class ReferenceListFormatter<
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The list of reference type elements to serialize.</param>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if the underlying formatter for type <typeparamref name="T"/> encounters an error during serialization.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -60,7 +60,7 @@ internal sealed class ReferenceListFormatter<
     /// </summary>
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized list of reference type elements, or null if the serialized data represents a null list.</returns>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if the list length is out of range or if the underlying formatter for type <typeparamref name="T"/> encounters an error during deserialization.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -82,7 +82,7 @@ internal sealed class ReferenceListFormatter<
 
         if (count > SerializerBounds.MaxArray)
         {
-            throw new SerializationException("Reference list length out of range.");
+            throw new SerializationFailureException("Reference list length out of range.");
         }
 
         System.Collections.Generic.List<T> list = new(count);

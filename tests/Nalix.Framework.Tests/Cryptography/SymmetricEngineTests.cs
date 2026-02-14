@@ -3,6 +3,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using System;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Security;
 using Nalix.Framework.Security.Engine;
 using Nalix.Framework.Security.Symmetric;
@@ -184,7 +185,7 @@ public sealed class SymmetricEngineTests
         byte[] nonce = NonceFor(algorithm);
         byte[] tinyBuffer = new byte[1]; // far too small
 
-        Assert.Throws<ArgumentException>(() => SymmetricEngine.Encrypt(
+        _ = Assert.Throws<ArgumentException>(() => SymmetricEngine.Encrypt(
             s_key32, s_plaintextShort, tinyBuffer, nonce,
             seq: 0u, algorithm, out _));
     }
@@ -203,14 +204,14 @@ public sealed class SymmetricEngineTests
         // Corrupt the first byte of MAGIC "NALX"
         envelope[0] ^= 0xFF;
 
-        Assert.Throws<ArgumentException>(() => SymmetricEngine.Decrypt(s_key32, envelope, ptBuf, out _));
+        _ = Assert.Throws<CipherException>(() => SymmetricEngine.Decrypt(s_key32, envelope, ptBuf, out _));
     }
 
     [Fact]
     public void SymmetricEngineEnvelopeEmptyEnvelopeDecryptReturnsFalse()
     {
         byte[] ptBuf = new byte[10];
-        Assert.Throws<ArgumentException>(() => SymmetricEngine.Decrypt(s_key32, [], ptBuf, out _));
+        _ = Assert.Throws<CipherException>(() => SymmetricEngine.Decrypt(s_key32, [], ptBuf, out _));
     }
 
     [Fact]
@@ -227,7 +228,7 @@ public sealed class SymmetricEngineTests
         // Truncate to just the header (missing nonce + ciphertext)
         byte[] truncated = envelope[..HeaderSize];
 
-        Assert.Throws<ArgumentException>(() => SymmetricEngine.Decrypt(s_key32, truncated, ptBuf, out _));
+        _ = Assert.Throws<CipherException>(() => SymmetricEngine.Decrypt(s_key32, truncated, ptBuf, out _));
     }
 
     // =========================================================================

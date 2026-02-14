@@ -21,6 +21,7 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Network.Routing;
 using Nalix.Network.Routing.Metadata;
+using Nalix.Common.Exceptions;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
@@ -62,7 +63,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     /// </summary>
     /// <param name="factory">A factory method that creates a controller instance.</param>
     /// <returns>An array of compiled packet handler delegates.</returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="InternalErrorException"></exception>
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public static PacketHandler<TPacket>[] CompileHandlers(Func<TController> factory)
     {
@@ -70,7 +71,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
         // Ensure controller has [PacketController] attribute
         PacketControllerAttribute controllerAttr = CustomAttributeExtensions.GetCustomAttribute<PacketControllerAttribute>(controllerType)
-            ?? throw new InvalidOperationException($"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
+            ?? throw new InternalErrorException($"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[NW.{nameof(PacketHandlerCompiler<,>)}:{nameof(CompileHandlers)}] scan controller={controllerType.Name}");
@@ -276,7 +277,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                 ? Expression.Call(x22, x09)
                 : Expression.Call(
                     Expression.Convert(x00, x22.DeclaringType
-                        ?? throw new InvalidOperationException($"Handler method '{x22.Name}' is missing a declaring type.")), x22, x09);
+                        ?? throw new InternalErrorException($"Handler method '{x22.Name}' is missing a declaring type.")), x22, x09);
 
             Expression x11 = x22.ReturnType == typeof(void)
                 ? System.Linq.Expressions.Expression.Block(x10, System.Linq.Expressions.Expression.Constant(null, typeof(object)))
@@ -300,11 +301,11 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
     /// <summary>
     /// Determines the <see cref="SignatureKind"/> of a handler method.
-    /// Throws <see cref="InvalidOperationException"/> for unrecognised signatures.
+    /// Throws <see cref="InternalErrorException"/> for unrecognised signatures.
     /// </summary>
     /// <param name="method"></param>
     /// <param name="parms"></param>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="InternalErrorException"></exception>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static SignatureKind ResolveSignatureKind(MethodInfo method, ParameterInfo[] parms)
@@ -326,7 +327,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
             Type declaredT = parms[0].ParameterType.GetGenericArguments()[0];
             if (declaredT != typeof(TPacket))
             {
-                throw new InvalidOperationException(
+                throw new InternalErrorException(
                     $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
                     $"parameter type PacketContext<{declaredT.Name}> does not match " +
                     $"the dispatcher's TPacket={typeof(TPacket).Name}. " +
@@ -342,7 +343,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
             {
                 return parms.Length == 2 && parms[1].ParameterType == typeof(CancellationToken)
                     ? SignatureKind.ContextWithToken
-                    : throw new InvalidOperationException(
+                    : throw new InternalErrorException(
                             $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
                             "when the first parameter is PacketContext<TPacket>, " +
                             "the only valid second parameter is CancellationToken. " +
@@ -356,7 +357,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
             if (parms.Length < 2 || !typeof(IConnection).IsAssignableFrom(parms[1].ParameterType))
             {
                 // ---- legacy-style: first param must implement IPacket ----
-                throw new InvalidOperationException(
+                throw new InternalErrorException(
                     $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
                     "legacy signature requires (TPacket, IConnection[, CancellationToken]). " +
                     "Second parameter must implement IConnection.");
@@ -374,7 +375,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
             else
             {
                 // ---- legacy-style: first param must implement IPacket ----
-                throw new InvalidOperationException(
+                throw new InternalErrorException(
                     $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
                     "legacy signature only supports 2 or 3 parameters " +
                     $"(TPacket, IConnection[, CancellationToken]). Found {parms.Length}.");
@@ -383,7 +384,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         else
         {
             // ---- legacy-style: first param must implement IPacket ----
-            throw new InvalidOperationException(
+            throw new InternalErrorException(
                 $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
                 "unrecognised signature. " +
                 "Supported forms: " +
@@ -535,7 +536,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     /// Generic classes are invariant in C# — <c>PacketContext&lt;IPacket&gt;</c> and
     /// <c>PacketContext&lt;Handshake&gt;</c> share no subtype relationship even when
     /// <c>Handshake : IPacket</c>, so <c>Expression.Convert</c> between them throws
-    /// <see cref="InvalidOperationException"/> at compile time.
+    /// <see cref="InternalErrorException"/> at compile time.
     /// <para>
     /// <c>MethodInfo.Invoke</c> sidesteps this by boxing every argument to
     /// <see cref="object"/> before passing it to the CLR, which then applies
@@ -722,19 +723,19 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static PropertyInfo GetRequiredProperty(Type type, string name)
         => type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
-        ?? throw new InvalidOperationException($"Required property '{type.FullName}.{name}' was not found.");
+        ?? throw new InternalErrorException($"Required property '{type.FullName}.{name}' was not found.");
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static MethodInfo GetRequiredMethod(Type type, string name, BindingFlags bindingFlags)
         => type.GetMethod(name, bindingFlags)
-        ?? throw new InvalidOperationException($"Required method '{type.FullName}.{name}' was not found.");
+        ?? throw new InternalErrorException($"Required method '{type.FullName}.{name}' was not found.");
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static MethodInfo GetRequiredMethod(Type type, string name, Type[] parameterTypes)
         => type.GetMethod(name, parameterTypes)
-        ?? throw new InvalidOperationException($"Required method '{type.FullName}.{name}' was not found.");
+        ?? throw new InternalErrorException($"Required method '{type.FullName}.{name}' was not found.");
 
     #endregion Private Methods
 }

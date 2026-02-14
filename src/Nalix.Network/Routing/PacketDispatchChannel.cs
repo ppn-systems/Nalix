@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Concurrency;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
@@ -80,7 +81,7 @@ public sealed class PacketDispatchChannel
     {
         _dispatch = new DispatchChannel<IPacket>();
         _catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
-                   ?? throw new InvalidOperationException(
+                   ?? throw new InternalErrorException(
                        $"[{nameof(PacketDispatchChannel)}] IPacketRegistry not registered in InstanceManager. Make sure to build and register IPacketRegistry before starting dispatcher.");
 
         // Push any additional initialization here if needed
@@ -440,6 +441,11 @@ public sealed class PacketDispatchChannel
                     IPacket packet = _catalog.Deserialize(lease.Span);
 
                     await this.ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false);
+                }
+                catch (InvalidOperationException)
+                {
+                    connection.IncrementErrorCount();
+                    this.Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-invalid ep={connection.NetworkEndpoint} len={lease.Length}");
                 }
                 catch (Exception ex)
                 {

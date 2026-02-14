@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Common.Exceptions;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Serialization.Formatters.Collections;
@@ -72,7 +73,7 @@ internal sealed class DictionaryFormatter<
     /// <summary>
     /// Initializes a new instance of the <see cref="DictionaryFormatter{TKey, TValue}"/> class.
     /// </summary>
-    /// <exception cref="NotSupportedException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown when <typeparamref name="TKey"/> is not a supported key type.
     /// </exception>
     /// <remarks>
@@ -95,7 +96,7 @@ internal sealed class DictionaryFormatter<
         Type keyType = typeof(TKey);
         if (keyType.IsClass && keyType != typeof(string))
         {
-            throw new NotSupportedException(
+            throw new SerializationFailureException(
                 $"DictionaryFormatter: TKey='{keyType.Name}' is a class — only supports primitive, string, enum, or unmanaged struct as key.");
         }
 
@@ -166,7 +167,7 @@ internal sealed class DictionaryFormatter<
     /// A reconstructed dictionary instance, or <c>null</c> if the input represents null.
     /// </returns>
     /// <exception cref="InvalidOperationException">Thrown when the key or value formatter cannot be resolved.</exception>
-    /// <exception cref="Common.Exceptions.SerializationException">Thrown when the reader does not contain enough bytes for the declared entries.</exception>
+    /// <exception cref="SerializationFailureException">Thrown when the reader does not contain enough bytes for the declared entries.</exception>
     /// <remarks>
     /// <para>
     /// Deserialization behavior:
@@ -187,7 +188,7 @@ internal sealed class DictionaryFormatter<
     public System.Collections.Generic.Dictionary<TKey, TValue>? Deserialize(ref DataReader reader)
     {
         int count = FormatterProvider.Get<int>()
-                                              .Deserialize(ref reader);
+                                     .Deserialize(ref reader);
 
         if (count == -1)
         {
@@ -196,7 +197,7 @@ internal sealed class DictionaryFormatter<
 
         if (count < -1)
         {
-            throw new Common.Exceptions.SerializationException("Dictionary count out of range.");
+            throw new SerializationFailureException("Dictionary count out of range.");
         }
 
         System.Collections.Generic.Dictionary<TKey, TValue> dict = new(count);
