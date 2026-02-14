@@ -180,7 +180,7 @@ public sealed partial class MemoryTests
         _ = manager.Rent(256);
 
         string report = manager.GenerateReport();
-        IDictionary<string, object> data = manager.GenerateReportData();
+        IDictionary<string, object> data = manager.GetReportData();
 
         Assert.Contains("BufferPoolManager Status", report);
         Assert.Equal(manager.MinBufferSize, data["MinBufferSize"]);

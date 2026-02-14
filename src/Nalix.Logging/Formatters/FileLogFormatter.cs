@@ -13,12 +13,7 @@ public sealed class FileLogFormatter : INLogixFormatter
     private const string TimestampFormat = "yyyy-MM-dd HH:mm:ss.fff";
 
     /// <inheritdoc/>
-    public string Format(
-        DateTime timestampUtc,
-        LogLevel logLevel,
-        EventId eventId,
-        string message,
-        Exception? exception)
+    public string Format(DateTime timestampUtc, LogLevel logLevel, EventId eventId, string message, Exception? exception)
     {
         ArgumentNullException.ThrowIfNull(message);
 

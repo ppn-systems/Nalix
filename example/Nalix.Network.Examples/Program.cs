@@ -1,10 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
-using Nalix.Framework.DataFrames;
-using Nalix.Framework.Injection;
+using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Logging;
 using Nalix.Logging.Options;
 using Nalix.Logging.Sinks;
@@ -12,62 +10,48 @@ using Nalix.Network.Examples.Attributes;
 using Nalix.Network.Examples.Handlers;
 using Nalix.Network.Examples.Middleware;
 using Nalix.Network.Examples.Protocols;
+using Nalix.Network.Hosting;
 using Nalix.Network.Options;
-using Nalix.Network.Routing;
 
 internal class Program
 {
-    private static void Main(string[] args)
+    private static async Task Main(string[] args)
     {
         // Turn on debug logs so the sample shows the full packet and connection flow.
         ConfigurationManager.Instance.Get<NLogixOptions>()
                             .MinLevel = LogLevel.Trace;
 
-        // Register a console logger first because the routing pipeline and protocols
-        // rely on ILogger being available from the shared container.
+        // Create one logger instance and let the hosting package register it into the shared runtime.
         ILogger logger = new NLogix(cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true)));
-        InstanceManager.Instance.Register(NLogix.Host.Instance);
 
-        // Packet handlers are discovered through the registry, so the sample
-        // registers one up front before any protocol starts processing packets.
-        IPacketRegistry packetRegistry = new PacketRegistryFactory().CreateCatalog();
-        InstanceManager.Instance.Register(packetRegistry);
+        using NetworkHost host = NetworkHost.CreateBuilder()
+            .UseLogger(logger)
+            .Configure<NetworkSocketOptions>(options => options.Port = 57206)
+            // Handshake is a built-in frame that lives in Nalix.Framework, so register that assembly explicitly.
+            .AddPacketsFromAssemblyContaining<Handshake>()
+            // Handlers are discovered from this assembly and are also added to the packet catalog.
+            .AddPacketHandlersFromAssemblyContaining<PacketCommandHandler>()
+            .AddPacketMetadataProvider<PacketTagMetadataProvider>()
+            .ConfigurePacketDispatcher(dispatchOptions =>
+            {
+                _ = dispatchOptions.WithMiddleware(new PacketTagMiddleware());
+                _ = dispatchOptions.WithErrorHandling((exception, command) =>
+                    logger.Error($"Error handling command: {command}", exception));
+            })
+            .AddTcpServer<ExamplePacketProtocol>()
+            .Build();
 
-        // This sets the listening port used by the server example.
-        NetworkSocketOptions listenerOptions = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-        listenerOptions.Port = 57206;
+        using CancellationTokenSource shutdown = new();
 
-        // Register the custom metadata provider so handler annotations are visible to the packet pipeline.
-        PacketMetadataProviders.Register(new PacketTagMetadataProvider());
-
-        // The dispatch channel is the "business logic" layer:
-        // it wires middleware, error handling, and the packet handlers themselves.
-        PacketDispatchChannel channel = new(dispatchOptions =>
+        Console.CancelKeyPress += (_, eventArgs) =>
         {
-            // Timeout middleware should run before custom logic so slow handlers
-            // are rejected consistently.
-            _ = dispatchOptions.WithLogging(logger);
+            eventArgs.Cancel = true;
+            shutdown.Cancel();
+        };
 
-            // Custom middleware can inspect attributes added by the metadata provider.
-            _ = dispatchOptions.WithMiddleware(new PacketTagMiddleware());
+        Console.WriteLine("Nalix.Network example server is running on tcp://127.0.0.1:57206");
+        Console.WriteLine("Press Ctrl+C to stop.");
 
-            // Route handler failures through the shared logger instead of crashing the sample.
-            _ = dispatchOptions.WithErrorHandling((exception, command) =>
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                       .Error($"Error handling command: {command}", exception));
-
-            // Register the object that contains the packet handler methods.
-            _ = dispatchOptions.WithHandler(() => new PacketCommandHandler());
-        });
-
-        // The protocol bridges the socket listener and the packet dispatch pipeline.
-        ExamplePacketProtocol protocol = new(channel);
-        ExampleTcpListener listener = new(protocol);
-
-        // Start both layers: the listener accepts connections, the channel handles packets.
-        listener.Activate();
-        channel.Activate();
-
-        _ = Console.ReadLine();
+        await host.RunAsync(shutdown.Token).ConfigureAwait(false);
     }
 }

@@ -16,6 +16,7 @@ Use these packages together or separately depending on whether you are building 
 | --- | --- | --- |
 | Nalix.SDK | Client transport sessions, request helpers, and control/directive flows | `TransportSession`, `TcpSession`, `TransportOptions`, `RequestOptions` |
 | Nalix.Network | Listeners, connections, dispatch pipeline, and connection guarding | `TcpListenerBase`, `UdpListenerBase`, `Protocol`, `ConnectionHub`, `PacketDispatchChannel`, `ConnectionGuard` |
+| Nalix.Network.Hosting | Fluent server bootstrap, packet discovery, handler registration, and host lifecycle | `NetworkHost`, `INetworkBuilder`, `NetworkBuilder` |
 | Nalix.Network.Pipeline | Packet middleware, throttling, and time synchronization helpers | `ConcurrencyGate`, `PolicyRateLimiter`, `TokenBucketLimiter`, `TimeSynchronizer`, `TokenBucketOptions` |
 | Nalix.Common | Shared contracts, packet attributes, middleware contracts | `IPacket`, `IConnection`, `PacketControllerAttribute`, `PacketOpcodeAttribute` |
 | Nalix.Logging | Structured logging and targets | `NLogix`, `NLogixOptions`, `INLogixTarget` |
@@ -26,6 +27,7 @@ Use these packages together or separately depending on whether you are building 
 
 - Client-only: `Nalix.SDK` + `Nalix.Common` and optionally `Nalix.Framework` if you want `ConfigurationManager` / `InstanceManager`.
 - Server-only: `Nalix.Network` + `Nalix.Common` + `Nalix.Framework`.
+- Hosted server bootstrap: add `Nalix.Network.Hosting` when you want a fluent builder and managed runtime lifecycle on top of the normal server package set.
 - Full stack: all packages, with one shared packet catalog shape on both sides.
 
 ## Quick example

@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<IsPackable>true</IsPackable>
+		<OutputType>Library</OutputType>
+		<IsTrimmable>false</IsTrimmable>
+		<Deterministic>true</Deterministic>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+		<Description><![CDATA[
+Nalix.Network.Hosting provides Microsoft-style host and builder APIs for Nalix.Network. It wires packet registry discovery, packet dispatch, configuration application, and TCP listener lifecycle into a familiar builder/build/start workflow for quickly bootstrapping Nalix-based servers.
+		]]></Description>
+	</PropertyGroup>
+
+	<Import Project="..\Nalix.Build.props" />
+	<Import Project="..\Package.Build.props" />
+
+	<ItemGroup>
+		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
+		<ProjectReference Include="..\Nalix.Network\Nalix.Network.csproj" />
+		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)' == 'Release'">
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll"
+			  Pack="true"
+			  PackagePath="analyzers/dotnet/cs"
+			  Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll')" />
+
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll"
+			  Pack="true"
+			  PackagePath="analyzers/dotnet/cs"
+			  Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
+	</ItemGroup>
+</Project>

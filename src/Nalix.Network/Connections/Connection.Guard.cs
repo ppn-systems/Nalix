@@ -248,7 +248,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     /// <summary>
     /// Generates a key-value diagnostic summary of the connection limiter and its tracked endpoints.
     /// </summary>
-    public IDictionary<string, object> GenerateReportData()
+    public IDictionary<string, object> GetReportData()
     {
         List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot = this.COLLECT_SNAPSHOT();
         try
