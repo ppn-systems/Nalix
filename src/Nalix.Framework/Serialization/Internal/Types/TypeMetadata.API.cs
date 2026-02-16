@@ -2,18 +2,17 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
 namespace Nalix.Framework.Serialization.Internal.Types;
@@ -53,42 +52,11 @@ internal static partial class TypeMetadata
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="type"/> is null.</exception>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsUnmanaged(Type type)
-    {
-        t_visitedTypes ??= [];
-
-        if (!t_visitedTypes.Add(type))
-        {
-            return false;  // Circular reference detected
-        }
-
-        try
-        {
-            return type.IsValueType &&
-                   Marshal.SizeOf(type) > 0 &&
-                   Enumerable.All(type.GetFields(
-                   BindingFlags.Instance |
-                   BindingFlags.NonPublic |
-                   BindingFlags.Public), f => IsUnmanaged(f.FieldType));
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
-        catch (NotSupportedException)
-        {
-            return false;
-        }
-        catch (TypeLoadException)
-        {
-            return false;
-        }
-        finally
-        {
-            _ = t_visitedTypes.Remove(type);
-        }
-    }
+        => type is not null &&
+           type.IsValueType &&
+           !IsReferenceOrContainsReferences(type);
 
     /// <summary>
     /// Determines whether the specified type is nullable.
@@ -105,8 +73,7 @@ internal static partial class TypeMetadata
     /// <returns>True if the type is a reference type or nullable; otherwise, false.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsReferenceOrNullable<[DynamicallyAccessedMembers(PropertyAccess)] T>()
-        => Cache<T>.IsReference || Cache<T>.IsNullable;
+    public static bool IsReferenceOrNullable<[DynamicallyAccessedMembers(PropertyAccess)] T>() => Cache<T>.IsReference || Cache<T>.IsNullable;
 
     /// <summary>
     /// Attempts to retrieve the fixed or unmanaged size of a type.
@@ -133,31 +100,46 @@ internal static partial class TypeMetadata
         return TypeKind.None;
     }
 
-    /// <summary>
-    /// Determines whether a given type is an anonymous type.
-    /// </summary>
-    /// <param name="type">The type to check.</param>
-    /// <returns>True if the type is anonymous; otherwise, false.</returns>
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsAnonymous(Type type)
+    #region Private Methods
+
+    public static void RecursiveWarmupFields(Type type, HashSet<Type>? visited = null)
     {
-        // Anonymous types typically have no namespace
-        bool hasNoNamespace = type.Namespace == null;
+        visited ??= [];
+        if (!visited.Add(type))
+        {
+            return;
+        }
 
-        // Anonymous types are usually sealed (cannot be inherited)
-        bool isSealed = type.IsSealed;
+        _ = typeof(FormatterProvider).GetMethod("Get")!.MakeGenericMethod(type).Invoke(null, null);
 
-        // Anonymous type names usually start with compiler-generated prefixes
-        bool nameIndicatesAnonymous =
-            type.Name.StartsWith("<>f__AnonymousType", StringComparison.Ordinal) ||
-            type.Name.StartsWith("<>__AnonType", StringComparison.Ordinal) ||
-            type.Name.StartsWith("VB$AnonymousType_", StringComparison.Ordinal); // For VB.NET
+        if (type.IsPrimitive || type.IsEnum || type == typeof(string))
+        {
+            return;
+        }
 
-        // Anonymous types are marked with CompilerGeneratedAttribute
-        bool isCompilerGenerated = type.IsDefined(
-            typeof(CompilerGeneratedAttribute), inherit: false);
+        if (type.IsArray)
+        {
+            RecursiveWarmupFields(type.GetElementType()!, visited);
+            return;
+        }
+        if (type.IsGenericType)
+        {
+            foreach (Type ga in type.GetGenericArguments())
+            {
+                RecursiveWarmupFields(ga, visited);
+            }
+        }
 
-        return hasNoNamespace && isSealed && nameIndicatesAnonymous && isCompilerGenerated;
+        foreach (FieldInfo field in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
+        {
+            if (field.FieldType == type)
+            {
+                continue;
+            }
+
+            RecursiveWarmupFields(field.FieldType, visited);
+        }
     }
+
+    #endregion Private Method
 }

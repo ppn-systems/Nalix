@@ -3,6 +3,7 @@
 
 using System;
 using Nalix.Common.Exceptions;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Serialization.Formatters.Collections;
@@ -48,15 +49,11 @@ internal sealed class QueueFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
     : IFormatter<System.Collections.Generic.Queue<T>?>
 {
+    private static readonly IFormatter<T> s_elementFormatter = FormatterProvider.Get<T>();
     /// <summary>
     /// Gets the debugger display string for this formatter.
     /// </summary>
     private static string DebuggerDisplay => $"QueueFormatter<{typeof(T).Name}>";
-
-    /// <summary>
-    /// Formatter used to serialize and deserialize queue elements.
-    /// </summary>
-    private readonly IFormatter<T> _elementFormatter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="QueueFormatter{T}"/> class.
@@ -82,8 +79,6 @@ internal sealed class QueueFormatter<
             throw new SerializationFailureException(
                 $"QueueFormatter: T='{elementType.Name}' is a class — only supports primitive, string, enum, or unmanaged struct as element.");
         }
-
-        _elementFormatter = FormatterProvider.Get<T>();
     }
 
     // ------------------------------------------------------------------ //
@@ -114,16 +109,12 @@ internal sealed class QueueFormatter<
     {
         if (value is null)
         {
-            writer.Expand(sizeof(int));
-            FormatterProvider.Get<int>()
-                             .Serialize(ref writer, -1);
+            writer.Write(-1);
             return;
         }
 
         int count = value.Count;
-        writer.Expand(sizeof(int));
-        FormatterProvider.Get<int>()
-                         .Serialize(ref writer, count);
+        writer.Write(count);
 
         if (count is 0)
         {
@@ -134,7 +125,7 @@ internal sealed class QueueFormatter<
         // → Dequeue() sau deserialize sẽ trả về đúng phần tử đầu tiên
         foreach (T element in value)
         {
-            _elementFormatter.Serialize(ref writer, element);
+            s_elementFormatter.Serialize(ref writer, element);
         }
     }
 
@@ -170,8 +161,7 @@ internal sealed class QueueFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.Queue<T>? Deserialize(ref DataReader reader)
     {
-        int count = FormatterProvider.Get<int>()
-                                              .Deserialize(ref reader);
+        int count = reader.ReadInt32();
 
         if (count == -1)
         {
@@ -187,7 +177,7 @@ internal sealed class QueueFormatter<
 
         for (int i = 0; i < count; i++)
         {
-            queue.Enqueue(_elementFormatter.Deserialize(ref reader));
+            queue.Enqueue(s_elementFormatter.Deserialize(ref reader));
         }
 
         return queue;

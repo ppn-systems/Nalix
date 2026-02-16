@@ -1,8 +1,12 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Common.Serialization;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Serialization.Internal.Types;
+using System.Runtime.InteropServices;
 
 namespace Nalix.Framework.Serialization.Formatters.Collections;
 
@@ -20,6 +24,7 @@ internal sealed class ListFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<System.Collections.Generic.List<T>>
 {
+    private static readonly int s_elementSize = TypeMetadata.SizeOf<T>();
     private static string DebuggerDisplay => $"ListFormatter<{typeof(T).FullName}>";
 
     /// <summary>
@@ -33,26 +38,31 @@ internal sealed class ListFormatter<
     {
         if (value == null)
         {
-            writer.Expand(sizeof(ushort));
-            FormatterProvider.Get<ushort>()
-                             .Serialize(ref writer, SerializerBounds.Null);
+            writer.Write(SerializerBounds.Null);
             return;
         }
 
-        writer.Expand(sizeof(ushort));
-        FormatterProvider.Get<ushort>()
-                         .Serialize(ref writer, (ushort)value.Count);
+        ushort count = (ushort)value.Count;
+        writer.Write(count);
 
-        if (value.Count == 0)
+        if (count == 0)
         {
             return;
         }
 
-        IFormatter<T> formatter = FormatterProvider.Get<T>();
-        for (ushort i = 0; i < value.Count; i++)
-        {
-            formatter.Serialize(ref writer, value[i]);
-        }
+        ReadOnlySpan<T> span = CollectionsMarshal.AsSpan(value);
+        int totalBytes = span.Length * s_elementSize;
+
+        writer.Expand(totalBytes);
+        ref byte destination = ref writer.GetFreeBufferReference();
+        ref T source = ref MemoryMarshal.GetReference(span);
+
+        System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+            ref destination,
+            ref System.Runtime.CompilerServices.Unsafe.As<T, byte>(ref source),
+            (uint)totalBytes);
+
+        writer.Advance(totalBytes);
     }
 
     /// <summary>
@@ -64,8 +74,7 @@ internal sealed class ListFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
     {
-        ushort length = FormatterProvider.Get<ushort>()
-                                                .Deserialize(ref reader);
+        ushort length = reader.ReadUInt16();
 
         if (length == SerializerBounds.Null)
         {
@@ -77,12 +86,20 @@ internal sealed class ListFormatter<
             return [];
         }
 
-        IFormatter<T> formatter = FormatterProvider.Get<T>();
         System.Collections.Generic.List<T> list = new(length);
-        for (ushort i = 0; i < length; i++)
-        {
-            list.Add(formatter.Deserialize(ref reader));
-        }
+        CollectionsMarshal.SetCount(list, length);
+
+        int totalBytes = length * s_elementSize;
+        Span<T> span = CollectionsMarshal.AsSpan(list);
+        ref byte source = ref reader.GetSpanReference(totalBytes);
+        ref T destination = ref MemoryMarshal.GetReference(span);
+
+        System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+            ref System.Runtime.CompilerServices.Unsafe.As<T, byte>(ref destination),
+            ref source,
+            (uint)totalBytes);
+
+        reader.Advance(totalBytes);
 
         return list;
     }

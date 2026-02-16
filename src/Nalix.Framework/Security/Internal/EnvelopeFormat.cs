@@ -16,13 +16,14 @@
 // Header + nonce SHOULD be included in AEAD AAD.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Security;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
 namespace Nalix.Framework.Security.Internal;
@@ -45,7 +46,7 @@ internal static class EnvelopeFormat
     /// </summary>
     /// <param name="blob">The serialized envelope to parse.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static Envelope ParseEnvelope(ReadOnlySpan<byte> blob)
     {
@@ -123,7 +124,7 @@ internal static class EnvelopeFormat
     /// <param name="ciphertext">Ciphertext payload to write.</param>
     /// <param name="tag">Authentication tag appended after the ciphertext.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static int WriteEnvelope(
         [System.Diagnostics.CodeAnalysis.NotNull] Span<byte> dest,
@@ -162,7 +163,7 @@ internal static class EnvelopeFormat
     /// <param name="nonce">Nonce bytes to embed after the header.</param>
     /// <param name="ciphertext">Ciphertext payload to write.</param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static int WriteEnvelope(
         [System.Diagnostics.CodeAnalysis.NotNull] Span<byte> dest,
@@ -234,6 +235,6 @@ internal static class EnvelopeFormat
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        MethodImplOptions.AggressiveOptimization)]
     private static bool IsAeadSuite(CipherSuiteType t) => t is CipherSuiteType.Salsa20Poly1305 or CipherSuiteType.Chacha20Poly1305;
 }
