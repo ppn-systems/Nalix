@@ -1,0 +1,55 @@
+name: "Security: Dependency review"
+
+on:
+  pull_request:
+    branches: ["master"]
+
+permissions:
+  contents: read
+  pull-requests: write # allow posting summary comment on PR
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Gate: skip when PR is documentation-only (same pattern as other workflows)
+  # ---------------------------------------------------------------------------
+  check-label:
+    name: "Check: Documentation label"
+    runs-on: ubuntu-latest
+    outputs:
+      is_document: ${{ steps.label_check.outputs.is_document }}
+    steps:
+      - name: Detect 'documentation' label on PR
+        id: label_check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+            const isDoc = labels.some(l => l.name === 'documentation');
+            core.setOutput('is_document', isDoc ? 'true' : 'false');
+
+  # ---------------------------------------------------------------------------
+  # Scan new/updated NuGet dependencies for known vulnerabilities and licence
+  # issues. Blocks merge if high/critical CVEs are introduced.
+  # ---------------------------------------------------------------------------
+  dependency-review:
+    name: "Scan: Dependency vulnerabilities"
+    needs: check-label
+    if: needs.check-label.outputs.is_document != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Dependency review
+        uses: actions/dependency-review-action@v4
+        with:
+          # Block merge on high or critical severity CVEs
+          fail-on-severity: high
+          # Warn about licences that are not open-source friendly
+          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
+          # Post a detailed comment on the PR
+          comment-summary-in-pr: always

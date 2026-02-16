@@ -1,0 +1,87 @@
+# .github/labels.yml
+# Source of truth for all repository labels.
+# Synced automatically by the repo-label-sync.yml workflow.
+
+# ── Type ─────────────────────────────────────────────────────────────────────
+- name: "bug"
+  color: "d73a4a"
+  description: "Something isn't working"
+
+- name: "feature"
+  color: "a2eeef"
+  description: "New feature proposal or request"
+
+- name: "enhancement"
+  color: "84b6eb"
+  description: "New feature or request"
+
+- name: "documentation"
+  color: "0075ca"
+  description: "Improvements or additions to documentation"
+
+- name: "refactor"
+  color: "c5def5"
+  description: "Code refactoring without changing behavior"
+
+- name: "performance"
+  color: "0e8a16"
+  description: "Performance improvement or optimization"
+
+- name: "test"
+  color: "bfd4f2"
+  description: "Related to tests or writing test cases"
+
+- name: "security"
+  color: "e11d48"
+  description: "Security vulnerability or related issue"
+
+# ── Status ───────────────────────────────────────────────────────────────────
+- name: "in progress"
+  color: "fbca04"
+  description: "Work is currently in progress"
+
+- name: "needs review"
+  color: "f9a825"
+  description: "Requires code or functionality review"
+
+- name: "blocked"
+  color: "b60205"
+  description: "Issue/PR is currently blocked"
+
+- name: "help wanted"
+  color: "008672"
+  description: "Extra attention is needed"
+
+- name: "good first issue"
+  color: "7057ff"
+  description: "Good for newcomers"
+
+# ── Resolution ────────────────────────────────────────────────────────────────
+- name: "duplicate"
+  color: "cfd3d7"
+  description: "This issue or pull request already exists"
+
+- name: "invalid"
+  color: "e4e669"
+  description: "This doesn't seem right"
+
+- name: "wontfix"
+  color: "ffffff"
+  description: "This will not be worked on"
+
+- name: "question"
+  color: "d876e3"
+  description: "Further information is requested"
+
+- name: "discussion"
+  color: "d4c5f9"
+  description: "Further discussion is required"
+
+# ── Release Please ────────────────────────────────────────────────────────────
+- name: "autorelease: pending"
+  color: "ededed"
+  description: "Release Please: a release is pending"
+
+- name: "autorelease: tagged"
+  color: "ededed"
+  description: "Release Please: the release has been tagged"

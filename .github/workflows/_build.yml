@@ -1,122 +1,151 @@
-name: Template Build
+name: "Template: Build & Test"
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
 
 on:
+  push:
+    branches: ["master"]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "*.sln"
+  pull_request:
+    branches: ["master"]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "*.sln"
   workflow_call:
     inputs:
       os:
-        description: 'Target OS to run build (ubuntu-latest, windows-latest)'
+        description: "Target OS (ubuntu-latest | windows-latest)"
         required: true
         type: string
       project:
-        description: 'The path(s) to the .csproj file(s), one per line'
+        description: "Path(s) to .csproj files, one per line"
+        required: true
+        type: string
+      test:
+        description: "Path(s) to test .csproj or .sln files, one per line"
         required: true
         type: string
       deploy:
-        description: 'Set to true to publish the build output'
-        required: true
+        description: "Set true to publish and upload build output"
+        required: false
         type: boolean
         default: false
-      test:
-        description: 'The path(s) to test .csproj or .sln file(s), one per line'
-        required: true
-        type: string
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Gate: skip build when the PR is documentation-only
+  # ---------------------------------------------------------------------------
   check-label:
+    name: "Check: Documentation label"
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       is_document: ${{ steps.label_check.outputs.is_document }}
     steps:
-      - name: Check if PR has 'document' label
+      - name: Detect 'documentation' label on PR
         id: label_check
         uses: actions/github-script@v7
         with:
           script: |
-            const labels = await github.rest.issues.listLabelsOnIssue({
+            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number
+              issue_number: context.issue.number,
             });
-            const hasLabel = labels.data.some(label => label.name === 'document');
-            core.setOutput('is_document', hasLabel);
+            const isDoc = labels.some(l => l.name === 'documentation');
+            core.setOutput('is_document', isDoc ? 'true' : 'false');
 
+  # ---------------------------------------------------------------------------
+  # Main: restore → build → test → (optional) publish
+  # ---------------------------------------------------------------------------
   build:
+    name: "Build & Test (${{ inputs.os }})"
     needs: check-label
-    if: github.event_name != 'pull_request' || needs.check-label.outputs.is_document != 'true'
+    # always() prevents skip when check-label is skipped (non-PR events)
+    if: |
+      always() &&
+      (github.event_name != 'pull_request' ||
+       needs.check-label.outputs.is_document != 'true')
     runs-on: ${{ inputs.os }}
 
+    concurrency:
+      group: build-${{ inputs.os }}-${{ github.ref }}
+      cancel-in-progress: true
+
     steps:
-      - name: Prepare variables
+      - name: Set environment variables
         shell: bash
         run: |
-          echo "TEST_RESULTS_DIR=${{ github.workspace }}/artifacts/test-results/${{ runner.os }}" >> "$GITHUB_ENV"
+          echo "TEST_RESULTS_DIR=artifacts/test-results/${{ runner.os }}" >> "$GITHUB_ENV"
 
-      - name: Checkout source code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup .NET SDK 10.0
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: "10.0.x"
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          # Fallback to *.csproj when packages.lock.json is absent
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json', '**/*.csproj') }}
           restore-keys: |
-            ${{ runner.os }}-nuget
+            ${{ runner.os }}-nuget-
 
-      - name: Restore dependencies
+      - name: Decode signing key
+        shell: bash
+        run: echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./Nalix.snk
+
+      - name: Restore source projects
+        shell: bash
         run: |
           echo "${{ inputs.project }}" | tr -d '\r' | while IFS= read -r proj; do
-            if [ -n "$proj" ]; then
-              echo "Restoring $proj"
-              dotnet restore "$proj"
-            fi
+            [ -n "$proj" ] && { echo "Restoring $proj"; dotnet restore "$proj"; }
           done
-        shell: bash
 
-      - name: Restore test dependencies
+      - name: Restore test projects
+        shell: bash
         run: |
-          echo "${{ inputs.test }}" | tr -d '\r' | while IFS= read -r testproj; do
-            if [ -n "$testproj" ]; then
-              echo "Restoring $testproj"
-              dotnet restore "$testproj"
-            fi
+          echo "${{ inputs.test }}" | tr -d '\r' | while IFS= read -r proj; do
+            [ -n "$proj" ] && { echo "Restoring $proj"; dotnet restore "$proj"; }
           done
-        shell: bash
 
-      - name: Build all projects
+      - name: Build source projects
+        shell: bash
         run: |
           echo "${{ inputs.project }}" | tr -d '\r' | while IFS= read -r proj; do
-            if [ -n "$proj" ]; then
-              echo "Building $proj"
-              dotnet build "$proj" --configuration Debug --no-restore
-            fi
+            [ -n "$proj" ] && { echo "Building $proj"; dotnet build "$proj" --configuration Release --no-restore; }
           done
-        shell: bash
 
       - name: Create test results directory
         shell: bash
         run: mkdir -p "$TEST_RESULTS_DIR"
 
       - name: Run tests
+        shell: bash
         run: |
-          echo "${{ inputs.test }}" | tr -d '\r' | while IFS= read -r testproj; do
-            if [ -n "$testproj" ]; then
-              name=$(basename "$testproj")
-              name="${name%.*}"
-              echo "Testing $testproj"
-              dotnet test "$testproj" \
-                --configuration Debug \
+          echo "${{ inputs.test }}" | tr -d '\r' | while IFS= read -r proj; do
+            if [ -n "$proj" ]; then
+              name=$(basename "${proj%.*}")
+              echo "Testing $proj"
+              dotnet test "$proj" \
+                --configuration Release \
                 --no-restore \
                 --logger "trx;LogFileName=${name}-${{ runner.os }}.trx" \
-                --results-directory "$TEST_RESULTS_DIR"
+                --results-directory "$TEST_RESULTS_DIR" \
+                --verbosity normal
             fi
           done
-        shell: bash
 
       - name: Upload test results
         if: always()
@@ -126,20 +155,32 @@ jobs:
           path: ${{ env.TEST_RESULTS_DIR }}
           if-no-files-found: warn
 
+      - name: Comment test results on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: ${{ env.TEST_RESULTS_DIR }}/**/*.trx
+          comment_mode: always
+          fail_on: test failures
+
       - name: Publish build output
-        if: ${{ inputs.deploy }}
+        if: inputs.deploy
+        shell: bash
         run: |
           echo "${{ inputs.project }}" | tr -d '\r' | while IFS= read -r proj; do
             if [ -n "$proj" ]; then
               name=$(basename "$proj" .csproj)
-              echo "Publishing $proj to ./publish/$name"
-              dotnet publish "$proj" --configuration Debug --no-restore --no-build --output "./publish/$name"
+              echo "Publishing $proj → ./publish/$name"
+              dotnet publish "$proj" \
+                --configuration Release \
+                --no-restore \
+                --no-build \
+                --output "./publish/$name"
             fi
           done
-        shell: bash
 
       - name: Upload publish artifact
-        if: ${{ inputs.deploy }}
+        if: inputs.deploy
         uses: actions/upload-artifact@v4
         with:
           name: publish-${{ runner.os }}

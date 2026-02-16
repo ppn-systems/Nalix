@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: 💬 Ask a question (Discussions)
+    url: https://github.com/ppn-systems/Nalix/discussions/new?category=q-a
+    about: Please ask general questions in Discussions so others can benefit from the answers.
+
+  - name: 📖 Documentation
+    url: https://github.com/ppn-systems/Nalix/wiki
+    about: Check the documentation before opening an issue.
+
+  - name: 🔒 Report a security vulnerability (private)
+    url: https://github.com/ppn-systems/Nalix/security/advisories/new
+    about: For sensitive security vulnerabilities, please use GitHub Security Advisories instead of opening a public issue.
