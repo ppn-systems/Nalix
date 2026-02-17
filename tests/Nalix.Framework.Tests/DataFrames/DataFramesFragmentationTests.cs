@@ -89,14 +89,15 @@ public sealed partial class DataFramesPublicApiTests
         FragmentHeader first = new(7, 0, 2, false);
         FragmentHeader second = new(7, 1, 2, true);
 
-        BufferLease? firstAssembled = assembler.Add(first, Encoding.UTF8.GetBytes("hello "), out bool firstEvicted);
-        BufferLease? secondAssembled = assembler.Add(second, Encoding.UTF8.GetBytes("world"), out bool secondEvicted);
+        FragmentAssemblyResult? firstAssembled = assembler.Add(first, Encoding.UTF8.GetBytes("hello "), out bool firstEvicted);
+        FragmentAssemblyResult? secondAssembled = assembler.Add(second, Encoding.UTF8.GetBytes("world"), out bool secondEvicted);
 
         Assert.Null(firstAssembled);
         Assert.False(firstEvicted);
         Assert.False(secondEvicted);
-        using BufferLease assembled = Assert.IsType<BufferLease>(secondAssembled);
-        Assert.Equal("hello world", Encoding.UTF8.GetString(assembled.Memory.Span));
+        Assert.True(secondAssembled.HasValue);
+        using BufferLease assembled = secondAssembled.Value.Lease;
+        Assert.Equal("hello world", Encoding.UTF8.GetString(secondAssembled.Value.Span));
         Assert.Equal(0, assembler.OpenStreamCount);
     }
 
@@ -120,14 +121,15 @@ public sealed partial class DataFramesPublicApiTests
         FragmentHeader first = new(10, 0, 2, false);
         FragmentHeader second = new(10, 1, 2, true);
 
-        BufferLease? firstAttempt = assembler.Add(first, Encoding.UTF8.GetBytes("hello "), out bool firstEvicted);
-        BufferLease? completed = assembler.Add(second, Encoding.UTF8.GetBytes("world"), out bool secondEvicted);
+        FragmentAssemblyResult? firstAttempt = assembler.Add(first, Encoding.UTF8.GetBytes("hello "), out bool firstEvicted);
+        FragmentAssemblyResult? completed = assembler.Add(second, Encoding.UTF8.GetBytes("world"), out bool secondEvicted);
 
         Assert.Null(firstAttempt);
         Assert.False(firstEvicted);
         Assert.False(secondEvicted);
-        using BufferLease assembled = Assert.IsType<BufferLease>(completed);
-        Assert.Equal("hello world", Encoding.UTF8.GetString(assembled.Memory.Span));
+        Assert.True(completed.HasValue);
+        using BufferLease assembled = completed.Value.Lease;
+        Assert.Equal("hello world", Encoding.UTF8.GetString(completed.Value.Span));
         Assert.Equal(0, assembler.OpenStreamCount);
     }
 
@@ -152,7 +154,7 @@ public sealed partial class DataFramesPublicApiTests
         _ = assembler.Add(first, [1], out _);
         Thread.Sleep(100);
 
-        BufferLease? assembled = assembler.Add(second, [2], out bool streamEvicted);
+        FragmentAssemblyResult? assembled = assembler.Add(second, [2], out bool streamEvicted);
 
         Assert.Null(assembled);
         Assert.True(streamEvicted);
