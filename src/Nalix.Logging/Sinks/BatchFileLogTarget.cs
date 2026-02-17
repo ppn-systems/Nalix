@@ -4,7 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Logging.Configuration;
 using Nalix.Logging.Formatters;
 using Nalix.Logging.Internal.File;
@@ -16,13 +16,13 @@ namespace Nalix.Logging.Sinks;
 /// with a batched background consumer.
 /// </summary>
 /// <remarks>
-/// This class is plug-compatible with <see cref="ILoggerTarget"/> implementations such as
+/// This class is plug-compatible with <see cref="INLogixTarget"/> implementations such as
 /// <see cref="BatchFileLogTarget"/>, but it uses <see cref="FileLoggerProvider"/> internally
 /// to buffer and asynchronously write logs to the file system.
 /// </remarks>
 [DebuggerNonUserCode]
 [DebuggerDisplay("ChannelFileLogTarget")]
-public sealed class BatchFileLogTarget : ILoggerTarget, IDisposable
+public sealed class BatchFileLogTarget : INLogixTarget, IDisposable
 {
     #region Fields
 
@@ -38,7 +38,7 @@ public sealed class BatchFileLogTarget : ILoggerTarget, IDisposable
     /// <param name="options">The file log options to configure file paths, size limits, and rolling behavior.</param>
     /// <param name="formatter">The log formatter used to convert log entries into string format.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="formatter"/> or <paramref name="options"/> is null.</exception>
-    public BatchFileLogTarget(FileLogOptions? options, ILoggerFormatter formatter)
+    public BatchFileLogTarget(FileLogOptions? options, INLogixFormatter formatter)
     {
         ArgumentNullException.ThrowIfNull(formatter);
 
@@ -71,10 +71,20 @@ public sealed class BatchFileLogTarget : ILoggerTarget, IDisposable
     /// <summary>
     /// Publishes a log entry to the file logging channel.
     /// </summary>
-    /// <param name="logMessage">The log entry to be written.</param>
+    /// <param name="timestampUtc">The UTC timestamp assigned to the log event.</param>
+    /// <param name="logLevel">The severity level of the log event.</param>
+    /// <param name="eventId">The associated event identifier.</param>
+    /// <param name="message">The rendered log message.</param>
+    /// <param name="exception">The associated exception, if any.</param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Publish(LogEntry logMessage) => _provider.Enqueue(logMessage);
+    public void Publish(
+        DateTime timestampUtc,
+        LogLevel logLevel,
+        EventId eventId,
+        string message,
+        Exception? exception)
+        => _provider.Enqueue(timestampUtc, logLevel, eventId, message, exception);
 
     /// <summary>
     /// Releases all resources used by the <see cref="BatchFileLogTarget"/>.

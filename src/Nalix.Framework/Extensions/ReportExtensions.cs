@@ -4,8 +4,8 @@
 using System;
 using System.IO;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Environment;
 using Nalix.Framework.Injection;
 

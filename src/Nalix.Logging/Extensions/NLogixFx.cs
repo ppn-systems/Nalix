@@ -4,9 +4,8 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Logging.Configuration;
-using Nalix.Logging.Engine;
 using Nalix.Logging.Sinks;
 
 namespace Nalix.Logging.Extensions;

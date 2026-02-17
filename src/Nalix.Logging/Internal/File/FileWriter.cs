@@ -9,7 +9,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Environment;
 using Nalix.Logging.Exceptions;
 
@@ -80,13 +80,13 @@ internal sealed class FileWriter : IDisposable
     #region APIs
 
     /// <summary>
-    /// Ghi một batch <see cref="LogEntry"/> vào file.
+    /// Ghi một batch log payload vào file.
     /// Format xảy ra ở đây (consumer thread) — không có contention với producer.
     /// </summary>
     /// <param name="entries">Danh sách entries cần ghi.</param>
     /// <param name="formatter">Formatter dùng để chuyển entry thành string.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    internal void WriteBatch(List<LogEntry> entries, ILoggerFormatter formatter)
+    internal void WriteBatch(List<FileLoggerProvider.LogMessage> entries, INLogixFormatter formatter)
     {
         if (entries.Count == 0)
         {
@@ -106,11 +106,11 @@ internal sealed class FileWriter : IDisposable
 
                 StringBuilder sb = new(entries.Count * 256);
 
-                foreach (LogEntry entry in entries)
+                foreach (FileLoggerProvider.LogMessage entry in entries)
                 {
                     int sbStartLen = sb.Length;
 
-                    formatter.Format(entry, sb);
+                    formatter.Format(entry.TimestampUtc, entry.LogLevel, entry.EventId, entry.Message, entry.Exception, sb);
                     _ = sb.AppendLine();
 
                     string msg = sb.ToString(sbStartLen, sb.Length - sbStartLen);
@@ -129,7 +129,7 @@ internal sealed class FileWriter : IDisposable
                         }
 
                         _ = sb.Clear();
-                        formatter.Format(entry, sb);
+                        formatter.Format(entry.TimestampUtc, entry.LogLevel, entry.EventId, entry.Message, entry.Exception, sb);
                         _ = sb.AppendLine();
 
                         msg = sb.ToString();

@@ -9,9 +9,9 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Concurrency;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Environment;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
@@ -27,24 +27,22 @@ using Nalix.Logging.Configuration;
 namespace Nalix.Logging.Internal.File;
 
 /// <summary>
-/// High-throughput file logger provider using <see cref="Channel{T}"/> with batching. 
+/// High-throughput file logger provider using <see cref="Channel{T}"/> with batching.
 /// Optimized for low contention and minimal system calls.
 /// </summary>
 [DebuggerDisplay("Queued={QueuedEntryCount}, Written={TotalEntriesWritten}, Dropped={EntriesDroppedCount}")]
 internal sealed class FileLoggerProvider : IDisposable, IReportable
 {
-    #region Fields
-
-    private readonly Channel<LogEntry> _channel;
-    private readonly ChannelWriter<LogEntry> _writer;
-    private readonly ChannelReader<LogEntry> _reader;
+    private readonly Channel<LogMessage> _channel;
+    private readonly ChannelWriter<LogMessage> _writer;
+    private readonly ChannelReader<LogMessage> _reader;
     private readonly FileWriter _fileWriter;
     private readonly IWorkerHandle? _workerHandle;
     private readonly CancellationTokenSource _cts;
     private readonly int _maxQueueSize;
     private readonly bool _blockWhenFull;
     private readonly int _batchSize;
-    private readonly ILoggerFormatter _formatter;
+    private readonly INLogixFormatter _formatter;
     private readonly bool _adaptiveFlush;
     private readonly TimeSpan _maxBatchDelay;
     private int _queued;
@@ -52,20 +50,8 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
     private long _totalEntriesWritten;
     private long _entriesDroppedCount;
 
-    #endregion Fields
-
-    #region Constructors
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="FileLoggerProvider"/>.
-    /// </summary>
-    /// <param name="formatter">Formatter to convert <see cref="LogEntry"/> to string.</param>
-    /// <param name="options">File logger configuration options.</param>
-    /// <param name="batchSize">Maximum entries per batch before flushing (default: 256).</param>
-    /// <param name="maxBatchDelay">Maximum time to wait before flushing a non-full batch (default: options.FlushInterval or 1s).</param>
-    /// <param name="adaptiveFlush">Enable adaptive flushing based on incoming log rate (default: true).</param>
     public FileLoggerProvider(
-        ILoggerFormatter formatter,
+        INLogixFormatter formatter,
         FileLogOptions? options = null,
         int batchSize = 256,
         TimeSpan? maxBatchDelay = null,
@@ -89,12 +75,10 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
         {
             SingleReader = true,
             SingleWriter = false,
-            FullMode = _blockWhenFull
-                ? BoundedChannelFullMode.Wait
-                : BoundedChannelFullMode.DropNewest
+            FullMode = _blockWhenFull ? BoundedChannelFullMode.Wait : BoundedChannelFullMode.DropNewest
         };
 
-        _channel = Channel.CreateBounded<LogEntry>(channelOptions);
+        _channel = Channel.CreateBounded<LogMessage>(channelOptions);
         _writer = _channel.Writer;
         _reader = _channel.Reader;
         _fileWriter = new FileWriter(this);
@@ -105,62 +89,47 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
                 group: "log",
                 work: async (ctx, ct) =>
                 {
-                    using CancellationTokenSource linkedCts =
-                        CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
+                    using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
                     await this.CONSUME_LOOP_ASYNC(ctx, linkedCts.Token).ConfigureAwait(false);
                 },
                 options: new WorkerOptions
                 {
                     Tag = "file-consumer",
                     GroupConcurrencyLimit = ConfigurationManager.Instance.Get<NLogixOptions>().GroupConcurrencyLimit,
-                    OnFailed = (st, ex) => Debug.WriteLine(
-                        $"[LG.FileLogger] Worker failed: {st.Name}, {ex.Message}"),
-                    OnCompleted = st => Debug.WriteLine(
-                        $"[LG.FileLogger] Worker completed: {st.Name} Runs={st.TotalRuns}"),
-                }
-            );
+                    OnFailed = (st, ex) => Debug.WriteLine($"[LG.FileLogger] Worker failed: {st.Name}, {ex.Message}"),
+                    OnCompleted = st => Debug.WriteLine($"[LG.FileLogger] Worker completed: {st.Name} Runs={st.TotalRuns}"),
+                });
     }
 
-    #endregion Constructors
-
-    #region Properties
-
-    /// <summary>Current logger options.</summary>
     public FileLogOptions Options { get; }
-
-    /// <summary>Approximate number of log entries queued.</summary>
     public int QueuedEntryCount => Math.Max(0, Volatile.Read(ref _queued));
-
-    /// <summary>Total number of entries written since startup.</summary>
     public long TotalEntriesWritten => Interlocked.Read(ref _totalEntriesWritten);
-
-    /// <summary>Number of entries dropped due to a full queue.</summary>
     public long EntriesDroppedCount => Interlocked.Read(ref _entriesDroppedCount);
 
-    #endregion Properties
-
-    #region APIs
-
-    /// <summary>
-    /// Enqueues a <see cref="LogEntry"/> for file writing. Formatting is handled by the consumer thread.
-    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    internal void Enqueue(LogEntry entry)
+    internal void Enqueue(
+        DateTime timestampUtc,
+        LogLevel logLevel,
+        EventId eventId,
+        string message,
+        Exception? exception)
     {
         if (_disposed)
         {
             return;
         }
 
-        _ = _writer.TryWrite(entry)
+        _ = _writer.TryWrite(new LogMessage(timestampUtc, logLevel, eventId, message, exception))
             ? Interlocked.Increment(ref _queued)
             : Interlocked.Increment(ref _entriesDroppedCount);
     }
 
-    /// <summary>
-    /// Asynchronously enqueues a log entry; used if <see cref="FileLogOptions.BlockWhenQueueFull"/> is true.
-    /// </summary>
-    internal async ValueTask EnqueueAsync(LogEntry entry)
+    internal async ValueTask EnqueueAsync(
+        DateTime timestampUtc,
+        LogLevel logLevel,
+        EventId eventId,
+        string message,
+        Exception? exception)
     {
         if (_disposed)
         {
@@ -169,7 +138,7 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
 
         try
         {
-            await _writer.WriteAsync(entry, _cts.Token).ConfigureAwait(false);
+            await _writer.WriteAsync(new LogMessage(timestampUtc, logLevel, eventId, message, exception), _cts.Token).ConfigureAwait(false);
             _ = Interlocked.Increment(ref _queued);
         }
         catch
@@ -178,10 +147,8 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
         }
     }
 
-    /// <summary>Flush the current buffer to disk.</summary>
     public void Flush() => _fileWriter.Flush();
 
-    /// <summary>Generate a diagnostic report of the provider's state.</summary>
     public string GenerateReport()
         => $"FileLoggerProvider [UTC: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]"
          + Environment.NewLine + $"- USER: {Environment.UserName}"
@@ -190,9 +157,6 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
          + Environment.NewLine + $"- Dropped:  {this.EntriesDroppedCount:N0}"
          + Environment.NewLine + $"- Queue:    ~{this.QueuedEntryCount:N0}/{_maxQueueSize}";
 
-    /// <summary>
-    /// Generates a dictionary containing diagnostic information about the provider state.
-    /// </summary>
     public IDictionary<string, object> GenerateReportData()
     {
         return new Dictionary<string, object>(StringComparer.Ordinal)
@@ -212,15 +176,9 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
         };
     }
 
-    #endregion APIs
-
-    #region Private Methods
-
-    private async Task CONSUME_LOOP_ASYNC(
-        IWorkerContext ctx,
-        CancellationToken ct)
+    private async Task CONSUME_LOOP_ASYNC(IWorkerContext ctx, CancellationToken ct)
     {
-        List<LogEntry> batch = new(_batchSize);
+        List<LogMessage> batch = new(_batchSize);
         Stopwatch sw = Stopwatch.StartNew();
         TimeSpan currentDelay = _maxBatchDelay;
 
@@ -228,7 +186,7 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
         {
             while (await _reader.WaitToReadAsync(ct).ConfigureAwait(false))
             {
-                if (!_reader.TryRead(out LogEntry first))
+                if (!_reader.TryRead(out LogMessage first))
                 {
                     continue;
                 }
@@ -247,7 +205,7 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
                         break;
                     }
 
-                    if (_reader.TryRead(out LogEntry item))
+                    if (_reader.TryRead(out LogMessage item))
                     {
                         batch.Add(item);
                         _ = Interlocked.Decrement(ref _queued);
@@ -270,10 +228,8 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
                 if (_adaptiveFlush)
                 {
                     currentDelay = batchCount >= _batchSize - 1
-                        ? TimeSpan.FromMilliseconds(
-                            Math.Max(1, currentDelay.TotalMilliseconds * 0.75))
-                        : TimeSpan.FromMilliseconds(
-                            Math.Min(5000, currentDelay.TotalMilliseconds * 1.25));
+                        ? TimeSpan.FromMilliseconds(Math.Max(1, currentDelay.TotalMilliseconds * 0.75))
+                        : TimeSpan.FromMilliseconds(Math.Min(5000, currentDelay.TotalMilliseconds * 1.25));
                 }
             }
         }
@@ -290,7 +246,7 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
         }
         finally
         {
-            while (_reader.TryRead(out LogEntry msg))
+            while (_reader.TryRead(out LogMessage msg))
             {
                 batch.Add(msg);
 
@@ -317,13 +273,6 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
         }
     }
 
-    #endregion Private Methods
-
-    #region Dispose
-
-    /// <summary>
-    /// Releases all resources used by the provider.
-    /// </summary>
     public void Dispose()
     {
         if (_disposed)
@@ -362,5 +311,10 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
         }
     }
 
-    #endregion Dispose
+    internal readonly record struct LogMessage(
+        DateTime TimestampUtc,
+        LogLevel LogLevel,
+        EventId EventId,
+        string Message,
+        Exception? Exception);
 }

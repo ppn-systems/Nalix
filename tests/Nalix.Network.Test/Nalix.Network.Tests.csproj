@@ -5,10 +5,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <None Include="..\..\.editorconfig" Link=".editorconfig" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="FluentAssertions" Version="8.8.0" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
 		<PackageReference Include="xunit" Version="2.9.3" />
@@ -20,14 +16,14 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Reference Include="Nalix.Framework">
-		  <HintPath>..\..\build\bin\Debug\net10.0\Nalix.Framework.dll</HintPath>
-		</Reference>
-		<Reference Include="Nalix.Network">
-			<HintPath>..\..\build\bin\Debug\net10.0\Nalix.Network.dll</HintPath>
-		</Reference>
 		<Reference Include="Nalix.Common">
-			<HintPath>..\..\build\bin\Debug\net10.0\Nalix.Common.dll</HintPath>
+			<HintPath>..\..\build\bin\$(Configuration)\net10.0\Nalix.Common.dll</HintPath>
+		</Reference>
+		<Reference Include="Nalix.Framework">
+			<HintPath>..\..\build\bin\$(Configuration)\net10.0\Nalix.Framework.dll</HintPath>
+		</Reference>
+		<Reference Include="Nalix.Logging">
+			<HintPath>..\..\build\bin\$(Configuration)\net10.0\Nalix.Logging.dll</HintPath>
 		</Reference>
 	</ItemGroup>
 

@@ -6,8 +6,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Logging.Configuration;
 using Nalix.Logging.Formatters;
 using Nalix.Logging.Internal.Console;
@@ -21,7 +20,7 @@ namespace Nalix.Logging.Sinks;
 [DebuggerNonUserCode]
 [ExcludeFromCodeCoverage]
 [DebuggerDisplay("Buffered={_count}, Max={_maxBufferSize}, Disposed={_disposed}")]
-public sealed class BatchConsoleLogTarget : ILoggerTarget, IDisposable
+public sealed class BatchConsoleLogTarget : INLogixTarget, IDisposable
 {
     #region Fields
 
@@ -54,7 +53,7 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, IDisposable
     /// </param>
     /// <param name="formatter"></param>
     [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    public BatchConsoleLogTarget(ConsoleLogOptions? options = null, ILoggerFormatter? formatter = null)
+    public BatchConsoleLogTarget(ConsoleLogOptions? options = null, INLogixFormatter? formatter = null)
         => _provider = new ConsoleLoggerProvider(formatter ?? new AnsiColorFormatter(), options);
 
     /// <summary>
@@ -62,7 +61,7 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, IDisposable
     /// </summary>
     /// <param name="options">An action that configures the <see cref="FileLogOptions"/> before use.</param>
     /// <param name="formatter"></param>
-    public BatchConsoleLogTarget(Action<ConsoleLogOptions> options, ILoggerFormatter? formatter = null)
+    public BatchConsoleLogTarget(Action<ConsoleLogOptions> options, INLogixFormatter? formatter = null)
         : this(Configure(options), formatter)
     {
     }
@@ -72,23 +71,20 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, IDisposable
     #region API
 
     /// <inheritdoc/>
-    public void Publish(LogEntry logMessage)
+    public void Publish(
+        DateTime timestampUtc,
+        LogLevel logLevel,
+        EventId eventId,
+        string message,
+        Exception? exception)
     {
-        if (!_provider.TryEnqueue(logMessage))
+        if (!_provider.TryEnqueue(timestampUtc, logLevel, eventId, message, exception))
         {
 #if DEBUG
-            Debug.WriteLine($"[LG.BatchConsoleLogTarget] dropped-log msg={logMessage.Message}");
+            Debug.WriteLine($"[LG.BatchConsoleLogTarget] dropped-log msg={message}");
 #endif
         }
     }
-
-    /// <summary>
-    /// Asynchronously writes a single <see cref="LogEntry"/> to the console log buffer.
-    /// The entry will be batched and written to the console according to the configured batch options.
-    /// </summary>
-    /// <param name="entry">The log entry to write.</param>
-    /// <returns>A <see cref="ValueTask"/> representing the asynchronous write operation.</returns>
-    public ValueTask WriteAsync(LogEntry entry) => _provider.WriteAsync(entry);
 
     #endregion API
 

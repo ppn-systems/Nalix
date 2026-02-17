@@ -15,13 +15,13 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Network.Routing;
 using Nalix.Network.Routing.Metadata;
-using Nalix.Common.Exceptions;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]

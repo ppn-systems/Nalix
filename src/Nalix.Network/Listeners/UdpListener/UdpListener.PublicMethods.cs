@@ -10,7 +10,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
@@ -114,7 +114,7 @@ public abstract partial class UdpListenerBase : IListener
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Fatal($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] bind-fail port={_port}", ex);
+                                    .Critical($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] bind-fail port={_port}", ex);
             _cts?.Dispose();
             _cts = null;
         }
@@ -126,7 +126,7 @@ public abstract partial class UdpListenerBase : IListener
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Fatal($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] critical port={_port}", ex);
+                                    .Critical($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] critical port={_port}", ex);
             _cts?.Dispose();
             _cts = null;
         }
