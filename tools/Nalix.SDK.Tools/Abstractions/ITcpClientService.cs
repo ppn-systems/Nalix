@@ -1,8 +1,10 @@
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
-using Nalix.SDK.Options;
 using Nalix.SDK.Tools.Models;
 
 namespace Nalix.SDK.Tools.Abstractions;
