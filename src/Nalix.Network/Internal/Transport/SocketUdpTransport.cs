@@ -189,6 +189,13 @@ internal sealed class SocketUdpTransport : IConnection.IUdp, IPoolable, IDisposa
         }
     }
 
+    public void BeginReceive(CancellationToken cancellationToken = default)
+    {
+        // For UDP, receiving is usually handled by a central listener or 
+        // already active on the bound socket. This is a no-op for the transport
+        // instance itself as it focuses on transmission for a specific connection.
+    }
+
     public void ResetForPool()
     {
         _outer = null;

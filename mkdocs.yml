@@ -177,6 +177,7 @@ nav:
         - Overview: api/security/cryptography.md
         - Hashing and MAC: api/security/hashing-and-mac.md
         - AEAD and Envelope: api/security/aead-and-envelope.md
+        - Handshake Protocol: api/security/handshake.md
       - Routing:
         - Attributes: api/routing/packet-attributes.md
         - Metadata: api/routing/packet-metadata.md
