@@ -71,8 +71,7 @@ jobs:
     # always() prevents skip when check-label is skipped (non-PR events)
     if: |
       always() &&
-      (github.event_name != 'pull_request' ||
-       needs.check-label.outputs.is_document != 'true')
+      (needs.check-label.outputs.is_document != 'true')
     runs-on: ${{ inputs.os }}
 
     concurrency:
