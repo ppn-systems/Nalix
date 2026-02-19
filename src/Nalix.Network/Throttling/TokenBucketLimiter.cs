@@ -130,7 +130,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     public TokenBucketLimiter([System.Diagnostics.CodeAnalysis.AllowNull] TokenBucketOptions options = null)
     {
         _opt = options ?? ConfigurationManager.Instance.Get<TokenBucketOptions>();
-        ValidateOptions(_opt);
+        _opt.Validate();
 
         _totalEndpointCount = 0;
         _shards = new Shard[_opt.ShardCount];
@@ -1319,109 +1319,6 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     }
 
     #endregion Initialization
-
-    #region Validation
-
-    /// <summary>
-    /// Validates configuration options.
-    /// </summary>
-    /// <exception cref="InternalErrorException">Thrown when validation fails.</exception>
-    private static void ValidateOptions(TokenBucketOptions opt)
-    {
-        ValidateInitialTokens(opt);
-        ValidatePowerOfTwo(opt.ShardCount, nameof(TokenBucketOptions.ShardCount));
-        ValidatePositiveValue(opt.TokenScale, nameof(TokenBucketOptions.TokenScale));
-        ValidatePositiveValue(opt.CapacityTokens, nameof(TokenBucketOptions.CapacityTokens));
-        ValidatePositiveValue(opt.StaleEntrySeconds, nameof(TokenBucketOptions.StaleEntrySeconds));
-        ValidatePositiveValue(opt.MaxSoftViolations, nameof(TokenBucketOptions.MaxSoftViolations));
-        ValidateNonNegativeValue(opt.HardLockoutSeconds, nameof(TokenBucketOptions.HardLockoutSeconds));
-        ValidateNonNegativeValue(opt.MaxTrackedEndpoints, nameof(TokenBucketOptions.MaxTrackedEndpoints));
-        ValidatePositiveValue(opt.RefillTokensPerSecond, nameof(TokenBucketOptions.RefillTokensPerSecond));
-        ValidatePositiveValue(opt.CleanupIntervalSeconds, nameof(TokenBucketOptions.CleanupIntervalSeconds));
-        ValidatePositiveValue(opt.SoftViolationWindowSeconds, nameof(TokenBucketOptions.SoftViolationWindowSeconds));
-    }
-
-    /// <summary>
-    /// Validates that a value is positive.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void ValidatePositiveValue(System.Int32 value, System.String paramName)
-    {
-        if (value <= 0)
-        {
-            throw new InternalErrorException($"{paramName} must be > 0, got {value}");
-        }
-    }
-
-    /// <summary>
-    /// Validates that a value is positive (double version).
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void ValidatePositiveValue(System.Double value, System.String paramName)
-    {
-        if (value <= 0)
-        {
-            throw new InternalErrorException($"{paramName} must be > 0, got {value}");
-        }
-    }
-
-    /// <summary>
-    /// Validates that a value is non-negative.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void ValidateNonNegativeValue(System.Int32 value, System.String paramName)
-    {
-        if (value < 0)
-        {
-            throw new InternalErrorException($"{paramName} must be >= 0, got {value}");
-        }
-    }
-
-    /// <summary>
-    /// Validates that a value is a power of two.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void ValidatePowerOfTwo(System.Int32 value, System.String paramName)
-    {
-        if (value <= 0)
-        {
-            throw new InternalErrorException($"{paramName} must be > 0, got {value}");
-        }
-
-        if ((value & (value - 1)) != 0)
-        {
-            throw new InternalErrorException(
-                $"{paramName} must be a power of two (e.g., 32, 64), got {value}");
-        }
-    }
-
-    /// <summary>
-    /// Validates InitialTokens configuration. 
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void ValidateInitialTokens(TokenBucketOptions opt)
-    {
-        if (opt.InitialTokens < -1)
-        {
-            throw new InternalErrorException(
-                $"{nameof(TokenBucketOptions.InitialTokens)} must be >= -1 " +
-                $"(-1 = full capacity, 0+ = specific amount), got {opt.InitialTokens}");
-        }
-
-        if (opt.InitialTokens > opt.CapacityTokens)
-        {
-            throw new InternalErrorException(
-                $"{nameof(TokenBucketOptions.InitialTokens)} ({opt.InitialTokens}) " +
-                $"cannot exceed {nameof(TokenBucketOptions.CapacityTokens)} ({opt.CapacityTokens})");
-        }
-    }
-
-    #endregion Validation
 
     #region IDisposable & IAsyncDisposable
 
