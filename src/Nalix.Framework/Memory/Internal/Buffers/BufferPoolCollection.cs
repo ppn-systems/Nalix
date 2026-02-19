@@ -236,13 +236,13 @@ internal sealed class BufferPoolCollection : IDisposable
     {
         if (usage >= 0.90 || missRate >= 0.10)
         {
-            // SYSTEM is hot → react quickly
+            // SYSTEM is hot -> react quickly
             return MinCooldownMs;
         }
 
         if (usage <= 0.20 && missRate < 0.01)
         {
-            // Very idle → reduce resize frequency
+            // Very idle -> reduce resize frequency
             return MaxCooldownMs;
         }
 

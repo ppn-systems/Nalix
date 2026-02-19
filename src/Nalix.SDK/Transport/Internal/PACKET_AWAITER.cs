@@ -4,10 +4,8 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Injection;
 using Nalix.SDK.Extensions;
 using Nalix.SDK.Transport.Extensions;
 
@@ -15,12 +13,10 @@ namespace Nalix.SDK.Transport.Internal;
 
 /// <summary>
 /// Internal helper that encapsulates the recurring boilerplate shared by all
-/// "subscribe → await matching packet → timeout → unsubscribe" operations.
+/// "subscribe -> await matching packet -> timeout -> unsubscribe" operations.
 /// </summary>
 internal static class PACKET_AWAITER
 {
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-
     /// <summary>
     /// Subscribes for a matching packet, invokes <paramref name="sendAsync"/>,
     /// and waits until the first packet of type <typeparamref name="TPkt"/> that
@@ -36,7 +32,7 @@ internal static class PACKET_AWAITER
     /// <exception cref="TimeoutException"></exception>
     /// <exception cref="OperationCanceledException"></exception>
     internal static async Task<TPkt> AwaitAsync<TPkt>(
-        IClientConnection client,
+        TransportSession client,
         Func<TPkt, bool> predicate,
         int timeoutMs,
         Func<CancellationToken, Task> sendAsync,
@@ -69,23 +65,21 @@ internal static class PACKET_AWAITER
             try { _ = tcs.TrySetCanceled(lcts.Token); } catch { /* swallow */ }
         });
 
-        s_logger?.Trace($"[SDK.{nameof(PACKET_AWAITER)}] Subscribing for {typeof(TPkt).Name} (timeout={timeoutMs}ms).");
-
         // Subscribe BEFORE sending — no missed responses regardless of server latency.
         using IDisposable sub = client.SubscribeTemp(OnMessageReceived, OnDisconnected);
 
         // Delegate to caller for the actual send (e.g. client.SendAsync, SendControlAsync, …)
         try
         {
-            s_logger?.Debug($"[SDK.{nameof(PACKET_AWAITER)}] Invoking send delegate for expected {typeof(TPkt).Name}.");
+
             await sendAsync(lcts.Token).ConfigureAwait(false);
-            s_logger?.Trace($"[SDK.{nameof(PACKET_AWAITER)}] send delegate completed for {typeof(TPkt).Name}.");
+
         }
         catch (Exception sendEx)
         {
             // Ensure awaiting tasks are signalled about the send failure.
             try { _ = tcs.TrySetException(sendEx); } catch { /* swallow */ }
-            s_logger?.Error($"[SDK.{nameof(PACKET_AWAITER)}] send delegate threw: {sendEx.Message}", sendEx);
+
             throw;
         }
 
@@ -95,12 +89,12 @@ internal static class PACKET_AWAITER
         }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
-            s_logger?.Debug($"[SDK.{nameof(PACKET_AWAITER)}] Timeout waiting for {typeof(TPkt).Name} after {timeoutMs}ms.");
+
             throw new TimeoutException($"No {typeof(TPkt).Name} received within {timeoutMs} ms.");
         }
         catch (TaskCanceledException) when (ct.IsCancellationRequested)
         {
-            s_logger?.Debug($"[SDK.{nameof(PACKET_AWAITER)}] Operation cancelled by caller while waiting for {typeof(TPkt).Name}.");
+
             throw new OperationCanceledException(ct);
         }
 
@@ -117,9 +111,9 @@ internal static class PACKET_AWAITER
                 {
                     p = client.Catalog.Deserialize(buffer.Span);
                 }
-                catch (Exception dex)
+                catch (Exception)
                 {
-                    s_logger?.Error($"[SDK.{nameof(PACKET_AWAITER)}] Deserialization error while awaiting {typeof(TPkt).Name}: {dex.Message}", dex);
+
                     // If deserialization fails repeatedly, we do not cancel the whole await — just ignore this buffer.
                     return;
                 }
@@ -133,7 +127,7 @@ internal static class PACKET_AWAITER
                     }
                     catch (Exception predEx)
                     {
-                        s_logger?.Error($"[SDK.{nameof(PACKET_AWAITER)}] Predicate threw for {typeof(TPkt).Name}: {predEx.Message}", predEx);
+
                         // Predicate exception is considered a handler error — set exception on TCS so caller sees it.
                         try { _ = tcs.TrySetException(predEx); } catch { }
                         return;
@@ -144,7 +138,7 @@ internal static class PACKET_AWAITER
                         // Found a match; try to set the result (may race with cancellation/disconnect).
                         if (tcs.TrySetResult(match))
                         {
-                            s_logger?.Trace($"[SDK.{nameof(PACKET_AWAITER)}] Matched packet {typeof(TPkt).Name} and set result.");
+
                         }
                     }
                 }
@@ -161,7 +155,6 @@ internal static class PACKET_AWAITER
             Exception exToSet = ex ?? new InvalidOperationException($"Disconnected while waiting for {typeof(TPkt).Name}.");
             try { _ = tcs.TrySetException(exToSet); } catch { /* swallow */ }
 
-            s_logger?.Warn($"[SDK.{nameof(PACKET_AWAITER)}] Disconnected while awaiting {typeof(TPkt).Name}: {exToSet.Message}");
         }
     }
 }

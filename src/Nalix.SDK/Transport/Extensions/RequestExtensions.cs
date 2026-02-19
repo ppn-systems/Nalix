@@ -5,23 +5,21 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Injection;
-using Nalix.SDK.Configuration;
+using Nalix.SDK.Options;
 using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport.Extensions;
 
 /// <summary>
-/// Provides request-response helpers for <see cref="IClientConnection"/>.
+/// Provides request-response helpers for <see cref="TransportSession"/>.
 /// Combines a one-shot subscription with a send operation so callers can
 /// <c>await</c> a typed reply without wiring boilerplate by hand.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Internally delegates the subscribe → await → timeout → unsubscribe cycle to
+/// Internally delegates the subscribe -> await -> timeout -> unsubscribe cycle to
 /// <see cref="PACKET_AWAITER"/>, which handles deserialization errors, predicate
 /// exceptions, and disconnect guards consistently across all SDK extension methods.
 /// </para>
@@ -34,7 +32,7 @@ namespace Nalix.SDK.Transport.Extensions;
 /// Fatal errors (send failure, disconnect) propagate immediately.
 /// </para>
 /// <para>
-/// <see cref="RequestAsync{TRequest,TResponse}"/> is the safe, race-condition-free way to
+/// <see cref="RequestAsync{TResponse}"/> is the safe, race-condition-free way to
 /// send a packet and await a correlated reply. It subscribes <b>before</b> sending — eliminating
 /// the window where the server response could arrive before the local handler is registered.
 /// </para>
@@ -46,93 +44,6 @@ namespace Nalix.SDK.Transport.Extensions;
 [SkipLocalsInit]
 public static class RequestExtensions
 {
-    /// <summary>
-    /// Sends <paramref name="request"/> and awaits the first response of type
-    /// <typeparamref name="TResponse"/> that satisfies <paramref name="predicate"/>.
-    /// </summary>
-    /// <typeparam name="TRequest">The outgoing packet type.</typeparam>
-    /// <typeparam name="TResponse">The expected response packet type.</typeparam>
-    /// <param name="client">The connected client.</param>
-    /// <param name="request">The packet to send.</param>
-    /// <param name="predicate">
-    /// Correlation predicate — return <c>true</c> for the packet that matches this request.
-    /// Typically checks a sequence/correlation ID.
-    /// </param>
-    /// <param name="timeoutMs">
-    /// Total timeout in milliseconds covering both the send and the await.
-    /// Default is <c>5000</c> ms.
-    /// </param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>The first matching <typeparamref name="TResponse"/>.</returns>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="client"/>, <paramref name="request"/>,
-    /// or <paramref name="predicate"/> is <c>null</c>.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when the client is not connected.
-    /// </exception>
-    /// <exception cref="TimeoutException">
-    /// Thrown when no matching response is received within <paramref name="timeoutMs"/>.
-    /// </exception>
-    /// <exception cref="OperationCanceledException">
-    /// Thrown when <paramref name="ct"/> is canceled.
-    /// </exception>
-    /// <example>
-    /// <code>
-    /// var response = await client.RequestAsync&lt;LoginRequest, LoginResponse&gt;(
-    ///     new LoginRequest { CorrelationId = seq, Username = "phuc" },
-    ///     predicate: r => r.CorrelationId == seq,
-    ///     timeoutMs: 3000,
-    ///     ct: ct);
-    /// </code>
-    /// </example>
-    public static Task<TResponse> RequestAsync<TRequest, TResponse>(
-        this IClientConnection client,
-        TRequest request,
-        Func<TResponse, bool> predicate,
-        int timeoutMs = 5000,
-        CancellationToken ct = default)
-        where TRequest : class, IPacket
-        where TResponse : class, IPacket
-    {
-        ArgumentNullException.ThrowIfNull(client);
-        ArgumentNullException.ThrowIfNull(request);
-        ArgumentNullException.ThrowIfNull(predicate);
-
-        if (!client.IsConnected)
-        {
-            throw new NetworkException("Client is not connected.");
-        }
-
-        // PacketAwaiter handles: subscribe → send → await → timeout → unsubscribe.
-        return PACKET_AWAITER.AwaitAsync(
-            client,
-            predicate,
-            timeoutMs,
-            sendAsync: token => client.SendAsync(request, token),
-            ct);
-    }
-
-    /// <summary>
-    /// Convenience overload when request and response share the same type
-    /// (e.g., echo-style protocols).
-    /// </summary>
-    /// <typeparam name="TPacket">Both request and response type.</typeparam>
-    /// <param name="client">The connected client.</param>
-    /// <param name="request">The packet to send.</param>
-    /// <param name="predicate">Correlation predicate.</param>
-    /// <param name="timeoutMs">Timeout in milliseconds. Default is <c>5000</c> ms.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>The first matching response packet.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Task<TPacket> RequestAsync<TPacket>(
-        this IClientConnection client,
-        TPacket request,
-        Func<TPacket, bool> predicate,
-        int timeoutMs = 5000,
-        CancellationToken ct = default)
-        where TPacket : class, IPacket => RequestAsync<TPacket, TPacket>(client, request, predicate, timeoutMs, ct);
-
     /// <summary>
     /// Sends <paramref name="request"/> and waits for the first incoming packet
     /// of type <typeparamref name="TResponse"/> that satisfies <paramref name="predicate"/>.
@@ -165,7 +76,7 @@ public static class RequestExtensions
     /// </exception>
     /// <exception cref="ArgumentException">
     /// <see cref="RequestOptions.Encrypt"/> is <see langword="true"/> but
-    /// <paramref name="client"/> is not a <see cref="TcpSessionBase"/>.
+    /// <paramref name="client"/> is not a <see cref="TcpSession"/>.
     /// </exception>
     /// <example>
     /// <code>
@@ -187,7 +98,7 @@ public static class RequestExtensions
     /// </code>
     /// </example>
     public static async Task<TResponse> RequestAsync<TResponse>(
-        this IClientConnection client,
+        this TransportSession client,
         IPacket request,
         RequestOptions? options = null,
         Func<TResponse, bool>? predicate = null,
@@ -207,10 +118,10 @@ public static class RequestExtensions
         }
 
         // Fail-fast: Encrypt requires BaseTcpSession — check before any attempt.
-        if (options.Encrypt && client is not TcpSessionBase)
+        if (options.Encrypt && client is not TcpSession)
         {
             throw new ArgumentException(
-                $"[SDK.RequestAsync<{typeof(TResponse).Name}>] RequestOptions.Encrypt=true requires TcpSessionBase. Got: {client.GetType().Name}", nameof(client));
+                $"[SDK.RequestAsync<{typeof(TResponse).Name}>] RequestOptions.Encrypt=true requires TcpSession. Got: {client.GetType().Name}", nameof(client));
         }
 
         Func<TResponse, bool> effectivePredicate = predicate ?? (_ => true);
@@ -223,7 +134,7 @@ public static class RequestExtensions
 
             try
             {
-                // Delegate the full subscribe → send → await → timeout → unsubscribe cycle
+                // Delegate the full subscribe -> send -> await -> timeout -> unsubscribe cycle
                 // to PACKET_AWAITER, which handles deserialization errors, predicate exceptions,
                 // and disconnect guards consistently across all SDK helpers.
                 TResponse result = await PACKET_AWAITER.AwaitAsync(
@@ -231,14 +142,12 @@ public static class RequestExtensions
                     predicate: effectivePredicate,
                     timeoutMs: options.TimeoutMs,
                     sendAsync: token => options.Encrypt
-                        ? ((TcpSessionBase)client).SendAsync(request, encrypt: true, token)
+                        ? ((TcpSession)client).SendAsync(request, encrypt: true, token)
                         : client.SendAsync(request, token),
                     ct).ConfigureAwait(false);
 
                 if (attempt > 1)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Info($"[SDK.RequestAsync<{typeof(TResponse).Name}>] Succeeded on attempt {attempt}/{totalAttempts}.");
                 }
 
                 return result;
@@ -248,8 +157,6 @@ public static class RequestExtensions
                 // Only TimeoutException is retryable.
                 // OperationCanceledException, InvalidOperationException, etc. propagate immediately.
                 lastException = tex;
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[SDK.RequestAsync<{typeof(TResponse).Name}>] Attempt {attempt}/{totalAttempts} timed out, retrying...");
             }
         }
 

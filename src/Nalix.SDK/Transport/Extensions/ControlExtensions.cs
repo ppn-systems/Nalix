@@ -9,7 +9,6 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.Random;
 using Nalix.Framework.Time;
 using Nalix.SDK.Transport.Internal;
 
@@ -94,7 +93,7 @@ public static class ControlExtensions
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ControlBuilder NewControl(
-        this IClientConnection _,
+        this TransportSession _,
         ushort opCode,
         ControlType type,
         ProtocolType transport = ProtocolType.TCP)
@@ -122,7 +121,7 @@ public static class ControlExtensions
     /// <exception cref="TimeoutException">Thrown when no matching packet is received within <paramref name="timeoutMs"/>.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
     public static Task<TPkt> AwaitPacketAsync<TPkt>(
-        this TcpSessionBase client,
+        this TcpSession client,
         Func<TPkt, bool> predicate,
         int timeoutMs,
         CancellationToken ct = default)
@@ -147,81 +146,6 @@ public static class ControlExtensions
     }
 
     /// <summary>
-    /// Sends a PING and awaits the matching PONG.
-    /// </summary>
-    /// <param name="client">The connected reliable client.</param>
-    /// <param name="opCode">The operation code used for the PING/PONG exchange.</param>
-    /// <param name="sequenceId">Optional sequence id; if <c>null</c>, a cryptographically random value is generated.</param>
-    /// <param name="timeoutMs">Overall timeout in milliseconds.</param>
-    /// <param name="syncClock">
-    /// If <c>true</c>, synchronizes <see cref="Clock"/> using the server's PONG timestamp with an RTT/2 bias.
-    /// </param>
-    /// <param name="ct">A token to cancel the operation.</param>
-    /// <returns>
-    /// A tuple of:
-    /// <list type="bullet">
-    /// <item><description><c>rttMs</c> — round-trip time in milliseconds.</description></item>
-    /// <item><description><c>pong</c> — the received PONG control frame.</description></item>
-    /// </list>
-    /// </returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the client is not connected.</exception>
-    /// <exception cref="TimeoutException">Thrown when a matching PONG is not received within <paramref name="timeoutMs"/>.</exception>
-    /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
-    /// <remarks>
-    /// RTT is computed using monotonic ticks. If the server echoes the sender's <see cref="Control.MonoTicks"/>,
-    /// that value is preferred over the locally captured send tick.
-    /// </remarks>
-    /// <example>
-    /// <code>
-    /// var (rtt, pong) = await client.PingAsync(opCode: 3, timeoutMs: 2000, syncClock: true, ct: ct);
-    /// </code>
-    /// </example>
-    public static async Task<(double rttMs, Control pong)> PingAsync(
-        this TcpSessionBase client,
-        ushort opCode,
-        uint? sequenceId = null,
-        int timeoutMs = 3000,
-        bool syncClock = false,
-        CancellationToken ct = default)
-    {
-        ArgumentNullException.ThrowIfNull(client);
-
-        if (!client.IsConnected)
-        {
-            throw new NetworkException("Client not connected.");
-        }
-
-        uint seq = sequenceId ?? Csprng.NextUInt32();
-
-        Control ping = client.NewControl(opCode, ControlType.PING)
-                             .WithSeq(seq)
-                             .Build();
-
-        long sendMono = ping.MonoTicks != 0 ? ping.MonoTicks : Clock.MonoTicksNow();
-
-        // RequestAsync: subscribe → send → await PONG in one race-condition-free call.
-        Control pong = await client.RequestAsync<Control, Control>(
-            ping,
-            predicate: p => p.Type == ControlType.PONG && p.SequenceId == seq,
-            timeoutMs: timeoutMs,
-            ct: ct).ConfigureAwait(false);
-
-        long nowMono = Clock.MonoTicksNow();
-        double rtt = pong.MonoTicks > 0 && pong.MonoTicks <= nowMono
-            ? Clock.MonoTicksToMilliseconds(nowMono - pong.MonoTicks)
-            : Clock.MonoTicksToMilliseconds(nowMono - sendMono);
-
-        if (syncClock && pong.Timestamp > 0)
-        {
-            DateTime serverUtc = DateTime.UnixEpoch.AddMilliseconds(pong.Timestamp + (rtt * 0.5));
-            _ = Clock.SynchronizeTime(serverUtc);
-        }
-
-        return (rtt, pong);
-    }
-
-    /// <summary>
     /// Awaits until a CONTROL frame matching the specified predicate is received, or a timeout occurs.
     /// Non-matching packets are ignored.
     /// </summary>
@@ -237,7 +161,7 @@ public static class ControlExtensions
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Task<Control> AwaitControlAsync(
-        this TcpSessionBase client,
+        this TcpSession client,
         Func<Control, bool> predicate,
         int timeoutMs,
         CancellationToken ct = default)
@@ -268,7 +192,7 @@ public static class ControlExtensions
     /// </code>
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Task SendControlAsync(this TcpSessionBase client, ushort opCode, ControlType type, Action<Control>? configure = null, CancellationToken ct = default)
+    public static Task SendControlAsync(this TcpSession client, ushort opCode, ControlType type, Action<Control>? configure = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(client);
 

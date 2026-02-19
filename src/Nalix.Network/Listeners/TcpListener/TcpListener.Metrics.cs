@@ -69,7 +69,6 @@ public abstract partial class TcpListenerBase
 
     #endregion Nested Metrics Class
 
-
     /// <inheritdoc/>
     public LMetrics Metrics
     {
@@ -77,5 +76,4 @@ public abstract partial class TcpListenerBase
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
     } = new();
-
 }

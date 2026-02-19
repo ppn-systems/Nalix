@@ -9,15 +9,21 @@ namespace Nalix.Common.Serialization;
 public enum SerializeLayout : byte
 {
     /// <summary>
-    /// Indicates that serialization should follow a sequential layout,
-    /// where fields or properties are processed in the order they are defined.
+    /// Indicates that serialization should follow an automatic layout,
+    /// where fields are grouped and ordered by size to minimize layout memory padding.
     /// This is the default layout.
     /// </summary>
-    Sequential = 0, // default
+    Auto = 0,
+
+    /// <summary>
+    /// Indicates that serialization should follow a sequential layout,
+    /// where fields or properties are processed in the order they are defined.
+    /// </summary>
+    Sequential = 1,
 
     /// <summary>
     /// Indicates that serialization should follow an explicit layout,
     /// where the serialization order or structure is explicitly defined.
     /// </summary>
-    Explicit = 1
+    Explicit = 2
 }

@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Configuration;
-using Nalix.Logging.Configuration;
+using Nalix.Logging.Options;
 using Nalix.Logging.Sinks;
 
 namespace Nalix.Logging;
