@@ -53,32 +53,15 @@ internal static class MemorySecurity
             return;
         }
 
+        // Use a ref-based loop to reduce bounds checks and make elimination harder.
+        ref System.Byte r0 = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer);
+
         for (System.Int32 i = 0; i < buffer.Length; i++)
         {
-            System.Threading.Volatile.Write(ref buffer[i], 0);
+            // Volatile.Write acts as a barrier against certain optimizations.
+            System.Threading.Volatile.Write(
+                ref System.Runtime.CompilerServices.Unsafe.Add(ref r0, i),
+                0);
         }
-    }
-
-    /// <summary>
-    /// Overwrites the contents represented by the provided
-    /// <paramref name="segment"/> with zeros. This method does not throw if
-    /// the underlying array is <c>null</c>.
-    /// </summary>
-    /// <param name="segment">
-    /// The <see cref="System.ArraySegment{T}"/> referencing memory containing
-    /// sensitive data that must be cleared.
-    /// </param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void ZeroMemory(System.ArraySegment<System.Byte> segment)
-    {
-        if (segment.Array is null)
-        {
-            return;
-        }
-
-        ZeroMemory(System.MemoryExtensions.AsSpan(segment));
-
-        System.GC.KeepAlive(segment.Array);
     }
 }
