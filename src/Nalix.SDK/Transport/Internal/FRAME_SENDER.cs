@@ -92,7 +92,7 @@ internal sealed class FRAME_SENDER : IDisposable
             }
 
             // ── After transformation, check for fragmentation ────────────────────
-            if (current.Length >= _fragmentOptions.ChunkThreshold)
+            if (current.Length >= _fragmentOptions.MaxChunkSize)
             {
                 return await this.SEND_FRAGMENTED_ASYNC(current.Memory, ct).ConfigureAwait(false);
             }
@@ -164,7 +164,7 @@ internal sealed class FRAME_SENDER : IDisposable
         }
 
         ushort streamId = FragmentStreamId.Next();
-        int chunkBodySize = _fragmentOptions.ChunkBodySize;
+        int chunkBodySize = _fragmentOptions.MaxChunkSize;
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
         if (totalChunks > ushort.MaxValue)
         {

@@ -1,17 +1,50 @@
 # UdpSession
 
-`UdpSession` is not present in the current `Nalix.SDK` source tree.
+`UdpSession` is a high-performance, zero-allocation UDP client transport in `Nalix.SDK`. It extends `TransportSession` to provide datagram-oriented communication synchronized with the server's protocol layer.
 
-This page is kept only as a compatibility note for older docs and sample code that may still mention it. The current client package exposes `TransportSession` and `TcpSession` instead.
+## Source mapping
 
-## What changed
+- `src/Nalix.SDK/Transport/UdpSession.cs`
+- `src/Nalix.Framework/DataFrames/FrameTransformer.cs`
 
-- `TransportSession` is the shared abstract transport contract.
-- `TcpSession` is the concrete client transport currently implemented in source.
-- the current SDK docs should not be treated as evidence that a UDP client transport exists.
+## Key Features
+
+- **High Performance**: Built with `BufferLease` and `stackalloc` to minimize GC pressure and memory allocations.
+- **Session Identification**: Uses a 7-byte `SessionToken` (Snowflake) prepended to every outbound datagram for O(1) connection mapping on the server.
+- **Integrated Transformation**: Supports optional LZ4 compression and AEAD encryption (ChaCha20-Poly1305) via the internal `FrameTransformer` pipeline.
+- **MTU Aware**: Enforces a configurable `MaxUdpDatagramSize` (default 1400 bytes) to prevent fragmentation at the network layer.
+
+## Basic Usage
+
+```csharp
+TransportOptions options = ConfigurationManager.Instance.Get<TransportOptions>();
+UdpSession client = new(options, catalog);
+
+// Essential: Set the token received during TCP login/handshake
+client.SessionToken = mySnowflakeToken;
+
+client.OnMessageReceived += (_, lease) =>
+{
+    using (lease)
+    {
+        // Handle decrypted/decompressed payload.
+    }
+};
+
+await client.ConnectAsync(options.Address, options.Port);
+await client.SendAsync(myPacket);
+```
+
+## Properties
+
+| Property | Description |
+| --- | --- |
+| `SessionToken` | The 7-byte identifier used to authenticate datagrams. |
+| `Options` | Access to transport configuration (MTU, Encryption, etc.). |
 
 ## Related APIs
 
 - [SDK Overview](./index.md)
 - [Transport Session](./transport-session.md)
 - [TCP Session](./tcp-session.md)
+- [Transport Options](./options/transport-options.md)

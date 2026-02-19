@@ -1,0 +1,35 @@
+  Determining projects to restore...
+  Restored E:\Cs\Nalix\src\Nalix.Framework\Nalix.Framework.csproj (in 215 ms).
+  Restored E:\Cs\Nalix\src\Nalix.Network.Pipeline\Nalix.Network.Pipeline.csproj (in 215 ms).
+  Restored E:\Cs\Nalix\src\Nalix.Network\Nalix.Network.csproj (in 215 ms).
+  Restored E:\Cs\Nalix\src\Nalix.Logging\Nalix.Logging.csproj (in 215 ms).
+  Restored E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj (in 215 ms).
+  1 of 6 projects are up-to-date for restore.
+  Nalix.Common -> e:\Cs\Nalix\src\Nalix.Common\bin\Debug\net10.0\Nalix.Common.dll
+  Nalix.Framework -> E:\Cs\Nalix\src\Nalix.Framework\bin\Debug\net10.0\Nalix.Framework.dll
+  Nalix.Logging -> E:\Cs\Nalix\src\Nalix.Logging\bin\Debug\net10.0\Nalix.Logging.dll
+  Nalix.Network -> E:\Cs\Nalix\src\Nalix.Network\bin\Debug\net10.0\Nalix.Network.dll
+  Nalix.Network.Pipeline -> E:\Cs\Nalix\src\Nalix.Network.Pipeline\bin\Debug\net10.0\Nalix.Network.Pipeline.dll
+E:\Cs\Nalix\tests\Nalix.Network.Test\DefaultHandshakeProtocolTests.cs(178,16): warning CS0618: 'IConnection.IUdp' is obsolete: 'Use ITransport instead. This interface will be removed in a future version.' [E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Network.Test\DefaultHandshakeProtocolTests.cs(169,16): warning CS0618: 'IConnection.ITcp' is obsolete: 'Use ITransport instead. This interface will be removed in a future version.' [E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Network.Test\DefaultHandshakeProtocolTests.cs(170,16): warning CS0618: 'IConnection.IUdp' is obsolete: 'Use ITransport instead. This interface will be removed in a future version.' [E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Network.Test\DefaultHandshakeProtocolTests.cs(186,45): warning CS0618: 'IConnection.ITcp' is obsolete: 'Use ITransport instead. This interface will be removed in a future version.' [E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Network.Test\DefaultHandshakeProtocolTests.cs(217,45): warning CS0618: 'IConnection.IUdp' is obsolete: 'Use ITransport instead. This interface will be removed in a future version.' [E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Network.Test\DefaultHandshakeProtocolTests.cs(140,43): error CS0738: 'DefaultHandshakeProtocolTests.FakeConnection' does not implement interface member 'IConnection.TCP'. 'DefaultHandshakeProtocolTests.FakeConnection.TCP' cannot implement 'IConnection.TCP' because it does not have the matching return type of 'IConnection.ITransport'. [E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Network.Test\DefaultHandshakeProtocolTests.cs(140,43): error CS0738: 'DefaultHandshakeProtocolTests.FakeConnection' does not implement interface member 'IConnection.UDP'. 'DefaultHandshakeProtocolTests.FakeConnection.UDP' cannot implement 'IConnection.UDP' because it does not have the matching return type of 'IConnection.ITransport'. [E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Network.Test\DefaultHandshakeProtocolTests.cs(217,45): error CS0535: 'DefaultHandshakeProtocolTests.FakeUdpTransport' does not implement interface member 'IConnection.ITransport.BeginReceive(CancellationToken)' [E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj]
+
+Build FAILED.
+
+E:\Cs\Nalix\tests\Nalix.Network.Test\DefaultHandshakeProtocolTests.cs(178,16): warning CS0618: 'IConnection.IUdp' is obsolete: 'Use ITransport instead. This interface will be removed in a future version.' [E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Network.Test\DefaultHandshakeProtocolTests.cs(169,16): warning CS0618: 'IConnection.ITcp' is obsolete: 'Use ITransport instead. This interface will be removed in a future version.' [E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Network.Test\DefaultHandshakeProtocolTests.cs(170,16): warning CS0618: 'IConnection.IUdp' is obsolete: 'Use ITransport instead. This interface will be removed in a future version.' [E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Network.Test\DefaultHandshakeProtocolTests.cs(186,45): warning CS0618: 'IConnection.ITcp' is obsolete: 'Use ITransport instead. This interface will be removed in a future version.' [E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Network.Test\DefaultHandshakeProtocolTests.cs(217,45): warning CS0618: 'IConnection.IUdp' is obsolete: 'Use ITransport instead. This interface will be removed in a future version.' [E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Network.Test\DefaultHandshakeProtocolTests.cs(140,43): error CS0738: 'DefaultHandshakeProtocolTests.FakeConnection' does not implement interface member 'IConnection.TCP'. 'DefaultHandshakeProtocolTests.FakeConnection.TCP' cannot implement 'IConnection.TCP' because it does not have the matching return type of 'IConnection.ITransport'. [E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Network.Test\DefaultHandshakeProtocolTests.cs(140,43): error CS0738: 'DefaultHandshakeProtocolTests.FakeConnection' does not implement interface member 'IConnection.UDP'. 'DefaultHandshakeProtocolTests.FakeConnection.UDP' cannot implement 'IConnection.UDP' because it does not have the matching return type of 'IConnection.ITransport'. [E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Network.Test\DefaultHandshakeProtocolTests.cs(217,45): error CS0535: 'DefaultHandshakeProtocolTests.FakeUdpTransport' does not implement interface member 'IConnection.ITransport.BeginReceive(CancellationToken)' [E:\Cs\Nalix\tests\Nalix.Network.Test\Nalix.Network.Tests.csproj]
+    5 Warning(s)
+    3 Error(s)
+
+Time Elapsed 00:00:01.27
