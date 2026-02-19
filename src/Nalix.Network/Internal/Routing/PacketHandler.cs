@@ -8,8 +8,10 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
+using Nalix.Network.Internal.Results;
+using Nalix.Network.Routing;
 
-namespace Nalix.Network.Routing.Metadata;
+namespace Nalix.Network.Internal.Routing;
 
 /// <summary>
 /// Enhanced version of <c>PacketHandler</c> using compiled delegates for zero-allocation execution.
@@ -21,13 +23,22 @@ namespace Nalix.Network.Routing.Metadata;
 /// <param name="method"></param>
 /// <param name="returnType"></param>
 /// <param name="compiledInvoker"></param>
+/// <param name="expectedPacketType">
+/// Cached concrete packet runtime type expected by the handler, or <see langword="null"/>
+/// when runtime packet type checks are not required.
+/// </param>
+/// <param name="returnHandler">
+/// Cached outbound return handler resolved for <paramref name="returnType"/>.
+/// </param>
 [StructLayout(LayoutKind.Sequential)]
 [EditorBrowsable(EditorBrowsableState.Never)]
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-public readonly struct PacketHandler<TPacket>(
+internal readonly struct PacketHandler<TPacket>(
     ushort opCode, PacketMetadata metadata,
     object controllerInstance, MethodInfo method, Type returnType,
-    Func<object, PacketContext<TPacket>, ValueTask<object>> compiledInvoker) where TPacket : IPacket
+    Func<object, PacketContext<TPacket>, ValueTask<object>> compiledInvoker,
+    Type? expectedPacketType,
+    IReturnHandler<TPacket> returnHandler) where TPacket : IPacket
 {
     #region Fields
 
@@ -62,6 +73,17 @@ public readonly struct PacketHandler<TPacket>(
     /// </summary>
     public readonly Func<object, PacketContext<TPacket>,
                     ValueTask<object>> Invoker = compiledInvoker;
+
+    /// <summary>
+    /// Concrete packet type expected by this handler, or <see langword="null"/>
+    /// when no strict runtime type check is required.
+    /// </summary>
+    public readonly Type? ExpectedPacketType = expectedPacketType;
+
+    /// <summary>
+    /// Cached return handler for the method return type.
+    /// </summary>
+    public readonly IReturnHandler<TPacket> ReturnHandler = returnHandler;
 
     #endregion Fields
 
