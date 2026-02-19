@@ -16,6 +16,8 @@ namespace Nalix.Shared.Memory.Internal;
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal static unsafe class MatchFinder
 {
+    #region Constants
+
     private const System.Int32 HashTableBits = 16; // 64k entries
     private const System.Int32 HashShift = 32 - HashTableBits;
 
@@ -28,6 +30,10 @@ internal static unsafe class MatchFinder
     /// Consider using a pool or limiting stackalloc in extreme cases
     /// </summary>
     public const System.Int32 MaxStackallocHashTableSize = HashTableSize * sizeof(System.Int32);
+
+    #endregion Constants
+
+    #region Constructors
 
     /// <summary>
     /// Represents a found match with an offset and length.
@@ -46,6 +52,10 @@ internal static unsafe class MatchFinder
         /// </summary>
         public System.Boolean Found => Length >= LZ4CompressionConstants.MinMatchLength;
     }
+
+    #endregion Constructors
+
+    #region Methods
 
     /// <summary>
     /// Finds the longest match for the current input position within the sliding window.
@@ -150,4 +160,6 @@ internal static unsafe class MatchFinder
 
         return new Match(offset, matchLength);
     }
+
+    #endregion Methods
 }

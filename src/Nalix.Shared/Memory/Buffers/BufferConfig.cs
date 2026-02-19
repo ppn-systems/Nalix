@@ -66,11 +66,6 @@ public sealed class BufferConfig : ConfigurationLoader
     }
 
     /// <summary>
-    /// Preload buffers on initialization to reduce allocation during runtime.
-    /// </summary>
-    public System.Boolean PreloadBuffers { get; set; } = true;
-
-    /// <summary>
     /// Enable buffer usage analytics to optimize allocation strategy.
     /// </summary>
     public System.Boolean EnableAnalytics { get; set; } = false;
