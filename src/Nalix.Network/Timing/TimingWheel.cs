@@ -60,7 +60,7 @@ public sealed class TimingWheel : IActivatable
 {
     #region Fields
 
-    private static readonly TimingWheelOptions IdleTimeoutOptions =
+    private static readonly TimingWheelOptions TimingWheelOptions =
         ConfigurationManager.Instance.Get<TimingWheelOptions>();
 
     private readonly System.Int32 TickMs;
@@ -119,7 +119,7 @@ public sealed class TimingWheel : IActivatable
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TimingWheel"/> class
-    /// using values from <see cref="IdleTimeoutOptions"/> via <see cref="ConfigurationManager"/>.
+    /// using values from <see cref="TimingWheelOptions"/> via <see cref="ConfigurationManager"/>.
     /// </summary>
     /// <remarks>
     /// If <c>WheelSize</c> is a power of two, a bitmask is used instead of modulo
@@ -127,9 +127,11 @@ public sealed class TimingWheel : IActivatable
     /// </remarks>
     public TimingWheel()
     {
-        WheelSize = IdleTimeoutOptions.BucketCount;
-        TickMs = IdleTimeoutOptions.TickDuration;
-        IdleTimeoutMs = IdleTimeoutOptions.TcpIdleTimeout;
+        TimingWheelOptions.Validate();
+
+        WheelSize = TimingWheelOptions.BucketCount;
+        TickMs = TimingWheelOptions.TickDuration;
+        IdleTimeoutMs = TimingWheelOptions.TcpIdleTimeout;
 
         // Prefer mask if power-of-two wheel size.
         _useMask = (WheelSize & (WheelSize - 1)) == 0 && WheelSize > 0;
