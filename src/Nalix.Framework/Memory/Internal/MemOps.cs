@@ -16,12 +16,13 @@ using System.Runtime.Intrinsics;
 namespace Nalix.Framework.Memory.Internal;
 
 /// <summary>
-/// Provides low-level memory operations using unsafe code to perform optimized, high-performance memory manipulation.
+/// Provides low-level memory operations using unsafe code to perform optimized,
+/// high-performance memory manipulation.
 /// </summary>
 /// <remarks>
-/// This class exposes a set of methods to perform various operations on memory, such as reading and writing unaligned data,
-/// copying memory blocks, and comparing memory regions. It utilizes `unsafe` code to perform these operations directly
-/// on raw memory, which allows for faster execution and is suitable for performance-critical applications like LZ compression/decompression.
+/// This class centralizes the handful of raw-memory operations that show up in the
+/// hot paths of compression, serialization, and packet processing. Keeping them
+/// here avoids repeating pointer arithmetic and overlap handling throughout the repo.
 /// </remarks>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
@@ -98,18 +99,19 @@ internal static unsafe class MemOps
             return;
         }
 
-        // Không chồng lấn:   [source .. source+length)  và  [destination .. destination+length) tách rời
-        // Chồng lấn tiến:    destination > source && destination < source + length  => phải copy tiến từng byte
-        // Chồng lấn lùi:     destination < source && source < destination + length  => có thể copy block an toàn (đọc trước ghi sau)
+        // Overlap matters here because some callers copy within the same backing
+        // buffer. Forward overlap must be copied byte-by-byte; non-overlap and
+        // backward overlap can use the faster block-copy path.
 
         if (destination < source || destination >= (source + length))
         {
-            // Non-overlap or backward-overlap -> block copy OK (nhanh)
+            // Non-overlap or backward-overlap -> block copy is safe and faster.
             Unsafe.CopyBlockUnaligned(destination, source, (uint)length);
             return;
         }
 
-        // Forward-overlap: copy từng byte theo chiều tiến để giữ semantics LZ backref
+        // Forward overlap: copy one byte at a time so the source bytes are not
+        // clobbered before they are read, which preserves LZ-style backref semantics.
         for (int i = 0; i < length; i++)
         {
             destination[i] = source[i];
@@ -173,14 +175,14 @@ internal static unsafe class MemOps
                     continue;
                 }
 
-                // Find first differing byte inside this 32B block
+                // Find the first differing byte inside this 32-byte block.
                 int mask = ~System.Runtime.Intrinsics.X86.Avx2.MoveMask(cmp); // 1 where bytes differ
                                                                               // mask is 32-bit, each bit corresponds to a byte
                 int idx = System.Numerics.BitOperations.TrailingZeroCount(mask);
                 return count + idx;
             }
 
-            // Fall down to 16B SSE2 lane for the tail (if any)
+            // Fall down to the 16-byte SSE2 lane for the tail, if any.
             if (count + 16 <= maxLength)
             {
                 Vector128<byte> a = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p1 + count);
@@ -209,7 +211,7 @@ internal static unsafe class MemOps
                 }
                 else
                 {
-                    // find first diff within 8 bytes
+                    // Find the first difference within the 8-byte chunk.
                     ulong x = Unsafe.ReadUnaligned<ulong>(p1 + count);
                     ulong y = Unsafe.ReadUnaligned<ulong>(p2 + count);
                     ulong d = x ^ y;
@@ -287,7 +289,8 @@ internal static unsafe class MemOps
                     continue;
                 }
 
-                // Fallback: scan within this 16-byte chunk (cheap)
+                // Fallback: scan within this 16-byte chunk to locate the first
+                // mismatch once the vector compare tells us they are not equal.
                 for (int j = 0; j < 16; j++)
                 {
                     if (p1[count + j] != p2[count + j])

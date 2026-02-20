@@ -12,35 +12,27 @@ using Nalix.Common.Serialization;
 namespace Nalix.Framework.DataFrames.SignalFrames;
 
 /// <summary>
-/// Represents a binary data packet used for transmitting raw bytes over the network.
+/// Represents a handshake packet used during connection setup.
 /// </summary>
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("HANDSHAKE OPCODE={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class Handshake : PacketBase<Handshake>
 {
-    /// <summary>
-    /// Suggested minimum granularity for allocation.
-    /// </summary>
+    /// <summary>Gets the default dynamic size hint for handshake payloads.</summary>
     public const int DynamicSize = 32;
 
-    /// <summary>
-    /// Gets or sets the binary content of the packet.
-    /// </summary>
+    /// <summary>Gets or sets the handshake payload.</summary>
     [SerializeDynamicSize(DynamicSize)]
     [SerializeOrder(PacketHeaderOffset.Region + 1)]
     public byte[] Data { get; set; } = [];
 
-    /// <summary>
-    /// Authentication information for this handshake, if applicable.
-    /// </summary>
+    /// <summary>Gets or sets the authentication payload for the handshake.</summary>
     [SkipClean]
     [SerializeOrder(PacketHeaderOffset.Region + 2)]
     public HandshakeAuth Auth { get; set; } = new HandshakeAuth();
 
-    /// <summary>
-    /// Identity string for this handshake.
-    /// </summary>
+    /// <summary>Gets or sets the optional identity string.</summary>
     [SerializeOrder(PacketHeaderOffset.Region + 3)]
     public string Identity { get; set; } = string.Empty;
 
@@ -49,12 +41,10 @@ public sealed class Handshake : PacketBase<Handshake>
     /// </summary>
     public Handshake() => this.ResetForPool();
 
-    /// <summary>
-    /// Initializes a new instance with the specified operation code, binary data, and protocol.
-    /// </summary>
-    /// <param name="opCode"></param>
-    /// <param name="data"></param>
-    /// <param name="transport"></param>
+    /// <summary>Initializes a new instance with the specified opcode, payload, and transport.</summary>
+    /// <param name="opCode">The packet opcode.</param>
+    /// <param name="data">The handshake payload.</param>
+    /// <param name="transport">The transport protocol.</param>
     public Handshake(ushort opCode, byte[] data, ProtocolType transport = ProtocolType.TCP) : this()
     {
         this.Data = data ?? Array.Empty<byte>();
@@ -62,22 +52,20 @@ public sealed class Handshake : PacketBase<Handshake>
         this.Protocol = transport;
     }
 
-    /// <summary>
-    /// Initializes the packet with binary data and an optional transport protocol.
-    /// </summary>
-    /// <param name="opCode"></param>
-    /// <param name="data"></param>
-    /// <param name="PublicKey"></param>
-    /// <param name="Signature"></param>
-    /// <param name="transport"></param>
-    public void Initialize(ushort opCode, byte[] data, byte[] PublicKey, byte[] Signature, ProtocolType transport = ProtocolType.TCP)
+    /// <summary>Initializes the packet with payload and authentication data.</summary>
+    /// <param name="opCode">The packet opcode.</param>
+    /// <param name="data">The handshake payload.</param>
+    /// <param name="publicKey">The authentication public key.</param>
+    /// <param name="signature">The authentication signature.</param>
+    /// <param name="transport">The transport protocol.</param>
+    public void Initialize(ushort opCode, byte[] data, byte[] publicKey, byte[] signature, ProtocolType transport = ProtocolType.TCP)
     {
         this.OpCode = opCode;
         this.Protocol = transport;
 
         this.Data = data ?? Array.Empty<byte>();
-        this.Auth.Signature = Signature ?? Array.Empty<byte>();
-        this.Auth.PublicKey = PublicKey ?? Array.Empty<byte>();
+        this.Auth.Signature = signature ?? Array.Empty<byte>();
+        this.Auth.PublicKey = publicKey ?? Array.Empty<byte>();
     }
 
     /// <summary>
@@ -98,9 +86,7 @@ public sealed class Handshake : PacketBase<Handshake>
         this.Identity = string.Empty;
     }
 
-    /// <summary>
-    /// Authentication information for this handshake, if applicable.
-    /// </summary>
+    /// <summary>Authentication information for this handshake.</summary>
     public sealed class HandshakeAuth
     {
         /// <summary>

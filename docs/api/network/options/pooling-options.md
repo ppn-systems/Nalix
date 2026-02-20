@@ -4,7 +4,7 @@
 
 ## Source mapping
 
-- `src/Nalix.Network/Configurations/PoolingOptions.cs`
+- `src/Nalix.Network/Options/PoolingOptions.cs`
 
 ## What it controls
 

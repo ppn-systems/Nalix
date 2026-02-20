@@ -4,7 +4,7 @@
 
 ## Source mapping
 
-- `src/Nalix.Network/Configurations/DispatchOptions.cs`
+- `src/Nalix.Network/Options/DispatchOptions.cs`
 
 ## Properties
 

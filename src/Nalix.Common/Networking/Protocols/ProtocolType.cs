@@ -4,7 +4,7 @@
 namespace Nalix.Common.Networking.Protocols;
 
 /// <summary>
-/// Specifies the transport protocol used by the network packet.
+/// Identifies the transport protocol associated with a packet or endpoint.
 /// </summary>
 public enum ProtocolType : byte
 {
@@ -14,12 +14,12 @@ public enum ProtocolType : byte
     NONE = 0x00,
 
     /// <summary>
-    /// Transmission CONTROL Protocol (reliable, connection-based).
+    /// Transmission Control Protocol.
     /// </summary>
     TCP = 0x06,
 
     /// <summary>
-    /// USER Datagram Protocol (unreliable, connectionless).
+    /// User Datagram Protocol.
     /// </summary>
     UDP = 0x11
 }

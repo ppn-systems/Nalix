@@ -136,8 +136,12 @@ nav:
       - Nalix.Framework: packages/nalix-framework.md
       - Nalix.Logging: packages/nalix-logging.md
       - Nalix.Network: packages/nalix-network.md
+      - Nalix.Network.Pipeline: packages/nalix-network-pipeline.md
       - Nalix.SDK: packages/nalix-sdk.md
   - API:
+      - Analyzers:
+        - Overview: api/analyzers/index.md
+        - Code Fixes: api/analyzers/code-fixes.md
       - Common:
         - Directories: api/common/directories.md
         - Diagnostics Contracts: api/common/diagnostics-contracts.md
@@ -153,9 +157,13 @@ nav:
         - Worker Options: api/framework/options/worker-options.md
         - Recurring Options: api/framework/options/recurring-options.md
         - Frame Model: api/framework/packets/frame-model.md
+        - Serialization Attributes: api/common/serialization-attributes.md
+        - Framework Serialization: api/framework/serialization/serialization-basics.md
         - Packet Registry: api/framework/packets/packet-registry.md
         - Built-in Frames: api/framework/packets/built-in-frames.md
+        - Packet Pooling: api/framework/packets/packet-pooling.md
         - Fragmentation: api/framework/packets/fragmentation.md
+        - Reader, Writer, and Header Extensions: api/framework/packets/reader-writer-and-header-extensions.md
         - LZ4: api/framework/memory/lz4.md
         - Buffer and Pooling: api/framework/memory/buffer-and-pooling.md
         - Serialization: api/framework/packets/serialization.md
@@ -215,6 +223,7 @@ nav:
         - Session Diagnostics: api/sdk/diagnostics.md
         - Session Subscriptions: api/sdk/subscriptions.md
         - Thread Dispatching: api/sdk/thread-dispatching.md
+        - Protocol String Extensions: api/sdk/protocol-string-extensions.md
         - Options:
           - Transport Options: api/sdk/options/transport-options.md
           - Request Options: api/sdk/options/request-options.md

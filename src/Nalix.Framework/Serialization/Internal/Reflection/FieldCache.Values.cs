@@ -23,7 +23,8 @@ internal static partial class FieldCache<T>
     #region Compiled Delegates Cache
 
     /// <summary>
-    /// Store as object delegates, will be cast at runtime
+    /// Stores emitted getter delegates as untyped <see cref="Delegate"/> instances so the cache
+    /// can keep a single fast array per field slot while still supporting different field types.
     /// </summary>
     private static readonly Delegate[] s_getters;
 
@@ -35,15 +36,16 @@ internal static partial class FieldCache<T>
     // Delegate definitions
     // -------------------------------------------------------------------------
 
-    // Getter:  Func<T, TField>      — standard BCL delegate, no overhead
-    // Setter:  Action<T, TField>    — standard BCL delegate, no overhead
-    // RefSetter: custom delegate because Action<,> cannot carry `ref T`
+    // Getter:  Func<T, TField>      — standard BCL delegate for read access.
+    // Setter:  Action<T, TField>    — standard BCL delegate for class instances.
+    // RefSetter: custom delegate because Action<,> cannot carry `ref T` for structs.
     private delegate void RefSetter<TVal>(ref T obj, TVal value);
 
     // -------------------------------------------------------------------------
     // Caches — one slot per field index
-    //   s_getters / s_setters  allocated up-front in static ctor (array = fast)
-    //   s_refSetterCache       lazy + thread-safe (ConcurrentDictionary)
+    //   s_getters / s_setters  allocated up-front in the static constructor so hot-path
+    //                        access stays array-based and branch-light.
+    //   s_refSetterCache       lazily filled and thread-safe for the struct-by-ref path.
     // -------------------------------------------------------------------------
 
     // Defined in FieldCache.cs (kept as-is):
@@ -51,8 +53,8 @@ internal static partial class FieldCache<T>
     //   private static readonly Delegate[] s_setters;
 
     /// <summary>
-    /// Lazy cache for ref-setters.  Keyed by fieldIndex.
-    /// Value is a boxed <see cref="RefSetter{TVal}"/> — allocated once, never again.
+    /// Lazy cache for by-ref struct setters, keyed by field index.
+    /// The boxed delegate is created once per field and reused afterward.
     /// </summary>
     private static readonly ConcurrentDictionary<int, object> s_refSetterCache = new();
 

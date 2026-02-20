@@ -6,19 +6,17 @@ using System;
 namespace Nalix.SDK;
 
 /// <summary>
-/// Provides a mechanism to dispatch actions onto the main/UI thread.
+/// Provides a mechanism for dispatching actions onto a target thread.
 /// </summary>
 /// <remarks>
-/// This abstraction is useful in cross-platform applications (e.g., .NET MAUI)
-/// where code may need to update UI elements from background threads.
+/// This abstraction is useful in cross-platform applications where code may need
+/// to marshal work back to a UI thread or other single-threaded context.
 /// </remarks>
 public interface IThreadDispatcher
 {
     /// <summary>
-    /// Posts an action to be executed on the main/UI thread asynchronously.
+    /// Posts an action for execution on the target thread.
     /// </summary>
-    /// <param name="action">
-    /// The action to execute on the UI thread.
-    /// </param>
+    /// <param name="action">The action to execute.</param>
     void Post(Action action);
 }

@@ -16,6 +16,15 @@ This page covers the chunking and reassembly helpers in `Nalix.Framework.DataFra
 - `FragmentOptions`
 - `FragmentStreamId`
 
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `FragmentHeader` | `Magic`, `WireSize`, `StreamId`, `ChunkIndex`, `TotalChunks`, `Flags`, `IsLast`, `WriteTo(...)` |
+| `FragmentAssembler` | `IsFragmentedFrame(...)`, `Add(...)`, `EvictExpired()`, `Clear()`, `Dispose()` |
+| `FragmentOptions` | `MaxPayloadSize`, `ChunkThreshold`, `ChunkBodySize`, `MaxReassemblyBytes`, `ReassemblyTimeoutMs`, `Validate()` |
+| `FragmentStreamId` | `Next()` |
+
 ## Why this exists
 
 Nalix supports large payload flows that do not fit comfortably inside a single framed packet.
@@ -42,13 +51,7 @@ Important source facts:
 
 ```csharp
 ushort streamId = FragmentStreamId.Next();
-
-FragmentHeader header = new(
-    streamId,
-    chunkIndex: 0,
-    totalChunks: 3,
-    isLast: false);
-
+FragmentHeader header = new(streamId, 0, 3, false);
 header.WriteTo(buffer);
 ```
 
@@ -92,6 +95,12 @@ if (FragmentAssembler.IsFragmentedFrame(payload, out FragmentHeader header))
 - `Add(...)` throws `InvalidDataException` when the fragment header is invalid, `TotalChunks` changes mid-stream, or a chunk arrives out of order.
 - `EvictExpired()` is meant to be called periodically by the receive loop.
 - `Clear()` and `Dispose()` release every in-flight stream buffer.
+
+### Common pitfalls
+
+- starting a fragment stream from a chunk other than `0`
+- forgetting to call `EvictExpired()` in a long-lived receive loop
+- reusing a `BufferLease` after the assembler already returned it
 
 ## FragmentOptions
 

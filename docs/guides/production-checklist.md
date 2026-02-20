@@ -1,14 +1,14 @@
 # Production Checklist
 
-Use this checklist before calling your Nalix server “production ready”.
+Use this checklist before calling your Nalix server production ready.
 
-The goal is not perfection. The goal is to catch the common failure points that show up once real traffic starts.
+The goal is not perfection. The goal is to catch the failure points that show up once real traffic starts.
 
-Use it as a release gate, not as a general introduction to the framework.
+Treat it as a release gate, not as a general introduction to the framework.
 
 ## 1. Startup and configuration
 
-Confirm that all important option types are loaded and validated during startup:
+Start by confirming that the important option types are loaded and validated during startup:
 
 - `NetworkSocketOptions`
 - `PoolingOptions`
@@ -22,17 +22,17 @@ If you skip validation, bad values usually fail later and less clearly.
 
 ## 2. Shared services
 
-Confirm these are registered once and early:
+Make sure these are registered once and early:
 
 - `ILogger`
 - `IPacketRegistry`
 - any app services your handlers depend on
 
-Also confirm the server and client agree on packet catalog/registry assumptions.
+Also make sure the server and client agree on packet catalog and registry assumptions.
 
 ## 3. Listener safety
 
-Before launch, confirm:
+Before launch, check:
 
 - `TcpListenerBase` or `UdpListenerBase` starts cleanly
 - `GenerateReport()` works
@@ -69,9 +69,9 @@ If a handler performs slow I/O or expensive computation, decide whether it needs
 
 ## 6. Throttling and abuse controls
 
-Before production, decide intentionally which of these you use:
+Before production, decide intentionally which of these you want to use:
 
-- `ConnectionLimiter`
+- `ConnectionGuard`
 - `TokenBucketLimiter`
 - `PolicyRateLimiter`
 - `ConcurrencyGate`
@@ -83,7 +83,7 @@ At minimum, most public-facing servers should have:
 
 ## 7. Middleware review
 
-Confirm middleware behavior is understood:
+Confirm that middleware behavior is easy to predict:
 
 - inbound middleware is ordered correctly
 - outbound behavior is intentional
@@ -106,7 +106,7 @@ Check pool settings for:
 - timeout tasks
 - packet contexts
 
-A useful rule:
+A useful rule of thumb:
 
 - `Capacity` should reflect peak usage
 - `Preallocate` should reflect steady-state warm usage
@@ -141,7 +141,7 @@ Before production, make sure you can obtain:
 - dispatch reports
 - limiter/gate reports where relevant
 
-If debugging requires attaching a debugger to learn basic system state, observability is still too weak.
+If debugging requires attaching a debugger just to learn basic system state, observability is still too weak.
 
 ## 11. UDP-specific checks
 

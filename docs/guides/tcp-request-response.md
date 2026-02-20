@@ -82,7 +82,7 @@ listener.Activate();
 
 ## Client flow
 
-The exact client implementation depends on your SDK/session abstraction, but the request/response shape is:
+The exact client implementation depends on your SDK/session abstraction, but the request/response shape is usually the same:
 
 ```csharp
 Control request = new() { Type = ControlType.PING };

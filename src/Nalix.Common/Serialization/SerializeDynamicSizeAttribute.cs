@@ -6,24 +6,18 @@ using System;
 namespace Nalix.Common.Serialization;
 
 /// <summary>
-/// Indicates that a field/property has dynamic size during serialization.
-/// Provides hints for buffer allocation and performance optimization.
-/// Follows Domain-Driven Design principles for serialization metadata.
+/// Marks a field or property whose serialized size is not fixed at compile time.
+/// The size hint helps serializers preallocate buffers more accurately.
 /// </summary>
-/// <param name="size">Expected average size for optimization.</param>
+/// <param name="size">The initial size hint, in bytes, used for buffer preallocation.</param>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true)]
 public sealed class SerializeDynamicSizeAttribute(int size) : Attribute
 {
-    /// <summary>
-    /// Expected average size in bytes for buffer pre-allocation.
-    /// Helps optimize performance by reducing memory allocations.
-    /// </summary>
+    /// <summary>Gets the size hint, in bytes, used for buffer preallocation.</summary>
     public int Size { get; init; } = size;
 
-    /// <summary>
-    /// Initializes a new instance with default settings.
-    /// </summary>
+    /// <summary>Initializes a new instance with a default size hint.</summary>
     public SerializeDynamicSizeAttribute()
-        : this(20 * 4) // Default size hint, can be adjusted based on expected data size
+        : this(20 * 4)
     { }
 }

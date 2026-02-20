@@ -4,7 +4,7 @@
 
 ## Source mapping
 
-- `src/Nalix.Network/Configurations/CompressionOptions.cs`
+- `src/Nalix.Network/Options/CompressionOptions.cs`
 
 ## What it controls
 

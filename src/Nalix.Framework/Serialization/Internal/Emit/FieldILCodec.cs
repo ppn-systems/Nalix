@@ -13,6 +13,7 @@ internal static class FieldILCodec
 {
     #region Nested Types
 
+    // Cached reflection handles for formatter-backed serialization paths.
     private readonly record struct FormatterEmitMethods(
         FieldInfo InstanceField,
         MethodInfo SerializeMethod,
@@ -41,7 +42,8 @@ internal static class FieldILCodec
     private static readonly MethodInfo s_writeReadOnlySpanByteMethod = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(ReadOnlySpan<byte>)])!;
     private static readonly MethodInfo s_writeUnmanagedMethod = typeof(DataWriterExtensions).GetMethod("WriteUnmanaged", BindingFlags.Public | BindingFlags.Static)!;
 
-    // Note: DataReaderExtensions doesn't have Read(short), float, double, char, etc. -> we fall back to ReadUnmanaged for those.
+    // Reader fast-paths are limited to the methods the reader actually exposes;
+    // everything else falls back to unmanaged or formatter-based access.
     private static readonly MethodInfo s_readByteMethod = typeof(DataReaderExtensions).GetMethod("ReadByte", [typeof(DataReader).MakeByRefType()])!;
     private static readonly MethodInfo s_readBooleanMethod = typeof(DataReaderExtensions).GetMethod("ReadBoolean", [typeof(DataReader).MakeByRefType()])!;
     private static readonly MethodInfo s_readUInt16Method = typeof(DataReaderExtensions).GetMethod("ReadUInt16", [typeof(DataReader).MakeByRefType()])!;
@@ -122,12 +124,13 @@ internal static class FieldILCodec
         });
 
     /// <summary>
-    /// Returns the direct Write method from <see cref="DataWriterExtensions"/> if available.
-    /// Prioritizes fast-path primitive and unmanaged writes.
+    /// Resolves the fastest available writer for a field type.
+    /// Primitive and unmanaged fields are mapped to direct extension methods first;
+    /// formatter-backed writes are only used when no direct method is available.
     /// </summary>
     public static MethodInfo? TryResolveWriteMethod(Type fieldType)
     {
-        // === Exact primitive matches ===
+        // Exact primitive matches get the cheapest possible IL path.
         if (fieldType == typeof(byte))
         {
             return s_writeByteMethod;
@@ -193,10 +196,9 @@ internal static class FieldILCodec
             return TryResolveWriteMethod(Enum.GetUnderlyingType(fieldType));
         }
 
-        // Note: short is missing in DataWriterExtensions -> we fall through to WriteUnmanaged
-        // You can add Write(short) later if you want.
-
-        // Arrays need their formatter to preserve framing metadata such as length prefixes.
+        // Fields that are naturally serialized by a formatter or span-aware helper need
+        // to preserve their framing/length metadata, so they are not forced through the
+        // raw unmanaged path.
         if (fieldType == typeof(ReadOnlySpan<byte>))
         {
             return s_writeReadOnlySpanByteMethod;
@@ -207,7 +209,8 @@ internal static class FieldILCodec
             return null;
         }
 
-        // === Generic Unmanaged (best fallback for all other primitives like short, float, double, char, enums, etc.) ===
+        // Generic unmanaged fallback covers the primitive types that can be copied
+        // directly without a formatter.
         if (TypeMetadata.IsUnmanaged(fieldType))
         {
             return s_genericWriteMethods.GetOrAdd(
@@ -218,7 +221,7 @@ internal static class FieldILCodec
     }
 
     /// <summary>
-    /// Returns the direct Read method from <see cref="DataReaderExtensions"/> if available.
+    /// Resolves the fastest available reader for a field type.
     /// </summary>
     public static MethodInfo? TryResolveReadMethod(Type fieldType)
     {

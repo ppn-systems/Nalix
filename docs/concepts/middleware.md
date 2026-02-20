@@ -2,7 +2,7 @@
 
 This page explains how middleware fits into the Nalix request path.
 
-Use this page when you need to decide where custom logic belongs before you start writing handlers.
+Use it when you want to decide where custom logic belongs before you start writing handlers.
 
 ## The simple model
 

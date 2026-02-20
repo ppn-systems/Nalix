@@ -6,7 +6,7 @@
 namespace Nalix.Common.Networking.Protocols;
 
 /// <summary>
-/// CONTROL flags providing additional context for control messages.
+/// Additional context flags for protocol control messages.
 /// </summary>
 [System.Flags]
 public enum ControlFlags : byte
@@ -17,17 +17,17 @@ public enum ControlFlags : byte
     NONE = 0,
 
     /// <summary>
-    /// Indicates the condition is transient (safe to retry/backoff).
+    /// Indicates the condition is transient and safe to retry.
     /// </summary>
     IS_TRANSIENT = 1 << 0,
 
     /// <summary>
-    /// Indicates the error is related to authentication/authorization.
+    /// Indicates the error is related to authentication or authorization.
     /// </summary>
     IS_AUTHRELATED = 1 << 1,
 
     /// <summary>
-    /// Indicates redirect fields are present in Arg0/Arg2.
+    /// Indicates redirect fields are present in the payload.
     /// </summary>
     HAS_REDIRECT = 1 << 2,
 
