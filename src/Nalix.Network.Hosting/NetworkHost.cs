@@ -39,6 +39,12 @@ public sealed class NetworkHost : IActivatable, IActivatableAsync
             new EventId(1000, nameof(NetworkHost)),
             "Started Nalix TCP server for protocol {ProtocolType}.");
 
+    private static readonly Action<ILogger, string?, Exception?> s_startedUdpServerMessage =
+        LoggerMessage.Define<string?>(
+            LogLevel.Information,
+            new EventId(1004, nameof(NetworkHost)),
+            "Started Nalix UDP server for protocol {ProtocolType}.");
+
     private static readonly Action<ILogger, Exception?> s_stopListenerFailedMessage =
         LoggerMessage.Define(
             LogLevel.Warning,
@@ -126,6 +132,19 @@ public sealed class NetworkHost : IActivatable, IActivatableAsync
 
                 listener.Activate(cancellationToken);
                 s_startedTcpServerMessage(_state.Logger, registration.ProtocolType.FullName, null);
+            }
+
+            for (int i = 0; i < _state.UdpServerRegistrations.Count; i++)
+            {
+                UdpServerRegistration registration = _state.UdpServerRegistrations[i];
+                IProtocol protocol = registration.Factory(_packetDispatch);
+                UdpListenerHost listener = new(protocol);
+
+                _protocols.Add(protocol);
+                _listeners.Add(listener);
+
+                listener.Activate(cancellationToken);
+                s_startedUdpServerMessage(_state.Logger, registration.ProtocolType.FullName, null);
             }
 
             _isStarted = true;
@@ -216,20 +235,16 @@ public sealed class NetworkHost : IActivatable, IActivatableAsync
     }
 
     /// <inheritdoc />
-    public Task ActivateAsync(CancellationToken cancellationToken = default)
-        => this.StartAsync(cancellationToken);
+    public Task ActivateAsync(CancellationToken cancellationToken = default) => this.StartAsync(cancellationToken);
 
     /// <inheritdoc />
-    public Task DeactivateAsync(CancellationToken cancellationToken = default)
-        => this.StopAsync(cancellationToken);
+    public Task DeactivateAsync(CancellationToken cancellationToken = default) => this.StopAsync(cancellationToken);
 
     /// <inheritdoc />
-    public void Activate(CancellationToken cancellationToken = default)
-        => this.StartAsync(cancellationToken).GetAwaiter().GetResult();
+    public void Activate(CancellationToken cancellationToken = default) => this.StartAsync(cancellationToken).GetAwaiter().GetResult();
 
     /// <inheritdoc />
-    public void Deactivate(CancellationToken cancellationToken = default)
-        => this.StopAsync(cancellationToken).GetAwaiter().GetResult();
+    public void Deactivate(CancellationToken cancellationToken = default) => this.StopAsync(cancellationToken).GetAwaiter().GetResult();
 
     /// <inheritdoc />
     public void Dispose()
@@ -328,8 +343,7 @@ public sealed class NetworkHost : IActivatable, IActivatableAsync
         return handlers.Values;
     }
 
-    private void RegisterLogger()
-        => InstanceManager.Instance.Register<ILogger>(_state.Logger);
+    private void RegisterLogger() => InstanceManager.Instance.Register<ILogger>(_state.Logger);
 
     private void ApplyOptions()
     {
@@ -351,8 +365,7 @@ public sealed class NetworkHost : IActivatable, IActivatableAsync
         _ = (validateMethod?.Invoke(options, parameters: null));
     }
 
-    private void RegisterPacketRegistry()
-        => InstanceManager.Instance.Register(CreatePacketRegistry(_state));
+    private void RegisterPacketRegistry() => InstanceManager.Instance.Register(CreatePacketRegistry(_state));
 
     private void RegisterMetadataProviders()
     {
@@ -390,9 +403,7 @@ public sealed class NetworkHost : IActivatable, IActivatableAsync
         return factory.CreateCatalog();
     }
 
-    private static void RegisterHandlerCore<THandler>(
-        PacketDispatchOptions<IPacket> dispatchOptions,
-        Func<object> factory)
+    private static void RegisterHandlerCore<THandler>(PacketDispatchOptions<IPacket> dispatchOptions, Func<object> factory)
         where THandler : class
     {
         ArgumentNullException.ThrowIfNull(dispatchOptions);

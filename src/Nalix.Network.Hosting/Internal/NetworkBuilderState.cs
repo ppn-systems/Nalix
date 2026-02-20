@@ -26,6 +26,8 @@ internal sealed class NetworkBuilderState
 
     public List<TcpServerRegistration> TcpServerRegistrations { get; } = [];
 
+    public List<UdpServerRegistration> UdpServerRegistrations { get; } = [];
+
     public List<Action<PacketDispatchOptions<IPacket>>> PacketDispatchConfigurations { get; } = [];
 
     public ILogger Logger { get; set; } = NullLogger.Instance;
@@ -40,3 +42,5 @@ internal sealed record HandlerRegistration(Type HandlerType, Func<object> Factor
 internal sealed record MetadataProviderRegistration(Type ProviderType, Func<IPacketMetadataProvider> Factory);
 
 internal sealed record TcpServerRegistration(Type ProtocolType, Func<IPacketDispatch, IProtocol> Factory);
+
+internal sealed record UdpServerRegistration(Type ProtocolType, Func<IPacketDispatch, IProtocol> Factory);

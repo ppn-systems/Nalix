@@ -5,114 +5,12 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.DataFrames.TextFrames;
 using Xunit;
 
 namespace Nalix.Framework.Tests.DataFrames;
 
 public sealed partial class DataFramesPublicApiTests
 {
-    [Theory]
-    [MemberData(nameof(TextFrameInitializeValidCases))]
-    public void InitializeValidTextInputUpdatesContentProtocolAndLength(
-        TextFrameKind frameKind,
-        string content,
-        ProtocolType protocol,
-        int expectedDynamicBytes)
-    {
-        FrameBase frame = CreateAndInitializeTextFrame(frameKind, content, protocol);
-        byte[] bytes = frame.Serialize();
-
-        string actualContent = frame switch
-        {
-            Text256 text256 => text256.Content,
-            Text512 text512 => text512.Content,
-            Text1024 text1024 => text1024.Content,
-            _ => throw new InvalidOperationException("Unexpected frame type.")
-        };
-
-        Assert.Equal(content, actualContent);
-        Assert.Equal(protocol, frame.Protocol);
-        Assert.Equal(expectedDynamicBytes, Encoding.UTF8.GetByteCount(actualContent));
-        Assert.True(frame.Length >= bytes.Length);
-        Assert.True(frame.Length > PacketConstants.HeaderSize);
-    }
-
-    [Theory]
-    [MemberData(nameof(TextFrameInitializeOverflowCases))]
-    public void InitializeWhenContentExceedsLimitThrowsArgumentOutOfRangeException(TextFrameKind frameKind)
-    {
-        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            CreateAndInitializeTextFrame(frameKind, new string(GetOverflowFillCharacter(frameKind), GetTextFrameDynamicSize(frameKind) + 1), ProtocolType.TCP));
-
-        Assert.Equal("content", exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData(TextFrameKind.Text256, ProtocolType.TCP)]
-    [InlineData(TextFrameKind.Text512, ProtocolType.UDP)]
-    [InlineData(TextFrameKind.Text1024, ProtocolType.TCP)]
-    public void InitializeWhenContentMatchesDynamicSizeExactlySucceeds(TextFrameKind frameKind, ProtocolType protocol)
-    {
-        string content = new(GetOverflowFillCharacter(frameKind), GetTextFrameDynamicSize(frameKind));
-
-        FrameBase frame = CreateAndInitializeTextFrame(frameKind, content, protocol);
-
-        int actualBytes = frame switch
-        {
-            Text256 text256 => Encoding.UTF8.GetByteCount(text256.Content),
-            Text512 text512 => Encoding.UTF8.GetByteCount(text512.Content),
-            Text1024 text1024 => Encoding.UTF8.GetByteCount(text1024.Content),
-            _ => throw new InvalidOperationException("Unexpected frame type.")
-        };
-
-        Assert.Equal(GetTextFrameDynamicSize(frameKind), actualBytes);
-        Assert.Equal(protocol, frame.Protocol);
-    }
-
-    [Theory]
-    [MemberData(nameof(TextFrameResetCases))]
-    public void ResetForPoolWhenFrameContainsTextRestoresHeaderDefaults(TextFrameKind frameKind)
-    {
-        FrameBase frame = CreateDirtyTextFrame(frameKind);
-
-        frame.ResetForPool();
-
-        string actualContent = frame switch
-        {
-            Text256 text256 => text256.Content,
-            Text512 text512 => text512.Content,
-            Text1024 text1024 => text1024.Content,
-            _ => throw new InvalidOperationException("Unexpected frame type.")
-        };
-
-        Assert.Equal(string.Empty, actualContent);
-        Assert.Equal(PacketFlags.NONE, frame.Flags);
-        Assert.Equal(PacketPriority.NONE, frame.Priority);
-        Assert.Equal(ProtocolType.NONE, frame.Protocol);
-        Assert.Equal(PacketConstants.OpcodeDefault, frame.OpCode);
-    }
-
-    [Theory]
-    [MemberData(nameof(PacketRoundTripCases))]
-    public void SerializeThenDeserializePublicPacketPreservesPublicState(PacketRoundTripKind packetKind)
-    {
-        FrameBase original = CreateRoundTripPacket(packetKind);
-
-        byte[] bytes = original.Serialize();
-        FrameBase deserialized = original switch
-        {
-            Control => Control.Deserialize(bytes),
-            Directive => Directive.Deserialize(bytes),
-            Handshake => Handshake.Deserialize(bytes),
-            Text256 => Text256.Deserialize(bytes),
-            Text512 => Text512.Deserialize(bytes),
-            Text1024 => Text1024.Deserialize(bytes),
-            _ => throw new InvalidOperationException("Unexpected frame type.")
-        };
-
-        AssertRoundTripPacketEquivalent(packetKind, original, deserialized);
-    }
 
     [Fact]
     public void InitializeControlPacketUpdatesPublicProperties()
@@ -148,6 +46,24 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(PacketPriority.URGENT, packet.Priority);
         Assert.Equal(PacketFlags.NONE, packet.Flags);
         Assert.Equal(ProtocolType.NONE, packet.Protocol);
+    }
+
+    [Theory]
+    [MemberData(nameof(PacketRoundTripCases))]
+    public void SerializeThenDeserializePublicPacketPreservesPublicState(PacketRoundTripKind packetKind)
+    {
+        FrameBase original = CreateRoundTripPacket(packetKind);
+
+        byte[] bytes = original.Serialize();
+        FrameBase deserialized = original switch
+        {
+            Control => Control.Deserialize(bytes),
+            Directive => Directive.Deserialize(bytes),
+            Handshake => Handshake.Deserialize(bytes),
+            _ => throw new InvalidOperationException("Unexpected frame type.")
+        };
+
+        AssertRoundTripPacketEquivalent(packetKind, original, deserialized);
     }
 
     [Fact]

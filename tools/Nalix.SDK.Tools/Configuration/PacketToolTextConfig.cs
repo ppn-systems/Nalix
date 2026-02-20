@@ -37,6 +37,10 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
     public string LabelHost { get; set; } = "Host";
 
     public string LabelPort { get; set; } = "Port";
+    public string LabelTransport { get; set; } = "Transport";
+    public string LabelSessionToken { get; set; } = "UDP Session Token";
+    public string TransportTcp { get; set; } = "TCP";
+    public string TransportUdp { get; set; } = "UDP";
 
     public string ButtonConnect { get; set; } = "Connect";
 
@@ -211,6 +215,7 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
     public string StatusHandshakeSuccess { get; set; } = "Handshake completed successfully. Session is now encrypted.";
 
     public string StatusHandshakeFailedFormat { get; set; } = "Handshake failed: {0}";
+    public string StatusSessionTokenAutoFilled { get; set; } = "UDP session token auto-filled from TCP handshake.";
 
     public string StatusTcpConnectionEstablished { get; set; } = "TCP connection established.";
 

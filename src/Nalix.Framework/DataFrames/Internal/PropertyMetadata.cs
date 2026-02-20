@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
+using Nalix.Framework.Identifiers;
 
 namespace Nalix.Framework.DataFrames.Internal;
 
@@ -245,6 +246,7 @@ internal sealed class PropertyMetadata
             TypeCode.Object when type == typeof(TimeOnly) => 8,
             TypeCode.Object when type == typeof(DateOnly) => 4,
             TypeCode.Object when type == typeof(DateTimeOffset) => 10,
+            TypeCode.Object when type == typeof(Snowflake) => 7,
 
             // Recursively resolve enum underlying type.
             _ when type.IsEnum => ComputeFixedSize(Enum.GetUnderlyingType(type)),
