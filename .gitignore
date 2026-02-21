@@ -60,4 +60,5 @@ client-side/*
 appsettings.json
 api.txt
 temp.txt
+nuget.key
 *.snk
