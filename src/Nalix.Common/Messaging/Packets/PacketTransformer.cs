@@ -1,4 +1,4 @@
-﻿using Nalix.Common.Core.Enums;
+﻿using Nalix.Common.Enums;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using System.Text.Json.Serialization;
 
