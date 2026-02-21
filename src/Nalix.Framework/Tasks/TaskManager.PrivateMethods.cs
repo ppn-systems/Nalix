@@ -88,8 +88,7 @@ public partial class TaskManager
 
             if (_workers.TryRemove(st.Id, out _))
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[FW.{nameof(TaskManager)}] cleanup-remove-ok id={st.Id}");
+                this.TRACE($"[FW.{nameof(TaskManager)}] cleanup-remove-ok id={st.Id}");
                 try
                 {
                     st.Cts.Dispose();
@@ -99,6 +98,8 @@ public partial class TaskManager
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Warn($"[FW.{nameof(TaskManager)}] cleanup-cts-dispose-error id={st.Id} msg={ex.Message}");
                 }
+
+                this.TRY_DISPOSE_GROUP_GATE_IF_UNUSED(st.Group);
             }
         }
     }
@@ -209,16 +210,23 @@ public partial class TaskManager
         Gate? gate = null;
         if (options.GroupConcurrencyLimit is int cap && cap > 0)
         {
-            gate = _groupGates.GetOrAdd(group, _ => new Gate(new SemaphoreSlim(cap, cap), cap));
+            gate = _groupGates.GetOrAdd(group, static (_, capacity) => new Gate(new SemaphoreSlim(capacity, capacity), capacity), cap);
+            if (gate.Capacity != cap)
+            {
+                throw new InvalidOperationException(
+                    $"Worker group '{group}' already uses concurrency limit {gate.Capacity}, which conflicts with requested limit {cap}.");
+            }
         }
 
         st.Task = Task.Run(async () =>
         {
             bool acquired = false;
+            bool startedExecution = false;
             CancellationToken ct = cts.Token;
             bool completedSuccessfully = false;
             bool wasCancelled = false;
             Exception? failure = null;
+            long executionStartTicks = 0;
 
             try
             {
@@ -256,6 +264,9 @@ public partial class TaskManager
                 }
 
                 st.MarkStart();
+                startedExecution = true;
+                _ = Interlocked.Increment(ref _runningWorkerCount);
+                executionStartTicks = _options.IsEnableLatency ? Stopwatch.GetTimestamp() : 0;
                 WorkerContext ctx = new(st, this);
 
                 if (options.ExecutionTimeout is { } to && to > TimeSpan.Zero)
@@ -285,6 +296,15 @@ public partial class TaskManager
             }
             finally
             {
+                if (failure is not null)
+                {
+                    st.MarkError(failure);
+                }
+                else if (completedSuccessfully || wasCancelled)
+                {
+                    st.MarkStop();
+                }
+
                 try
                 {
                     if (failure is null)
@@ -304,15 +324,6 @@ public partial class TaskManager
                                             .Warn($"[FW.{nameof(TaskManager)}] worker-callback-error id={id} msg={cbex.Message}");
                 }
 
-                if (failure is not null)
-                {
-                    st.MarkError(failure);
-                }
-                else if (completedSuccessfully || wasCancelled)
-                {
-                    st.MarkStop();
-                }
-
                 if (gate is not null && acquired)
                 {
                     try
@@ -328,13 +339,24 @@ public partial class TaskManager
                     }
                 }
 
+                if (startedExecution)
+                {
+                    _ = Interlocked.Decrement(ref _runningWorkerCount);
+
+                    if (_options.IsEnableLatency && executionStartTicks != 0)
+                    {
+                        long elapsedTicks = Stopwatch.GetTimestamp() - executionStartTicks;
+                        _ = Interlocked.Increment(ref _workerExecutionCount);
+                        _ = Interlocked.Add(ref _workerExecutionTicks, elapsedTicks);
+                    }
+                }
+
                 this.RETAIN_OR_REMOVE(st);
                 _ = _globalConcurrencyGate.Release();
             }
         });
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(TaskManager)}] worker-start id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}");
+        this.TRACE($"[FW.{nameof(TaskManager)}] worker-start id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -415,16 +437,17 @@ public partial class TaskManager
                     // A zero-timeout acquire keeps the scheduler from overlapping the same recurring job.
                     if (!await s.Gate.WaitAsync(0, ct).ConfigureAwait(false))
                     {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Debug($"[FW.{nameof(TaskManager)}:Internal] gate-acquire-fail name={s.Name}");
+                        this.TRACE($"[FW.{nameof(TaskManager)}:Internal] gate-acquire-fail name={s.Name}");
                         next += step;
                         continue;
                     }
                 }
 
+                long executionStartTicks = 0;
                 try
                 {
                     s.MarkStart();
+                    executionStartTicks = _options.IsEnableLatency ? Stopwatch.GetTimestamp() : 0;
 
                     if (s.Options.ExecutionTimeout is { } to && to > TimeSpan.Zero)
                     {
@@ -460,6 +483,13 @@ public partial class TaskManager
                 }
                 finally
                 {
+                    if (_options.IsEnableLatency && executionStartTicks != 0)
+                    {
+                        long elapsedTicks = Stopwatch.GetTimestamp() - executionStartTicks;
+                        _ = Interlocked.Increment(ref _recurringExecutionCount);
+                        _ = Interlocked.Add(ref _recurringExecutionTicks, elapsedTicks);
+                    }
+
                     if (s.Options.NonReentrant)
                     {
                         try
@@ -519,19 +549,7 @@ public partial class TaskManager
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int COUNT_RUNNING_WORKERS()
-
-    {
-        int n = 0; foreach (KeyValuePair<ISnowflake, WorkerState> kv in _workers)
-        {
-            if (kv.Value.IsRunning)
-            {
-                n++;
-            }
-        }
-
-        return n;
-    }
+    private void TRACE(string message) => InstanceManager.Instance.GetExistingInstance<ILogger>()?.Trace(message);
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private void RETAIN_OR_REMOVE(WorkerState st)
@@ -552,34 +570,35 @@ public partial class TaskManager
                                         .Warn($"[FW.{nameof(TaskManager)}] retain-cts-dispose-error id={st.Id} msg={ex.Message}");
             }
 
-            // Group gates are released only when the last worker in that group is gone.
-            bool hasSameGroup = false;
-            foreach (WorkerState other in _workers.Values)
-            {
-                if (string.Equals(other.Group, st.Group, StringComparison.Ordinal))
-                {
-                    hasSameGroup = true;
-                    break;
-                }
-            }
-
-            if (!hasSameGroup && _groupGates.TryRemove(st.Group, out Gate? g))
-            {
-                try
-                {
-                    g.SemaphoreSlim.Dispose();
-
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Debug($"[FW.{nameof(TaskManager)}] group-gate-dispose-ok group={st.Group}");
-                }
-                catch (Exception ex)
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[FW.{nameof(TaskManager)}] gate-dispose-error-retain group={st.Group} msg={ex.Message}");
-                }
-            }
+            this.TRY_DISPOSE_GROUP_GATE_IF_UNUSED(st.Group);
 
             return;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    private void TRY_DISPOSE_GROUP_GATE_IF_UNUSED(string group)
+    {
+        foreach (WorkerState other in _workers.Values)
+        {
+            if (string.Equals(other.Group, group, StringComparison.Ordinal))
+            {
+                return;
+            }
+        }
+
+        if (_groupGates.TryRemove(group, out Gate? gate))
+        {
+            try
+            {
+                gate.SemaphoreSlim.Dispose();
+                this.TRACE($"[FW.{nameof(TaskManager)}] group-gate-dispose-ok group={group}");
+            }
+            catch (Exception ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[FW.{nameof(TaskManager)}] gate-dispose-error-retain group={group} msg={ex.Message}");
+            }
         }
     }
 
@@ -606,8 +625,7 @@ public partial class TaskManager
 
                 if (cpuUsage > threshHigh)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Debug($"[FW.{nameof(TaskManager)}:Internal] cpu-high usage={cpuUsage:F1}% threshold={threshHigh:F1}%");
+                    this.TRACE($"[FW.{nameof(TaskManager)}:Internal] cpu-high usage={cpuUsage:F1}% threshold={threshHigh:F1}%");
                 }
 
                 // --- Hysteresis: tích streak, chỉ hành động khi đủ N lần liên tiếp ---
@@ -716,6 +734,21 @@ public partial class TaskManager
         return Math.Min(cpuUsagePercent, processorCount * 100.0);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int COUNT_RUNNING_THREADS(Process proc)
+    {
+        int running = 0;
+        foreach (ProcessThread thread in proc.Threads)
+        {
+            if (thread.ThreadState == System.Diagnostics.ThreadState.Running)
+            {
+                running++;
+            }
+        }
+
+        return running;
+    }
+
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ADJUST_CONCURRENCY(int newLimit)
@@ -752,16 +785,14 @@ public partial class TaskManager
                     if (!_globalConcurrencyGate.Wait(0))
                     {
                         // Không còn slot rảnh -> revert về số đã thu hồi được thực tế
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Debug($"[FW.TaskManager.Internal] concurrency-partial-retreat from={previousLimit} to={previousLimit - i}");
+                        this.TRACE($"[FW.TaskManager.Internal] concurrency-partial-retreat from={previousLimit} to={previousLimit - i}");
                         _currentConcurrencyLimit = previousLimit - i;
                         break;
                     }
                 }
             }
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{_currentConcurrencyLimit}]");
+            this.TRACE($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{_currentConcurrencyLimit}]");
         }
         catch (Exception ex)
         {

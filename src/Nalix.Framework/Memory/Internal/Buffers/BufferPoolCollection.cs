@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -12,6 +13,21 @@ using System.Threading.Tasks;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Memory.Internal.Buffers;
+
+/// <summary>
+/// Describes the direction of a buffer pool resize event.
+/// </summary>
+public enum BufferPoolResizeDirection
+{
+    /// <summary>
+    /// Indicates the pool is expanding capacity.
+    /// </summary>
+    Increase = 0,
+    /// <summary>
+    /// Indicates the pool is reducing capacity.
+    /// </summary>
+    Shrink = 1,
+}
 
 /// <summary>
 /// Manages shared buffer pools and emits resize signals based on observed usage.
@@ -59,14 +75,9 @@ internal sealed class BufferPoolCollection : IDisposable
     #region Events
 
     /// <summary>
-    /// Event triggered when buffer pool needs to increase capacity.
+    /// Event triggered when buffer pool needs to resize.
     /// </summary>
-    public event Action<BufferPoolShared>? EventIncrease;
-
-    /// <summary>
-    /// Event triggered when buffer pool needs to decrease capacity.
-    /// </summary>
-    public event Action<BufferPoolShared>? EventShrink;
+    public event Action<BufferPoolShared, BufferPoolResizeDirection>? ResizeOccurred;
 
     #endregion Events
 
@@ -111,6 +122,10 @@ internal sealed class BufferPoolCollection : IDisposable
     /// </summary>
     public IReadOnlyCollection<BufferPoolShared> GetAllPools()
         => [.. _pools.Values]; // real snapshot, avoids invalid cast
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryGetPool(int bufferSize, [NotNullWhen(true)] out BufferPoolShared? pool)
+        => _pools.TryGetValue(bufferSize, out pool);
 
     #endregion Pool Management
 
@@ -293,7 +308,7 @@ internal sealed class BufferPoolCollection : IDisposable
             return false;
         }
 
-        EventIncrease?.Invoke(pool);
+        ResizeOccurred?.Invoke(pool, BufferPoolResizeDirection.Increase);
         pool.IncreaseCapacity(step);
         _cooldowns[state.BufferSize] = now;
 
@@ -353,7 +368,7 @@ internal sealed class BufferPoolCollection : IDisposable
         int minIncrease = _config.MinimumIncrease;
         int step = Math.Max(minIncrease, free / 4); // conservative
 
-        EventShrink?.Invoke(pool);
+        ResizeOccurred?.Invoke(pool, BufferPoolResizeDirection.Shrink);
         pool.DecreaseCapacity(step);
         _cooldowns[state.BufferSize] = now;
     }

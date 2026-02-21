@@ -278,7 +278,7 @@ public sealed class PacketDispatchChannel
     /// Generates a key-value diagnostic snapshot.
     /// </summary>
     /// <returns>Diagnostic dictionary.</returns>
-    public IDictionary<string, object> GenerateReportData()
+    public IDictionary<string, object> GetReportData()
     {
         Dictionary<string, object> report = new()
         {

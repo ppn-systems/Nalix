@@ -565,7 +565,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <summary>
     /// Generates a key-value diagnostic summary of the connection hub and active connections.
     /// </summary>
-    public IDictionary<string, object> GenerateReportData()
+    public IDictionary<string, object> GetReportData()
     {
         int total = Volatile.Read(ref _count);
         Dictionary<string, object> report = new()

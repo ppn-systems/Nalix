@@ -136,6 +136,7 @@ nav:
       - Nalix.Framework: packages/nalix-framework.md
       - Nalix.Logging: packages/nalix-logging.md
       - Nalix.Network: packages/nalix-network.md
+      - Nalix.Network.Hosting: packages/nalix-network-hosting.md
       - Nalix.Network.Pipeline: packages/nalix-network-pipeline.md
       - Nalix.SDK: packages/nalix-sdk.md
   - API:
@@ -193,6 +194,7 @@ nav:
         - Policy Rate Limiter: api/middleware/policy-rate-limiter.md
         - Token Bucket Limiter: api/middleware/token-bucket-limiter.md
       - Network:
+        - Hosting: api/network/runtime/network-hosting.md
         - Protocol: api/network/runtime/protocol.md
         - TCP Listener: api/network/runtime/tcp-listener.md
         - UDP Listener: api/network/runtime/udp-listener.md

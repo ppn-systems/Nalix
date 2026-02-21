@@ -54,11 +54,6 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
     #region Properties
 
     /// <summary>
-    /// Event for trace information.
-    /// </summary>
-    public event System.Action<string>? TraceOccurred;
-
-    /// <summary>
     /// Gets the singleton instance of the <see cref="ListPool{T}"/>.
     /// </summary>
     public static ListPool<T> Instance { get; } = new();
@@ -142,7 +137,6 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
         System.Collections.Generic.List<T> newList = new(capacity);
 
         _ = System.Threading.Interlocked.Increment(ref _created);
-        TraceOccurred?.Invoke($"Rent(): Created new List<{typeof(T).Name}> instance (Capacity={capacity}, TotalCreated={this.CreatedCount})");
 
         return newList;
     }
@@ -175,7 +169,6 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
         {
             // The list will be garbage collected since we're not storing it
             _ = System.Threading.Interlocked.Increment(ref _trimmed);
-            TraceOccurred?.Invoke($"Return(): Pools size limit reached, discarding list (MaxSize={_maxPoolSize}, Trimmed={this.TrimmedCount})");
         }
     }
 
@@ -206,7 +199,6 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
             _ = System.Threading.Interlocked.Increment(ref _created);
         }
 
-        TraceOccurred?.Invoke($"Prealloc(): Created {preallocationCount} List<{typeof(T).Name}> instances (Capacity={listCapacity})");
     }
 
     /// <summary>
@@ -227,7 +219,6 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
         if (trimCount > 0)
         {
             _ = System.Threading.Interlocked.Add(ref _trimmed, trimCount);
-            TraceOccurred?.Invoke($"Trim(): Removed {trimCount} List<{typeof(T).Name}> instances from pool");
         }
 
         return trimCount;
@@ -244,7 +235,6 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
         while (_listBag.TryTake(out _)) { }
 
         _ = System.Threading.Interlocked.Add(ref _trimmed, count);
-        TraceOccurred?.Invoke($"Dispose(): Removed all {count} List<{typeof(T).Name}> instances from pool");
 
         return count;
     }

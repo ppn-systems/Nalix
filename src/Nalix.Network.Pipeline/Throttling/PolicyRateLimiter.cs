@@ -339,7 +339,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     /// <summary>
     /// Generates a key-value diagnostic summary of the policy rate limiter and all active policies.
     /// </summary>
-    public IDictionary<string, object> GenerateReportData()
+    public IDictionary<string, object> GetReportData()
     {
         Dictionary<string, object> data = new()
         {
