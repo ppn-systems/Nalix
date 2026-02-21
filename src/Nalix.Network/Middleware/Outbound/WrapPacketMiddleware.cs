@@ -28,7 +28,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
         IPacket current = context.Packet;
 
         System.Boolean needEncrypt = context.Attributes.Encryption?.IsEncrypted ?? false;
-        System.Boolean needCompress = ShouldCompress(context);
+        System.Boolean needCompress = SHOULD_COMPRESS(context);
 
         if (!needEncrypt && !needCompress)
         {
@@ -155,7 +155,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
         await next(context.CancellationToken).ConfigureAwait(false);
     }
 
-    private static System.Boolean ShouldCompress(in PacketContext<IPacket> context)
+    private static System.Boolean SHOULD_COMPRESS(in PacketContext<IPacket> context)
     {
         return context.Packet.Protocol == ProtocolType.TCP
             ? context.Packet.Length - PacketConstants.CompressionThreshold > PacketConstants.CompressionThreshold

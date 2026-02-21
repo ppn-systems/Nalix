@@ -2,9 +2,9 @@
 
 using Nalix.Common.Attributes;
 using Nalix.Common.Enums;
+using Nalix.Common.Exceptions;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch;
-using System.Linq;
 
 namespace Nalix.Network.Middleware;
 
@@ -36,6 +36,50 @@ public class MiddlewarePipeline<TPacket>
     #endregion Properties
 
     #region Public Methods
+
+    /// <summary>
+    /// Executes the pipeline asynchronously using the provided packet context and terminal handler.
+    /// Middlewares are invoked in the order specified by their <see cref="MiddlewareOrderAttribute"/>.
+    /// </summary>
+    public System.Threading.Tasks.Task ExecuteAsync(
+        PacketContext<TPacket> context,
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> handler,
+        System.Threading.CancellationToken ct = default)
+    {
+        ENSURE_SORTED();
+
+        return INVOKE_PIPELINE_ASYNC(
+            _inbound, context,
+            async (downstreamCt) =>
+            {
+                await handler(downstreamCt).ConfigureAwait(false);
+
+                await INVOKE_PIPELINE_ASYNC(
+                    _outboundAlways, context,
+                    (ct) =>
+                    {
+                        ct.ThrowIfCancellationRequested();
+                        return System.Threading.Tasks.Task.CompletedTask;
+                    },
+                    downstreamCt
+                ).ConfigureAwait(false);
+
+                if (!context.SkipOutbound)
+                {
+                    await INVOKE_PIPELINE_ASYNC(
+                        _outbound, context,
+                        (ct) =>
+                        {
+                            ct.ThrowIfCancellationRequested();
+                            return System.Threading.Tasks.Task.CompletedTask;
+                        },
+                        downstreamCt
+                    ).ConfigureAwait(false);
+                }
+            },
+            ct
+        );
+    }
 
     /// <summary>
     /// Adds a middleware component automatically to the appropriate stage based on its attributes.
@@ -113,50 +157,6 @@ public class MiddlewarePipeline<TPacket>
         _isSorted = false;
     }
 
-    /// <summary>
-    /// Executes the pipeline asynchronously using the provided packet context and terminal handler.
-    /// Middlewares are invoked in the order specified by their <see cref="MiddlewareOrderAttribute"/>.
-    /// </summary>
-    public System.Threading.Tasks.Task ExecuteAsync(
-        PacketContext<TPacket> context,
-        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> handler,
-        System.Threading.CancellationToken ct = default)
-    {
-        ENSURE_SORTED();
-
-        return INVOKE_PIPELINE_ASYNC(
-            _inbound, context,
-            async (downstreamCt) =>
-            {
-                await handler(downstreamCt).ConfigureAwait(false);
-
-                await INVOKE_PIPELINE_ASYNC(
-                    _outboundAlways, context,
-                    (ct) =>
-                    {
-                        ct.ThrowIfCancellationRequested();
-                        return System.Threading.Tasks.Task.CompletedTask;
-                    },
-                    downstreamCt
-                ).ConfigureAwait(false);
-
-                if (!context.SkipOutbound)
-                {
-                    await INVOKE_PIPELINE_ASYNC(
-                        _outbound, context,
-                        (ct) =>
-                        {
-                            ct.ThrowIfCancellationRequested();
-                            return System.Threading.Tasks.Task.CompletedTask;
-                        },
-                        downstreamCt
-                    ).ConfigureAwait(false);
-                }
-            },
-            ct
-        );
-    }
-
     #endregion Public Methods
 
     #region Private Methods
@@ -180,23 +180,59 @@ public class MiddlewarePipeline<TPacket>
 
     private static System.Int32 GET_MIDDLEWARE_ORDER(System.Type middlewareType)
     {
-        MiddlewareOrderAttribute attr = middlewareType.GetCustomAttributes(typeof(MiddlewareOrderAttribute), true)
-                                                       .FirstOrDefault() as MiddlewareOrderAttribute;
-        return attr?.Order ?? 0;
+        System.ArgumentNullException.ThrowIfNull(middlewareType);
+
+        System.Object[] attributes = middlewareType.GetCustomAttributes(typeof(MiddlewareOrderAttribute), true);
+
+        if (attributes.Length == 0)
+        {
+            return 0; // Default order
+        }
+
+        return attributes[0] is not MiddlewareOrderAttribute attr
+            ? throw new InternalErrorException(
+                $"Attribute retrieval failed for type '{middlewareType.FullName}'.",
+                $"Expected '{nameof(MiddlewareOrderAttribute)}' but got '{attributes[0]?.GetType().FullName ?? "null"}'."
+            )
+            : attr.Order;
     }
 
     private static MiddlewareStage GET_MIDDLEWARE_STAGE(System.Type middlewareType)
     {
-        MiddlewareStageAttribute attr = middlewareType.GetCustomAttributes(typeof(MiddlewareStageAttribute), true)
-                                                       .FirstOrDefault() as MiddlewareStageAttribute;
-        return attr?.Stage ?? MiddlewareStage.Inbound;
+        System.ArgumentNullException.ThrowIfNull(middlewareType);
+
+        System.Object[] attributes = middlewareType.GetCustomAttributes(typeof(MiddlewareStageAttribute), true);
+
+        if (attributes.Length == 0)
+        {
+            return MiddlewareStage.Inbound; // Default stage
+        }
+
+        return attributes[0] is not MiddlewareStageAttribute attr
+            ? throw new InternalErrorException(
+                $"Attribute retrieval failed for type '{middlewareType.FullName}'.",
+                $"Expected '{nameof(MiddlewareStageAttribute)}' but got '{attributes[0]?.GetType().FullName ?? "null"}'."
+            )
+            : attr.Stage;
     }
 
     private static System.Boolean GET_ALWAYS_EXECUTE(System.Type middlewareType)
     {
-        MiddlewareStageAttribute attr = middlewareType.GetCustomAttributes(typeof(MiddlewareStageAttribute), true)
-                                                       .FirstOrDefault() as MiddlewareStageAttribute;
-        return attr?.AlwaysExecute ?? false;
+        System.ArgumentNullException.ThrowIfNull(middlewareType);
+
+        System.Object[] attributes = middlewareType.GetCustomAttributes(typeof(MiddlewareStageAttribute), true);
+
+        if (attributes.Length == 0)
+        {
+            return false; // Default: not always execute
+        }
+
+        return attributes[0] is not MiddlewareStageAttribute attr
+            ? throw new InternalErrorException(
+                $"Attribute retrieval failed for type '{middlewareType.FullName}'.",
+                $"Expected '{nameof(MiddlewareStageAttribute)}' but got '{attributes[0]?.GetType().FullName ?? "null"}'."
+            )
+            : attr.AlwaysExecute;
     }
 
     private static System.Threading.Tasks.Task INVOKE_PIPELINE_ASYNC(
