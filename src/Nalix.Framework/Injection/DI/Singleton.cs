@@ -21,17 +21,10 @@ public static class Singleton
     [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     private static readonly System.Threading.ReaderWriterLockSlim CacheLock;
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        System.Type, System.Type> TypeMapping = new();
-
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        System.Type, System.Lazy<System.Object>> Services = new();
-
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        System.Type, System.Func<System.Object>> Factories = new();
-
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
-        System.Type, System.Object> ResolutionCache = [];
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Type> TypeMapping = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<System.Type, System.Object> ResolutionCache = [];
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Lazy<System.Object>> Services = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<System.Object>> Factories = new();
 
     // Track whether we're in the dispose process
     private static System.Int32 _isDisposing;
@@ -40,12 +33,7 @@ public static class Singleton
 
     #region Constructor
 
-    static Singleton() =>
-        // A1B2C3D4 the resolution cache
-        // This is a no-op since ConditionalWeakTable doesn't require explicit initialization
-        // but it's here for clarity and future extensibility.
-
-        CacheLock = new(System.Threading.LockRecursionPolicy.NoRecursion);
+    static Singleton() => CacheLock = new(System.Threading.LockRecursionPolicy.NoRecursion);
 
     #endregion Constructor
 

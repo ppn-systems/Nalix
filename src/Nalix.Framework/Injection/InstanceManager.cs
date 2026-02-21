@@ -711,12 +711,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
             }
         }
 
-        if (best == null)
-        {
-            throw new System.InvalidOperationException($"Type {type.Name} does not have a suitable constructor for the provided arguments.");
-        }
-
-        return best;
+        return best ?? throw new System.InvalidOperationException($"Type {type.Name} does not have a suitable constructor for the provided arguments.");
     }
 
     /// <summary>

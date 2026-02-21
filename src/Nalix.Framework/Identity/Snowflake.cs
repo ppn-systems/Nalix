@@ -226,18 +226,14 @@ public readonly partial struct Snowflake : ISnowflake
     {
         lock (_generatorLock)
         {
-            // Use milliseconds for better resolution (1000x better than seconds)
             System.Int64 timestampMs = Clock.UnixMillisecondsNow();
 
             if (timestampMs == _lastTimestampMs)
             {
-                // Same millisecond - increment sequence
                 _sequence++;
-
-                // Sequence overflow check
                 if (_sequence > MaxSequence)
                 {
-                    // Exceeded max IDs per millisecond - wait for next ms
+                    // Wait for next millisecond
                     System.Threading.SpinWait sw = new();
                     do
                     {
@@ -246,28 +242,22 @@ public readonly partial struct Snowflake : ISnowflake
                     }
                     while (timestampMs == _lastTimestampMs);
 
-                    _lastTimestampMs = timestampMs;
                     _sequence = 0;
+                    _lastTimestampMs = timestampMs;
                 }
             }
             else if (timestampMs > _lastTimestampMs)
             {
-                // New millisecond - reset sequence
-                _lastTimestampMs = timestampMs;
                 _sequence = 0;
+                _lastTimestampMs = timestampMs;
             }
             else
             {
-                // Clock moved backwards - this is a serious error
                 throw new System.InvalidOperationException(
-                    $"Clock moved backwards! Last={_lastTimestampMs}ms, Current={timestampMs}ms.  " +
-                    "This typically indicates system clock adjustment or NTP sync issues.");
+                    $"Clock moved backwards! Last={_lastTimestampMs}ms, Current={timestampMs}ms");
             }
 
-            // Combine timestamp (lower 32 bits) with sequence in upper bits
-            // Since timestamp is in ms and grows slowly, we can safely use lower 32 bits
-            // and mix sequence into it for uniqueness
-            System.UInt32 value = (System.UInt32)(timestampMs & 0xFFFF0000) | _sequence;
+            System.UInt32 value = unchecked((System.UInt32)timestampMs) ^ ((System.UInt32)_sequence << 16);
 
             return new Snowflake(value, machineId, type);
         }
