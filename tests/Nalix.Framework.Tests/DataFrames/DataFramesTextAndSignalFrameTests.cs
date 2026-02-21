@@ -1,0 +1,265 @@
+
+using System;
+using System.Text;
+using Nalix.Common.Networking.Packets;
+using Nalix.Common.Networking.Protocols;
+using Nalix.Framework.DataFrames;
+using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.DataFrames.TextFrames;
+using Xunit;
+
+namespace Nalix.Framework.Tests.DataFrames;
+
+public sealed partial class DataFramesPublicApiTests
+{
+    [Theory]
+    [MemberData(nameof(TextFrameInitializeValidCases))]
+    public void InitializeValidTextInputUpdatesContentProtocolAndLength(
+        TextFrameKind frameKind,
+        string content,
+        ProtocolType protocol,
+        int expectedDynamicBytes)
+    {
+        FrameBase frame = CreateAndInitializeTextFrame(frameKind, content, protocol);
+        byte[] bytes = frame.Serialize();
+
+        string actualContent = frame switch
+        {
+            Text256 text256 => text256.Content,
+            Text512 text512 => text512.Content,
+            Text1024 text1024 => text1024.Content,
+            _ => throw new InvalidOperationException("Unexpected frame type.")
+        };
+
+        Assert.Equal(content, actualContent);
+        Assert.Equal(protocol, frame.Protocol);
+        Assert.Equal(expectedDynamicBytes, Encoding.UTF8.GetByteCount(actualContent));
+        Assert.True(frame.Length >= bytes.Length);
+        Assert.True(frame.Length > PacketConstants.HeaderSize);
+    }
+
+    [Theory]
+    [MemberData(nameof(TextFrameInitializeOverflowCases))]
+    public void InitializeWhenContentExceedsLimitThrowsArgumentOutOfRangeException(TextFrameKind frameKind)
+    {
+        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            CreateAndInitializeTextFrame(frameKind, new string(GetOverflowFillCharacter(frameKind), GetTextFrameDynamicSize(frameKind) + 1), ProtocolType.TCP));
+
+        Assert.Equal("content", exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(TextFrameKind.Text256, ProtocolType.TCP)]
+    [InlineData(TextFrameKind.Text512, ProtocolType.UDP)]
+    [InlineData(TextFrameKind.Text1024, ProtocolType.TCP)]
+    public void InitializeWhenContentMatchesDynamicSizeExactlySucceeds(TextFrameKind frameKind, ProtocolType protocol)
+    {
+        string content = new(GetOverflowFillCharacter(frameKind), GetTextFrameDynamicSize(frameKind));
+
+        FrameBase frame = CreateAndInitializeTextFrame(frameKind, content, protocol);
+
+        int actualBytes = frame switch
+        {
+            Text256 text256 => Encoding.UTF8.GetByteCount(text256.Content),
+            Text512 text512 => Encoding.UTF8.GetByteCount(text512.Content),
+            Text1024 text1024 => Encoding.UTF8.GetByteCount(text1024.Content),
+            _ => throw new InvalidOperationException("Unexpected frame type.")
+        };
+
+        Assert.Equal(GetTextFrameDynamicSize(frameKind), actualBytes);
+        Assert.Equal(protocol, frame.Protocol);
+    }
+
+    [Theory]
+    [MemberData(nameof(TextFrameResetCases))]
+    public void ResetForPoolWhenFrameContainsTextRestoresHeaderDefaults(TextFrameKind frameKind)
+    {
+        FrameBase frame = CreateDirtyTextFrame(frameKind);
+
+        frame.ResetForPool();
+
+        string actualContent = frame switch
+        {
+            Text256 text256 => text256.Content,
+            Text512 text512 => text512.Content,
+            Text1024 text1024 => text1024.Content,
+            _ => throw new InvalidOperationException("Unexpected frame type.")
+        };
+
+        Assert.Equal(string.Empty, actualContent);
+        Assert.Equal(PacketFlags.NONE, frame.Flags);
+        Assert.Equal(PacketPriority.NONE, frame.Priority);
+        Assert.Equal(ProtocolType.NONE, frame.Protocol);
+        Assert.Equal(PacketConstants.OpcodeDefault, frame.OpCode);
+    }
+
+    [Theory]
+    [MemberData(nameof(PacketRoundTripCases))]
+    public void SerializeThenDeserializePublicPacketPreservesPublicState(PacketRoundTripKind packetKind)
+    {
+        FrameBase original = CreateRoundTripPacket(packetKind);
+
+        byte[] bytes = original.Serialize();
+        FrameBase deserialized = original switch
+        {
+            Control => Control.Deserialize(bytes),
+            Directive => Directive.Deserialize(bytes),
+            Handshake => Handshake.Deserialize(bytes),
+            Text256 => Text256.Deserialize(bytes),
+            Text512 => Text512.Deserialize(bytes),
+            Text1024 => Text1024.Deserialize(bytes),
+            _ => throw new InvalidOperationException("Unexpected frame type.")
+        };
+
+        AssertRoundTripPacketEquivalent(packetKind, original, deserialized);
+    }
+
+    [Fact]
+    public void InitializeControlPacketUpdatesPublicProperties()
+    {
+        Control packet = new();
+
+        packet.Initialize(123, ControlType.PING, 42, ProtocolReason.TIMEOUT, ProtocolType.UDP);
+
+        Assert.Equal((ushort)123, packet.OpCode);
+        Assert.Equal(ControlType.PING, packet.Type);
+        Assert.Equal(42u, packet.SequenceId);
+        Assert.Equal(ProtocolReason.TIMEOUT, packet.Reason);
+        Assert.Equal(ProtocolType.UDP, packet.Protocol);
+        Assert.Equal(PacketPriority.URGENT, packet.Priority);
+        Assert.NotEqual(0L, packet.Timestamp);
+        Assert.NotEqual(0L, packet.MonoTicks);
+    }
+
+    [Fact]
+    public void ResetForPoolWhenControlPacketWasInitializedRestoresControlDefaults()
+    {
+        Control packet = new();
+        packet.Initialize(555, ControlType.ERROR, 7, ProtocolReason.INTERNAL_ERROR, ProtocolType.UDP);
+        packet.Flags = PacketFlags.SYSTEM;
+
+        packet.ResetForPool();
+
+        Assert.Equal(ControlType.NONE, packet.Type);
+        Assert.Equal(ProtocolReason.NONE, packet.Reason);
+        Assert.Equal(0u, packet.SequenceId);
+        Assert.Equal(0L, packet.Timestamp);
+        Assert.Equal(0L, packet.MonoTicks);
+        Assert.Equal(PacketPriority.URGENT, packet.Priority);
+        Assert.Equal(PacketFlags.NONE, packet.Flags);
+        Assert.Equal(ProtocolType.NONE, packet.Protocol);
+    }
+
+    [Fact]
+    public void InitializeDirectivePacketUpdatesPublicProperties()
+    {
+        Directive packet = new();
+
+        packet.Initialize(
+            77,
+            ControlType.REDIRECT,
+            ProtocolReason.REDIRECT,
+            ProtocolAdvice.RECONNECT,
+            99,
+            ControlFlags.HAS_REDIRECT | ControlFlags.IS_TRANSIENT,
+            1000,
+            2000,
+            33);
+
+        Assert.Equal((ushort)77, packet.OpCode);
+        Assert.Equal(ControlType.REDIRECT, packet.Type);
+        Assert.Equal(ProtocolReason.REDIRECT, packet.Reason);
+        Assert.Equal(ProtocolAdvice.RECONNECT, packet.Action);
+        Assert.Equal(99u, packet.SequenceId);
+        Assert.Equal(ControlFlags.HAS_REDIRECT | ControlFlags.IS_TRANSIENT, packet.Control);
+        Assert.Equal(1000u, packet.Arg0);
+        Assert.Equal(2000u, packet.Arg1);
+        Assert.Equal((ushort)33, packet.Arg2);
+        Assert.Equal(PacketPriority.URGENT, packet.Priority);
+        Assert.Equal(ProtocolType.TCP, packet.Protocol);
+    }
+
+    [Fact]
+    public void ResetForPoolWhenHandshakeContainsDataClearsPayload()
+    {
+        Handshake packet = new(12, [1, 2, 3, 4], ProtocolType.UDP);
+
+        packet.ResetForPool();
+
+        Assert.NotNull(packet.Data);
+        Assert.Empty(packet.Data);
+        Assert.Equal(PacketFlags.NONE, packet.Flags);
+        Assert.Equal(PacketPriority.NONE, packet.Priority);
+        Assert.Equal(ProtocolType.NONE, packet.Protocol);
+    }
+
+    [Fact]
+    public void ControlFixedSizeMatchesComputedLengthAndSerializedBytes()
+    {
+        Control packet = new();
+        packet.Initialize(123, ControlType.PING, 42, ProtocolReason.TIMEOUT, ProtocolType.UDP);
+
+        byte[] bytes = packet.Serialize();
+
+        Assert.Equal(Control.Size, packet.Length);
+        Assert.Equal(Control.Size, bytes.Length);
+    }
+
+    [Fact]
+    public void DirectiveFixedSizeMatchesComputedLengthAndSerializedBytes()
+    {
+        Directive packet = new();
+        packet.Initialize(
+            77,
+            ControlType.REDIRECT,
+            ProtocolReason.REDIRECT,
+            ProtocolAdvice.RECONNECT,
+            99,
+            ControlFlags.HAS_REDIRECT | ControlFlags.IS_TRANSIENT,
+            1000,
+            2000,
+            33);
+
+        byte[] bytes = packet.Serialize();
+
+        Assert.Equal(Directive.Size, packet.Length);
+        Assert.Equal(Directive.Size, bytes.Length);
+    }
+
+    [Fact]
+    public void HandshakeLengthWhenAuthPayloadExistsMatchesActualSerializedBytes()
+    {
+        Handshake packet = new(12, [1, 2, 3, 4], ProtocolType.UDP)
+        {
+            Auth = new Handshake.HandshakeAuth
+            {
+                PublicKey = new byte[32],
+                Signature = new byte[64]
+            },
+            Identity = "client-a"
+        };
+
+        byte[] bytes = packet.Serialize();
+
+        Assert.Equal(bytes.Length, packet.Length);
+    }
+
+    [Fact]
+    public void HandshakeSerializeIntoLengthSizedBufferWhenAuthPayloadExistsSucceeds()
+    {
+        Handshake packet = new(12, [1, 2, 3, 4], ProtocolType.UDP)
+        {
+            Auth = new Handshake.HandshakeAuth
+            {
+                PublicKey = new byte[32],
+                Signature = new byte[64]
+            },
+            Identity = "client-a"
+        };
+
+        byte[] buffer = new byte[packet.Length];
+        int written = packet.Serialize(buffer);
+
+        Assert.Equal(packet.Length, written);
+    }
+}

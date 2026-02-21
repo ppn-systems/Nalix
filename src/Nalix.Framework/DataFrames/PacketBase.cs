@@ -17,6 +17,7 @@ using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Framework.DataFrames.Internal;
 using Nalix.Framework.Serialization;
+using Nalix.Framework.Serialization.Internal.Types;
 
 namespace Nalix.Framework.DataFrames;
 
@@ -41,6 +42,14 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     private static readonly uint s_autoMagic = PacketRegistryFactory.Compute(typeof(TSelf));
 
     /// <summary>
+    /// The serialization layout declared on the packet type.
+    /// </summary>
+    [SerializeIgnore]
+    private static readonly SerializeLayout s_layout =
+        typeof(TSelf).GetCustomAttribute<SerializePackableAttribute>()?.SerializeLayout
+        ?? SerializeLayout.Auto;
+
+    /// <summary>
     /// All serializable properties as pre-compiled PropertyMetadata.
     /// Lazy{T} guarantees thread-safe single initialization without explicit locking.
     /// Using System.Linq only at startup (inside the Lazy factory) — never in hot paths.
@@ -50,26 +59,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         static () =>
         [
             .. Enumerable.Select(
-                Enumerable.OrderBy(
-                    Enumerable.Where(
-                        Enumerable.Select(
-                            typeof(TSelf).GetProperties(
-                                BindingFlags.Public |
-                                BindingFlags.Instance),
-                            static p => (
-                                p,
-                                order: CustomAttributeExtensions
-                                           .GetCustomAttribute<SerializeOrderAttribute>(p),
-                                ignore: CustomAttributeExtensions
-                                            .GetCustomAttribute<SerializeIgnoreAttribute>(p)
-                            )
-                        ),
-                        // Both conditions evaluated with the already-fetched attributes
-                        // — no second GetCustomAttribute scan.
-                        static x => x.order is not null && x.ignore is null
-                    ),
-                    static x => x.order!.Order
-                ),
+                EnumerateSerializableProperties(),
                 static x => new PropertyMetadata(x.p)
             )
         ],
@@ -88,7 +78,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
             int size = PacketConstants.HeaderSize;
             foreach (PropertyMetadata meta in s_metadata.Value)
             {
-                if (meta.IsDynamic)
+                if (meta.IsDynamic || meta.FixedSize == 0)
                 {
                     return null; // signal: at least one property needs runtime measurement
                 }
@@ -139,30 +129,30 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
         foreach (PropertyMetadata meta in s_metadata.Value)
         {
-            if (!meta.IsDynamic)
+            object? value = meta.GetValue(this);
+            if (meta.IsDynamic)
+            {
+                if (!TypeMetadata.TryGetNestedSize(meta.Property.PropertyType, value, out int dynamicSize))
+                {
+                    return size;
+                }
+
+                size += dynamicSize;
+                continue;
+            }
+
+            if (meta.FixedSize != 0)
             {
                 size += meta.FixedSize;
                 continue;
             }
 
-            // Dynamic: measure actual content at runtime.
-            // string: UTF-8 byte count + 2-byte length prefix (matches LiteSerializer wire format).
-            // byte[]: raw byte count + 4-byte length prefix.
-            // Unknown dynamic type: contributes 0 — subclass should override if needed.
-            size += meta.GetValue(this) switch
+            if (!TypeMetadata.TryGetNestedSize(meta.Property.PropertyType, value, out int estimatedSize))
             {
-                string str when str.Length > 0
-                    => Encoding.UTF8.GetByteCount(str) + sizeof(ushort),
+                return size;
+            }
 
-                string => sizeof(ushort),
-
-                byte[] { Length: > 0 } bytes
-                    => bytes.Length + sizeof(int),
-
-                byte[] => sizeof(int),
-
-                _ => 0
-            };
+            size += estimatedSize;
         }
 
         return size;
@@ -302,4 +292,31 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     public override string ToString() => $"{typeof(TSelf).Name}(Magic=0x{this.MagicNumber:X8}, OpCode={this.OpCode}, Flags={this.Flags}, Priority={this.Priority}, Protocol={this.Protocol})";
 
     #endregion Diagnostics
+
+    #region Private Methods
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static IEnumerable<(PropertyInfo p, SerializeOrderAttribute? order)> EnumerateSerializableProperties()
+    {
+        IEnumerable<(PropertyInfo p, SerializeOrderAttribute? order, SerializeIgnoreAttribute? ignore, SerializeHeaderAttribute? header)> candidates =
+            typeof(TSelf)
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Select(static p => (
+                    p,
+                    order: p.GetCustomAttribute<SerializeOrderAttribute>(),
+                    ignore: p.GetCustomAttribute<SerializeIgnoreAttribute>(),
+                    header: p.GetCustomAttribute<SerializeHeaderAttribute>()));
+
+        IEnumerable<(PropertyInfo p, SerializeOrderAttribute? order)> selected = candidates
+            .Where(static x => x.ignore is null && x.header is null)
+            .Select(static x => (x.p, x.order));
+
+        return s_layout == SerializeLayout.Explicit
+            ? selected
+                .Where(static x => x.order is not null)
+                .OrderBy(static x => x.order!.Order)
+            : selected;
+    }
+
+    #endregion Private Methods
 }

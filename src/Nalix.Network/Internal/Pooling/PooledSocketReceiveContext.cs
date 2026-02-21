@@ -9,6 +9,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Sources;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Injection;
@@ -41,9 +42,10 @@ namespace Nalix.Network.Internal.Pooling;
 /// <b>Bug fixes vs previous revision:</b>
 /// <list type="bullet">
 ///   <item>
-///     Static <c>AsyncReceiveCompleted</c> now carries the <see cref="PooledSocketReceiveContext"/>
-///     reference via a dedicated wrapper object stored in <see cref="SocketAsyncEventArgs.UserToken"/>,
-///     so <c>EndOperation()</c> is correctly called on every async completion path.
+///     Static <c>AsyncReceiveCompleted</c> now resolves the result directly on a reusable
+///     <see cref="ManualResetValueTaskSourceCore{TResult}"/> stored on the owning
+///     <see cref="PooledSocketReceiveContext"/>, removing the per-receive
+///     <see cref="TaskCompletionSource{TResult}"/> allocation.
 ///   </item>
 ///   <item>
 ///     <see cref="ReceiveAsync"/> is no longer <c>async</c>: it returns
@@ -57,31 +59,9 @@ namespace Nalix.Network.Internal.Pooling;
 [DebuggerStepThrough]
 [DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
-[DebuggerDisplay("Args={Args}, ActiveOps={_activeOps}")]
-internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
+[DebuggerDisplay("Args={Args}, ActiveOps={_activeOps}, AwaiterPending={_consumerAwaitPending}")]
+internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValueTaskSource<int>
 {
-    // -------------------------------------------------------------------------
-    // Token wrapper — stored in SAEA.UserToken so the static handler can reach
-    // both the TCS and the context instance without a closure allocation.
-    // Sealed struct-like class kept allocation-cheap (one alloc per receive).
-    // -------------------------------------------------------------------------
-
-    /// <summary>
-    /// Carries the per-receive TCS and the owning <see cref="PooledSocketReceiveContext"/>
-    /// so the static completion handler can resolve the TCS and call
-    /// <see cref="EndOperation"/> without capturing a closure or allocating a
-    /// delegate per receive.
-    /// </summary>
-    /// <param name="tcs"></param>
-    /// <param name="owner"></param>
-    private sealed class ReceiveToken(
-        TaskCompletionSource<int> tcs,
-        PooledSocketReceiveContext owner)
-    {
-        public readonly TaskCompletionSource<int> Tcs = tcs;
-        public readonly PooledSocketReceiveContext Owner = owner;
-    }
-
     /// <summary>
     /// Static completion handler shared across all instances.
     /// It resolves the receive task and decrements the active-operation counter
@@ -90,26 +70,31 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     [SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
     private static readonly EventHandler<SocketAsyncEventArgs> AsyncReceiveCompleted = static (_, e) =>
     {
-        if (e.UserToken is not ReceiveToken token)
+        if (e.UserToken is not PooledSocketReceiveContext owner)
         {
             return;
         }
 
 #if DEBUG
-        Debug.WriteLine($"[PooledSocketReceiveContext] async-complete err={e.SocketError} bytes={e.BytesTransferred} ctx={RuntimeHelpers.GetHashCode(token.Owner)}");
+        Debug.WriteLine($"[PooledSocketReceiveContext] async-complete err={e.SocketError} bytes={e.BytesTransferred} ctx={RuntimeHelpers.GetHashCode(owner)}");
 #endif
 
         try
         {
-            _ = e.SocketError == SocketError.Success
-                ? token.Tcs.TrySetResult(e.BytesTransferred)
-                : token.Tcs.TrySetException(new SocketException((int)e.SocketError));
+            if (e.SocketError == SocketError.Success)
+            {
+                owner._receiveSource.SetResult(e.BytesTransferred);
+            }
+            else
+            {
+                owner._receiveSource.SetException(new SocketException((int)e.SocketError));
+            }
         }
         finally
         {
             // Always decrement, even if TrySet* fails, so duplicate completions or
             // late completions cannot leave the context stuck in "busy" state.
-            token.Owner.EndOperation();
+            owner.EndOperation();
         }
     };
 
@@ -134,15 +119,34 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     private int _activeOps;
 
     /// <summary>
+    /// Reusable awaitable backing store for the async receive path.
+    /// Reset once per pending operation, then completed from the shared SAEA callback.
+    /// </summary>
+    private ManualResetValueTaskSourceCore<int> _receiveSource;
+
+    /// <summary>
     /// Signaled when _activeOps == 0. ResetForPool() waits on this before cleanup.
     /// It starts signaled because a newly created context has no in-flight receive.
     /// </summary>
     private readonly ManualResetEventSlim _idle =
         new(initialState: true);
 
+    /// <summary>
+    /// Signaled when the consumer has observed the result of the current async
+    /// receive via <see cref="IValueTaskSource{TResult}.GetResult(short)"/>.
+    /// This prevents the context from being recycled while an await continuation
+    /// still references the current value-task source version.
+    /// </summary>
+    private readonly ManualResetEventSlim _consumerIdle =
+        new(initialState: true);
+
+    private int _consumerAwaitPending;
+
     // -------------------------------------------------------------------------
     // Public surface
     // -------------------------------------------------------------------------
+
+    public PooledSocketReceiveContext() => _receiveSource.RunContinuationsAsynchronously = true;
 
     /// <summary>
     /// The SAEA currently bound to this context.
@@ -192,6 +196,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
         _args?.Completed -= AsyncReceiveCompleted;
 
         _args = newArgs ?? throw new ArgumentNullException(nameof(newArgs));
+        _args.UserToken = this;
         _args.Completed += AsyncReceiveCompleted;
 
 #if DEBUG
@@ -227,16 +232,8 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
         // directly into the caller's buffer segment.
         args.SetBuffer(buffer, offset, count);
 
-        // Fresh TCS per receive. RunContinuationsAsynchronously keeps continuations
-        // off the IO completion thread and avoids deep synchronous continuation
-        // chains when a burst of receives completes inline.
-        TaskCompletionSource<int> tcs = new(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-
-        // Store both the TCS and the owner context in UserToken so the static
-        // completion handler can resolve the result and balance the active-op
-        // counter without capturing any state or allocating a closure.
-        args.UserToken = new ReceiveToken(tcs, this);
+        // Re-arm the reusable value-task source for the next pending receive.
+        _receiveSource.Reset();
 
         // Mark that a kernel operation is now in-flight before calling into the socket.
         this.BeginOperation();
@@ -277,9 +274,11 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
         Debug.WriteLine($"[PooledSocketReceiveContext] recv-async-pending offset={offset} count={count} ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
 
+        this.BeginConsumerAwait();
+
         // Async path: the completion callback will fire later and call
-        // EndOperation() via the token wrapper.
-        return new ValueTask<int>(tcs.Task);
+        // EndOperation() via the shared owner reference stored in UserToken.
+        return new ValueTask<int>(this, _receiveSource.Version);
     }
 
     /// <summary>
@@ -296,9 +295,12 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
             $"[PooledSocketReceiveContext] ResetForPool begin activeOps={_activeOps} ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
 
+        TimeSpan timeout = TimeSpan.FromSeconds(5);
+
         // Wait for the in-flight operation to finish. Five seconds is generous;
         // a real teardown should cancel the socket first so the OS aborts the op.
-        if (!_idle.Wait(TimeSpan.FromSeconds(5)))
+        bool receiveIdle = _idle.Wait(timeout);
+        if (!receiveIdle)
         {
 #if DEBUG
             Debug.WriteLine(
@@ -306,6 +308,15 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
 #endif
             // Still proceed — better to risk a brief race than to leak the context
             // forever if the kernel or caller fails to complete promptly.
+        }
+
+        bool consumerIdle = _consumerIdle.Wait(timeout);
+        if (!consumerIdle)
+        {
+#if DEBUG
+            Debug.WriteLine(
+                $"[PooledSocketReceiveContext] ResetForPool TIMEOUT waiting for consumer idle pending={_consumerAwaitPending} ctx={RuntimeHelpers.GetHashCode(this)}");
+#endif
         }
 
         if (_args != null)
@@ -326,7 +337,9 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
 
         // Re-arm for next use: reset counter and event to idle state.
         Volatile.Write(ref _activeOps, 0);
+        Volatile.Write(ref _consumerAwaitPending, 0);
         _idle.Set();
+        _consumerIdle.Set();
 
 #if DEBUG
         Debug.WriteLine($"[PooledSocketReceiveContext] ResetForPool done ctx={RuntimeHelpers.GetHashCode(this)}");
@@ -356,6 +369,46 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
         if (Interlocked.Decrement(ref _activeOps) == 0)
         {
             _idle.Set();
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void BeginConsumerAwait()
+    {
+        Volatile.Write(ref _consumerAwaitPending, 1);
+        _consumerIdle.Reset();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void EndConsumerAwait()
+    {
+        if (Interlocked.Exchange(ref _consumerAwaitPending, 0) == 0)
+        {
+            return;
+        }
+
+        _consumerIdle.Set();
+    }
+
+    ValueTaskSourceStatus IValueTaskSource<int>.GetStatus(short token)
+        => _receiveSource.GetStatus(token);
+
+    void IValueTaskSource<int>.OnCompleted(
+        Action<object?> continuation,
+        object? state,
+        short token,
+        ValueTaskSourceOnCompletedFlags flags)
+        => _receiveSource.OnCompleted(continuation, state, token, flags);
+
+    int IValueTaskSource<int>.GetResult(short token)
+    {
+        try
+        {
+            return _receiveSource.GetResult(token);
+        }
+        finally
+        {
+            this.EndConsumerAwait();
         }
     }
 

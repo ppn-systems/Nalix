@@ -13,7 +13,7 @@ on:
         required: true
         type: string
       project:
-        description: "Path(s) to .csproj files, one per line"
+        description: "Path(s) to .csproj or .sln files, one per line"
         required: true
         type: string
       test:
@@ -84,7 +84,7 @@ jobs:
         shell: bash
         run: |
           if [ -n "${{ secrets.SIGNING_KEY }}" ]; then
-            echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./src/Nalix.snk
+            echo "${{ secrets.SIGNING_KEY }}" | base64 -d > "$GITHUB_WORKSPACE/src/Nalix.snk"
           else
             echo "SIGNING_KEY is not set. Skipping signing key creation."
           fi
@@ -92,26 +92,16 @@ jobs:
       - name: Restore all projects
         shell: bash
         run: |
-          dotnet restore src/Nalix.sln
-          dotnet restore tests/Nalix.Tests.sln
+          dotnet restore "${{ inputs.project }}"
+          dotnet restore "${{ inputs.test }}"
 
       - name: Build all projects
         shell: bash
-        run: |
-          dotnet build src/Nalix.sln \
-            --configuration Release \
-            --no-restore \
-            /p:UseSharedCompilation=false
+        run: dotnet build "${{ inputs.project }}" --configuration Release --no-restore -p:UseSharedCompilation=false
 
       - name: Run all tests
         shell: bash
-        run: |
-          dotnet test tests/Nalix.Tests.sln \
-            --configuration Release \
-            --no-restore \
-            --logger "trx;LogFileName=tests_results.trx" \
-            --results-directory "$TEST_RESULTS_DIR" \
-            /p:UseSharedCompilation=false
+        run: dotnet test "${{ inputs.test }}" --configuration Release --no-restore --logger "trx;LogFileName=tests_results.trx" --results-directory "$TEST_RESULTS_DIR" -p:UseSharedCompilation=false
 
       - name: Upload test results
         if: always()
@@ -124,12 +114,7 @@ jobs:
       - name: Publish build output
         if: inputs.deploy
         shell: bash
-        run: |
-          dotnet publish src/Nalix.sln \
-            --configuration Release \
-            --no-restore \
-            --no-build \
-            --output ./publish
+        run: dotnet publish "${{ inputs.project }}" --configuration Release --no-restore --no-build --output ./publish
 
       - name: Upload publish artifact
         if: inputs.deploy

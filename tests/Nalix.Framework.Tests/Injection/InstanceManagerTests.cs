@@ -1,5 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -10,238 +11,162 @@ using Xunit;
 namespace Nalix.Framework.Tests.Injection;
 
 /// <summary>
-/// Unit tests for public InstanceManager API.
-/// Tests cover Register, RegisterForClassOnly, GetOrCreateInstance (generic and non-generic),
-/// CreateInstance, RemoveInstance, HasInstance, GetExistingInstance, Clear, and GenerateReport.
+/// Verifies the public behaviors exposed by <see cref="InstanceManager"/>.
 /// </summary>
-public class InstanceManagerTests : IDisposable
+public sealed class InstanceManagerTests : IDisposable
 {
-    // Use a fresh InstanceManager per test class (clear state between tests).
-    private readonly InstanceManager _mgr;
+    private readonly InstanceManager _manager = new();
 
-    public InstanceManagerTests()
-    {
-        // Create a new manager instance; ensure clean slate.
-        _mgr = new InstanceManager();
-        _mgr.Clear(dispose: true);
-    }
+    public InstanceManagerTests() => _manager.Clear(dispose: true);
 
     public void Dispose()
     {
         try
         {
-            _mgr.Clear(dispose: true);
+            _manager.Clear(dispose: true);
         }
         catch
         {
-            // swallow in teardown
         }
 
         GC.SuppressFinalize(this);
     }
 
-    #region Test Helpers
-
-    // A disposable helper that counts Dispose calls (thread-safe).
-    private sealed class DisposableCounter : IDisposable
-    {
-        private int _disposed;
-        public int DisposeCount => Volatile.Read(ref _disposed);
-
-        public void Dispose() => Interlocked.Increment(ref _disposed);
-    }
-
-    private interface ITestService { string Name { get; } }
-
-    // Service implementing an interface and IDisposable
-    private sealed class TestService(string name) : ITestService, IDisposable
-    {
-        public string Name { get; } = name ?? throw new ArgumentNullException(nameof(name));
-
-        public TestService() : this("default") { }
-
-        public void Dispose()
-        {
-            // no-op
-        }
-    }
-
-    // Class with multiple constructors for activator tests
-    private sealed class CtorClass
-    {
-        public string SelectedCtor { get; }
-
-        public CtorClass() => this.SelectedCtor = "empty";
-
-        public CtorClass(string x) => this.SelectedCtor = $"string:{x}";
-
-        public CtorClass(int n) => this.SelectedCtor = $"int:{n}";
-    }
-
-    #endregion
-
     [Fact(DisplayName = "Register same instance twice should not dispose the instance")]
-    public void RegisterSameInstanceNotDisposed()
+    public void RegisterSameInstanceTwiceDoesNotDisposeIt()
     {
-        DisposableCounter d = new();
-        _mgr.Register(d);
+        DisposableCounter instance = new();
 
-        // Re-register same instance
-        _mgr.Register(d);
+        _manager.Register(instance);
+        _manager.Register(instance);
 
-        // No dispose should have been called
-        Assert.Equal(0, d.DisposeCount);
+        Assert.Equal(0, instance.DisposeCount);
 
-        // Clean
-        _ = _mgr.RemoveInstance(typeof(DisposableCounter));
+        _ = _manager.RemoveInstance(typeof(DisposableCounter));
     }
 
     [Fact(DisplayName = "Register replacing instance should dispose previous once")]
-    public void RegisterReplaceInstancePreviousDisposedOnce()
+    public void RegisterReplacingInstanceDisposesPreviousOnce()
     {
-        DisposableCounter a = new();
-        DisposableCounter b = new();
+        DisposableCounter first = new();
+        DisposableCounter second = new();
 
-        _mgr.Register(a);
-        // Replace with b
-        _mgr.Register(b);
+        _manager.Register(first);
+        _manager.Register(second);
 
-        // previous must be disposed exactly once
-        Assert.Equal(1, a.DisposeCount);
-        Assert.Equal(0, b.DisposeCount);
+        Assert.Equal(1, first.DisposeCount);
+        Assert.Equal(0, second.DisposeCount);
 
-        _ = _mgr.RemoveInstance(typeof(DisposableCounter));
+        _ = _manager.RemoveInstance(typeof(DisposableCounter));
     }
 
     [Fact(DisplayName = "Register with interfaces publishes interface slot and GetExistingInstance returns it")]
     public void RegisterWithInterfacesPublishesInterfaceSlot()
     {
-        TestService svc = new("svc1");
-        // register and also publish interfaces (default true)
-        _mgr.Register(svc, registerInterfaces: true);
+        TestService service = new("svc1");
 
-        // get by interface
-        ITestService fromIface = _mgr.GetExistingInstance<ITestService>();
-        Assert.Same(svc, fromIface);
+        _manager.Register(service, registerInterfaces: true);
 
-        // also get by concrete generic
-        TestService fromConcrete = _mgr.GetExistingInstance<TestService>();
-        Assert.Same(svc, fromConcrete);
+        ITestService? fromInterface = _manager.GetExistingInstance<ITestService>();
+        TestService? fromConcrete = _manager.GetExistingInstance<TestService>();
 
-        // Clean
-        _ = _mgr.RemoveInstance(typeof(TestService));
+        Assert.Same(service, fromInterface);
+        Assert.Same(service, fromConcrete);
+
+        _ = _manager.RemoveInstance(typeof(TestService));
     }
 
     [Fact(DisplayName = "GetOrCreateInstance generic caches instance; CreateInstance creates new object")]
-    public void GetOrCreateInstanceGenericAndCreateInstance()
+    public void GetOrCreateInstanceCachesWhileCreateInstanceReturnsNewObject()
     {
-        TestService t1 = _mgr.GetOrCreateInstance<TestService>();
-        Assert.NotNull(t1);
+        TestService first = _manager.GetOrCreateInstance<TestService>();
+        TestService second = _manager.GetOrCreateInstance<TestService>();
+        TestService fresh = (TestService)_manager.CreateInstance(typeof(TestService));
 
-        TestService t2 = _mgr.GetOrCreateInstance<TestService>();
-        Assert.Same(t1, t2); // cached
+        Assert.NotNull(first);
+        Assert.Same(first, second);
+        Assert.NotSame(first, fresh);
 
-        // CreateInstance returns a new instance (not cached)
-        TestService fresh = (TestService)_mgr.CreateInstance(typeof(TestService));
-        Assert.NotSame(t1, fresh);
-
-        // Clean
-        _mgr.Clear(dispose: true);
+        _manager.Clear(dispose: true);
     }
 
     [Fact(DisplayName = "RemoveInstance disposes and removes instance")]
-    public void RemoveInstanceDisposesAndRemoves()
+    public void RemoveInstanceDisposesAndRemovesInstance()
     {
-        DisposableCounter d = new();
-        _mgr.Register(d);
+        DisposableCounter instance = new();
+        _manager.Register(instance);
 
-        bool removed = _mgr.RemoveInstance(typeof(DisposableCounter));
+        bool removed = _manager.RemoveInstance(typeof(DisposableCounter));
+
         Assert.True(removed);
-        Assert.Equal(1, d.DisposeCount);
-        Assert.False(_mgr.HasInstance<DisposableCounter>());
+        Assert.Equal(1, instance.DisposeCount);
+        Assert.False(_manager.HasInstance<DisposableCounter>());
     }
 
     [Fact(DisplayName = "Clear disposes all when dispose=true")]
-    public void ClearDisposesAll()
+    public void ClearDisposesTrackedInstances()
     {
-        DisposableCounter a = new();
-        DisposableCounter b = new();
+        DisposableCounter first = new();
+        DisposableCounter second = new();
+        TestService service = new("x");
 
-        _mgr.Register(a);
-        _mgr.RegisterForClassOnly(b); // registers class only (will replace the same key)
+        _manager.Register(first);
+        _manager.RegisterForClassOnly(second);
+        _manager.Register(service);
 
-        // To ensure both tracked, register a different type as well
-        TestService svc = new("x");
-        _mgr.Register(svc);
+        _manager.Clear(dispose: true);
 
-        _mgr.Clear(dispose: true);
-
-        // All disposables tracked must be disposed at least once.
-        Assert.True(a.DisposeCount >= 0); // a may have been replaced; we cannot assert exact due to replacement semantics
-        Assert.True(b.DisposeCount >= 0);
-        // After clear no instances should remain
-        Assert.False(_mgr.HasInstance<DisposableCounter>());
-        Assert.False(_mgr.HasInstance<TestService>());
+        Assert.True(first.DisposeCount >= 0);
+        Assert.True(second.DisposeCount >= 0);
+        Assert.False(_manager.HasInstance<DisposableCounter>());
+        Assert.False(_manager.HasInstance<TestService>());
     }
 
     [Fact(DisplayName = "GenerateReport contains registered types")]
-    public void GenerateReportIncludesTypes()
+    public void GenerateReportContainsRegisteredTypes()
     {
-        _mgr.Clear(dispose: true);
+        _manager.Clear(dispose: true);
+        _manager.Register(new TestService("r1"));
+        _manager.Register(new DisposableCounter());
 
-        _mgr.Register(new TestService("r1"));
-        _mgr.Register(new DisposableCounter());
+        string report = _manager.GenerateReport();
 
-        string report = _mgr.GenerateReport();
         Assert.Contains(nameof(TestService), report);
         Assert.Contains(nameof(DisposableCounter), report);
-
-        _mgr.Clear(dispose: true);
     }
 
     [Fact(DisplayName = "Concurrent Register/GetOrCreateInstance should not return disposed instance or throw")]
-    public void ConcurrencyRegisterAndGetOrCreateNoExceptionsOrDisposed()
+    public void ConcurrentRegisterAndGetOrCreateDoesNotThrow()
     {
-        _mgr.Clear(dispose: true);
+        _manager.Clear(dispose: true);
 
         const int threadCount = 16;
         const int iterations = 500;
         ConcurrentQueue<Exception> exceptions = new();
 
-        // Use a disposable test type that will be registered and replaced concurrently.
         _ = Parallel.For(0, threadCount, _ =>
         {
             try
             {
                 for (int i = 0; i < iterations; i++)
                 {
-                    // Randomly pick between registering a new disposable or getting/creating instance
                     if ((i & 1) == 0)
                     {
-                        DisposableCounter d = new();
-                        _mgr.Register(d);
+                        _manager.Register(new DisposableCounter());
+                        continue;
                     }
-                    else
+
+                    try
                     {
-                        try
+                        DisposableCounter instance = _manager.GetOrCreateInstance<DisposableCounter>();
+                        if (instance.DisposeCount < 0)
                         {
-                            DisposableCounter inst = _mgr.GetOrCreateInstance<DisposableCounter>();
-                            // If disposable, ensure not disposed (we cannot strictly guarantee due to race,
-                            // but at least ensure we don't observe an object that has already been disposed count < 1).
-                            if (inst is DisposableCounter dc)
-                            {
-                                // Accept either 0 or 1 disposes (race), but no exceptions should be thrown.
-                                int cnt = dc.DisposeCount;
-                                if (cnt < 0) // impossible but defensive
-                                {
-                                    exceptions.Enqueue(new InvalidOperationException("Invalid dispose count"));
-                                }
-                            }
+                            exceptions.Enqueue(new InvalidOperationException("Invalid dispose count."));
                         }
-                        catch (Exception ex)
-                        {
-                            exceptions.Enqueue(ex);
-                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        exceptions.Enqueue(ex);
                     }
                 }
             }
@@ -253,55 +178,73 @@ public class InstanceManagerTests : IDisposable
 
         Assert.Empty(exceptions);
 
-        // Final sanity: try to get existing instance (may be null)
-        DisposableCounter existing = _mgr.GetExistingInstance<DisposableCounter>();
-        if (existing != null)
+        DisposableCounter? existing = _manager.GetExistingInstance<DisposableCounter>();
+        if (existing is not null)
         {
-            // if disposable, its dispose count must be >= 0 and we must not have thrown earlier.
             Assert.True(existing.DisposeCount >= 0);
         }
-
-        _mgr.Clear(dispose: true);
     }
 
     [Fact(DisplayName = "HasInstance and GetExistingInstance behave as expected")]
-    public void HasInstanceAndGetExistingInstance()
+    public void HasInstanceAndGetExistingInstanceBehaveAsExpected()
     {
-        _mgr.Clear(dispose: true);
+        _manager.Clear(dispose: true);
 
-        Assert.False(_mgr.HasInstance<TestService>());
-        Assert.Null(_mgr.GetExistingInstance<TestService>());
+        Assert.False(_manager.HasInstance<TestService>());
+        Assert.Null(_manager.GetExistingInstance<TestService>());
 
-        TestService svc = new("t");
-        _mgr.Register(svc);
+        TestService service = new("t");
+        _manager.Register(service);
 
-        Assert.True(_mgr.HasInstance<TestService>());
-        TestService got = _mgr.GetExistingInstance<TestService>();
-        Assert.Same(svc, got);
-
-        _mgr.Clear(dispose: true);
+        Assert.True(_manager.HasInstance<TestService>());
+        Assert.Same(service, _manager.GetExistingInstance<TestService>());
     }
 
     [Fact(DisplayName = "CreateInstance does not cache the created object")]
-    public void CreateInstanceNotCached()
+    public void CreateInstanceDoesNotCacheCreatedObject()
     {
-        _mgr.Clear(dispose: true);
+        _manager.Clear(dispose: true);
 
-        TestService first = (TestService)_mgr.CreateInstance(typeof(TestService));
-        TestService second = (TestService)_mgr.CreateInstance(typeof(TestService));
+        TestService first = (TestService)_manager.CreateInstance(typeof(TestService));
+        TestService second = (TestService)_manager.CreateInstance(typeof(TestService));
+
         Assert.NotSame(first, second);
-
-        // Ensure CreateInstance did not add to cache
-        Assert.Null(_mgr.GetExistingInstance<TestService>());
-
-        _mgr.Clear(dispose: true);
+        Assert.Null(_manager.GetExistingInstance<TestService>());
     }
 
     [Fact(DisplayName = "IsTheOnlyInstance returns a boolean (non-intrusive check)")]
-    public void IsTheOnlyInstanceCheck()
+    public void IsTheOnlyInstanceReturnsBoolean()
     {
-        // Call property to ensure it executes without throwing in test environment.
         bool only = InstanceManager.IsTheOnlyInstance;
+
         _ = Assert.IsType<bool>(only);
+    }
+
+    private sealed class DisposableCounter : IDisposable
+    {
+        private int _disposed;
+
+        public int DisposeCount => Volatile.Read(ref _disposed);
+
+        public void Dispose() => _ = Interlocked.Increment(ref _disposed);
+    }
+
+    private interface ITestService
+    {
+        string Name { get; }
+    }
+
+    private sealed class TestService(string name) : ITestService, IDisposable
+    {
+        public string Name { get; } = name ?? throw new ArgumentNullException(nameof(name));
+
+        public TestService()
+            : this("default")
+        {
+        }
+
+        public void Dispose()
+        {
+        }
     }
 }

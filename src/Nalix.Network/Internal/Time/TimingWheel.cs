@@ -432,10 +432,10 @@ public sealed class TimingWheel : IActivatable
                     if (task.Rounds > 0)
                     {
                         task.Rounds--;
-                    // Keep the task in the same bucket until its full wheel
-                    // rotation budget is exhausted.
-                    queue.Enqueue(task); // stay in the same bucket for one more revolution
-                    continue;
+                        // Keep the task in the same bucket until its full wheel
+                        // rotation budget is exhausted.
+                        queue.Enqueue(task); // stay in the same bucket for one more revolution
+                        continue;
                     }
 
                     // ── Idle-time check ───────────────────────────────────────────────
@@ -527,10 +527,10 @@ public sealed class TimingWheel : IActivatable
             ConcurrentQueue<TimeoutTask> queue = _wheel[i];
             while (queue.TryDequeue(out TimeoutTask? task))
             {
-            // Only return tasks that still own a live connection reference.
-            // Tasks already returned by the loop or a concurrent path have Conn
-            // cleared, so they should be ignored here.
-            if (task.Conn is not null)
+                // Only return tasks that still own a live connection reference.
+                // Tasks already returned by the loop or a concurrent path have Conn
+                // cleared, so they should be ignored here.
+                if (task.Conn is not null)
                 {
                     s_poolManager.Return(task);
                 }

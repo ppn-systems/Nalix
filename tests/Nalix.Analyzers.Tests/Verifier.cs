@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,7 +24,7 @@ internal static class Verifier<TCodeFix>
 {
     public static async Task VerifyAnalyzerAsync(string source, params string[] expectedDiagnosticIds)
     {
-        Document document = CreateDocument(TestSources.Prelude + source);
+        Document document = CreateDocument(source);
         ImmutableArray<Diagnostic> diagnostics = await GetDiagnosticsAsync(document).ConfigureAwait(false);
         string[] actual = [.. diagnostics.Select(d => d.Id).OrderBy(x => x)];
         string[] expected = [.. expectedDiagnosticIds.OrderBy(x => x)];
@@ -44,7 +45,7 @@ internal static class Verifier<TCodeFix>
         string? expectedTitle,
         string? expectedEquivalenceKey)
     {
-        Document document = CreateDocument(TestSources.Prelude + source);
+        Document document = CreateDocument(source);
         ImmutableArray<Diagnostic> diagnostics = await GetDiagnosticsAsync(document).ConfigureAwait(false);
         Diagnostic diagnostic = diagnostics.First(d => d.Id == diagnosticId);
         await VerifyCodeFixCoreAsync(document, diagnostic, fixedSource, actionIndex, expectedTitle, expectedEquivalenceKey).ConfigureAwait(false);
@@ -77,9 +78,8 @@ internal static class Verifier<TCodeFix>
         string? expectedTitle,
         string? expectedEquivalenceKey)
     {
-        Document document = CreateDocument(TestSources.Prelude + source);
-        string fullSource = TestSources.Prelude + source;
-        int start = fullSource.IndexOf(locateText, StringComparison.Ordinal);
+        Document document = CreateDocument(source);
+        int start = source.IndexOf(locateText, StringComparison.Ordinal);
         Assert.True(start >= 0, $"Could not find text '{locateText}' in source.");
         SyntaxTree syntaxTree = (await document.GetSyntaxTreeAsync().ConfigureAwait(false))!;
         FileLinePositionSpan lineSpan = syntaxTree.GetLineSpan(new TextSpan(start, locateText.Length));
@@ -136,13 +136,48 @@ internal static class Verifier<TCodeFix>
         ApplyChangesOperation applyChanges = operations.OfType<ApplyChangesOperation>().Single();
         Document updatedDocument = applyChanges.ChangedSolution.GetDocument(document.Id)!;
         string actual = (await updatedDocument.GetTextAsync().ConfigureAwait(false)).ToString();
-        Assert.Equal(Normalize(TestSources.Prelude + fixedSource), Normalize(actual));
+        Assert.Equal(Normalize(fixedSource), Normalize(actual));
     }
 
     private static async Task<ImmutableArray<Diagnostic>> GetDiagnosticsAsync(Document document)
     {
         Compilation compilation = await document.Project.GetCompilationAsync().ConfigureAwait(false)
             ?? throw new InvalidOperationException("Compilation could not be created.");
+        Diagnostic[] compilationErrors = [.. compilation.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error)];
+        Assert.True(compilationErrors.Length == 0, string.Join(Environment.NewLine, compilationErrors.Select(static d => d.ToString())));
+        string[] requiredMetadataNames =
+        [
+            "Nalix.Common.Networking.Packets.PacketOpcodeAttribute",
+            "Nalix.Common.Networking.Packets.PacketControllerAttribute",
+            "Nalix.Common.Networking.Packets.IPacket",
+            "Nalix.Framework.DataFrames.PacketBase`1",
+            "Nalix.Common.Serialization.SerializeHeaderAttribute",
+            "Nalix.Common.Serialization.SerializePackableAttribute",
+            "Nalix.Common.Serialization.SerializeIgnoreAttribute",
+            "Nalix.Common.Serialization.SerializeDynamicSizeAttribute",
+            "Nalix.Common.Serialization.SerializeLayout",
+            "Nalix.Common.Networking.Packets.PacketHeaderOffset",
+            "Nalix.Network.Routing.PacketContext`1",
+            "Nalix.Common.Networking.IConnection",
+            "Nalix.Network.Routing.PacketDispatchOptions`1",
+            "Nalix.Framework.DataFrames.PacketRegistryFactory",
+            "Nalix.Common.Networking.Packets.IPacketDeserializer`1",
+            "Nalix.Network.Middleware.IPacketMiddleware`1",
+            "Nalix.Network.Middleware.INetworkBufferMiddleware",
+            "Nalix.Common.Serialization.SerializeOrderAttribute",
+            "Nalix.Common.Middleware.MiddlewareOrderAttribute",
+            "Nalix.Common.Middleware.MiddlewareStageAttribute",
+            "Nalix.Common.Middleware.MiddlewareStage",
+            "Nalix.Framework.Configuration.Binding.ConfigurationLoader",
+            "Nalix.Common.Abstractions.ConfiguredIgnoreAttribute",
+            "Nalix.Network.Routing.IPacketMetadataProvider",
+            "Nalix.Network.Routing.PacketMetadataBuilder",
+            "System.Reflection.MethodInfo",
+            "Nalix.SDK.Configuration.RequestOptions",
+            "Nalix.SDK.Transport.Extensions.RequestExtensions"
+        ];
+        string[] missingMetadata = [.. requiredMetadataNames.Where(name => compilation.GetTypeByMetadataName(name) is null)];
+        Assert.True(missingMetadata.Length == 0, "Missing metadata: " + string.Join(", ", missingMetadata));
 
         CompilationWithAnalyzers withAnalyzers = compilation.WithAnalyzers(
             [new NalixUsageAnalyzer()]);
@@ -153,18 +188,23 @@ internal static class Verifier<TCodeFix>
     private static Document CreateDocument(string source)
     {
         ProjectId projectId = ProjectId.CreateNewId();
+        DocumentId supportDocumentId = DocumentId.CreateNewId(projectId);
         DocumentId documentId = DocumentId.CreateNewId(projectId);
+        string[] trustedAssemblies = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES"))?
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            ?? [];
 
         Solution solution = new AdhocWorkspace().CurrentSolution
             .AddProject(projectId, "TestProject", "TestProject", LanguageNames.CSharp)
             .WithProjectCompilationOptions(projectId, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
             .WithProjectParseOptions(projectId, new CSharpParseOptions(LanguageVersion.Preview))
-            .AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
-            .AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location))
-            .AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(Task).Assembly.Location))
-            .AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(ValueTuple<>).Assembly.Location))
-            .AddMetadataReference(projectId, MetadataReference.CreateFromFile(typeof(System.Runtime.AssemblyTargetedPatchBandAttribute).Assembly.Location))
+            .AddDocument(supportDocumentId, "Prelude.cs", SourceText.From(TestSources.Prelude))
             .AddDocument(documentId, "Test.cs", SourceText.From(source));
+
+        foreach (string assemblyPath in trustedAssemblies.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            solution = solution.AddMetadataReference(projectId, MetadataReference.CreateFromFile(assemblyPath));
+        }
 
         return solution.GetDocument(documentId)!;
     }

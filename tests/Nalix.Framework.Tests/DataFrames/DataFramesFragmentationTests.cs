@@ -1,0 +1,199 @@
+
+using System;
+using System.IO;
+using System.Text;
+using System.Threading;
+using Nalix.Framework.DataFrames.Chunks;
+using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Options;
+using Xunit;
+
+namespace Nalix.Framework.Tests.DataFrames;
+
+public sealed partial class DataFramesPublicApiTests
+{
+    [Theory]
+    [InlineData((ushort)1, (ushort)0, (ushort)1, true)]
+    [InlineData((ushort)2, (ushort)1, (ushort)3, false)]
+    public void WriteToThenReadFromFragmentHeaderPreservesPublicState(ushort streamId, ushort chunkIndex, ushort totalChunks, bool isLast)
+    {
+        FragmentHeader header = new(streamId, chunkIndex, totalChunks, isLast);
+        byte[] buffer = new byte[FragmentHeader.WireSize];
+
+        header.WriteTo(buffer);
+        FragmentHeader roundTripped = FragmentHeader.ReadFrom(buffer);
+
+        Assert.Equal(header, roundTripped);
+        Assert.Equal(streamId, roundTripped.StreamId);
+        Assert.Equal(chunkIndex, roundTripped.ChunkIndex);
+        Assert.Equal(totalChunks, roundTripped.TotalChunks);
+        Assert.Equal(isLast, roundTripped.IsLast);
+    }
+
+    [Fact]
+    public void ReadFromWhenMagicIsInvalidThrowsInvalidDataException()
+    {
+        byte[] buffer = new byte[FragmentHeader.WireSize];
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => FragmentHeader.ReadFrom(buffer));
+
+        Assert.Equal("Invalid fragment magic", exception.Message);
+    }
+
+    [Theory]
+    [InlineData(1400, 1400, 1400, true)]
+    [InlineData(0, 1400, 1400, false)]
+    [InlineData(1000, 1400, 1000, false)]
+    public void ValidateWhenFragmentOptionsVaryMatchesExpectedValidity(
+        int maxPayloadSize,
+        int chunkThreshold,
+        int chunkBodySize,
+        bool shouldSucceed)
+    {
+        FragmentOptions options = new()
+        {
+            MaxPayloadSize = maxPayloadSize,
+            ChunkThreshold = chunkThreshold,
+            ChunkBodySize = chunkBodySize
+        };
+
+        Exception? exception = Record.Exception(options.Validate);
+
+        if (shouldSucceed)
+        {
+            Assert.Null(exception);
+        }
+        else
+        {
+            _ = Assert.IsType<InvalidOperationException>(exception);
+        }
+    }
+
+    [Fact]
+    public void NextWhenCalledRepeatedlyNeverReturnsZero()
+    {
+        ushort[] values = new ushort[128];
+
+        for (int index = 0; index < values.Length; index++)
+        {
+            values[index] = FragmentStreamId.Next();
+        }
+
+        Assert.DoesNotContain((ushort)0, values);
+    }
+
+    [Fact]
+    public void AddWhenAllChunksArriveInOrderReturnsAssembledBuffer()
+    {
+        using FragmentAssembler assembler = new();
+        FragmentHeader first = new(7, 0, 2, false);
+        FragmentHeader second = new(7, 1, 2, true);
+
+        BufferLease? firstAssembled = assembler.Add(first, Encoding.UTF8.GetBytes("hello "), out bool firstEvicted);
+        BufferLease? secondAssembled = assembler.Add(second, Encoding.UTF8.GetBytes("world"), out bool secondEvicted);
+
+        Assert.Null(firstAssembled);
+        Assert.False(firstEvicted);
+        Assert.False(secondEvicted);
+        using BufferLease assembled = Assert.IsType<BufferLease>(secondAssembled);
+        Assert.Equal("hello world", Encoding.UTF8.GetString(assembled.Memory.Span));
+        Assert.Equal(0, assembler.OpenStreamCount);
+    }
+
+    [Fact]
+    public void AddWhenFirstChunkArrivesOutOfOrderThrowsInvalidDataException()
+    {
+        using FragmentAssembler assembler = new();
+        FragmentHeader second = new(9, 1, 2, true);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            assembler.Add(second, Encoding.UTF8.GetBytes("world"), out _));
+
+        Assert.Contains("started with chunk index 1 instead of 0", exception.Message);
+        Assert.Equal(0, assembler.OpenStreamCount);
+    }
+
+    [Fact]
+    public void AddWhenChunkSequenceStartsCorrectlyAndCompletesAssemblesPayload()
+    {
+        using FragmentAssembler assembler = new();
+        FragmentHeader first = new(10, 0, 2, false);
+        FragmentHeader second = new(10, 1, 2, true);
+
+        BufferLease? firstAttempt = assembler.Add(first, Encoding.UTF8.GetBytes("hello "), out bool firstEvicted);
+        BufferLease? completed = assembler.Add(second, Encoding.UTF8.GetBytes("world"), out bool secondEvicted);
+
+        Assert.Null(firstAttempt);
+        Assert.False(firstEvicted);
+        Assert.False(secondEvicted);
+        using BufferLease assembled = Assert.IsType<BufferLease>(completed);
+        Assert.Equal("hello world", Encoding.UTF8.GetString(assembled.Memory.Span));
+        Assert.Equal(0, assembler.OpenStreamCount);
+    }
+
+    [Theory]
+    [InlineData((ushort)0, (ushort)0, (ushort)1)]
+    [InlineData((ushort)1, (ushort)1, (ushort)1)]
+    [InlineData((ushort)1, (ushort)0, (ushort)0)]
+    public void AddWhenHeaderIsInvalidThrowsInvalidDataException(ushort streamId, ushort chunkIndex, ushort totalChunks)
+    {
+        using FragmentAssembler assembler = new();
+        FragmentHeader header = new(streamId, chunkIndex, totalChunks, false);
+
+        _ = Assert.Throws<InvalidDataException>(() => assembler.Add(header, [1, 2, 3], out _));
+    }
+
+    [Fact]
+    public void AddWhenStreamHasTimedOutEvictsStreamAndReturnsNull()
+    {
+        using FragmentAssembler assembler = new() { StreamTimeoutMs = 1 };
+        FragmentHeader first = new(15, 0, 2, false);
+        FragmentHeader second = new(15, 1, 2, true);
+        _ = assembler.Add(first, [1], out _);
+        Thread.Sleep(100);
+
+        BufferLease? assembled = assembler.Add(second, [2], out bool streamEvicted);
+
+        Assert.Null(assembled);
+        Assert.True(streamEvicted);
+        Assert.Equal(0, assembler.OpenStreamCount);
+    }
+
+    [Fact]
+    public void EvictExpiredAndClearWhenStreamsExistRemovesTrackedStreams()
+    {
+        using FragmentAssembler assembler = new() { StreamTimeoutMs = 1 };
+        _ = assembler.Add(new FragmentHeader(21, 0, 2, false), [1, 2], out _);
+        Thread.Sleep(100);
+
+        int evicted = assembler.EvictExpired();
+        _ = assembler.Add(new FragmentHeader(22, 0, 2, false), [3, 4], out _);
+        assembler.Clear();
+
+        Assert.Equal(1, evicted);
+        Assert.Equal(0, assembler.OpenStreamCount);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void IsFragmentedFrameWhenPayloadVariesReturnsExpectedResult(bool useValidPayload)
+    {
+        byte[] payload = useValidPayload
+            ? CreateFragmentPayload(new FragmentHeader(30, 0, 1, true), [9, 8, 7])
+            : [0x01, 0x02, 0x03];
+
+        bool isFragment = FragmentAssembler.IsFragmentedFrame(payload, out FragmentHeader header);
+
+        Assert.Equal(useValidPayload, isFragment);
+        if (useValidPayload)
+        {
+            Assert.Equal((ushort)30, header.StreamId);
+            Assert.True(header.IsLast);
+        }
+        else
+        {
+            Assert.Equal(default, header);
+        }
+    }
+}

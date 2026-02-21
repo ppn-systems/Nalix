@@ -35,23 +35,23 @@ public static partial class Clock
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTime NowUtc()
     {
-        long swTicks = UtcStopwatch.ElapsedTicks;
+        long swTicks = s_utcStopwatch.ElapsedTicks;
 
         if (!IsSynchronized)
         {
-            long ticks = UtcBaseTicks + (long)(swTicks * _swToDateTimeTicks);
+            long ticks = s_utcBaseTicks + (long)(swTicks * s_swToDateTimeTicks);
             return new DateTime(ticks, DateTimeKind.Utc);
         }
 
         // Use volatile reads so synchronization updates become visible without
         // locking every time query.
-        double dc = Volatile.Read(ref _driftCorrection);
-        long offset = Volatile.Read(ref _timeOffset);
+        double dc = Volatile.Read(ref s_driftCorrection);
+        long offset = Volatile.Read(ref s_timeOffset);
 
         // Apply drift correction to the elapsed stopwatch span, then add the
         // stored offset to recover the current UTC estimate.
-        long corrected = (long)(swTicks * _swToDateTimeTicks * dc) + offset;
-        return new DateTime(UtcBaseTicks + corrected, DateTimeKind.Utc);
+        long corrected = (long)(swTicks * s_swToDateTimeTicks * dc) + offset;
+        return new DateTime(s_utcBaseTicks + corrected, DateTimeKind.Utc);
     }
 
     /// <summary>

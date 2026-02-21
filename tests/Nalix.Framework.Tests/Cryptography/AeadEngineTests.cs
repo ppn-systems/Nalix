@@ -11,27 +11,14 @@ using Xunit;
 namespace Nalix.Framework.Tests.Cryptography;
 
 /// <summary>
-/// Unit tests for <see cref="AeadEngine"/>, <see cref="ChaCha20Poly1305"/>,
-/// and <see cref="Salsa20Poly1305"/>.
+/// Verifies detached AEAD primitives and the public envelope API exposed by <see cref="AeadEngine"/>.
 /// </summary>
-/// <remarks>
-/// Envelope layout (hand-calculated, no EnvelopeFormat import):
-///   header(12) || nonce(nonceLen) || ciphertext(ptLen) || tag(16)
-/// </remarks>
 public sealed class AeadEngineTests
 {
-    // =========================================================================
-    //  Layout constants — hand-calculated, NO EnvelopeFormat reference
-    // =========================================================================
-
     private const int HeaderSize = 12;
     private const int TagSize = 16;
     private const int ChaCha20NonceLen = 12;
     private const int Salsa20NonceLen = 8;
-
-    // =========================================================================
-    //  Shared test material
-    // =========================================================================
 
     private static readonly byte[] s_key32 = new byte[32];
     private static readonly byte[] s_key16 = new byte[16];
@@ -56,11 +43,6 @@ public sealed class AeadEngineTests
         }
     }
 
-    // =========================================================================
-    //  Helpers — no EnvelopeFormat import
-    // =========================================================================
-
-    /// <summary>Envelope buffer size: header(12) + nonce + ciphertext + tag(16).</summary>
     private static int EnvelopeSize(int nonceLen, int ptLen)
         => HeaderSize + nonceLen + ptLen + TagSize;
 
@@ -69,10 +51,6 @@ public sealed class AeadEngineTests
 
     private static byte[] NonceFor(CipherSuiteType alg)
         => alg is CipherSuiteType.Chacha20Poly1305 ? s_nonce12 : s_nonce8;
-
-    // =========================================================================
-    //  1. ChaCha20Poly1305 — Span API (detached)
-    // =========================================================================
 
     [Fact]
     public void ChaCha20Poly1305EncryptProducesCiphertextAndTag()
@@ -153,7 +131,6 @@ public sealed class AeadEngineTests
         _ = ChaCha20Poly1305.Encrypt(s_key32, s_nonce12, [], s_aad, ct, tag);
         int ok = ChaCha20Poly1305.Decrypt(s_key32, s_nonce12, ct, s_aad, tag, pt);
 
-        // ok == 0 for empty plaintext → still valid (>= 0)
         Assert.True(ok >= 0);
     }
 
@@ -234,10 +211,6 @@ public sealed class AeadEngineTests
         _ = Assert.ThrowsAny<Exception>(() =>
             ChaCha20Poly1305.Encrypt(s_key32, new byte[8], s_plaintextShort, s_aad, ct, tag));
     }
-
-    // =========================================================================
-    //  3. Salsa20Poly1305 — Span API (detached)
-    // =========================================================================
 
     [Fact]
     public void Salsa20Poly1305EncryptProducesCiphertextAndTag()
@@ -396,10 +369,6 @@ public sealed class AeadEngineTests
         _ = Assert.ThrowsAny<Exception>(() =>
             Salsa20Poly1305.Encrypt(s_key32, new byte[12], s_plaintextShort, s_aad, ct, tag));
     }
-    // =========================================================================
-    //  5. AeadEngine — Envelope API
-    // =========================================================================
-
     [Theory]
     [InlineData(CipherSuiteType.Chacha20Poly1305)]
     [InlineData(CipherSuiteType.Salsa20Poly1305)]
@@ -519,13 +488,9 @@ public sealed class AeadEngineTests
         AeadEngine.Encrypt(s_key32, s_plaintextShort, envelope, s_nonce12,
             s_aad, seq: 1u, CipherSuiteType.Chacha20Poly1305, out int encWritten);
 
-        // FIX: only corrupt if ciphertext region is non-empty
-        // Ciphertext starts at: HeaderSize + nonceLen
-        // Ciphertext region: [HeaderSize + nonceLen .. HeaderSize + nonceLen + ptLen)
-        // Use encWritten to guard against empty ciphertext
         Assert.True(encWritten > HeaderSize + nLen + TagSize, "Plaintext must be non-empty for this test");
 
-        int ctOffset = HeaderSize + nLen; // first byte of ciphertext in envelope
+        int ctOffset = HeaderSize + nLen;
         envelope[ctOffset] ^= 0x01;
         _ = Assert.Throws<System.Security.Cryptography.CryptographicException>(() => AeadEngine.Decrypt(
             s_key32, envelope.AsSpan()[..encWritten], ptBuf, s_aad, out _));
@@ -542,7 +507,7 @@ public sealed class AeadEngineTests
             s_aad, seq: 5u, CipherSuiteType.Chacha20Poly1305, out int encWritten);
         Assert.True(encWritten >= HeaderSize + nLen + s_plaintextShort.Length + TagSize, "Envelope length must include tag");
 
-        envelope[encWritten - 1] ^= 0xFF; // last byte = last byte of tag
+        envelope[encWritten - 1] ^= 0xFF;
 
         _ = Assert.Throws<System.Security.Cryptography.CryptographicException>(() => AeadEngine.Decrypt(
             s_key32, envelope.AsSpan()[..encWritten], ptBuf, s_aad, out _));
@@ -584,10 +549,6 @@ public sealed class AeadEngineTests
             s_key32, envelope.AsSpan()[..HeaderSize], ptBuf, s_aad, out _));
     }
 
-    // =========================================================================
-    //  6. Cross-suite isolation
-    // =========================================================================
-
     [Fact]
     public void AeadEngineChaCha20Poly1305AndSalsa20Poly1305ProduceDifferentOutput()
     {
@@ -608,12 +569,9 @@ public sealed class AeadEngineTests
     [InlineData(CipherSuiteType.Salsa20Poly1305)]
     public void AeadEngineDifferentKeysProduceDifferentCiphertext(CipherSuiteType algorithm)
     {
-        // FIX: compare only the ciphertext+tag region (skip the header which is identical)
-        // Envelope header contains: magic, version, type, flags, nonceLen, seq → same for both
-        // Ciphertext region starts at: HeaderSize + nonceLen
         byte[] nonce = NonceFor(algorithm);
         int nLen = NonceLen(algorithm);
-        int ctStart = HeaderSize + nLen; // start of ciphertext in envelope
+        int ctStart = HeaderSize + nLen;
 
         byte[] env1 = new byte[EnvelopeSize(nLen, s_plaintextShort.Length)];
         byte[] env2 = new byte[EnvelopeSize(nLen, s_plaintextShort.Length)];
@@ -622,7 +580,6 @@ public sealed class AeadEngineTests
         AeadEngine.Encrypt(s_key32, s_plaintextShort, env1, nonce, s_aad, seq: 1u, algorithm, out int w1);
         AeadEngine.Encrypt(key2, s_plaintextShort, env2, nonce, s_aad, seq: 1u, algorithm, out int w2);
 
-        // Compare only ciphertext+tag (bytes after header+nonce) — these MUST differ
         byte[] ct1 = env1[ctStart..w1];
         byte[] ct2 = env2[ctStart..w2];
 
