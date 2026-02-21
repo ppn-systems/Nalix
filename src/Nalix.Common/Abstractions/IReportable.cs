@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Core.Abstractions;
+namespace Nalix.Common.Abstractions;
 
 /// <summary>
 /// Defines a contract for managers that can generate reports.

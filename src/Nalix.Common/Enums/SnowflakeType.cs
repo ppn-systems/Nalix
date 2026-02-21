@@ -1,8 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Core.Abstractions;
 
-namespace Nalix.Common.Core.Enums;
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Abstractions;
+
+namespace Nalix.Common.Enums;
 
 /// <summary>
 /// Defines the category of an <see cref="ISnowflake"/> value,

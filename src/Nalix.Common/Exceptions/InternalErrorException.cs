@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Core.Exceptions;
+namespace Nalix.Common.Exceptions;
 
 /// <summary>
 /// The exception that is thrown by Notio's internal diagnostic checks to signal a condition

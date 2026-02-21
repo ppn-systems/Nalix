@@ -1,6 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Core.Exceptions;
+namespace Nalix.Common.Exceptions;
 
 /// <summary>
 /// Serves as the base type for all custom exceptions in the Nalix system.
