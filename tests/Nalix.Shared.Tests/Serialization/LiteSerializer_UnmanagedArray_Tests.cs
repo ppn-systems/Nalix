@@ -1,4 +1,4 @@
-﻿using Nalix.Common.Core.Exceptions;
+﻿using Nalix.Common.Exceptions;
 using Nalix.Shared.Serialization;
 using System;
 using System.Linq;

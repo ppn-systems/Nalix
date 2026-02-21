@@ -1,5 +1,5 @@
-﻿using Nalix.Common.Core.Abstractions;
-using Nalix.Common.Core.Enums;
+﻿using Nalix.Common.Abstractions;
+using Nalix.Common.Enums;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
