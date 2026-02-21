@@ -48,12 +48,12 @@ internal static class DelegateExtensions
         // This is more than enough for handlers here.
         if (mi.ReturnType == typeof(void))
         {
-            EnsureParameterLimit(types.Count, isVoid: true);
+            ENSURE_PARAMETER_LIMIT(types.Count, isVoid: true);
             return System.Linq.Expressions.Expression.GetActionType([.. types]);
         }
         else
         {
-            EnsureParameterLimit(types.Count + 1, isVoid: false); // +1 for return type
+            ENSURE_PARAMETER_LIMIT(types.Count + 1, isVoid: false); // +1 for return type
             types.Add(mi.ReturnType);
             return System.Linq.Expressions.Expression.GetDelegateType([.. types]);
         }
@@ -100,12 +100,12 @@ internal static class DelegateExtensions
 
         if (mi.ReturnType == typeof(void))
         {
-            EnsureParameterLimit(types.Count, isVoid: true);
+            ENSURE_PARAMETER_LIMIT(types.Count, isVoid: true);
             return System.Linq.Expressions.Expression.GetActionType([.. types]);
         }
         else
         {
-            EnsureParameterLimit(types.Count + 1, isVoid: false);
+            ENSURE_PARAMETER_LIMIT(types.Count + 1, isVoid: false);
             types.Add(mi.ReturnType);
             return System.Linq.Expressions.Expression.GetDelegateType([.. types]);
         }
@@ -120,7 +120,7 @@ internal static class DelegateExtensions
     /// For <c>Func</c>: number of parameters + 1 (the return type).
     /// </param>
     /// <param name="isVoid">True if building an Action-type; false for Func-type.</param>
-    private static void EnsureParameterLimit(System.Int32 arity, System.Boolean isVoid)
+    private static void ENSURE_PARAMETER_LIMIT(System.Int32 arity, System.Boolean isVoid)
     {
         // As of .NET, Action supports up to 16 parameters, Func supports up to 16 parameters + return (i.e., 17 types).
         // Expression.GetActionType/GetDelegateType map to those generic definitions.

@@ -1,7 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Attributes;
 using Nalix.Common.Connection;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Enums;
 using Nalix.Common.Messaging.Packets.Attributes;
 using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
@@ -60,6 +62,57 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         this.Logger?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithErrorHandling)}] error-handler-set");
         this._errorHandler = errorHandler;
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a middleware component to the packet processing pipeline.
+    /// The middleware will be automatically placed in the appropriate stage (Inbound, Outbound, or Both)
+    /// based on its <see cref="MiddlewareStageAttribute"/> and ordered by <see cref="MiddlewareOrderAttribute"/>.
+    /// </summary>
+    /// <param name="middleware">
+    /// The <see cref="IPacketMiddleware{TPacket}"/> instance that will be invoked during packet processing.
+    /// </param>
+    /// <returns>
+    /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// This method inspects the middleware's attributes to determine:
+    /// <list type="bullet">
+    /// <item><description>The execution stage (Inbound, Outbound, or Both) via <see cref="MiddlewareStageAttribute"/>.</description></item>
+    /// <item><description>The execution order via <see cref="MiddlewareOrderAttribute"/>.</description></item>
+    /// <item><description>Whether to always execute in outbound stage via <see cref="MiddlewareStageAttribute.AlwaysExecute"/>.</description></item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// If no <see cref="MiddlewareStageAttribute"/> is present, the middleware defaults to <see cref="MiddlewareStage.Inbound"/>.
+    /// If no <see cref="MiddlewareOrderAttribute"/> is present, the order defaults to 0.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// // Middleware with attributes
+    /// [MiddlewareStage(MiddlewareStage.Inbound)]
+    /// [MiddlewareOrder(10)]
+    /// public class ValidationMiddleware : IPacketMiddleware&lt;MyPacket&gt; { }
+    ///
+    /// // Usage
+    /// options.Use(new ValidationMiddleware());
+    /// </code>
+    /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public PacketDispatchOptions<TPacket> WithMiddleware([System.Diagnostics.CodeAnalysis.NotNull] IPacketMiddleware<TPacket> middleware)
+    {
+        System.ArgumentNullException.ThrowIfNull(middleware);
+
+        this.Logger?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
+
+        _pipeline.Use(middleware);
 
         return this;
     }

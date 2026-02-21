@@ -68,7 +68,7 @@ internal sealed class HandlerCompiler<
                                 .Debug($"[{nameof(HandlerCompiler<,>)}:{nameof(CompileHandlers)}] scan controller={controllerType.Name}");
 
         // Get or compile all handler methods
-        var compiledMethods = GetOrCompileMethodAccessors(controllerType);
+        var compiledMethods = X04(controllerType);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[{nameof(HandlerCompiler<,>)}:{nameof(CompileHandlers)}] found count={compiledMethods.Count}");
@@ -82,7 +82,7 @@ internal sealed class HandlerCompiler<
 
         foreach (var (opCode, compiledMethod) in compiledMethods)
         {
-            var attributes = GetCachedAttributes(compiledMethod.MethodInfo);
+            var attributes = X01(compiledMethod.MethodInfo);
 
             descriptors[index++] = new PacketHandler<TPacket>(
                 opCode,
@@ -105,23 +105,19 @@ internal sealed class HandlerCompiler<
         return descriptors;
     }
 
-    /// <summary>
-    /// Gets or compiles method handlers for a controller type.
-    /// </summary>
-    /// <param name="controllerType">The controller type.</param>
-    /// <returns>A frozen dictionary of compiled handler delegates indexed by opcode.</returns>
+    #region Private Methods
+
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Collections.Frozen.FrozenDictionary<System.UInt16, HandlerInvoker<TPacket>> GetOrCompileMethodAccessors(
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] System.Type controllerType)
+    private static System.Collections.Frozen.FrozenDictionary<System.UInt16, HandlerInvoker<TPacket>> X04(
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] System.Type x03)
     {
         // Get methods with [PacketOpcode] attribute
         System.Reflection.MethodInfo[] methodInfos = System.Linq.Enumerable.ToArray(
             System.Linq.Enumerable.Where(
-                controllerType.GetMethods(
+                x03.GetMethods(
                     System.Reflection.BindingFlags.Public |
                     System.Reflection.BindingFlags.Instance |
                     System.Reflection.BindingFlags.Static
@@ -131,13 +127,13 @@ internal sealed class HandlerCompiler<
         if (methodInfos.Length == 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(GetOrCompileMethodAccessors)}] no-method controller={controllerType.Name}");
+                                    .Debug($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(X04)}] no-method controller={x03.Name}");
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(GetOrCompileMethodAccessors)}] compile count={methodInfos.Length} controller={controllerType.Name}");
+                                .Debug($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(X04)}] compile count={methodInfos.Length} controller={x03.Name}");
 
-        return _compiledMethodCache.GetOrAdd(controllerType, static (_, methods) =>
+        return _compiledMethodCache.GetOrAdd(x03, static (_, methods) =>
         {
             System.Collections.Generic.Dictionary<System.UInt16, HandlerInvoker<TPacket>> compiled = new(methods.Length);
 
@@ -149,7 +145,7 @@ internal sealed class HandlerCompiler<
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(GetOrCompileMethodAccessors)}] dup-opcode " +
+                                            .Warn($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(X04)}] dup-opcode " +
                                                   $"{X00(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
 
                     continue;
@@ -157,18 +153,18 @@ internal sealed class HandlerCompiler<
 
                 try
                 {
-                    HandlerInvoker<TPacket> compiledMethod = CompileMethodAccessor(method);
+                    HandlerInvoker<TPacket> compiledMethod = X03(method);
                     compiled[opcodeAttr.OpCode] = compiledMethod;
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(GetOrCompileMethodAccessors)}] compiled " +
+                                            .Trace($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(X04)}] compiled " +
                                                    $"{X00(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
                 }
                 catch (System.Exception ex)
                 {
                     System.String ___ = X00(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(GetOrCompileMethodAccessors)}] " +
+                                            .Error($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(X04)}] " +
                                                    $"failed-compile {___} ex={ex.GetType().Name}", ex);
                 }
             }
@@ -177,16 +173,11 @@ internal sealed class HandlerCompiler<
         }, methodInfos);
     }
 
-    /// <summary>
-    /// Compiles a method accessor into a high-performance delegate using expression trees.
-    /// </summary>
-    /// <param name="method">The method to compile.</param>
-    /// <returns>A compiled handler delegate.</returns>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static HandlerInvoker<TPacket> CompileMethodAccessor(System.Reflection.MethodInfo method)
+    private static HandlerInvoker<TPacket> X03(System.Reflection.MethodInfo x22)
     {
         System.Linq.Expressions.ParameterExpression x00 =
             System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
@@ -205,12 +196,12 @@ internal sealed class HandlerCompiler<
 
 
         // Get the actual parameter types of the method
-        System.Reflection.ParameterInfo[] parms = method.GetParameters();
+        System.Reflection.ParameterInfo[] parms = x22.GetParameters();
 
         if (parms.Length is not 2 and not 3)
         {
             throw new System.InvalidOperationException(
-                $"Handler {method.DeclaringType?.Name}.{method.Name} must have 2 or 3 parameters " +
+                $"Handler {x22.DeclaringType?.Name}.{x22.Name} must have 2 or 3 parameters " +
                 "(packet, connection[, CancellationToken]). Found: {parms.Length}.");
         }
 
@@ -219,12 +210,12 @@ internal sealed class HandlerCompiler<
 
         if (!typeof(IPacket).IsAssignableFrom(x05))
         {
-            throw new System.InvalidOperationException($"First parameter of {method.Name} must implement IPacket. Found: {x05}.");
+            throw new System.InvalidOperationException($"First parameter of {x22.Name} must implement IPacket. Found: {x05}.");
         }
 
         if (!typeof(IConnection).IsAssignableFrom(x06))
         {
-            throw new System.InvalidOperationException($"Second parameter of {method.Name} must implement IConnection. Found: {x06}.");
+            throw new System.InvalidOperationException($"Second parameter of {x22.Name} must implement IConnection. Found: {x06}.");
         }
 
         System.Linq.Expressions.Expression x07 = x05.IsAssignableFrom(typeof(TPacket))
@@ -239,12 +230,12 @@ internal sealed class HandlerCompiler<
             ? [x07, x08]
             : [x07, x08, System.Linq.Expressions.Expression.Convert(x04, parms[2].ParameterType)];
 
-        System.Linq.Expressions.Expression x10 = method.IsStatic
-            ? System.Linq.Expressions.Expression.Call(method, x09)
+        System.Linq.Expressions.Expression x10 = x22.IsStatic
+            ? System.Linq.Expressions.Expression.Call(x22, x09)
             : System.Linq.Expressions.Expression.Call(
-              System.Linq.Expressions.Expression.Convert(x00, method.DeclaringType!), method, x09);
+              System.Linq.Expressions.Expression.Convert(x00, x22.DeclaringType!), x22, x09);
 
-        System.Linq.Expressions.Expression x11 = method.ReturnType == typeof(void)
+        System.Linq.Expressions.Expression x11 = x22.ReturnType == typeof(void)
             ? System.Linq.Expressions.Expression.Block(x10, System.Linq.Expressions.Expression.Constant(null, typeof(global::System.Object)))
             : System.Linq.Expressions.Expression.Convert(x10, typeof(global::System.Object));
 
@@ -261,12 +252,12 @@ internal sealed class HandlerCompiler<
         else
         {
             // AOT fallback: CreateDelegate + tiny adapter
-            System.Type x13 = method.IsStatic
-                ? method.CreateDelegateTypeForStatic()
-                : method.CreateDelegateTypeForInstance();
+            System.Type x13 = x22.IsStatic
+                ? x22.CreateDelegateTypeForStatic()
+                : x22.CreateDelegateTypeForInstance();
 
-            System.Delegate x14 = method.IsStatic
-                ? method.CreateDelegate(x13)
+            System.Delegate x14 = x22.IsStatic
+                ? x22.CreateDelegate(x13)
                 : null; // instance-bound at x10 time
 
             x12 = (instance, context) =>
@@ -286,32 +277,27 @@ internal sealed class HandlerCompiler<
                 System.Object x19 = x06.IsInstanceOfType(x16) ? x16 : System.Convert.ChangeType(x16, x06);
 
                 // invoke
-                System.Object x21 = method.IsStatic
-                    ? method.Invoke(null, parms.Length == 2 ? [x18, x19] : [x18, x19, x17!])
-                    : method.Invoke(instance, parms.Length == 2 ? [x18, x19] : [x18, x19, x17!]);
+                System.Object x21 = x22.IsStatic
+                    ? x22.Invoke(null, parms.Length == 2 ? [x18, x19] : [x18, x19, x17!])
+                    : x22.Invoke(instance, parms.Length == 2 ? [x18, x19] : [x18, x19, x17!]);
 
                 return x21;
             };
         }
 
         System.Func<System.Object, PacketContext<TPacket>,
-            System.Threading.Tasks.ValueTask<System.Object>> x20 = CreateAsyncWrapper(x12, method.ReturnType);
+            System.Threading.Tasks.ValueTask<System.Object>> x20 = X02(x12, x22.ReturnType);
 
-        return new HandlerInvoker<TPacket>(method, method.ReturnType, x20);
+        return new HandlerInvoker<TPacket>(x22, x22.ReturnType, x20);
     }
 
-    /// <summary>
-    /// Creates an async-compatible wrapper for a compiled delegate,
-    /// handling Task, ValueTask, and their generic variants.
-    /// </summary>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object>> CreateAsyncWrapper(
+    private static System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object>> X02(
         System.Func<System.Object, PacketContext<TPacket>, System.Object> x00,
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)]System.Type x01)
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] System.Type x01)
     {
         if (x01 == typeof(System.Threading.Tasks.Task))
         {
@@ -393,24 +379,19 @@ internal sealed class HandlerCompiler<
     }
 
 
-    /// <summary>
-    /// Retrieves all cached metadata attributes associated with a handler method.
-    /// </summary>
-    /// <param name="method">The method to scan.</param>
-    /// <returns>The parsed packet metadata.</returns>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static PacketMetadata GetCachedAttributes(System.Reflection.MethodInfo method)
+    private static PacketMetadata X01(System.Reflection.MethodInfo x02)
     {
-        return _attributeCache.GetOrAdd(method, static m => new PacketMetadata(
-            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m)!,
-            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketTimeoutAttribute>(m),
-            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketPermissionAttribute>(m),
-            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketEncryptionAttribute>(m),
-            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketRateLimitAttribute>(m),
-            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketConcurrencyLimitAttribute>(m)
+        return _attributeCache.GetOrAdd(x02, static x03 => new PacketMetadata(
+            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(x03)!,
+            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketTimeoutAttribute>(x03),
+            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketPermissionAttribute>(x03),
+            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketEncryptionAttribute>(x03),
+            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketRateLimitAttribute>(x03),
+            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketConcurrencyLimitAttribute>(x03)
         ));
     }
 
@@ -418,16 +399,17 @@ internal sealed class HandlerCompiler<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.String X00(System.String controller, System.UInt16 opcode,
-        System.Reflection.MethodInfo method = null, System.Type returnType = null)
+    private static System.String X00(System.String x00, System.UInt16 x01, System.Reflection.MethodInfo x02 = null, System.Type x03 = null)
     {
-        System.String op = $"opcode=0x{opcode:X4}";
-        System.String ctrl = $"controller={controller}";
-        System.String m = method is null ? "" : $" method={method.Name}";
-        System.String sig = method is null ? "" : $" sig=({System.String.Join(",", System.Linq.Enumerable
-                                                                        .Select(method
-                                                                        .GetParameters(), p => p.ParameterType.Name))})->{returnType?.Name ?? "void"}";
+        System.String op = $"opcode=0x{x01:X4}";
+        System.String ctrl = $"controller={x00}";
+        System.String m = x02 is null ? "" : $" method={x02.Name}";
+        System.String sig = x02 is null ? "" : $" sig=({System.String.Join(",", System.Linq.Enumerable
+                                                                     .Select(x02
+                                                                     .GetParameters(), p => p.ParameterType.Name))})->{x03?.Name ?? "void"}";
 
         return $"{op} {ctrl}{m}{sig}";
     }
+
+    #endregion Private Methods
 }

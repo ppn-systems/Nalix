@@ -142,19 +142,19 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                 }
 
                 // Try to dequeue from this priority first; if empty due to race, try lower levels.
-                if (!TryDequeueHighest(cqs, p, out lease, out System.Int32 dequeuedFromPrio))
+                if (!TRY_DEQUEUE_HIGHEST(cqs, p, out lease, out System.Int32 dequeuedFromPrio))
                 {
                     return false;
                 }
 
                 // Adjust counters
-                ConnectionState cs = GetState(connection);
+                ConnectionState cs = GET_STATE(connection);
                 _ = System.Threading.Interlocked.Decrement(ref _totalPackets);
                 _ = System.Threading.Interlocked.Decrement(ref cs.ApproxTotal);
                 _ = System.Threading.Interlocked.Decrement(ref cs.ApproxByPriority[dequeuedFromPrio]);
 
                 // If anything remains in any priority, re-enqueue connection at its highest available priority
-                if (HasAny(cqs, out System.Int32 highestRemaining) && _inReady.TryAdd(connection, 1))
+                if (HAS_ANY(cqs, out System.Int32 highestRemaining) && _inReady.TryAdd(connection, 1))
                 {
                     _readyByPrio[highestRemaining].Enqueue(connection);
                 }
@@ -178,11 +178,11 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection,
         [System.Diagnostics.CodeAnalysis.NotNull] IBufferLease lease)
     {
-        ConnectionState cs = GetState(connection);
+        ConnectionState cs = GET_STATE(connection);
         ConnectionQueues cqs = _queues.GetOrAdd(connection, static _ => new ConnectionQueues());
 
         // Classify priority directly from header (zero-alloc)
-        System.Int32 prioIndex = ClassifyPriorityIndex(lease.Span);
+        System.Int32 prioIndex = CLASSIFY_PRIORITY_INDEX(lease.Span);
 
         // Backpressure policy: apply on total per-connection size
         if (_options.MaxPerConnectionQueue > 0 && (cs.ApproxTotal + 1) > _options.MaxPerConnectionQueue)
@@ -195,7 +195,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
                 case DropPolicy.DROP_OLDEST:
                     // Remove one oldest across priorities: scan from lowest → highest for fairness in eviction.
-                    if (TryEvictOldest(cqs, cs, out _))
+                    if (TRY_EVICT_OLDEST(cqs, cs, out _))
                     {
                         // Evicted one; continue to enqueue the new packet.
                         _ = System.Threading.Interlocked.Decrement(ref _totalPackets);
@@ -226,7 +226,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                 case DropPolicy.COALESCE:
                     // If you provide a key selector, you can coalesce here.
                     // With ConcurrentQueue it's non-trivial to update in-place; keep simple → evict oldest.
-                    if (!TryEvictOldest(cqs, cs, out _))
+                    if (!TRY_EVICT_OLDEST(cqs, cs, out _))
                     {
                         return;
                     }
@@ -253,17 +253,17 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
     #endregion Public APIs
 
-    #region Private helpers
+    #region Private Methods
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private ConnectionState GetState([System.Diagnostics.CodeAnalysis.NotNull] IConnection c) => _states.GetOrAdd(c, static _ => new ConnectionState());
+    private ConnectionState GET_STATE([System.Diagnostics.CodeAnalysis.NotNull] IConnection c) => _states.GetOrAdd(c, static _ => new ConnectionState());
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Boolean HasAny(
+    private static System.Boolean HAS_ANY(
         [System.Diagnostics.CodeAnalysis.NotNull] ConnectionQueues cqs,
         [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 highest)
     {
@@ -282,7 +282,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Boolean TryDequeueHighest(
+    private static System.Boolean TRY_DEQUEUE_HIGHEST(
         [System.Diagnostics.CodeAnalysis.NotNull] ConnectionQueues cqs,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 startPrio,
         [System.Diagnostics.CodeAnalysis.AllowNull]
@@ -310,7 +310,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Boolean TryEvictOldest(
+    private static System.Boolean TRY_EVICT_OLDEST(
         [System.Diagnostics.CodeAnalysis.NotNull] ConnectionQueues cqs,
         [System.Diagnostics.CodeAnalysis.NotNull] ConnectionState cs,
         [System.Diagnostics.CodeAnalysis.AllowNull]
@@ -341,8 +341,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Int32 ClassifyPriorityIndex(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> span)
+    private static System.Int32 CLASSIFY_PRIORITY_INDEX([System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> span)
     {
         PacketPriority pr = span.ReadPriorityLE();
         System.Int32 idx = (System.Int32)pr;
@@ -354,7 +353,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         return idx;
     }
 
-    #endregion Private helpers
+    #endregion Private Methods
 
     #region Events / Cleanup
 
