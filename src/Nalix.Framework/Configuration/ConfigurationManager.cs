@@ -101,7 +101,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         _baseConfigDirectory = System.IO.Path.GetFullPath(configDirectory);
 
         // Initialize with default configuration file
-        _configFilePath = System.IO.Path.Combine(_baseConfigDirectory, "configured.ini");
+        _configFilePath = System.IO.Path.Combine(_baseConfigDirectory, "default.ini");
 
         // Validate the initial path
         ValidateConfigPath(_configFilePath);
@@ -162,7 +162,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         }
 
         // Normalize and validate the new path
-        var normalizedPath = System.IO.Path.GetFullPath(newConfigFilePath);
+        System.String normalizedPath = System.IO.Path.GetFullPath(newConfigFilePath);
         ValidateConfigPath(normalizedPath);
 
         // Ensure only one path change happens at a time
@@ -196,7 +196,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 }
 
                 // Update the path
-                var oldPath = _configFilePath;
+                System.String oldPath = _configFilePath;
                 _configFilePath = normalizedPath;
 
                 // Reset directory check flag
@@ -216,10 +216,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                     try
                     {
                         // Force load the new INI file
-                        var newIniFile = _iniFile.Value;
+                        IniConfig newIniFile = _iniFile.Value;
 
                         // Reinitialize all existing containers
-                        foreach (var container in _configContainerDict.Values)
+                        foreach (ConfigurationLoader container in _configContainerDict.Values)
                         {
                             container.Initialize(newIniFile);
                         }
@@ -227,14 +227,14 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                         LastReloadTime = System.DateTime.UtcNow;
 
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                            .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
-                                  $"auto-reload-ok count={_configContainerDict.Count}");
+                                                .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
+                                                      $"auto-reload-ok count={_configContainerDict.Count}");
                     }
                     catch (System.Exception ex)
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                            .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
-                                   $"auto-reload-fail msg={ex.Message}", ex);
+                                                .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
+                                                       $"auto-reload-fail msg={ex.Message}", ex);
 
                         // Rollback the path change on reload failure
                         _configFilePath = oldPath;
@@ -274,10 +274,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     {
         return (TClass)_configContainerDict.GetOrAdd(typeof(TClass), _ =>
         {
-            var container = new TClass();
+            TClass container = new();
 
             // Get the INI file reference first (thread-safe via Lazy<T>)
-            var iniFile = _iniFile.Value;
+            IniConfig iniFile = _iniFile.Value;
 
             // Initialize the container outside of any explicit lock
             // ConcurrentDictionary.GetOrAdd ensures only one initialization per type

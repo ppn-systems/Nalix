@@ -5,6 +5,11 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Tests.")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Benchmarks")]
+#endif
+
 namespace Nalix.Framework.Random.Core;
 
 /// <summary>
