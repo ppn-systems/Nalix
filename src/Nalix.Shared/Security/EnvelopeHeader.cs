@@ -11,7 +11,7 @@
 // [7]     : nonceLen (1 byte)
 // [8..11] : seq (uint32 little-endian)
 
-using Nalix.Common.Core.Enums;
+using Nalix.Common.Enums;
 
 
 #if DEBUG

@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Core.Attributes;
-using Nalix.Common.Core.Enums;
+using Nalix.Common.Enums;
 using Nalix.Common.Infrastructure.Client;
 using Nalix.Framework.Configuration.Binding;
 

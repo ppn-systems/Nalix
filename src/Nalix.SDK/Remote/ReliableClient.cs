@@ -1,7 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Abstractions;
 using Nalix.Common.Concurrency;
-using Nalix.Common.Core.Abstractions;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Infrastructure.Client;
 using Nalix.Common.Messaging.Packets;
