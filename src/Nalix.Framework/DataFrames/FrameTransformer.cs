@@ -69,7 +69,7 @@ public static class FrameTransformer
     /// </summary>
     /// <param name="plaintextSize">Size of the plaintext input in bytes.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="plaintextSize"/> is negative.</exception>
-    public static int GetMaxCompressedSize(int plaintextSize) => LZ4BlockEncoder.GetMinOutputBufferSize(plaintextSize);
+    public static int GetMaxCompressedSize(int plaintextSize) => LZ4BlockEncoder.GetMaxLength(plaintextSize);
 
     /// <summary>
     /// Reads the original uncompressed payload length from an LZ4 block header.

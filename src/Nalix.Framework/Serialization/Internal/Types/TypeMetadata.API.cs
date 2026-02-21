@@ -104,7 +104,7 @@ internal static partial class TypeMetadata
 
     #region Private Methods
 
-    public static void RecursiveWarmupFields(Type type, HashSet<Type>? visited = null)
+    public static void RecursiveWarmupFields(Type type, HashSet<Type>? visited = null, bool warmCurrentType = false)
     {
         // Walk the transitive closure of field types so formatter registration can be
         // preheated without revisiting the same type over and over.
@@ -114,8 +114,14 @@ internal static partial class TypeMetadata
             return;
         }
 
-        // Warm the formatter cache for this type before recursing into its dependencies.
-        _ = typeof(FormatterProvider).GetMethod("Get")!.MakeGenericMethod(type).Invoke(null, null);
+        // The formatter constructor that calls into this method is already building the
+        // root formatter. Re-entering FormatterProvider.Get<T>() for that same root type
+        // would instantiate the formatter again and recurse forever for value types such
+        // as Snowflake. Only dependency types should be proactively warmed here.
+        if (warmCurrentType && !type.IsPrimitive && !type.IsEnum && type != typeof(string))
+        {
+            _ = typeof(FormatterProvider).GetMethod("Get")!.MakeGenericMethod(type).Invoke(null, null);
+        }
 
         if (type.IsPrimitive || type.IsEnum || type == typeof(string))
         {
@@ -125,7 +131,7 @@ internal static partial class TypeMetadata
         if (type.IsArray)
         {
             // Arrays depend on their element type, so recurse into that instead of the wrapper.
-            RecursiveWarmupFields(type.GetElementType()!, visited);
+            RecursiveWarmupFields(type.GetElementType()!, visited, warmCurrentType: true);
             return;
         }
         if (type.IsGenericType)
@@ -133,7 +139,7 @@ internal static partial class TypeMetadata
             foreach (Type ga in type.GetGenericArguments())
             {
                 // Generic arguments may themselves need formatter warmup.
-                RecursiveWarmupFields(ga, visited);
+                RecursiveWarmupFields(ga, visited, warmCurrentType: true);
             }
         }
 
@@ -146,7 +152,7 @@ internal static partial class TypeMetadata
             }
 
             // Recurse into nested field types so the full graph is warmed, not just the root type.
-            RecursiveWarmupFields(field.FieldType, visited);
+            RecursiveWarmupFields(field.FieldType, visited, warmCurrentType: true);
         }
     }
 
