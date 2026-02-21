@@ -1,9 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
-using Nalix.Common.Core.Enums;
-using Nalix.Common.Core.Exceptions;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Enums;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Infrastructure.Connection;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;

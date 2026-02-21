@@ -1,8 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Concurrency;
-using Nalix.Common.Core.Enums;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Enums;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;

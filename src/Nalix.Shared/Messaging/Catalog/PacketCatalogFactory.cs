@@ -1,8 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Core.Attributes;
-using Nalix.Common.Core.Enums;
+using Nalix.Common.Attributes;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Enums;
 using Nalix.Common.Messaging.Packets;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Framework.Injection;
