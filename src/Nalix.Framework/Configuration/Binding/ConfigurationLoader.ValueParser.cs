@@ -37,13 +37,10 @@ public partial class ConfigurationLoader
                         nameof(IniConfig.GetEnum),
                         System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
 
-                    if (baseMethod == null)
-                    {
-                        throw new System.InvalidOperationException(
-                            $"Could not find GetEnum method on {nameof(IniConfig)}.");
-                    }
-
-                    return baseMethod.MakeGenericMethod(enumType);
+                    return baseMethod == null
+                        ? throw new System.InvalidOperationException(
+                            $"Could not find GetEnum method on {nameof(IniConfig)}.")
+                        : baseMethod.MakeGenericMethod(enumType);
                 });
 
             return method.Invoke(configFile, [section, property.Name]);
@@ -85,14 +82,9 @@ public partial class ConfigurationLoader
         System.Object? currentValue = property.PropertyInfo.GetValue(this);
         System.Object valueToWrite = currentValue ?? "null";
 
-        if (property.PropertyType.IsEnum)
-        {
-            valueToWrite = currentValue?.ToString() ?? System.Enum.GetValues(property.PropertyType).GetValue(0)!.ToString()!;
-        }
-        else
-        {
-            valueToWrite = currentValue?.ToString() ?? GetDefaultValueString(property);
-        }
+        valueToWrite = property.PropertyType.IsEnum
+            ? currentValue?.ToString() ?? System.Enum.GetValues(property.PropertyType).GetValue(0)!.ToString()!
+            : currentValue?.ToString() ?? GetDefaultValueString(property);
 
         configFile.WriteValue(section, property.Name, valueToWrite);
         InstanceManager.Instance.GetExistingInstance<ILogger>()?

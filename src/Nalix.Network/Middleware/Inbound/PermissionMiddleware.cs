@@ -1,6 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Attributes;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Enums;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Common.Messaging.Protocols;
 using Nalix.Framework.Injection;
@@ -14,6 +16,8 @@ namespace Nalix.Network.Middleware.Inbound;
 /// Middleware that checks the permission level of the current connection
 /// before allowing the packet to proceed to the next handler.
 /// </summary>
+[MiddlewareOrder(-50)] // Execute early for security
+[MiddlewareStage(MiddlewareStage.Inbound)]
 public class PermissionMiddleware : IPacketMiddleware<IPacket>
 {
     /// <summary>
