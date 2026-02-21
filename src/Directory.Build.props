@@ -1,25 +1,28 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-	  <DebugType>embedded</DebugType>
-	  <IncludeSource>false</IncludeSource>
-	  <IncludeSymbols>false</IncludeSymbols>
-	  <PublishRepositoryUrl>false</PublishRepositoryUrl>
-	  <EmbedUntrackedSources>false</EmbedUntrackedSources>
+	<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+		<DebugType>embedded</DebugType>
+		<IncludeSource>false</IncludeSource>
+		<IncludeSymbols>false</IncludeSymbols>
+		<PublishRepositoryUrl>false</PublishRepositoryUrl>
+		<EmbedUntrackedSources>false</EmbedUntrackedSources>
 	  
-    <OutputPath>..\..\build\bin\Debug\</OutputPath>
-    <IntermediateOutputPath>..\..\build\obj\Debug\</IntermediateOutputPath>
-  </PropertyGroup>
+		<OutputPath>..\..\build\bin\Debug\</OutputPath>
+		<IntermediateOutputPath>..\..\build\obj\Debug\</IntermediateOutputPath>
+	</PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <Optimize>true</Optimize>
-    <DebugType>portable</DebugType>
-    <Deterministic>true</Deterministic>
-    <TieredCompilation>true</TieredCompilation>
-	<MaxParallelProjectBuilds>10</MaxParallelProjectBuilds>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-	<AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<Optimize>true</Optimize>
+		<DebugType>portable</DebugType>
+		<Deterministic>true</Deterministic>
+		<TieredCompilation>true</TieredCompilation>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<MaxParallelProjectBuilds>10</MaxParallelProjectBuilds>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+		<AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
 
-    <OutputPath>..\..\build\bin\Release\</OutputPath>
-    <IntermediateOutputPath>..\..\build\obj\Release\</IntermediateOutputPath>
-  </PropertyGroup>
+		<OutputPath>..\..\build\bin\Release\</OutputPath>
+		<IntermediateOutputPath>..\..\build\obj\Release\</IntermediateOutputPath>
+	</PropertyGroup>
 </Project>

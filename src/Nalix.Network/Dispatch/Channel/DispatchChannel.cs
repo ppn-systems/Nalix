@@ -131,7 +131,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         // From highest priority down to lowest, pick a ready connection.
         for (System.Int32 p = HighestPriorityIndex; p >= LowestPriorityIndex; p--)
         {
-            while (!_readyByPrio[p].TryDequeue(out connection!))
+            if (!_readyByPrio[p].TryDequeue(out connection!))
             {
                 _ = _inReady.TryRemove(connection, out _);
 

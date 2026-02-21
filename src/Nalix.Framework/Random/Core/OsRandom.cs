@@ -27,6 +27,7 @@ namespace Nalix.Framework.Random.Core;
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Diagnostics.DebuggerDisplay("OsRandom (NOT CSPRNG)")]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal static class OsRandom
 {
     #region Fields
