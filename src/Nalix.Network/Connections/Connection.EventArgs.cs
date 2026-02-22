@@ -47,7 +47,7 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
     #region Properties
 
     /// <inheritdoc/>
-    public IBufferLease Lease => _lease ?? throw new InternalErrorException("Buffer lease is not available for this event.");
+    public IBufferLease? Lease => _lease;
 
     /// <inheritdoc />
     [AllowNull]
@@ -74,7 +74,7 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
     /// <inheritdoc />
     public IBufferLease? ReplaceLease(IBufferLease? newLease)
     {
-        IBufferLease? old = this.Lease;
+        IBufferLease? old = _lease;
         _lease = newLease;
         return old;
     }
