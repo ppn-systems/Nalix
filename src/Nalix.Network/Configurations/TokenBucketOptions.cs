@@ -47,7 +47,7 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// Default is 0 (disabled).
     /// </remarks>
     [System.ComponentModel.DataAnnotations.Range(0, System.Int32.MaxValue, ErrorMessage = "HardLockoutSeconds cannot be negative")]
-    public System.Int32 HardLockoutSeconds { get; set; } = 30;
+    public System.Int32 HardLockoutSeconds { get; set; } = 0;
 
     /// <summary>
     /// Gets or sets the duration in seconds after which an idle endpoint entry
@@ -63,11 +63,11 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// Gets or sets the cleanup interval in seconds.
     /// </summary>
     /// <remarks>
-    /// Default is 60 seconds (1 minute).
+    /// Default is 120 seconds (2 minute).
     /// Controls how often stale entries are removed.
     /// </remarks>
     [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "CleanupIntervalSeconds must be positive")]
-    public System.Int32 CleanupIntervalSeconds { get; set; } = 60;
+    public System.Int32 CleanupIntervalSeconds { get; set; } = 120;
 
     /// <summary>
     /// Gets or sets the fixed-point resolution for token arithmetic
@@ -77,7 +77,7 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// Default is 1,000.
     /// Higher values improve precision but may add overhead.
     /// </remarks>
-    [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "TokenScale must be positive")]
+    [System.ComponentModel.DataAnnotations.Range(1, 10_000, ErrorMessage = "TokenScale must be positive")]
     public System.Int32 TokenScale { get; set; } = 1_000;
 
     /// <summary>
@@ -153,5 +153,37 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     {
         System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
         System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+
+        // Additional checks
+        if (ShardCount <= 0)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("ShardCount must be positive and power-of-two.");
+        }
+
+        // Ensure shard count is power-of-two for bitmasking in shard selection (performance)
+        static System.Boolean IsPowerOfTwo(System.Int32 x) => (x & (x - 1)) == 0;
+        if (!IsPowerOfTwo(ShardCount))
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("ShardCount must be a power of two (e.g., 16, 32, 64) to ensure correct shard distribution.");
+        }
+
+        // Allow zero refill (no refill) if desired
+        if (RefillTokensPerSecond < 0.0)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("RefillTokensPerSecond cannot be negative.");
+        }
+
+        // Prevent potential overflow when computing capacityMicro = CapacityTokens * TokenScale
+        const System.Int64 maxSafe = System.Int64.MaxValue;
+        if (CapacityTokens * (System.Int64)TokenScale > maxSafe)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("CapacityTokens * TokenScale is too large and may overflow Int64. Reduce values.");
+        }
+
+        // Reasonable upper bound for TokenScale to avoid extreme precision causing overhead/overflow
+        if (TokenScale is <= 0 or > 1_000_000)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("TokenScale must be between 1 and 1_000_000.");
+        }
     }
 }
