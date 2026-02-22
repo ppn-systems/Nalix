@@ -58,8 +58,6 @@ public sealed partial class MemoryTests
     public void Rent_ListPoolLifecycle_UpdatesStatistics()
     {
         ListPool<int> pool = new(maxPoolSize: 4, initialCapacity: 2);
-        List<string> traces = [];
-        pool.TraceOccurred += traces.Add;
 
         List<int> list = pool.Rent(3);
         list.AddRange([1, 2, 3]);
@@ -74,7 +72,6 @@ public sealed partial class MemoryTests
         Assert.True(pool.UptimeMs >= 0);
         Assert.Equal(pool.AvailableCount, stats["AvailableCount"]);
         Assert.NotNull(ListPool<int>.Instance);
-        Assert.NotNull(traces);
     }
 
     [Fact]
