@@ -16,12 +16,14 @@ namespace Nalix.Network.Examples.Protocols;
 public sealed class ExamplePacketProtocol : Protocol
 {
     private readonly IPacketDispatch _packetDispatch;
+    private readonly ProtocolX25519 _protocolHanshake;
 
     /// <summary>
     /// Creates a protocol instance that forwards packets into the supplied dispatch pipeline.
     /// </summary>
     public ExamplePacketProtocol(IPacketDispatch packetDispatch)
     {
+        _protocolHanshake = new ProtocolX25519();
         _packetDispatch = packetDispatch ?? throw new ArgumentNullException(nameof(packetDispatch));
         // The sample keeps accepting new connections and lets packet handlers decide
         // how long a session should stay open.
@@ -40,6 +42,8 @@ public sealed class ExamplePacketProtocol : Protocol
         // This is useful for shared hubs, diagnostics, or broadcasting.
         InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
                                 .RegisterConnection(connection);
+
+        _protocolHanshake.Bind(connection);
     }
 
     /// <summary>

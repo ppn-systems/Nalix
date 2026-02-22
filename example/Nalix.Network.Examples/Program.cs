@@ -29,16 +29,16 @@ internal class Program
             .UseLogger(logger)
             .Configure<NetworkSocketOptions>(options => options.Port = 57206)
             // Handshake is a built-in frame that lives in Nalix.Framework, so register that assembly explicitly.
-            .AddPacketsFromAssemblyContaining<Handshake>()
-            .AddPacketHandlersFromAssemblyContaining<PacketCommandHandler>()
-            .AddPacketMetadataProvider<PacketTagMetadataProvider>()
-            .ConfigurePacketDispatcher(dispatchOptions =>
+            .AddPackets<Handshake>()
+            .AddHandlers<PacketCommandHandler>()
+            .AddMetadataProvider<PacketTagMetadataProvider>()
+            .ConfigureDispatcher(dispatchOptions =>
             {
                 _ = dispatchOptions.WithMiddleware(new PacketTagMiddleware());
                 _ = dispatchOptions.WithErrorHandling((exception, command) =>
                     logger.Error($"Error handling command: {command}", exception));
             })
-            .AddTcpServer<ExamplePacketProtocol>()
+            .AddTcp<ExamplePacketProtocol>()
             .Build();
 
         using CancellationTokenSource shutdown = new();
