@@ -20,6 +20,29 @@ namespace Nalix.SDK.Remote;
 [System.Diagnostics.DebuggerDisplay("Remote={Options.Address}:{Options.Port}, Connected={IsConnected}")]
 public sealed class ReliableClient : IReliableClient
 {
+    #region Constants
+
+    // Suggested constants to add to the ReliableClient class.
+    // Place these near the top of the class (e.g. after the Fields region).
+    private const System.Int32 DefaultConnectTimeoutMs = 30_000;           // default ConnectAsync timeout (ms)
+    private const System.Int32 StreamReadTimeoutMs = 10_000;               // NetworkStream.ReadTimeout (ms)
+    private const System.Int32 StreamWriteTimeoutMs = 10_000;              // NetworkStream.WriteTimeout (ms)
+
+    private const System.Int32 ChannelCapacity = 1024;                     // bounded channel capacity
+    private const System.Int32 SenderBatchDelayMs = 1;                     // opportunistic batch delay (ms)
+    private const System.Int32 SenderMaxBatchCount = 64;                   // max packets per batch
+    private const System.Int32 SenderMaxBatchBytes = 64 * 1024;            // max bytes per batch (64 KB)
+    private const System.Int32 FrameHeaderSize = 2;                        // frame header size (U16 length)
+
+    private const System.Int32 SocketBufferSize = 8192;                    // socket send/recv buffer sizes
+    private const System.Int32 KeepAliveTimeMs = 20_000;                   // keepalive idle (ms)
+    private const System.Int32 KeepAliveIntervalMs = 5_000;                // keepalive interval (ms)
+
+    private const System.Int32 WorkerIdArrayLength = 3;                    // size of _workerId array
+    private const System.Int32 LingerTimeoutSeconds = 0;                   // linger option timeout (seconds)
+
+    #endregion Constants
+
     #region Fields
 
     private readonly System.Threading.SemaphoreSlim _connGate;
@@ -28,8 +51,8 @@ public sealed class ReliableClient : IReliableClient
     private System.Net.Sockets.TcpClient _client;
     private System.Net.Sockets.NetworkStream _stream;
 
-    private FRAME_SENDER<IPacket> _outbound;
     private FRAME_READER<IPacket> _inbound;
+    private FRAME_SENDER<IPacket> _outbound;
 
     private volatile System.Boolean _closed;
     private volatile System.Boolean _ioHealthy;
@@ -118,7 +141,7 @@ public sealed class ReliableClient : IReliableClient
     public ReliableClient()
     {
         _connGate = new(1, 1);
-        _workerId = new ISnowflake[3]; // extra slot for sender/recv consumer
+        _workerId = new ISnowflake[WorkerIdArrayLength]; // extra slot for sender/recv consumer
         _client = new System.Net.Sockets.TcpClient { NoDelay = true };
 
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
@@ -138,7 +161,7 @@ public sealed class ReliableClient : IReliableClient
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter", Justification = "<Pending>")]
     public async System.Threading.Tasks.Task ConnectAsync(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 timeout = 30000,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 timeout = DefaultConnectTimeoutMs,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default)
     {
         _closed = false;
@@ -166,15 +189,15 @@ public sealed class ReliableClient : IReliableClient
 
             _stream = _client.GetStream();
 
-            _stream.ReadTimeout = 10_000;
-            _stream.WriteTimeout = 10_000;
+            _stream.ReadTimeout = StreamReadTimeoutMs;
+            _stream.WriteTimeout = StreamWriteTimeoutMs;
 
-            _outbound = new FRAME_SENDER<IPacket>(_stream);
             _inbound = new FRAME_READER<IPacket>(_stream);
+            _outbound = new FRAME_SENDER<IPacket>(_stream);
 
             // Initialize bounded channels
             // Receive channel: bounded, wait when full -> backpressure
-            _recvChannel = System.Threading.Channels.Channel.CreateBounded<IPacket>(new System.Threading.Channels.BoundedChannelOptions(1024)
+            _recvChannel = System.Threading.Channels.Channel.CreateBounded<IPacket>(new System.Threading.Channels.BoundedChannelOptions(ChannelCapacity)
             {
                 SingleReader = true,
                 SingleWriter = false,
@@ -182,7 +205,7 @@ public sealed class ReliableClient : IReliableClient
             });
 
             // Send channel: bounded, wait when full -> backpressure to sender
-            _sendChannel = System.Threading.Channels.Channel.CreateBounded<System.ReadOnlyMemory<System.Byte>>(new System.Threading.Channels.BoundedChannelOptions(1024)
+            _sendChannel = System.Threading.Channels.Channel.CreateBounded<System.ReadOnlyMemory<System.Byte>>(new System.Threading.Channels.BoundedChannelOptions(ChannelCapacity)
             {
                 SingleReader = true,
                 SingleWriter = false,
@@ -311,11 +334,6 @@ public sealed class ReliableClient : IReliableClient
                 group: "network",
                 async (ctx, ct) =>
                 {
-                    // configuration
-                    const System.Int32 batchDelayMs = 1; // optional small delay to accumulate more packets
-                    const System.Int32 maxBatchCount = 64;
-                    const System.Int32 maxBatchBytes = 64 * 1024; // 64 KB
-
                     var reader = _sendChannel.Reader;
 
                     while (!ct.IsCancellationRequested && IsConnected)
@@ -332,23 +350,23 @@ public sealed class ReliableClient : IReliableClient
 
                         // accumulate
                         System.Collections.Generic.List<System.ReadOnlyMemory<System.Byte>> segments = new(4) { first };
-                        System.Int32 totalBytes = first.Length + 2; // header bytes included per frame
-                        while (segments.Count < maxBatchCount && totalBytes < maxBatchBytes && reader.TryRead(out var next))
+                        System.Int32 totalBytes = first.Length + FrameHeaderSize; // header bytes included per frame
+                        while (segments.Count < SenderMaxBatchCount && totalBytes < SenderMaxBatchBytes && reader.TryRead(out var next))
                         {
                             segments.Add(next);
                             totalBytes += next.Length + 2;
                         }
 
                         // If small batch and channel has items, optionally wait a short time to let more packets arrive
-                        if (segments.Count == 1 && totalBytes < maxBatchBytes)
+                        if (segments.Count == 1 && totalBytes < SenderMaxBatchBytes)
                         {
                             // Small opportunistic delay
-                            try { await System.Threading.Tasks.Task.Delay(batchDelayMs, ct).ConfigureAwait(false); } catch { }
+                            try { await System.Threading.Tasks.Task.Delay(SenderBatchDelayMs, ct).ConfigureAwait(false); } catch { }
                             // Drain any newly arrived items up to limits
-                            while (segments.Count < maxBatchCount && totalBytes < maxBatchBytes && reader.TryRead(out var next2))
+                            while (segments.Count < SenderMaxBatchCount && totalBytes < SenderMaxBatchBytes && reader.TryRead(out var next2))
                             {
                                 segments.Add(next2);
-                                totalBytes += next2.Length + 2;
+                                totalBytes += next2.Length + FrameHeaderSize;
                             }
                         }
 
@@ -363,7 +381,7 @@ public sealed class ReliableClient : IReliableClient
                                 System.Int32 payloadLen = seg.Length;
                                 System.UInt16 total = (System.UInt16)(payloadLen + sizeof(System.UInt16));
                                 System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(System.MemoryExtensions.AsSpan(rented, pos, 2), total);
-                                pos += 2;
+                                pos += FrameHeaderSize;
                                 if (payloadLen > 0)
                                 {
                                     seg.CopyTo(System.MemoryExtensions.AsMemory(rented, pos, payloadLen));
@@ -546,14 +564,14 @@ public sealed class ReliableClient : IReliableClient
         try
         {
             client.NoDelay = true;
-            client.SendBufferSize = 8192;
-            client.ReceiveBufferSize = 8192;
+            client.SendBufferSize = SocketBufferSize;
+            client.ReceiveBufferSize = SocketBufferSize;
         }
         catch { /* ignore */ }
 
         try
         {
-            client.LingerState = new System.Net.Sockets.LingerOption(false, 0);
+            client.LingerState = new System.Net.Sockets.LingerOption(false, LingerTimeoutSeconds);
         }
         catch { /* ignore */ }
 
@@ -568,7 +586,7 @@ public sealed class ReliableClient : IReliableClient
         if (System.OperatingSystem.IsWindows())
         {
             _ = client.Client.IOControl(System.Net.Sockets.IOControlCode.KeepAliveValues,
-                              KEEP_ALIVE_CONFIG(keepAliveTimeMs: 20_000, keepAliveIntervalMs: 5_000), null);
+                              KEEP_ALIVE_CONFIG(keepAliveTimeMs: KeepAliveTimeMs, keepAliveIntervalMs: KeepAliveIntervalMs), null);
         }
     }
 

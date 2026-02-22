@@ -11,15 +11,26 @@ namespace Nalix.SDK.Remote;
 /// - Supports Register&lt;T&gt;, RegisterOnce&lt;T&gt; with predicate.
 /// - Dispatch(IPacket) calls matching handlers synchronously on the caller thread.
 /// </summary>
-public sealed class ReliableDispatcher : IReliableDispatcher
+public sealed class ReliableDispatcher : IReliableDispatcher, System.IDisposable
 {
+    #region Fields
+
     // Use ConcurrentDictionary of Type -> immutable handler list for fast dispatch.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, Handlers> _map = new();
+    private System.Int32 _disposed;
+
+    #endregion Fields
+
+    #region Properties
 
     /// <summary>
     /// Gets a value indicating whether the dispatcher contains no registered handlers.
     /// </summary>
     public System.Boolean IsEmpty => _map.IsEmpty;
+
+    #endregion Properties
+
+    #region Nested types
 
     private sealed class Handlers(System.Action<IPacket>[] persistent, OneShot[] oneShots)
     {
@@ -33,53 +44,9 @@ public sealed class ReliableDispatcher : IReliableDispatcher
         public readonly System.Action<IPacket> Handler = handler;
     }
 
-    private System.Int32 _disposed;
+    #endregion Nested types
 
-    /// <inheritdoc/>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1510:Use ArgumentNullException throw helper", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1513:Use ObjectDisposedException throw helper", Justification = "<Pending>")]
-    public void Register<TPacket>(System.Action<TPacket> handler) where TPacket : class, IPacket
-    {
-        if (handler is null)
-        {
-            throw new System.ArgumentNullException(nameof(handler));
-        }
-
-        if (System.Threading.Volatile.Read(ref _disposed) == 1)
-        {
-            throw new System.ObjectDisposedException(nameof(ReliableDispatcher));
-        }
-
-        System.Type t = typeof(TPacket);
-        _ = _map.AddOrUpdate(t,
-            _ => new Handlers([(p => handler((TPacket)p))], []),
-            (_, old) =>
-            {
-                var list = new System.Action<IPacket>[old.Persistent.Length + 1];
-                System.Array.Copy(old.Persistent, list, old.Persistent.Length);
-                list[^1] = p => handler((TPacket)p);
-                return new Handlers(list, old.OneShots);
-            });
-    }
-
-    /// <inheritdoc/>
-    public void RegisterOnce<TPacket>(System.Func<TPacket, System.Boolean> predicate, System.Action<TPacket> handler) where TPacket : class, IPacket
-    {
-        System.ArgumentNullException.ThrowIfNull(predicate);
-        System.ArgumentNullException.ThrowIfNull(handler);
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(ReliableDispatcher));
-
-        System.Type t = typeof(TPacket);
-        _ = _map.AddOrUpdate(t,
-            _ => new Handlers([], [new OneShot(p => predicate((TPacket)p), p => handler((TPacket)p))]),
-            (_, old) =>
-            {
-                var os = new OneShot[old.OneShots.Length + 1];
-                System.Array.Copy(old.OneShots, os, old.OneShots.Length);
-                os[^1] = new OneShot(p => predicate((TPacket)p), p => handler((TPacket)p));
-                return new Handlers(old.Persistent, os);
-            });
-    }
+    #region Public methods
 
     /// <inheritdoc/>
     public void Dispatch(IPacket packet)
@@ -94,8 +61,8 @@ public sealed class ReliableDispatcher : IReliableDispatcher
             return;
         }
 
-        var t = packet.GetType();
-        if (!_map.TryGetValue(t, out var handlers))
+        System.Type t = packet.GetType();
+        if (!_map.TryGetValue(t, out Handlers handlers))
         {
             // No handlers -- nothing to do
             return;
@@ -104,7 +71,14 @@ public sealed class ReliableDispatcher : IReliableDispatcher
         // Invoke persistent handlers
         foreach (System.Action<IPacket> h in handlers.Persistent)
         {
-            try { h(packet); } catch { /* swallow - dispatcher shouldn't throw */ }
+            try
+            {
+                h(packet);
+            }
+            catch
+            {
+                /* swallow - dispatcher shouldn't throw */
+            }
         }
 
         if (handlers.OneShots.Length == 0)
@@ -154,6 +128,52 @@ public sealed class ReliableDispatcher : IReliableDispatcher
     }
 
     /// <inheritdoc/>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1510:Use ArgumentNullException throw helper", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1513:Use ObjectDisposedException throw helper", Justification = "<Pending>")]
+    public void Register<TPacket>(System.Action<TPacket> handler) where TPacket : class, IPacket
+    {
+        if (handler is null)
+        {
+            throw new System.ArgumentNullException(nameof(handler));
+        }
+
+        if (System.Threading.Volatile.Read(ref _disposed) == 1)
+        {
+            throw new System.ObjectDisposedException(nameof(ReliableDispatcher));
+        }
+
+        System.Type t = typeof(TPacket);
+        _ = _map.AddOrUpdate(t,
+            _ => new Handlers([(p => handler((TPacket)p))], []),
+            (_, old) =>
+            {
+                System.Action<IPacket>[] list = new System.Action<IPacket>[old.Persistent.Length + 1];
+                System.Array.Copy(old.Persistent, list, old.Persistent.Length);
+                list[^1] = p => handler((TPacket)p);
+                return new Handlers(list, old.OneShots);
+            });
+    }
+
+    /// <inheritdoc/>
+    public void RegisterOnce<TPacket>(System.Func<TPacket, System.Boolean> predicate, System.Action<TPacket> handler) where TPacket : class, IPacket
+    {
+        System.ArgumentNullException.ThrowIfNull(handler);
+        System.ArgumentNullException.ThrowIfNull(predicate);
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(ReliableDispatcher));
+
+        System.Type t = typeof(TPacket);
+        _ = _map.AddOrUpdate(t,
+            _ => new Handlers([], [new OneShot(p => predicate((TPacket)p), p => handler((TPacket)p))]),
+            (_, old) =>
+            {
+                OneShot[] os = new OneShot[old.OneShots.Length + 1];
+                System.Array.Copy(old.OneShots, os, old.OneShots.Length);
+                os[^1] = new OneShot(p => predicate((TPacket)p), p => handler((TPacket)p));
+                return new Handlers(old.Persistent, os);
+            });
+    }
+
+    /// <inheritdoc/>
     public void Dispose()
     {
         if (System.Threading.Interlocked.Exchange(ref _disposed, 1) == 1)
@@ -163,4 +183,6 @@ public sealed class ReliableDispatcher : IReliableDispatcher
 
         _map.Clear();
     }
+
+    #endregion Public methods
 }
