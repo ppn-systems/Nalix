@@ -24,7 +24,14 @@ namespace Nalix.Shared.Security;
 [System.Diagnostics.DebuggerNonUserCode]
 internal readonly struct EnvelopeHeader
 {
+    #region Constants
+
     public const System.Int32 SIZE = 12;
+
+    #endregion Constants
+
+    #region Fields
+
     public static readonly System.Byte[] MAGIC_BYTES = "NALX"u8.ToArray();
 
     public readonly System.Byte FLAGS;
@@ -32,6 +39,10 @@ internal readonly struct EnvelopeHeader
     public readonly System.Byte VERSION;
     public readonly CipherSuiteType TYPE;
     public readonly System.Byte NONCE_LEN;
+
+    #endregion Fields
+
+    #region Constructors
 
     internal EnvelopeHeader(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte version,
@@ -46,6 +57,10 @@ internal readonly struct EnvelopeHeader
         NONCE_LEN = nonceLen;
         SEQ = seq;
     }
+
+    #endregion Constructors
+
+    #region Methods
 
     /// <summary>
     /// Writes header into dest (must be at least Size).
@@ -112,9 +127,15 @@ internal readonly struct EnvelopeHeader
         return true;
     }
 
+    #endregion Methods
+
+    #region Private Helpers
+
     private static class ThrowHelper
     {
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
         public static void DestinationTooSmall() => throw new System.ArgumentException("Destination too small for AEAD header.");
     }
+
+    #endregion Private Helpers
 }
