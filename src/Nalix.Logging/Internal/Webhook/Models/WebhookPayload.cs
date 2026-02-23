@@ -45,7 +45,7 @@ internal sealed class WebhookPayload
         if (!System.String.IsNullOrEmpty(Content))
         {
             sb.Append("\"content\":");
-            sb.Append(Json.Quote(Content));
+            sb.Append(JsonFormatter.Quote(Content));
             first = false;
         }
 
@@ -57,7 +57,7 @@ internal sealed class WebhookPayload
             }
 
             sb.Append("\"username\":");
-            sb.Append(Json.Quote(Username));
+            sb.Append(JsonFormatter.Quote(Username));
             first = false;
         }
 
@@ -69,7 +69,7 @@ internal sealed class WebhookPayload
             }
 
             sb.Append("\"avatar_url\":");
-            sb.Append(Json.Quote(AvatarUrl));
+            sb.Append(JsonFormatter.Quote(AvatarUrl));
             first = false;
         }
 
