@@ -1,6 +1,7 @@
-﻿using Nalix.Common.Enums;
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Enums;
 using Nalix.Common.Messaging.Packets.Abstractions;
-using System.Text.Json.Serialization;
 
 namespace Nalix.Common.Messaging.Packets;
 
@@ -28,16 +29,12 @@ namespace Nalix.Common.Messaging.Packets;
 [System.Diagnostics.DebuggerDisplay("PacketTransformer [C={HasCompress}, D={HasDecompress}, E={HasEncrypt}, R={HasDecrypt}]")]
 public readonly record struct PacketTransformer(
     /*----------------------------------------------------------------------------------*/
-    [property: JsonIgnore]
     [System.Diagnostics.CodeAnalysis.AllowNull] System.Func<IPacket, IPacket> Compress,
-    [property: JsonIgnore]
     [System.Diagnostics.CodeAnalysis.AllowNull] System.Func<IPacket, IPacket> Decompress,
     /*----------------------------------------------------------------------------------*/
-    [property: JsonIgnore]
     [System.Diagnostics.CodeAnalysis.AllowNull]
     System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket> Encrypt,
     /*----------------------------------------------------------------------------------*/
-    [property: JsonIgnore]
     [System.Diagnostics.CodeAnalysis.AllowNull]
     System.Func<IPacket, System.Byte[], IPacket> Decrypt
     /*----------------------------------------------------------------------------------*/)
