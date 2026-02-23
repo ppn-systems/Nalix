@@ -2,6 +2,7 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Enums;
 using Nalix.Common.Messaging.Packets;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
@@ -40,6 +41,7 @@ public abstract partial class UdpListenerBase
                     work: (_, __) => { ProcessDatagram(result); return new System.Threading.Tasks.ValueTask(); },
                     options: new WorkerOptions
                     {
+                        IdType = SnowflakeType.System,
                         Tag = nameof(NetTaskNames.Segments.Udp),
                         GroupConcurrencyLimit = Config.MaxGroupConcurrency,
                         TryAcquireSlotImmediately = true,

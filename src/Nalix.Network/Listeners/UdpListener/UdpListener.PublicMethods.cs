@@ -2,6 +2,7 @@
 
 using Nalix.Common.Connection;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Enums;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -72,6 +73,7 @@ public abstract partial class UdpListenerBase : IListener
                    work: async (_, ct) => await ReceiveDatagramsAsync(ct),
                    options: new WorkerOptions
                    {
+                       IdType = SnowflakeType.System,
                        Tag = nameof(NetTaskNames.Segments.Udp),
                        CancellationToken = _cancellationToken
                    });

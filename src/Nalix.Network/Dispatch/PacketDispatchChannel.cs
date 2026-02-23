@@ -3,6 +3,7 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Connection;
+using Nalix.Common.Enums;
 using Nalix.Common.Infrastructure.Caching;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Framework.Injection;
@@ -11,6 +12,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch.Channel;
 using Nalix.Network.Internal;
+using Nalix.Shared.Extensions;
 
 namespace Nalix.Network.Dispatch;
 
@@ -68,8 +70,7 @@ public sealed class PacketDispatchChannel
         _dispatch = new DispatchChannel<IPacket>();
         _catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
                    ?? throw new System.InvalidOperationException(
-                       $"[{nameof(PacketDispatchChannel)}] IPacketCatalog not registered in InstanceManager. " +
-                        "Make sure to build and register IPacketCatalog before starting dispatcher.");
+                       $"[{nameof(PacketDispatchChannel)}] IPacketCatalog not registered in InstanceManager. Make sure to build and register IPacketCatalog before starting dispatcher.");
 
         // Push any additional initialization here if needed
         Logger?.Debug($"[{nameof(PacketDispatchChannel)}] init");
@@ -96,13 +97,11 @@ public sealed class PacketDispatchChannel
         }
 
         System.Threading.CancellationToken linkedToken = cancellationToken.CanBeCanceled
-            ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token).Token
-            : _cts.Token;
+            ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token).Token : _cts.Token;
 
         // Decide how many parallel dispatch loops to start.
-        // Rule of thumb: cores/2, clamped to [2..12]
-        System.Int32 cores = System.Environment.ProcessorCount;
-        _dispatchLoops = System.Math.Clamp(cores / 2, 2, 12);
+        // Rule of thumb: cores/2, clamped to [1..12]
+        _dispatchLoops = System.Math.Clamp(System.Environment.ProcessorCount / 2, 1, 12);
 
         for (System.Int32 i = 0; i < _dispatchLoops; i++)
         {
@@ -112,6 +111,7 @@ public sealed class PacketDispatchChannel
                 work: async (ctx, ct) => await RunLoop(ctx, ct).ConfigureAwait(false),
                 options: new WorkerOptions
                 {
+                    IdType = SnowflakeType.System,
                     CancellationToken = linkedToken,
                     RetainFor = System.TimeSpan.Zero,
                     Tag = TaskNaming.Tags.Dispatch
@@ -188,15 +188,13 @@ public sealed class PacketDispatchChannel
     }
 
     /// <inheritdoc />
+    // If you want typed fast-path, you can implement a separate typed channel.
+    // For now, process immediately to avoid mixing typed/lease queues.
     [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+       System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void HandlePacket(
         [System.Diagnostics.CodeAnalysis.NotNull] IPacket packet,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection) =>
-        // If you want typed fast-path, you can implement a separate typed channel.
-        // For now, process immediately to avoid mixing typed/lease queues.
-        _ = base.ExecutePacketHandlerAsync(packet, connection);
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection) => base.ExecutePacketHandlerAsync(packet, connection).Await();
 
     #endregion Public Methods
 
@@ -216,7 +214,7 @@ public sealed class PacketDispatchChannel
             while (System.Threading.Volatile.Read(ref _running) == 1 && !ct.IsCancellationRequested)
             {
                 // Wait for packets to be available
-                await _semaphore.WaitAsync(_cts.Token)
+                await _semaphore.WaitAsync(ct)
                                 .ConfigureAwait(false);
 
                 // Pull from channel (priority-aware)
