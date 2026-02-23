@@ -14,7 +14,7 @@ namespace Nalix.Framework.Tests.Time;
 public class Clock_ThreadSafetyTests
 {
     [Fact]
-    public void Concurrent_NowUtc_Calls_Should_Not_Crash()
+    public async Task Concurrent_NowUtc_Calls_Should_Not_Crash()
     {
         // Reset to clean state
         Clock.ResetSynchronization();
@@ -35,11 +35,11 @@ public class Clock_ThreadSafetyTests
         }
 
         // Should complete without exception
-        Task.WaitAll(tasks.ToArray());
+        await Task.WhenAll(tasks);
     }
 
     [Fact]
-    public void Concurrent_Synchronization_And_Read_Should_Be_ThreadSafe()
+    public async Task Concurrent_Synchronization_And_Read_Should_Be_ThreadSafe()
     {
         // Reset to clean state
         Clock.ResetSynchronization();
@@ -100,14 +100,14 @@ public class Clock_ThreadSafetyTests
             }));
         }
 
-        Task.WaitAll([.. tasks]);
+        await Task.WhenAll(tasks);
 
         // No exceptions should occur
         Assert.Empty(exceptions);
     }
 
     [Fact]
-    public void Synchronized_Reads_Should_Return_Consistent_Values()
+    public async Task Synchronized_Reads_Should_Return_Consistent_Values()
     {
         // Reset to clean state
         Clock.ResetSynchronization();
@@ -140,14 +140,14 @@ public class Clock_ThreadSafetyTests
             }));
         }
 
-        Task.WaitAll(tasks.ToArray());
+        await Task.WhenAll(tasks);
 
         // All threads should report monotonic time
         Assert.All(tasks, task => Assert.True(task.Result));
     }
 
     [Fact]
-    public void DriftRate_Should_Be_ThreadSafe()
+    public async Task DriftRate_Should_Be_ThreadSafe()
     {
         // Reset to clean state
         Clock.ResetSynchronization();
@@ -169,7 +169,7 @@ public class Clock_ThreadSafetyTests
             }));
         }
 
-        Task.WaitAll(tasks.ToArray());
+        await Task.WhenAll(tasks);
 
         // All results should be valid numbers (not NaN or Infinity)
         Assert.All(tasks, task =>
