@@ -1,7 +1,9 @@
-﻿namespace Nalix.Common.Messaging.Packets.Abstractions;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+namespace Nalix.Common.Messaging.Packets.Abstractions;
 
 /// <summary>
-/// Defines a contract for packets that are sequence-aware, 
+/// Defines a contract for packets that are sequence-aware,
 /// typically used for request/response correlation (e.g., PING/PONG, ACK/NACK).
 /// </summary>
 public interface IPacketSequenced

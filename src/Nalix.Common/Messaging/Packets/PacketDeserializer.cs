@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Messaging.Packets.Abstractions;
+﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+
+using Nalix.Common.Messaging.Packets.Abstractions;
 
 namespace Nalix.Common.Messaging.Packets;
 
