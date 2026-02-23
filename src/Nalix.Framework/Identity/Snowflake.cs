@@ -231,7 +231,7 @@ public readonly partial struct Snowflake : ISnowflake
             if (timestampMs == _lastTimestampMs)
             {
                 _sequence++;
-                if (_sequence > MaxSequence)
+                if (_sequence > Snowflake.MaxSequence)
                 {
                     // Wait for next millisecond
                     System.Threading.SpinWait sw = new();

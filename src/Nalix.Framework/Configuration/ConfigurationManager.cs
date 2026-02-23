@@ -104,10 +104,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         _configFilePath = System.IO.Path.Combine(_baseConfigDirectory, "default.ini");
 
         // Validate the initial path
-        ValidateConfigPath(_configFilePath);
+        VALIDATE_CONFIG_PATH(_configFilePath);
 
         // Lazy-load the INI file to defer file access until needed
-        _iniFile = CreateLazyIniConfig(_configFilePath);
+        _iniFile = CREATE_LAZY_INI_CONFIG(_configFilePath);
 
         _configContainerDict = new();
         _configLock = new(System.Threading.LockRecursionPolicy.NoRecursion);
@@ -163,7 +163,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
         // Normalize and validate the new path
         System.String normalizedPath = System.IO.Path.GetFullPath(newConfigFilePath);
-        ValidateConfigPath(normalizedPath);
+        VALIDATE_CONFIG_PATH(normalizedPath);
 
         // Ensure only one path change happens at a time
         if (System.Threading.Interlocked.Exchange(ref _isReloading, 1) == 1)
@@ -203,7 +203,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 _directoryChecked = false;
 
                 // Create new lazy INI file instance
-                _iniFile = CreateLazyIniConfig(_configFilePath);
+                _iniFile = CREATE_LAZY_INI_CONFIG(_configFilePath);
 
                 // Log the change
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -238,7 +238,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
                         // Rollback the path change on reload failure
                         _configFilePath = oldPath;
-                        _iniFile = CreateLazyIniConfig(oldPath);
+                        _iniFile = CREATE_LAZY_INI_CONFIG(oldPath);
                         return false;
                     }
                 }
@@ -453,14 +453,9 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
     #region Private Methods
 
-    /// <summary>
-    /// Creates a lazy-initialized IniConfig instance for the specified file path.
-    /// </summary>
-    /// <param name="filePath">The configuration file path.</param>
-    /// <returns>A <see cref="System.Lazy{IniConfig}"/> instance.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Lazy<IniConfig> CreateLazyIniConfig(System.String filePath)
+    private System.Lazy<IniConfig> CREATE_LAZY_INI_CONFIG(System.String filePath)
     {
         return new System.Lazy<IniConfig>(() =>
         {
@@ -470,16 +465,9 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         }, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
-    /// <summary>
-    /// Validates that the configuration path is within the allowed directory.
-    /// </summary>
-    /// <param name="pathToValidate">The path to validate.</param>
-    /// <exception cref="System.Security.SecurityException">
-    /// Thrown when the path is outside the allowed configuration directory.
-    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void ValidateConfigPath(System.String pathToValidate)
+    private void VALIDATE_CONFIG_PATH(System.String pathToValidate)
     {
         // Normalize both paths for comparison
         var normalizedPath = System.IO.Path.GetFullPath(pathToValidate);
@@ -498,9 +486,6 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         }
     }
 
-    /// <summary>
-    /// Ensures the configuration directory exists with proper validation and error handling.
-    /// </summary>
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(

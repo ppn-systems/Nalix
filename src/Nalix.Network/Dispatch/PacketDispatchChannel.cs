@@ -5,6 +5,7 @@ using Nalix.Common.Concurrency;
 using Nalix.Common.Connection;
 using Nalix.Common.Enums;
 using Nalix.Common.Infrastructure.Caching;
+using Nalix.Common.Messaging.Packets;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
@@ -44,7 +45,7 @@ namespace Nalix.Network.Dispatch;
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("Running={_running}, Pending={_dispatch.TotalPackets}")]
 public sealed class PacketDispatchChannel
-    : PacketDispatcherBase<IPacket>, IPacketDispatch<IPacket>, System.IDisposable, IActivatable
+    : PacketDispatcherBase<IPacket>, IPacketDispatch<IPacket>, System.IDisposable, IActivatable, IReportable
 {
     #region Fields
 
@@ -269,6 +270,289 @@ public sealed class PacketDispatchChannel
     }
 
     #endregion Private Methods
+
+    #region IReportable
+
+    /// <summary>
+    /// Generates a human-readable diagnostic report for the PacketDispatchChannel.
+    /// </summary>
+    /// <returns>A formatted report string.</returns>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public System.String GenerateReport()
+    {
+        System.Text.StringBuilder sb = new(1024);
+
+        APPEND_HEADER(sb);
+        APPEND_SEMAPHORE_AND_CTS_INFO(sb);
+        APPEND_DISPATCH_DIAGNOSTICS(sb);
+        APPEND_CATALOG_INFO(sb);
+        APPEND_NOTES(sb);
+
+        return sb.ToString();
+    }
+
+    /* Helper methods - keep English comments and XML docs per project standard. */
+
+    private void APPEND_HEADER(System.Text.StringBuilder sb)
+    {
+        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PacketDispatchChannel:");
+        _ = sb.AppendLine($"Running: {(System.Threading.Volatile.Read(ref _running) == 1 ? "yes" : " no")} | DispatchLoops: {_dispatchLoops} | PendingPackets: {_dispatch?.TotalPackets ?? 0}");
+        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");
+    }
+
+    private void APPEND_SEMAPHORE_AND_CTS_INFO(System.Text.StringBuilder sb)
+    {
+        try
+        {
+            _ = sb.AppendLine($"Semaphore.CurrentCount: {_semaphore.CurrentCount} | CTS.Cancelled: {_cts.IsCancellationRequested}");
+        }
+        catch (System.Exception)
+        {
+            // Best-effort: do not throw from diagnostics.
+            _ = sb.AppendLine($"Semaphore.CurrentCount: - | CTS.Cancelled: {_cts.IsCancellationRequested}");
+        }
+
+        _ = sb.AppendLine();
+    }
+
+    private void APPEND_DISPATCH_DIAGNOSTICS(System.Text.StringBuilder sb)
+    {
+        _ = sb.AppendLine("DispatchChannel diagnostics (best-effort via reflection):");
+
+        System.Object dispatchObj = _dispatch;
+        if (dispatchObj == null)
+        {
+            _ = sb.AppendLine("  DispatchChannel: null");
+            _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");
+            return;
+        }
+
+        System.Type dType = dispatchObj.GetType();
+
+        // Ready queues per priority
+        try
+        {
+            System.Reflection.FieldInfo readyField = dType.GetField("_readyByPrio", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            if (readyField?.GetValue(dispatchObj) is System.Array readyVal)
+            {
+                _ = sb.AppendLine("  Ready queues (per-priority) - approximate queued connections:");
+                for (System.Int32 p = readyVal.Length - 1; p >= 0; p--)
+                {
+                    System.Int32 count = TRY_GET_COLLECTION_COUNT(readyVal.GetValue(p));
+                    System.String prioName = GET_PRIORITY_NAME(p);
+                    _ = sb.AppendLine($"    {prioName,-8} : {count,6}");
+                }
+            }
+            else
+            {
+                _ = sb.AppendLine("  Ready queues: -");
+            }
+        }
+        catch (System.Exception ex)
+        {
+            _ = sb.AppendLine($"  Ready queues: reflection error: {ex.GetType().Name} {ex.Message}");
+        }
+
+        // inReady set count
+        try
+        {
+            System.Int32 inReadyCount = TRY_GET_PRIVATE_COLLECTION_COUNT(dispatchObj, "_inReady");
+            _ = sb.AppendLine($"  Connections enqueued (inReady): {inReadyCount}");
+        }
+        catch (System.Exception ex)
+        {
+            _ = sb.AppendLine($"  inReady: reflection error: {ex.GetType().Name} {ex.Message}");
+        }
+
+        // _states count
+        try
+        {
+            System.Int32 statesCount = TRY_GET_PRIVATE_COLLECTION_COUNT(dispatchObj, "_states");
+            _ = sb.AppendLine($"  Connections tracked (_states): {statesCount}");
+        }
+        catch (System.Exception ex)
+        {
+            _ = sb.AppendLine($"  _states: reflection error: {ex.GetType().Name} {ex.Message}");
+        }
+
+        // _queues count
+        try
+        {
+            System.Int32 queuesCount = TRY_GET_PRIVATE_COLLECTION_COUNT(dispatchObj, "_queues");
+            _ = sb.AppendLine($"  Connections with queues (_queues): {queuesCount}");
+        }
+        catch (System.Exception ex)
+        {
+            _ = sb.AppendLine($"  _queues: reflection error: {ex.GetType().Name} {ex.Message}");
+        }
+
+        // _totalPackets (private int)
+        try
+        {
+            System.Int32 totalPackets = TRY_GET_PRIVATE_INT_FIELD(dispatchObj, "_totalPackets");
+            if (totalPackets >= 0)
+            {
+                _ = sb.AppendLine($"  _totalPackets (private): {totalPackets}");
+            }
+        }
+        catch (System.Exception ex)
+        {
+            _ = sb.AppendLine($"  _totalPackets: reflection error: {ex.GetType().Name} {ex.Message}");
+        }
+
+        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");
+    }
+
+    /// <summary>
+    /// Returns the priority name for a priority index if the PacketPriority enum is available; otherwise returns the numeric index.
+    /// </summary>
+    private static System.String GET_PRIORITY_NAME(System.Int32 index)
+    {
+        try
+        {
+            var enumType = typeof(PacketPriority);
+            System.String name = System.Enum.GetName(enumType, index);
+            return name ?? index.ToString();
+        }
+        catch
+        {
+            return index.ToString();
+        }
+    }
+
+    /// <summary>
+    /// Tries to read an integer private field from an object. Returns -1 on failure.
+    /// </summary>
+    private static System.Int32 TRY_GET_PRIVATE_INT_FIELD(System.Object instance, System.String fieldName)
+    {
+        if (instance == null)
+        {
+            return -1;
+        }
+
+        var t = instance.GetType();
+        var f = t.GetField(fieldName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        if (f == null)
+        {
+            return -1;
+        }
+
+        try
+        {
+            var val = f.GetValue(instance);
+            if (val is System.Int32 i)
+            {
+                return i;
+            }
+
+            if (val is System.Int64 l)
+            {
+                return (System.Int32)l;
+            }
+
+            if (val is System.Int32 i32)
+            {
+                return i32;
+            }
+        }
+        catch { }
+        return -1;
+    }
+
+    /// <summary>
+    /// Tries to read a private collection-like field and return its Count (best-effort). Returns -1 on failure.
+    /// </summary>
+    private static System.Int32 TRY_GET_PRIVATE_COLLECTION_COUNT(System.Object instance, System.String fieldName)
+    {
+        if (instance == null)
+        {
+            return -1;
+        }
+
+        var t = instance.GetType();
+        var f = t.GetField(fieldName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        if (f == null)
+        {
+            return -1;
+        }
+
+        try
+        {
+            var val = f.GetValue(instance);
+            return TRY_GET_COLLECTION_COUNT(val);
+        }
+        catch { }
+        return -1;
+    }
+
+    /// <summary>
+    /// Returns the Count of a collection-like object or -1 if it cannot be determined.
+    /// </summary>
+    private static System.Int32 TRY_GET_COLLECTION_COUNT(System.Object obj)
+    {
+        if (obj == null)
+        {
+            return -1;
+        }
+
+        // If it implements ICollection, use Count
+        if (obj is System.Collections.ICollection coll)
+        {
+            try { return coll.Count; } catch { return -1; }
+        }
+
+        // If it has a Count property, try to read it via reflection
+        try
+        {
+            var prop = obj.GetType().GetProperty("Count", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (prop != null)
+            {
+                var val = prop.GetValue(obj);
+                if (val is System.Int32 i)
+                {
+                    return i;
+                }
+
+                if (val is System.Int64 l)
+                {
+                    return (System.Int32)l;
+                }
+            }
+        }
+        catch { }
+
+        return -1;
+    }
+
+    private void APPEND_CATALOG_INFO(System.Text.StringBuilder sb)
+    {
+        try
+        {
+            System.String catalogType = _catalog?.GetType().FullName ?? "-";
+            _ = sb.AppendLine($"PacketCatalog: {catalogType}");
+        }
+        catch
+        {
+            _ = sb.AppendLine("PacketCatalog: -");
+        }
+
+        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");
+    }
+
+    private static void APPEND_NOTES(System.Text.StringBuilder sb)
+    {
+        _ = sb.AppendLine("Notes:");
+        _ = sb.AppendLine(" - semaphore = semaphore (synchronization counter)");
+        _ = sb.AppendLine(" - CTS = CancellationTokenSource");
+        _ = sb.AppendLine(" - pending packets = packets waiting inside dispatch channel");
+        _ = sb.AppendLine(" - Reflection reads are best-effort; consider exposing diagnostic APIs on DispatchChannel for stable metrics.");
+        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");
+    }
+
+    #endregion IReportable
 
     #region IDisposable
 
