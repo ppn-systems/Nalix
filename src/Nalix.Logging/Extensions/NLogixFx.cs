@@ -72,7 +72,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
     {
-        PublishLogEntry(
+        PUBLISH_LOG_ENTRY(
             messageType, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
@@ -96,7 +96,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
     {
-        PublishLogEntry(
+        PUBLISH_LOG_ENTRY(
             messageType, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
     }
@@ -123,7 +123,7 @@ public static partial class NLogixFx
             return;
         }
 
-        PublishLogEntry(
+        PUBLISH_LOG_ENTRY(
             LogLevel.Error, message ?? ex.Message, source ?? ex.Source,
             ex, callerMemberName, callerFilePath, callerLineNumber);
     }
@@ -150,7 +150,7 @@ public static partial class NLogixFx
             return;
         }
 
-        PublishLogEntry(
+        PUBLISH_LOG_ENTRY(
             LogLevel.Error, message ?? ex.Message, source?.FullName ?? ex.Source,
             ex, callerMemberName, callerFilePath, callerLineNumber);
     }
